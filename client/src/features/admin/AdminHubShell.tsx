@@ -507,7 +507,7 @@ function isItemActive(pathname: string, activeFor: string[]) {
 }
 
 export default function AdminHubShell() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { canAccess } = usePermissions();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -682,99 +682,87 @@ export default function AdminHubShell() {
     },
   ].filter((item) => canAccess(item.href));
 
+  const allNavItems = sidebarSections.flatMap((section) => section.items);
+  const activeNavItem = allNavItems.find((item) =>
+    isItemActive(location, item.activeFor),
+  );
+  const pageTitle = isHubHome
+    ? "مركز التحكم التشغيلي"
+    : activeNavItem?.label || "صفحة الإدارة";
+  const pageDescription = isHubHome
+    ? "إدارة المركز من مساحة واحدة بدون تنقّل متكرر."
+    : activeNavItem?.description || "إدارة وتشغيل بيانات المركز.";
+
   return (
     <div
       data-admin-hub
-      className="admin-hub-redesign-v2 min-h-screen bg-[#f2f5f9] text-foreground"
+      className="admin-hub-redesign-v3 min-h-screen bg-[#eef2f7] text-foreground"
       dir="rtl"
     >
-      <div className="min-h-screen lg:flex lg:flex-row-reverse">
+      <div className="admin-hub-v3-app min-h-screen">
         <aside
           className={cn(
-            "fixed inset-y-0 right-0 z-40 flex w-[min(86vw,320px)] flex-col border-l border-[#173866] bg-[#0b1b3a] text-white shadow-2xl transition-transform duration-200 lg:static lg:w-[296px] lg:shrink-0 lg:translate-x-0 lg:shadow-none",
-            sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
+            "admin-hub-v3-rail fixed inset-y-0 right-0 z-40 flex flex-col",
+            sidebarOpen ? "is-open" : "",
           )}
+          aria-label="تنقل Admin Hub"
         >
-          <div className="flex items-center justify-between border-b border-border/70 px-5 py-5">
+          <div className="admin-hub-v3-brand">
+            <Link href="/admin-hub" className="admin-hub-v3-brand-mark">
+              <span>AD</span>
+            </Link>
+            <div className="admin-hub-v3-brand-copy">
+              <span>Admin Hub</span>
+              <small>عيون الشروق</small>
+            </div>
             <button
               type="button"
+              className="admin-hub-v3-rail-close"
               onClick={() => setSidebarOpen(false)}
-              className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
               aria-label="إغلاق القائمة"
             >
-              <PanelRightClose className="size-5" />
+              ×
             </button>
-            <Link href="/admin-hub" className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-sm">
-                AD
-              </span>
-              <span className="text-right">
-                <span className="block text-sm font-black text-foreground">
-                  Admin Hub
-                </span>
-                <span className="mt-0.5 block text-[11px] font-medium text-muted-foreground">
-                  عيون الشروق
-                </span>
-              </span>
-            </Link>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-3 py-5">
-            <p className="px-3 pb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-              مساحة الإدارة
-            </p>
-            <div className="space-y-5">
-              {sidebarSections.map((section) => {
-                const SectionIcon = section.icon;
-                return (
-                  <div key={section.id}>
-                    <div className="mb-2 flex items-center gap-2 px-3 text-xs font-bold text-foreground">
-                      <SectionIcon className="size-4 text-primary" />
-                      <span>{section.label}</span>
-                    </div>
-                    <div className="space-y-1">
-                      {section.items.map((item) => {
-                        const active = isItemActive(location, item.activeFor);
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setSidebarOpen(false)}
-                            className={cn(
-                              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors",
-                              active
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            )}
-                          >
-                            <ChevronRight
-                              className={cn(
-                                "size-3.5 shrink-0 transition-transform",
-                                active
-                                  ? "rotate-180"
-                                  : "group-hover:-translate-x-0.5",
-                              )}
-                            />
-                            <span className="min-w-0 flex-1 truncate">
-                              {item.label}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <nav className="admin-hub-v3-rail-nav">
+            <Link
+              href="/admin-hub"
+              className={cn("admin-hub-v3-rail-link", isHubHome && "is-active")}
+              onClick={() => setSidebarOpen(false)}
+              title="الرئيسية"
+            >
+              <LayoutGrid className="size-5" />
+              <span>الرئيسية</span>
+            </Link>
+            {sidebarSections.map((section) => {
+              const SectionIcon = section.icon;
+              const firstItem = section.items[0];
+              if (!firstItem) return null;
+              const sectionActive = section.items.some((item) =>
+                isItemActive(location, item.activeFor),
+              );
+              return (
+                <Link
+                  key={section.id}
+                  href={firstItem.href}
+                  className={cn(
+                    "admin-hub-v3-rail-link",
+                    sectionActive && "is-active",
+                  )}
+                  onClick={() => setSidebarOpen(false)}
+                  title={section.label}
+                >
+                  <SectionIcon className="size-5" />
+                  <span>{section.label.split(" ")[0]}</span>
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="border-t border-border/70 p-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2.5 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-            >
-              <span>العودة للوحة الرئيسية</span>
-              <ArrowRight className="size-4 rotate-180" />
+          <div className="admin-hub-v3-rail-footer">
+            <Link href="/dashboard" title="العودة للوحة الرئيسية">
+              <ArrowRight className="size-5 rotate-180" />
             </Link>
           </div>
         </aside>
@@ -782,244 +770,162 @@ export default function AdminHubShell() {
         {sidebarOpen ? (
           <button
             type="button"
-            aria-label="إغلاق القائمة"
-            className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-[1px] lg:hidden"
+            className="admin-hub-v3-backdrop fixed inset-0 z-30"
             onClick={() => setSidebarOpen(false)}
+            aria-label="إغلاق القائمة"
           />
         ) : null}
 
-        <section className="min-w-0 flex-1 bg-[#f2f5f9]">
-          <header className="admin-hub-mobile-topbar sticky top-0 z-20 border-b border-[#d8e0ec] bg-white/95 backdrop-blur print:static">
-            <div className="mx-auto flex min-h-16 w-full max-w-[1680px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-              <div className="flex min-w-0 items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(true)}
-                  className="admin-hub-mobile-menu-button rounded-xl border border-border bg-card p-2 text-muted-foreground shadow-sm transition-colors hover:text-foreground lg:hidden"
-                  aria-label="فتح القائمة"
-                >
-                  <PanelRightOpen className="size-5" />
-                </button>
-                <div className="min-w-0">
-                  <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-                    Admin Hub
-                  </p>
-                  <p className="truncate text-sm font-bold text-foreground">
-                    مركز الإدارة والتشغيل
-                  </p>
-                </div>
+        <section className="admin-hub-v3-workspace min-h-screen">
+          <header className="admin-hub-v3-topbar sticky top-0 z-20">
+            <div className="admin-hub-v3-topbar-inner">
+              <button
+                type="button"
+                className="admin-hub-v3-menu-button"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="فتح قائمة Admin Hub"
+              >
+                <PanelRightOpen className="size-5" />
+              </button>
+              <div className="admin-hub-v3-location">
+                <span className="admin-hub-v3-eyebrow">مساحة الإدارة</span>
+                <strong>{pageTitle}</strong>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                {metrics.map((metric) => (
-                  <div
-                    key={metric.label}
-                    className={cn(
-                      "hidden min-w-[92px] rounded-xl border px-3 py-2 text-right sm:block",
-                      metric.accent,
-                    )}
-                  >
-                    <span className="block text-[10px] font-semibold text-muted-foreground">
-                      {metric.label}
-                    </span>
-                    <span
-                      className={cn(
-                        "mt-0.5 block text-xs font-black",
-                        metric.tone,
-                      )}
-                    >
-                      {metric.value}
-                    </span>
-                  </div>
-                ))}
-                <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-xs font-black text-primary-foreground sm:hidden">
-                  AD
-                </span>
+              <div className="admin-hub-v3-topbar-tools">
+                <select
+                  className="admin-hub-v3-page-switcher"
+                  value={isHubHome ? "/admin-hub" : activeNavItem?.href || ""}
+                  onChange={(event) => {
+                    if (event.target.value) setLocation(event.target.value);
+                  }}
+                  aria-label="الانتقال إلى صفحة إدارية"
+                >
+                  <option value="/admin-hub">الرئيسية</option>
+                  {sidebarSections.map((section) => (
+                    <optgroup key={section.id} label={section.label}>
+                      {section.items.map((item) => (
+                        <option key={item.href} value={item.href}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <span className="admin-hub-v3-status-dot" title="النظام متصل" />
               </div>
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-            {crumbs ? (
-              <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground print:hidden">
-                {crumbs.map((crumb, index) => (
-                  <span key={crumb.href} className="flex items-center gap-2">
-                    {index > 0 ? (
-                      <ChevronRight className="size-3 rotate-180 opacity-40" />
-                    ) : null}
-                    <Link
-                      href={crumb.href}
-                      className={cn(
-                        "transition-colors hover:text-foreground",
-                        index === crumbs.length - 1
-                          ? "pointer-events-none font-black text-foreground"
-                          : "hover:underline hover:underline-offset-4",
-                      )}
-                    >
-                      {crumb.label}
-                    </Link>
-                  </span>
-                ))}
-              </nav>
-            ) : null}
-
+          <main className="admin-hub-v3-main">
             {isHubHome ? (
-              <div className="space-y-7">
-                <section className="admin-hub-hero flex flex-col gap-6 rounded-3xl border border-border/70 bg-card px-5 py-6 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:px-7">
-                  <div className="max-w-2xl">
-                    <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary">
-                      Operations control room
+              <div className="admin-hub-v3-home">
+                <section className="admin-hub-v3-command-header">
+                  <div>
+                    <span className="admin-hub-v3-eyebrow">
+                      Operations command center
                     </span>
-                    <h1 className="mt-3 text-2xl font-black tracking-tight text-foreground sm:text-3xl">
-                      مركز إدارة عيون الشروق
-                    </h1>
-                    <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">
-                      كل أدوات الإدارة في مساحة واحدة هادئة وواضحة، مع تنقّل
-                      جانبي ثابت بدل التابات والكروت المتكررة.
+                    <h1>إدارة المركز من مكان واحد</h1>
+                    <p>
+                      اختار القسم أو الصفحة المطلوبة مباشرة، من غير طبقات كروت
+                      أو تابات متداخلة.
                     </p>
                   </div>
-                  <div className="admin-hub-hero-stats grid grid-cols-3 gap-2 sm:gap-3">
+                  <div className="admin-hub-v3-health-strip">
                     {metrics.map((metric) => (
                       <div
                         key={metric.label}
-                        className={cn(
-                          "min-w-[92px] rounded-2xl border px-3 py-3",
-                          metric.accent,
-                        )}
+                        className="admin-hub-v3-health-item"
                       >
-                        <span className="block text-[10px] font-semibold text-muted-foreground">
-                          {metric.label}
-                        </span>
-                        <span
-                          className={cn(
-                            "mt-1 block text-base font-black",
-                            metric.tone,
-                          )}
-                        >
-                          {metric.value}
-                        </span>
+                        <span>{metric.label}</span>
+                        <strong className={metric.tone}>{metric.value}</strong>
                       </div>
                     ))}
                   </div>
                 </section>
 
-                {quickLinks.length > 0 ? (
-                  <section>
-                    <div className="mb-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">
-                          Shortcuts
-                        </p>
-                        <h2 className="mt-1 text-lg font-black text-foreground">
-                          الوصول السريع
-                        </h2>
-                      </div>
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        أكثر المهام استخدامًا
-                      </span>
+                <section
+                  className="admin-hub-v3-directory"
+                  aria-label="دليل صفحات الإدارة"
+                >
+                  <div className="admin-hub-v3-directory-heading">
+                    <div>
+                      <span className="admin-hub-v3-eyebrow">Directory</span>
+                      <h2>دليل الإدارة</h2>
                     </div>
-                    <div className="admin-hub-quick-links grid gap-3 md:grid-cols-3">
-                      {quickLinks.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-                          >
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                              <Icon className="size-5" />
+                    <span>{allNavItems.length} صفحة متاحة</span>
+                  </div>
+                  <div className="admin-hub-v3-section-list">
+                    {sidebarSections.map((section) => {
+                      const SectionIcon = section.icon;
+                      return (
+                        <section
+                          key={section.id}
+                          className="admin-hub-v3-section-block"
+                        >
+                          <div className="admin-hub-v3-section-heading">
+                            <span className="admin-hub-v3-section-icon">
+                              <SectionIcon className="size-5" />
                             </span>
-                            <span className="min-w-0 flex-1 text-right">
-                              <span className="block text-sm font-black text-foreground">
-                                {item.label}
-                              </span>
-                              <span className="mt-0.5 block text-xs text-muted-foreground">
-                                {item.hint}
-                              </span>
-                            </span>
-                            <ArrowRight className="size-4 rotate-180 text-muted-foreground transition-transform group-hover:-translate-x-1" />
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ) : null}
-
-                <div className="space-y-8">
-                  {CATEGORIES.map((category) => {
-                    const CategoryIcon = category.icon;
-                    const modules = ALL_MODULES.filter(
-                      (module) =>
-                        module.category === category.id &&
-                        canAccess(module.href),
-                    );
-                    if (modules.length === 0) return null;
-                    return (
-                      <section key={category.id}>
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span
-                              className={cn(
-                                "flex size-10 shrink-0 items-center justify-center rounded-xl border",
-                                category.bg,
-                                category.color,
-                              )}
-                            >
-                              <CategoryIcon className="size-5" />
-                            </span>
-                            <div className="min-w-0">
-                              <h2 className="truncate text-base font-black text-foreground">
-                                {category.title}
-                              </h2>
-                              <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                {category.subtitle}
-                              </p>
+                            <div>
+                              <h3>{section.label}</h3>
+                              <p>{section.description}</p>
                             </div>
+                            <span className="admin-hub-v3-section-count">
+                              {section.items.length}
+                            </span>
                           </div>
-                          <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-black text-muted-foreground">
-                            {modules.length}
-                          </span>
-                        </div>
-                        <div className="admin-hub-module-list grid overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:grid-cols-2">
-                          {modules.map((module) => {
-                            const Icon = module.icon;
-                            return (
-                              <Link
-                                key={module.href}
-                                href={module.href}
-                                className="group flex min-w-0 items-center gap-3 border-b border-border/60 px-4 py-3.5 text-right transition-colors last:border-b-0 hover:bg-muted/45"
-                              >
-                                <span
-                                  className={cn(
-                                    "flex size-9 shrink-0 items-center justify-center rounded-xl",
-                                    module.iconWrap,
-                                  )}
-                                >
-                                  <Icon className="size-4" />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-sm font-bold text-foreground">
-                                    {module.title}
-                                  </span>
-                                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                                    {module.description}
-                                  </span>
-                                </span>
-                                <ChevronRight className="size-4 shrink-0 rotate-180 text-muted-foreground transition-transform group-hover:-translate-x-1" />
+                          <div className="admin-hub-v3-link-list">
+                            {section.items.map((item) => (
+                              <Link key={item.href} href={item.href}>
+                                <span>{item.label}</span>
+                                <small>{item.description}</small>
+                                <ChevronRight className="size-4 rotate-180" />
                               </Link>
-                            );
-                          })}
-                        </div>
-                      </section>
-                    );
-                  })}
-                </div>
+                            ))}
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                </section>
               </div>
             ) : (
-              <div className="admin-hub-page-surface">
-                <Suspense fallback={<AppShellSkeleton />}>
-                  {renderComponent()}
-                </Suspense>
+              <div className="admin-hub-v3-inner-page">
+                <div className="admin-hub-v3-page-context">
+                  <div>
+                    <span className="admin-hub-v3-eyebrow">
+                      Admin Hub / {activeNavItem?.label || "Page"}
+                    </span>
+                    <h1>{pageTitle}</h1>
+                    <p>{pageDescription}</p>
+                  </div>
+                  <div className="admin-hub-v3-context-actions">
+                    <select
+                      className="admin-hub-v3-page-switcher"
+                      value={activeNavItem?.href || ""}
+                      onChange={(event) => {
+                        if (event.target.value) setLocation(event.target.value);
+                      }}
+                      aria-label="الانتقال إلى صفحة إدارية"
+                    >
+                      <option value="">تغيير الصفحة</option>
+                      {sidebarSections.map((section) => (
+                        <optgroup key={section.id} label={section.label}>
+                          {section.items.map((item) => (
+                            <option key={item.href} value={item.href}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="admin-hub-page-surface admin-hub-v3-inner-surface">
+                  <Suspense fallback={<AppShellSkeleton />}>
+                    {renderComponent()}
+                  </Suspense>
+                </div>
               </div>
             )}
           </main>
