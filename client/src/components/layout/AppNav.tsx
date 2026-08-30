@@ -188,19 +188,19 @@ export const adminNavGroups: NavGroup[] = [
   {
     icon: History,
     label: "سجل المرضى",
-    path: "/admin/legacy-patients",
+    path: "/admin-hub/legacy-patients",
     isMain: true,
   },
   {
     icon: ScrollText,
     label: "سجل العمليات",
-    path: "/admin/op-history",
+    path: "/admin-hub/op-history",
     isMain: true,
   },
   {
     icon: MessageCircle,
     label: "رسائل واتساب الواردة",
-    path: "/admin/whatsapp-inbox",
+    path: "/admin-hub/whatsapp-inbox",
     isMain: true,
   },
   {
@@ -329,12 +329,12 @@ export const adminNavGroups: NavGroup[] = [
       {
         icon: History,
         label: "سجل المرضى",
-        path: "/admin/legacy-patients",
+        path: "/admin-hub/legacy-patients",
       },
       {
         icon: ScrollText,
         label: "سجل العمليات",
-        path: "/admin/op-history",
+        path: "/admin-hub/op-history",
       },
     ],
   },

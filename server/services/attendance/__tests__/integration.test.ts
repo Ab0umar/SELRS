@@ -42,11 +42,7 @@ describe("Attendance Module Integration Tests", () => {
         direction,
         source: "tcp",
         sourceHash,
-<<<<<<< HEAD
         deviceId: "192.168.1.10:5005",
-=======
-        deviceId: "41.199.252.107:5005",
->>>>>>> 64805bc2cc3c4a2a79ef722ea88924d18cda4943
       });
 
       expect(result).toBeDefined();
@@ -82,11 +78,7 @@ describe("Attendance Module Integration Tests", () => {
         direction: "in",
         source: "tcp",
         sourceHash,
-<<<<<<< HEAD
         deviceId: "192.168.1.10:5005",
-=======
-        deviceId: "41.199.252.107:5005",
->>>>>>> 64805bc2cc3c4a2a79ef722ea88924d18cda4943
       });
 
       // Try to insert duplicate

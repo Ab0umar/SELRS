@@ -65,6 +65,10 @@ export const AdminRoutes = (
       )}
     />
     <Route
+      path={ROUTES.adminHubRoot}
+      component={() => <Redirect to={ROUTES.adminHub} />}
+    />
+    <Route
       path={ROUTES.adminHub}
       component={() => (
         <ProtectedRoute requiredRoles={["admin"]}>

@@ -1,0 +1,2005 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/medical-report-brand.css";
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-arabic: "Cairo", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
+}
+
+@layer components {
+  .accounting-page {
+    color: rgb(30 41 59);
+  }
+
+  .accounting-page__header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 1.5rem;
+    background: linear-gradient(180deg, rgb(255 255 255), rgb(248 250 252));
+    padding: 1rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  }
+
+  @media (min-width: 768px) {
+    .accounting-page__header {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .accounting-page__eyebrow {
+    margin-bottom: 0.35rem;
+    color: rgb(148 163 184);
+    font-size: 0.625rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .accounting-page__title {
+    color: rgb(15 23 42);
+    font-size: 1.125rem;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+
+  .accounting-page__description {
+    margin-top: 0.35rem;
+    max-width: 48rem;
+    color: rgb(100 116 139);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.75;
+  }
+
+  .accounting-page__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .accounting-panel {
+    border: 1px solid rgb(226 232 240);
+    border-radius: 1.5rem;
+    background-color: rgb(255 255 255);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  }
+
+  [data-accounting-module] section,
+  [data-accounting-module] [data-slot="card"] {
+    border-color: rgb(226 232 240);
+    border-radius: 1.5rem;
+    background-color: rgb(255 255 255);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  }
+
+  [data-accounting-module] [class*="rounded-[24px]"],
+  [data-accounting-module] [class*="rounded-[28px]"] {
+    border-radius: 1.5rem;
+  }
+
+  [data-accounting-module] thead tr,
+  [data-accounting-module] tr[class*="bg-muted"] {
+    background-color: rgb(248 250 252);
+  }
+
+  [data-accounting-module] [class*="bg-muted"] {
+    background-color: rgb(248 250 252);
+  }
+
+  [data-accounting-module] [class*="text-muted-foreground"] {
+    color: rgb(100 116 139);
+  }
+
+  [data-accounting-module] input,
+  [data-accounting-module] select,
+  [data-accounting-module] textarea,
+  [data-accounting-module] button[role="combobox"] {
+    border-radius: 1rem;
+  }
+
+  [data-accounting-module] table {
+    border-color: rgb(226 232 240);
+  }
+
+  [data-accounting-module] tbody tr {
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  [data-accounting-module] tbody tr:hover {
+    background-color: rgb(248 250 252);
+  }
+}
+
+:root {
+  /* Bento One clinical redesign: calm blue structure with warm orange action. */
+  --selrs-navy: oklch(0.45 0.16 257);
+  --selrs-orange: oklch(0.68 0.18 45);
+  --selrs-dark-blue: oklch(0.24 0.024 253);
+  --selrs-light-blue: oklch(0.945 0.016 248);
+  --selrs-light-orange: oklch(0.94 0.055 55);
+
+  --primary: oklch(0.45 0.16 257);
+  --primary-foreground: oklch(0.985 0.006 245);
+  --sidebar-primary: oklch(0.5 0.14 257);
+  --sidebar-primary-foreground: oklch(0.985 0.006 245);
+
+  --chart-1: oklch(0.45 0.16 257);
+  --chart-2: oklch(0.67 0.18 47);
+  --chart-3: oklch(0.62 0.14 154);
+  --chart-4: oklch(0.73 0.15 83);
+  --chart-5: oklch(0.58 0.16 27);
+
+  --radius: 1rem;
+
+  --background: oklch(0.982 0.008 248);
+  --foreground: oklch(0.24 0.024 253);
+  --card: oklch(0.998 0.004 248);
+  --card-foreground: oklch(0.24 0.024 253);
+  --popover: oklch(0.998 0.004 248);
+  --popover-foreground: oklch(0.24 0.024 253);
+  --secondary: oklch(0.68 0.18 45);
+  --secondary-foreground: oklch(0.985 0.006 55);
+  --muted: oklch(0.945 0.016 248);
+  --muted-foreground: oklch(0.5 0.03 253);
+  --accent: oklch(0.925 0.04 248);
+  --accent-foreground: oklch(0.3 0.06 257);
+  --destructive: oklch(0.57 0.2 27);
+  --destructive-foreground: oklch(0.985 0.006 55);
+  --success: oklch(0.62 0.14 154);
+  --success-foreground: oklch(0.985 0.006 145);
+  --info: oklch(0.58 0.17 257);
+  --info-foreground: oklch(0.985 0.006 245);
+  --warning: oklch(0.73 0.15 83);
+  --warning-foreground: oklch(0.27 0.045 65);
+  --error: oklch(0.57 0.2 27);
+  --error-foreground: oklch(0.985 0.006 55);
+  --border: oklch(0.89 0.018 248);
+  --input: oklch(0.998 0.004 248);
+  --ring: oklch(0.58 0.17 257);
+
+  --sidebar: oklch(0.966 0.014 248);
+  --sidebar-foreground: oklch(0.24 0.024 253);
+  --sidebar-accent: oklch(0.925 0.04 248);
+  --sidebar-accent-foreground: oklch(0.3 0.06 257);
+  --sidebar-border: oklch(0.88 0.02 248);
+  --sidebar-ring: oklch(0.58 0.17 257);
+
+  --destructive-text: oklch(0.48 0.17 27);
+  --success-text: oklch(0.42 0.12 154);
+  --warning-text: oklch(0.45 0.1 75);
+  --bento-shadow:
+    0 1px 2px oklch(0.28 0.04 257 / 0.06),
+    0 18px 45px oklch(0.42 0.08 257 / 0.08);
+  --bento-shadow-soft: 0 1px 2px oklch(0.28 0.04 257 / 0.07);
+}
+
+.dark {
+  --background: oklch(0.12 0.015 265);
+  --foreground: oklch(0.97 0.004 60);
+  --card: oklch(0.17 0.012 265);
+  --card-foreground: oklch(0.97 0.004 60);
+  --popover: oklch(0.22 0.01 265);
+  --popover-foreground: oklch(0.97 0.004 60);
+  --primary: oklch(0.75 0.16 76);
+  --primary-foreground: oklch(0.12 0.015 265);
+  --secondary: oklch(0.82 0.13 76);
+  --secondary-foreground: oklch(0.12 0.015 265);
+  --muted: oklch(0.22 0.01 265);
+  --muted-foreground: oklch(0.52 0.01 265);
+  --accent: oklch(0.82 0.13 76);
+  --accent-foreground: oklch(0.12 0.015 265);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.97 0.004 60);
+  --success: oklch(0.68 0.15 145);
+  --success-foreground: oklch(0.97 0.004 60);
+  --info: oklch(0.67 0.14 230);
+  --info-foreground: oklch(0.97 0.004 60);
+  --warning: oklch(0.78 0.16 75);
+  --warning-foreground: oklch(0.12 0.015 265);
+  --error: oklch(0.62 0.22 25);
+  --error-foreground: oklch(0.97 0.004 60);
+  --border: oklch(0.24 0.01 265);
+  --input: oklch(0.22 0.01 265);
+  --ring: oklch(0.75 0.16 76);
+
+  --chart-1: oklch(0.75 0.16 76);
+  --chart-2: oklch(0.82 0.13 76);
+  --chart-3: oklch(0.68 0.15 145);
+  --chart-4: oklch(0.78 0.16 75);
+  --chart-5: oklch(0.67 0.14 230);
+
+  --sidebar: oklch(0.17 0.012 265);
+  --sidebar-foreground: oklch(0.97 0.004 60);
+  --sidebar-primary: oklch(0.75 0.16 76);
+  --sidebar-primary-foreground: oklch(0.12 0.015 265);
+  --sidebar-accent: oklch(0.82 0.13 76);
+  --sidebar-accent-foreground: oklch(0.12 0.015 265);
+  --sidebar-border: oklch(0.24 0.01 265);
+  --sidebar-ring: oklch(0.75 0.16 76);
+
+  --destructive-text: oklch(0.62 0.22 25);
+  --success-text: oklch(0.68 0.15 145);
+  --warning-text: oklch(0.78 0.16 75);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [type="button"]:focus-visible,
+  [type="submit"]:focus-visible,
+  [type="reset"]:focus-visible,
+  a[href]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Slightly denser typography on desktop; mobile keeps its own scale in the mq below */
+  html {
+    font-size: 15px;
+    line-height: 1.45;
+    font-family: var(--font-arabic);
+    /* Block the native browser/WebView swipe-down-to-reload gesture app-wide —
+       it fires at the top of any scroll area (including open forms/sheets)
+       and reloads the whole SPA, wiping unsaved input. Manual refresh
+       buttons (RefreshCw) and the in-app PullToRefresh component still work. */
+    overscroll-behavior-y: contain;
+  }
+
+  :lang(en),
+  [dir="ltr"] {
+    font-family: var(--font-sans);
+  }
+
+  code,
+  kbd,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: inherit;
+    overscroll-behavior-y: contain;
+    direction: rtl;
+    unicode-bidi: plaintext;
+    text-align: start;
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1,
+      "tnum" 1;
+    background-image:
+      radial-gradient(
+        circle at 82% -8%,
+        oklch(0.72 0.11 257 / 0.18),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 10% 6%,
+        oklch(0.78 0.11 55 / 0.12),
+        transparent 24%
+      ),
+      linear-gradient(180deg, oklch(0.992 0.006 248), var(--background) 58%);
+    background-attachment: fixed;
+  }
+  .dark body {
+    background-image: none;
+    background-color: #0d1117;
+  }
+  body * {
+    unicode-bidi: plaintext;
+    text-align: start;
+  }
+  /* Explicit dir (tables, value fields) must win over the content-sniffing
+     plaintext default above, or numeric/empty cells fall back to inherited rtl. */
+  body [dir] {
+    unicode-bidi: isolate;
+  }
+
+  /* App shell: explicit RTL so flex/grid and logical margins follow Arabic layout */
+  .page-layout {
+    direction: rtl;
+    text-align: start;
+    line-height: 1.45;
+  }
+  input,
+  textarea,
+  [contenteditable="true"] {
+    unicode-bidi: plaintext;
+    text-align: start;
+  }
+  /* Strip native chrome from date/time pickers */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+  input[type="date"]::-webkit-datetime-edit,
+  input[type="time"]::-webkit-datetime-edit {
+    direction: ltr;
+    text-align: center;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: center;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@media (max-width: 768px) {
+  .selrs-login-bg {
+    background-attachment: scroll;
+  }
+
+  .dark html,
+  .dark body {
+    background-color: #0d1117 !important;
+    background-image: none !important;
+    background-attachment: scroll !important;
+  }
+
+  .dark .selrs-page-bg {
+    background-color: #0d1117 !important;
+    background-image: none !important;
+    background-attachment: scroll !important;
+  }
+}
+
+@media print {
+  .dark html,
+  .dark body {
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Hide the native textarea resize grip — it's a browser UI affordance,
+     never meant to show up in printed sheets/reports. */
+  textarea {
+    resize: none !important;
+  }
+}
+
+/* Keep every data table inside narrow phone viewports. Desktop widths and
+   print layouts are intentionally unaffected. */
+@media screen and (max-width: 640px) {
+  :where([data-slot="table-container"], .overflow-x-auto, .overflow-auto):has(
+    > table
+  ) {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  table {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  table :is(th, td) {
+    min-width: 0 !important;
+    max-width: none !important;
+    padding-inline: 0.2rem !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    font-size: clamp(0.56rem, 2.25vw, 0.72rem) !important;
+    line-height: 1.25 !important;
+  }
+
+  table :is(input, select, textarea, button) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
+/* P6: Performance — Cumulative Layout Shift fixes */
+img {
+  aspect-ratio: auto;
+}
+
+/* Image containers for medical/pentacam images */
+.image-container,
+.pentacam-image,
+.patient-photo,
+.medical-file-image {
+  aspect-ratio: auto;
+  overflow: hidden;
+}
+
+/* Dashboard chart containers — prevent LCP shift */
+.chart-container {
+  aspect-ratio: auto;
+  min-height: 160px;
+}
+
+/* Skeleton loaders match content height to prevent shift on load */
+[class*="Skeleton"],
+.skeleton {
+  background: var(--muted);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Ensure loading states don't cause margin/padding shifts */
+.skeleton {
+  margin: 0;
+  padding: 0;
+}
+
+/* KPI card values maintain height during loading */
+.card:has(.skeleton) {
+  min-height: auto;
+}
+
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dark [class~="bg-white"] {
+    background-color: rgba(22, 27, 34, 0.96) !important;
+  }
+
+  .dark [class*="bg-white/"] {
+    background-color: rgba(22, 27, 34, 0.92) !important;
+  }
+
+  .dark [class*="bg-slate-50"],
+  .dark [class*="bg-slate-100"] {
+    background-color: rgba(33, 38, 45, 0.85) !important;
+  }
+
+  .dark [class*="border-slate-100"],
+  .dark [class*="border-slate-200"],
+  .dark [class*="border-white/80"] {
+    border-color: rgba(48, 54, 61, 0.9) !important;
+  }
+
+  .dark [class*="text-slate-950"],
+  .dark [class*="text-slate-900"] {
+    color: var(--foreground) !important;
+  }
+
+  .dark [class*="text-slate-800"],
+  .dark [class*="text-slate-700"],
+  .dark [class*="text-slate-600"],
+  .dark [class*="text-slate-500"] {
+    color: rgba(230, 237, 243, 0.72) !important;
+  }
+
+  .dark [class*="bg-[radial-gradient"],
+  .dark [class*="bg-[linear-gradient"] {
+    background-image:
+      radial-gradient(
+        circle at top left,
+        rgba(56, 189, 248, 0.06),
+        transparent 34%
+      ),
+      linear-gradient(135deg, rgba(13, 17, 23, 0.97), rgba(22, 27, 34, 0.8)) !important;
+  }
+
+  .dark [class*="shadow-sm"],
+  .dark [class*="shadow-lg"] {
+    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.3) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+  body {
+    line-height: 1.35;
+  }
+  h1 {
+    font-size: 1.35rem;
+  }
+  h2 {
+    font-size: 1.15rem;
+  }
+  h3 {
+    font-size: 1.05rem;
+  }
+  input,
+  textarea,
+  select,
+  button {
+    font-size: 0.95rem;
+  }
+  input[data-slot="input"],
+  textarea {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .page-layout .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .page-layout .p-6 {
+    padding: 1rem;
+  }
+
+  .page-layout .p-4 {
+    padding: 0.75rem;
+  }
+
+  .page-layout .gap-6 {
+    gap: 1rem;
+  }
+
+  .page-layout input[data-slot="input"],
+  .page-layout textarea,
+  .page-layout select {
+    max-width: 100%;
+  }
+
+  .page-layout table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .page-layout th,
+  .page-layout td {
+    white-space: nowrap;
+  }
+
+  .sheet-layout {
+    font-size: 0.75rem;
+  }
+
+  .sheet-layout input[data-slot="input"],
+  .sheet-layout textarea[data-slot="textarea"],
+  .sheet-layout select {
+    font-size: 0.75rem;
+  }
+
+  .exam-table,
+  .pentacam-table {
+    font-size: 0.8rem;
+  }
+
+  /* Prevent tab headers from overlapping on narrow screens. */
+  [data-slot="tabs-list"] {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-slot="tabs-trigger"] {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+
+  /* Keep wide sections scrollable rather than overflowing over other content. */
+  [data-slot="table-container"],
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer components {
+  /**
+   * Custom container utility that centers content and adds responsive padding.
+   *
+   * This overrides Tailwind's default container behavior to:
+   * - Auto-center content (mx-auto)
+   * - Add responsive horizontal padding
+   * - Set max-width for large screens
+   *
+   * Usage: <div className="container">...</div>
+   *
+   * For custom widths, use max-w-* utilities directly:
+   * <div className="max-w-6xl mx-auto px-4">...</div>
+   */
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* 16px - mobile padding */
+    padding-right: 1rem;
+  }
+
+  .ui-surface {
+    border: 1px solid color-mix(in oklch, var(--border) 88%, var(--primary));
+    background: var(--card);
+    box-shadow: var(--bento-shadow-soft);
+  }
+
+  .ui-panel-title {
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    color: var(--foreground);
+  }
+
+  .page-layout header.bg-primary {
+    width: 100%;
+  }
+
+  .page-layout header.bg-primary .container {
+    max-width: 100%;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem; /* 32px - desktop padding */
+      padding-right: 2rem;
+      max-width: 1200px; /* Slightly narrower for denser layouts */
+    }
+  }
+
+  /* SELRS Brand Utilities */
+  .selrs-gradient-primary {
+    background: linear-gradient(
+      135deg,
+      oklch(0.42 0.15 257) 0%,
+      oklch(0.52 0.16 257) 100%
+    );
+  }
+
+  .selrs-gradient-accent {
+    background: linear-gradient(
+      135deg,
+      oklch(0.68 0.18 45) 0%,
+      oklch(0.77 0.14 60) 100%
+    );
+  }
+
+  .selrs-gradient-mixed {
+    background: linear-gradient(
+      135deg,
+      oklch(0.45 0.16 257) 0%,
+      oklch(0.68 0.18 45) 100%
+    );
+  }
+
+  .selrs-gradient-bar {
+    background: linear-gradient(
+      90deg,
+      oklch(0.45 0.16 257) 0%,
+      oklch(0.55 0.15 257) 52%,
+      oklch(0.68 0.18 45) 100%
+    );
+  }
+
+  .selrs-text-gradient {
+    color: var(--primary);
+  }
+
+  .selrs-card {
+    @apply rounded-2xl border border-border bg-card text-card-foreground transition-[border-color,box-shadow,background-color] duration-200 hover:border-primary/30;
+    box-shadow: var(--bento-shadow-soft);
+  }
+
+  .selrs-button-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold px-4 py-2 transition-[opacity,transform] duration-200 hover:opacity-90 active:scale-95;
+  }
+
+  .selrs-button-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-accent bg-transparent text-accent font-semibold px-4 py-2 transition-[background-color,transform] duration-200 hover:bg-accent/10 active:scale-95;
+  }
+
+  .selrs-page-bg {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(
+        circle at 82% -8%,
+        oklch(0.72 0.11 257 / 0.18),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 10% 6%,
+        oklch(0.78 0.11 55 / 0.12),
+        transparent 24%
+      ),
+      linear-gradient(180deg, oklch(0.992 0.006 248), var(--background) 58%);
+  }
+
+  .dark .selrs-page-bg {
+    background-color: #0d1117;
+    background-image: none;
+  }
+
+  /* Sidebar panel — matches selrs.cc dashboard shell */
+  .selrs-sidebar-bg {
+    background: linear-gradient(180deg, var(--sidebar), var(--card));
+  }
+
+  .dark .selrs-sidebar-bg {
+    background: #010409;
+  }
+
+  .selrs-login-bg {
+    --background: #fbfdff;
+    --foreground: #001f47;
+    --card: #ffffff;
+    --card-foreground: #001f47;
+    --popover: #ffffff;
+    --popover-foreground: #001f47;
+    --muted: #e8f0f8;
+    --muted-foreground: #4b5563;
+    --border: #dbe4ef;
+    --input: #dbe4ef;
+    --primary: #003d82;
+    --primary-foreground: #ffffff;
+    --secondary: #ff9500;
+    --secondary-foreground: #001f47;
+    --accent: #ff9500;
+    --accent-foreground: #001f47;
+    --ring: #003d82;
+    color-scheme: light;
+    background-image:
+      radial-gradient(
+        circle at 18% 14%,
+        rgba(0, 61, 130, 0.12) 0%,
+        rgba(0, 61, 130, 0.05) 20%,
+        transparent 48%
+      ),
+      radial-gradient(
+        circle at 86% 16%,
+        rgba(255, 149, 0, 0.14) 0%,
+        rgba(255, 149, 0, 0.05) 18%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 72% 82%,
+        rgba(0, 61, 130, 0.06) 0%,
+        transparent 28%
+      ),
+      linear-gradient(135deg, #ffffff 0%, #f7fbff 42%, #eef4fb 100%);
+    background-attachment: fixed;
+  }
+
+  .selrs-login-bg input:-webkit-autofill,
+  .selrs-login-bg input:-webkit-autofill:hover,
+  .selrs-login-bg input:-webkit-autofill:focus,
+  .selrs-login-bg input:-webkit-autofill:active {
+    -webkit-text-fill-color: transparent !important;
+    caret-color: var(--primary) !important;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+    box-shadow: 0 0 0 1000px transparent inset !important;
+    transition: background-color 9999s ease-out 0s;
+  }
+
+  .dark .selrs-login-bg {
+    --background: #fbfdff;
+    --foreground: #001f47;
+    --card: #ffffff;
+    --card-foreground: #001f47;
+    --popover: #ffffff;
+    --popover-foreground: #001f47;
+    --muted: #e8f0f8;
+    --muted-foreground: #4b5563;
+    --border: #dbe4ef;
+    --input: #dbe4ef;
+    --primary: #003d82;
+    --primary-foreground: #ffffff;
+    --secondary: #ff9500;
+    --secondary-foreground: #001f47;
+    --accent: #ff9500;
+    --accent-foreground: #001f47;
+    --ring: #003d82;
+    color-scheme: light;
+    background-image:
+      radial-gradient(
+        circle at 18% 14%,
+        rgba(0, 61, 130, 0.12) 0%,
+        rgba(0, 61, 130, 0.05) 20%,
+        transparent 48%
+      ),
+      radial-gradient(
+        circle at 86% 16%,
+        rgba(255, 149, 0, 0.14) 0%,
+        rgba(255, 149, 0, 0.05) 18%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 72% 82%,
+        rgba(0, 61, 130, 0.06) 0%,
+        transparent 28%
+      ),
+      linear-gradient(135deg, #ffffff 0%, #f7fbff 42%, #eef4fb 100%);
+    background-attachment: scroll;
+  }
+
+  .selrs-glass-card {
+    border: 1px solid color-mix(in oklch, var(--border) 86%, var(--primary));
+    background: var(--card);
+    box-shadow: var(--bento-shadow-soft);
+  }
+
+  .dark .selrs-glass-card {
+    border: 1px solid rgba(48, 54, 61, 0.8);
+    background: rgba(22, 27, 34, 0.95);
+    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.3);
+    backdrop-filter: none;
+  }
+
+  .selrs-active-nav {
+    @apply bg-primary/10 text-primary font-semibold;
+  }
+
+  /* Bento One page language: every module gets a calm tiled surface without per-page rewrites. */
+  .page-layout h1 {
+    @apply text-2xl font-black tracking-tight text-foreground md:text-3xl;
+  }
+
+  .page-layout h2 {
+    @apply text-xl font-bold tracking-tight text-foreground;
+  }
+
+  .page-layout h3 {
+    @apply text-base font-bold text-foreground;
+  }
+
+  .page-layout [data-slot="card"],
+  .page-layout .rounded-lg.border.bg-card,
+  .page-layout .rounded-xl.border.bg-card,
+  .page-layout .rounded-2xl.border.bg-card,
+  .page-layout .rounded-lg.border.border-border.bg-card,
+  .page-layout .rounded-xl.border.border-border.bg-card {
+    border-color: color-mix(in oklch, var(--border) 86%, var(--primary));
+    border-radius: 1.25rem;
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--card) 94%, var(--primary)) 0%,
+      var(--card) 46%
+    );
+    box-shadow: var(--bento-shadow-soft);
+  }
+
+  .page-layout [data-slot="card-header"] {
+    padding-block: 1.1rem 0.65rem;
+  }
+
+  .page-layout [data-slot="card-content"] {
+    padding-block-end: 1.15rem;
+  }
+
+  .page-layout [data-slot="tabs-list"] {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--muted) 80%, var(--card));
+    padding: 0.2rem;
+  }
+
+  .page-layout [data-slot="tabs-trigger"] {
+    border-radius: 999px;
+  }
+
+  .page-layout [data-slot="tabs-trigger"][data-state="active"] {
+    background: var(--card);
+    color: var(--primary);
+    box-shadow: var(--bento-shadow-soft);
+  }
+
+  .page-layout button,
+  .page-layout [role="button"],
+  .page-layout a[href] {
+    transition:
+      background-color 180ms ease-out,
+      border-color 180ms ease-out,
+      box-shadow 180ms ease-out,
+      color 180ms ease-out,
+      opacity 180ms ease-out,
+      transform 180ms ease-out;
+  }
+
+  .page-layout button:active,
+  .page-layout [role="button"]:active,
+  .page-layout a[href]:active {
+    transform: translateY(1px);
+  }
+
+  .page-layout input[data-slot="input"],
+  .page-layout textarea[data-slot="textarea"],
+  .page-layout select {
+    border-color: var(--border);
+    border-radius: 0.9rem;
+    background: var(--card);
+    box-shadow: inset 0 1px 0 oklch(0.985 0.006 248 / 0.65);
+  }
+
+  .page-layout table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .page-layout thead tr {
+    background: color-mix(in oklch, var(--primary) 8%, var(--card));
+  }
+
+  .page-layout th {
+    color: color-mix(in oklch, var(--foreground) 78%, var(--primary));
+    font-weight: 800;
+  }
+
+  .page-layout tbody tr {
+    background: var(--card);
+  }
+
+  .page-layout tbody tr:nth-child(even) {
+    background: color-mix(in oklch, var(--muted) 52%, var(--card));
+  }
+
+  .page-layout tbody tr:hover {
+    background: color-mix(in oklch, var(--primary) 7%, var(--card));
+  }
+}
+
+@media print {
+  body.print-only-refraction {
+    width: 148mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.print-only-refraction * {
+    visibility: hidden !important;
+  }
+
+  body.print-only-refraction .refraction-print-section,
+  body.print-only-refraction .refraction-print-section * {
+    visibility: visible !important;
+  }
+
+  body.print-only-refraction .refraction-print-section {
+    position: fixed !important;
+    inset: 28mm auto auto 50% !important;
+    transform: translateX(-50%) !important;
+    width: 132mm !important;
+    max-width: 132mm !important;
+    background: #fff !important;
+    z-index: 9999 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Print Styles for Operations List — A5 Landscape */
+@media print {
+  body.print-ops-list * {
+    visibility: hidden !important;
+  }
+  body.print-ops-list .ops-print-table,
+  body.print-ops-list .ops-print-table * {
+    visibility: visible !important;
+  }
+  body.print-ops-list .ops-print-table {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    padding: 6mm !important;
+    box-sizing: border-box !important;
+    background: #fff !important;
+  }
+}
+
+/* Print Styles for A4 Paper */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* Force sheet contents to fit on A4 page cleanly without scrollbars */
+  .sheet-layout,
+  .specialist-print-root,
+  .lasik-print-root,
+  .followup-print-root {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .sheet-layout table,
+  .specialist-print-root table {
+    font-size: 10px !important;
+  }
+  .sheet-layout th,
+  .sheet-layout td,
+  .specialist-print-root th,
+  .specialist-print-root td {
+    padding: 3px !important;
+    line-height: 1.05 !important;
+  }
+  .sheet-layout input,
+  .sheet-layout select,
+  .sheet-layout textarea,
+  .specialist-print-root input,
+  .specialist-print-root select,
+  .specialist-print-root textarea {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  .sheet-layout input[type="checkbox"],
+  .sheet-layout input[type="radio"],
+  .lasik-print-root input[type="checkbox"],
+  .lasik-print-root input[type="radio"],
+  .specialist-print-root input[type="checkbox"],
+  .specialist-print-root input[type="radio"],
+  .followup-print-root input[type="checkbox"],
+  .followup-print-root input[type="radio"],
+  .a4-page-card input[type="checkbox"],
+  .a4-page-card input[type="radio"] {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  /* Sheet pages use <main> — fill A4, no extra padding (page margin handles whitespace) */
+  main {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-height: 0;
+    margin: 0 auto;
+    padding: 0 !important;
+    page-break-after: avoid;
+    page-break-inside: auto;
+  }
+
+  /* Lasik exam sheet — not inside <main>, needs its own A4 constraint */
+  .lasik-print-root {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  /* Remove decorative mx-4 gutters from direct section children */
+  .lasik-print-root > div {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Followup sheets — grid of sections */
+  .followup-print-root {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .followup-print-root > * {
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Embedded followup body — no max-height/overflow/page-break restrictions */
+  .sheet-followup-body {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    background: white;
+  }
+  .sheet-followup-body table {
+    font-size: 10px !important;
+  }
+  .sheet-followup-body th,
+  .sheet-followup-body td {
+    padding: 3px !important;
+    line-height: 1.05 !important;
+  }
+  .sheet-followup-body input,
+  .sheet-followup-body select,
+  .sheet-followup-body textarea {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  .sheet-followup-body > * {
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Referral letter — constrain to A4, drop shadow/border */
+  .referral-print-root > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Strip shadows and rounded corners from all card-like elements on print */
+  .shadow-sm,
+  .shadow,
+  .shadow-md,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  .notes-col {
+    padding-inline-start: 0 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:ml-0 {
+    margin-left: 0 !important;
+  }
+
+  .print\:mr-0 {
+    margin-right: 0 !important;
+  }
+
+  /* Remove screen-only sizing from page wrappers */
+  .min-h-screen {
+    min-height: 0 !important;
+  }
+
+  /* Remove bottom padding from sheet wrappers */
+  .pb-10,
+  .pb-6 {
+    padding-bottom: 0 !important;
+  }
+
+  /* Ensure print-only block is shown */
+  .hidden.print\:block {
+    display: block !important;
+  }
+
+  input[data-slot="input"],
+  textarea[data-slot="textarea"],
+  select {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+}
+
+/* A4 page card — constrains sheet content to 210mm, looks like paper on screen */
+.a4-page-card {
+  width: 210mm;
+  background: white;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.14);
+  margin: 0 auto;
+  padding: 8mm;
+  box-sizing: border-box;
+}
+
+@media print {
+  .a4-page-card {
+    width: 190mm;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Tighten field widths across all pages (including print) */
+.page-layout input[data-slot="input"] {
+  max-width: 260px;
+}
+.page-layout table input[data-slot="input"] {
+  max-width: 150px;
+}
+.page-layout textarea {
+  max-width: 420px;
+}
+
+/* Center all input text */
+input[data-slot="input"],
+textarea[data-slot="textarea"],
+select {
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* Remove input borders inside all sheet pages */
+.sheet-layout input[data-slot="input"] {
+  border-width: 0;
+  box-shadow: none;
+}
+.sheet-layout input[data-slot="input"]:focus-visible {
+  box-shadow: none;
+}
+
+/* Keep examination auto-air inputs visible inside sheet-layout pages. */
+.auto-air-grid input[data-slot="input"] {
+  border: 1px solid #94a3b8 !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08) !important;
+  max-width: 88px;
+  margin-inline: auto;
+}
+
+.auto-air-grid .grid-cols-3 > input[data-slot="input"]:first-child {
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+}
+
+/* Force first input column (OD side) to max-left in all auto-air rows. */
+.auto-air-grid > .grid > input[data-slot="input"]:nth-child(2) {
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+}
+.auto-air-grid > .grid > input[data-slot="input"]:nth-child(3) {
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+}
+
+.auto-air-grid > .grid > div.grid.grid-cols-3:nth-child(2) {
+  justify-items: start;
+}
+.auto-air-grid > .grid > div.grid.grid-cols-3:nth-child(3) {
+  justify-items: start;
+}
+
+.auto-air-grid
+  > .grid
+  > div.grid.grid-cols-3:nth-child(2)
+  > input[data-slot="input"] {
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+}
+.auto-air-grid
+  > .grid
+  > div.grid.grid-cols-3:nth-child(3)
+  > input[data-slot="input"] {
+  margin-inline-start: 0 !important;
+  margin-inline-end: auto !important;
+}
+
+/* In grouped 1st/2nd/3rd controls, each input should fill its divided cell. */
+.auto-air-group input[data-slot="input"] {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+.auto-air-group {
+  width: 100%;
+  max-width: 210px;
+}
+
+.auto-air-grid input[data-slot="input"]:focus-visible {
+  border-color: #003d82 !important;
+  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
+}
+
+/* Compact inputs for Lasik tables to fit A4 */
+.lasik-table input[data-slot="input"] {
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.exam-table {
+  font-size: 0.95rem;
+  line-height: 1.2rem;
+}
+
+.exam-table input[data-slot="input"] {
+  height: 0.85rem;
+  padding: 0 0.1rem;
+  font-size: 1rem;
+  line-height: 1.1rem;
+}
+
+/* Keep patients table compact on desktop and mobile. */
+.patients-table {
+  margin: 0 auto;
+}
+
+.patients-table th,
+.patients-table td {
+  padding: 0.2rem 0.25rem;
+  white-space: nowrap;
+}
+
+/* Keep auto-air inputs visibly editable in Examination page */
+.auto-air-grid input[data-slot="input"] {
+  border: 1px solid #94a3b8 !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Match Pentacam inputs to exam-table sizing */
+.pentacam-table input[data-slot="input"] {
+  height: 0.85rem;
+  padding: 0 0.1rem;
+  font-size: 1rem;
+  line-height: 1.1rem;
+}
+
+/* Final mobile overrides (keep at end so they win over width-tightening rules above) */
+@media (max-width: 640px) {
+  .selrs-app-content,
+  .patient-portal-frame,
+  .patient-portal-main,
+  .patient-guest-content {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .selrs-app-content > *,
+  .patient-portal-main > * {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 0 !important;
+  }
+
+  .selrs-app-content > [class*="max-w"],
+  .selrs-app-content > [class*="container"],
+  .selrs-app-content
+    > *
+    > :where(
+      main,
+      section,
+      [role="main"],
+      .page-layout,
+      [class*="mx-auto"][class*="max-w"]
+    ) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+  }
+
+  .patient-portal-frame,
+  .patient-guest-content {
+    padding-inline: 0.25rem;
+  }
+
+  .page-layout input[data-slot="input"],
+  .page-layout textarea {
+    max-width: 100%;
+  }
+
+  .page-layout table input[data-slot="input"] {
+    max-width: none;
+    min-width: 5.5rem;
+  }
+
+  .patients-table-wrap {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+
+  .patients-table th,
+  .patients-table td {
+    padding: 0.25rem 0.25rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .patients-table td .flex.flex-wrap {
+    gap: 0.25rem;
+    flex-wrap: nowrap;
+  }
+
+  .patients-table td .flex.flex-wrap > button {
+    min-height: 1.9rem;
+    min-width: 1.9rem;
+    padding: 0.2rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .patients-table {
+    min-width: 860px !important;
+  }
+
+  .patients-table th,
+  .patients-table td {
+    padding: 0.28rem 0.22rem;
+    font-size: 0.74rem;
+  }
+
+  .patients-table td .flex.flex-wrap > button {
+    min-height: 1.7rem;
+    min-width: 1.7rem;
+    padding: 0.15rem;
+  }
+}
+
+/* APK mobile: prevent horizontal scroll on sheet pages */
+@media (max-width: 640px) {
+  .sheet-layout .overflow-x-auto,
+  .sheet-layout [data-slot="table-container"] {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  .sheet-layout table {
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+    overflow: visible !important;
+  }
+
+  .sheet-layout th,
+  .sheet-layout td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .sheet-layout input[data-slot="input"],
+  .sheet-layout textarea[data-slot="textarea"],
+  .sheet-layout select {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* Make plain examination inputs clearly visible and compact */
+.examination-plain-grid input[data-slot="input"] {
+  width: 100% !important;
+  max-width: 88px !important;
+  min-height: 1.6rem !important;
+  height: 1.6rem !important;
+  padding: 0 0.35rem !important;
+  font-size: 0.74rem !important;
+  border: 1px solid #94a3b8 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12) !important;
+  background-color: #ffffff !important;
+}
+
+.examination-plain-grid input[data-slot="input"]:focus-visible {
+  border-color: #003d82 !important;
+  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
+}
+
+.examination-plain-grid > .grid {
+  max-width: 220px;
+}
+
+.examination-plain-grid-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.examination-plain-grid {
+  justify-items: center;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.examination-plain-grid > label {
+  justify-self: center;
+  text-align: center;
+}
+
+/* Hard remove outer frame around custom examination grids */
+.examination-plain-grid-wrapper,
+.examination-plain-grid-wrapper > div,
+.examination-plain-grid {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Examination auto/pentacam inputs sizing */
+.exam-compact-inputs input[data-slot="input"] {
+  min-height: 1.75rem !important;
+  height: 1.75rem !important;
+  padding: 0 0.35rem !important;
+  font-size: 0.72rem !important;
+}
+
+.exam-compact-inputs .w-40 {
+  width: 7rem !important;
+}
+
+.exam-compact-inputs .w-24 {
+  width: 4.8rem !important;
+}
+
+.exam-compact-inputs .w-16 {
+  width: 3.4rem !important;
+}
+
+/* Examination page must keep normal input borders (sheet-layout globally removes them). */
+.examination-page .sheet-layout input[data-slot="input"] {
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: var(--input) !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  background-color: transparent !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+}
+
+.examination-page .sheet-layout input[data-slot="input"]:focus-visible {
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Mobile QA mode: highlight sheet overflow sources */
+.mobile-qa-enabled .sheet-layout .qa-overflow-x {
+  outline: 2px dashed #dc2626 !important;
+  outline-offset: -1px;
+}
+
+.mobile-qa-enabled .sheet-layout .overflow-x-auto,
+.mobile-qa-enabled .sheet-layout [data-slot="table-container"] {
+  outline: 2px dashed #f59e0b !important;
+}
+
+/* DB-backed mobile sheet mode (applies only when enabled on sheet pages) */
+@media screen and (max-width: 640px) {
+  .mobile-sheet-mode.sheet-layout .overflow-x-auto,
+  .mobile-sheet-mode.sheet-layout [data-slot="table-container"] {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+  }
+
+  .mobile-sheet-mode.sheet-layout table th,
+  .mobile-sheet-mode.sheet-layout table td {
+    padding: 0.18rem 0.2rem !important;
+    font-size: 0.76rem !important;
+  }
+
+  .mobile-sheet-mode.sheet-layout input[data-slot="input"],
+  .mobile-sheet-mode.sheet-layout select {
+    min-height: 1.65rem !important;
+    height: 1.65rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .mobile-sheet-mode.sheet-layout textarea[data-slot="textarea"] {
+    min-height: 2rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .mobile-sheet-mode.sheet-layout .flex-nowrap {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* Unified mobile UI treatment for sheet pages */
+.sheet-mobile-actions {
+  display: none !important;
+}
+
+.sheet-section-card {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0.45rem;
+  background: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.sheet-collapsible {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.sheet-collapsible > summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.5rem 0.6rem;
+  list-style: none;
+}
+
+.sheet-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sheet-collapsible > .sheet-collapsible-body {
+  padding: 0.2rem 0.45rem 0.45rem;
+}
+
+@media screen and (max-width: 640px) {
+  .sheet-layout header .container > .sheet-header-bar {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 0.45rem !important;
+    align-items: stretch !important;
+  }
+
+  .sheet-layout header .container > .sheet-header-bar > * {
+    min-width: 0;
+  }
+
+  .sheet-layout .sheet-header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .sheet-layout button,
+  .sheet-layout [role="checkbox"],
+  .sheet-layout input[type="checkbox"] {
+    min-height: 40px !important;
+    min-width: 40px !important;
+  }
+
+  .sheet-layout input[data-slot="input"],
+  .sheet-layout select,
+  .sheet-layout textarea[data-slot="textarea"] {
+    border-color: #64748b !important;
+    background: #fff !important;
+  }
+
+  .mobile-sheet-mode.sheet-layout {
+    font-size: 0.88rem;
+  }
+
+  .mobile-sheet-mode.sheet-layout table {
+    border-color: #9ca3af !important;
+  }
+
+  .mobile-sheet-mode.sheet-layout .sheet-section-card,
+  .mobile-sheet-mode.sheet-layout .sheet-collapsible {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .sheet-mobile-actions {
+    display: none !important;
+  }
+
+  .sheet-mobile-actions + * {
+    margin-bottom: 4.6rem;
+  }
+}
+
+/* Final UI polish for sheet pages */
+.sheet-layout h1,
+.sheet-layout h2 {
+  letter-spacing: 0.01em;
+}
+
+.sheet-layout h1 {
+  font-weight: 800;
+}
+
+.sheet-layout h2 {
+  font-weight: 700;
+}
+
+.sheet-layout table th {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.sheet-layout table td {
+  color: #111827;
+}
+
+.sheet-layout [dir="rtl"] label,
+.sheet-layout [dir="rtl"] .font-bold {
+  text-align: right;
+}
+
+.sheet-section-card {
+  border-color: #cbd5e1;
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+}
+
+.sheet-collapsible {
+  border-color: #cbd5e1;
+}
+
+.sheet-collapsible > summary {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sheet-mobile-actions {
+  border-color: #94a3b8;
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.sheet-mobile-actions button {
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+@media screen and (max-width: 420px) {
+  .sheet-layout h1 {
+    font-size: 1.05rem !important;
+  }
+
+  .sheet-layout h2 {
+    font-size: 0.92rem !important;
+  }
+
+  .sheet-layout .sheet-header-actions button {
+    font-size: 0.74rem !important;
+    padding-inline: 0.45rem !important;
+  }
+
+  .sheet-mobile-actions button {
+    font-size: 0.72rem !important;
+    padding-inline: 0.35rem !important;
+  }
+}
+
+@keyframes pulse-revue {
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-revue {
+  animation: pulse-revue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-revue {
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-revue {
+  animation: pulse-revue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Center printable sheets and reports on A4; the specialist sheet keeps its
+   established print positioning. */
+@media print {
+  body:not(:has(.specialist-print-root)) {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    margin: 0 !important;
+  }
+
+  body:not(:has(.specialist-print-root)) > #root {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    margin: 0 !important;
+  }
+
+  body:not(:has(.specialist-print-root))
+    :is(
+      .sheet-layout,
+      .lasik-print-root,
+      .followup-print-root,
+      .a4-page-card,
+      .referral-print-root,
+      .clinical-report-root,
+      [data-mobile-pdf-root]
+    ) {
+    margin: auto !important;
+  }
+
+  body:has(.specialist-print-root),
+  body:has(.specialist-print-root) > #root {
+    display: block !important;
+    min-height: 0 !important;
+  }
+
+  /* The app shell owns the viewport scrollbar. Do not let it be captured with a sheet. */
+  body:has(.lasik-print-root),
+  body:has(.specialist-page-root),
+  body:has(.lasik-print-root) > #root,
+  body:has(.specialist-page-root) > #root,
+  body:has(.lasik-print-root) [data-app-scroll-container],
+  body:has(.specialist-page-root) [data-app-scroll-container] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  body:has(.lasik-print-root)::-webkit-scrollbar,
+  body:has(.specialist-page-root)::-webkit-scrollbar,
+  body:has(.lasik-print-root) > #root::-webkit-scrollbar,
+  body:has(.specialist-page-root) > #root::-webkit-scrollbar,
+  body:has(.lasik-print-root) [data-app-scroll-container]::-webkit-scrollbar,
+  body:has(.specialist-page-root) [data-app-scroll-container]::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Each visual paper must be a normal print-flow block, not a nested scroll
+     box — overflow:hidden alone achieves that. Do NOT also force
+     max-height/min-height here: these elements set their own fixed A4 page
+     height (with a rounding safety margin below 297mm so Chrome's print
+     pagination doesn't spawn a trailing blank page), and this rule used to
+     have equal-or-higher specificity than that sizing on single-page sheets
+     (e.g. the external/no-followup sheet), silently erasing the page-height
+     clamp there and leaving the box's real height at Chrome's mercy. */
+  body:has(.lasik-print-root)
+    :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet),
+  body:has(.specialist-page-root)
+    :is(.print-page-center-a5, .specialist-sheet) {
+    overflow: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  body:has(.lasik-print-root)
+    :is(.a4-page-card, .print-page-center-a4, .attached-followup-page, .sheet-followup-body, .lasik-sheet)::-webkit-scrollbar,
+  body:has(.specialist-page-root)
+    :is(.print-page-center-a5, .specialist-sheet)::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* The print route is shown on screen before the native print dialog opens. */
+body:has(.print-view-active),
+body:has(.print-view-active) > #root,
+body:has(.print-view-active) [data-app-scroll-container],
+.print-view-active {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Same reasoning as the @media print block above: only strip scrolling here,
+   never the page's own fixed height — this same selector list is what
+   sizes each printed page, both in the app's own pre-print preview and
+   during the real print (both can carry .print-view-active at once). */
+.print-view-active :is(.a4-page-card, .print-page-center-a4, .print-page-center-a5, .attached-followup-page, .sheet-followup-body, .lasik-sheet, .specialist-sheet) {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+body:has(.print-view-active)::-webkit-scrollbar,
+body:has(.print-view-active) > #root::-webkit-scrollbar,
+body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
+.print-view-active::-webkit-scrollbar,
+.print-view-active *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}

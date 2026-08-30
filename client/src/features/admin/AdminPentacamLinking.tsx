@@ -54,8 +54,13 @@ export default function AdminPentacamLinking() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
-  const [, params] = useRoute("/admin/pentacam/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const [, legacyParams] = useRoute("/admin/pentacam/:id");
+  const [, hubParams] = useRoute("/admin-hub/pentacam-linking/:id");
+  const initialPatientId = hubParams?.id
+    ? Number(hubParams.id)
+    : legacyParams?.id
+      ? Number(legacyParams.id)
+      : undefined;
 
   const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(
     null,
@@ -79,7 +84,7 @@ export default function AdminPentacamLinking() {
     )
       return;
     setSelectedPatient(patient);
-    setLocation(`/admin/pentacam/${patient.id}`);
+    setLocation(`/admin-hub/pentacam-linking/${patient.id}`);
   };
 
   useEffect(() => {
@@ -162,7 +167,9 @@ export default function AdminPentacamLinking() {
               <div>
                 <div className="mb-2 flex items-center gap-2">
                   <Search className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">البحث بالكود</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    البحث بالكود
+                  </span>
                 </div>
                 <div className="mb-2">
                   <FilterBar
@@ -182,12 +189,15 @@ export default function AdminPentacamLinking() {
                   onSelect={handleSelectPatient}
                   placeholder="ابحث برمز المريض"
                   wrapperClassName="max-w-none ml-0"
-                  locationType={locationType === "all" ? undefined : locationType}
+                  locationType={
+                    locationType === "all" ? undefined : locationType
+                  }
                   allowPatient={(patient) =>
                     locationType === "all" ||
                     patient.locationType === locationType ||
                     !patient.locationType ||
-                    (initialPatientId != null && patient.id === initialPatientId)
+                    (initialPatientId != null &&
+                      patient.id === initialPatientId)
                   }
                 />
               </div>
@@ -197,7 +207,9 @@ export default function AdminPentacamLinking() {
                 <div className="rounded-xl border border-border bg-muted/50 p-3">
                   <div className="mb-2 flex items-center gap-2">
                     <BookOpenText className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">ملخص المريض</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      ملخص المريض
+                    </span>
                     {selectedPatientId && (
                       <Button
                         type="button"
@@ -215,9 +227,12 @@ export default function AdminPentacamLinking() {
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="font-bold text-foreground">{selectedPatient.fullName}</div>
+                      <div className="font-bold text-foreground">
+                        {selectedPatient.fullName}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        {selectedPatient.patientCode ?? `#${selectedPatient.id}`}
+                        {selectedPatient.patientCode ??
+                          `#${selectedPatient.id}`}
                       </div>
                     </div>
                   </div>

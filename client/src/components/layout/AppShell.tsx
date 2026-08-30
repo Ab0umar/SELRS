@@ -56,7 +56,9 @@ export function AppShell({
     location === "/today-patients" ||
     location === "/today";
 
-  const isShiftScheduleRoute = location === "/attendance/shift-schedule" || location.startsWith("/attendance/shift-schedule");
+  const isShiftScheduleRoute =
+    location === "/attendance/shift-schedule" ||
+    location.startsWith("/attendance/shift-schedule");
 
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(user) && !isAdmin,

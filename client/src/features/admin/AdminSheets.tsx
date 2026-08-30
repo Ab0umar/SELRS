@@ -160,11 +160,21 @@ export default function AdminSheets() {
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-6 pb-6 text-right" dir="rtl">
-      <PageHeader
-        title="ملفات الفحص الإلكترونية والشيتات"
-        subtitle="معاينة وفتح استمارات الفحص المخصصة للمرضى أو استعراض القوالب الأصلية الفارغة للنظام."
-        icon={<Layers className="h-5 w-5" />}
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          title="ملفات الفحص الإلكترونية والشيتات"
+          subtitle="معاينة وفتح استمارات الفحص المخصصة للمرضى أو استعراض القوالب الأصلية الفارغة للنظام."
+          icon={<Layers className="h-5 w-5" />}
+        />
+        <Button
+          type="button"
+          className="selrs-gradient-btn shrink-0 gap-2 self-start text-primary-foreground sm:mt-1"
+          onClick={() => setLocation("/admin-hub/sheet-designer")}
+        >
+          <Plus className="h-4 w-4" />
+          نموذج جديد
+        </Button>
+      </div>
 
       {/* Tabs Switcher */}
       <Tabs

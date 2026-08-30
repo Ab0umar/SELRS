@@ -252,7 +252,7 @@ export default function AdminSheetCopies() {
                       className="h-9 w-9 hover:bg-muted"
                       title="تعديل في المصمم"
                       aria-label="تعديل النسخة في المصمم"
-                      onClick={() => setLocation("/sheet-designer")}
+                      onClick={() => setLocation("/admin-hub/sheet-designer")}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>

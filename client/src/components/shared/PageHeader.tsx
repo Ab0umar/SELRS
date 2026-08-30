@@ -25,6 +25,7 @@ export function PageHeader({
 
   return (
     <div
+      data-admin-page-header="true"
       className={cn("flex flex-col gap-1.5 sm:gap-2 mb-2 sm:mb-4", className)}
       dir="rtl"
     >
