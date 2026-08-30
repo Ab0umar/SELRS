@@ -3,6 +3,9 @@ import type { User } from "../../drizzle/schema";
 import { authService } from "./auth";
 import jwt from "jsonwebtoken";
 import { ENV } from "./env";
+import { getDb } from "../db";
+import { patientPortalSessions } from "../../drizzle/schema";
+import { and, eq, gt } from "drizzle-orm";
 
 export type PatientSession = {
   patientId: number;
@@ -43,11 +46,27 @@ export async function createContext(
         payload?.type === "patient" &&
         typeof payload?.patientId === "number"
       ) {
-        patientSession = {
-          patientId: payload.patientId,
-          phone: String(payload.phone ?? ""),
-          token: raw,
-        };
+        const db = await getDb();
+        if (db) {
+          const [session] = await db
+            .select({ patientId: patientPortalSessions.patientId })
+            .from(patientPortalSessions)
+            .where(
+              and(
+                eq(patientPortalSessions.token, raw),
+                eq(patientPortalSessions.patientId, payload.patientId),
+                gt(patientPortalSessions.expiresAt, new Date()),
+              ),
+            )
+            .limit(1);
+          if (session?.patientId === payload.patientId) {
+            patientSession = {
+              patientId: session.patientId,
+              phone: String(payload.phone ?? ""),
+              token: raw,
+            };
+          }
+        }
       }
     }
   } catch {

@@ -42,7 +42,11 @@ type NotifSettings = {
   attendance: CategoryChannels & { managerId: number | null };
   stockroom: CategoryChannels;
   bookings: CategoryChannels & { userIds: number[] };
-  opReminder: CategoryChannels & { sendHour: number; targetAll: boolean; userIds: number[] };
+  opReminder: CategoryChannels & {
+    sendHour: number;
+    targetAll: boolean;
+    userIds: number[];
+  };
 };
 
 type UserRecord = {
@@ -71,7 +75,13 @@ const DEFAULT: NotifSettings = {
     managerId: null,
   },
   stockroom: { enabled: false, inApp: false, push: false, local: false },
-  bookings: { enabled: true, inApp: true, push: false, local: false, userIds: [] },
+  bookings: {
+    enabled: true,
+    inApp: true,
+    push: false,
+    local: false,
+    userIds: [],
+  },
   opReminder: {
     enabled: false,
     inApp: true,
@@ -112,7 +122,9 @@ function parseSettings(raw: unknown): NotifSettings {
         : null;
     const bookingsRaw = r.bookings as Record<string, unknown> | undefined;
     const bookingUserIds = Array.isArray(bookingsRaw?.userIds)
-      ? (bookingsRaw!.userIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
+      ? (bookingsRaw!.userIds as unknown[])
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
       : [];
     const opReminderRaw = r.opReminder as Record<string, unknown> | undefined;
     const opReminderUserIds = Array.isArray(opReminderRaw?.userIds)
@@ -134,7 +146,10 @@ function parseSettings(raw: unknown): NotifSettings {
       operations: { ...parseCat(r.operations, DEFAULT.operations), userIds },
       attendance: { ...parseCat(r.attendance, DEFAULT.attendance), managerId },
       stockroom: parseCat(r.stockroom, DEFAULT.stockroom),
-      bookings: { ...parseCat(r.bookings, DEFAULT.bookings), userIds: bookingUserIds },
+      bookings: {
+        ...parseCat(r.bookings, DEFAULT.bookings),
+        userIds: bookingUserIds,
+      },
       opReminder: {
         ...parseCat(r.opReminder, DEFAULT.opReminder),
         sendHour: opReminderSendHour,
@@ -544,6 +559,8 @@ function UserSinglePicker({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminNotificationSettings() {
+  const [activeCategory, setActiveCategory] =
+    useState<keyof NotifSettings>("patients");
   const settingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "app_notification_settings_v1" },
     { refetchOnWindowFocus: false },
@@ -637,8 +654,8 @@ export default function AdminNotificationSettings() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-6 px-1" dir="rtl">
-      <div>
+    <div className="mx-auto max-w-[1200px] space-y-4 px-1 pb-4" dir="rtl">
+      <div className="border-b border-border pb-4">
         <h1 className="text-xl font-semibold tracking-tight">
           إعدادات الإشعارات
         </h1>
@@ -686,182 +703,248 @@ export default function AdminNotificationSettings() {
           </div>
         )}
 
-      {/* Patients */}
-      <CategorySection
-        icon={Users}
-        title="المرضى"
-        description="إشعارات تسجيل المرضى والفحوصات والبنتاكام"
-        channels={settings.patients}
-        onChannelChange={(patch) => patchCategory("patients", patch)}
-        fcmConfigured={fcmConfigured}
-        audience={
-          <Badge variant="outline" className="text-xs font-normal gap-1">
-            <Users className="size-3" />
-            جميع المستخدمين
-          </Badge>
-        }
-      />
-
-      {/* Operations */}
-      <CategorySection
-        icon={Syringe}
-        title="العمليات"
-        description="إشعارات قوائم العمليات الجراحية والحجوزات"
-        channels={settings.operations}
-        onChannelChange={(patch) => patchCategory("operations", patch)}
-        fcmConfigured={fcmConfigured}
-        audience={
-          <UserMultiPicker
-            users={users}
-            selected={settings.operations.userIds}
-            onChange={(ids) => patchCategory("operations", { userIds: ids })}
-          />
-        }
-      />
-
-      {/* Attendance */}
-      <CategorySection
-        icon={Activity}
-        title="الحضور"
-        description="إشعارات طلبات الإجازة والأذونات والموافقات"
-        channels={settings.attendance}
-        onChannelChange={(patch) => patchCategory("attendance", patch)}
-        fcmConfigured={fcmConfigured}
-        audience={
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs font-normal gap-1">
-                <Activity className="size-3" />
-                {settings.attendance.managerId
-                  ? (users.find((u) => u.id === settings.attendance.managerId)
-                      ?.name ?? "مدير مخصص")
-                  : "الأدمن / المديرون"}
-              </Badge>
-            </div>
-            <UserSinglePicker
-              users={users}
-              value={settings.attendance.managerId}
-              onChange={(id) => patchCategory("attendance", { managerId: id })}
-              placeholder="+ تعيين مدير مخصص"
+      <div className="grid min-h-[560px] overflow-hidden rounded-lg border border-border lg:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="border-b border-border bg-muted/15 p-2 lg:border-b-0 lg:border-l">
+          {(
+            [
+              { id: "patients", label: "المرضى", icon: Users },
+              { id: "operations", label: "العمليات", icon: Syringe },
+              { id: "attendance", label: "الحضور", icon: Activity },
+              { id: "stockroom", label: "المخزن", icon: Archive },
+              { id: "bookings", label: "الحجوزات", icon: BookOpen },
+              {
+                id: "opReminder",
+                label: "تذكير العمليات",
+                icon: CalendarClock,
+              },
+            ] as const
+          ).map((item) => {
+            const Icon = item.icon;
+            const active = activeCategory === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveCategory(item.id)}
+                className={cn(
+                  "mb-1 flex w-full items-center gap-3 rounded-md px-3 py-3 text-right text-xs font-black transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-background",
+                )}
+              >
+                <Icon className="size-4" />
+                {item.label}
+              </button>
+            );
+          })}
+        </aside>
+        <section className="min-w-0 p-4 sm:p-5">
+          {activeCategory === "patients" ? (
+            <CategorySection
+              icon={Users}
+              title="المرضى"
+              description="إشعارات مزامنة MSSQL والإضافة اليدوية والفحوصات والبنتاكام"
+              channels={settings.patients}
+              onChannelChange={(patch) => patchCategory("patients", patch)}
+              fcmConfigured={fcmConfigured}
+              audience={
+                <Badge variant="outline" className="text-xs font-normal gap-1">
+                  <Users className="size-3" />
+                  جميع المستخدمين
+                </Badge>
+              }
             />
-          </div>
-        }
-      />
+          ) : null}
 
-      {/* Stockroom */}
-      <CategorySection
-        icon={Archive}
-        title="المخزن"
-        description="إشعارات حركات المخزن والمخزون"
-        channels={settings.stockroom}
-        onChannelChange={(patch) => patchCategory("stockroom", patch)}
-        fcmConfigured={fcmConfigured}
-        audience={
-          <Badge variant="outline" className="text-xs font-normal gap-1">
-            <Archive className="size-3" />
-            مستخدمو المخزن
-          </Badge>
-        }
-      />
-
-      {/* Bookings */}
-      <CategorySection
-        icon={BookOpen}
-        title="الحجوزات"
-        description="إشعارات طلبات الحجز الواردة من البوابة الإلكترونية للمرضى"
-        channels={settings.bookings}
-        onChannelChange={(patch) => patchCategory("bookings", patch)}
-        fcmConfigured={fcmConfigured}
-        audience={
-          <div className="space-y-2">
-            <UserMultiPicker
-              users={users}
-              selected={settings.bookings.userIds}
-              onChange={(ids) => patchCategory("bookings", { userIds: ids })}
-            />
-            {settings.bookings.userIds.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                بدون تحديد: يُرسَل للأدمن والاستقبال
-              </p>
-            )}
-          </div>
-        }
-      />
-
-      {/* Op Reminder */}
-      <CategorySection
-        icon={CalendarClock}
-        title="تذكير العمليات"
-        description="إشعار يومي بقائمة عمليات الغد يُرسَل في الساعة المحددة"
-        channels={settings.opReminder}
-        onChannelChange={(patch) => patchCategory("opReminder", patch)}
-        fcmConfigured={fcmConfigured}
-        audience={
-          <div className="space-y-3">
-            {/* Send hour picker */}
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-muted-foreground shrink-0">
-                وقت الإرسال
-              </p>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={settings.opReminder.sendHour}
-                  onChange={(e) => {
-                    const v = Math.min(23, Math.max(0, Number(e.target.value)));
-                    if (Number.isFinite(v))
-                      patchCategory("opReminder", { sendHour: v });
-                  }}
-                  className="h-8 w-16 rounded-md border border-border bg-background px-2 text-center text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          {/* Operations */}
+          {activeCategory === "operations" ? (
+            <CategorySection
+              icon={Syringe}
+              title="العمليات"
+              description="إشعارات قوائم العمليات الجراحية والحجوزات"
+              channels={settings.operations}
+              onChannelChange={(patch) => patchCategory("operations", patch)}
+              fcmConfigured={fcmConfigured}
+              audience={
+                <UserMultiPicker
+                  users={users}
+                  selected={settings.operations.userIds}
+                  onChange={(ids) =>
+                    patchCategory("operations", { userIds: ids })
+                  }
                 />
-                <span className="text-xs text-muted-foreground">:00</span>
-              </div>
-            </div>
-            {/* Audience toggle */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  patchCategory("opReminder", { targetAll: true, userIds: [] })
-                }
-                className={cn(
-                  "rounded-full border px-3 py-0.5 text-xs transition-colors",
-                  settings.opReminder.targetAll
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/50",
-                )}
-              >
-                جميع المستخدمين
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  patchCategory("opReminder", { targetAll: false })
-                }
-                className={cn(
-                  "rounded-full border px-3 py-0.5 text-xs transition-colors",
-                  !settings.opReminder.targetAll
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/50",
-                )}
-              >
-                مستخدمون محددون
-              </button>
-            </div>
-            {!settings.opReminder.targetAll && (
-              <UserMultiPicker
-                users={users}
-                selected={settings.opReminder.userIds}
-                onChange={(ids) =>
-                  patchCategory("opReminder", { userIds: ids })
-                }
-              />
-            )}
-          </div>
-        }
-      />
+              }
+            />
+          ) : null}
+
+          {/* Attendance */}
+          {activeCategory === "attendance" ? (
+            <CategorySection
+              icon={Activity}
+              title="الحضور"
+              description="إشعارات طلبات الإجازة والأذونات والموافقات"
+              channels={settings.attendance}
+              onChannelChange={(patch) => patchCategory("attendance", patch)}
+              fcmConfigured={fcmConfigured}
+              audience={
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-normal gap-1"
+                    >
+                      <Activity className="size-3" />
+                      {settings.attendance.managerId
+                        ? (users.find(
+                            (u) => u.id === settings.attendance.managerId,
+                          )?.name ?? "مدير مخصص")
+                        : "الأدمن / المديرون"}
+                    </Badge>
+                  </div>
+                  <UserSinglePicker
+                    users={users}
+                    value={settings.attendance.managerId}
+                    onChange={(id) =>
+                      patchCategory("attendance", { managerId: id })
+                    }
+                    placeholder="+ تعيين مدير مخصص"
+                  />
+                </div>
+              }
+            />
+          ) : null}
+
+          {/* Stockroom */}
+          {activeCategory === "stockroom" ? (
+            <CategorySection
+              icon={Archive}
+              title="المخزن"
+              description="إشعارات استلام وصرف وتعديل أصناف المخزن"
+              channels={settings.stockroom}
+              onChannelChange={(patch) => patchCategory("stockroom", patch)}
+              fcmConfigured={fcmConfigured}
+              audience={
+                <Badge variant="outline" className="text-xs font-normal gap-1">
+                  <Archive className="size-3" />
+                  مستخدمو المخزن
+                </Badge>
+              }
+            />
+          ) : null}
+
+          {/* Bookings */}
+          {activeCategory === "bookings" ? (
+            <CategorySection
+              icon={BookOpen}
+              title="الحجوزات"
+              description="إشعارات طلبات الحجز الواردة من البوابة الإلكترونية للمرضى"
+              channels={settings.bookings}
+              onChannelChange={(patch) => patchCategory("bookings", patch)}
+              fcmConfigured={fcmConfigured}
+              audience={
+                <div className="space-y-2">
+                  <UserMultiPicker
+                    users={users}
+                    selected={settings.bookings.userIds}
+                    onChange={(ids) =>
+                      patchCategory("bookings", { userIds: ids })
+                    }
+                  />
+                  {settings.bookings.userIds.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      بدون تحديد: يُرسَل للأدمن والاستقبال
+                    </p>
+                  )}
+                </div>
+              }
+            />
+          ) : null}
+
+          {/* Op Reminder */}
+          {activeCategory === "opReminder" ? (
+            <CategorySection
+              icon={CalendarClock}
+              title="تذكير العمليات"
+              description="إشعار يومي بقائمة عمليات الغد يُرسَل في الساعة المحددة"
+              channels={settings.opReminder}
+              onChannelChange={(patch) => patchCategory("opReminder", patch)}
+              fcmConfigured={fcmConfigured}
+              audience={
+                <div className="space-y-3">
+                  {/* Send hour picker */}
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs text-muted-foreground shrink-0">
+                      وقت الإرسال
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        value={settings.opReminder.sendHour}
+                        onChange={(e) => {
+                          const v = Math.min(
+                            23,
+                            Math.max(0, Number(e.target.value)),
+                          );
+                          if (Number.isFinite(v))
+                            patchCategory("opReminder", { sendHour: v });
+                        }}
+                        className="h-8 w-16 rounded-md border border-border bg-background px-2 text-center text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <span className="text-xs text-muted-foreground">:00</span>
+                    </div>
+                  </div>
+                  {/* Audience toggle */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        patchCategory("opReminder", {
+                          targetAll: true,
+                          userIds: [],
+                        })
+                      }
+                      className={cn(
+                        "rounded-full border px-3 py-0.5 text-xs transition-colors",
+                        settings.opReminder.targetAll
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50",
+                      )}
+                    >
+                      جميع المستخدمين
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        patchCategory("opReminder", { targetAll: false })
+                      }
+                      className={cn(
+                        "rounded-full border px-3 py-0.5 text-xs transition-colors",
+                        !settings.opReminder.targetAll
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50",
+                      )}
+                    >
+                      مستخدمون محددون
+                    </button>
+                  </div>
+                  {!settings.opReminder.targetAll && (
+                    <UserMultiPicker
+                      users={users}
+                      selected={settings.opReminder.userIds}
+                      onChange={(ids) =>
+                        patchCategory("opReminder", { userIds: ids })
+                      }
+                    />
+                  )}
+                </div>
+              }
+            />
+          ) : null}
+        </section>
+      </div>
 
       <div className="flex justify-start gap-3 pt-2">
         <Button

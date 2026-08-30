@@ -1,0 +1,285 @@
+{
+  "total": 40,
+  "users": [
+    {
+      "id": 1,
+      "username": "Abu Omar",
+      "role": "admin",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 5,
+      "username": "مصطفى",
+      "role": "reception",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 6,
+      "username": "إيمان",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 9,
+      "username": "ريهام",
+      "role": "reception",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 10,
+      "username": "ايمان",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 167
+    },
+    {
+      "id": 11,
+      "username": "شرين",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 167
+    },
+    {
+      "id": 12,
+      "username": "سميه",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 167
+    },
+    {
+      "id": 13,
+      "username": "هدير",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 14,
+      "username": "صافي",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 15,
+      "username": "مريم",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 167
+    },
+    {
+      "id": 17,
+      "username": "رامز",
+      "role": "technician",
+      "isActive": true,
+      "customPermissionCount": 1
+    },
+    {
+      "id": 18,
+      "username": "د.سعيد",
+      "role": "manager",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 19,
+      "username": "د.سما",
+      "role": "doctor",
+      "isActive": true,
+      "customPermissionCount": 91
+    },
+    {
+      "id": 20,
+      "username": "د.السعدني",
+      "role": "doctor",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 23,
+      "username": "نورا",
+      "role": "reception",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 28,
+      "username": "طبيب",
+      "role": "doctor",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 34,
+      "username": "appuser",
+      "role": "admin",
+      "isActive": true,
+      "customPermissionCount": 351
+    },
+    {
+      "id": 36,
+      "username": "استقبال",
+      "role": "reception",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 41,
+      "username": "تمريض",
+      "role": "nurse",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 42,
+      "username": "فني",
+      "role": "technician",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 43,
+      "username": "د.محمد",
+      "role": "doctor",
+      "isActive": true,
+      "customPermissionCount": 1
+    },
+    {
+      "id": 44,
+      "username": "د.كريم",
+      "role": "doctor",
+      "isActive": true,
+      "customPermissionCount": 1
+    },
+    {
+      "id": 45,
+      "username": "د.احمد",
+      "role": "doctor",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 48,
+      "username": "مدير",
+      "role": "manager",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 49,
+      "username": "كفرالشيخ",
+      "role": "reception",
+      "isActive": true,
+      "customPermissionCount": 99
+    },
+    {
+      "id": 56,
+      "username": "شناوي",
+      "role": "accountant",
+      "isActive": true,
+      "customPermissionCount": 1
+    },
+    {
+      "id": 59,
+      "username": "smoke_admin_qa",
+      "role": "admin",
+      "isActive": false,
+      "customPermissionCount": 120
+    },
+    {
+      "id": 87,
+      "username": "داليا",
+      "role": "reception",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 88,
+      "username": "محاسب",
+      "role": "accountant",
+      "isActive": true,
+      "customPermissionCount": 89
+    },
+    {
+      "id": 89,
+      "username": "ساره",
+      "role": "worker",
+      "isActive": true,
+      "customPermissionCount": 1
+    },
+    {
+      "id": 90,
+      "username": "رضا",
+      "role": "reception",
+      "isActive": true,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 91,
+      "username": "اميمه",
+      "role": "worker",
+      "isActive": true,
+      "customPermissionCount": 3
+    },
+    {
+      "id": 93,
+      "username": "م فاطمه",
+      "role": "supervisor",
+      "isActive": true,
+      "customPermissionCount": 1
+    },
+    {
+      "id": 94,
+      "username": "عصام",
+      "role": "supervisor",
+      "isActive": true,
+      "customPermissionCount": 1
+    },
+    {
+      "id": 97,
+      "username": "محمود",
+      "role": "supervisor",
+      "isActive": true,
+      "customPermissionCount": 11
+    },
+    {
+      "id": 98,
+      "username": "testsprite",
+      "role": "admin",
+      "isActive": false,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 99,
+      "username": "test",
+      "role": "admin",
+      "isActive": false,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 100,
+      "username": "teststaff",
+      "role": "admin",
+      "isActive": false,
+      "customPermissionCount": 0
+    },
+    {
+      "id": 101,
+      "username": "د.هبه",
+      "role": "doctor",
+      "isActive": true,
+      "customPermissionCount": 91
+    },
+    {
+      "id": 102,
+      "username": "admin",
+      "role": "admin",
+      "isActive": true,
+      "customPermissionCount": 1
+    }
+  ]
+}

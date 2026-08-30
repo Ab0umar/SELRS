@@ -10,6 +10,18 @@ import path from "node:path";
 import { users, doctorsLookup, services } from "../../drizzle/schema";
 import { eq, ilike } from "drizzle-orm";
 
+const ALLOWED_MSSQL_PATIENT_TABLES = new Set(["op2026.dbo.PAJRNRCVH"]);
+
+function getAllowedMssqlPatientTable() {
+  const table = String(
+    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
+  ).trim();
+  if (!ALLOWED_MSSQL_PATIENT_TABLES.has(table)) {
+    throw new Error("MSSQL_PUSH_PATIENTS_TABLE is not an allowed table");
+  }
+  return table;
+}
+
 type SyncOptions = {
   limit?: number;
   dryRun?: boolean;
@@ -2492,9 +2504,7 @@ export async function insertPatientToMssql(
     return { inserted: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
   }
 
-  const targetTable = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
+  const targetTable = getAllowedMssqlPatientTable();
   const nowIso = new Date().toISOString();
   const nowLiteral = toSqlDateTimeLiteral(nowIso);
   const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
@@ -3196,9 +3206,7 @@ export async function upsertPatientToMssql(
     return { upserted: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
   }
 
-  const targetTable = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
+  const targetTable = getAllowedMssqlPatientTable();
   const nowIso = new Date().toISOString();
   const nowLiteral = toSqlDateTimeLiteral(nowIso);
   const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
@@ -3739,9 +3747,7 @@ export async function ensurePatientServiceInMssql(
   }
   const secCdRaw = Number(process.env.MSSQL_PUSH_SEC_CD ?? 15);
   const secCd = Number.isFinite(secCdRaw) ? Math.trunc(secCdRaw) : 15;
-  const targetTable = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
+  const targetTable = getAllowedMssqlPatientTable();
   const enteredBy =
     String(process.env.MSSQL_PUSH_ENTEREDBY ?? "").trim() || null;
   const todayDateOnly = `${new Date().toISOString().slice(0, 10)} 00:00:00`;
@@ -4309,9 +4315,7 @@ export async function editReceiptServiceLine(input: {
       `INSERT INTO op2026.dbo.PAPAT_SRV (${insertCols.join(", ")}) VALUES (${insertVals.join(", ")})`,
     );
 
-    const targetTable = String(
-      process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-    ).trim();
+    const targetTable = getAllowedMssqlPatientTable();
     await applyPajrnrHeaderTotals(pool, targetTable, patientCode, input.trNo);
 
     await tx.commit();
@@ -4349,9 +4353,7 @@ export async function addServiceReceiptInMssql(
   if (!enabled)
     return { inserted: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
 
-  const targetTable = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
+  const targetTable = getAllowedMssqlPatientTable();
   const nowIso = new Date().toISOString();
   const nowLiteral = toSqlDateTimeLiteral(nowIso);
   const todayDateOnly = `${nowIso.slice(0, 10)} 00:00:00`;
@@ -4747,9 +4749,7 @@ export async function addMultiServiceReceiptInMssql(
   if (!enabled)
     return { inserted: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
 
-  const targetTable = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
+  const targetTable = getAllowedMssqlPatientTable();
   const requestedDate = serviceDateRaw ? new Date(serviceDateRaw) : null;
   const nowIso =
     requestedDate && !Number.isNaN(requestedDate.valueOf())
@@ -5164,9 +5164,7 @@ export async function deletePatientFromMssqlByCode(
     return { deleted: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
   }
 
-  const targetTable = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
+  const targetTable = getAllowedMssqlPatientTable();
   const pool = await createMssqlPool();
   try {
     await pool.connect();
@@ -5259,9 +5257,7 @@ export async function renamePatientCodeInMssql(
     return { updated: false, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
   }
 
-  const targetTable = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
+  const targetTable = getAllowedMssqlPatientTable();
   const pool = await createMssqlPool();
   try {
     await pool.connect();
@@ -5800,9 +5796,7 @@ export async function getNextMssqlPatientCode(): Promise<string> {
   const pool = await createMssqlPool();
   try {
     await pool.connect();
-    const targetTable = String(
-      process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-    ).trim();
+    const targetTable = getAllowedMssqlPatientTable();
     const result = await pool.request().query(`
       SELECT MAX(CAST(PAT_CD AS INT)) AS maxCode
       FROM ${targetTable}
@@ -5814,6 +5808,36 @@ export async function getNextMssqlPatientCode(): Promise<string> {
   } finally {
     // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
   }
+}
+
+/** Arabic service names (SRVCMF.SRV_NM_AR) for a batch of service codes —
+ * lets the op-type mapping admin UI show what a bare code actually means
+ * instead of asking the admin to map codes blind. Codes with no SRVCMF row
+ * are simply absent from the returned map. */
+export async function getServiceCodeNamesFromMssql(
+  codes: string[],
+): Promise<Map<string, string>> {
+  const uniqueCodes = Array.from(
+    new Set(codes.map((c) => String(c ?? "").trim()).filter(Boolean)),
+  );
+  const result = new Map<string, string>();
+  if (!uniqueCodes.length) return result;
+  const pool = await createMssqlPool();
+  await pool.connect();
+  const request = pool.request();
+  uniqueCodes.forEach((code, i) => request.input(`c${i}`, code));
+  const placeholders = uniqueCodes.map((_, i) => `@c${i}`).join(", ");
+  const rs = await request.query(`
+    SELECT SRV_CD AS serviceCode, SRV_NM_AR AS serviceName
+    FROM op2026.dbo.SRVCMF
+    WHERE SRV_CD IN (${placeholders})
+  `);
+  for (const row of rs.recordset ?? []) {
+    const code = String(row.serviceCode ?? "").trim();
+    const name = String(row.serviceName ?? "").trim();
+    if (code && name) result.set(code, name);
+  }
+  return result;
 }
 
 export async function getMssqlSyncStatus() {

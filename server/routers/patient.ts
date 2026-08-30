@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import type { InsertVisitScheduleRequest } from "../../drizzle/schema";
-import { router, protectedProcedure } from "../_core/procedures";
+import {
+  router,
+  protectedProcedure,
+  receptionProcedure,
+  makePageProcedure,
+} from "../_core/procedures";
 import * as db from "../db";
 import { broadcastBookingUpdate } from "../_core/ws";
 
@@ -13,7 +18,7 @@ export const patientRouter = router({
    * Get patient by ID
    * Used by Dashboard to load patient medical file
    */
-  getPatient: protectedProcedure
+  getPatient: makePageProcedure("/patient-file")
     .input(z.number().nullable().optional())
     .query(async ({ input, ctx }) => {
       if (!input) return null;
@@ -39,7 +44,7 @@ export const patientRouter = router({
   /**
    * Update patient profile
    */
-  updatePatient: protectedProcedure
+  updatePatient: receptionProcedure
     .input(
       z.object({
         patientId: z.number(),

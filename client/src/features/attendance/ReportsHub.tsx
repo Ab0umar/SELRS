@@ -4,7 +4,15 @@ import Reports from "./Reports";
 import PermissionReport from "./PermissionReport";
 import LeaveBalanceReport from "./LeaveBalanceReport";
 import RawLogs from "./RawLogs";
-import { FileText, BarChart3, Clock, CalendarDays, Server } from "lucide-react";
+import MonthlyFingerprints from "./MonthlyFingerprints";
+import {
+  FileText,
+  BarChart3,
+  Clock,
+  CalendarDays,
+  Server,
+  Fingerprint,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 const TABS = [
@@ -14,7 +22,8 @@ const TABS = [
     subLabel: "Daily Report",
     description: "مراجعة حضور وانصراف الموظفين ليوم محدد أو فترة قصيرة",
     icon: FileText,
-    themeCls: "bg-teal-50/60 border-teal-100 hover:border-teal-300 text-teal-900",
+    themeCls:
+      "bg-teal-50/60 border-teal-100 hover:border-teal-300 text-teal-900",
     activeCls: "ring-2 ring-teal-500 bg-teal-100/70 border-teal-300",
     iconCls: "bg-teal-500 text-white",
   },
@@ -22,9 +31,11 @@ const TABS = [
     key: "monthly",
     label: "التحليل التفصيلي",
     subLabel: "Period Analytics",
-    description: "تقارير الحضور حسب الفترة المختارة والتحليل الكامل لساعات التأخير",
+    description:
+      "تقارير الحضور حسب الفترة المختارة والتحليل الكامل لساعات التأخير",
     icon: BarChart3,
-    themeCls: "bg-indigo-50/60 border-indigo-100 hover:border-indigo-300 text-indigo-900",
+    themeCls:
+      "bg-indigo-50/60 border-indigo-100 hover:border-indigo-300 text-indigo-900",
     activeCls: "ring-2 ring-indigo-500 bg-indigo-100/70 border-indigo-300",
     iconCls: "bg-indigo-500 text-white",
   },
@@ -44,7 +55,8 @@ const TABS = [
     subLabel: "Leave Balances",
     description: "حساب استهلاك الإجازات السنوية والمرضية المعتمدة لكل موظف",
     icon: CalendarDays,
-    themeCls: "bg-rose-50/60 border-rose-100 hover:border-rose-300 text-rose-900",
+    themeCls:
+      "bg-rose-50/60 border-rose-100 hover:border-rose-300 text-rose-900",
     activeCls: "ring-2 ring-rose-500 bg-rose-100/70 border-rose-300",
     iconCls: "bg-rose-500 text-white",
   },
@@ -54,9 +66,21 @@ const TABS = [
     subLabel: "Raw Logs Console",
     description: "عرض حركات البصمة الفورية كما وصلت من الأجهزة مباشرة",
     icon: Server,
-    themeCls: "bg-slate-50 border-slate-200 hover:border-slate-350 text-slate-900",
+    themeCls:
+      "bg-slate-50 border-slate-200 hover:border-slate-350 text-slate-900",
     activeCls: "ring-2 ring-slate-600 bg-slate-200 border-slate-350",
     iconCls: "bg-slate-600 text-white",
+  },
+  {
+    key: "fingerprints",
+    label: "البصمات الشهرية",
+    subLabel: "Monthly Fingerprints",
+    description: "جدول شهري لحركات البصمة مقسّم حسب رقم الموظف واليوم",
+    icon: Fingerprint,
+    themeCls:
+      "bg-cyan-50/60 border-cyan-100 hover:border-cyan-300 text-cyan-900",
+    activeCls: "ring-2 ring-cyan-500 bg-cyan-100/70 border-cyan-300",
+    iconCls: "bg-cyan-600 text-white",
   },
 ] as const;
 
@@ -70,7 +94,6 @@ export default function ReportsHub() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      
       {/* ── 1. Bento Dashboard Navigation Grid ── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {TABS.map((t) => {
@@ -89,14 +112,20 @@ export default function ReportsHub() {
               }`}
             >
               {/* Icon Container */}
-              <div className={`p-2 rounded-xl shrink-0 w-fit ${isActive ? t.iconCls : "bg-white text-slate-600 border border-slate-100"}`}>
+              <div
+                className={`p-2 rounded-xl shrink-0 w-fit ${isActive ? t.iconCls : "bg-white text-slate-600 border border-slate-100"}`}
+              >
                 <Icon className="w-4 h-4" />
               </div>
 
               {/* Title & Desc */}
               <div className="space-y-0.5 mt-3">
-                <span className="text-[11px] font-black block leading-none">{t.label}</span>
-                <span className="text-[8px] opacity-60 font-mono block leading-none">{t.subLabel}</span>
+                <span className="text-[11px] font-black block leading-none">
+                  {t.label}
+                </span>
+                <span className="text-[8px] opacity-60 font-mono block leading-none">
+                  {t.subLabel}
+                </span>
               </div>
             </button>
           );
@@ -108,15 +137,21 @@ export default function ReportsHub() {
         <div className="pb-4 border-b border-slate-100 mb-6 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-2 h-4 bg-slate-900 rounded-full"></div>
-            <h2 className="text-sm font-bold text-slate-800">{currentTab.label} ({currentTab.subLabel})</h2>
+            <h2 className="text-sm font-bold text-slate-800">
+              {currentTab.label} ({currentTab.subLabel})
+            </h2>
           </div>
-          <span className="text-[10px] text-slate-400 font-medium">{currentTab.description}</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            {currentTab.description}
+          </span>
         </div>
 
         {/* ── Department Filter ── */}
         {deptQuery.data && deptQuery.data.length > 0 && (
           <div className="mb-4 flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-500 shrink-0">الإدارة / المركز:</label>
+            <label className="text-xs font-medium text-slate-500 shrink-0">
+              الإدارة / المركز:
+            </label>
             <select
               value={department ?? ""}
               onChange={(e) => setDepartment(e.target.value || undefined)}
@@ -124,7 +159,9 @@ export default function ReportsHub() {
             >
               <option value="">الكل</option>
               {deptQuery.data.map((d: string) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d} value={d}>
+                  {d}
+                </option>
               ))}
             </select>
           </div>
@@ -141,9 +178,11 @@ export default function ReportsHub() {
           {tab === "perms" && <PermissionReport department={department} />}
           {tab === "balance" && <LeaveBalanceReport department={department} />}
           {tab === "logs" && <RawLogs department={department} />}
+          {tab === "fingerprints" && (
+            <MonthlyFingerprints department={department} />
+          )}
         </div>
       </div>
-
     </div>
   );
 }

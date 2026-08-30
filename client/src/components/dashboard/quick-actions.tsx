@@ -107,21 +107,21 @@ const quickActions: QuickActionItem[] = [
     icon: UserPlus,
     color: "bg-primary/15 text-primary",
     kind: "quick-entry-dialog",
-    permPath: "/patients",
+    permPath: "action/register-patient",
   },
   {
     label: "تحديد موعد / كشف",
     icon: CalendarPlus,
     color: "bg-warning/15 text-warning",
     kind: "portal-booking-dialog",
-    permPath: "/operations",
+    permPath: "action/schedule-visit",
   },
   {
     label: "حجز العمليات",
     icon: Syringe,
     color: "bg-success/15 text-success",
     kind: "operations-booking-dialog",
-    permPath: "/operations",
+    permPath: "action/operations-booking",
   },
   {
     label: "متابعة",
@@ -135,7 +135,7 @@ const quickActions: QuickActionItem[] = [
     icon: Eye,
     color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
     kind: "measurements-panel",
-    permPath: "/examination",
+    permPath: "action/shortcut-examination",
   },
   {
     label: "مقاس النظارة",
@@ -143,7 +143,7 @@ const quickActions: QuickActionItem[] = [
     color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
     kind: "pick-patient",
     page: "refraction",
-    permPath: "/refraction",
+    permPath: "action/shortcut-refraction",
   },
   {
     label: "بنتاكام",
@@ -151,7 +151,7 @@ const quickActions: QuickActionItem[] = [
     color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
     kind: "pick-patient",
     page: "pentacam-sheet",
-    permPath: "/sheets",
+    permPath: "action/shortcut-pentacam",
   },
   {
     label: "الروشتات",
@@ -159,7 +159,7 @@ const quickActions: QuickActionItem[] = [
     color: "bg-warning text-warning-foreground hover:bg-warning/90",
     kind: "pick-patient",
     page: "write-prescription",
-    permPath: "/prescription",
+    permPath: "action/shortcut-prescription",
   },
   {
     label: "تحاليل و اشعه",
@@ -167,7 +167,7 @@ const quickActions: QuickActionItem[] = [
     color: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
     kind: "pick-patient",
     page: "request-tests",
-    permPath: "/request-tests",
+    permPath: "action/shortcut-tests",
   },
   {
     label: "تشخيص / تقرير",
@@ -175,7 +175,7 @@ const quickActions: QuickActionItem[] = [
     color: "bg-primary text-primary-foreground hover:bg-primary/90",
     kind: "pick-patient",
     page: "medical-reports",
-    permPath: "/medical-reports",
+    permPath: "action/shortcut-reports",
   },
   {
     label: "الملف الطبي",
@@ -183,7 +183,7 @@ const quickActions: QuickActionItem[] = [
     color: "bg-primary text-primary-foreground hover:bg-primary/90",
     kind: "pick-patient",
     page: "patient-details",
-    permPath: "/patient-file",
+    permPath: "action/shortcut-patient-file",
   },
   {
     label: "تقرير المريض",
@@ -191,7 +191,7 @@ const quickActions: QuickActionItem[] = [
     color: "bg-muted/60 text-muted-foreground hover:bg-muted/80",
     kind: "pick-patient",
     page: "patient-summary",
-    permPath: "/patient-summary",
+    permPath: "action/shortcut-patient-summary",
   },
 ];
 

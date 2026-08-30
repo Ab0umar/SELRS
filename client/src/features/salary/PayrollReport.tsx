@@ -180,10 +180,10 @@ export default function PayrollReport() {
     const advances = Number(row.advancesDeduction ?? 0);
     const insurance = Number(row.insuranceDeduction ?? 0);
     const total = Number(row.totalDeductions ?? 0);
-    const missingCheckout = Math.max(
-      0,
-      total - late - absent - penalty - advances - insurance,
-    );
+    const missingCheckout =
+      row.missingCheckoutDeduction != null
+        ? Number(row.missingCheckoutDeduction)
+        : Math.max(0, total - late - absent - penalty - advances - insurance);
     return {
       late,
       absent,
@@ -1999,7 +1999,9 @@ export default function PayrollReport() {
               ))}
             </div>
             <Button
-              onClick={() => computeMut.mutate({ year, month, section })}
+              onClick={() =>
+                computeMut.mutate({ year, month, section, fromDate, toDate })
+              }
               disabled={computeMut.isPending}
               className="gap-2 w-full sm:w-auto justify-center"
             >
@@ -3652,7 +3654,7 @@ export default function PayrollReport() {
                           >
                             <td className="px-3 py-3 text-center">
                               <div className="font-medium">{tech.fullName}</div>
-                              <div className="text-xs text-secondary font-medium">
+                              <div className="text-xs text-primary font-medium">
                                 فني شفتات
                               </div>
                             </td>
@@ -4085,7 +4087,7 @@ export default function PayrollReport() {
                             <div className="font-semibold text-foreground text-sm">
                               {tech.fullName}
                             </div>
-                            <div className="text-xs text-secondary font-medium">
+                            <div className="text-xs text-primary font-medium">
                               فني شفتات
                             </div>
                           </div>

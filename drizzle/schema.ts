@@ -41,9 +41,28 @@ export const users = mysqlTable("users", {
     .notNull(),
   shift: int("shift").default(1).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
+  authVersion: int("authVersion").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn"),
+});
+
+export const authSessions = mysqlTable(
+  "auth_sessions",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: int("user_id").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("idx_auth_sessions_user").on(table.userId)],
+);
+
+export const loginRateLimits = mysqlTable("login_rate_limits", {
+  key: varchar("key", { length: 255 }).primaryKey(),
+  attempts: int("attempts").notNull().default(0),
+  resetAt: timestamp("reset_at").notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -1570,6 +1589,7 @@ export const attendanceEmployees = mysqlTable(
     }),
     defaultShiftId: int("default_shift_id"),
     active: boolean("active").default(true).notNull(),
+    terminationDate: date("termination_date"),
     commAttendance: boolean("comm_attendance").default(true).notNull(),
     commExam: boolean("comm_exam").default(true).notNull(),
     commPentacam: boolean("comm_pentacam").default(true).notNull(),
@@ -1582,6 +1602,9 @@ export const attendanceEmployees = mysqlTable(
   (table) => ({
     idxActive: index("idx_active").on(table.active),
     idxDept: index("idx_dept").on(table.department),
+    idxTerminationDate: index("idx_employee_termination_date").on(
+      table.terminationDate,
+    ),
   }),
 );
 
@@ -1805,7 +1828,9 @@ export const attendanceDaily = mysqlTable(
     computedAt: timestamp("computedAt").notNull(),
   },
   (table) => ({
-    pkAttendanceDaily: primaryKey({ columns: [table.empCd, table.workDate, table.shiftId] }),
+    pkAttendanceDaily: primaryKey({
+      columns: [table.empCd, table.workDate, table.shiftId],
+    }),
     idxDateStatus: index("idx_date_status").on(table.workDate, table.status),
     idxInsideNow: index("idx_inside_now").on(table.insideNow),
   }),
@@ -2133,6 +2158,64 @@ export const salaryCommissionPools = mysqlTable(
 export type SalaryCommissionPool = typeof salaryCommissionPools.$inferSelect;
 export type InsertSalaryCommissionPool =
   typeof salaryCommissionPools.$inferInsert;
+
+export const salaryOperationFundEntries = mysqlTable(
+  "salary_operation_fund_entries",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    transactionDate: date("transaction_date").notNull(),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    doctorName: varchar("doctor_name", { length: 255 }).notNull(),
+    notes: varchar("notes", { length: 500 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    idxOperationFundDate: index("idx_operation_fund_date").on(
+      table.transactionDate,
+    ),
+  }),
+);
+
+export const salaryOperationFundMembers = mysqlTable(
+  "salary_operation_fund_members",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uqOperationFundEmployee: uniqueIndex("uq_operation_fund_employee").on(
+      table.empCd,
+    ),
+  }),
+);
+
+export const salaryEidBonuses = mysqlTable(
+  "salary_eid_bonuses",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    title: varchar("title", { length: 120 }).notNull(),
+    bonusDate: date("bonus_date").notNull(),
+    amountPerEmployee: decimal("amount_per_employee", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    employeeCount: int("employee_count").notNull(),
+    notes: varchar("notes", { length: 500 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    idxEidBonusDate: index("idx_eid_bonus_date").on(table.bonusDate),
+  }),
+);
+
+export type SalaryOperationFundEntry =
+  typeof salaryOperationFundEntries.$inferSelect;
+export type SalaryOperationFundMember =
+  typeof salaryOperationFundMembers.$inferSelect;
+export type SalaryEidBonus = typeof salaryEidBonuses.$inferSelect;
 
 export const salaryPayroll = mysqlTable(
   "salary_payroll",

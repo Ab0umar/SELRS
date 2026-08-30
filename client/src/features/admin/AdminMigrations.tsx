@@ -181,51 +181,23 @@ export default function AdminMigrations() {
         }
       />
 
-      <div
-        className={cn(
-          STAT_CARDS_MOBILE_ROW,
-          "gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4",
-        )}
-      >
-        <StatCard
-          title="إجمالي الترحيلات"
-          value={migrationTotal}
-          icon={ListChecks}
-          iconColor="bg-primary/10 text-primary shadow-sm shadow-primary/10"
-          description="ملفات SQL المسجلة"
-        />
-        <StatCard
-          title="الترحيلات المطبقة"
-          value={migrationApplied}
-          icon={Shield}
-          iconColor="bg-success/10 text-success shadow-sm shadow-success/15"
-          description={
-            appliedPct != null ? `اكتمال: ${appliedPct}%` : undefined
-          }
-        />
-        <StatCard
-          title="ترحيلات معلقة"
-          value={pendingCount}
-          icon={Clock}
-          iconColor={
-            pendingCount > 0
-              ? "bg-warning/10 text-warning/90 shadow-sm shadow-warning/15"
-              : "bg-muted text-muted-foreground"
-          }
-        />
-        <StatCard
-          title="الأخطاء والتنبيهات"
-          value={failureSignal > 0 ? failureSignal : 0}
-          icon={XCircle}
-          iconColor={
-            failureSignal > 0
-              ? "bg-destructive text-destructive-foreground"
-              : "bg-muted text-muted-foreground"
-          }
-          description={
-            failureSignal > 0 ? "يوجد خطأ في التوافق" : "المخطط سليم"
-          }
-        />
+      <div className="grid overflow-hidden rounded-lg border border-border bg-background sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "إجمالي الترحيلات", value: migrationTotal },
+          { label: "المطبقة", value: migrationApplied },
+          { label: "المعلقة", value: pendingCount },
+          { label: "الأخطاء", value: failureSignal > 0 ? failureSignal : 0 },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="border-b border-border px-4 py-4 last:border-b-0 sm:border-l lg:border-b-0"
+          >
+            <p className="text-[11px] font-bold text-muted-foreground">
+              {item.label}
+            </p>
+            <p className="mt-1 text-lg font-black">{item.value}</p>
+          </div>
+        ))}
       </div>
 
       {!migrationsQuery.isLoading &&
@@ -244,7 +216,7 @@ export default function AdminMigrations() {
           </Card>
         )}
 
-      <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+      <Card className="overflow-hidden rounded-lg border-border/60 bg-card shadow-none">
         <CardHeader className="flex flex-col gap-2 border-b bg-muted/5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-primary" />
@@ -368,8 +340,8 @@ export default function AdminMigrations() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-[11px] text-warning leading-relaxed">
-              استعادة الزيارات المحذوفة بمعرفاتها الأصلية، وربط الفحوصات التي
-              لا تحمل معرف زيارة بأقرب زيارة زمنياً.
+              استعادة الزيارات المحذوفة بمعرفاتها الأصلية، وربط الفحوصات التي لا
+              تحمل معرف زيارة بأقرب زيارة زمنياً.
             </p>
             {confirmFixOrphans ? (
               <div className="flex items-center gap-1">

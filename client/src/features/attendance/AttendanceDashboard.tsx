@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Attendance Module Dashboard
  * Landing page with quick actions and key information
  */
@@ -64,7 +64,7 @@ export default function AttendanceDashboard() {
       title: "التقارير",
       description: "تقارير الحضور والإجازات",
       href: "/attendance/reports",
-      color: "bg-secondary/10 text-secondary",
+      color: "bg-secondary/10 text-primary",
     },
   ];
 

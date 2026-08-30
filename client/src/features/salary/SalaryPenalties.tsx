@@ -643,7 +643,7 @@ export default function SalaryPenalties() {
         <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
           <span className="text-[10px] font-black text-muted-foreground uppercase block">إجمالي خصومات التأمين</span>
           <span className="text-lg font-black text-foreground font-mono block mt-1">
-            {employees.reduce((s: number, b: any) => s + Number(b.insuranceDeduction ?? 0), 0).toLocaleString()} ج.م
+            {latestByEmp.reduce((s: number, b: any) => s + Number(b.insuranceDeduction ?? 0), 0).toLocaleString()} ج.م
           </span>
           <span className="text-[9px] text-indigo-500 font-semibold block mt-0.5">
             حساب اشتراكات التأمينات

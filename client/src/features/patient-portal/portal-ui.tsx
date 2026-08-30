@@ -46,7 +46,7 @@ export function PortalShell({
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-secondary">
+          <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-primary">
             <BrandLogo className="size-4 shrink-0" />
             <span className="text-[11px] font-medium uppercase tracking-[0.2em]">
               SELRS
@@ -282,7 +282,7 @@ export function PortalMetric({
 }) {
   const toneClass =
     tone === "orange"
-      ? "bg-secondary/12 text-secondary"
+      ? "bg-secondary/12 text-primary"
       : tone === "neutral"
         ? "bg-muted text-foreground"
         : "bg-primary/10 text-primary";

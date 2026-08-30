@@ -83,7 +83,7 @@ export function StatCard({
             <div
               className={cn(
                 "flex items-center gap-0.5 text-[10px] font-semibold",
-                trendDir === "up" ? "text-secondary" : "text-destructive",
+                trendDir === "up" ? "text-primary" : "text-destructive",
               )}
             >
               {trendDir === "up" ? (

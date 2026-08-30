@@ -4,6 +4,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react";
+import { arEG } from "date-fns/locale";
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
@@ -26,6 +27,9 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      dir="rtl"
+      locale={arEG}
+      weekStartsOn={6}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
@@ -35,8 +39,28 @@ function Calendar({
       captionLayout={captionLayout}
       formatters={{
         formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
+          date.toLocaleDateString("ar-EG", { month: "long" }),
+        formatYearDropdown: (date) =>
+          date.toLocaleDateString("ar-EG", { year: "numeric" }),
+        formatCaption: (date) =>
+          date.toLocaleDateString("ar-EG", {
+            month: "long",
+            year: "numeric",
+          }),
+        formatWeekdayName: (date) =>
+          date.toLocaleDateString("ar-EG", { weekday: "short" }),
         ...formatters,
+      }}
+      labels={{
+        labelNext: () => "الشهر التالي",
+        labelPrevious: () => "الشهر السابق",
+        labelMonthDropdown: () => "اختر الشهر",
+        labelYearDropdown: () => "اختر السنة",
+        labelGrid: (date) =>
+          `تقويم ${date.toLocaleDateString("ar-EG", {
+            month: "long",
+            year: "numeric",
+          })}`,
       }}
       classNames={{
         root: cn("w-fit", defaultClassNames.root),

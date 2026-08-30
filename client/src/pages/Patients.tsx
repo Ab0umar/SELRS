@@ -258,7 +258,7 @@ export default function Patients() {
               title="الأطباء"
               value={availableDoctors.length}
               icon={CalendarCheck}
-              iconColor="bg-primary/10 text-secondary"
+              iconColor="bg-primary/10 text-primary"
             />
           </div>
 

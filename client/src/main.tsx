@@ -96,6 +96,7 @@ const expectsJsonResponse = (requestUrl: string) => {
     );
     return (
       url.pathname === "/healthz" ||
+      url.pathname === "/version" ||
       url.pathname.startsWith("/api/trpc") ||
       url.pathname.startsWith("/api/auth/") ||
       url.pathname.startsWith("/api/medical/")
@@ -103,6 +104,7 @@ const expectsJsonResponse = (requestUrl: string) => {
   } catch {
     return (
       requestUrl.includes("/healthz") ||
+      requestUrl.includes("/version") ||
       requestUrl.includes("/api/trpc") ||
       requestUrl.includes("/api/auth/") ||
       requestUrl.includes("/api/medical/")

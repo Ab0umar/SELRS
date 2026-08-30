@@ -55,7 +55,7 @@ export const moduleThemes = {
       accent: "secondary/10",
       border: "secondary/20",
       hover: "muted/50",
-      activeText: "text-secondary",
+      activeText: "text-primary",
       activeBg: "bg-secondary/10",
       activeBorder: "border-secondary/30",
       inactiveText: "text-muted-foreground",

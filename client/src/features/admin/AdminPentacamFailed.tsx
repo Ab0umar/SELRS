@@ -263,17 +263,16 @@ export default function AdminPentacamFailed() {
     manualIds[key] ?? fallback;
 
   return (
-    <div className="space-y-6">
-      <Card className="border-border/80 bg-background/95 shadow-sm">
+    <div className="space-y-4" dir="rtl">
+      <Card className="rounded-lg border-border/80 bg-background shadow-none">
         <CardHeader>
-          <CardTitle>Pentacam Failed Review</CardTitle>
+          <CardTitle>مراجعة ملفات Pentacam غير المرتبطة</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="text-sm text-muted-foreground">
-              Files are grouped by patient-like base name. Set one ID for the
-              group, apply it to all related files, or fix single files one by
-              one.
+              الملفات مجمعة حسب الاسم المتوقع للمريض. راجع الكود للمجموعة أو صحح
+              كل ملف منفردًا.
             </div>
             <Button
               variant="outline"
@@ -284,14 +283,14 @@ export default function AdminPentacamFailed() {
               <RefreshCw
                 className={`h-4 w-4 ${filesQuery.isFetching ? "animate-spin" : ""}`}
               />
-              Refresh
+              تحديث
             </Button>
           </div>
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, file, or patient code"
+              placeholder="بحث بالاسم أو الملف أو كود المريض"
             />
             <div className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
               {filesQuery.isLoading
@@ -321,7 +320,7 @@ export default function AdminPentacamFailed() {
           return (
             <Card
               key={group.key}
-              className="overflow-hidden border-border/80 bg-background/95 shadow-sm"
+              className="overflow-hidden rounded-lg border-border/80 bg-background shadow-none"
             >
               <CardHeader className="space-y-2">
                 <CardTitle className="text-lg">

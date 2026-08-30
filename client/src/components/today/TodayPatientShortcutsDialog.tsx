@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CalendarPlus,
   CircleDot,
@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { patientNavPathForPageKey } from "@/lib/patientNavPaths";
 import type { PageKey } from "@/lib/dashboard-data";
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 
 const semanticColors = {
   success: {
@@ -67,6 +69,8 @@ type ShortcutRow = {
   semantic: SemanticType;
   group: GroupKey;
   path: string;
+  /** Permission id required to see this shortcut (undefined = always visible) */
+  perm?: string;
 };
 
 function actionsForPatient(patientId: number): ShortcutRow[] {
@@ -81,6 +85,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "file",
+      perm: "action/shortcut-patient-file",
       label: "الملف الطبي",
       path: p(patientId, "patient-details"),
       icon: FileHeart,
@@ -89,6 +94,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "summary",
+      perm: "action/shortcut-patient-summary",
       label: "تقرير المريض",
       path: p(patientId, "patient-summary"),
       icon: FileSpreadsheet,
@@ -97,6 +103,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "exam",
+      perm: "action/shortcut-examination",
       label: "القياسات و الفحص",
       path: p(patientId, "examination-form"),
       icon: Eye,
@@ -105,6 +112,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "ref",
+      perm: "action/shortcut-refraction",
       label: "مقاس النظارة",
       path: p(patientId, "refraction"),
       icon: Glasses,
@@ -113,6 +121,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "penta",
+      perm: "action/shortcut-pentacam",
       label: "بنتاكام",
       path: p(patientId, "pentacam-sheet"),
       icon: CircleDot,
@@ -121,6 +130,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "rx",
+      perm: "action/shortcut-prescription",
       label: "الروشتات",
       path: p(patientId, "write-prescription"),
       icon: Pill,
@@ -129,6 +139,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "tests",
+      perm: "action/shortcut-tests",
       label: "تحاليل و اشعه",
       path: p(patientId, "request-tests"),
       icon: FlaskConical,
@@ -137,6 +148,7 @@ function actionsForPatient(patientId: number): ShortcutRow[] {
     },
     {
       key: "diag",
+      perm: "action/shortcut-reports",
       label: "تشخيص / تقرير",
       path: p(patientId, "medical-reports"),
       icon: FileText,
@@ -164,9 +176,25 @@ export function TodayPatientShortcutsDialog({
   readOnly = false,
 }: TodayPatientShortcutsDialogProps) {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const valid = Number.isFinite(patientId) && patientId > 0;
-  const allRows = valid ? actionsForPatient(patientId) : [];
+  const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
+  const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && !isAdmin && open,
+    refetchOnWindowFocus: false,
+  });
+  const allowedPerms = useMemo(() => {
+    const raw = (permissionsQuery.data ?? []) as string[];
+    return new Set(raw.map((p) => p.replace(/:r[w]?$/, "")));
+  }, [permissionsQuery.data]);
+  const canUse = (row: ShortcutRow) => {
+    if (!row.perm) return true;
+    if (isAdmin) return true;
+    if (!permissionsQuery.isSuccess) return false;
+    return allowedPerms.has(row.perm);
+  };
+  const allRows = (valid ? actionsForPatient(patientId) : []).filter(canUse);
   const primaryRow = allRows.find((r) => r.key === "exam");
   const rows = allRows.filter(
     (r) => r.key !== "exam" && !(readOnly && r.key === "schedule"),
@@ -222,7 +250,7 @@ export function TodayPatientShortcutsDialog({
               <p className="text-center text-sm text-muted-foreground py-4">
                 لا يوجد مريض محدد
               </p>
-            ) : primaryRow ? (
+            ) : allRows.length > 0 ? (
               <>
                 {readOnly ? (
                   <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -230,6 +258,7 @@ export function TodayPatientShortcutsDialog({
                   </div>
                 ) : null}
                 {/* Primary action */}
+                {primaryRow ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -244,6 +273,7 @@ export function TodayPatientShortcutsDialog({
                   <primaryRow.icon className="h-5 w-5 shrink-0" />
                   <span>{primaryRow.label}</span>
                 </Button>
+                ) : null}
                 {/* Remaining groups */}
                 {(Object.keys(groupLabels) as GroupKey[]).map((groupKey) => {
                   const groupItems = rows.filter((r) => r.group === groupKey);
@@ -280,7 +310,11 @@ export function TodayPatientShortcutsDialog({
                   );
                 })}
               </>
-            ) : null}
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-4">
+                لا توجد اختصارات متاحة لصلاحياتك
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>

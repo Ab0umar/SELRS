@@ -14,6 +14,8 @@ export const PERMISSION_SECTIONS = [
   "لوحة التحكم",
   "الحجوزات",
   "مرضى اليوم",
+  "إجراءات لوحة التحكم",
+  "الاختصارات السريعة",
   "الحسابات",
   "العمليات",
   "الحضور والانصراف",
@@ -23,6 +25,7 @@ export const PERMISSION_SECTIONS = [
   "المرضى",
   "مركز الخدمات",
   "المخزن",
+  "التسويق",
   "مركز الإدارة",
   "وحدة KF",
   "أخرى",
@@ -48,10 +51,75 @@ export const PAGE_PERMISSION_DEFINITIONS = [
 
   // ── مرضى اليوم ──
   { id: "/today", label: "مرضى اليوم", group: "مرضى اليوم" },
+  { id: "/bookings", label: "مرضى اليوم (المسار الفعلي)", group: "مرضى اليوم" },
+
+  // ── إجراءات لوحة التحكم ──
+  {
+    id: "action/register-patient",
+    label: "تسجيل مريض",
+    group: "إجراءات لوحة التحكم",
+  },
+  {
+    id: "action/schedule-visit",
+    label: "تحديد موعد / كشف",
+    group: "إجراءات لوحة التحكم",
+  },
+  {
+    id: "action/operations-booking",
+    label: "حجز العمليات",
+    group: "إجراءات لوحة التحكم",
+  },
   {
     id: "action/followup-queue",
-    label: "إضافة متابعة للطابور (اختصار لوحة التحكم)",
-    group: "مرضى اليوم",
+    label: "متابعة",
+    group: "إجراءات لوحة التحكم",
+  },
+  {
+    id: "action/portal-bookings",
+    label: "حجوزات البوابة",
+    group: "إجراءات لوحة التحكم",
+  },
+
+  // ── الاختصارات السريعة ──
+  {
+    id: "action/shortcut-examination",
+    label: "اختصار القياسات و الفحص",
+    group: "الاختصارات السريعة",
+  },
+  {
+    id: "action/shortcut-refraction",
+    label: "اختصار مقاس النظارة",
+    group: "الاختصارات السريعة",
+  },
+  {
+    id: "action/shortcut-pentacam",
+    label: "اختصار بنتاكام",
+    group: "الاختصارات السريعة",
+  },
+  {
+    id: "action/shortcut-prescription",
+    label: "اختصار الروشتات",
+    group: "الاختصارات السريعة",
+  },
+  {
+    id: "action/shortcut-tests",
+    label: "اختصار تحاليل و اشعه",
+    group: "الاختصارات السريعة",
+  },
+  {
+    id: "action/shortcut-reports",
+    label: "اختصار تشخيص / تقرير",
+    group: "الاختصارات السريعة",
+  },
+  {
+    id: "action/shortcut-patient-file",
+    label: "اختصار الملف الطبي",
+    group: "الاختصارات السريعة",
+  },
+  {
+    id: "action/shortcut-patient-summary",
+    label: "اختصار تقرير المريض",
+    group: "الاختصارات السريعة",
   },
 
   // ── الحسابات ──
@@ -180,8 +248,39 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   // ── المرتبات ──
   { id: "/salary", label: "المرتبات (الرئيسية)", group: "المرتبات" },
   { id: "/salary/pools", label: "العمولات", group: "المرتبات" },
+  { id: "/salary/funds", label: "الصندوق والعيدية", group: "المرتبات" },
   { id: "/salary/penalties", label: "الجزاءات", group: "المرتبات" },
   { id: "/salary/payroll", label: "كشف المرتبات", group: "المرتبات" },
+  {
+    id: "/salary/basics",
+    label: "الأساسيات",
+    group: "المرتبات",
+  },
+  {
+    id: "/salary/settings",
+    label: "إعدادات المرتبات",
+    group: "المرتبات",
+  },
+  {
+    id: "/salary/shift-staff",
+    label: "موظفو الورديات",
+    group: "المرتبات",
+  },
+  {
+    id: "/salary/shift-payroll",
+    label: "مرتبات الورديات",
+    group: "المرتبات",
+  },
+  {
+    id: "/salary/absent-report",
+    label: "تقرير الغياب",
+    group: "المرتبات",
+  },
+  {
+    id: "/salary/current-data",
+    label: "بيانات المرتبات الحالية",
+    group: "المرتبات",
+  },
 
   // ── مركز المريض ──
   {
@@ -189,7 +288,13 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     label: "مركز المريض (Patient hub)",
     group: "مركز المريض",
   },
+  { id: "/workflow", label: "مسار اليوم", group: "مركز المريض" },
   { id: "/workflow-hub", label: "مركز سير العمل", group: "مركز المريض" },
+  {
+    id: "/workflow-hub/prototype",
+    label: "مركز سير العمل — النموذج",
+    group: "مركز المريض",
+  },
 
   // ── العيادات ──
   {
@@ -225,6 +330,31 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   {
     id: "/sheets/pentacam",
     label: "شيت البنتكام (عرض مباشر)",
+    group: "العيادات",
+  },
+  {
+    id: "/sheets/consultant",
+    label: "اختيار مريض — شيت استشاري",
+    group: "العيادات",
+  },
+  {
+    id: "/sheets/followup/consultant",
+    label: "اختيار مريض — متابعة استشاري",
+    group: "العيادات",
+  },
+  {
+    id: "/sheets/specialist",
+    label: "اختيار مريض — شيت أخصائي",
+    group: "العيادات",
+  },
+  {
+    id: "/sheets/lasik",
+    label: "اختيار مريض — شيت ليزك",
+    group: "العيادات",
+  },
+  {
+    id: "/sheets/followup/lasik",
+    label: "اختيار مريض — متابعة ليزك",
     group: "العيادات",
   },
   { id: "/sheets/consultant/:id", label: "شيت استشاري", group: "العيادات" },
@@ -292,6 +422,21 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   {
     id: "/pre-post-op-report",
     label: "تقرير ما قبل وبعد العملية",
+    group: "العيادات",
+  },
+  {
+    id: "/post-op-offdays-en/:id",
+    label: "إجازة ما بعد العملية بالإنجليزية (برقم مريض)",
+    group: "العيادات",
+  },
+  {
+    id: "/post-op-offdays-en",
+    label: "إجازة ما بعد العملية بالإنجليزية",
+    group: "العيادات",
+  },
+  {
+    id: "/medical-reference",
+    label: "المرجع الطبي",
     group: "العيادات",
   },
   {
@@ -402,28 +547,88 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   },
 
   // ── مركز الإدارة ──
-  { id: "/admin-hub", label: "مركز الإدارة (الرئيسية)", group: "مركز الإدارة" },
-  { id: "/admin/users", label: "إدارة المستخدمين", group: "مركز الإدارة" },
-  { id: "/admin/permissions", label: "صلاحيات الأدوار", group: "مركز الإدارة" },
-  { id: "/admin/doctors", label: "الأطباء", group: "مركز الإدارة" },
-  { id: "/admin/services", label: "الخدمات والأسعار", group: "مركز الإدارة" },
-  { id: "/admin/patients", label: "مرضى الإدارة", group: "مركز الإدارة" },
-  { id: "/admin/legacy-patients", label: "سجل المرضى", group: "مركز الإدارة" },
-  { id: "/admin/op-history", label: "سجل العمليات", group: "مركز الإدارة" },
+
+  // ── التسويق ──
   {
-    id: "/admin/whatsapp-inbox",
+    id: "/marketing",
+    label: "التسويق (الرئيسية)",
+    group: "التسويق",
+  },
+  {
+    id: "/marketing/history",
+    label: "سجل الحملات",
+    group: "التسويق",
+  },
+  {
+    id: "/marketing/drafts",
+    label: "المسودات",
+    group: "التسويق",
+  },
+  {
+    id: "/marketing/brand",
+    label: "الهوية البصرية",
+    group: "التسويق",
+  },
+  {
+    id: "/marketing/settings",
+    label: "إعدادات التسويق",
+    group: "التسويق",
+  },
+
+  { id: "/admin-hub", label: "مركز الإدارة (الرئيسية)", group: "مركز الإدارة" },
+  {
+    id: "/external-doctors",
+    label: "الأطباء الخارجيون",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/external-doctors/referrals",
+    label: "تحويلات الأطباء الخارجيين",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/admin-hub/pentacam-linking",
+    label: "ربط البنتاكام",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/admin-hub/pentacam-linking/:id",
+    label: "ربط البنتاكام (لملف)",
+    group: "مركز الإدارة",
+  },
+  { id: "/admin-hub/users", label: "إدارة المستخدمين", group: "مركز الإدارة" },
+  {
+    id: "/admin-hub/permissions",
+    label: "صلاحيات الأدوار",
+    group: "مركز الإدارة",
+  },
+  { id: "/admin-hub/doctors", label: "الأطباء", group: "مركز الإدارة" },
+  {
+    id: "/admin-hub/services",
+    label: "الخدمات والأسعار",
+    group: "مركز الإدارة",
+  },
+  { id: "/admin-hub/patients", label: "مرضى الإدارة", group: "مركز الإدارة" },
+  {
+    id: "/admin-hub/legacy-patients",
+    label: "سجل المرضى",
+    group: "مركز الإدارة",
+  },
+  { id: "/admin-hub/op-history", label: "سجل العمليات", group: "مركز الإدارة" },
+  {
+    id: "/admin-hub/whatsapp-inbox",
     label: "رسائل واتساب الواردة",
     group: "مركز الإدارة",
   },
-  { id: "/admin/forms", label: "النماذج الإدارية", group: "مركز الإدارة" },
-  { id: "/admin/settings", label: "إعدادات النظام", group: "مركز الإدارة" },
+  { id: "/admin-hub/forms", label: "النماذج الإدارية", group: "مركز الإدارة" },
+  { id: "/admin-hub/settings", label: "إعدادات النظام", group: "مركز الإدارة" },
   {
-    id: "/admin/notification-settings",
+    id: "/admin-hub/notifications",
     label: "إعدادات الإشعارات",
     group: "مركز الإدارة",
   },
   {
-    id: "/admin/settings/pricing-rules",
+    id: "/admin-hub/settings/pricing-rules",
     label: "قواعد تسعير المواعيد (صفحة)",
     group: "مركز الإدارة",
   },
@@ -432,33 +637,37 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     label: "قواعد تسعير المواعيد (مفتاح)",
     group: "مركز الإدارة",
   },
-  { id: "/admin/sheets", label: "الشيتات الطبية", group: "مركز الإدارة" },
-  { id: "/admin/sheet-designer", label: "مصمم الشيتات", group: "مركز الإدارة" },
+  { id: "/admin-hub/sheets", label: "الشيتات الطبية", group: "مركز الإدارة" },
   {
-    id: "/admin/sheet-copies",
+    id: "/admin-hub/sheet-designer",
+    label: "مصمم الشيتات",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/admin-hub/sheet-copies",
     label: "نسخ الشيتات (إداري)",
     group: "مركز الإدارة",
   },
-  { id: "/admin/migrations", label: "الترحيلات", group: "مركز الإدارة" },
-  { id: "/admin/status", label: "حالة النظام", group: "مركز الإدارة" },
-  { id: "/admin/api-tools", label: "أدوات API", group: "مركز الإدارة" },
+  { id: "/admin-hub/migrations", label: "الترحيلات", group: "مركز الإدارة" },
+  { id: "/admin-hub/status", label: "حالة النظام", group: "مركز الإدارة" },
+  { id: "/admin-hub/api", label: "أدوات API", group: "مركز الإدارة" },
   {
-    id: "/admin/card-visibility",
+    id: "/admin-hub/card-visibility",
     label: "ظهور البطاقات",
     group: "مركز الإدارة",
   },
   {
-    id: "/admin/tests",
+    id: "/admin-hub/tests",
     label: "إدارة الاختبارات (/admin/tests)",
     group: "مركز الإدارة",
   },
   {
-    id: "/admin/data-source-audit",
+    id: "/admin-hub/audit",
     label: "مصدر البيانات — تدقيق",
     group: "مركز الإدارة",
   },
   {
-    id: "/admin/pentacam-failed",
+    id: "/admin-hub/pentacam-failed",
     label: "فشل البنتكام (إداري)",
     group: "مركز الإدارة",
   },
@@ -471,6 +680,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   // ── وحدة KF ──
   { id: "/kf", label: "لوحة KF الرئيسية", group: "وحدة KF" },
   { id: "/kf/patients", label: "مرضى KF", group: "وحدة KF" },
+  { id: "/kf/bookings", label: "KF — الحجوزات", group: "وحدة KF" },
   { id: "/kf/patients/new", label: "تسجيل مريض KF جديد", group: "وحدة KF" },
   { id: "/kf/patients/:kfPatientId", label: "ملف مريض KF", group: "وحدة KF" },
   {

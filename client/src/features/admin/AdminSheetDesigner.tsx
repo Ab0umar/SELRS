@@ -361,8 +361,8 @@ export default function AdminSheetDesigner() {
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="grid overflow-hidden rounded-lg border border-border lg:grid-cols-[320px_minmax(0,1fr)]">
+        <Card className="overflow-hidden rounded-none border-0 border-l border-border bg-card shadow-none">
           <CardHeader className="border-b border-border/80 bg-muted/15 py-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText className="h-5 w-5 text-primary" />
@@ -378,7 +378,7 @@ export default function AdminSheetDesigner() {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveDesignerTab(item.id)}
-                className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-right transition-colors ${
+                className={`flex w-full items-center justify-between gap-3 rounded-md border p-3 text-right transition-colors ${
                   activeDesignerTab === item.id
                     ? "border-primary/40 bg-primary/[0.06] shadow-sm"
                     : "border-border/70 bg-card hover:bg-muted/30"
@@ -399,7 +399,7 @@ export default function AdminSheetDesigner() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <Card className="overflow-hidden rounded-none border-0 bg-card shadow-none">
           <CardHeader className="border-b border-border/80 py-4">
             <CardTitle className="text-base">معاينة النموذج</CardTitle>
             <p className="text-xs text-muted-foreground">
@@ -431,7 +431,7 @@ export default function AdminSheetDesigner() {
         </Card>
       </div>
 
-      <Card className="rounded-xl border-border/80 shadow-sm">
+      <Card className="rounded-lg border-border/80 shadow-none">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">إجراءات</CardTitle>
           <p className="text-sm text-muted-foreground">

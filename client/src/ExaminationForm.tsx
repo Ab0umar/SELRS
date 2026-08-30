@@ -221,7 +221,7 @@ export default function ExaminationForm() {
   useEffect(() => {
     if (!currentUserDisplayName) return;
     const role = String((user as User | null)?.role ?? "").toLowerCase();
-    if (role === "reception") {
+    if (role === "reception" || role === "accountant") {
       setReceptionSignature((prev) => prev || currentUserDisplayName);
       return;
     }

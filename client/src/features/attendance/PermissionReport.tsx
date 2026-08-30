@@ -191,7 +191,7 @@ export default function PermissionReport({ department }: { department?: string }
                 size="sm"
                 onClick={handlePrint}
                 disabled={!rows.length}
-                className="gap-2 border-secondary/20 text-secondary hover:bg-secondary/10"
+                className="gap-2 border-secondary/20 text-primary hover:bg-secondary/10"
               >
                 <Printer className="h-4 w-4" /> طباعة / PDF
               </Button>
@@ -212,7 +212,7 @@ export default function PermissionReport({ department }: { department?: string }
                       : card.tone === "info"
                         ? "border-info/20 bg-info/10 text-info"
                         : card.tone === "secondary"
-                          ? "border-secondary/20 bg-secondary/10 text-secondary"
+                          ? "border-secondary/20 bg-secondary/10 text-primary"
                           : "border-warning/30 bg-warning/10 text-warning"
                   }`}
                 >
@@ -229,7 +229,7 @@ export default function PermissionReport({ department }: { department?: string }
                       : card.tone === "info"
                         ? "text-info"
                         : card.tone === "secondary"
-                          ? "text-secondary"
+                          ? "text-primary"
                           : "text-warning"
                   }`}
                 >
@@ -244,7 +244,7 @@ export default function PermissionReport({ department }: { department?: string }
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
-            <Clock className="h-5 w-5 text-secondary" />
+            <Clock className="h-5 w-5 text-primary" />
             {from} — {to} ، {rows.length} موظف
           </CardTitle>
         </CardHeader>
@@ -291,8 +291,8 @@ export default function PermissionReport({ department }: { department?: string }
                       </div>
                     </div>
                     <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-2 text-center text-xs">
-                      <div className="font-semibold text-secondary">أذونات خروج</div>
-                      <div className="mt-1 text-secondary/90">
+                      <div className="font-semibold text-primary">أذونات خروج</div>
+                      <div className="mt-1 text-primary/90">
                         {row.outCount} عدد · {row.totalOutMins} دقيقة
                       </div>
                     </div>
@@ -334,7 +334,7 @@ export default function PermissionReport({ department }: { department?: string }
                       أذونات دخول
                     </th>
                     <th
-                      className="border-b border-secondary/20 bg-secondary/5 px-4 py-2 text-center font-semibold text-secondary"
+                      className="border-b border-secondary/20 bg-secondary/5 px-4 py-2 text-center font-semibold text-primary"
                       colSpan={2}
                     >
                       أذونات خروج
@@ -353,10 +353,10 @@ export default function PermissionReport({ department }: { department?: string }
                     <th className="px-4 py-1.5 text-right text-xs font-medium text-primary/80">
                       دقائق
                     </th>
-                    <th className="px-4 py-1.5 text-right text-xs font-medium text-secondary/80">
+                    <th className="px-4 py-1.5 text-right text-xs font-medium text-primary/80">
                       عدد
                     </th>
-                    <th className="px-4 py-1.5 text-right text-xs font-medium text-secondary/80">
+                    <th className="px-4 py-1.5 text-right text-xs font-medium text-primary/80">
                       دقائق
                     </th>
                   </tr>
@@ -377,10 +377,10 @@ export default function PermissionReport({ department }: { department?: string }
                       <td className="px-4 py-2 text-primary">
                         {row.totalInMins}
                       </td>
-                      <td className="px-4 py-2 text-secondary">
+                      <td className="px-4 py-2 text-primary">
                         {row.outCount}
                       </td>
-                      <td className="px-4 py-2 text-secondary">
+                      <td className="px-4 py-2 text-primary">
                         {row.totalOutMins}
                       </td>
                       <td className="px-4 py-2 font-semibold text-foreground">
@@ -396,10 +396,10 @@ export default function PermissionReport({ department }: { department?: string }
                     </td>
                     <td className="px-4 py-2 text-primary">{totalInCount}</td>
                     <td className="px-4 py-2 text-primary">{totalInMins}</td>
-                    <td className="px-4 py-2 text-secondary">
+                    <td className="px-4 py-2 text-primary">
                       {totalOutCount}
                     </td>
-                    <td className="px-4 py-2 text-secondary">{totalOutMins}</td>
+                    <td className="px-4 py-2 text-primary">{totalOutMins}</td>
                     <td className="px-4 py-2">{totalInMins + totalOutMins}</td>
                   </tr>
                 </tfoot>

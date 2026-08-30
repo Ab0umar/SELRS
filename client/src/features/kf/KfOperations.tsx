@@ -158,7 +158,7 @@ export default function KfOperations() {
                       ) : op.eye === "right" ? (
                         <Badge variant="outline" className="border-primary/20 text-primary bg-primary/5">اليمنى</Badge>
                       ) : op.eye === "left" ? (
-                        <Badge variant="outline" className="border-secondary/25 text-secondary bg-secondary/5">اليسرى</Badge>
+                        <Badge variant="outline" className="border-secondary/25 text-primary bg-secondary/5">اليسرى</Badge>
                       ) : (
                         "—"
                       )}

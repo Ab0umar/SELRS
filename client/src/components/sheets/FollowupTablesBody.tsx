@@ -3,6 +3,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
 import SheetWatermark from "@/components/sheets/SheetWatermark";
+import "@/components/sheets/followup-print.css";
 
 export type FollowupItem = {
   id: number | string;
@@ -48,6 +49,7 @@ type Props<T extends FollowupItem> = {
   followupLabels: FollowupLabelsShape;
   signatures: { doctor: string };
   readOnly?: boolean;
+  printVariant?: "standalone" | "attached";
 };
 
 export default function FollowupTablesBody<T extends FollowupItem>({
@@ -65,8 +67,9 @@ export default function FollowupTablesBody<T extends FollowupItem>({
   followupLabels,
   signatures,
   readOnly = false,
+  printVariant = "standalone",
 }: Props<T>) {
-  const sheetTypeLabel = "متابعة";
+  const sheetTypeLabel = titleAr || "متابعة";
 
   const updateFollowup = (id: T["id"], patch: Partial<T>) => {
     setFollowups((previous) =>
@@ -94,105 +97,9 @@ export default function FollowupTablesBody<T extends FollowupItem>({
     <div
       className="sheet-followup-body relative overflow-hidden border border-[#d5dbe5] bg-white p-6 shadow-sm"
       data-print-followup-body="true"
+      data-print-variant={printVariant}
       dir="rtl"
     >
-      <style>{`
-        .sheet-followup-body .followup-record-title,
-        .sheet-followup-body .followup-record-title input,
-        .sheet-followup-body .followup-record-title label,
-        .sheet-followup-body .followup-record-table th,
-        .sheet-followup-body .followup-record-table td,
-        .sheet-followup-body .followup-record-table input,
-        .sheet-followup-body .followup-record-section > div:last-child,
-        .sheet-followup-body .followup-record-section > div:last-child > div {
-          text-align: center !important;
-          vertical-align: middle !important;
-        }
-        @media print {
-          .sheet-followup-body,
-          .sheet-followup-body .sheet-followup-content,
-          .sheet-followup-body .followup-record-head,
-          .sheet-followup-body .followup-record-list,
-          .sheet-followup-body .followup-record-section {
-            overflow: hidden !important;
-            overflow-y: hidden !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-          }
-          .sheet-followup-body::-webkit-scrollbar,
-          .sheet-followup-body .sheet-followup-content::-webkit-scrollbar,
-          .sheet-followup-body .followup-record-head::-webkit-scrollbar,
-          .sheet-followup-body .followup-record-list::-webkit-scrollbar,
-          .sheet-followup-body .followup-record-section::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-            background: transparent !important;
-          }
-          .sheet-followup-body {
-            padding: 1mm 2mm !important;
-            border: 0 !important;
-            box-shadow: none !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          .sheet-followup-body .sheet-followup-content {
-            gap: 0 !important;
-          }
-          .sheet-followup-body .followup-record-head {
-            margin-bottom: 0 !important;
-            flex: 0 0 auto !important;
-          }
-          .sheet-followup-body .followup-record-list {
-            gap: 0 !important;
-          }
-          .sheet-followup-body .followup-record-section {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          .sheet-followup-body .followup-record-title {
-            grid-template-columns: minmax(0, 1fr) 50mm 50mm !important;
-            height: 16px !important;
-            min-height: 16px !important;
-          }
-          .sheet-followup-body .followup-record-title input {
-            height: 16px !important;
-            font-size: 9.5px !important;
-          }
-          .sheet-followup-body .followup-record-table th,
-          .sheet-followup-body .followup-record-table td {
-            height: 14px !important;
-            padding: 0px 1px !important;
-            font-size: 8px !important;
-            line-height: 1.05 !important;
-          }
-          .sheet-followup-body .followup-record-table tr {
-            height: 14px !important;
-          }
-          .sheet-followup-body .followup-record-table input {
-            font-size: 8px !important;
-            min-height: 12px !important;
-          }
-          .sheet-followup-body .followup-comment-row {
-            height: 14px !important;
-          }
-          .sheet-followup-body .followup-record-section > div:last-child {
-            height: 13px !important;
-            font-size: 7px !important;
-          }
-        }
-        .sheet-followup-body[data-print-followup-body="true"] {
-          overflow: hidden !important;
-          overflow-y: hidden !important;
-          scrollbar-width: none !important;
-          -ms-overflow-style: none !important;
-        }
-        .sheet-followup-body[data-print-followup-body="true"]::-webkit-scrollbar {
-          display: none !important;
-          width: 0 !important;
-          height: 0 !important;
-        }
-      `}</style>
       <SheetWatermark />
       <div className="sheet-followup-content relative z-10 flex min-h-0 flex-col gap-3">
         <SheetPrintHeader sheetType={sheetTypeLabel} />
@@ -223,7 +130,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                 value={operationDateRight}
                 onChange={(event) => setOperationDateRight(event.target.value)}
                 disabled={readOnly}
-                className="mt-1 h-8 w-full border-[#d5dbe5] text-[12px]"
+                className="followup-date-input mt-1 h-8 w-full border-[#d5dbe5] text-[12px]"
                 inputClassName="min-w-0 w-full"
               />
             </label>
@@ -268,10 +175,10 @@ export default function FollowupTablesBody<T extends FollowupItem>({
         </section>
 
         <div className="followup-record-list grid flex-1 grid-rows-4 gap-2.5">
-          {followups.slice(0, 4).map((followup, index) => (
+          {followups.map((followup, index) => (
             <section
               key={followup.id}
-              className="followup-record-section overflow-hidden border border-[#9eabbc] bg-white"
+              className="followup-record-section overflow-hidden border border-[#9eabbc] bg-transparent"
             >
               <div className="followup-record-title grid grid-cols-[minmax(0,1fr)_210px_210px] items-center border-b border-[#9eabbc] bg-[#eef4fb]">
                 <Input
@@ -296,7 +203,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                       } as Partial<T>)
                     }
                     disabled={readOnly}
-                    className="h-6 min-w-0 w-full overflow-hidden border-0 bg-white px-1 text-[10px]"
+                    className="followup-date-input h-6 min-w-0 w-full overflow-hidden border-0 bg-white px-1 text-[10px]"
                     inputClassName="min-w-0 w-full px-1 text-[10px]"
                   />
                 </label>
@@ -313,8 +220,8 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                 dir="ltr"
               >
                 <colgroup>
+                  <col className="w-[20%]" />
                   <col className="w-[16%]" />
-                  <col className="w-[12%]" />
                   <col />
                   <col />
                 </colgroup>

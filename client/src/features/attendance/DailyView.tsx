@@ -12,7 +12,7 @@ const statusTone: Record<string, string> = {
   absent: "border-destructive/20 bg-destructive/10 text-destructive",
   leave: "border-info/20 bg-info/10 text-info",
   partial: "border-warning/30 bg-warning/10 text-warning",
-  holiday: "border-secondary/20 bg-secondary/10 text-secondary",
+  holiday: "border-secondary/20 bg-secondary/10 text-primary",
   missing_checkout: "border-muted-foreground/20 bg-muted/70 text-foreground",
 };
 
@@ -22,6 +22,16 @@ const timeTone: Record<string, string> = {
   late: "border-warning/30 bg-warning/10 text-warning",
   early: "border-info/20 bg-info/10 text-info",
   overtime: "border-primary/20 bg-primary/10 text-primary",
+};
+
+const permissionHours = (minutes: unknown) => {
+  const value = Number(minutes ?? 0);
+  return Number.isFinite(value) && value > 0 ? (value / 60).toFixed(2) : "0";
+};
+
+const permissionHoursLabel = (minutes: unknown) => {
+  const hours = permissionHours(minutes);
+  return hours === "0" ? "-" : `${hours} ساعة`;
 };
 
 export default function DailyView({ department }: { department?: string }) {
@@ -67,25 +77,17 @@ export default function DailyView({ department }: { department?: string }) {
     setLoading(true);
     let allRecords: any[] = [];
 
-    const [fy, fm, fd] = dates.from.split("-").map(Number);
-    const [ty, tm, td] = dates.to.split("-").map(Number);
-    const fromDate = new Date(fy, fm - 1, fd);
-    const toDate = new Date(ty, tm - 1, td);
-
-    for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-        d.getDate(),
-      ).padStart(2, "0")}`;
-      try {
-        const response = await utils.attendance.dailyByDate.fetch({
-          date: dateStr,
-          department,
-        });
-        allRecords = [...allRecords, ...response];
-      } catch (error) {
-        console.error(`Failed to load ${dateStr}:`, error);
-      }
+    let responses: any[] = [];
+    try {
+      responses = await utils.attendance.dailyByDate.fetch({
+        fromDate: dates.from,
+        toDate: dates.to,
+        department,
+      });
+    } catch (error) {
+      console.error(`Failed to load ${dates.from} to ${dates.to}:`, error);
     }
+    allRecords = responses;
 
     setRecords(allRecords);
     setLoading(false);
@@ -115,6 +117,8 @@ export default function DailyView({ department }: { department?: string }) {
       "الحالة",
       "التأخير",
       "المغادرة المبكرة",
+      "إذن دخول (ساعات)",
+      "إذن خروج (ساعات)",
     ];
     const csv = [
       headers.join(","),
@@ -128,6 +132,8 @@ export default function DailyView({ department }: { department?: string }) {
           getStatusLabel(row.status),
           row.lateMinutes || 0,
           row.earlyLeaveMin || 0,
+          permissionHours(row.entryPermissionMinutes),
+          permissionHours(row.exitPermissionMinutes),
         ]
           .map((v) => `"${v}"`)
           .join(","),
@@ -312,7 +318,9 @@ export default function DailyView({ department }: { department?: string }) {
 
                   {(record.lateMinutes > 0 ||
                     record.earlyLeaveMin > 0 ||
-                    record.overtimeMinutes > 0) && (
+                    record.overtimeMinutes > 0 ||
+                    record.entryPermissionMinutes > 0 ||
+                    record.exitPermissionMinutes > 0) && (
                     <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/60 pt-3 text-center text-xs sm:grid-cols-4">
                       <div>
                         <div className="text-muted-foreground">تأخير</div>
@@ -336,6 +344,30 @@ export default function DailyView({ department }: { department?: string }) {
                           }
                         >
                           {record.earlyLeaveMin || "-"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">إذن دخول</div>
+                        <div
+                          className={
+                            record.entryPermissionMinutes > 0
+                              ? "font-semibold text-info"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {permissionHoursLabel(record.entryPermissionMinutes)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">إذن خروج</div>
+                        <div
+                          className={
+                            record.exitPermissionMinutes > 0
+                              ? "font-semibold text-info"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {permissionHoursLabel(record.exitPermissionMinutes)}
                         </div>
                       </div>
                       <div>
@@ -421,6 +453,12 @@ export default function DailyView({ department }: { department?: string }) {
                     <th className="px-4 py-3 text-right font-semibold text-warning">
                       المغادرة المبكرة
                     </th>
+                    <th className="px-4 py-3 text-center font-semibold text-info">
+                      إذن دخول (ساعات)
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold text-info">
+                      إذن خروج (ساعات)
+                    </th>
                     <th className="px-4 py-3 text-center font-semibold text-primary">
                       إضافي الحضور
                     </th>
@@ -500,6 +538,12 @@ export default function DailyView({ department }: { department?: string }) {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {permissionHoursLabel(record.entryPermissionMinutes)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {permissionHoursLabel(record.exitPermissionMinutes)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex flex-col items-center gap-1">

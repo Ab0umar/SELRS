@@ -47,7 +47,7 @@ export default function AdminDataSourceAudit() {
       dir="rtl"
     >
       {/* Header */}
-      <div className="space-y-2">
+      <div className="space-y-2 border-b border-border pb-4">
         <h1 className="text-3xl font-bold">مصدر البيانات — تدقيق</h1>
         <p className="text-sm text-muted-foreground">
           تحقق من أن البيانات الديموغرافية والسريرية تأتي من الجداول الصحيحة
@@ -55,7 +55,10 @@ export default function AdminDataSourceAudit() {
       </div>
 
       {/* Section 1: Patient Data Sources */}
-      <Card dir="rtl" className="border-border/90 bg-card text-right shadow-sm">
+      <Card
+        dir="rtl"
+        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+      >
         <CardHeader>
           <CardTitle>جداول مصادر بيانات المريض</CardTitle>
           <CardDescription>
@@ -156,7 +159,10 @@ export default function AdminDataSourceAudit() {
       </Card>
 
       {/* Section 2: Medical Data Sources */}
-      <Card dir="rtl" className="border-border/90 bg-card text-right shadow-sm">
+      <Card
+        dir="rtl"
+        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+      >
         <CardHeader>
           <CardTitle>جداول مصادر البيانات الطبية</CardTitle>
           <CardDescription>
@@ -326,7 +332,10 @@ export default function AdminDataSourceAudit() {
       </Card>
 
       {/* Section 3: patientPageStates Usage */}
-      <Card dir="rtl" className="border-border/90 bg-card text-right shadow-sm">
+      <Card
+        dir="rtl"
+        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+      >
         <CardHeader>
           <CardTitle>استخدام patientPageStates</CardTitle>
           <CardDescription>
@@ -439,7 +448,10 @@ export default function AdminDataSourceAudit() {
       </Card>
 
       {/* Section 4: Live Spot Check */}
-      <Card dir="rtl" className="border-border/90 bg-card text-right shadow-sm">
+      <Card
+        dir="rtl"
+        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+      >
         <CardHeader>
           <CardTitle>التحقق المباشر</CardTitle>
           <CardDescription>

@@ -1,5 +1,6 @@
 import { useLocation, Link, Redirect } from "wouter";
 import { usePermissions } from "@/hooks/usePermissions";
+import { permissionPathForHubLink } from "@/lib/hubPermissionPaths";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -38,7 +39,7 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "دخول سريع",
     description: "إضافة مريض جديد أو البحث السريع عن مريض موجود.",
     icon: UserRound,
-    iconWrap: "bg-secondary/15 text-secondary",
+    iconWrap: "bg-secondary/15 text-primary",
   },
   {
     href: "/patients-hub/followups",
@@ -52,7 +53,7 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "الزيارات",
     description: "عرض وإدارة سجل الزيارات والمواعيد.",
     icon: CalendarCheck,
-    iconWrap: "bg-secondary/15 text-secondary",
+    iconWrap: "bg-secondary/15 text-primary",
   },
 ];
 
@@ -67,6 +68,15 @@ export default function PatientsHubShell() {
 
   const renderComponent = () => {
     if (isHubHome) return null;
+    // Hub sub-paths inherit the hub permission, so re-check the permission that
+    // actually guards the page being rendered.
+    if (!canAccess(permissionPathForHubLink(location))) {
+      return (
+        <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
+          لا تملك صلاحية فتح هذه الصفحة.
+        </div>
+      );
+    }
     if (location === "/patients-hub/list") return <PatientsHubList />;
     if (location === "/patients-hub/quick") return <QuickPatientEntry />;
     if (location === "/patients-hub/followups")
@@ -96,7 +106,9 @@ export default function PatientsHubShell() {
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MAIN_MODULES.filter((mod) => canAccess(mod.href)).map((mod) => {
+        {MAIN_MODULES.filter((mod) =>
+          canAccess(permissionPathForHubLink(mod.href)),
+        ).map((mod) => {
           const Icon = mod.icon;
           return (
             <Card

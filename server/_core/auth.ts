@@ -6,6 +6,7 @@ import { parse as parseCookieHeader } from "cookie";
 import type { User } from "../../drizzle/schema";
 import { COOKIE_NAME } from "@shared/const";
 import { ENV } from "./env";
+import { randomUUID } from "node:crypto";
 
 export const AUTH_COOKIE_NAME = COOKIE_NAME;
 export const LEGACY_AUTH_COOKIE_NAME = "authToken";
@@ -20,20 +21,36 @@ type LoginRateLimitEntry = {
 
 const loginRateLimit = new Map<string, LoginRateLimitEntry>();
 
-function loginRateLimiter(req: Request, res: Response, next: NextFunction) {
+function pruneExpiredLoginRateLimits(now: number) {
+  for (const [key, entry] of loginRateLimit) {
+    if (entry.resetAt <= now) loginRateLimit.delete(key);
+  }
+}
+
+function loginRateLimitKey(req: Request, username: string) {
+  return `${req.ip ?? req.socket.remoteAddress ?? "unknown"}:${username}`;
+}
+
+async function loginRateLimiter(req: Request, res: Response, next: NextFunction) {
   const now = Date.now();
+  pruneExpiredLoginRateLimits(now);
   const rawUsername =
     typeof req.body?.username === "string"
       ? req.body.username.trim().toLowerCase()
       : "";
-  const key = `${req.ip ?? req.socket.remoteAddress ?? "unknown"}:${rawUsername}`;
+  const key = loginRateLimitKey(req, rawUsername);
+  const persistedCount = await db.consumeLoginRateLimit(
+    key,
+    new Date(now),
+    LOGIN_RATE_LIMIT_WINDOW_MS,
+  );
   const existing = loginRateLimit.get(key);
   const entry =
     existing && existing.resetAt > now
       ? existing
       : { count: 0, resetAt: now + LOGIN_RATE_LIMIT_WINDOW_MS };
 
-  entry.count += 1;
+  entry.count = Math.max(entry.count + 1, persistedCount ?? 0);
   loginRateLimit.set(key, entry);
 
   if (entry.count > LOGIN_RATE_LIMIT_MAX_ATTEMPTS) {
@@ -49,6 +66,8 @@ export type SessionPayload = {
   username: string;
   role: string;
   branch: string;
+  authVersion?: number;
+  jti?: string;
 };
 
 class LocalAuthService {
@@ -101,14 +120,21 @@ class LocalAuthService {
     username: string,
     role: string,
     branch: string,
-    options: { expiresInMs?: number } = {},
+    options: { expiresInMs?: number; authVersion?: number } = {},
   ): Promise<string> {
     const expiresIn = options.expiresInMs
       ? Math.floor(options.expiresInMs / 1000)
       : 86400; // Default 24h in seconds
-    return jwt.sign({ userId, username, role, branch }, ENV.JWT_SECRET, {
+    const jti = randomUUID();
+    const token = jwt.sign(
+      { userId, username, role, branch, authVersion: options.authVersion ?? 1, jti },
+      ENV.JWT_SECRET,
+      {
       expiresIn,
-    });
+      },
+    );
+    await db.createAuthSession(jti, userId, new Date(Date.now() + (options.expiresInMs ?? 86400000)));
+    return token;
   }
 
   /**
@@ -123,6 +149,7 @@ class LocalAuthService {
 
     try {
       const payload = jwt.verify(cookieValue, ENV.JWT_SECRET) as SessionPayload;
+      if (payload.jti && !(await db.isAuthSessionActive(payload.jti, payload.userId))) return null;
       return payload;
     } catch (error) {
       return null;
@@ -162,11 +189,31 @@ class LocalAuthService {
       return null;
     }
 
+    if (
+      typeof session.authVersion === "number" &&
+      session.authVersion !== user.authVersion
+    ) {
+      return null;
+    }
+
     return user;
   }
 }
 
 export const authService = new LocalAuthService();
+
+export async function revokeSessionFromRequest(req: Request) {
+  const cookies = parseCookieHeader(req.headers.cookie || "");
+  const authHeader = req.headers.authorization;
+  const bearerToken =
+    typeof authHeader === "string" && authHeader.toLowerCase().startsWith("bearer ")
+      ? authHeader.slice(7).trim()
+      : undefined;
+  const token = cookies[AUTH_COOKIE_NAME] || cookies[LEGACY_AUTH_COOKIE_NAME] || bearerToken;
+  if (!token) return;
+  const payload = authService.verifyToken(token) as SessionPayload | null;
+  if (payload?.jti) await db.revokeAuthSession(payload.jti);
+}
 
 /**
  * Register local auth routes
@@ -209,13 +256,20 @@ export function registerAuthRoutes(app: Express) {
           return;
         }
 
+        const rateLimitKey = loginRateLimitKey(req, user.username.trim().toLowerCase());
+        loginRateLimit.delete(rateLimitKey);
+        await db.clearLoginRateLimit(rateLimitKey);
+
         // Create session token
         const sessionToken = await authService.createSessionToken(
           user.id,
           user.username,
           user.role,
           user.branch || "examinations",
-          { expiresInMs: rememberMe !== false ? ONE_YEAR_MS : 86400000 },
+          {
+            expiresInMs: rememberMe !== false ? ONE_YEAR_MS : 86400000,
+            authVersion: user.authVersion,
+          },
         );
 
         await db.updateUserLastSignedIn(user.id);
@@ -267,7 +321,10 @@ export function registerAuthRoutes(app: Express) {
   );
 
   // Logout route
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
+  app.post("/api/auth/logout", async (req: Request, res: Response) => {
+    await revokeSessionFromRequest(req);
+    const user = await authService.authenticateRequest(req);
+    if (user) await db.bumpUserAuthVersion(user.id);
     const forwardedProtoHeader = req.headers["x-forwarded-proto"];
     const forwardedProto = Array.isArray(forwardedProtoHeader)
       ? forwardedProtoHeader[0]

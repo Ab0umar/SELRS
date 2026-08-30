@@ -89,11 +89,7 @@ const DAY_BITS = [1, 2, 4, 8, 16, 32, 64];
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 type StatusFilter = "" | BookingStatus;
 type BookingType =
-  | "consultant"
-  | "specialist"
-  | "pentacam"
-  | "external"
-  | "followup";
+  "consultant" | "specialist" | "pentacam" | "external" | "followup";
 
 type BookingRow = {
   id: number;
@@ -1205,9 +1201,9 @@ export default function AdminPortalBookings() {
         }
       />
 
-      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <section className="border-y border-border bg-muted/10 py-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {[
               { label: "الإجمالي", value: stats.total },
               { label: "قيد المراجعة", value: stats.pending },
@@ -1216,12 +1212,12 @@ export default function AdminPortalBookings() {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-2xl border border-border bg-muted/40 px-4 py-3"
+                className="flex items-baseline gap-2 text-xs"
               >
                 <p className="text-[11px] font-medium text-muted-foreground">
                   {item.label}
                 </p>
-                <p className="mt-1 text-lg font-semibold text-foreground">
+                <p className="text-sm font-black text-foreground">
                   {item.value}
                 </p>
               </div>
@@ -1287,7 +1283,7 @@ export default function AdminPortalBookings() {
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                       branchFilter === b.value
-                        ? "border-secondary/40 bg-secondary/10 text-secondary"
+                        ? "border-secondary/40 bg-secondary/10 text-primary"
                         : "border-border bg-white text-muted-foreground hover:bg-muted/40",
                     )}
                   >

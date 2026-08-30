@@ -6,8 +6,10 @@ import mysql from "mysql2/promise";
 type JournalEntry = { tag: string };
 
 function splitSql(sql: string) {
-  return sql
-    .split(/--> statement-breakpoint\s*/g)
+  const statements = sql.includes("--> statement-breakpoint")
+    ? sql.split(/--> statement-breakpoint\s*/g)
+    : sql.split(/;\s*(?=\r?\n|$)/);
+  return statements
     .map((stmt) => stmt.trim())
     .filter(Boolean);
 }

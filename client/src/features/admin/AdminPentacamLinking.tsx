@@ -120,17 +120,9 @@ export default function AdminPentacamLinking() {
   if (!isAuthenticated) return null;
 
   return (
-    <div
-      dir="rtl"
-      className="relative min-h-screen bg-background text-foreground"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-border/40 bg-muted/20"
-      />
-
-      <main className="relative z-10 flex min-h-screen w-full flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        <header className="mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
+    <div dir="rtl" className="bg-background text-foreground">
+      <main className="flex w-full flex-col">
+        <header className="mb-5 border-b border-border pb-5">
           {/* Top row: back + badge */}
           <div className="mb-4 flex items-center justify-between gap-4">
             <button
@@ -153,7 +145,7 @@ export default function AdminPentacamLinking() {
                 <FolderCog className="h-3.5 w-3.5" />
                 ربط إداري
               </div>
-              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+              <h1 className="text-2xl font-black text-foreground">
                 ربط صور البنتاكام
               </h1>
               <p className="text-sm leading-6 text-muted-foreground">

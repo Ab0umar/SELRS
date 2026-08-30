@@ -74,7 +74,7 @@ const VISIBILITY_GROUPS = [
   {
     title: "كروت الأدوية والروشتات",
     description: "الوصول السريع إلى الروشتات، الأدوية، والتحاليل.",
-    color: "bg-secondary/[0.07] text-secondary",
+    color: "bg-secondary/[0.07] text-primary",
     icon: Pill,
     options: [
       { key: "showPrescription", label: "الروشتة" },
@@ -180,7 +180,7 @@ export default function AdminCardVisibility() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right"
+      className="mx-auto w-full max-w-[1440px] space-y-4 pb-4 text-right"
       dir="rtl"
     >
       <PageHeader

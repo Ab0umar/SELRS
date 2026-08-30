@@ -458,7 +458,7 @@ export function useExaminationForm(
   ).toLowerCase();
   const myPermissions = (permissionsQuery.data ?? []) as string[];
   const receptionHasPatientEditPermission =
-    normalizedRole === "reception" &&
+    ["reception", "accountant"].includes(normalizedRole) &&
     myPermissions.includes(patientDataEditPermission);
   const canEditPatientData =
     normalizedRole === "admin" || receptionHasPatientEditPermission || embedded;
@@ -553,7 +553,7 @@ export function useExaminationForm(
   useEffect(() => {
     if (!currentUserDisplayName) return;
     const role = String((user as User | null)?.role ?? "").toLowerCase();
-    if (role === "reception") {
+    if (role === "reception" || role === "accountant") {
       setReceptionSignature((prev) => prev || currentUserDisplayName);
       return;
     }

@@ -134,7 +134,7 @@ function isNewerVersion(server: string, current: string): boolean {
   return false;
 }
 
-/** Mirrors the desktop WebView2 shell's self-updater: check /healthz for a newer
+/** Mirrors the desktop WebView2 shell's self-updater: check /version for a newer
  *  build than the installed APK, then hand the download off to the OS. */
 function NativeApkUpdateCheck({
   nativeAppInfo,
@@ -152,7 +152,7 @@ function NativeApkUpdateCheck({
 
     (async () => {
       try {
-        const response = await fetch(getApiUrl("/healthz"), {
+        const response = await fetch(getApiUrl("/version"), {
           cache: "no-store",
         });
         if (!response.ok) return;

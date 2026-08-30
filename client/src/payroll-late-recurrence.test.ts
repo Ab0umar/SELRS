@@ -4,6 +4,7 @@ import {
   calcMissingPunchDeduction,
   getPayrollWeekKey,
   normalizeLateTiers,
+  sumPayrollDeductions,
   type LateTier,
 } from "../../server/services/salary/lateDeduction";
 
@@ -60,5 +61,24 @@ describe("missing punch recurrence within a payroll cycle", () => {
     expect(calcMissingPunchDeduction(3, dailyRate)).toBe(120);
     expect(calcMissingPunchDeduction(4, dailyRate)).toBe(240);
     expect(calcMissingPunchDeduction(5, dailyRate)).toBe(360);
+  });
+});
+
+describe("payroll row missing-punch normalization", () => {
+  it("keeps a single-fingerprint deduction in total deductions and net basic", () => {
+    const basicSalary = 1000;
+    const missingCheckoutDeduction = 30;
+    const totalDeductions = sumPayrollDeductions({
+      absent: 0,
+      missingCheckout: missingCheckoutDeduction,
+      late: 0,
+      earlyLeave: 0,
+      penalty: 0,
+      advances: 0,
+      insurance: 0,
+    });
+
+    expect(totalDeductions).toBe(30);
+    expect(basicSalary - totalDeductions).toBe(970);
   });
 });

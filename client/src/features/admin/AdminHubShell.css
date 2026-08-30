@@ -1,0 +1,18 @@
+/* =========================================================================
+   "عيون الشروق" Admin Hub - Exact Layout
+   ========================================================================= */
+
+@layer components {
+  [data-admin-hub].exact-admin-hub {
+    font-family: var(--font-arabic), "Cairo", system-ui, sans-serif;
+  }
+
+  [data-admin-hub].exact-admin-hub .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  [data-admin-hub].exact-admin-hub .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

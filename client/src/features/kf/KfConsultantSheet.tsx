@@ -29,7 +29,6 @@ export default function KfConsultantSheet() {
     ? Number(initialPatientIdRaw)
     : undefined;
   const embeddedInPatientHub = false;
-  const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
   const [operationDateLeft, setOperationDateLeft] = useState("");
   const [operationDateRight, setOperationDateRight] = useState("");
   const formatDateLabel = (value: string) => {
@@ -146,6 +145,15 @@ export default function KfConsultantSheet() {
     { kfPatientId: initialPatientId ?? 0 },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
+  // Auto-print (triggered by usePrintMode below) must wait for the sheet's
+  // own data to finish loading — otherwise the print preview/dialog fires
+  // against a still-empty page.
+  const printMode = usePrintMode({
+    ready:
+      Boolean(initialPatientId) &&
+      !kfPatientQuery.isLoading &&
+      !kfExaminationsQuery.isLoading,
+  });
   const mobileSheetModeEnabled = false;
 
   const formatDate = (value?: string | Date | null) => {

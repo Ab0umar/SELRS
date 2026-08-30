@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.release-backups/
 .cache/
 .env
 .env.*
@@ -155,6 +156,11 @@ client/public/assets/
 # Secrets and certs
 origin_cert.txt
 origin_key.txt
+*.keystore
+*.jks
+*.p12
+*.pfx
+android/app/key.properties
 
 # Temporary/Operation files
 /op

@@ -6,6 +6,7 @@ import {
   adminProcedure,
   receptionProcedure,
   technicianProcedure,
+  makePageProcedure,
 } from "../_core/procedures";
 import {
   getAppNotificationSettings,
@@ -98,7 +99,7 @@ function resolveInsertId(result: unknown): number {
 }
 
 export const medicalPatientRoutes = {
-  createPatient: protectedProcedure
+  createPatient: receptionProcedure
     .input(
       z.object({
         patientCode: z.string().optional(),
@@ -1075,7 +1076,7 @@ export const medicalPatientRoutes = {
         });
       }
     }),
-  getPatientServiceEntries: protectedProcedure
+  getPatientServiceEntries: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPatientServiceEntriesByPatient(input.patientId);
@@ -1218,7 +1219,7 @@ export const medicalPatientRoutes = {
       const role = String(ctx.user.role ?? "").toLowerCase();
       if (
         input.queueStatus === "treated" &&
-        !["reception", "admin"].includes(role)
+        !["reception", "accountant", "admin"].includes(role)
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",

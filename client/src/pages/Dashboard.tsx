@@ -89,7 +89,7 @@ const TABS: Array<{
     id: "hub",
     label: "مركز المريض",
     icon: Users,
-    iconWrapCls: "bg-secondary/15 text-secondary",
+    iconWrapCls: "bg-secondary/15 text-primary",
     permPath: "/patient-hub",
   },
   {
@@ -849,7 +849,7 @@ function AttendancePanel() {
     {
       label: "لم يسجل الخروج أمس",
       value: d?.missingCheckoutYesterday ?? 0,
-      cls: "text-secondary",
+      cls: "text-primary",
     },
   ];
 
@@ -1543,7 +1543,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary/15 px-2.5 text-[10px] font-bold text-secondary tabular-nums shrink-0">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary/15 px-2.5 text-[10px] font-bold text-primary tabular-nums shrink-0">
                 <Clock className="h-3 w-3" aria-hidden />
                 {timeStr}
               </span>

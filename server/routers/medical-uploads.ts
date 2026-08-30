@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
-import { router, protectedProcedure } from "../_core/procedures";
+import {
+  router,
+  makePageProcedure,
+  makePageWriteProcedure,
+} from "../_core/procedures";
 import { getDb } from "../db";
 import { uploadToS3 } from "../_core/s3";
 
@@ -22,7 +26,7 @@ function normalizeRows(rows: unknown): any[] {
 }
 
 export const medicalUploadsRoutes = {
-  getPatientDiagnosisUploads: protectedProcedure
+  getPatientDiagnosisUploads: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number().int().positive() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -52,7 +56,7 @@ export const medicalUploadsRoutes = {
       }));
     }),
 
-  uploadDiagnosisImage: protectedProcedure
+  uploadDiagnosisImage: makePageWriteProcedure("/patient-file")
     .input(
       z.object({
         patientId: z.number().int().positive(),

@@ -1,10 +1,11 @@
 import { useLocation, Link } from "wouter";
-import { useState, Suspense } from "react";
+import { useMemo, useState, Suspense } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
-  ArrowRight,
+  ArrowUpLeft,
+  ChevronRight,
   Database,
   HeartPulse,
   LayoutGrid,
@@ -12,9 +13,8 @@ import {
   Stethoscope,
   Terminal,
   Users,
+  Wrench,
   FileSearch,
-  Settings,
-  DollarSign,
   Link2,
   TestTube2,
   Copy,
@@ -24,9 +24,10 @@ import {
   CalendarDays,
   Bell,
   Eye,
-  ChevronRight,
-  PanelRightClose,
-  PanelRightOpen,
+  UserCheck,
+  Hospital,
+  Search,
+  Zap,
 } from "lucide-react";
 import AdminUsers from "./AdminUsers";
 import AdminMigrations from "./AdminMigrations";
@@ -40,8 +41,6 @@ import AdminDoctors from "./AdminDoctors";
 import AdminPentacamFailed from "./AdminPentacamFailed";
 import AdminServices from "./AdminServices";
 import TestsManagement from "../../pages/TestsManagement";
-import AdminSheetCopies from "./AdminSheetCopies";
-import AdminFormsHub from "./AdminFormsHub";
 import AdminCardVisibility from "./AdminCardVisibility";
 import AdminDiagnostics from "./AdminDiagnostics";
 import AdminDataSourceAudit from "./AdminDataSourceAudit";
@@ -58,453 +57,236 @@ import ExternalDoctorReferrals from "../../pages/ExternalDoctorReferrals";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
+import "./AdminHubShell.css";
+
+type HubCategory = "all" | "staff" | "services" | "portal" | "system";
 
 type HubModuleCard = {
   href: string;
-  title: string;
-  description: string;
+  label: string;
+  helper: string;
   icon: LucideIcon;
-  iconWrap: string;
+  tone: string;
   category: "staff" | "services" | "portal" | "system";
 };
 
+const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
+  { id: "all", label: "جميع الأقسام", icon: LayoutGrid },
+  { id: "staff", label: "الكادر والصلاحيات", icon: Users },
+  { id: "services", label: "الفحوصات والملفات", icon: Layers },
+  { id: "portal", label: "المرضى والبوابة", icon: HeartPulse },
+  { id: "system", label: "النظام والصيانة", icon: Terminal },
+];
+
 const ALL_MODULES: HubModuleCard[] = [
+  // 1. Staff & Permissions
   {
-    href: "/salary",
-    title: "المرتبات",
-    description: "كشف المرتبات والعمولات والجزاءات الشهرية.",
-    icon: DollarSign,
-    iconWrap: "bg-success/10 text-success",
-    category: "staff",
-  },
-  {
-    href: "/admin-hub/permissions",
-    title: "الصلاحيات",
-    description: "تحديد صلاحيات الوصول للأدوار المختلفة.",
-    icon: Shield,
-    iconWrap: "bg-secondary/[0.07] text-secondary",
+    href: "/admin-hub/users",
+    label: "المستخدمين",
+    helper: "الحسابات والموظفين",
+    icon: Users,
+    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
     category: "staff",
   },
   {
     href: "/admin-hub/doctors",
-    title: "إدارة الأطباء",
-    description: "تنظيم قائمة الأطباء والتخصصات.",
+    label: "الأطباء",
+    helper: "الكادر الطبي والتخصصات",
     icon: Stethoscope,
-    iconWrap: "bg-success/10 text-success",
+    tone: "text-[#157a67] bg-[#edf8f4]",
     category: "staff",
   },
   {
-    href: "/admin-hub/users",
-    title: "إدارة المستخدمين",
-    description: "إضافة وتعديل بيانات الموظفين والمستخدمين.",
-    icon: Users,
-    iconWrap: "bg-primary/10 text-primary",
+    href: "/admin-hub/permissions",
+    label: "الصلاحيات",
+    helper: "أدوار ومجموعات العمل",
+    icon: Shield,
+    tone: "text-[#4b5cc4] bg-[#eef0ff]",
     category: "staff",
   },
   {
     href: "/admin-hub/external-doctors",
-    title: "الأطباء الخارجيون",
-    description: "أطباء الإحالة الخارجيين وعلاقاتهم بالمركز.",
-    icon: Stethoscope,
-    iconWrap: "bg-info/10 text-info",
+    label: "الأطباء الخارجيين",
+    helper: "أطباء الإحالة والتعاقدات",
+    icon: UserCheck,
+    tone: "text-[#16718a] bg-[#eaf8fb]",
     category: "staff",
   },
   {
     href: "/admin-hub/external-referrals",
-    title: "إحالات الأطباء الخارجية",
-    description: "متابعة الحالات المحولة ونسب الإحالة للأطباء.",
+    label: "إحالات الأطباء",
+    helper: "الحالات المحولة والعمولات",
     icon: FileSearch,
-    iconWrap: "bg-primary/10 text-primary",
+    tone: "text-[#c2781c] bg-[#fff4e6]",
     category: "staff",
   },
-  {
-    href: "/admin-hub/status",
-    title: "حالة النظام",
-    description: "مراقبة اتصال الخادم وقاعدة البيانات والأداء.",
-    icon: Terminal,
-    iconWrap: "bg-primary/[0.07] text-primary",
-    category: "system",
-  },
-  {
-    href: "/admin-hub/migrations",
-    title: "ترحيل البيانات",
-    description: "تطبيق ترحيلات Drizzle وأدوات الصيانة.",
-    icon: Database,
-    iconWrap: "bg-primary/10 text-primary",
-    category: "system",
-  },
+
+  // 2. Services & Sheets
   {
     href: "/admin-hub/services",
-    title: "ربط الخدمات",
-    description: "مطابقة الخدمات المحلية مع رموز الربط.",
-    icon: LayoutGrid,
-    iconWrap: "bg-warning/10 text-warning",
+    label: "ربط الخدمات",
+    helper: "التكويد والمطابقة",
+    icon: Link2,
+    tone: "text-[#b6534d] bg-[#fff0ef]",
     category: "services",
   },
   {
     href: "/admin-hub/tests",
-    title: "تسعير الفحوصات",
-    description: "تحديد الفحوصات الطبية وأسعارها بالمركز.",
+    label: "الفحوصات",
+    helper: "الأسعار وإعدادات الباقات",
     icon: TestTube2,
-    iconWrap: "bg-primary/10 text-primary",
-    category: "services",
-  },
-  {
-    href: "/admin-hub/forms",
-    title: "مستندات ونماذج المرضى",
-    description: "إعداد استمارات الموافقة الجراحية والتعليمات الطبية للمرضى.",
-    icon: PenSquare,
-    iconWrap: "bg-success/10 text-success",
+    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
     category: "services",
   },
   {
     href: "/admin-hub/sheets",
-    title: "ملفات الفحص",
-    description: "مراجعة وحذف وتعديل استمارات فحص الحالات.",
+    label: "ملفات الفحص الإلكترونية",
+    helper: "استمارات العيادات والقوالب",
     icon: Layers,
-    iconWrap: "bg-secondary/[0.07] text-secondary",
+    tone: "text-[#4b5cc4] bg-[#eef0ff]",
     category: "services",
   },
   {
     href: "/admin-hub/sheet-designer",
-    title: "مصمم نماذج الملفات",
-    description: "بناء وتحديث حقول استمارات الفحص والمتابعة.",
+    label: "مصمم النماذج",
+    helper: "بناء وتعديل حقول الكشف",
     icon: Scan,
-    iconWrap: "bg-primary/10 text-primary",
+    tone: "text-[#6c4bb1] bg-[#f1edff]",
     category: "services",
-  },
-  {
-    href: "/admin-hub/sheet-copies",
-    title: "سجلات نسخ الملفات",
-    description: "مراجعة ونقل الحقول الطبية المسجلة للملف الإلكتروني.",
-    icon: Copy,
-    iconWrap: "bg-muted text-muted-foreground",
-    category: "services",
-  },
-  {
-    href: "/admin-hub/patients",
-    title: "سجل المرضى الكلي",
-    description: "البحث التفصيلي وتعديل كافة ملفات المرضى التاريخية بالمركز.",
-    icon: Users,
-    iconWrap: "bg-info/10 text-info",
-    category: "portal",
-  },
-  {
-    href: "/admin-hub/legacy-patients",
-    title: "سجل المرضى التاريخي",
-    description: "بحث ومراجعة ملفات السنوات السابقة للمرضى.",
-    icon: Users,
-    iconWrap: "bg-muted text-muted-foreground",
-    category: "portal",
-  },
-  {
-    href: "/admin-hub/whatsapp-inbox",
-    title: "رسائل واتساب الواردة",
-    description: "متابعة رسائل المرضى والرد عليها من داخل المركز.",
-    icon: Bell,
-    iconWrap: "bg-success/10 text-success",
-    category: "portal",
-  },
-  {
-    href: "/admin-hub/op-history",
-    title: "سجل العمليات",
-    description: "مراجعة العمليات وتكويد الخدمات والتعديلات اليدوية.",
-    icon: FileSearch,
-    iconWrap: "bg-primary/10 text-primary",
-    category: "system",
   },
   {
     href: "/admin-hub/pentacam-linking",
-    title: "ربط ملفات البنتاكام",
-    description: "استيراد وربط صور البنتاكام بملفات المرضى.",
-    icon: Link2,
-    iconWrap: "bg-secondary/10 text-secondary",
+    label: "ربط البنتاكام",
+    helper: "استيراد صور وفحوصات الأشعة",
+    icon: Hospital,
+    tone: "text-[#c2781c] bg-[#fff4e6]",
     category: "services",
   },
   {
     href: "/admin-hub/pentacam-duplicates",
-    title: "تنظيف ملفات البنتاكام المكررة",
-    description: "مراجعة وحذف سجلات الرفع المكررة بأمان.",
+    label: "البنتاكام المكرر",
+    helper: "تنظيف الملفات المكررة بأمان",
     icon: Copy,
-    iconWrap: "bg-warning/10 text-warning",
+    tone: "text-[#b6534d] bg-[#fff0ef]",
     category: "services",
   },
   {
     href: "/admin-hub/pentacam-failed",
-    title: "فشل رفع البنتاكام",
-    description: "مراجعة الملفات التي فشل رفعها ومعالجة أسباب الخطأ.",
+    label: "فشل البنتاكام",
+    helper: "معالجة أخطاء رفع الفحوصات",
     icon: Activity,
-    iconWrap: "bg-destructive/10 text-destructive",
+    tone: "text-[#b6534d] bg-[#fff0ef]",
     category: "services",
   },
+
+  // 3. Patients & Portal
   {
-    href: "/admin-hub/portal-bookings",
-    title: "حجوزات البوابة الخارجية",
-    description: "التحقق وتأكيد حجوزات موقع الويب الخارجي والطلبات للعيادات.",
-    icon: CalendarDays,
-    iconWrap: "bg-primary/10 text-primary",
+    href: "/admin-hub/patients",
+    label: "سجل المرضى الكلي",
+    helper: "البحث في كافة المرضى",
+    icon: Users,
+    tone: "text-[#157a67] bg-[#edf8f4]",
     category: "portal",
   },
   {
-    href: "/admin-hub/settings",
-    title: "الإعدادات العامة",
-    description: "تعديل المسمى الطبي والتأكيد على خيارات تشغيل المنشأة.",
-    icon: Settings,
-    iconWrap: "bg-muted text-muted-foreground",
+    href: "/admin-hub/legacy-patients",
+    label: "الأرشيف التاريخي",
+    helper: "سجلات السنوات السابقة",
+    icon: Users,
+    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
+    category: "portal",
+  },
+  {
+    href: "/admin-hub/portal-bookings",
+    label: "حجوزات البوابة",
+    helper: "طلبات الحجز الخارجي",
+    icon: CalendarDays,
+    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    category: "portal",
+  },
+  {
+    href: "/admin-hub/whatsapp-inbox",
+    label: "رسائل واتساب",
+    helper: "صندوق الوارد والتواصل",
+    icon: Bell,
+    tone: "text-[#16836a] bg-[#e9f8f1]",
+    category: "portal",
+  },
+
+  // 4. System & Dev
+  {
+    href: "/admin-hub/status",
+    label: "حالة السيرفر",
+    helper: "مراقبة الأداء والاتصال",
+    icon: Terminal,
+    tone: "text-[#157a67] bg-[#edf8f4]",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/migrations",
+    label: "اسكيما وتحديثات",
+    helper: "ترحيل جداول الداتابيز",
+    icon: Database,
+    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/op-history",
+    label: "سجل العمليات",
+    helper: "سجل التعديلات والإجراءات",
+    icon: FileSearch,
+    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/settings/pricing-rules",
+    label: "قواعد تسعير المواعيد",
+    helper: "أسعار الكشوفات وحسابات الأطباء",
+    icon: CalendarDays,
+    tone: "text-[#157a67] bg-[#edf8f4]",
     category: "system",
   },
   {
     href: "/admin-hub/card-visibility",
-    title: "بطاقات الاستعلام",
-    description: "التحكم في ظهور كروت الإحصائيات بالرئيسية.",
+    label: "بطاقات اللوحة",
+    helper: "التحكم في ظهور الكروت",
     icon: Eye,
-    iconWrap: "bg-warning/10 text-warning",
+    tone: "text-[#4b5cc4] bg-[#eef0ff]",
     category: "system",
   },
   {
     href: "/admin-hub/audit",
-    title: "تدقيق الحسابات",
-    description: "سجل حركات تعديل قيم الكشوفات والمبالغ المالية.",
+    label: "تدقيق البيانات",
+    helper: "سجل حركات وتعديل المبالغ",
     icon: FileSearch,
-    iconWrap: "bg-primary/[0.07] text-primary",
+    tone: "text-[#b6534d] bg-[#fff0ef]",
     category: "system",
   },
   {
     href: "/admin-hub/notifications",
-    title: "إعدادات التنبيهات",
-    description: "ضبط تنبيهات النظام وقنوات الإرسال.",
+    label: "الإشعارات",
+    helper: "قنوات التنبيه والإرسال",
     icon: Bell,
-    iconWrap: "bg-destructive/10 text-destructive",
+    tone: "text-[#c2781c] bg-[#fff4e6]",
     category: "system",
   },
   {
     href: "/admin-hub/api",
-    title: "أدوات API",
-    description: "اختبار أدوات المطورين وواجهات النظام الداخلية.",
+    label: "tRPC API",
+    helper: "أدوات مطوري النظام",
     icon: Terminal,
-    iconWrap: "bg-muted text-muted-foreground",
+    tone: "text-[#334c80] bg-[#edf2fb]",
     category: "system",
   },
   {
     href: "/admin-hub/diagnostics",
-    title: "تشخيصات النظام",
-    description: "فحوصات سريعة لمشاكل الاتصال والتشغيل.",
-    icon: Activity,
-    iconWrap: "bg-info/10 text-info",
+    label: "التشخيص والإصلاح",
+    helper: "فحص الأعطال والشبكة",
+    icon: Wrench,
+    tone: "text-[#157a67] bg-[#edf8f4]",
     category: "system",
   },
 ];
-
-const navigationSections = [
-  {
-    id: "staff",
-    label: "إدارة كادر العمل",
-    description: "المستخدمون، الأطباء، الصلاحيات والإحالات",
-    icon: Users,
-    items: [
-      {
-        href: "/salary",
-        label: "المرتبات والعمولات",
-        description: "الرواتب والجزاءات وتقارير الموظفين",
-        activeFor: ["/salary"],
-      },
-      {
-        href: "/admin-hub/users",
-        label: "إدارة المستخدمين",
-        description: "بيانات حسابات ودخول الموظفين",
-        activeFor: ["/admin-hub/users"],
-      },
-      {
-        href: "/admin-hub/doctors",
-        label: "كادر الأطباء بالمركز",
-        description: "بيانات وتخصصات الأطباء المسجلين",
-        activeFor: ["/admin-hub/doctors"],
-      },
-      {
-        href: "/admin-hub/permissions",
-        label: "صلاحيات الوصول للأدوار",
-        description: "صلاحيات ومجموعات العمل بالسيستم",
-        activeFor: ["/admin-hub/permissions"],
-      },
-      {
-        href: "/admin-hub/external-doctors",
-        label: "الأطباء الخارجيون",
-        description: "أطباء الإحالة الخارجيين وعلاقاتهم",
-        activeFor: ["/admin-hub/external-doctors"],
-      },
-      {
-        href: "/admin-hub/external-referrals",
-        label: "إحالات الأطباء الخارجية",
-        description: "الحالات المحولة ونسب الإحالة",
-        activeFor: ["/admin-hub/external-referrals"],
-      },
-    ],
-  },
-  {
-    id: "services",
-    label: "الخدمات والملفات الطبية",
-    description: "إعداد الفحوصات والخدمات والملفات ونماذج الموافقة",
-    icon: Layers,
-    items: [
-      {
-        href: "/admin-hub/services",
-        label: "ربط وتطابق الخدمات",
-        description: "تطابق أسماء الخدمات بالمركز",
-        activeFor: ["/admin-hub/services"],
-      },
-      {
-        href: "/admin-hub/tests",
-        label: "إعدادات وتسعير الفحوصات",
-        description: "أسعار التحاليل والفحوصات الفنية",
-        activeFor: ["/admin-hub/tests"],
-      },
-      {
-        href: "/admin-hub/forms",
-        label: "مستندات ونماذج المرضى",
-        description: "الموافقات الطبية وتعليمات الليزك",
-        activeFor: ["/admin-hub/forms"],
-      },
-      {
-        href: "/admin-hub/sheets",
-        label: "ملفات الفحص الإلكترونية",
-        description: "ملفات كشف واستمارات الفحص للحالات",
-        activeFor: ["/admin-hub/sheets"],
-      },
-      {
-        href: "/admin-hub/sheet-designer",
-        label: "مصمم نماذج الملفات",
-        description: "أداة بناء حقول وقيم الكشف",
-        activeFor: ["/admin-hub/sheet-designer"],
-      },
-      {
-        href: "/admin-hub/sheet-copies",
-        label: "سجلات نسخ الملفات",
-        description: "سجل نقل بنية وقيم الحقول الطبية",
-        activeFor: ["/admin-hub/sheet-copies"],
-      },
-      {
-        href: "/admin-hub/pentacam-linking",
-        label: "ربط ملفات البنتاكام",
-        description: "استيراد وربط صور البنتاكام",
-        activeFor: ["/admin-hub/pentacam-linking"],
-      },
-      {
-        href: "/admin-hub/pentacam-duplicates",
-        label: "تنظيف البنتاكام المكرر",
-        description: "مراجعة سجلات الرفع المكررة",
-        activeFor: ["/admin-hub/pentacam-duplicates"],
-      },
-      {
-        href: "/admin-hub/pentacam-failed",
-        label: "فشل رفع البنتاكام",
-        description: "مراجعة الملفات التي فشل رفعها",
-        activeFor: ["/admin-hub/pentacam-failed"],
-      },
-    ],
-  },
-  {
-    id: "portal",
-    label: "المرضى وحجوزات البوابة",
-    description: "البحث الكلي وإحالات حجز الويب الخارجي",
-    icon: HeartPulse,
-    items: [
-      {
-        href: "/admin-hub/patients",
-        label: "سجل المرضى الكلي",
-        description: "البحث في كافة المرضى المسجلين بالمركز",
-        activeFor: ["/admin-hub/patients"],
-      },
-      {
-        href: "/admin-hub/portal-bookings",
-        label: "حجوزات البوابة الخارجية",
-        description: "حجوزات موقع الويب الخارجي والطلبات",
-        activeFor: ["/admin-hub/portal-bookings"],
-      },
-      {
-        href: "/admin-hub/legacy-patients",
-        label: "سجل المرضى التاريخي",
-        description: "بحث للمراجعة فقط في قواعد بيانات السنوات السابقة",
-        activeFor: ["/admin-hub/legacy-patients"],
-      },
-      {
-        href: "/admin-hub/whatsapp-inbox",
-        label: "رسائل واتساب الواردة",
-        description: "متابعة الرسائل والردود",
-        activeFor: ["/admin-hub/whatsapp-inbox"],
-      },
-    ],
-  },
-  {
-    id: "system",
-    label: "النظام والصيانة",
-    description: "حالة السيرفر وترحيل الجداول وسجلات الحسابات",
-    icon: Terminal,
-    items: [
-      {
-        href: "/admin-hub/status",
-        label: "حالة الخادم الفنية",
-        description: "أداء السيرفر واستخدام المعالج والذاكرة",
-        activeFor: ["/admin-hub/status"],
-      },
-      {
-        href: "/admin-hub/migrations",
-        label: "مزامنة تحديثات الجداول",
-        description: "ترحيل البيانات وتعديل قواعد البيانات",
-        activeFor: ["/admin-hub/migrations"],
-      },
-      {
-        href: "/admin-hub/api",
-        label: "لوحة اختبار tRPC API",
-        description: "أدوات API للمطورين",
-        activeFor: ["/admin-hub/api"],
-      },
-      {
-        href: "/admin-hub/settings",
-        label: "إعدادات النظام العامة",
-        description: "عناوين وخواص تشغيل المركز الكلية",
-        activeFor: ["/admin-hub/settings"],
-      },
-      {
-        href: "/admin-hub/card-visibility",
-        label: "إعدادات بطاقات الاستعلام",
-        description: "التحكم في ظهور كروت Dashboard",
-        activeFor: ["/admin-hub/card-visibility"],
-      },
-      {
-        href: "/admin-hub/audit",
-        label: "سجل تدقيق التغييرات",
-        description: "سجلات الأمن وحركة التعديل",
-        activeFor: ["/admin-hub/audit"],
-      },
-      {
-        href: "/admin-hub/notifications",
-        label: "إعدادات التنبيهات",
-        description: "إعدادات الرسائل وسيرفرات البريد",
-        activeFor: ["/admin-hub/notifications"],
-      },
-      {
-        href: "/admin-hub/op-history",
-        label: "سجل العمليات",
-        description: "سجل التعديلات والعمليات الإدارية",
-        activeFor: ["/admin-hub/op-history"],
-      },
-      {
-        href: "/admin-hub/diagnostics",
-        label: "تشخيصات النظام",
-        description: "فحوصات الاتصال والتشغيل",
-        activeFor: ["/admin-hub/diagnostics"],
-      },
-    ],
-  },
-];
-
-function isItemActive(pathname: string, activeFor: string[]) {
-  return activeFor.some((path) =>
-    path === "/admin-hub"
-      ? pathname === path
-      : pathname === path || pathname.startsWith(`${path}/`),
-  );
-}
 
 type AdminHubShellProps = {
   basePath?: string;
@@ -514,6 +296,10 @@ export default function AdminHubShell({
   basePath = "/admin-hub",
 }: AdminHubShellProps) {
   const [location, setLocation] = useLocation();
+  const [activeCategory, setActiveCategory] = useState<HubCategory>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const { canAccess } = usePermissions();
+
   const hubLocation =
     basePath === "/admin-hub"
       ? location
@@ -522,8 +308,9 @@ export default function AdminHubShell({
         : location.startsWith(`${basePath}/`)
           ? `/admin-hub${location.slice(basePath.length)}`
           : location;
-  const { canAccess } = usePermissions();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isHubHome =
+    hubLocation === "/admin-hub" || hubLocation === "/admin-hub/";
 
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
     refetchInterval: 10_000,
@@ -531,26 +318,27 @@ export default function AdminHubShell({
   });
 
   const opsHealth = opsHealthQuery.data;
-  const isHubHome =
-    hubLocation === "/admin-hub" || hubLocation === "/admin-hub/";
 
-  const getBreadcrumbs = () => {
-    if (isHubHome) return null;
-    const parts = hubLocation.split("/").filter(Boolean);
-    const crumbs = [{ label: "الرئيسية للمشرف", href: "/admin-hub" }];
+  const accessibleModules = useMemo(
+    () => ALL_MODULES.filter((item) => canAccess(item.href)),
+    [canAccess],
+  );
 
-    let currentPath = "/admin-hub";
-    for (let i = 1; i < parts.length; i++) {
-      const part = parts[i];
-      currentPath += `/${part}`;
-      const mod = ALL_MODULES.find((m) => m.href === currentPath);
-      crumbs.push({
-        label: mod ? mod.title : part,
-        href: currentPath,
-      });
-    }
-    return crumbs;
-  };
+  const filteredModules = useMemo(() => {
+    return accessibleModules.filter((card) => {
+      const matchCat =
+        activeCategory === "all" || card.category === activeCategory;
+      const matchQuery =
+        !searchQuery.trim() ||
+        card.label.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+        card.helper.toLowerCase().includes(searchQuery.toLowerCase().trim());
+      return matchCat && matchQuery;
+    });
+  }, [accessibleModules, activeCategory, searchQuery]);
+
+  const currentModule = useMemo(() => {
+    return ALL_MODULES.find((m) => m.href === hubLocation);
+  }, [hubLocation]);
 
   const renderComponent = () => {
     const loc = hubLocation.replace(/\/$/, "");
@@ -558,14 +346,19 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/migrations") return <AdminMigrations />;
     if (loc === "/admin-hub/api") return <AdminApiTools />;
     if (loc === "/admin-hub/status") return <AdminStatus />;
-    if (loc === "/admin-hub/settings") return <AdminSettings />;
+    if (loc === "/admin-hub/settings/pricing-rules")
+      return <AdminSettings pricingOnly />;
+    if (loc === "/admin-hub/settings") return <AdminStatus />;
     if (loc === "/admin-hub/permissions") return <AdminPermissions />;
-    if (loc === "/admin-hub/sheets") return <AdminSheets />;
+    if (
+      loc === "/admin-hub/sheets" ||
+      loc === "/admin-hub/forms" ||
+      loc === "/admin-hub/sheet-copies"
+    )
+      return <AdminSheets />;
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
     if (loc === "/admin-hub/doctors") return <AdminDoctors />;
     if (loc === "/admin-hub/pentacam-failed") return <AdminPentacamFailed />;
-    if (loc === "/admin-hub/sheet-copies") return <AdminSheetCopies />;
-    if (loc === "/admin-hub/forms") return <AdminFormsHub />;
     if (loc === "/admin-hub/patients") return <AdminPatients />;
     if (loc === "/admin-hub/legacy-patients") return <AdminLegacyPatients />;
     if (loc === "/admin-hub/whatsapp-inbox") return <AdminWhatsAppInbox />;
@@ -591,361 +384,185 @@ export default function AdminHubShell({
     return null;
   };
 
-  const CATEGORIES = [
-    {
-      id: "staff" as const,
-      title: "إدارة كادر العمل البشري",
-      subtitle: "إضافة وتعديل بيانات الموظفين والمستخدمين والصلاحيات والأطباء",
-      icon: Users,
-      color: "text-primary",
-      bg: "bg-primary/10 border-primary/20",
-    },
-    {
-      id: "services" as const,
-      title: "تخصيص الفحوصات والخدمات والملفات الطبية",
-      subtitle:
-        "إعداد حقول كشف الحالات والتعليمات ونماذج الموافقة الطبية والأسعار",
-      icon: Layers,
-      color: "text-secondary",
-      bg: "bg-secondary/10 border-secondary/20",
-    },
-    {
-      id: "portal" as const,
-      title: "المرضى وحجوزات البوابة الخارجية",
-      subtitle: "البحث في ملفات المرضى ومراجعة طلبات الكشف والحجز الخارجي",
-      icon: HeartPulse,
-      color: "text-info",
-      bg: "bg-info/10 border-info/20",
-    },
-    {
-      id: "system" as const,
-      title: "أدوات النظام المتقدمة وقواعد البيانات",
-      subtitle:
-        "ترحيل البيانات، ومراقبة مؤشرات كفاءة الخادم وسجلات الأمان الفنية",
-      icon: Terminal,
-      color: "text-warning",
-      bg: "bg-warning/10 border-warning/20",
-    },
-  ];
-
-  const crumbs = getBreadcrumbs();
-
-  const metrics = [
-    {
-      label: "قاعدة البيانات",
-      value: opsHealthQuery.isLoading
-        ? "—"
-        : opsHealth?.dbConnected
-          ? "متصلة"
-          : "غير متصلة",
-      tone: opsHealth?.dbConnected
-        ? "text-success font-black animate-pulse"
-        : "text-destructive font-black",
-      accent: opsHealth?.dbConnected
-        ? "bg-success/10 border-success/20"
-        : "bg-destructive/10 border-destructive/20",
-    },
-    {
-      label: "النفق الآمن",
-      value: opsHealthQuery.isLoading
-        ? "—"
-        : opsHealth?.tunnelConnected
-          ? "نشط"
-          : "غير نشط",
-      tone: opsHealth?.tunnelConnected
-        ? "text-success font-black animate-pulse"
-        : "text-destructive font-black",
-      accent: opsHealth?.tunnelConnected
-        ? "bg-success/10 border-success/20"
-        : "bg-destructive/10 border-destructive/20",
-    },
-    {
-      label: "مرضى اليوم",
-      value: opsHealthQuery.isLoading
-        ? "—"
-        : (opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG"),
-      tone: "text-primary",
-      accent: "bg-primary/10 border-primary/20",
-    },
-  ];
-
-  const sidebarSections = navigationSections
-    .map((section) => ({
-      ...section,
-      items: section.items.filter((item) => canAccess(item.href)),
-    }))
-    .filter((section) => section.items.length > 0);
-
-  const quickLinks = [
-    {
-      href: "/admin-hub/portal-bookings",
-      label: "حجوزات البوابة",
-      hint: "مراجعة الطلبات الجديدة",
-      icon: CalendarDays,
-    },
-    {
-      href: "/admin-hub/users",
-      label: "المستخدمون",
-      hint: "الحسابات والأدوار",
-      icon: Users,
-    },
-    {
-      href: "/admin-hub/status",
-      label: "حالة النظام",
-      hint: "الاتصال والأداء",
-      icon: Activity,
-    },
-  ].filter((item) => canAccess(item.href));
-
-  const allNavItems = sidebarSections.flatMap((section) => section.items);
-  const activeNavItem = allNavItems.find((item) =>
-    isItemActive(hubLocation, item.activeFor),
-  );
-  const pageTitle = isHubHome
-    ? "مركز التحكم التشغيلي"
-    : activeNavItem?.label || "صفحة الإدارة";
-  const pageDescription = isHubHome
-    ? "إدارة المركز من مساحة واحدة بدون تنقّل متكرر."
-    : activeNavItem?.description || "إدارة وتشغيل بيانات المركز.";
+  const cardClassName =
+    "group flex min-h-[116px] w-full flex-col justify-between rounded-xl border border-[#dfe7f2] bg-white p-3 text-right shadow-[0_6px_20px_rgba(42,79,154,0.05)] transition-all duration-200 hover:-translate-y-1 hover:border-[#b5c6e2] hover:shadow-[0_14px_30px_rgba(42,79,154,0.12)] active:translate-y-0 sm:min-h-[138px] sm:rounded-2xl sm:p-4";
 
   return (
-    <div
-      data-admin-hub
-      className="admin-hub-redesign-v3 min-h-screen bg-[#eef2f7] text-foreground"
-      dir="rtl"
-    >
-      <div className="admin-hub-v3-app min-h-screen">
-        <aside
-          className={cn(
-            "admin-hub-v3-rail fixed inset-y-0 right-0 z-40 flex flex-col",
-            sidebarOpen ? "is-open" : "",
-          )}
-          aria-label="تنقل Admin Hub"
-        >
-          <div className="admin-hub-v3-brand">
-            <Link href="/admin-hub" className="admin-hub-v3-brand-mark">
-              <span>AD</span>
-            </Link>
-            <div className="admin-hub-v3-brand-copy">
-              <span>Admin Hub</span>
-              <small>عيون الشروق</small>
-            </div>
-            <button
-              type="button"
-              className="admin-hub-v3-rail-close"
-              onClick={() => setSidebarOpen(false)}
-              aria-label="إغلاق القائمة"
-            >
-              ×
-            </button>
-          </div>
-
-          <nav className="admin-hub-v3-rail-nav">
-            <Link
-              href="/admin-hub"
-              className={cn("admin-hub-v3-rail-link", isHubHome && "is-active")}
-              onClick={() => setSidebarOpen(false)}
-              title="الرئيسية"
-            >
-              <LayoutGrid className="size-5" />
-              <span>الرئيسية</span>
-            </Link>
-            {sidebarSections.map((section) => {
-              const SectionIcon = section.icon;
-              const firstItem = section.items[0];
-              if (!firstItem) return null;
-              const sectionActive = section.items.some((item) =>
-                isItemActive(hubLocation, item.activeFor),
-              );
-              return (
-                <Link
-                  key={section.id}
-                  href={firstItem.href}
-                  className={cn(
-                    "admin-hub-v3-rail-link",
-                    sectionActive && "is-active",
-                  )}
-                  onClick={() => setSidebarOpen(false)}
-                  title={section.label}
-                >
-                  <SectionIcon className="size-5" />
-                  <span>{section.label.split(" ")[0]}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="admin-hub-v3-rail-footer">
-            <Link href="/dashboard" title="العودة للوحة الرئيسية">
-              <ArrowRight className="size-5 rotate-180" />
-            </Link>
-          </div>
-        </aside>
-
-        {sidebarOpen ? (
-          <button
-            type="button"
-            className="admin-hub-v3-backdrop fixed inset-0 z-30"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="إغلاق القائمة"
-          />
-        ) : null}
-
-        <section className="admin-hub-v3-workspace min-h-screen">
-          <header className="admin-hub-v3-topbar sticky top-0 z-20">
-            <div className="admin-hub-v3-topbar-inner">
-              <button
-                type="button"
-                className="admin-hub-v3-menu-button"
-                onClick={() => setSidebarOpen(true)}
-                aria-label="فتح قائمة Admin Hub"
-              >
-                <PanelRightOpen className="size-5" />
-              </button>
-              <div className="admin-hub-v3-location">
-                <span className="admin-hub-v3-eyebrow">مساحة الإدارة</span>
-                <strong>{pageTitle}</strong>
+    <div className="min-h-screen bg-[#f7faff] text-[#10234f] pb-16" dir="rtl">
+      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        {isHubHome ? (
+          <section className="space-y-6">
+            {/* Header & Live System Status */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-[#dfe7f2]">
+              <div>
+                <div className="mb-1.5 text-[10px] font-black tracking-[0.16em] text-[#c2781c]">
+                  ADMINISTRATION HUB
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-[#10265d] tracking-tight">
+                  مركز الإدارة والتحكم
+                </h2>
+                <p className="text-xs sm:text-sm font-bold text-slate-400 mt-1">
+                  أدوات التحكم والإعدادات المتقدمة وصيانة المنظومة في مكان واحد
+                </p>
               </div>
-              <div className="admin-hub-v3-topbar-tools">
-                <select
-                  className="admin-hub-v3-page-switcher"
-                  value={isHubHome ? "/admin-hub" : activeNavItem?.href || ""}
-                  onChange={(event) => {
-                    if (event.target.value) setLocation(event.target.value);
-                  }}
-                  aria-label="الانتقال إلى صفحة إدارية"
-                >
-                  <option value="/admin-hub">الرئيسية</option>
-                  {sidebarSections.map((section) => (
-                    <optgroup key={section.id} label={section.label}>
-                      {section.items.map((item) => (
-                        <option key={item.href} value={item.href}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <span className="admin-hub-v3-status-dot" title="النظام متصل" />
+
+              {/* Status Capsules */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
+                  <span
+                    className={cn(
+                      "size-2.5 rounded-full shadow-xs",
+                      opsHealth?.dbConnected ? "bg-emerald-500" : "bg-rose-500",
+                    )}
+                  />
+                  <span>
+                    قاعدة البيانات:{" "}
+                    {opsHealth?.dbConnected ? "متصلة" : "منفصلة"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
+                  <Zap className="size-3.5 text-emerald-600" />
+                  <span>
+                    النفق الآمن:{" "}
+                    {opsHealth?.tunnelConnected ? "نشط" : "غير نشط"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs font-mono">
+                  <span>
+                    مرضى اليوم:{" "}
+                    {(opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG")}
+                  </span>
+                </div>
               </div>
             </div>
-          </header>
 
-          <main className="admin-hub-v3-main">
-            {isHubHome ? (
-              <div className="admin-hub-v3-home">
-                <section className="admin-hub-v3-command-header">
-                  <div>
-                    <span className="admin-hub-v3-eyebrow">
-                      Operations command center
-                    </span>
-                    <h1>إدارة المركز من مكان واحد</h1>
-                    <p>
-                      اختار القسم أو الصفحة المطلوبة مباشرة، من غير طبقات كروت
-                      أو تابات متداخلة.
-                    </p>
-                  </div>
-                  <div className="admin-hub-v3-health-strip">
-                    {metrics.map((metric) => (
-                      <div
-                        key={metric.label}
-                        className="admin-hub-v3-health-item"
-                      >
-                        <span>{metric.label}</span>
-                        <strong className={metric.tone}>{metric.value}</strong>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section
-                  className="admin-hub-v3-directory"
-                  aria-label="دليل صفحات الإدارة"
-                >
-                  <div className="admin-hub-v3-directory-heading">
-                    <div>
-                      <span className="admin-hub-v3-eyebrow">Directory</span>
-                      <h2>دليل الإدارة</h2>
-                    </div>
-                    <span>{allNavItems.length} صفحة متاحة</span>
-                  </div>
-                  <div className="admin-hub-v3-section-list">
-                    {sidebarSections.map((section) => {
-                      const SectionIcon = section.icon;
-                      return (
-                        <section
-                          key={section.id}
-                          className="admin-hub-v3-section-block"
-                        >
-                          <div className="admin-hub-v3-section-heading">
-                            <span className="admin-hub-v3-section-icon">
-                              <SectionIcon className="size-5" />
-                            </span>
-                            <div>
-                              <h3>{section.label}</h3>
-                              <p>{section.description}</p>
-                            </div>
-                            <span className="admin-hub-v3-section-count">
-                              {section.items.length}
-                            </span>
-                          </div>
-                          <div className="admin-hub-v3-link-list">
-                            {section.items.map((item) => (
-                              <Link key={item.href} href={item.href}>
-                                <span>{item.label}</span>
-                                <small>{item.description}</small>
-                                <ChevronRight className="size-4 rotate-180" />
-                              </Link>
-                            ))}
-                          </div>
-                        </section>
-                      );
-                    })}
-                  </div>
-                </section>
-              </div>
-            ) : (
-              <div className="admin-hub-v3-inner-page">
-                <div className="admin-hub-v3-page-context">
-                  <div>
-                    <span className="admin-hub-v3-eyebrow">
-                      Admin Hub / {activeNavItem?.label || "Page"}
-                    </span>
-                    <h1>{pageTitle}</h1>
-                    <p>{pageDescription}</p>
-                  </div>
-                  <div className="admin-hub-v3-context-actions">
-                    <select
-                      className="admin-hub-v3-page-switcher"
-                      value={activeNavItem?.href || ""}
-                      onChange={(event) => {
-                        if (event.target.value) setLocation(event.target.value);
-                      }}
-                      aria-label="الانتقال إلى صفحة إدارية"
+            {/* Filter Pills & Quick Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
+                {CATEGORIES.map((cat) => {
+                  const CatIcon = cat.icon;
+                  const active = activeCategory === cat.id;
+                  const count =
+                    cat.id === "all"
+                      ? accessibleModules.length
+                      : accessibleModules.filter((m) => m.category === cat.id)
+                          .length;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={cn(
+                        "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 border whitespace-nowrap",
+                        active
+                          ? "bg-[#10265d] text-white border-[#10265d] shadow-sm"
+                          : "bg-white text-slate-600 border-[#dfe7f2] hover:bg-slate-50 hover:border-slate-300",
+                      )}
                     >
-                      <option value="">تغيير الصفحة</option>
-                      {sidebarSections.map((section) => (
-                        <optgroup key={section.id} label={section.label}>
-                          {section.items.map((item) => (
-                            <option key={item.href} value={item.href}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="admin-hub-page-surface admin-hub-v3-inner-surface">
-                  <Suspense fallback={<AppShellSkeleton />}>
-                    {renderComponent()}
-                  </Suspense>
-                </div>
+                      <CatIcon className="size-3.5" />
+                      <span>{cat.label}</span>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                          active
+                            ? "bg-white/20 text-white"
+                            : "bg-slate-100 text-slate-500",
+                        )}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </main>
-        </section>
-      </div>
+
+              {/* Quick Search Input */}
+              <div className="relative min-w-[240px]">
+                <Search className="size-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="بحث سريع في البطاقات والأدوات..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-3 pr-9 py-2 rounded-xl bg-white border border-[#dfe7f2] text-xs font-bold text-[#10265d] placeholder:text-slate-400 outline-none focus:border-[#2a4f9a] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                />
+              </div>
+            </div>
+
+            {/* Grid of Branded Cards matching main home */}
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-6">
+              {filteredModules.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <Link
+                    key={card.href}
+                    href={card.href}
+                    className={cardClassName}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        className={`flex size-9 items-center justify-center rounded-xl ${card.tone} sm:size-10`}
+                      >
+                        <Icon className="size-4.5 sm:size-5" strokeWidth={2} />
+                      </span>
+                      <ArrowUpLeft className="size-4 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:text-[#2a4f9a]" />
+                    </div>
+                    <div className="mt-2">
+                      <h3 className="text-xs font-black leading-snug text-[#10265d] sm:text-sm">
+                        {card.label}
+                      </h3>
+                      <p className="mt-1 text-[10px] font-bold leading-normal text-slate-400 line-clamp-2">
+                        {card.helper}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        ) : (
+          <section className="space-y-5">
+            <div className="flex items-center justify-between gap-4 border-b border-[#dfe7f2] pb-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/admin-hub"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-[#10265d] hover:bg-slate-50 transition shadow-2xs"
+                >
+                  <ArrowUpLeft className="size-3.5 rotate-90" />
+                  <span>العودة لمركز الإدارة</span>
+                </Link>
+                <div className="h-4 w-px bg-slate-300" />
+                <span className="text-xs font-bold text-slate-500">
+                  {currentModule?.label || "صفحة الإدارة"}
+                </span>
+              </div>
+
+              <select
+                className="px-4 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 outline-none cursor-pointer shadow-2xs hover:border-slate-300 transition"
+                value={hubLocation}
+                onChange={(e) => {
+                  if (e.target.value) setLocation(e.target.value);
+                }}
+                aria-label="الانتقال السريع لصفحة أخرى"
+              >
+                <option value="">الانتقال السريع لصفحة أخرى...</option>
+                {accessibleModules.map((item) => (
+                  <option key={item.href} value={item.href}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-[#dfe7f2] bg-white p-4 sm:p-6 shadow-[0_6px_20px_rgba(42,79,154,0.05)]">
+              <Suspense fallback={<AppShellSkeleton />}>
+                {renderComponent()}
+              </Suspense>
+            </div>
+          </section>
+        )}
+      </main>
     </div>
   );
 }

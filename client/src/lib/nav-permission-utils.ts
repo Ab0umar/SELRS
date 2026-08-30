@@ -11,10 +11,22 @@ export function normalizeNavPath(path: string): string {
   if (!raw) return "/";
   const withSlash = raw.startsWith("/") ? raw : `/${raw}`;
   const noHashOrQuery = withSlash.split("?")[0].split("#")[0];
-  if (noHashOrQuery.length > 1 && noHashOrQuery.endsWith("/")) {
-    return noHashOrQuery.slice(0, -1);
+  const cleanPath =
+    noHashOrQuery.length > 1 && noHashOrQuery.endsWith("/")
+      ? noHashOrQuery.slice(0, -1)
+      : noHashOrQuery;
+  const adminAliases: Record<string, string> = {
+    "/admin": "/admin-hub",
+    "/admin/api-tools": "/admin-hub/api",
+    "/admin/data-source-audit": "/admin-hub/audit",
+    "/admin/notification-settings": "/admin-hub/notifications",
+    "/admin/pentacam": "/admin-hub/pentacam-linking",
+  };
+  if (adminAliases[cleanPath]) return adminAliases[cleanPath];
+  if (cleanPath.startsWith("/admin/")) {
+    return `/admin-hub${cleanPath.slice("/admin".length)}`;
   }
-  return noHashOrQuery;
+  return cleanPath;
 }
 
 /** Strip `:r` / `:rw` suffixes from stored permission tokens and dedupe. */

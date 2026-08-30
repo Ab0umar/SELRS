@@ -94,7 +94,7 @@ export default function TodayPatients() {
       label: "العمليات",
       value: opsCount,
       icon: Syringe,
-      cls: "bg-secondary/15 text-secondary",
+      cls: "bg-secondary/15 text-primary",
       bar: "bg-secondary",
     },
   ];

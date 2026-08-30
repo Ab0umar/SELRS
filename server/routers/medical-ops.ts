@@ -13,6 +13,7 @@ import {
   managerProcedure,
   adminProcedure,
   medicalStaffProcedure,
+  makePageProcedure,
 } from "../_core/procedures";
 import { authService } from "../_core/auth";
 import {
@@ -138,7 +139,7 @@ export const medicalOpsRoutes = {
     return await db.getOpsHealthStatus();
   }),
 
-  getBuildInfo: protectedProcedure.query(async () => {
+  getBuildInfo: adminProcedure.query(async () => {
     return await getBuildInfo();
   }),
 
@@ -631,6 +632,9 @@ export const medicalOpsRoutes = {
         updates.password = await authService.hashPassword(updates.password);
       }
       await db.updateUser(input.userId, updates);
+      if (typeof updates.password === "string" || updates.isActive === false) {
+        await db.bumpUserAuthVersion(input.userId);
+      }
       if (typeof updates.role === "string" && updates.role.trim().length > 0) {
         await db.setUserPermissions(input.userId, [], { emptyMode: "inherit" });
       }
@@ -1030,25 +1034,25 @@ export const medicalOpsRoutes = {
       }
     }),
 
-  getDoctorReportsByVisit: protectedProcedure
+  getDoctorReportsByVisit: makePageProcedure("/patient-file")
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input }) => {
       return await db.getDoctorReportsByVisit(input.visitId);
     }),
 
-  getMedicalReportsByPatient: protectedProcedure
+  getMedicalReportsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getDoctorReportsByPatient(input.patientId);
     }),
 
-  getReferralLettersByPatient: protectedProcedure
+  getReferralLettersByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getReferralLettersByPatient(input.patientId);
     }),
 
-  saveReferralLetter: protectedProcedure
+  saveReferralLetter: medicalStaffProcedure
     .input(
       z.object({
         id: z.number().optional(),
@@ -1090,13 +1094,13 @@ export const medicalOpsRoutes = {
       return { id: (result as any)?.[0]?.insertId ?? null, updated: false };
     }),
 
-  getPostOpOffdaysByPatient: protectedProcedure
+  getPostOpOffdaysByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPostOpOffdaysByPatient(input.patientId);
     }),
 
-  savePostOpOffdaysCertificate: protectedProcedure
+  savePostOpOffdaysCertificate: medicalStaffProcedure
     .input(
       z.object({
         id: z.number().optional(),
@@ -1124,13 +1128,13 @@ export const medicalOpsRoutes = {
       return { id: (result as any)?.[0]?.insertId ?? null, updated: false };
     }),
 
-  getMedicalConditionReportsByPatient: protectedProcedure
+  getMedicalConditionReportsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getMedicalConditionReportsByPatient(input.patientId);
     }),
 
-  saveMedicalConditionReport: protectedProcedure
+  saveMedicalConditionReport: medicalStaffProcedure
     .input(
       z.object({
         id: z.number().optional(),
@@ -1164,7 +1168,7 @@ export const medicalOpsRoutes = {
     return await db.getMedicalConditionReportTemplates();
   }),
 
-  saveMedicalConditionReportTemplate: protectedProcedure
+  saveMedicalConditionReportTemplate: managerProcedure
     .input(
       z.object({
         id: z.number().optional(),
@@ -1179,7 +1183,7 @@ export const medicalOpsRoutes = {
       return await db.upsertMedicalConditionReportTemplate(input);
     }),
 
-  deleteMedicalConditionReportTemplate: protectedProcedure
+  deleteMedicalConditionReportTemplate: managerProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await db.deleteMedicalConditionReportTemplate(input.id);
@@ -1194,9 +1198,11 @@ export const medicalOpsRoutes = {
       return await db.getMedicalReportsOverviewRows(input?.limit ?? 250);
     }),
 
-  getDoctorReports: protectedProcedure.query(async () => {
-    return await db.getAllDoctorReports();
-  }),
+  getDoctorReports: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(500).default(250) }).optional())
+    .query(async ({ input }) => {
+      return await db.getAllDoctorReports(input?.limit ?? 250);
+    }),
 
   createMedicalReport: medicalStaffProcedure
     .input(
@@ -1348,7 +1354,7 @@ export const medicalOpsRoutes = {
       return await db.getOperationListById(input.listId);
     }),
 
-  saveOperationList: protectedProcedure
+  saveOperationList: medicalStaffProcedure
     .input(
       z.object({
         listId: z.number().optional().nullable(),
@@ -1523,7 +1529,7 @@ export const medicalOpsRoutes = {
       };
     }),
 
-  cancelOperationWhatsApp: protectedProcedure
+  cancelOperationWhatsApp: managerProcedure
     .input(
       z.object({
         doctorTab: z.string(),
@@ -1565,11 +1571,11 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  getOperationListsHistory: protectedProcedure.query(async () => {
+  getOperationListsHistory: medicalStaffProcedure.query(async () => {
     return await db.getOperationListsHistoryWithItems();
   }),
 
-  getTodayOperationLists: protectedProcedure
+  getTodayOperationLists: medicalStaffProcedure
     .input(z.object({ date: z.string().optional() }))
     .query(async ({ input }) => {
       const date = input.date || new Date().toISOString().split("T")[0];
@@ -1619,7 +1625,7 @@ export const medicalOpsRoutes = {
       return [...manualLists, ...mappedBookings];
     }),
 
-  deleteOperationList: protectedProcedure
+  deleteOperationList: managerProcedure
     .input(
       z.object({
         doctorTab: z.string(),
@@ -1639,7 +1645,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  deleteOperationListById: protectedProcedure
+  deleteOperationListById: managerProcedure
     .input(z.object({ listId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteOperationListById(input.listId);
@@ -1675,7 +1681,7 @@ export const medicalOpsRoutes = {
       }));
     }),
 
-  createOperationBooking: protectedProcedure
+  createOperationBooking: receptionProcedure
     .input(
       z.object({
         bookingDate: z.string(),
@@ -1764,7 +1770,7 @@ export const medicalOpsRoutes = {
       return { success: true, id: booking.id };
     }),
 
-  updateOperationBooking: protectedProcedure
+  updateOperationBooking: receptionProcedure
     .input(
       z.object({
         id: z.number(),
@@ -1791,7 +1797,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  deleteOperationBooking: protectedProcedure
+  deleteOperationBooking: receptionProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteOperationBooking(input.id);
@@ -1818,13 +1824,13 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  getPatientPageState: protectedProcedure
+  getPatientPageState: medicalStaffProcedure
     .input(z.object({ patientId: z.number(), page: z.string() }))
     .query(async ({ input }) => {
       return await db.getPatientPageState(input.patientId, input.page);
     }),
 
-  saveExaminationChecklist: protectedProcedure
+  saveExaminationChecklist: medicalStaffProcedure
     .input(
       z.object({
         examinationId: z.number().int().positive(),
@@ -1870,7 +1876,7 @@ export const medicalOpsRoutes = {
       return await db.getExaminationChecklistsByPatient(input.patientId);
     }),
 
-  savePatientPageState: protectedProcedure
+  savePatientPageState: medicalStaffProcedure
     .input(
       z.object({
         patientId: z.number(),
@@ -1914,7 +1920,7 @@ export const medicalOpsRoutes = {
       }
     }),
 
-  upsertReadyTemplateOverride: protectedProcedure
+  upsertReadyTemplateOverride: managerProcedure
     .input(readyTemplateOverrideUpdateSchema)
     .mutation(async ({ input, ctx }) => {
       if (input.scope === "prescription") {
@@ -2207,7 +2213,8 @@ export const medicalOpsRoutes = {
           const canReadPricing =
             permissions.includes("appointments_pricing_v1") ||
             permissions.includes("/admin/settings/pricing-rules") ||
-            permissions.includes("/appointments/accounts");
+            permissions.includes("/appointments/accounts") ||
+            permissions.includes("/operations/accounts");
           if (!canReadPricing) {
             throw new TRPCError({
               code: "FORBIDDEN",

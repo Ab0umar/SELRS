@@ -1,4 +1,4 @@
-﻿import {
+import {
   Download,
   Eye,
   FileImage,
@@ -93,7 +93,7 @@ export default function PatientScans() {
             <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-secondary">
+                  <p className="text-xs font-bold text-primary">
                     الملفات الجاهزة للعرض
                   </p>
                   <h3 className="text-lg font-bold text-foreground">

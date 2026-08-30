@@ -48,6 +48,7 @@ export async function uploadToS3(
     Key: key,
     Body: body,
     ContentType: contentType,
+    ServerSideEncryption: "AES256",
   });
   await client.send(command);
 }
@@ -56,10 +57,14 @@ export async function getPresignedUrlFromS3(
   key: string,
   expiresInSeconds = 3600,
 ): Promise<string> {
+  const expiresIn = Math.min(
+    Math.max(Math.floor(Number(expiresInSeconds) || 0), 60),
+    3600,
+  );
   const bucket = getEnvVar("AWS_S3_BUCKET");
   const client = getS3Client();
   const command = new GetObjectCommand({ Bucket: bucket, Key: key });
-  return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
+  return getSignedUrl(client, command, { expiresIn });
 }
 
 export async function downloadFromS3(key: string): Promise<Buffer> {
@@ -117,6 +122,7 @@ export async function copyObjectInS3(
     Bucket: bucket,
     CopySource: `${bucket}/${encodeURIComponent(sourceKey).replace(/%2F/g, "/")}`,
     Key: destinationKey,
+    ServerSideEncryption: "AES256",
   });
   await client.send(command);
 }

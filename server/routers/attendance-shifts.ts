@@ -121,10 +121,26 @@ export const attendanceShiftsRoutes = {
         breakMinutes: z.number().int().min(0).default(60),
         requirePunch: z.boolean().default(true),
         isFlexible: z.boolean().default(false),
-        flexInFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-        flexInTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-        flexOutFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-        flexOutTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexInFrom: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
+        flexInTo: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
+        flexOutFrom: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
+        flexOutTo: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
         shiftSize: z.enum(["big", "small", "auto"]).default("auto"),
         autoSmallThresholdMin: z.number().int().min(0).default(270),
       }),
@@ -138,8 +154,12 @@ export const attendanceShiftsRoutes = {
           name: input.name,
           branch: input.branch,
           deviceId: input.deviceId,
-          startTime: input.isFlexible ? (input.flexInFrom ?? "00:00") : input.startTime,
-          endTime: input.isFlexible ? (input.flexOutTo ?? "00:00") : input.endTime,
+          startTime: input.isFlexible
+            ? (input.flexInFrom ?? "00:00")
+            : input.startTime,
+          endTime: input.isFlexible
+            ? (input.flexOutTo ?? "00:00")
+            : input.endTime,
           crossesMidnight: input.crossesMidnight ?? false,
           graceLateMin: input.graceLateMin,
           graceEarlyMin: input.graceEarlyMin,
@@ -210,10 +230,26 @@ export const attendanceShiftsRoutes = {
         breakMinutes: z.number().int().min(0).optional(),
         requirePunch: z.boolean().optional(),
         isFlexible: z.boolean().optional(),
-        flexInFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-        flexInTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-        flexOutFrom: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-        flexOutTo: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        flexInFrom: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
+        flexInTo: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
+        flexOutFrom: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
+        flexOutTo: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .nullable(),
         shiftSize: z.enum(["big", "small", "auto"]).optional(),
         autoSmallThresholdMin: z.number().int().min(0).optional(),
       }),
@@ -234,15 +270,21 @@ export const attendanceShiftsRoutes = {
         if (input.graceEarlyMin !== undefined)
           updateData.graceEarlyMin = input.graceEarlyMin;
         if (input.allowOT !== undefined) updateData.allowOT = input.allowOT;
-        if (input.allowOTIn !== undefined) updateData.allowOTIn = input.allowOTIn;
-        if (input.allowOTOut !== undefined) updateData.allowOTOut = input.allowOTOut;
+        if (input.allowOTIn !== undefined)
+          updateData.allowOTIn = input.allowOTIn;
+        if (input.allowOTOut !== undefined)
+          updateData.allowOTOut = input.allowOTOut;
         if (input.allowOTIn !== undefined || input.allowOTOut !== undefined) {
           updateData.allowOT = Boolean(input.allowOTIn || input.allowOTOut);
         }
-        if (input.otMinMinutes !== undefined) updateData.otMinMinutes = input.otMinMinutes;
-        if (input.otMinInMinutes !== undefined) updateData.otMinInMinutes = input.otMinInMinutes;
-        if (input.otMinOutMinutes !== undefined) updateData.otMinOutMinutes = input.otMinOutMinutes;
-        if (input.otMaxMinutes !== undefined) updateData.otMaxMinutes = input.otMaxMinutes;
+        if (input.otMinMinutes !== undefined)
+          updateData.otMinMinutes = input.otMinMinutes;
+        if (input.otMinInMinutes !== undefined)
+          updateData.otMinInMinutes = input.otMinInMinutes;
+        if (input.otMinOutMinutes !== undefined)
+          updateData.otMinOutMinutes = input.otMinOutMinutes;
+        if (input.otMaxMinutes !== undefined)
+          updateData.otMaxMinutes = input.otMaxMinutes;
         if (input.breakMinutes !== undefined)
           updateData.breakMinutes = input.breakMinutes;
         if (input.requirePunch !== undefined)
@@ -258,8 +300,10 @@ export const attendanceShiftsRoutes = {
             updateData.endTime = input.flexOutTo ?? "00:00";
           }
         }
-        if (input.shiftSize !== undefined) updateData.shiftSize = input.shiftSize;
-        if (input.autoSmallThresholdMin !== undefined) updateData.autoSmallThresholdMin = input.autoSmallThresholdMin;
+        if (input.shiftSize !== undefined)
+          updateData.shiftSize = input.shiftSize;
+        if (input.autoSmallThresholdMin !== undefined)
+          updateData.autoSmallThresholdMin = input.autoSmallThresholdMin;
 
         await db
           .update(attendanceShifts)
@@ -285,7 +329,9 @@ export const attendanceShiftsRoutes = {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const empFilter = input?.empCd ? sql`AND sa.emp_cd = ${input.empCd}` : sql``;
+      const empFilter = input?.empCd
+        ? sql`AND sa.emp_cd = ${input.empCd}`
+        : sql``;
       const rows = await db.execute(sql`
         SELECT
           sa.id,
@@ -306,7 +352,9 @@ export const attendanceShiftsRoutes = {
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-      const assignments: any[] = Array.isArray((rows as any)[0]) ? (rows as any)[0] : (rows as any);
+      const assignments: any[] = Array.isArray((rows as any)[0])
+        ? (rows as any)[0]
+        : (rows as any);
       return assignments.map((a: any) => {
         const effectiveTo = a.effectiveTo
           ? String(a.effectiveTo).slice(0, 10)
@@ -514,6 +562,11 @@ export const attendanceShiftsRoutes = {
           .nullable()
           .optional(),
         active: z.boolean(),
+        terminationDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -535,8 +588,32 @@ export const attendanceShiftsRoutes = {
               ? (String(input.attendanceLeaveMultiplier) as any)
               : null,
           active: input.active,
+          terminationDate: input.active
+            ? null
+            : (input.terminationDate ?? null),
         })
         .where(eq(attendanceEmployees.empCd, input.empCd));
+      return { success: true };
+    }),
+
+  terminateEmployee: makeAttWriteProcedure("/attendance/shift-schedule")
+    .input(
+      z.object({
+        empCd: z.string().min(1),
+        terminationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const result = await db
+        .update(attendanceEmployees)
+        .set({ active: false, terminationDate: input.terminationDate })
+        .where(eq(attendanceEmployees.empCd, input.empCd));
+
+      if ((result as any).affectedRows === 0)
+        throw new Error("الموظف غير موجود");
       return { success: true };
     }),
 
@@ -764,15 +841,13 @@ export const attendanceShiftsRoutes = {
       if (!db) throw new Error("Database not available");
       let inserted = 0;
       for (const empCd of input.empCds) {
-        await db
-          .insert(attendanceShiftAssignments)
-          .values({
-            empCd,
-            shiftId: input.shiftId,
-            effectiveFrom: input.effectiveFrom as any,
-            effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
-            weekdayMask: input.weekdayMask,
-          });
+        await db.insert(attendanceShiftAssignments).values({
+          empCd,
+          shiftId: input.shiftId,
+          effectiveFrom: input.effectiveFrom as any,
+          effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
+          weekdayMask: input.weekdayMask,
+        });
         inserted++;
       }
       return { success: true, inserted };
@@ -1189,25 +1264,31 @@ export const attendanceShiftsRoutes = {
       return { success: true };
     }),
 
-  listShiftCycles: makeAttProcedure("/attendance/shift-schedule").query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const cycles = await db.select().from(attendanceShiftCycles);
-    const slots = await db.select().from(attendanceShiftCycleSlots);
-    return cycles.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      period: c.period,
-      anchorDate:
-        c.anchorDate instanceof Date
-          ? `${c.anchorDate.getFullYear()}-${String(c.anchorDate.getMonth() + 1).padStart(2, "0")}-${String(c.anchorDate.getDate()).padStart(2, "0")}`
-          : String(c.anchorDate).slice(0, 10),
-      slots: slots
-        .filter((s: any) => s.cycleId === c.id)
-        .sort((a: any, b: any) => a.slotIndex - b.slotIndex)
-        .map((s: any) => ({ id: s.id, slotIndex: s.slotIndex, shiftId: s.shiftId })),
-    }));
-  }),
+  listShiftCycles: makeAttProcedure("/attendance/shift-schedule").query(
+    async () => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const cycles = await db.select().from(attendanceShiftCycles);
+      const slots = await db.select().from(attendanceShiftCycleSlots);
+      return cycles.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        period: c.period,
+        anchorDate:
+          c.anchorDate instanceof Date
+            ? `${c.anchorDate.getFullYear()}-${String(c.anchorDate.getMonth() + 1).padStart(2, "0")}-${String(c.anchorDate.getDate()).padStart(2, "0")}`
+            : String(c.anchorDate).slice(0, 10),
+        slots: slots
+          .filter((s: any) => s.cycleId === c.id)
+          .sort((a: any, b: any) => a.slotIndex - b.slotIndex)
+          .map((s: any) => ({
+            id: s.id,
+            slotIndex: s.slotIndex,
+            shiftId: s.shiftId,
+          })),
+      }));
+    },
+  ),
 
   createShiftCycle: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(
@@ -1235,13 +1316,11 @@ export const attendanceShiftsRoutes = {
       })) as any;
       const cycleId = res.insertId;
       for (const slot of input.slots) {
-        await db
-          .insert(attendanceShiftCycleSlots)
-          .values({
-            cycleId,
-            slotIndex: slot.slotIndex,
-            shiftId: slot.shiftId,
-          });
+        await db.insert(attendanceShiftCycleSlots).values({
+          cycleId,
+          slotIndex: slot.slotIndex,
+          shiftId: slot.shiftId,
+        });
       }
       return { id: cycleId };
     }),
@@ -1281,13 +1360,11 @@ export const attendanceShiftsRoutes = {
           .delete(attendanceShiftCycleSlots)
           .where(eq(attendanceShiftCycleSlots.cycleId, input.id));
         for (const slot of input.slots) {
-          await db
-            .insert(attendanceShiftCycleSlots)
-            .values({
-              cycleId: input.id,
-              slotIndex: slot.slotIndex,
-              shiftId: slot.shiftId,
-            });
+          await db.insert(attendanceShiftCycleSlots).values({
+            cycleId: input.id,
+            slotIndex: slot.slotIndex,
+            shiftId: slot.shiftId,
+          });
         }
       }
       return { success: true };
@@ -1310,42 +1387,44 @@ export const attendanceShiftsRoutes = {
       return { success: true };
     }),
 
-  listCycleAssignments: makeAttProcedure("/attendance/shift-schedule").query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const rows = await db
-      .select({
-        id: attendanceShiftCycleAssignments.id,
-        empCd: attendanceShiftCycleAssignments.empCd,
-        cycleId: attendanceShiftCycleAssignments.cycleId,
-        effectiveFrom: attendanceShiftCycleAssignments.effectiveFrom,
-        effectiveTo: attendanceShiftCycleAssignments.effectiveTo,
-        empName: attendanceEmployees.fullName,
-        cycleName: attendanceShiftCycles.name,
-        period: attendanceShiftCycles.period,
-      })
-      .from(attendanceShiftCycleAssignments)
-      .leftJoin(
-        attendanceEmployees,
-        eq(attendanceShiftCycleAssignments.empCd, attendanceEmployees.empCd),
-      )
-      .leftJoin(
-        attendanceShiftCycles,
-        eq(attendanceShiftCycleAssignments.cycleId, attendanceShiftCycles.id),
-      );
-    return rows.map((r: any) => ({
-      ...r,
-      effectiveFrom:
-        r.effectiveFrom instanceof Date
-          ? `${r.effectiveFrom.getFullYear()}-${String(r.effectiveFrom.getMonth() + 1).padStart(2, "0")}-${String(r.effectiveFrom.getDate()).padStart(2, "0")}`
-          : String(r.effectiveFrom ?? "").slice(0, 10),
-      effectiveTo: r.effectiveTo
-        ? r.effectiveTo instanceof Date
-          ? `${r.effectiveTo.getFullYear()}-${String(r.effectiveTo.getMonth() + 1).padStart(2, "0")}-${String(r.effectiveTo.getDate()).padStart(2, "0")}`
-          : String(r.effectiveTo).slice(0, 10)
-        : null,
-    }));
-  }),
+  listCycleAssignments: makeAttProcedure("/attendance/shift-schedule").query(
+    async () => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const rows = await db
+        .select({
+          id: attendanceShiftCycleAssignments.id,
+          empCd: attendanceShiftCycleAssignments.empCd,
+          cycleId: attendanceShiftCycleAssignments.cycleId,
+          effectiveFrom: attendanceShiftCycleAssignments.effectiveFrom,
+          effectiveTo: attendanceShiftCycleAssignments.effectiveTo,
+          empName: attendanceEmployees.fullName,
+          cycleName: attendanceShiftCycles.name,
+          period: attendanceShiftCycles.period,
+        })
+        .from(attendanceShiftCycleAssignments)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendanceShiftCycleAssignments.empCd, attendanceEmployees.empCd),
+        )
+        .leftJoin(
+          attendanceShiftCycles,
+          eq(attendanceShiftCycleAssignments.cycleId, attendanceShiftCycles.id),
+        );
+      return rows.map((r: any) => ({
+        ...r,
+        effectiveFrom:
+          r.effectiveFrom instanceof Date
+            ? `${r.effectiveFrom.getFullYear()}-${String(r.effectiveFrom.getMonth() + 1).padStart(2, "0")}-${String(r.effectiveFrom.getDate()).padStart(2, "0")}`
+            : String(r.effectiveFrom ?? "").slice(0, 10),
+        effectiveTo: r.effectiveTo
+          ? r.effectiveTo instanceof Date
+            ? `${r.effectiveTo.getFullYear()}-${String(r.effectiveTo.getMonth() + 1).padStart(2, "0")}-${String(r.effectiveTo.getDate()).padStart(2, "0")}`
+            : String(r.effectiveTo).slice(0, 10)
+          : null,
+      }));
+    },
+  ),
 
   assignCycle: makeAttWriteProcedure("/attendance/shift-schedule")
     .input(

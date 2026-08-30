@@ -165,7 +165,7 @@ export default function AccountingInstapay() {
                   {
                     label: "الرصيد",
                     val: net,
-                    cls: net >= 0 ? "text-secondary" : "text-destructive",
+                    cls: net >= 0 ? "text-primary" : "text-destructive",
                     icon: Wallet,
                   },
                 ] as const
@@ -403,7 +403,7 @@ export default function AccountingInstapay() {
                   </button>
                 ) : null}
               </div>
-              <div className="rounded-full bg-secondary/5 px-3 py-1 text-xs font-semibold text-secondary">
+              <div className="rounded-full bg-secondary/5 px-3 py-1 text-xs font-semibold text-primary">
                 {total.toLocaleString("ar-EG")} حركة
               </div>
             </div>
@@ -442,7 +442,7 @@ export default function AccountingInstapay() {
                       {row.notes ?? "—"}
                     </div>
                   </div>
-                  <span className="rounded-full bg-secondary/5 px-2.5 py-1 text-[10px] font-semibold text-secondary">
+                  <span className="rounded-full bg-secondary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">
                     {fmt(row.total)}
                   </span>
                 </div>

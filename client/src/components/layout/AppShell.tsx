@@ -1,5 +1,7 @@
 import { useAuth, persistSessionUser } from "@/hooks/useAuth";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { Capacitor } from "@capacitor/core";
+
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,25 +16,39 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import type { User } from "@shared/types";
-import { AppTopNav } from "./AppTopNav";
+
 import { AppBottomNav } from "./AppBottomNav";
+import { AppTopNav } from "./AppTopNav";
+import { ArrowRight, RefreshCw } from "lucide-react";
+
 import {
   normalizeNavPath,
   pathGrantedByRoots,
   permissionsToAllowedRoots,
 } from "@/lib/nav-permission-utils";
+import { requestAppReload } from "@/lib/appRuntime";
 
 type AppShellProps = {
   children: ReactNode;
   /** Hide sidebar + mobile drawer (e.g. kiosk / print-focused routes). */
   hideSidebar?: boolean;
+  /** Hide the main top navigation on selected screens. */
+  hideTopNav?: boolean;
+  /** Keep the header visible while hiding its shortcut strip. */
+  hideTopShortcuts?: boolean;
 };
 
-export function AppShell({ children, hideSidebar = false }: AppShellProps) {
+export function AppShell({
+  children,
+  hideSidebar = false,
+  hideTopNav = false,
+  hideTopShortcuts = false,
+}: AppShellProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const userRole = String(user?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin";
+  const isNativeMobileApp = Capacitor.isNativePlatform();
   const isAdminPatientsRoute =
     location === "/admin/patients" || location === "/admin-patients";
   const isDashboardLikeRoute =
@@ -111,9 +127,19 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
     if (mustForcePasswordChange) setIsPasswordDialogOpen(true);
   }, [mustForcePasswordChange, user]);
 
-  const handleSignOut = async () => {
+    const handleSignOut = async () => {
     await logout();
   };
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    setLocation("/home");
+  };
+
+
 
   const handleChangePassword = async () => {
     const currentPassword = passwordForm.currentPassword.trim();
@@ -202,7 +228,7 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
       className="flex h-dvh min-h-0 w-full max-w-[100vw] flex-col overflow-hidden selrs-page-bg print:h-auto print:overflow-visible print:max-w-none"
       dir="rtl"
     >
-      {!hideSidebar && (
+      {!hideSidebar && !hideTopNav && (
         <AppTopNav
           location={location}
           onNavigate={setLocation}
@@ -215,11 +241,38 @@ export function AppShell({ children, hideSidebar = false }: AppShellProps) {
           }}
           onOpenPassword={() => setIsPasswordDialogOpen(true)}
           onLogout={() => void handleSignOut()}
+          hideShortcuts={hideTopShortcuts}
         />
       )}
 
+      <div className="pointer-events-none fixed bottom-[5.5rem] left-3 z-50 flex items-center gap-2 print:hidden sm:bottom-4" dir="rtl">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleBack}
+          className="pointer-events-auto h-10 gap-2 rounded-xl border-border/80 bg-card/95 px-3 text-xs font-bold text-foreground shadow-sm backdrop-blur hover:bg-muted"
+          aria-label="رجوع"
+        >
+          <ArrowRight className="h-4 w-4" />
+          <span className="hidden sm:inline">رجوع</span>
+        </Button>
+        {isNativeMobileApp && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => requestAppReload("manual-refresh")}
+            className="pointer-events-auto h-10 gap-2 rounded-xl border-border/80 bg-card/95 px-3 text-xs font-bold text-primary shadow-sm backdrop-blur hover:bg-muted"
+            aria-label="تحديث الصفحة"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">تحديث</span>
+          </Button>
+        )}
+      </div>
+
       <main
         data-app-scroll-container
+
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto print:h-auto print:min-h-0 print:overflow-visible ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} print:overflow-x-visible ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} ${isShiftScheduleRoute ? "p-0" : "px-1 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4"}`}
       >
         <div

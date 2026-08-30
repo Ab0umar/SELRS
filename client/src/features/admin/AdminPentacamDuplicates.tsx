@@ -21,8 +21,20 @@ type DupRow = {
 
 type DupGroup = {
   baseName: string;
-  original: { id: number; file_name: string | null; s3_key: string | null; patient_id: number | null; created_at: string | null };
-  duplicates: { id: number; file_name: string | null; s3_key: string | null; patient_id: number | null; created_at: string | null }[];
+  original: {
+    id: number;
+    file_name: string | null;
+    s3_key: string | null;
+    patient_id: number | null;
+    created_at: string | null;
+  };
+  duplicates: {
+    id: number;
+    file_name: string | null;
+    s3_key: string | null;
+    patient_id: number | null;
+    created_at: string | null;
+  }[];
   patient_name: string | null;
   patientCode: string | null;
 };
@@ -38,7 +50,13 @@ function groupDuplicates(rows: DupRow[]): DupGroup[] {
     if (!grouped.has(row.id)) {
       grouped.set(row.id, {
         baseName: baseName(row.file_name),
-        original: { id: row.id, file_name: row.file_name, s3_key: row.s3_key, patient_id: row.patient_id, created_at: String(row.created_at ?? "") },
+        original: {
+          id: row.id,
+          file_name: row.file_name,
+          s3_key: row.s3_key,
+          patient_id: row.patient_id,
+          created_at: String(row.created_at ?? ""),
+        },
         duplicates: [],
         patient_name: row.patient_name,
         patientCode: row.patientCode,
@@ -60,22 +78,33 @@ export default function AdminPentacamDuplicates() {
   const [deleteLocal, setDeleteLocal] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const dupsQuery = trpc.medical.findDuplicateSrv100Uploads.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
+  const dupsQuery = trpc.medical.findDuplicateSrv100Uploads.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const deleteMutation = trpc.medical.deleteSrv100UploadsByIds.useMutation({
     onSuccess: (result) => {
-      toast.success(`تم حذف ${result.deleted} سجل${result.s3Deleted ? ` (S3: ${result.s3Deleted})` : ""}`);
+      toast.success(
+        `تم حذف ${result.deleted} سجل${result.s3Deleted ? ` (S3: ${result.s3Deleted})` : ""}`,
+      );
       setSelected(new Set());
       void dupsQuery.refetch();
     },
     onError: (err) => toast.error(getTrpcErrorMessage(err, "فشل الحذف")),
   });
 
-  const groups = useMemo(() => groupDuplicates((dupsQuery.data ?? []) as DupRow[]), [dupsQuery.data]);
+  const groups = useMemo(
+    () => groupDuplicates((dupsQuery.data ?? []) as DupRow[]),
+    [dupsQuery.data],
+  );
 
-  const allDupIds = useMemo(() => groups.flatMap((g) => g.duplicates.map((d) => d.id)), [groups]);
+  const allDupIds = useMemo(
+    () => groups.flatMap((g) => g.duplicates.map((d) => d.id)),
+    [groups],
+  );
 
   const toggleAll = () => {
     if (selected.size === allDupIds.length) {
@@ -105,7 +134,7 @@ export default function AdminPentacamDuplicates() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border pb-4">
         <h2 className="text-sm font-semibold">المكررات في srv100_uploads</h2>
         <Button
           variant="outline"
@@ -114,16 +143,26 @@ export default function AdminPentacamDuplicates() {
           onClick={() => dupsQuery.refetch()}
           disabled={dupsQuery.isFetching}
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${dupsQuery.isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-3.5 w-3.5 ${dupsQuery.isFetching ? "animate-spin" : ""}`}
+          />
           تحديث
         </Button>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <label className="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" checked={deleteS3} onChange={(e) => setDeleteS3(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={deleteS3}
+              onChange={(e) => setDeleteS3(e.target.checked)}
+            />
             حذف من S3
           </label>
           <label className="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" checked={deleteLocal} onChange={(e) => setDeleteLocal(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={deleteLocal}
+              onChange={(e) => setDeleteLocal(e.target.checked)}
+            />
             حذف من الجهاز المحلي
           </label>
         </div>
@@ -141,7 +180,9 @@ export default function AdminPentacamDuplicates() {
         )}
       </div>
 
-      {dupsQuery.isLoading && <p className="text-xs text-muted-foreground">جاري البحث...</p>}
+      {dupsQuery.isLoading && (
+        <p className="text-xs text-muted-foreground">جاري البحث...</p>
+      )}
       {!dupsQuery.isLoading && groups.length === 0 && (
         <p className="text-xs text-muted-foreground">لا توجد مكررات</p>
       )}
@@ -154,23 +195,42 @@ export default function AdminPentacamDuplicates() {
                 <th className="border-b border-border/50 px-3 py-2">
                   <input
                     type="checkbox"
-                    checked={selected.size === allDupIds.length && allDupIds.length > 0}
+                    checked={
+                      selected.size === allDupIds.length && allDupIds.length > 0
+                    }
                     onChange={toggleAll}
                   />
                 </th>
-                <th className="border-b border-border/50 px-3 py-2 font-medium">اسم الملف</th>
-                <th className="border-b border-border/50 px-3 py-2 font-medium">المريض</th>
-                <th className="border-b border-border/50 px-3 py-2 font-medium">ID الأصل</th>
-                <th className="border-b border-border/50 px-3 py-2 font-medium">ID المكرر</th>
-                <th className="border-b border-border/50 px-3 py-2 font-medium">تاريخ المكرر</th>
-                <th className="border-b border-border/50 px-3 py-2 font-medium">S3 Key</th>
-                <th className="border-b border-border/50 px-3 py-2 font-medium">حذف</th>
+                <th className="border-b border-border/50 px-3 py-2 font-medium">
+                  اسم الملف
+                </th>
+                <th className="border-b border-border/50 px-3 py-2 font-medium">
+                  المريض
+                </th>
+                <th className="border-b border-border/50 px-3 py-2 font-medium">
+                  ID الأصل
+                </th>
+                <th className="border-b border-border/50 px-3 py-2 font-medium">
+                  ID المكرر
+                </th>
+                <th className="border-b border-border/50 px-3 py-2 font-medium">
+                  تاريخ المكرر
+                </th>
+                <th className="border-b border-border/50 px-3 py-2 font-medium">
+                  S3 Key
+                </th>
+                <th className="border-b border-border/50 px-3 py-2 font-medium">
+                  حذف
+                </th>
               </tr>
             </thead>
             <tbody>
               {groups.map((group) =>
                 group.duplicates.map((dup, i) => (
-                  <tr key={dup.id} className="hover:bg-muted/30 transition-colors">
+                  <tr
+                    key={dup.id}
+                    className="hover:bg-muted/30 transition-colors"
+                  >
                     <td className="border-b border-border/20 px-3 py-1.5">
                       <input
                         type="checkbox"
@@ -178,22 +238,42 @@ export default function AdminPentacamDuplicates() {
                         onChange={() => toggle(dup.id)}
                       />
                     </td>
-                    <td className="border-b border-border/20 px-3 py-1.5 font-mono" dir="ltr">
+                    <td
+                      className="border-b border-border/20 px-3 py-1.5 font-mono"
+                      dir="ltr"
+                    >
                       {i === 0 ? group.baseName : ""}
                     </td>
                     <td className="border-b border-border/20 px-3 py-1.5">
-                      {group.patient_name ? `${group.patient_name}${group.patientCode ? ` (${group.patientCode})` : ""}` : "—"}
+                      {group.patient_name
+                        ? `${group.patient_name}${group.patientCode ? ` (${group.patientCode})` : ""}`
+                        : "—"}
                     </td>
-                    <td className="border-b border-border/20 px-3 py-1.5 tabular-nums" dir="ltr">
+                    <td
+                      className="border-b border-border/20 px-3 py-1.5 tabular-nums"
+                      dir="ltr"
+                    >
                       {group.original.id}
                     </td>
-                    <td className="border-b border-border/20 px-3 py-1.5 tabular-nums" dir="ltr">
+                    <td
+                      className="border-b border-border/20 px-3 py-1.5 tabular-nums"
+                      dir="ltr"
+                    >
                       {dup.id}
                     </td>
-                    <td className="border-b border-border/20 px-3 py-1.5 tabular-nums" dir="ltr">
-                      {dup.created_at ? new Date(dup.created_at).toLocaleDateString() : "—"}
+                    <td
+                      className="border-b border-border/20 px-3 py-1.5 tabular-nums"
+                      dir="ltr"
+                    >
+                      {dup.created_at
+                        ? new Date(dup.created_at).toLocaleDateString()
+                        : "—"}
                     </td>
-                    <td className="border-b border-border/20 px-3 py-1.5 font-mono text-[10px] max-w-[180px] truncate" dir="ltr" title={dup.s3_key ?? ""}>
+                    <td
+                      className="border-b border-border/20 px-3 py-1.5 font-mono text-[10px] max-w-[180px] truncate"
+                      dir="ltr"
+                      title={dup.s3_key ?? ""}
+                    >
                       {dup.s3_key ?? "—"}
                     </td>
                     <td className="border-b border-border/20 px-3 py-1.5">

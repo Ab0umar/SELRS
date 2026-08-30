@@ -369,7 +369,7 @@ export default function AdminApiTools() {
         icon={<Plug className="h-5 w-5" />}
       />
 
-      <Card className="border-border/80 bg-card shadow-sm">
+      <Card className="rounded-lg border-border/80 bg-card shadow-none">
         <CardHeader>
           <CardTitle className="text-base">معاينة الطلب والاستجابة</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -403,7 +403,7 @@ export default function AdminApiTools() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/80 bg-card shadow-sm">
+      <Card className="rounded-lg border-border/80 bg-card shadow-none">
         <CardHeader className="flex flex-col gap-1 border-b border-border/70 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">
             مرجع إجراءات tRPC (هذه الصفحة)

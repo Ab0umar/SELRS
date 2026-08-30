@@ -113,6 +113,15 @@ async function run() {
     "frontend should return HTML",
   );
 
+  const publicHealth = await requestJson("/healthz");
+  assert.equal(publicHealth.status, 200, "public health should return 200");
+  assert.deepEqual(publicHealth.json, { ok: true }, "public health response shape");
+
+  const publicVersion = await requestJson("/version");
+  assert.equal(publicVersion.status, 200, "public version should return 200");
+  assert.equal(publicVersion.json?.ok, true, "public version ok flag");
+  assert.equal(typeof publicVersion.json?.version, "string", "public version value");
+
   const health = await requestJson("/api/trpc/system.health", {
     query: trpcInput({ timestamp: Date.now() }),
   });

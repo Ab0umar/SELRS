@@ -7,7 +7,6 @@ const AdminUsers = lazy(() => import("../features/admin/AdminUsers"));
 const AdminMigrations = lazy(() => import("../features/admin/AdminMigrations"));
 const AdminApiTools = lazy(() => import("../features/admin/AdminApiTools"));
 const AdminStatus = lazy(() => import("../features/admin/AdminStatus"));
-const AdminSettings = lazy(() => import("../features/admin/AdminSettings"));
 const AdminNotificationSettings = lazy(
   () => import("../features/admin/AdminNotificationSettings"),
 );
@@ -22,10 +21,6 @@ const AdminDoctors = lazy(() => import("../features/admin/AdminDoctors"));
 const AdminPentacamFailed = lazy(
   () => import("../features/admin/AdminPentacamFailed"),
 );
-const AdminSheetCopies = lazy(
-  () => import("../features/admin/AdminSheetCopies"),
-);
-const AdminFormsHub = lazy(() => import("../features/admin/AdminFormsHub"));
 const AdminPatients = lazy(() => import("../features/admin/AdminPatients"));
 const AdminLegacyPatients = lazy(
   () => import("../features/admin/AdminLegacyPatients"),
@@ -47,6 +42,7 @@ export const AdminRoutes = (
   <>
     {/* Admin routes */}
     {/* Legacy namespace remains functional, but all generated navigation stays canonical under Admin Hub. */}
+    {/* Admin Hub - handles all /admin-hub routes internally */}
     <Route
       path={ROUTES.legacyAdminHub}
       component={() => (
@@ -63,8 +59,6 @@ export const AdminRoutes = (
         </ProtectedRoute>
       )}
     />
-
-    {/* Admin Hub - handles all /admin-hub routes internally */}
     <Route
       path={ROUTES.adminHubRoot}
       component={() => <Redirect to={ROUTES.adminHub} />}
@@ -78,7 +72,7 @@ export const AdminRoutes = (
       )}
     />
     <Route
-      path={`${ROUTES.adminHub}/:rest*`}
+      path={`${ROUTES.adminHub}/*`}
       component={() => (
         <ProtectedRoute requiredRoles={["admin"]}>
           <AdminHubShell />
@@ -183,7 +177,7 @@ export const AdminRoutes = (
     />
     <Route
       path={ROUTES.adminForms}
-      component={() => <Redirect to="/admin-hub/forms" />}
+      component={() => <Redirect to="/admin-hub/sheets" />}
     />
     <Route
       path={ROUTES.adminSheets}
@@ -195,7 +189,7 @@ export const AdminRoutes = (
     />
     <Route
       path={ROUTES.adminSheetCopies}
-      component={() => <Redirect to="/admin-hub/sheet-copies" />}
+      component={() => <Redirect to="/admin-hub/sheets" />}
     />
     <Route
       path={ROUTES.adminDoctors}

@@ -31,6 +31,7 @@ import {
   calcMissingPunchDeduction,
   getPayrollWeekKey,
   normalizeLateTiers,
+  sumPayrollDeductions,
   type LateTier,
 } from "./lateDeduction";
 import {
@@ -49,21 +50,24 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function roundPayrollMoney(row: PayrollRow): PayrollRow {
+export function roundPayrollMoney(row: PayrollRow): PayrollRow {
   const basicSalary = Math.round(row.basicSalary);
   const absentDeduction = Math.round(row.absentDeduction);
+  const missingCheckoutDeduction = Math.round(row.missingCheckoutDeduction);
   const lateDeduction = Math.round(row.lateDeduction);
   const earlyLeaveDeduction = Math.round(row.earlyLeaveDeduction);
   const penaltyDeduction = Math.round(row.penaltyDeduction);
   const advancesDeduction = Math.round(row.advancesDeduction);
   const insuranceDeduction = Math.round(row.insuranceDeduction);
-  const totalDeductions =
-    absentDeduction +
-    lateDeduction +
-    earlyLeaveDeduction +
-    penaltyDeduction +
-    advancesDeduction +
-    insuranceDeduction;
+  const totalDeductions = sumPayrollDeductions({
+    absent: absentDeduction,
+    missingCheckout: missingCheckoutDeduction,
+    late: lateDeduction,
+    earlyLeave: earlyLeaveDeduction,
+    penalty: penaltyDeduction,
+    advances: advancesDeduction,
+    insurance: insuranceDeduction,
+  });
   const netBasic = Math.max(0, basicSalary - totalDeductions);
   const attendanceCommissionRaw = Math.round(row.attendanceCommissionRaw);
   const attendanceCommission = Math.round(row.attendanceCommission);
@@ -85,6 +89,7 @@ function roundPayrollMoney(row: PayrollRow): PayrollRow {
     ...row,
     basicSalary,
     absentDeduction,
+    missingCheckoutDeduction,
     lateDeduction,
     earlyLeaveDeduction,
     penaltyDeduction,
@@ -251,6 +256,7 @@ export interface PayrollRow {
   overtimeMinutes: number;
   leaveDays: number;
   absentDeduction: number;
+  missingCheckoutDeduction: number;
   lateDeduction: number;
   earlyLeaveDeduction: number;
   penaltyDeduction: number;
@@ -297,9 +303,18 @@ export class PayrollComputeService {
           .select()
           .from(attendanceEmployees)
           .where(
-            or(
-              eq(attendanceEmployees.department, section),
-              eq(attendanceEmployees.department, "المركز والعيادة"),
+            and(
+              or(
+                eq(attendanceEmployees.department, section),
+                eq(attendanceEmployees.department, "المركز والعيادة"),
+              ),
+              or(
+                eq(attendanceEmployees.active, true),
+                gte(
+                  attendanceEmployees.terminationDate,
+                  new Date(`${firstDay}T00:00:00`),
+                ),
+              ),
             ),
           );
 
@@ -322,7 +337,9 @@ export class PayrollComputeService {
       ? await db
           .select()
           .from(employeeAttendanceMapping)
-          .where(inArray(employeeAttendanceMapping.machineUserId, employeeCodes))
+          .where(
+            inArray(employeeAttendanceMapping.machineUserId, employeeCodes),
+          )
       : [];
     const userIdByEmpCd = new Map<string, number>(
       attendanceMappings.map((mapping: any) => [
@@ -738,8 +755,8 @@ export class PayrollComputeService {
       const minRate = dayRate / 360;
       const deductions = deductionsEnabled
         ? round2(
-            absentD * dayRate +
-              missingCoDays * dayRate * 0.25 +
+              absentD * dayRate +
+              calcMissingPunchDeduction(missingCoDays, dayRate) +
               lateMins * minRate +
               earlyMins * minRate +
               penalties
@@ -916,8 +933,10 @@ export class PayrollComputeService {
         (shiftStatsMap.get(ss.id)?.scheduled ?? 0) > 0,
     );
     const totalCountForExam = activeExamCount + activeTechsThisMonth.length;
-    const examDoctorPercent = markazAutoPools?.breakdown.examDoctorPercent ?? 60;
-    const examEmployeePercent = markazAutoPools?.breakdown.examEmployeePercent ?? 40;
+    const examDoctorPercent =
+      markazAutoPools?.breakdown.examDoctorPercent ?? 60;
+    const examEmployeePercent =
+      markazAutoPools?.breakdown.examEmployeePercent ?? 40;
     const examPoolDrs = round2(examPool * (examDoctorPercent / 100));
     const examPoolEmpsTechs = round2(examPool * (examEmployeePercent / 100));
 
@@ -959,9 +978,7 @@ export class PayrollComputeService {
       };
 
       const report = monthlyReports.find((r: any) => r.empCd === emp.empCd);
-      const empDailyRows = dailyRows.filter(
-        (d: any) => d.empCd === emp.empCd,
-      );
+      const empDailyRows = dailyRows.filter((d: any) => d.empCd === emp.empCd);
 
       // Working days = scheduled days (all statuses except holiday)
       const workingDays = dailyRows.filter(
@@ -976,7 +993,9 @@ export class PayrollComputeService {
       let leaveDays = 0;
 
       let missingCheckoutDays = 0;
-      rawAbsentDays = empDailyRows.filter((d: any) => d.status === "absent").length;
+      rawAbsentDays = empDailyRows.filter(
+        (d: any) => d.status === "absent",
+      ).length;
       missingCheckoutDays = empDailyRows.filter((d: any) => {
         if (d.status !== "missing_checkout") return false;
         const ds =
@@ -1001,8 +1020,7 @@ export class PayrollComputeService {
       ).length;
       const overtimeDays: Array<
         OvertimeDayPay & { dateKey: string; workedMinutes: number }
-      > =
-        empDailyRows.flatMap((day: any) => {
+      > = empDailyRows.flatMap((day: any) => {
         if (!day.firstIn || !day.lastOut) return [];
         const date = day.workDate;
         const dateKey =
@@ -1023,9 +1041,7 @@ export class PayrollComputeService {
         const enabled = overtimeEnabledDays.get(`${emp.empCd}|${dateKey}`);
         const isEnabled =
           flags.commOvertime &&
-          (kind === "regular"
-            ? enabled?.out === true
-            : enabled?.day !== false);
+          (kind === "regular" ? enabled?.out === true : enabled?.day !== false);
         if (!isEnabled) return [];
         return [
           {
@@ -1038,7 +1054,7 @@ export class PayrollComputeService {
             }),
           },
         ];
-        });
+      });
       overtimeMinutes = overtimeDays.reduce(
         (sum, day) => sum + day.overtimeMinutes,
         0,
@@ -1053,9 +1069,7 @@ export class PayrollComputeService {
         const restDayWarningKey = `weekly-rest-replacement:${emp.empCd}:${overtimeDay.dateKey}`;
         if (sentLateWarningKeys.has(restDayWarningKey)) continue;
 
-        const replacementDeadline = new Date(
-          `${overtimeDay.dateKey}T12:00:00`,
-        );
+        const replacementDeadline = new Date(`${overtimeDay.dateKey}T12:00:00`);
         replacementDeadline.setDate(replacementDeadline.getDate() + 7);
         const deadlineKey = `${replacementDeadline.getFullYear()}-${String(replacementDeadline.getMonth() + 1).padStart(2, "0")}-${String(replacementDeadline.getDate()).padStart(2, "0")}`;
         await pushAppNotification({
@@ -1110,53 +1124,70 @@ export class PayrollComputeService {
                 const aDate =
                   a.workDate instanceof Date
                     ? a.workDate.getTime()
-                    : new Date(`${String(a.workDate).slice(0, 10)}T12:00:00`).getTime();
+                    : new Date(
+                        `${String(a.workDate).slice(0, 10)}T12:00:00`,
+                      ).getTime();
                 const bDate =
                   b.workDate instanceof Date
                     ? b.workDate.getTime()
-                    : new Date(`${String(b.workDate).slice(0, 10)}T12:00:00`).getTime();
+                    : new Date(
+                        `${String(b.workDate).slice(0, 10)}T12:00:00`,
+                      ).getTime();
                 return aDate - bDate;
               })
-              .reduce((state: { deduction: number; linearCount: number; weekKey: string | null }, d: any) => {
-              const mins = d.lateMinutes ?? 0;
-              const tier = lateTiers.find(
-                (item) =>
-                  mins >= item.minMin &&
-                  (item.maxMin === null || mins <= item.maxMin),
-              );
-              const weekKey =
-                tier?.type === "linear" ? getPayrollWeekKey(d.workDate) : state.weekKey;
-              const linearCount =
-                tier?.type === "linear"
-                  ? state.weekKey === weekKey
-                    ? state.linearCount + 1
-                    : 1
-                  : state.linearCount;
-              return {
-                linearCount,
-                weekKey,
-                deduction:
-                  state.deduction +
-                  calcLateDayTier(
-                    mins,
-                    dailyRate,
-                    minuteRate,
-                    lateTiers,
+              .reduce(
+                (
+                  state: {
+                    deduction: number;
+                    linearCount: number;
+                    weekKey: string | null;
+                  },
+                  d: any,
+                ) => {
+                  const mins = d.lateMinutes ?? 0;
+                  const tier = lateTiers.find(
+                    (item) =>
+                      mins >= item.minMin &&
+                      (item.maxMin === null || mins <= item.maxMin),
+                  );
+                  const weekKey =
+                    tier?.type === "linear"
+                      ? getPayrollWeekKey(d.workDate)
+                      : state.weekKey;
+                  const linearCount =
+                    tier?.type === "linear"
+                      ? state.weekKey === weekKey
+                        ? state.linearCount + 1
+                        : 1
+                      : state.linearCount;
+                  return {
                     linearCount,
-                  ),
-              };
-            }, { deduction: 0, linearCount: 0, weekKey: null }).deduction,
+                    weekKey,
+                    deduction:
+                      state.deduction +
+                      calcLateDayTier(
+                        mins,
+                        dailyRate,
+                        minuteRate,
+                        lateTiers,
+                        linearCount,
+                      ),
+                  };
+                },
+                { deduction: 0, linearCount: 0, weekKey: null },
+              ).deduction,
           )
         : 0;
 
       const linearLateWeekCounts = new Map<string, number>();
       for (const day of empDailyRowsForLate) {
         const minutes = Number(day.lateMinutes ?? 0);
-        const isLinear = lateTiers.find(
-          (tier) =>
-            minutes >= tier.minMin &&
-            (tier.maxMin === null || minutes <= tier.maxMin),
-        )?.type === "linear";
+        const isLinear =
+          lateTiers.find(
+            (tier) =>
+              minutes >= tier.minMin &&
+              (tier.maxMin === null || minutes <= tier.maxMin),
+          )?.type === "linear";
         if (!isLinear) continue;
 
         const weekKey = getPayrollWeekKey(day.workDate);
@@ -1165,9 +1196,9 @@ export class PayrollComputeService {
           (linearLateWeekCounts.get(weekKey) ?? 0) + 1,
         );
       }
-      const hasRepeatedLinearLateInWeek = [...linearLateWeekCounts.values()].some(
-        (count) => count >= 2,
-      );
+      const hasRepeatedLinearLateInWeek = [
+        ...linearLateWeekCounts.values(),
+      ].some((count) => count >= 2);
       const lateWarningKey = `late-linear-weekly-2:${emp.empCd}:${firstDay}:${lastDay}`;
       if (
         hasRepeatedLinearLateInWeek &&
@@ -1236,15 +1267,15 @@ export class PayrollComputeService {
       const insuranceDeduction = round2(
         Number((basicRow as any)?.insuranceDeduction ?? 0),
       );
-      const totalDeductions = round2(
-        absentDeduction +
-          missingCheckoutDeduction +
-          lateDeduction +
-          earlyLeaveDeduction +
-          penaltyDeduction +
-          advancesDeduction +
-          insuranceDeduction,
-      );
+      const totalDeductions = sumPayrollDeductions({
+        absent: absentDeduction,
+        missingCheckout: missingCheckoutDeduction,
+        late: lateDeduction,
+        earlyLeave: earlyLeaveDeduction,
+        penalty: penaltyDeduction,
+        advances: advancesDeduction,
+        insurance: insuranceDeduction,
+      });
       const deductionPct = basic > 0 ? Math.min(1, totalDeductions / basic) : 0;
 
       const netBasic = round2(Math.max(0, basic - totalDeductions));
@@ -1307,14 +1338,10 @@ export class PayrollComputeService {
         }
       }
       const netForRatio = netForRatioMap.get(emp.empCd) ?? 0;
-      const examCommission = isMarkaz && flags.commExam
-        ? calcAdjustedCommission(
-            examCommissionRaw,
-            basic,
-            netForRatio,
-            lm,
-          )
-        : round2(examCommissionRaw * commMult);
+      const examCommission =
+        isMarkaz && flags.commExam
+          ? calcAdjustedCommission(examCommissionRaw, basic, netForRatio, lm)
+          : round2(examCommissionRaw * commMult);
       const pentacamShare =
         isMarkaz && flags.commPentacam
           ? calcWeightedCommissionShare(
@@ -1387,6 +1414,7 @@ export class PayrollComputeService {
         overtimeMinutes,
         leaveDays,
         absentDeduction,
+        missingCheckoutDeduction,
         lateDeduction,
         earlyLeaveDeduction,
         penaltyDeduction,
@@ -1454,9 +1482,7 @@ export class PayrollComputeService {
                 : !day.shiftId
                   ? "weekly_rest"
                   : "regular";
-              const enabled = overtimeEnabledDays.get(
-                `${ss.empCd}|${dateKey}`,
-              );
+              const enabled = overtimeEnabledDays.get(`${ss.empCd}|${dateKey}`);
               const isEnabled =
                 settings.commOvertime &&
                 (kind === "regular"
@@ -1559,6 +1585,7 @@ export class PayrollComputeService {
         overtimeMinutes,
         leaveDays: 0,
         absentDeduction,
+        missingCheckoutDeduction: 0,
         lateDeduction: punchDeduction,
         earlyLeaveDeduction: 0,
         penaltyDeduction: 0,
@@ -1669,6 +1696,7 @@ export class PayrollComputeService {
         overtimeMinutes: 0,
         leaveDays: 0,
         absentDeduction,
+        missingCheckoutDeduction: 0,
         lateDeduction: punchDeduction,
         earlyLeaveDeduction: 0,
         penaltyDeduction: 0,

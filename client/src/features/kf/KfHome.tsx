@@ -5,6 +5,7 @@ import { Link, useLocation } from "wouter";
 import { ROUTES } from "../../../../shared/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -239,12 +240,12 @@ export default function KfHome() {
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="kh-dob" className="text-sm font-semibold text-slate-900 dark:text-slate-200">تاريخ الميلاد</Label>
-                <Input
+                <DateInput
                   id="kh-dob"
-                  type="date"
                   value={form.dateOfBirth}
                   onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                  className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  className="h-12 w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  inputClassName="h-11 w-full"
                 />
               </div>
               <div className="space-y-2 col-span-1">
@@ -370,11 +371,11 @@ export default function KfHome() {
               </div>
               <div className="space-y-2 col-span-2">
                 <Label className="text-sm font-semibold text-slate-900 dark:text-slate-200">التاريخ</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={ledgerForm.entryDate}
                   onChange={(e) => setLedgerForm(prev => ({...prev, entryDate: e.target.value}))}
-                  className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  className="h-11 w-full bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  inputClassName="h-10 w-full"
                 />
               </div>
             </div>

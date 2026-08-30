@@ -139,53 +139,43 @@ export default function TestsManagement() {
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-2" dir="rtl">
-      <section className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-muted/30 p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary text-primary-foreground">
-              <FlaskConical className="h-3.5 w-3.5" />
+      <section className="border-b border-border pb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-xs font-black text-primary">
+              <FlaskConical className="size-4" />
               كتالوج الفحوصات
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl font-black text-foreground sm:text-2xl">
               إدارة الفحوصات
             </h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              إدارة شاملة لفحوصات المختبر والأشعة والفحوصات البصرية.
+            <p className="mt-1 text-xs text-muted-foreground">
+              فحوصات المختبر والأشعة والفحوصات البصرية.
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <ClipboardList className="h-3.5 w-3.5" />
-                إجمالي الفحوصات
-              </div>
-              <div className="mt-2 text-sm font-semibold text-foreground">
-                {tests.length}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 shadow-sm">
-              <div className="text-xs font-medium text-muted-foreground">
-                الوضع
-              </div>
-              <div className="mt-2 text-sm font-semibold text-foreground">
-                {editingId ? "تعديل فحص" : "إضافة جديدة"}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5" />
-                الحالة
-              </div>
-              <div className="mt-2 text-sm font-semibold text-foreground">
-                {testsQuery.isLoading ? "جاري التحميل" : "جاهز"}
-              </div>
-            </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
+            <span className="text-muted-foreground">
+              الإجمالي{" "}
+              <strong className="mr-1 text-foreground">{tests.length}</strong>
+            </span>
+            <span className="text-muted-foreground">
+              الوضع{" "}
+              <strong className="mr-1 text-foreground">
+                {editingId ? "تعديل" : "إضافة"}
+              </strong>
+            </span>
+            <span className="text-muted-foreground">
+              الحالة{" "}
+              <strong className="mr-1 text-foreground">
+                {testsQuery.isLoading ? "تحميل" : "جاهز"}
+              </strong>
+            </span>
           </div>
         </div>
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="border-border/80 shadow-sm lg:col-span-1">
+        <Card className="border-border/80 shadow-none lg:col-span-1">
           <CardHeader>
             <CardTitle>
               {editingId ? "تعديل الفحص" : "إضافة فحص جديد"}
@@ -250,16 +240,16 @@ export default function TestsManagement() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/80 shadow-sm lg:col-span-2">
+        <Card className="border-border/80 shadow-none lg:col-span-2">
           <CardHeader>
             <CardTitle>قائمة الفحوصات</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="divide-y divide-border rounded-md border border-border">
               {tests.map((test) => (
                 <div
                   key={test.id}
-                  className="border rounded-lg p-4 flex items-center justify-between"
+                  className="flex items-center justify-between p-4 transition-colors hover:bg-muted/20"
                 >
                   <div>
                     <div className="font-bold">{test.name}</div>

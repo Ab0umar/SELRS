@@ -424,7 +424,7 @@ export default function PentacamResultsDashboard({
               "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
               entry.row.eye === "OD"
                 ? "bg-primary text-primary-foreground"
-                : "bg-secondary/15 text-secondary",
+                : "bg-secondary/15 text-primary",
             )}
           >
             {entry.row.eye === "OD" ? "RT" : "LT"}

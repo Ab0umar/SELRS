@@ -148,7 +148,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/ThemeContext";
 import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { arEG } from "date-fns/locale";
 import {
   AlertCircle,
   CalendarIcon,
@@ -460,24 +460,24 @@ export default function ComponentsShowcase() {
                   </InputOTP>
                 </div>
                 <div className="space-y-2">
-                  <Label>Date Time Picker</Label>
+                  <Label>اختيار التاريخ والوقت</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={`w-full justify-start text-left font-normal ${
+                        className={`w-full justify-start text-right font-normal ${
                           !datePickerDate && "text-muted-foreground"
                         }`}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="ml-2 h-4 w-4" />
                         {datePickerDate ? (
-                          format(datePickerDate, "PPP HH:mm", { locale: zhCN })
+                          format(datePickerDate, "PPP HH:mm", { locale: arEG })
                         ) : (
-                          <span>Select date and time</span>
+                          <span>اختر التاريخ والوقت</span>
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0" align="start" dir="rtl">
                       <div className="p-3 space-y-3">
                         <Calendar
                           mode="single"
@@ -487,7 +487,7 @@ export default function ComponentsShowcase() {
                         <div className="border-t pt-3 space-y-2">
                           <Label className="flex items-center gap-2">
                             <Clock className="h-4 w-4" />
-                            Time
+                            الوقت
                           </Label>
                           <div className="flex gap-2">
                             <Input
@@ -517,7 +517,7 @@ export default function ComponentsShowcase() {
                     <p className="text-sm text-muted-foreground">
                       Selected:{" "}
                       {format(datePickerDate, "yyyy/MM/dd  HH:mm", {
-                        locale: zhCN,
+                        locale: arEG,
                       })}
                     </p>
                   )}

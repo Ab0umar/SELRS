@@ -129,7 +129,7 @@ export default function Permissions() {
       ? "border-info/20 bg-info/10 text-info"
       : t === "in"
         ? "border-primary/20 bg-primary/10 text-primary"
-        : "border-secondary/20 bg-secondary/10 text-secondary";
+        : "border-secondary/20 bg-secondary/10 text-primary";
   const isPending = createMut.isPending || updateMut.isPending;
 
   return (

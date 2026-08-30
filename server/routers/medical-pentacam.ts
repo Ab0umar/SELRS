@@ -372,7 +372,7 @@ export const medicalPentacamRoutes = {
         .map((obj) => ({ key: obj.key, size: obj.size }));
     }),
 
-  removePentacamLink: protectedProcedure
+  removePentacamLink: adminProcedure
     .input(
       z.object({
         resultId: z.number().int().positive(),

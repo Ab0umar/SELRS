@@ -4,6 +4,8 @@ import {
   router,
   makeSalaryProcedure,
   makeSalaryWriteProcedure,
+  makePageProcedure,
+  makePageWriteProcedure,
   protectedProcedure,
 } from "../_core/procedures";
 import { getDb } from "../db";
@@ -12,6 +14,9 @@ import {
   salaryPenalties,
   salaryAdvances,
   salaryCommissionPools,
+  salaryOperationFundEntries,
+  salaryOperationFundMembers,
+  salaryEidBonuses,
   salaryPayroll,
   salaryRaiseHistory,
   salaryConfig,
@@ -33,6 +38,7 @@ import {
   and,
   gte,
   lte,
+  lt,
   gt,
   isNull,
   or,
@@ -131,7 +137,8 @@ async function resolveMyShiftStaff(
   if (linked[0]) return linked[0];
 
   const role = String(user?.role ?? "").toLowerCase();
-  const staffType = role === "doctor" ? "doctor" : role === "technician" ? "tech" : "";
+  const staffType =
+    role === "doctor" ? "doctor" : role === "technician" ? "tech" : "";
   if (!staffType) return null;
 
   const userNames = new Set(
@@ -142,7 +149,11 @@ async function resolveMyShiftStaff(
   if (userNames.size === 0) return null;
 
   const candidates = await db
-    .select({ id: shiftStaff.id, name: shiftStaff.name, userId: shiftStaff.userId })
+    .select({
+      id: shiftStaff.id,
+      name: shiftStaff.name,
+      userId: shiftStaff.userId,
+    })
     .from(shiftStaff)
     .where(and(eq(shiftStaff.active, true), eq(shiftStaff.type, staffType)));
   const matches = candidates.filter((staff: any) =>
@@ -442,6 +453,172 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  getEmployeeFunds: makeSalaryProcedure("/salary/funds")
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int().min(1).max(12),
+      }),
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const from = `${input.year}-${String(input.month).padStart(2, "0")}-01`;
+      const nextMonth =
+        input.month === 12
+          ? `${input.year + 1}-01-01`
+          : `${input.year}-${String(input.month + 1).padStart(2, "0")}-01`;
+      const [employees, members, entries, eidBonuses] = await Promise.all([
+        db
+          .select({
+            empCd: attendanceEmployees.empCd,
+            fullName: attendanceEmployees.fullName,
+            department: attendanceEmployees.department,
+            jobTitle: attendanceEmployees.jobTitle,
+          })
+          .from(attendanceEmployees)
+          .where(eq(attendanceEmployees.active, true))
+          .orderBy(attendanceEmployees.fullName),
+        db
+          .select({ empCd: salaryOperationFundMembers.empCd })
+          .from(salaryOperationFundMembers),
+        db
+          .select()
+          .from(salaryOperationFundEntries)
+          .where(
+            and(
+              gte(salaryOperationFundEntries.transactionDate, from as any),
+              lt(salaryOperationFundEntries.transactionDate, nextMonth as any),
+            ),
+          )
+          .orderBy(desc(salaryOperationFundEntries.transactionDate)),
+        db
+          .select()
+          .from(salaryEidBonuses)
+          .orderBy(desc(salaryEidBonuses.bonusDate)),
+      ]);
+      const memberCodes = new Set(
+        members.map((row: { empCd: string }) => row.empCd),
+      );
+      const fundMembers = employees.filter((employee: { empCd: string }) =>
+        memberCodes.has(employee.empCd),
+      );
+      const fundEligibleEmployees = employees.filter(
+        (employee: { jobTitle?: string | null }) =>
+          !String((employee as any).jobTitle ?? "").includes("طبيب"),
+      );
+      const totalRevenue = entries.reduce(
+        (sum: number, row: { amount: string | number }) =>
+          sum + Number(row.amount || 0),
+        0,
+      );
+      return {
+        employees,
+        fundEligibleEmployees,
+        fundMembers,
+        entries,
+        totalRevenue,
+        sharePerMember: fundMembers.length
+          ? totalRevenue / fundMembers.length
+          : 0,
+        payoutDay: 20,
+        eidBonuses,
+      };
+    }),
+
+  setOperationFundMembers: makeSalaryWriteProcedure("/salary/funds")
+    .input(z.object({ empCds: z.array(z.string().min(1)) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.delete(salaryOperationFundMembers);
+      const empCds = Array.from(new Set(input.empCds));
+      if (empCds.length)
+        await db
+          .insert(salaryOperationFundMembers)
+          .values(empCds.map((empCd) => ({ empCd })));
+      return { success: true, count: empCds.length };
+    }),
+
+  addOperationFundEntry: makeSalaryWriteProcedure("/salary/funds")
+    .input(
+      z.object({
+        transactionDate: z.string().min(10),
+        amount: z.number().positive(),
+        doctorName: z.string().min(1),
+        notes: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const result = await db
+        .insert(salaryOperationFundEntries)
+        .values({
+          transactionDate: input.transactionDate as any,
+          amount: String(input.amount) as any,
+          doctorName: input.doctorName,
+          notes: input.notes || null,
+        });
+      return { id: Number((result as any).insertId) };
+    }),
+
+  deleteOperationFundEntry: makeSalaryWriteProcedure("/salary/funds")
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(salaryOperationFundEntries)
+        .where(eq(salaryOperationFundEntries.id, input.id));
+      return { success: true };
+    }),
+
+  addEidBonus: makeSalaryWriteProcedure("/salary/funds")
+    .input(
+      z.object({
+        title: z.string().min(1).max(120),
+        bonusDate: z.string().min(10),
+        amountPerEmployee: z.number().positive(),
+        notes: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const activeRows = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(attendanceEmployees)
+        .where(eq(attendanceEmployees.active, true));
+      const employeeCount = Number(activeRows[0]?.count ?? 0);
+      if (employeeCount === 0)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يوجد موظفون نشطون لصرف العيدية",
+        });
+      const result = await db
+        .insert(salaryEidBonuses)
+        .values({
+          title: input.title,
+          bonusDate: input.bonusDate as any,
+          amountPerEmployee: String(input.amountPerEmployee) as any,
+          employeeCount,
+          notes: input.notes || null,
+        });
+      return { id: Number((result as any).insertId) };
+    }),
+
+  deleteEidBonus: makeSalaryWriteProcedure("/salary/funds")
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(salaryEidBonuses)
+        .where(eq(salaryEidBonuses.id, input.id));
+      return { success: true };
+    }),
+
   // ── Commission Pools ─────────────────────────────────────
   getCommissionPool: makeSalaryProcedure("/salary/pools")
     .input(
@@ -544,8 +721,16 @@ export const salaryRouter = router({
           });
         }
       };
-      validateSplit(input.examDoctorPercent, input.examEmployeePercent, "الكشف");
-      validateSplit(input.xrayDoctorPercent, input.xrayEmployeePercent, "الأشعة");
+      validateSplit(
+        input.examDoctorPercent,
+        input.examEmployeePercent,
+        "الكشف",
+      );
+      validateSplit(
+        input.xrayDoctorPercent,
+        input.xrayEmployeePercent,
+        "الأشعة",
+      );
       const { setPriceOverrides } =
         await import("../services/salary/commissionPoolsMssql.service");
       return setPriceOverrides(input);
@@ -681,6 +866,8 @@ export const salaryRouter = router({
         year: z.number().int(),
         month: z.number().int(),
         section: z.string().default("مركز"),
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -688,6 +875,9 @@ export const salaryRouter = router({
         input.year,
         input.month,
         input.section,
+        undefined,
+        input.fromDate,
+        input.toDate,
       );
       const saved = await PayrollComputeService.savePayroll(rows);
       return { saved, rows };
@@ -836,6 +1026,7 @@ export const salaryRouter = router({
             overtimeMinutes: row.overtimeMinutes,
             leaveDays: row.leaveDays,
             absentDeduction: String(row.absentDeduction),
+            missingCheckoutDeduction: String(row.missingCheckoutDeduction ?? 0),
             lateDeduction: String(row.lateDeduction),
             earlyLeaveDeduction: String(row.earlyLeaveDeduction),
             penaltyDeduction: String(row.penaltyDeduction),
@@ -971,7 +1162,7 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const ymPairs = dateRangeToYearMonths(input.fromDate, input.toDate);
-      return db
+      const rows = await db
         .select({
           empCd: salaryPayroll.empCd,
           absentDeduction: salaryPayroll.absentDeduction,
@@ -997,6 +1188,23 @@ export const salaryRouter = router({
           ),
         )
         .orderBy(attendanceEmployees.fullName);
+
+      return rows.map((row: any) => {
+        const absent = Number(row.absentDeduction ?? 0);
+        const late = Number(row.lateDeduction ?? 0);
+        const earlyLeave = Number(row.earlyLeaveDeduction ?? 0);
+        const penalty = Number(row.penaltyDeduction ?? 0);
+        const advances = Number(row.advancesDeduction ?? 0);
+        const insurance = Number(row.insuranceDeduction ?? 0);
+        const total = Number(row.totalDeductions ?? 0);
+        return {
+          ...row,
+          missingCheckoutDeduction: Math.max(
+            0,
+            total - absent - late - earlyLeave - penalty - advances - insurance,
+          ),
+        };
+      });
     }),
 
   finalizePayroll: makeSalaryWriteProcedure("/salary/payroll")
@@ -1217,16 +1425,17 @@ export const salaryRouter = router({
           commOvertime: attendanceEmployees.commOvertime,
         })
         .from(attendanceEmployees)
+        .where(eq(attendanceEmployees.active, true))
         .orderBy(attendanceEmployees.fullName);
       if (!input?.section) return employees;
       const settings = await db
         .select()
         .from(salaryEmployeeSectionSettings)
         .where(eq(salaryEmployeeSectionSettings.section, input.section));
-    const settingsByEmp = new Map(
-      settings.map((row: any) => [row.empCd, row]),
-    );
-    return employees.map((employee: any) => ({
+      const settingsByEmp = new Map(
+        settings.map((row: any) => [row.empCd, row]),
+      );
+      return employees.map((employee: any) => ({
         ...employee,
         ...(settingsByEmp.get(employee.empCd) ?? {}),
         section: input.section,
@@ -1364,6 +1573,8 @@ export const salaryRouter = router({
         empCd: z.string(),
         workDate: z.string(),
         exclude: z.boolean(),
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -1384,7 +1595,31 @@ export const salaryRouter = router({
             ),
           );
       }
-      return { success: true };
+
+      // Recompute and persist immediately so toggling a single-fingerprint day
+      // changes the salary report without requiring a separate manual run.
+      const employee = await db
+        .select({ department: attendanceEmployees.department })
+        .from(attendanceEmployees)
+        .where(eq(attendanceEmployees.empCd, input.empCd))
+        .limit(1);
+      const section = employee[0]?.department === "عيادة" ? "عيادة" : "مركز";
+      const periodEnd = input.toDate ?? input.workDate;
+      const [year, month] = String(periodEnd)
+        .slice(0, 7)
+        .split("-")
+        .map(Number);
+      const rows = await PayrollComputeService.compute(
+        year,
+        month,
+        section,
+        undefined,
+        input.fromDate,
+        input.toDate,
+      );
+      await PayrollComputeService.savePayroll(rows);
+
+      return { success: true, recalculated: rows.length, section };
     }),
 
   listMissingCheckoutDays: makeSalaryProcedure("/salary")
@@ -1501,9 +1736,7 @@ export const salaryRouter = router({
       z.object({
         empCd: z.string().min(1),
         section: z.enum(["مركز", "عيادة"]),
-        salaryType: z
-          .enum(["استشاري", "أخصائي", "الاثنين"])
-          .nullable(),
+        salaryType: z.enum(["استشاري", "أخصائي", "الاثنين"]).nullable(),
         attendanceCommissionRate: z.number().min(0).max(1).nullable(),
         attendanceLeaveMultiplier: z.number().min(0).max(1).nullable(),
       }),
@@ -1678,7 +1911,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  getShiftSchedule: makeSalaryProcedure("/salary")
+  getShiftSchedule: makePageProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         year: z.number(),
@@ -1708,7 +1941,7 @@ export const salaryRouter = router({
     }),
 
   // ── Self-service shift procedures (any logged-in user) ──────────────────
-  getShiftScheduleForStaff: protectedProcedure
+  getShiftScheduleForStaff: makePageProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         year: z.number(),
@@ -1737,14 +1970,16 @@ export const salaryRouter = router({
       return { staff, attendance };
     }),
 
-  getMyShiftStaffId: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) throw new Error("DB unavailable");
-    const staff = await resolveMyShiftStaff(db, ctx.user);
-    return staff?.id ?? null;
-  }),
+  getMyShiftStaffId: makePageProcedure("/attendance/shift-schedule").query(
+    async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const staff = await resolveMyShiftStaff(db, ctx.user);
+      return staff?.id ?? null;
+    },
+  ),
 
-  addMyShiftEntry: protectedProcedure
+  addMyShiftEntry: makePageWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         year: z.number().int(),
@@ -1780,7 +2015,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  toggleMyShiftEntry: protectedProcedure
+  toggleMyShiftEntry: makePageWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ id: z.number().int(), present: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1928,7 +2163,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  clearRoster: makeSalaryWriteProcedure("/salary")
+  clearRoster: makePageWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ year: z.number().int(), month: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();

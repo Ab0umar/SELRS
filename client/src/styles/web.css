@@ -51,7 +51,13 @@
   --color-error-foreground: var(--error-foreground);
 }
 
-@media (orientation: landscape) and (min-width: 700px) and (max-width: 1400px) {
+/* screen-only: min-width/max-width/orientation media features are also
+   evaluated against the PAGE box during printing (an A4 portrait page is
+   ~793x1122px, landing right inside these tablet breakpoints), so without
+   "screen" these tablet-only paddings/overrides silently leak into printed
+   sheets and reports — breaking exact A4 page-height math (spurious blank
+   trailing pages) and eating into printable width. */
+@media screen and (orientation: landscape) and (min-width: 700px) and (max-width: 1400px) {
   [data-accounting-shell] {
     padding: 12px !important;
   }
@@ -97,7 +103,10 @@
   }
 }
 
-@media (orientation: portrait) and (min-width: 641px) and (max-width: 900px) {
+/* screen-only — see the landscape breakpoint above for why: an A4 portrait
+   page (~793x1122px) falls inside this exact range, so this tablet padding
+   would otherwise apply during real printing too. */
+@media screen and (orientation: portrait) and (min-width: 641px) and (max-width: 900px) {
   html,
   body,
   #root {
@@ -340,6 +349,15 @@
     position: relative !important;
     min-height: 0 !important;
     height: auto !important;
+  }
+
+  /* <main> carries screen-only px/py padding (Tailwind px-1, sm:px-4, md:px-4)
+     that is never gated behind a print: variant, so it silently eats into the
+     210mm print width and shifts every sheet's content off-center. */
+  main {
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   body,

@@ -82,15 +82,30 @@ function buildScopedPrintHtml(): string {
   // anyway — strip them so there's no dead-load noise.
   clone.querySelectorAll("script").forEach((el) => el.remove());
 
+  let isolatedPrintSection = false;
   for (const [bodyClass, sectionSelector] of Object.entries(
     PRINT_ISOLATION_SECTIONS,
   )) {
     if (document.body.classList.contains(bodyClass)) {
       const section = clone.querySelector(sectionSelector);
       const cloneBody = clone.querySelector("body");
-      if (section && cloneBody) cloneBody.replaceChildren(section);
+      if (section && cloneBody) {
+        cloneBody.replaceChildren(section);
+        isolatedPrintSection = true;
+      }
       break;
     }
+  }
+
+  // Sheet routes render a dedicated print document beside their screen UI.
+  // Print only that document so toolbars and scroll containers cannot leak
+  // into Android's native print WebView.
+  if (!isolatedPrintSection) {
+    const printDocument = clone.querySelector<HTMLElement>(
+      "[data-print-document]",
+    );
+    const cloneBody = clone.querySelector("body");
+    if (printDocument && cloneBody) cloneBody.replaceChildren(printDocument);
   }
 
   if (allCss) {
@@ -153,7 +168,7 @@ function buildScopedPrintHtml(): string {
 
     /* Do not let the native-print cleanup override the paper geometry. */
     .a4-page-card, .print-page-center-a4, .print-page-center-a5,
-    .attached-followup-page, .sheet-followup-body,
+    .followup-print-page, .sheet-followup-body,
     .lasik-sheet, .specialist-sheet {
       overflow: hidden !important;
       overflow-y: hidden !important;
@@ -168,11 +183,12 @@ function buildScopedPrintHtml(): string {
       box-sizing: border-box !important;
     }
 
-    [data-print-document="lasik"] .attached-followup-page,
-    [data-print-document="lasik"] .attached-followup-page > .sheet-followup-body {
-      height: auto !important;
-      min-height: 0 !important;
-      max-height: none !important;
+    [data-print-document="followup"] .followup-print-page,
+    [data-print-document="followup"] .sheet-followup-body {
+      width: 210mm !important;
+      height: 297mm !important;
+      min-height: 297mm !important;
+      max-height: 297mm !important;
       box-sizing: border-box !important;
     }
 
@@ -183,7 +199,7 @@ function buildScopedPrintHtml(): string {
     .a4-page-card::-webkit-scrollbar,
     .print-page-center-a4::-webkit-scrollbar,
     .print-page-center-a5::-webkit-scrollbar,
-    .attached-followup-page::-webkit-scrollbar,
+    .followup-print-page::-webkit-scrollbar,
     .sheet-followup-body::-webkit-scrollbar,
     .lasik-print-root::-webkit-scrollbar,
     .specialist-page-root::-webkit-scrollbar,

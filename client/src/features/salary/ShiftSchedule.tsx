@@ -164,7 +164,7 @@ const SHIFT_META: Record<
   Morning: {
     label: "صباح",
     short: "ص",
-    tone: "bg-secondary/10 text-secondary ring-1 ring-inset ring-secondary/20 hover:bg-secondary/15",
+    tone: "bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 hover:bg-primary/15",
     printClass: "shift-m",
   },
   Night: {
@@ -1705,7 +1705,7 @@ export default function ShiftSchedule() {
                                               toggleMut.isPending ||
                                               toggleMyMut.isPending
                                             }
-                                            className={`block w-full whitespace-normal break-words rounded-lg px-1.5 py-1 text-center text-[10px] font-bold leading-tight transition-colors ${
+                                            className={`block w-full whitespace-normal break-words rounded-lg px-1.5 py-1 text-center text-[10px] font-semibold leading-tight transition-colors ${
                                               isMyRow
                                                 ? "bg-primary text-primary-foreground"
                                                 : entry.present
@@ -1948,7 +1948,7 @@ export default function ShiftSchedule() {
                             key={entry.id}
                             className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
                           >
-                            <span className="min-w-0 truncate text-xs font-bold text-foreground">
+                            <span className="min-w-0 truncate text-xs font-semibold text-foreground">
                               {compactStaffName(staff)}
                             </span>
                             <span
@@ -2247,7 +2247,7 @@ export default function ShiftSchedule() {
                             className="rounded-xl border border-border px-3 py-2"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="min-w-0 truncate text-xs font-bold text-foreground">
+                              <span className="min-w-0 truncate text-xs font-semibold text-foreground">
                                 {compactStaffName(staff)}
                               </span>
                               <span

@@ -78,7 +78,7 @@ export function resolveNotificationTargetRolesByUserRole(
   const normalizedRole = String(role ?? "")
     .trim()
     .toLowerCase();
-  if (normalizedRole === "reception") return null;
+  if (normalizedRole === "reception" || normalizedRole === "accountant") return null;
   if (normalizedRole === "nurse" || normalizedRole === "technician")
     return ["doctor"];
   return null;

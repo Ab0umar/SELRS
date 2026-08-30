@@ -67,8 +67,7 @@ export default function Home() {
 
   useEffect(() => {
     if (loading || !user) return;
-    const role = String((user as any)?.role ?? "").toLowerCase();
-    setLocation(role === "accountant" ? "/accounting" : "/dashboard");
+    setLocation("/home");
   }, [loading, user, setLocation]);
 
   useEffect(() => subscribeNetworkStatus((s) => setIsOnline(s.connected)), []);
@@ -115,7 +114,7 @@ export default function Home() {
         if (data?.user) store.setItem("user", JSON.stringify(data.user));
         if (data?.token) store.setItem("token", String(data.token));
       }
-      setLocation("/dashboard");
+      setLocation("/home");
     } catch (err) {
       setError(
         !navigator.onLine

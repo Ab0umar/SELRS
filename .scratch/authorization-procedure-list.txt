@@ -1,0 +1,315 @@
+server/routers\externalDoctors.ts:22:  listDoctors: adminProcedure.query(async () => {
+server/routers\externalDoctors.ts:44:  createDoctor: adminProcedure
+server/routers\externalDoctors.ts:87:  updateDoctor: adminProcedure
+server/routers\externalDoctors.ts:121:  resetPassword: adminProcedure
+server/routers\externalDoctors.ts:145:  listReferrals: adminProcedure
+server/routers\externalDoctors.ts:211:  createReferral: adminProcedure
+server/routers\externalDoctors.ts:280:  toggleReferral: adminProcedure
+server/routers\externalDoctors.ts:301:  deleteReferral: adminProcedure
+server/routers\externalDoctors.ts:318:  listInternalDoctors: adminProcedure.query(async () => {
+server/routers\externalDoctors.ts:338:  listAccessLogs: adminProcedure
+server/routers\accounting.ts:1652:  triggerAccSync: adminProcedure.mutation(async () => {
+server/routers\accounting.ts:1677:  triggerAccPush: adminProcedure.mutation(async () => {
+server/routers\doctorPortal.ts:43:  login: publicProcedure
+server/routers\medical-uploads.ts:25:  getPatientDiagnosisUploads: protectedProcedure
+server/routers\medical-uploads.ts:55:  uploadDiagnosisImage: protectedProcedure
+server/routers\legacyPatients.ts:97:  search: protectedProcedure
+server/routers\medical-catalog.ts:74:  matchExistingMedicationsWithEgyptianReference: medicalStaffProcedure.query(
+server/routers\medical-catalog.ts:109:  syncExistingMedicationsWithEgyptianReference: medicalStaffProcedure
+server/routers\medical-catalog.ts:170:  searchEgyptianDrugReference: protectedProcedure
+server/routers\medical-catalog.ts:182:  addEgyptianDrugToPrescriptionCatalog: medicalStaffProcedure
+server/routers\medical-catalog.ts:233:  addEgyptianDrugsToPrescriptionCatalog: medicalStaffProcedure
+server/routers\medical-catalog.ts:305:  getMedications: protectedProcedure.query(async () => {
+server/routers\medical-catalog.ts:309:  getAllMedications: protectedProcedure.query(async () => {
+server/routers\medical-catalog.ts:313:  createMedication: managerProcedure
+server/routers\medical-catalog.ts:358:  updateMedication: managerProcedure
+server/routers\medical-catalog.ts:399:  deleteMedication: managerProcedure
+server/routers\medical-catalog.ts:413:  getAllDiseases: protectedProcedure.query(async () => {
+server/routers\medical-catalog.ts:417:  createDisease: managerProcedure
+server/routers\medical-catalog.ts:437:  updateDisease: managerProcedure
+server/routers\medical-catalog.ts:463:  deleteDisease: managerProcedure
+server/routers\medical-catalog.ts:477:  getAllSymptoms: protectedProcedure.query(async () => {
+server/routers\medical-catalog.ts:492:  createSymptom: managerProcedure
+server/routers\medical-catalog.ts:535:  updateSymptom: managerProcedure
+server/routers\medical-catalog.ts:567:  deleteSymptom: managerProcedure
+server/routers\medical-catalog.ts:595:  getTests: protectedProcedure.query(async () => {
+server/routers\medical-catalog.ts:599:  getAllTests: protectedProcedure.query(async () => {
+server/routers\medical-catalog.ts:603:  createTest: managerProcedure
+server/routers\medical-catalog.ts:635:  updateTest: managerProcedure
+server/routers\medical-catalog.ts:667:  deleteTest: managerProcedure
+server/routers\medical-catalog.ts:677:  getMyTestFavorites: medicalStaffProcedure.query(async ({ ctx }) => {
+server/routers\medical-catalog.ts:681:  toggleTestFavorite: medicalStaffProcedure
+server/routers\medical-catalog.ts:687:  createTestRequest: medicalStaffProcedure
+server/routers\medical-catalog.ts:739:  replaceTestRequest: medicalStaffProcedure
+server/routers\medical-catalog.ts:786:  getTestRequestsByPatient: protectedProcedure
+server/routers\medical-catalog.ts:792:  getPatientTestRequests: protectedProcedure
+server/routers\medical-catalog.ts:798:  getMedicalHistoryByPatient: protectedProcedure
+server/routers\medical-catalog.ts:804:  upsertMedicalHistory: medicalStaffProcedure
+server/routers\medical-catalog.ts:826:  getTestRequestsByVisit: protectedProcedure
+server/routers\medical-catalog.ts:832:  createPrescription: medicalStaffProcedure
+server/routers\medical-catalog.ts:866:  getPrescriptionsByVisit: protectedProcedure
+server/routers\medical-catalog.ts:872:  createPrescriptionWithItems: medicalStaffProcedure
+server/routers\medical-catalog.ts:915:  replacePrescriptionWithItems: medicalStaffProcedure
+server/routers\medical-catalog.ts:959:  getPrescriptionsByPatient: protectedProcedure
+server/routers\medical-catalog.ts:965:  getPrescriptionsWithItemsByPatient: protectedProcedure
+server/routers\medical-catalog.ts:971:  getPrescriptionsOverview: protectedProcedure
+server/routers\medical-catalog.ts:995:  getPrescriptionsWithItemsByVisit: protectedProcedure
+server/routers\medical-catalog.ts:1001:  deletePrescription: managerProcedure
+server/routers\medical-catalog.ts:1015:  createSurgery: medicalStaffProcedure
+server/routers\medical-catalog.ts:1063:  getSurgeriesByPatient: protectedProcedure
+server/routers\medical-catalog.ts:1069:  updateSurgery: medicalStaffProcedure
+server/routers\medical-catalog.ts:1106:  deleteSurgery: medicalStaffProcedure
+server/routers\medical-catalog.ts:1120:  createPostOpFollowup: medicalStaffProcedure
+server/routers\medical-catalog.ts:1153:  getPostOpFollowupsByPatient: protectedProcedure
+server/routers\medical-catalog.ts:1159:  getPostOpFollowupsBySurgery: protectedProcedure
+server/routers\salary.ts:1769:  getShiftScheduleForStaff: protectedProcedure
+server/routers\salary.ts:1798:  getMyShiftStaffId: protectedProcedure.query(async ({ ctx }) => {
+server/routers\salary.ts:1805:  addMyShiftEntry: protectedProcedure
+server/routers\salary.ts:1841:  toggleMyShiftEntry: protectedProcedure
+server/routers\salary.ts:2007:  listHolidays: protectedProcedure
+server/routers\attendance.ts:651:  getEntryPermissionRequestsEnabled: protectedProcedure.query(async () => ({
+server/routers\attendance.ts:660:  myAttendanceProfile: protectedProcedure.query(async ({ ctx }) => {
+server/routers\attendance.ts:838:  myRequestLeave: protectedProcedure
+server/routers\attendance.ts:909:  myRequestPermission: protectedProcedure
+server/routers\attendance.ts:994:  myRequestShiftChange: protectedProcedure
+server/routers\attendance.ts:1063:  listUserMappings: adminProcedure.query(async () => {
+server/routers\attendance.ts:1086:  setUserMapping: adminProcedure
+server/routers\medical-pentacam.ts:98:  updatePentacamResult: medicalStaffProcedure
+server/routers\medical-pentacam.ts:165:  getPentacamResultsByVisit: protectedProcedure
+server/routers\medical-pentacam.ts:172:  listPentacamDashboard: protectedProcedure
+server/routers\medical-pentacam.ts:213:  getPentacamDashboardStats: protectedProcedure
+server/routers\medical-pentacam.ts:238:  getPentacamFilesByPatient: protectedProcedure
+server/routers\medical-pentacam.ts:331:  getSrv100DiagnosticImagesByPatient: protectedProcedure
+server/routers\medical-pentacam.ts:356:  getPentacamMeasurementsByPatient: protectedProcedure
+server/routers\medical-pentacam.ts:366:  debugPentacamS3: adminProcedure
+server/routers\medical-pentacam.ts:375:  removePentacamLink: protectedProcedure
+server/routers\medical-pentacam.ts:398:  importLocalPentacamExports: adminProcedure
+server/routers\medical-pentacam.ts:494:  autoImportLocalPentacamExports: adminProcedure
+server/routers\medical-pentacam.ts:626:  getUnmatchedLocalPentacamSuggestions: adminProcedure
+server/routers\medical-pentacam.ts:682:  getMismatchedLocalPentacamLinks: adminProcedure
+server/routers\medical-pentacam.ts:702:  listFailedPentacamFiles: adminProcedure.query(async () => {
+server/routers\medical-pentacam.ts:706:  previewFailedPentacamRename: adminProcedure
+server/routers\medical-pentacam.ts:726:  reviewFailedPentacamFile: adminProcedure
+server/routers\medical-pentacam.ts:762:  reviewFailedPentacamGroup: adminProcedure
+server/routers\medical-pentacam.ts:802:  releaseFailedPentacamFile: adminProcedure
+server/routers\medical-pentacam.ts:831:  retryFailedPentacamOcr: adminProcedure
+server/routers\medical-pentacam.ts:879:  unlinkMismatchedLocalPentacamLinks: adminProcedure
+server/routers\medical-pentacam.ts:921:  reassignLocalPentacamLink: adminProcedure
+server/routers\medical-pentacam.ts:953:  searchPentacamPatients: adminProcedure
+server/routers\medical-pentacam.ts:986:  findDuplicateSrv100Uploads: adminProcedure.query(async () => {
+server/routers\medical-pentacam.ts:990:  deleteSrv100UploadsByIds: adminProcedure
+server/routers\patientPortal.ts:90:  login: publicProcedure
+server/routers\patientPortal.ts:254:  getAvailableDates: publicProcedure
+server/routers\patientPortal.ts:410:  createGuestBooking: publicProcedure
+server/routers\patientPortal.ts:531:  listBookings: receptionProcedure
+server/routers\patientPortal.ts:590:  createStaffBooking: receptionProcedure
+server/routers\patientPortal.ts:692:  createStaffGuestBooking: receptionProcedure
+server/routers\patientPortal.ts:772:  deleteBooking: receptionProcedure
+server/routers\patientPortal.ts:805:  updateBooking: receptionProcedure
+server/routers\patientPortal.ts:952:  getSchedule: receptionProcedure
+server/routers\patientPortal.ts:989:  listClosures: receptionProcedure.query(async () => {
+server/routers\patientPortal.ts:999:  addClosure: receptionProcedure
+server/routers\patientPortal.ts:1033:  deleteClosure: receptionProcedure
+server/routers\patientPortal.ts:1046:  updateSchedule: receptionProcedure
+server/routers\medical-reference.ts:122:  searchMedicalReference: protectedProcedure
+server/routers\marketing.ts:58:  listPosts: adminProcedure
+server/routers\marketing.ts:88:  getPost: adminProcedure
+server/routers\marketing.ts:101:  createPost: adminProcedure
+server/routers\marketing.ts:141:  updatePost: adminProcedure
+server/routers\marketing.ts:175:  deletePost: adminProcedure
+server/routers\marketing.ts:185:  publishPost: adminProcedure
+server/routers\marketing.ts:259:  generatePost: adminProcedure
+server/routers\marketing.ts:347:  generateImageForPost: adminProcedure
+server/routers\marketing.ts:406:  getSettings: adminProcedure.query(async () => {
+server/routers\marketing.ts:418:  updateSettings: adminProcedure
+server/routers\marketing.ts:452:  getLogs: adminProcedure
+server/routers\marketing.ts:476:  dashboardSummary: adminProcedure.query(async () => {
+server/routers\marketing.ts:502:  uploadReferenceDesign: adminProcedure
+server/routers\marketing.ts:575:  listReferenceDesigns: adminProcedure.query(async () => {
+server/routers\marketing.ts:585:  deleteReferenceDesign: adminProcedure
+server/routers\marketing.ts:610:  getBrandProfile: adminProcedure.query(async () => {
+server/routers\marketing.ts:615:  rebuildBrandProfile: adminProcedure.mutation(async () => {
+server/routers\marketing.ts:727:  getFacebookStatus: adminProcedure.query(async () => {
+server/routers\marketing.ts:748:  getOAuthUrl: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\marketing.ts:787:  getPendingPages: adminProcedure.query(async () => {
+server/routers\marketing.ts:810:  selectFacebookPage: adminProcedure
+server/routers\marketing.ts:863:  disconnectFacebook: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\marketing.ts:891:  testFacebookConnection: adminProcedure.mutation(async () => {
+server/routers\marketing.ts:932:  getSchedulerStatus: adminProcedure.query(async () => {
+server/routers\marketing.ts:976:  runSchedulerNow: adminProcedure
+server/routers\medical-examinations.ts:60:  getAppointmentsByPatient: protectedProcedure
+server/routers\medical-examinations.ts:66:  getMedicalTotals: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:70:  getOperations: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:74:  getAllOperations: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:78:  getAppointments: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:82:  deleteAppointment: managerProcedure
+server/routers\medical-examinations.ts:96:  updateAppointment: managerProcedure
+server/routers\medical-examinations.ts:122:  createExamination: medicalStaffProcedure
+server/routers\medical-examinations.ts:163:  updateExamination: medicalStaffProcedure
+server/routers\medical-examinations.ts:269:  getExaminationsByPatient: protectedProcedure
+server/routers\medical-examinations.ts:275:  getAutorefractometryByPatient: protectedProcedure
+server/routers\medical-examinations.ts:281:  getAutorefractometryOverview: protectedProcedure
+server/routers\medical-examinations.ts:303:  getGlassesRecordsByPatient: protectedProcedure
+server/routers\medical-examinations.ts:309:  getAfterRefractionByPatient: protectedProcedure
+server/routers\medical-examinations.ts:315:  saveAfterRefractionData: protectedProcedure
+server/routers\medical-examinations.ts:340:  getVisitsByPatient: protectedProcedure
+server/routers\medical-examinations.ts:361:  getFollowupVisitsByPatient: protectedProcedure
+server/routers\medical-examinations.ts:379:  getVisits: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:383:  getExaminations: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:387:  updateVisitDate: adminProcedure
+server/routers\medical-examinations.ts:411:  updateVisitChiefComplaint: medicalStaffProcedure
+server/routers\medical-examinations.ts:425:  updateVisitExamData: protectedProcedure
+server/routers\medical-examinations.ts:484:  saveFollowupSheet: protectedProcedure
+server/routers\medical-examinations.ts:649:  getFollowupSheets: protectedProcedure
+server/routers\medical-examinations.ts:672:  getAllFollowupItems: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:676:  getAllExaminations: protectedProcedure.query(async () => {
+server/routers\medical-examinations.ts:680:  getRefractionsOverview: protectedProcedure
+server/routers\medical-examinations.ts:702:  getSheetEntry: protectedProcedure
+server/routers\medical-examinations.ts:1040:  saveSheetEntry: protectedProcedure
+server/routers\medical-examinations.ts:1080:  deleteSheetEntryForVisit: medicalStaffProcedure
+server/routers\medical-examinations.ts:1094:  saveRefractionToExamination: protectedProcedure
+server/routers\medical-examinations.ts:1293:  saveExaminationForm: protectedProcedure
+server/routers\medical-examinations.ts:1812:  saveMedicalVisit: protectedProcedure
+server/routers\medical-examinations.ts:2208:  updateVisitQueueStatus: protectedProcedure
+server/routers\medical-examinations.ts:2300:  undoVisitTreated: protectedProcedure
+server/routers\medical-examinations.ts:2325:  addFollowupToQueue: protectedProcedure
+server/routers\medical-examinations.ts:2395:  getTodayPatientsByQueueStatus: protectedProcedure
+server/routers\medical-ops.ts:137:  getOpsHealth: adminProcedure.query(async () => {
+server/routers\medical-ops.ts:141:  getBuildInfo: adminProcedure.query(async () => {
+server/routers\medical-ops.ts:145:  getRuntimeDbInfo: adminProcedure.query(async () => {
+server/routers\medical-ops.ts:186:  fixOrphanedExaminations: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\medical-ops.ts:205:  autoFixAllDataIssues: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\medical-ops.ts:224:  checkInvalidVisitIds: adminProcedure.query(async ({ ctx }) => {
+server/routers\medical-ops.ts:235:  checkVisitsWithoutAppointments: adminProcedure.query(async ({ ctx }) => {
+server/routers\medical-ops.ts:246:  fixExamsWithVisitId0: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\medical-ops.ts:265:  fixVisitsWithoutAppointmentId: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\medical-ops.ts:284:  getDashboardCardVisibility: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:351:  setDashboardCardVisibility: adminProcedure
+server/routers\medical-ops.ts:399:  deletePatient: adminProcedure
+server/routers\medical-ops.ts:438:  deleteAllPatientServices: adminProcedure
+server/routers\medical-ops.ts:475:  updatePatientCode: adminProcedure
+server/routers\medical-ops.ts:540:  deleteAllPatients: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\medical-ops.ts:552:  getDoctors: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:556:  getAllUsers: adminProcedure.query(async () => {
+server/routers\medical-ops.ts:560:  getNotificationMeta: adminProcedure.query(() => ({
+server/routers\medical-ops.ts:564:  createUser: adminProcedure
+server/routers\medical-ops.ts:621:  updateUser: adminProcedure
+server/routers\medical-ops.ts:646:  deleteUser: adminProcedure
+server/routers\medical-ops.ts:654:  getUserPermissions: adminProcedure
+server/routers\medical-ops.ts:660:  getUserPermissionState: adminProcedure
+server/routers\medical-ops.ts:666:  getMyPermissions: protectedProcedure.query(async ({ ctx }) => {
+server/routers\medical-ops.ts:680:  getTeamPermissions: adminProcedure.query(async () => {
+server/routers\medical-ops.ts:684:  setTeamPermissions: adminProcedure
+server/routers\medical-ops.ts:756:  setUserPermissions: adminProcedure
+server/routers\medical-ops.ts:791:  populatePatientNamesFromSheets: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\medical-ops.ts:799:  debugTodayPatients: adminProcedure.query(async () => {
+server/routers\medical-ops.ts:824:  getPatientMedicalStatusBatch: protectedProcedure
+server/routers\medical-ops.ts:934:  createDoctorReport: medicalStaffProcedure
+server/routers\medical-ops.ts:981:  updateDoctorReport: medicalStaffProcedure
+server/routers\medical-ops.ts:1036:  getDoctorReportsByVisit: protectedProcedure
+server/routers\medical-ops.ts:1042:  getMedicalReportsByPatient: protectedProcedure
+server/routers\medical-ops.ts:1048:  getReferralLettersByPatient: protectedProcedure
+server/routers\medical-ops.ts:1054:  saveReferralLetter: protectedProcedure
+server/routers\medical-ops.ts:1096:  getPostOpOffdaysByPatient: protectedProcedure
+server/routers\medical-ops.ts:1102:  savePostOpOffdaysCertificate: protectedProcedure
+server/routers\medical-ops.ts:1130:  getMedicalConditionReportsByPatient: protectedProcedure
+server/routers\medical-ops.ts:1136:  saveMedicalConditionReport: protectedProcedure
+server/routers\medical-ops.ts:1166:  getMedicalConditionReportTemplates: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:1170:  saveMedicalConditionReportTemplate: protectedProcedure
+server/routers\medical-ops.ts:1185:  deleteMedicalConditionReportTemplate: protectedProcedure
+server/routers\medical-ops.ts:1192:  getMedicalReportsOverview: protectedProcedure
+server/routers\medical-ops.ts:1200:  getDoctorReports: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:1204:  createMedicalReport: medicalStaffProcedure
+server/routers\medical-ops.ts:1257:  updateMedicalReport: medicalStaffProcedure
+server/routers\medical-ops.ts:1304:  deleteMedicalReport: managerProcedure
+server/routers\medical-ops.ts:1318:  getAuditLogs: managerProcedure
+server/routers\medical-ops.ts:1329:  getOperationList: protectedProcedure
+server/routers\medical-ops.ts:1348:  getOperationListById: protectedProcedure
+server/routers\medical-ops.ts:1354:  saveOperationList: protectedProcedure
+server/routers\medical-ops.ts:1529:  cancelOperationWhatsApp: protectedProcedure
+server/routers\medical-ops.ts:1571:  getOperationListsHistory: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:1575:  getTodayOperationLists: protectedProcedure
+server/routers\medical-ops.ts:1625:  deleteOperationList: protectedProcedure
+server/routers\medical-ops.ts:1645:  deleteOperationListById: protectedProcedure
+server/routers\medical-ops.ts:1659:  getOperationBookings: protectedProcedure
+server/routers\medical-ops.ts:1681:  createOperationBooking: protectedProcedure
+server/routers\medical-ops.ts:1770:  updateOperationBooking: protectedProcedure
+server/routers\medical-ops.ts:1797:  deleteOperationBooking: protectedProcedure
+server/routers\medical-ops.ts:1811:  getUserPageState: protectedProcedure
+server/routers\medical-ops.ts:1817:  saveUserPageState: protectedProcedure
+server/routers\medical-ops.ts:1824:  getPatientPageState: protectedProcedure
+server/routers\medical-ops.ts:1830:  saveExaminationChecklist: protectedProcedure
+server/routers\medical-ops.ts:1858:  getExaminationChecklist: protectedProcedure
+server/routers\medical-ops.ts:1870:  getExaminationChecklistsByPatient: protectedProcedure
+server/routers\medical-ops.ts:1876:  savePatientPageState: protectedProcedure
+server/routers\medical-ops.ts:1899:  getReadyTemplateOverrides: protectedProcedure
+server/routers\medical-ops.ts:1920:  upsertReadyTemplateOverride: protectedProcedure
+server/routers\medical-ops.ts:2019:  importReadyTemplateOverrides: protectedProcedure
+server/routers\medical-ops.ts:2081:  importReadyTemplateOverridesFromFile: protectedProcedure
+server/routers\medical-ops.ts:2197:  getSystemSetting: protectedProcedure
+server/routers\medical-ops.ts:2254:  registerPushDeviceToken: protectedProcedure
+server/routers\medical-ops.ts:2277:  unregisterPushDeviceToken: protectedProcedure
+server/routers\medical-ops.ts:2288:  updateSystemSetting: adminProcedure
+server/routers\medical-ops.ts:2304:  getDoctorDirectory: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:2330:  updateDoctorDirectory: adminProcedure
+server/routers\medical-ops.ts:2369:  getServiceDirectory: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:2393:  getServicesCatalog: protectedProcedure.query(async () => {
+server/routers\medical-ops.ts:2415:  updateServiceDirectory: adminProcedure
+server/routers\medical-patient.ts:101:  createPatient: protectedProcedure
+server/routers\medical-patient.ts:667:  stagePatientsImport: adminProcedure
+server/routers\medical-patient.ts:715:  applyPatientsImport: adminProcedure
+server/routers\medical-patient.ts:776:  getPatientImportErrors: adminProcedure
+server/routers\medical-patient.ts:782:  getPatientImportPreview: adminProcedure
+server/routers\medical-patient.ts:796:  createPatientFromExamination: protectedProcedure
+server/routers\medical-patient.ts:1078:  getPatientServiceEntries: protectedProcedure
+server/routers\medical-patient.ts:1084:  createPatientServiceEntry: receptionProcedure
+server/routers\medical-patient.ts:1119:  updatePatientServiceEntry: receptionProcedure
+server/routers\medical-patient.ts:1153:  deletePatientServiceEntry: receptionProcedure
+server/routers\medical-patient.ts:1191:  setPatientStatus: receptionProcedure
+server/routers\medical-patient.ts:1203:  setPatientQueue: receptionProcedure
+server/routers\medical-patient.ts:1253:  searchPatients: protectedProcedure
+server/routers\medical-patient.ts:1271:  getAllPatients: protectedProcedure
+server/routers\medical-patient.ts:1310:  getPatientStats: adminProcedure
+server/routers\medical-patient.ts:1336:  getPatientStatsBundle: adminProcedure
+server/routers\medical-patient.ts:1381:  getTodayPatientsBySheet: protectedProcedure
+server/routers\medical-patient.ts:1387:  updatePatient: receptionProcedure
+server/routers\medical-patient.ts:1525:  bulkAssignDoctorToPatients: adminProcedure
+server/routers\medical-patient.ts:1596:  bulkAssignSheetTypeToPatients: adminProcedure
+server/routers\medical-patient.ts:1694:  bulkRestorePatients: adminProcedure
+server/routers\medical-patient.ts:1738:  createAppointment: receptionProcedure
+server/routers\medical-patient.ts:1811:  createPentacamResult: technicianProcedure
+server/routers\patient.ts:16:  getPatient: protectedProcedure
+server/routers\patient.ts:42:  updatePatient: protectedProcedure
+server/routers\patient.ts:74:  createVisitScheduleRequest: protectedProcedure
+server/routers\patient.ts:126:  getVisitScheduleRequests: protectedProcedure
+server/routers\patient.ts:137:  removeVisitScheduleRequest: protectedProcedure
+server/routers\opHistory.ts:39:  sync: adminProcedure.mutation(async () => {
+server/routers\opHistory.ts:43:  getTypeCounts: protectedProcedure.query(async () => {
+server/routers\opHistory.ts:47:  listByType: protectedProcedure
+server/routers\opHistory.ts:76:  getSuggestedOperationType: protectedProcedure
+server/routers\opHistory.ts:82:  getServiceCodeMappings: protectedProcedure.query(async () => {
+server/routers\opHistory.ts:91:  listUnmappedServiceCodes: protectedProcedure.query(async () => {
+server/routers\opHistory.ts:105:  upsertServiceCodeMapping: adminProcedure
+server/routers\opHistory.ts:134:  addManual: protectedProcedure
+server/routers\medical-mssql.ts:62:  syncPatientsFromMssql: adminProcedure
+server/routers\medical-mssql.ts:97:  resetPatientServiceTypesFromServiceCode: adminProcedure
+server/routers\medical-mssql.ts:338:  resetMssqlSyncCodes: adminProcedure.mutation(async ({ ctx }) => {
+server/routers\medical-mssql.ts:350:  resetPatientsAutoIncrement: adminProcedure
+server/routers\medical-mssql.ts:368:  getNextMssqlPatientCode: protectedProcedure.query(async () => {
+server/routers\medical-mssql.ts:377:  getMssqlSyncStatus: adminProcedure.query(async () => {
+server/routers\medical-mssql.ts:397:  backfillMssqlServiceNames: adminProcedure
+server/routers\medical-mssql.ts:421:  getMssqlSyncRuntimeConfig: adminProcedure.query(async () => {
+server/routers\medical-mssql.ts:468:  updateMssqlSyncRuntimeConfig: adminProcedure
+server/routers\medical-mssql.ts:529:  linkMultipleServicesToMssql: protectedProcedure
+server/routers\medical-mssql.ts:595:  linkPatientServiceToMssql: protectedProcedure
+server/routers\medical-mssql.ts:665:  deletePatientFromMssql: adminProcedure
+server/routers\medical-mssql.ts:701:  deletePatientWithAllData: adminProcedure
+server/routers\medical-mssql.ts:719:  deleteVisitWithAllData: adminProcedure
+server/routers\medical-mssql.ts:737:  deleteExaminationDirect: adminProcedure
+server/routers\medical-mssql.ts:755:  syncRegistrationCatalogFromMssql: managerProcedure.mutation(
+server/routers\medical-mssql.ts:943:  updateServicePriceInMssql: managerProcedure
+server/routers\medical-mssql.ts:987:  addServiceInDb: managerProcedure
+server/routers\medical-mssql.ts:1004:  getServicesFromDb: managerProcedure.query(async () => {
+server/routers\medical-mssql.ts:1008:  updateServiceInDb: managerProcedure
+server/routers\medical-mssql.ts:1028:  getRegistrationCatalog: protectedProcedure.query(async () => {
+server/routers\medical-mssql.ts:1040:  getDataSourceAuditStatus: adminProcedure

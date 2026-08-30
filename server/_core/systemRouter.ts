@@ -5,7 +5,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import mysql from "mysql2/promise";
 import * as db from "../db";
-import { getBuildInfo } from "./buildInfo";
+import { DIAGNOSTIC_CHECKS, runDiagnostic } from "../services/diagnosticRunner";
 
 type MigrationStatus = {
   name: string;
@@ -120,14 +120,8 @@ export const systemRouter = router({
       }),
     )
     .query(async () => {
-      const build = await getBuildInfo().catch(() => ({
-        version: "unknown",
-        buildTime: "unknown",
-        commit: "unknown",
-      }));
       return {
         ok: true,
-        ...build,
       };
     }),
 
@@ -148,6 +142,17 @@ export const systemRouter = router({
   listMigrations: adminProcedure.query(async () => {
     return await listDrizzleMigrations();
   }),
+
+  diagnosticChecks: adminProcedure.query(() => DIAGNOSTIC_CHECKS),
+
+  runDiagnostic: adminProcedure
+    .input(z.object({ checkId: z.string() }))
+    .mutation(async ({ input }) => {
+      if (!(input.checkId in DIAGNOSTIC_CHECKS)) {
+        throw new Error("Diagnostic check is not allowed");
+      }
+      return runDiagnostic(input.checkId as keyof typeof DIAGNOSTIC_CHECKS);
+    }),
 
   applyMigrations: adminProcedure
     .input(z.object({ limit: z.number().min(1).max(50).optional() }).optional())

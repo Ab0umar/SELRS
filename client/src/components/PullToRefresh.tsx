@@ -133,7 +133,7 @@ export function PullToRefresh({
             {isRefreshing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
             ) : pullDistance >= REFRESH_THRESHOLD ? (
-              <Sparkles className="h-3.5 w-3.5 text-secondary" />
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
             ) : (
               <ArrowDown className="h-3.5 w-3.5 text-primary" />
             )}

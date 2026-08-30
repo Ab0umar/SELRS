@@ -6,45 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { cn, getTrpcErrorMessage } from "@/lib/utils";
-import AdminStatus from "./AdminStatus";
-import AdminApiTools from "./AdminApiTools";
-import AdminMigrations from "./AdminMigrations";
-import AdminPentacamFailed from "./AdminPentacamFailed";
-import AdminCardVisibility from "./AdminCardVisibility";
-import AdminNotificationSettings from "./AdminNotificationSettings";
 import { DEFAULT_APPOINTMENTS_PRICING } from "@/lib/operationsPricing";
 import { Activity } from "lucide-react";
 
 const KEY = "selrs_preferred_url";
 const PRICING_SETTING_KEY = "appointments_pricing_v1";
 const MOBILE_SHEET_MODE_KEY = "mobile_sheet_mode_v1";
-const APP_NOTIFICATION_SETTINGS_KEY = "app_notification_settings_v1";
-const APP_NOTIFICATION_FEED_KEY = "app_notifications_feed_v1";
 type PricingConfig = typeof DEFAULT_APPOINTMENTS_PRICING;
-type AppNotificationSettings = {
-  mssqlOwnerEnabled: boolean;
-  mssqlInAppEnabled: boolean;
-  manualPatientInAppEnabled: boolean;
-  operationsPushEnabled?: boolean;
-  operationsPushUserIds?: number[];
-};
-type AppNotificationItem = {
-  id: string;
-  title: string;
-  message: string;
-  createdAt: string;
-  kind?: "info" | "success" | "warning" | "error";
-  source?: string | null;
-};
-const DEFAULT_APP_NOTIFICATION_SETTINGS: AppNotificationSettings = {
-  mssqlOwnerEnabled: true,
-  mssqlInAppEnabled: true,
-  manualPatientInAppEnabled: true,
-};
 const clonePricing = (value: PricingConfig): PricingConfig =>
   JSON.parse(JSON.stringify(value));
 const toSafeNumber = (value: unknown) => {
@@ -70,14 +41,6 @@ export default function AdminSettings({
     { key: PRICING_SETTING_KEY },
     { refetchOnWindowFocus: false },
   );
-  const appNotificationSettingsQuery = trpc.medical.getSystemSetting.useQuery(
-    { key: APP_NOTIFICATION_SETTINGS_KEY },
-    { refetchOnWindowFocus: false },
-  );
-  const appNotificationFeedQuery = trpc.medical.getSystemSetting.useQuery(
-    { key: APP_NOTIFICATION_FEED_KEY },
-    { refetchOnWindowFocus: false },
-  );
   const mobileSheetModeSettingQuery = trpc.medical.getSystemSetting.useQuery(
     { key: MOBILE_SHEET_MODE_KEY },
     { refetchOnWindowFocus: false },
@@ -87,42 +50,6 @@ export default function AdminSettings({
     enabled: Boolean(isAuthenticated && user?.role !== "admin"),
     refetchOnWindowFocus: false,
   });
-  const appNotificationSettingsValueRaw = (
-    appNotificationSettingsQuery.data as any
-  )?.value;
-  const appNotificationSettings: AppNotificationSettings =
-    appNotificationSettingsValueRaw &&
-    typeof appNotificationSettingsValueRaw === "object"
-      ? {
-          mssqlOwnerEnabled:
-            typeof appNotificationSettingsValueRaw.mssqlOwnerEnabled ===
-            "boolean"
-              ? appNotificationSettingsValueRaw.mssqlOwnerEnabled
-              : DEFAULT_APP_NOTIFICATION_SETTINGS.mssqlOwnerEnabled,
-          mssqlInAppEnabled:
-            typeof appNotificationSettingsValueRaw.mssqlInAppEnabled ===
-            "boolean"
-              ? appNotificationSettingsValueRaw.mssqlInAppEnabled
-              : DEFAULT_APP_NOTIFICATION_SETTINGS.mssqlInAppEnabled,
-          manualPatientInAppEnabled:
-            typeof appNotificationSettingsValueRaw.manualPatientInAppEnabled ===
-            "boolean"
-              ? appNotificationSettingsValueRaw.manualPatientInAppEnabled
-              : DEFAULT_APP_NOTIFICATION_SETTINGS.manualPatientInAppEnabled,
-          operationsPushEnabled:
-            typeof appNotificationSettingsValueRaw.operationsPushEnabled ===
-            "boolean"
-              ? appNotificationSettingsValueRaw.operationsPushEnabled
-              : undefined,
-          operationsPushUserIds: Array.isArray(
-            appNotificationSettingsValueRaw.operationsPushUserIds,
-          )
-            ? appNotificationSettingsValueRaw.operationsPushUserIds
-                .map((v: unknown) => Number(v))
-                .filter((v: number) => Number.isInteger(v) && v > 0)
-            : undefined,
-        }
-      : DEFAULT_APP_NOTIFICATION_SETTINGS;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -198,40 +125,6 @@ export default function AdminSettings({
       );
     }
   };
-  const saveAppNotificationSettings = async (
-    value: AppNotificationSettings,
-  ) => {
-    const preservedRaw =
-      appNotificationSettingsValueRaw &&
-      typeof appNotificationSettingsValueRaw === "object"
-        ? appNotificationSettingsValueRaw
-        : {};
-    await updateSettingMutation.mutateAsync({
-      key: APP_NOTIFICATION_SETTINGS_KEY,
-      // Keep unknown fields so this page does not wipe settings managed elsewhere.
-      value: {
-        ...preservedRaw,
-        ...value,
-      },
-    });
-    await appNotificationSettingsQuery.refetch();
-  };
-  const handleToggleAppNotificationSetting = async (
-    key: keyof AppNotificationSettings,
-    enabled: boolean,
-  ) => {
-    try {
-      await saveAppNotificationSettings({
-        ...appNotificationSettings,
-        [key]: enabled,
-      });
-      toast.success("Notification settings saved");
-    } catch (error) {
-      toast.error(
-        getTrpcErrorMessage(error, "Failed to update notification settings"),
-      );
-    }
-  };
 
   const savePricingSetting = async (value: PricingConfig) => {
     await updateSettingMutation.mutateAsync({
@@ -293,170 +186,66 @@ export default function AdminSettings({
       className="mx-auto w-full max-w-[1440px] space-y-0 pb-6 text-right"
       dir="rtl"
     >
-      <Tabs
-        defaultValue="settings"
-        persistKey="admin-settings"
-        className="w-full"
-      >
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-4 pt-1">
-          <TabsList className="flex w-full flex-wrap gap-1 rounded-xl bg-muted/40 p-1 sm:flex-nowrap sm:overflow-x-auto border">
-            <TabsTrigger
-              className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              value="settings"
-            >
-              الإعدادات العامة
-            </TabsTrigger>
-            {!isPricingOnlyMode && (
-              <>
-                <TabsTrigger
-                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
-                  value="status"
-                >
-                  حالة النظام
-                </TabsTrigger>
-                <TabsTrigger
-                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
-                  value="api"
-                >
-                  أدوات API
-                </TabsTrigger>
-                <TabsTrigger
-                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
-                  value="migrations"
-                >
-                  الهجرات
-                </TabsTrigger>
-                <TabsTrigger
-                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
-                  value="pentacam"
-                >
-                  بنتاكام
-                </TabsTrigger>
-                <TabsTrigger
-                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
-                  value="cards"
-                >
-                  الظهور
-                </TabsTrigger>
-                <TabsTrigger
-                  className="flex-1 sm:flex-none rounded-lg px-5 py-2 text-xs font-bold"
-                  value="notifications"
-                >
-                  الإخطارات
-                </TabsTrigger>
-              </>
-            )}
-          </TabsList>
-        </div>
-
-        <TabsContent value="settings" className="mt-2 space-y-6">
-          {!isPricingOnlyMode ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="border-border/60 bg-card shadow-sm h-full">
-                <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-muted/10">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    تكوين السيرفر والواجهة
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      عنوان السيرفر المفضل (Local Storage)
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={preferredUrl}
-                        onChange={(e) => setPreferredUrl(e.target.value)}
-                        placeholder="https://app.example.com"
-                        className="h-9 text-xs font-mono"
-                        dir="ltr"
-                      />
-                      <Button
-                        onClick={handleSave}
-                        size="sm"
-                        className="bg-primary text-primary-foreground h-9 px-4"
-                      >
-                        حفظ
-                      </Button>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground italic px-1">
-                      العنوان الحالي النشط: {window.location.origin}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-dashed space-y-4">
-                    <div className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                      <div className="space-y-0.5">
-                        <div className="text-xs font-bold">
-                          وضع الشيت للموبايل
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          تحسين تخطيط النماذج الطبية للشاشات الصغيرة.
-                        </div>
-                      </div>
-                      <Switch
-                        checked={mobileSheetModeEnabled}
-                        onCheckedChange={handleToggleMobileSheetMode}
-                        disabled={updateSettingMutation.isPending}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/60 bg-card shadow-sm h-full">
-                <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-muted/10">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-success" />
-                    إعدادات الإخطارات
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {[
-                    {
-                      key: "mssqlOwnerEnabled",
-                      label: "إخطار المالك (MSSQL Sync)",
-                      desc: "إرسال إشعار عند إضافة مرضى عبر المزامنة.",
-                    },
-                    {
-                      key: "mssqlInAppEnabled",
-                      label: "إخطار داخل التطبيق (MSSQL)",
-                      desc: "إظهار تنبيه داخلي لعمليات المزامنة.",
-                    },
-                    {
-                      key: "manualPatientInAppEnabled",
-                      label: "إخطار الإضافة اليدوية",
-                      desc: "تنبيه الطاقم عند تسجيل مريض جديد يدوياً.",
-                    },
-                  ].map((s) => (
-                    <div
-                      key={s.key}
-                      className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors"
+      <div className="space-y-6">
+        {!isPricingOnlyMode ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="h-full rounded-lg border-border/60 bg-card shadow-none">
+              <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-muted/10">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" />
+                  تكوين السيرفر والواجهة
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    عنوان السيرفر المفضل (Local Storage)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={preferredUrl}
+                      onChange={(e) => setPreferredUrl(e.target.value)}
+                      placeholder="https://app.example.com"
+                      className="h-9 text-xs font-mono"
+                      dir="ltr"
+                    />
+                    <Button
+                      onClick={handleSave}
+                      size="sm"
+                      className="bg-primary text-primary-foreground h-9 px-4"
                     >
-                      <div className="space-y-0.5">
-                        <div className="text-xs font-bold">{s.label}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {s.desc}
-                        </div>
-                      </div>
-                      <Switch
-                        checked={(appNotificationSettings as any)[s.key]}
-                        onCheckedChange={(checked) =>
-                          void handleToggleAppNotificationSetting(
-                            s.key as any,
-                            checked,
-                          )
-                        }
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          ) : null}
+                      حفظ
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic px-1">
+                    العنوان الحالي النشط: {window.location.origin}
+                  </p>
+                </div>
 
-          <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+                <div className="pt-4 border-t border-dashed space-y-4">
+                  <div className="flex items-center justify-between gap-4 group/toggle p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-bold">
+                        وضع الشيت للموبايل
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        تحسين تخطيط النماذج الطبية للشاشات الصغيرة.
+                      </div>
+                    </div>
+                    <Switch
+                      checked={mobileSheetModeEnabled}
+                      onCheckedChange={handleToggleMobileSheetMode}
+                      disabled={updateSettingMutation.isPending}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        {isPricingOnlyMode ? (
+          <Card className="overflow-hidden rounded-lg border-border/60 bg-card shadow-none">
             <CardHeader className="pb-3 border-b border-border/40 mb-4 bg-primary/5">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -625,31 +414,8 @@ export default function AdminSettings({
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {!isPricingOnlyMode && (
-          <>
-            <TabsContent value="status" className="mt-2">
-              <AdminStatus />
-            </TabsContent>
-            <TabsContent value="api" className="mt-2">
-              <AdminApiTools />
-            </TabsContent>
-            <TabsContent value="migrations" className="mt-2">
-              <AdminMigrations />
-            </TabsContent>
-            <TabsContent value="pentacam" className="mt-2">
-              <AdminPentacamFailed />
-            </TabsContent>
-            <TabsContent value="cards" className="mt-2">
-              <AdminCardVisibility />
-            </TabsContent>
-            <TabsContent value="notifications" className="mt-2">
-              <AdminNotificationSettings />
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+        ) : null}
+      </div>
     </div>
   );
 }

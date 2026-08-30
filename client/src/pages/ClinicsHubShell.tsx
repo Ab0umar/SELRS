@@ -1,5 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { usePermissions } from "@/hooks/usePermissions";
+import { permissionPathForHubLink } from "@/lib/hubPermissionPaths";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -47,7 +48,7 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "التقارير الطبية",
     description: "عرض وإدارة التقارير الطبية للمرضى.",
     icon: ClipboardList,
-    iconWrap: "bg-secondary/15 text-secondary",
+    iconWrap: "bg-secondary/15 text-primary",
   },
   {
     href: "/clinics-hub/patient-summary",
@@ -82,14 +83,14 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "لوحة الروشتات",
     description: "متابعة سريعة للوصفات وحالتها من داخل العيادة.",
     icon: Pill,
-    iconWrap: "bg-secondary/15 text-secondary",
+    iconWrap: "bg-secondary/15 text-primary",
   },
   {
     href: "/clinics-hub/prescriptions",
     title: "الروشتات",
     description: "كتابة وإدارة روشتات العلاج والأدوية.",
     icon: Pill,
-    iconWrap: "bg-secondary/15 text-secondary",
+    iconWrap: "bg-secondary/15 text-primary",
   },
   {
     href: "/clinics-hub/request-tests",
@@ -110,6 +111,15 @@ export default function ClinicsHubShell() {
 
   const renderComponent = () => {
     if (isHubHome) return null;
+    // Hub sub-paths inherit the hub permission, so re-check the permission that
+    // actually guards the page being rendered.
+    if (!canAccess(permissionPathForHubLink(location))) {
+      return (
+        <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
+          لا تملك صلاحية فتح هذه الصفحة.
+        </div>
+      );
+    }
     if (location === "/clinics-hub/examination") return <ExaminationForm />;
     if (location === "/clinics-hub/medical-reports") return <MedicalReports />;
     if (location === "/clinics-hub/patient-summary") return <PatientSummary />;
@@ -147,7 +157,9 @@ export default function ClinicsHubShell() {
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MAIN_MODULES.filter((mod) => canAccess(mod.href)).map((mod) => {
+        {MAIN_MODULES.filter((mod) =>
+          canAccess(permissionPathForHubLink(mod.href)),
+        ).map((mod) => {
           const Icon = mod.icon;
           return (
             <Card

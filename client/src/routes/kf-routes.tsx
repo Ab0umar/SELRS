@@ -217,8 +217,8 @@ export const KfRoutes = (
       <Route
         path={ROUTES.kfSheetsRestWildcard}
         component={() => {
-          const [, params] = useRoute("/KFsheets/:rest*");
-          return <Redirect to={`/kf/sheets/${params?.["rest*"] ?? ""}`} />;
+          const [, params] = useRoute("/KFsheets/*");
+          return <Redirect to={`/kf/sheets/${params?.["*"] ?? ""}`} />;
         }}
       />
       <Route
