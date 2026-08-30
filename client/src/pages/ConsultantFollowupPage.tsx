@@ -358,6 +358,13 @@ export default function ConsultantFollowupPage() {
       style={{ fontFamily: "Inter, sans-serif" }}
       dir="rtl"
     >
+      <style>{`
+        @media print {
+          .followup-print-page .sheet-followup-body {
+            transform: translateX(${followupLabels.offsetXmm}mm) translateY(${followupLabels.offsetYmm}mm) scale(${followupLabels.scale}) !important;
+          }
+        }
+      `}</style>
 
       {/* Top nav */}
       <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-5 py-2 bg-[#f8f9fb]/95 border-b border-[#c3c6d6]">

@@ -33,10 +33,22 @@ function normalizePath(path: string): string {
   if (!raw) return ROUTES.home;
   const withSlash = raw.startsWith(ROUTES.home) ? raw : `${ROUTES.home}${raw}`;
   const noHashOrQuery = withSlash.split("?")[0].split("#")[0];
-  if (noHashOrQuery.length > 1 && noHashOrQuery.endsWith(ROUTES.home)) {
-    return noHashOrQuery.slice(0, -1);
+  const cleanPath =
+    noHashOrQuery.length > 1 && noHashOrQuery.endsWith(ROUTES.home)
+      ? noHashOrQuery.slice(0, -1)
+      : noHashOrQuery;
+  const adminAliases: Record<string, string> = {
+    "/admin": "/admin-hub",
+    "/admin/api-tools": "/admin-hub/api",
+    "/admin/data-source-audit": "/admin-hub/audit",
+    "/admin/notification-settings": "/admin-hub/notifications",
+    "/admin/pentacam": "/admin-hub/pentacam-linking",
+  };
+  if (adminAliases[cleanPath]) return adminAliases[cleanPath];
+  if (cleanPath.startsWith("/admin/")) {
+    return `/admin-hub${cleanPath.slice("/admin".length)}`;
   }
-  return noHashOrQuery;
+  return cleanPath;
 }
 
 function readCachedPermissions(cacheKey: string): string[] | null {

@@ -8,6 +8,39 @@ import * as db from "../db";
 import { TRPCError } from "@trpc/server";
 import { matchEgyptianDrugReference } from "../services/egyptianDrugReference";
 import type { StockItem } from "../../drizzle/schema";
+import {
+  getAppNotificationSettings,
+  pushAppNotification,
+} from "../_core/appNotifications";
+
+async function notifyStockShortage(itemId: number) {
+  try {
+    const [settings, item] = await Promise.all([
+      getAppNotificationSettings(),
+      db.getStockItemById(itemId),
+    ]);
+    if (!item || !settings.stockroom.enabled) return;
+    if (item.status !== "كمية قليلة" && item.status !== "نفذ المخزون") return;
+
+    const outOfStock = item.status === "نفذ المخزون";
+    await pushAppNotification({
+      title: outOfStock ? "صنف نفد من المخزن" : "تنبيه نقص مخزون",
+      message: `${item.name}: الكمية الحالية ${item.quantity}`,
+      kind: outOfStock ? "error" : "warning",
+      targetRoles: ["admin"],
+      source: "stockroom",
+      entityType: "stock_item",
+      entityId: item.id,
+      channels: {
+        inApp: settings.stockroom.inApp,
+        push: settings.stockroom.push,
+        local: settings.stockroom.local,
+      },
+    });
+  } catch (error) {
+    console.error("[Stockroom] shortage notification failed", error);
+  }
+}
 
 export const stockroomRouter = router({
   matchEyeDropsWithEgyptianReference: makeStockroomProcedure(
@@ -195,7 +228,7 @@ export const stockroomRouter = router({
         });
       }
 
-      return await db.insertStockTransaction({
+      const transaction = await db.insertStockTransaction({
         itemId: resolvedItemId,
         type: "add",
         quantity: input.quantity,
@@ -206,6 +239,8 @@ export const stockroomRouter = router({
           : null,
         performedBy: ctx.user?.username || "system",
       });
+      await notifyStockShortage(resolvedItemId);
+      return transaction;
     }),
 
   dispenseStock: makeStockroomWriteProcedure("/stockroom")
@@ -230,7 +265,7 @@ export const stockroomRouter = router({
         });
       }
 
-      return await db.insertStockTransaction({
+      const transaction = await db.insertStockTransaction({
         itemId: input.itemId,
         type: "dispense",
         quantity: input.quantity,
@@ -241,6 +276,8 @@ export const stockroomRouter = router({
           : null,
         performedBy: ctx.user?.username || "system",
       });
+      await notifyStockShortage(input.itemId);
+      return transaction;
     }),
 
   updateItem: makeStockroomWriteProcedure("/stockroom")

@@ -58,9 +58,6 @@ const MedicationsTestsManagement = lazy(
   () => import("../pages/MedicationsTestsManagement"),
 );
 const TestsManagement = lazy(() => import("../pages/TestsManagement"));
-const AdminSheetCopies = lazy(
-  () => import("../features/admin/AdminSheetCopies"),
-);
 const AdminPentacamLinking = lazy(
   () => import("../features/admin/AdminPentacamLinking"),
 );
@@ -609,9 +606,7 @@ export const MedicalRoutes = (
     <Route
       path={ROUTES.sheetCopies}
       component={() => (
-        <ProtectedRoute>
-          <AdminSheetCopies />
-        </ProtectedRoute>
+        <Redirect href="/admin-hub/sheets" />
       )}
     />
     <Route

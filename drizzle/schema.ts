@@ -2159,6 +2159,64 @@ export type SalaryCommissionPool = typeof salaryCommissionPools.$inferSelect;
 export type InsertSalaryCommissionPool =
   typeof salaryCommissionPools.$inferInsert;
 
+export const salaryOperationFundEntries = mysqlTable(
+  "salary_operation_fund_entries",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    transactionDate: date("transaction_date").notNull(),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    doctorName: varchar("doctor_name", { length: 255 }).notNull(),
+    notes: varchar("notes", { length: 500 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    idxOperationFundDate: index("idx_operation_fund_date").on(
+      table.transactionDate,
+    ),
+  }),
+);
+
+export const salaryOperationFundMembers = mysqlTable(
+  "salary_operation_fund_members",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uqOperationFundEmployee: uniqueIndex("uq_operation_fund_employee").on(
+      table.empCd,
+    ),
+  }),
+);
+
+export const salaryEidBonuses = mysqlTable(
+  "salary_eid_bonuses",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    title: varchar("title", { length: 120 }).notNull(),
+    bonusDate: date("bonus_date").notNull(),
+    amountPerEmployee: decimal("amount_per_employee", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    employeeCount: int("employee_count").notNull(),
+    notes: varchar("notes", { length: 500 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    idxEidBonusDate: index("idx_eid_bonus_date").on(table.bonusDate),
+  }),
+);
+
+export type SalaryOperationFundEntry =
+  typeof salaryOperationFundEntries.$inferSelect;
+export type SalaryOperationFundMember =
+  typeof salaryOperationFundMembers.$inferSelect;
+export type SalaryEidBonus = typeof salaryEidBonuses.$inferSelect;
+
 export const salaryPayroll = mysqlTable(
   "salary_payroll",
   {

@@ -86,6 +86,7 @@ export const salaryNavGroup: NavGroupSection = {
   items: [
     { icon: DollarSign, label: "البيانات الأساسية", path: "/salary" },
     { icon: DollarSign, label: "العمولات", path: "/salary/pools" },
+    { icon: DollarSign, label: "الصندوق والعيدية", path: "/salary/funds" },
     { icon: DollarSign, label: "الجزاءات", path: "/salary/penalties" },
     { icon: DollarSign, label: "كشف المرتبات", path: "/salary/payroll" },
   ],

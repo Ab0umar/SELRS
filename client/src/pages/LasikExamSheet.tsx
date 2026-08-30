@@ -2925,13 +2925,13 @@ export default function LasikExamSheet({
             display: flex !important;
             justify-content: center !important;
           }
-          [data-print-document="lasik"][data-sheet-type="consultant"]
-            [data-print-page="main"] > .sheet-type-consultant {
+          [data-print-document="lasik"]
+            [data-print-page="main"] > .lasik-sheet {
             position: relative !important;
             inset: auto !important;
             left: auto !important;
             right: auto !important;
-            transform: none !important;
+            transform: translateX(${printOffsetXmm}mm) translateY(${printOffsetYmm}mm) scale(${printScale}) !important;
             width: 100% !important;
             max-width: 100% !important;
             margin-left: auto !important;
@@ -2956,6 +2956,9 @@ export default function LasikExamSheet({
           .print-page-center-a4 > .lasik-sheet > * {
             margin-top: 0 !important;
             margin-bottom: 0 !important;
+          }
+          .attached-followup-page > .sheet-followup-body[data-print-variant="attached"] {
+            transform: translateX(${followupLabels.offsetXmm}mm) translateY(${followupLabels.offsetYmm}mm) scale(${followupLabels.scale}) !important;
           }
           .print-page-center-a4 > .lasik-sheet section {
             margin-block: 0 !important;

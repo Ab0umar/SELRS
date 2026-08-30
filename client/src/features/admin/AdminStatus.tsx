@@ -32,6 +32,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { requestAppReload } from "@/lib/appRuntime";
 import { cn } from "@/lib/utils";
+import AdminSettings from "./AdminSettings";
 
 type HealthState = {
   ok: boolean;
@@ -291,66 +292,61 @@ export default function AdminStatus() {
         }
       />
 
-      <div
-        className={cn(
-          STAT_CARDS_MOBILE_ROW,
-          "gap-2 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4",
-        )}
-      >
-        <StatCard
-          title="خادم التطبيق"
-          value={
-            opsHealthQuery.isLoading ? "…" : serverOk ? "متصل" : "غير متصل"
-          }
-          icon={Server}
-          iconColor={
-            serverOk
-              ? "bg-success/10 text-success shadow-sm shadow-success/15"
-              : "bg-destructive text-destructive-foreground"
-          }
-          description={health?.env ? `البيئة: ${health.env}` : "جاري التحقق…"}
-        />
-        <StatCard
-          title="سرعة الاستجابة"
-          value={healthLatencyMs != null ? `${healthLatencyMs} ms` : "—"}
-          icon={Timer}
-          iconColor="bg-primary/10 text-primary shadow-sm shadow-primary/10"
-          description="زمن جولة المتصفح"
-        />
-        <StatCard
-          title="قاعدة البيانات"
-          value={opsHealthQuery.isLoading ? "…" : dbOk ? "مستقرة" : "خطأ اتصال"}
-          icon={Database}
-          iconColor={
-            dbOk
-              ? "bg-success/10 text-success shadow-sm shadow-success/15"
-              : "bg-destructive text-destructive-foreground"
-          }
-          description={
-            health?.patientsCount != null
-              ? `السجلات: ${health.patientsCount}`
-              : "لا توجد بيانات"
-          }
-        />
-        <StatCard
-          title="النسخ الاحتياطي"
-          value={backupOk ? "مفعل" : "معطل"}
-          icon={HardDrive}
-          iconColor={
-            backupOk
-              ? "bg-warning/10 text-warning/90 shadow-sm shadow-warning/15"
-              : "bg-muted text-muted-foreground"
-          }
-          description={
-            health?.latestBackupAt ? "تتوفر نسخ حديثة" : "يتطلب فحص يدوي"
-          }
-        />
+      <div className="grid overflow-hidden rounded-lg border border-border bg-background sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            label: "خادم التطبيق",
+            value: opsHealthQuery.isLoading
+              ? "…"
+              : serverOk
+                ? "متصل"
+                : "غير متصل",
+            ok: serverOk,
+          },
+          {
+            label: "زمن الاستجابة",
+            value: healthLatencyMs != null ? `${healthLatencyMs} ms` : "—",
+            ok: healthLatencyMs != null,
+          },
+          {
+            label: "قاعدة البيانات",
+            value: opsHealthQuery.isLoading
+              ? "…"
+              : dbOk
+                ? "مستقرة"
+                : "خطأ اتصال",
+            ok: dbOk,
+          },
+          {
+            label: "النسخ الاحتياطي",
+            value: backupOk ? "مفعل" : "معطل",
+            ok: backupOk,
+          },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 last:border-b-0 sm:border-l lg:border-b-0"
+          >
+            <div>
+              <p className="text-[11px] font-bold text-muted-foreground">
+                {item.label}
+              </p>
+              <p className="mt-1 text-sm font-black">{item.value}</p>
+            </div>
+            <span
+              className={cn(
+                "size-2.5 rounded-full",
+                item.ok ? "bg-success" : "bg-destructive",
+              )}
+            />
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Service Health Checklist */}
         <div className="lg:col-span-8 space-y-6">
-          <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+          <Card className="overflow-hidden rounded-lg border-border/60 bg-card shadow-none">
             <CardHeader className="border-b bg-muted/5 py-4">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <Activity className="h-4 w-4 text-primary" />
@@ -605,6 +601,10 @@ export default function AdminStatus() {
           </Card>
         </div>
       </div>
+      <section className="space-y-3 border-t border-border/60 pt-6">
+        <h2 className="text-base font-black text-foreground">إعدادات المركز</h2>
+        <AdminSettings />
+      </section>
     </div>
   );
 }

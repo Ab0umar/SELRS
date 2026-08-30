@@ -29,12 +29,13 @@ export default function AdminDiagnostics() {
   const autoFixAllMutation = trpc.medical.autoFixAllDataIssues.useMutation();
   const checksQuery = trpc.system.diagnosticChecks.useQuery();
   const runMutation = trpc.system.runDiagnostic.useMutation();
-  const [results, setResults] = useState<Record<string, { status: string; durationMs?: number; output?: string }>>({});
+  const [results, setResults] = useState<
+    Record<string, { status: string; durationMs?: number; output?: string }>
+  >({});
 
-  const availableChecks = Object.entries(checksQuery.data ?? {}) as Array<[
-    string,
-    { label: string; command: string; safe: boolean },
-  ]>;
+  const availableChecks = Object.entries(checksQuery.data ?? {}) as Array<
+    [string, { label: string; command: string; safe: boolean }]
+  >;
 
   const runCheck = async (checkId: string) => {
     setResults((current) => ({ ...current, [checkId]: { status: "running" } }));
@@ -78,7 +79,7 @@ export default function AdminDiagnostics() {
       />
 
       {/* AUTO-FIX ALL */}
-      <Card className="overflow-hidden border-success/30/60 bg-success/10/20 shadow-sm">
+      <Card className="overflow-hidden rounded-lg border-success/30 bg-success/5 shadow-none">
         <CardHeader className="border-b border-success/20 bg-success/10/40 py-5 px-6">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
@@ -104,12 +105,12 @@ export default function AdminDiagnostics() {
             onClick={handleAutoFixAll}
             disabled={autoFixAllMutation.isPending}
             size="lg"
-            className="w-full h-14 text-lg font-black bg-success hover:bg-success/80 shadow-lg shadow-success/30 transition-all hover:scale-[1.01] active:scale-[0.99]"
+            className="h-11 w-full bg-success text-sm font-black hover:bg-success/80"
           >
             {autoFixAllMutation.isPending ? (
               <Loader2 className="ml-3 h-6 w-6 animate-spin" />
             ) : (
-              "✨ بدء الإصلاح التلقائي الآن"
+              "بدء الإصلاح التلقائي"
             )}
           </Button>
 
@@ -193,7 +194,9 @@ export default function AdminDiagnostics() {
             <Activity className="h-4 w-4 text-primary" />
             كل الاختبارات المتاحة
           </CardTitle>
-          <CardDescription>شغّل الفحوصات الآمنة وتابع آخر نتيجة لكل فحص.</CardDescription>
+          <CardDescription>
+            شغّل الفحوصات الآمنة وتابع آخر نتيجة لكل فحص.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 p-6 md:grid-cols-2">
           <div className="md:col-span-2 flex justify-end">
@@ -213,39 +216,66 @@ export default function AdminDiagnostics() {
           {availableChecks.map(([checkId, check]) => {
             const result = results[checkId];
             return (
-            <div
-              key={checkId}
-              className="space-y-3 rounded-lg border border-border/60 bg-background p-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-bold text-foreground">{check.label}</p>
-                  <code className="block truncate text-xs text-muted-foreground" dir="ltr">
-                    {check.command}
-                  </code>
+              <div
+                key={checkId}
+                className="space-y-3 rounded-lg border border-border/60 bg-background p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-foreground">{check.label}</p>
+                    <code
+                      className="block truncate text-xs text-muted-foreground"
+                      dir="ltr"
+                    >
+                      {check.command}
+                    </code>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title={
+                      check.safe ? "تشغيل الاختبار" : "يحتاج تأكيداً منفصلاً"
+                    }
+                    disabled={!check.safe || runMutation.isPending}
+                    onClick={() => void runCheck(checkId)}
+                  >
+                    {result?.status === "running" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : check.safe ? (
+                      <Play className="h-4 w-4" />
+                    ) : (
+                      <ShieldAlert className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  title={check.safe ? "تشغيل الاختبار" : "يحتاج تأكيداً منفصلاً"}
-                  disabled={!check.safe || runMutation.isPending}
-                  onClick={() => void runCheck(checkId)}
-                >
-                  {result?.status === "running" ? <Loader2 className="h-4 w-4 animate-spin" /> : check.safe ? <Play className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
-                </Button>
+                <div className="flex items-center justify-between gap-2">
+                  <code
+                    className="block truncate text-xs text-muted-foreground"
+                    dir="ltr"
+                  >
+                    {result?.durationMs
+                      ? `${result.durationMs}ms`
+                      : "لم يُشغّل بعد"}
+                  </code>
+                  <Badge variant="outline" className="shrink-0">
+                    {result?.status === "passed"
+                      ? "نجح"
+                      : result?.status === "failed"
+                        ? "فشل"
+                        : check.safe
+                          ? "آمن"
+                          : "يحتاج تأكيد"}
+                  </Badge>
+                </div>
+                {result?.output && (
+                  <pre
+                    className="max-h-32 overflow-auto rounded-md bg-muted/50 p-3 text-left text-[11px] leading-relaxed"
+                    dir="ltr"
+                  >
+                    {result.output}
+                  </pre>
+                )}
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <code className="block truncate text-xs text-muted-foreground" dir="ltr">
-                  {result?.durationMs ? `${result.durationMs}ms` : "لم يُشغّل بعد"}
-                </code>
-                <Badge variant="outline" className="shrink-0">
-                  {result?.status === "passed" ? "نجح" : result?.status === "failed" ? "فشل" : check.safe ? "آمن" : "يحتاج تأكيد"}
-                </Badge>
-              </div>
-              {result?.output && (
-                <pre className="max-h-32 overflow-auto rounded-md bg-muted/50 p-3 text-left text-[11px] leading-relaxed" dir="ltr">{result.output}</pre>
-              )}
-            </div>
             );
           })}
         </CardContent>

@@ -14,6 +14,9 @@ import {
   salaryPenalties,
   salaryAdvances,
   salaryCommissionPools,
+  salaryOperationFundEntries,
+  salaryOperationFundMembers,
+  salaryEidBonuses,
   salaryPayroll,
   salaryRaiseHistory,
   salaryConfig,
@@ -35,6 +38,7 @@ import {
   and,
   gte,
   lte,
+  lt,
   gt,
   isNull,
   or,
@@ -446,6 +450,172 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db.delete(salaryAdvances).where(eq(salaryAdvances.id, input.id));
+      return { success: true };
+    }),
+
+  getEmployeeFunds: makeSalaryProcedure("/salary/funds")
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int().min(1).max(12),
+      }),
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const from = `${input.year}-${String(input.month).padStart(2, "0")}-01`;
+      const nextMonth =
+        input.month === 12
+          ? `${input.year + 1}-01-01`
+          : `${input.year}-${String(input.month + 1).padStart(2, "0")}-01`;
+      const [employees, members, entries, eidBonuses] = await Promise.all([
+        db
+          .select({
+            empCd: attendanceEmployees.empCd,
+            fullName: attendanceEmployees.fullName,
+            department: attendanceEmployees.department,
+            jobTitle: attendanceEmployees.jobTitle,
+          })
+          .from(attendanceEmployees)
+          .where(eq(attendanceEmployees.active, true))
+          .orderBy(attendanceEmployees.fullName),
+        db
+          .select({ empCd: salaryOperationFundMembers.empCd })
+          .from(salaryOperationFundMembers),
+        db
+          .select()
+          .from(salaryOperationFundEntries)
+          .where(
+            and(
+              gte(salaryOperationFundEntries.transactionDate, from as any),
+              lt(salaryOperationFundEntries.transactionDate, nextMonth as any),
+            ),
+          )
+          .orderBy(desc(salaryOperationFundEntries.transactionDate)),
+        db
+          .select()
+          .from(salaryEidBonuses)
+          .orderBy(desc(salaryEidBonuses.bonusDate)),
+      ]);
+      const memberCodes = new Set(
+        members.map((row: { empCd: string }) => row.empCd),
+      );
+      const fundMembers = employees.filter((employee: { empCd: string }) =>
+        memberCodes.has(employee.empCd),
+      );
+      const fundEligibleEmployees = employees.filter(
+        (employee: { jobTitle?: string | null }) =>
+          !String((employee as any).jobTitle ?? "").includes("طبيب"),
+      );
+      const totalRevenue = entries.reduce(
+        (sum: number, row: { amount: string | number }) =>
+          sum + Number(row.amount || 0),
+        0,
+      );
+      return {
+        employees,
+        fundEligibleEmployees,
+        fundMembers,
+        entries,
+        totalRevenue,
+        sharePerMember: fundMembers.length
+          ? totalRevenue / fundMembers.length
+          : 0,
+        payoutDay: 20,
+        eidBonuses,
+      };
+    }),
+
+  setOperationFundMembers: makeSalaryWriteProcedure("/salary/funds")
+    .input(z.object({ empCds: z.array(z.string().min(1)) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.delete(salaryOperationFundMembers);
+      const empCds = Array.from(new Set(input.empCds));
+      if (empCds.length)
+        await db
+          .insert(salaryOperationFundMembers)
+          .values(empCds.map((empCd) => ({ empCd })));
+      return { success: true, count: empCds.length };
+    }),
+
+  addOperationFundEntry: makeSalaryWriteProcedure("/salary/funds")
+    .input(
+      z.object({
+        transactionDate: z.string().min(10),
+        amount: z.number().positive(),
+        doctorName: z.string().min(1),
+        notes: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const result = await db
+        .insert(salaryOperationFundEntries)
+        .values({
+          transactionDate: input.transactionDate as any,
+          amount: String(input.amount) as any,
+          doctorName: input.doctorName,
+          notes: input.notes || null,
+        });
+      return { id: Number((result as any).insertId) };
+    }),
+
+  deleteOperationFundEntry: makeSalaryWriteProcedure("/salary/funds")
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(salaryOperationFundEntries)
+        .where(eq(salaryOperationFundEntries.id, input.id));
+      return { success: true };
+    }),
+
+  addEidBonus: makeSalaryWriteProcedure("/salary/funds")
+    .input(
+      z.object({
+        title: z.string().min(1).max(120),
+        bonusDate: z.string().min(10),
+        amountPerEmployee: z.number().positive(),
+        notes: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const activeRows = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(attendanceEmployees)
+        .where(eq(attendanceEmployees.active, true));
+      const employeeCount = Number(activeRows[0]?.count ?? 0);
+      if (employeeCount === 0)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يوجد موظفون نشطون لصرف العيدية",
+        });
+      const result = await db
+        .insert(salaryEidBonuses)
+        .values({
+          title: input.title,
+          bonusDate: input.bonusDate as any,
+          amountPerEmployee: String(input.amountPerEmployee) as any,
+          employeeCount,
+          notes: input.notes || null,
+        });
+      return { id: Number((result as any).insertId) };
+    }),
+
+  deleteEidBonus: makeSalaryWriteProcedure("/salary/funds")
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(salaryEidBonuses)
+        .where(eq(salaryEidBonuses.id, input.id));
       return { success: true };
     }),
 
@@ -1435,7 +1605,10 @@ export const salaryRouter = router({
         .limit(1);
       const section = employee[0]?.department === "عيادة" ? "عيادة" : "مركز";
       const periodEnd = input.toDate ?? input.workDate;
-      const [year, month] = String(periodEnd).slice(0, 7).split("-").map(Number);
+      const [year, month] = String(periodEnd)
+        .slice(0, 7)
+        .split("-")
+        .map(Number);
       const rows = await PayrollComputeService.compute(
         year,
         month,
@@ -1797,12 +1970,14 @@ export const salaryRouter = router({
       return { staff, attendance };
     }),
 
-  getMyShiftStaffId: makePageProcedure("/attendance/shift-schedule").query(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) throw new Error("DB unavailable");
-    const staff = await resolveMyShiftStaff(db, ctx.user);
-    return staff?.id ?? null;
-  }),
+  getMyShiftStaffId: makePageProcedure("/attendance/shift-schedule").query(
+    async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      const staff = await resolveMyShiftStaff(db, ctx.user);
+      return staff?.id ?? null;
+    },
+  ),
 
   addMyShiftEntry: makePageWriteProcedure("/attendance/shift-schedule")
     .input(

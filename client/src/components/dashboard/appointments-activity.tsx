@@ -939,6 +939,7 @@ function BookingCard({
                   window.open(
                     buildPrintUrl(
                       `/prescription/${booking.patientId}?visitDate=${encodeURIComponent(visitDate)}`,
+                      { autoPrint: false },
                     ),
                     "_blank",
                   )
@@ -955,6 +956,7 @@ function BookingCard({
                   window.open(
                     buildPrintUrl(
                       `/request-tests/${booking.patientId}?visitDate=${encodeURIComponent(visitDate)}`,
+                      { autoPrint: false },
                     ),
                     "_blank",
                   )
@@ -971,6 +973,7 @@ function BookingCard({
                   window.open(
                     buildPrintUrl(
                       `/refraction/${booking.patientId}?visitDate=${encodeURIComponent(visitDate)}`,
+                      { autoPrint: false },
                     ),
                     "_blank",
                   )
@@ -1187,6 +1190,7 @@ function QueuePatientCard({
                     window.open(
                       buildPrintUrl(
                         `/sheets/${value}/${patient.id}?${query.toString()}`,
+                        { autoPrint: false },
                       ),
                       "_blank",
                     );
@@ -1262,6 +1266,7 @@ function QueuePatientCard({
               window.open(
                 buildPrintUrl(
                   `/prescription/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
+                  { autoPrint: false },
                 ),
                 "_blank",
               );
@@ -1279,6 +1284,7 @@ function QueuePatientCard({
               window.open(
                 buildPrintUrl(
                   `/request-tests/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
+                  { autoPrint: false },
                 ),
                 "_blank",
               );
@@ -1296,6 +1302,7 @@ function QueuePatientCard({
               window.open(
                 buildPrintUrl(
                   `/refraction/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
+                  { autoPrint: false },
                 ),
                 "_blank",
               );

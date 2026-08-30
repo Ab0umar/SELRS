@@ -104,12 +104,12 @@ export const ROUTES = {
 
   // Remaining routes
   page404: "/404",
-  kfSheetsRestWildcard: "/KFsheets/:rest*",
+  kfSheetsRestWildcard: "/KFsheets/*",
   adminRootPath: "/admin",
   adminHubRoot: "/admin",
-  adminHubRestWildcard: "/admin/:rest*",
+  adminHubRestWildcard: "/admin/*",
   legacyAdminHub: "/booking-triage",
-  legacyAdminHubRestWildcard: "/booking-triage/:rest*",
+  legacyAdminHubRestWildcard: "/booking-triage/*",
   adminPatients: "/admin-patients",
   adminLegacyPatients: "/admin/legacy-patients",
   opHistory: "/admin/op-history",
@@ -285,6 +285,7 @@ export const ROUTES = {
   salary: "/salary",
   salaryPenalties: "/salary/penalties",
   salaryPools: "/salary/pools",
+  salaryFunds: "/salary/funds",
   salaryPayroll: "/salary/payroll",
   salarySettings: "/salary/settings",
   salaryShiftStaff: "/salary/shift-staff",

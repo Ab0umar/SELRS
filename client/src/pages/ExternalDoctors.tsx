@@ -294,161 +294,151 @@ export default function ExternalDoctors() {
   });
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6" dir="ltr">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              External Doctors
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Manage external doctor portal accounts
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/admin-hub/external-doctors/referrals">
-                Referrals
-              </Link>
-            </Button>
-            <Button
-              size="sm"
-              className="gap-2"
-              onClick={() => setCreating((v) => !v)}
-            >
-              <PlusCircle className="size-4" />
-              Add Doctor
-            </Button>
-          </div>
+    <div className="mx-auto w-full max-w-[1200px] space-y-4 pb-4" dir="rtl">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            الأطباء الخارجيون
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            إدارة حسابات الأطباء في البوابة الخارجية وربطها بسجل الأطباء
+          </p>
         </div>
-
-        {creating && (
-          <CreateDoctorForm
-            onDone={() => {
-              setCreating(false);
-              void refetch();
-            }}
-          />
-        )}
-
-        {isLoading && (
-          <div className="space-y-3">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="h-16 animate-pulse rounded-xl bg-muted" />
-            ))}
-          </div>
-        )}
-
-        {data && data.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-            No external doctors yet. Add one above.
-          </div>
-        )}
-
-        {data && data.length > 0 && (
-          <div className="space-y-2">
-            {(data as Doctor[]).map((doc) => (
-              <div
-                key={doc.id}
-                className="rounded-xl border border-border bg-card p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-foreground">
-                        {doc.fullName}
-                      </p>
-                      <Badge
-                        variant={doc.isActive ? "default" : "secondary"}
-                        className="text-[10px]"
-                      >
-                        {doc.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      @{doc.username}
-                    </p>
-                    {doc.email && (
-                      <p className="text-xs text-muted-foreground">
-                        {doc.email}
-                      </p>
-                    )}
-                    {doc.phone && (
-                      <p className="text-xs text-muted-foreground">
-                        {doc.phone}
-                      </p>
-                    )}
-                    {doc.doctorCode && (
-                      <p className="text-xs text-primary font-mono">
-                        Mapped: {doc.doctorCode}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-xs"
-                      onClick={() =>
-                        setEditingCodeId(
-                          editingCodeId === doc.id ? null : doc.id,
-                        )
-                      }
-                    >
-                      <Pencil className="size-3.5" />
-                      Map Dr
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-xs"
-                      onClick={() =>
-                        setResetingId(resetingId === doc.id ? null : doc.id)
-                      }
-                    >
-                      <KeyRound className="size-3.5" />
-                      Reset PW
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-xs"
-                      onClick={() =>
-                        toggleActive.mutate({
-                          id: doc.id,
-                          isActive: !doc.isActive,
-                        })
-                      }
-                    >
-                      {doc.isActive ? (
-                        <UserX className="size-3.5" />
-                      ) : (
-                        <UserCheck className="size-3.5" />
-                      )}
-                      {doc.isActive ? "Deactivate" : "Activate"}
-                    </Button>
-                  </div>
-                </div>
-                {editingCodeId === doc.id && (
-                  <EditDoctorCodeForm
-                    doc={doc}
-                    onDone={() => {
-                      setEditingCodeId(null);
-                      void refetch();
-                    }}
-                  />
-                )}
-                {resetingId === doc.id && (
-                  <ResetPasswordForm
-                    doctorId={doc.id}
-                    onDone={() => setResetingId(null)}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin-hub/external-doctors/referrals">الإحالات</Link>
+          </Button>
+          <Button
+            size="sm"
+            className="gap-2"
+            onClick={() => setCreating((v) => !v)}
+          >
+            <PlusCircle className="size-4" />
+            إضافة طبيب
+          </Button>
+        </div>
       </div>
+
+      {creating && (
+        <CreateDoctorForm
+          onDone={() => {
+            setCreating(false);
+            void refetch();
+          }}
+        />
+      )}
+
+      {isLoading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="h-16 animate-pulse rounded-xl bg-muted" />
+          ))}
+        </div>
+      )}
+
+      {data && data.length === 0 && (
+        <div className="rounded-md border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+          لا توجد حسابات أطباء خارجيين حتى الآن.
+        </div>
+      )}
+
+      {data && data.length > 0 && (
+        <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+          {(data as Doctor[]).map((doc) => (
+            <div
+              key={doc.id}
+              className="p-4 transition-colors hover:bg-muted/20"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-foreground">
+                      {doc.fullName}
+                    </p>
+                    <Badge
+                      variant={doc.isActive ? "default" : "secondary"}
+                      className="text-[10px]"
+                    >
+                      {doc.isActive ? "نشط" : "معطّل"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    @{doc.username}
+                  </p>
+                  {doc.email && (
+                    <p className="text-xs text-muted-foreground">{doc.email}</p>
+                  )}
+                  {doc.phone && (
+                    <p className="text-xs text-muted-foreground">{doc.phone}</p>
+                  )}
+                  {doc.doctorCode && (
+                    <p className="text-xs text-primary font-mono">
+                      مرتبط بالكود: {doc.doctorCode}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs"
+                    onClick={() =>
+                      setEditingCodeId(editingCodeId === doc.id ? null : doc.id)
+                    }
+                  >
+                    <Pencil className="size-3.5" />
+                    ربط الطبيب
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs"
+                    onClick={() =>
+                      setResetingId(resetingId === doc.id ? null : doc.id)
+                    }
+                  >
+                    <KeyRound className="size-3.5" />
+                    إعادة كلمة المرور
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs"
+                    onClick={() =>
+                      toggleActive.mutate({
+                        id: doc.id,
+                        isActive: !doc.isActive,
+                      })
+                    }
+                  >
+                    {doc.isActive ? (
+                      <UserX className="size-3.5" />
+                    ) : (
+                      <UserCheck className="size-3.5" />
+                    )}
+                    {doc.isActive ? "تعطيل" : "تفعيل"}
+                  </Button>
+                </div>
+              </div>
+              {editingCodeId === doc.id && (
+                <EditDoctorCodeForm
+                  doc={doc}
+                  onDone={() => {
+                    setEditingCodeId(null);
+                    void refetch();
+                  }}
+                />
+              )}
+              {resetingId === doc.id && (
+                <ResetPasswordForm
+                  doctorId={doc.id}
+                  onDone={() => setResetingId(null)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -192,7 +192,7 @@ export default function AdminWhatsAppInbox() {
     <div className="w-full space-y-4 pb-6 text-right" dir="rtl">
       <Card
         dir="rtl"
-        className="overflow-hidden border-border text-right shadow-sm"
+        className="overflow-hidden rounded-lg border-border text-right shadow-none"
       >
         <CardHeader className="space-y-0 border-b border-border bg-muted/20 p-4 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -265,7 +265,7 @@ export default function AdminWhatsAppInbox() {
 
       <Card
         dir="rtl"
-        className="overflow-hidden border-border text-right shadow-sm"
+        className="overflow-hidden rounded-lg border-border text-right shadow-none"
       >
         <CardContent className="p-0">
           {error ? (

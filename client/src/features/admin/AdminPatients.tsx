@@ -96,11 +96,11 @@ export default function AdminPatients() {
   ];
 
   return (
-    <div
-      className="w-full space-y-6 pb-4 text-right"
-      dir="rtl"
-    >
-      <Card dir="rtl" className="border-border bg-card text-right shadow-sm">
+    <div className="w-full space-y-6 pb-4 text-right" dir="rtl">
+      <Card
+        dir="rtl"
+        className="rounded-lg border-border bg-card text-right shadow-none"
+      >
         <CardHeader className="flex flex-col gap-4 space-y-0 border-b border-border py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
@@ -157,7 +157,7 @@ export default function AdminPatients() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-3 lg:grid-cols-6 sm:gap-3">
+              <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border text-center lg:grid-cols-6 [&>*]:rounded-none [&>*]:border-0 [&>*]:border-l">
                 {monthlyBannerStats.map((item) => (
                   <StatCard
                     key={item.label}
@@ -232,7 +232,7 @@ export default function AdminPatients() {
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-3 lg:grid-cols-6 sm:gap-3">
+              <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border text-center lg:grid-cols-6 [&>*]:rounded-none [&>*]:border-0 [&>*]:border-l">
                 {yearlyBannerStats.map((item) => (
                   <StatCard
                     key={item.label}
@@ -307,9 +307,7 @@ export default function AdminPatients() {
             deleteAllServicesPending={
               list.deleteAllPatientServicesMutation.isPending
             }
-            updatePatientCodePending={
-              list.updatePatientCodeMutation.isPending
-            }
+            updatePatientCodePending={list.updatePatientCodeMutation.isPending}
             getDraft={list.getDraft}
             hasMore={list.hasMore}
             isExpanded={list.isExpanded}

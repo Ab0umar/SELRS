@@ -14,10 +14,11 @@ export function buildPrintUrl(
     url.searchParams.set("nativeprint", "1");
     return `${url.pathname}${url.search}${url.hash}`;
   }
-  url.searchParams.set("print", "1");
-  if (options.autoPrint !== false) {
-    url.searchParams.set("autoprint", "1");
+  if (options.autoPrint === false) {
+    return `${url.pathname}${url.search}${url.hash}`;
   }
+  url.searchParams.set("print", "1");
+  url.searchParams.set("autoprint", "1");
   return `${url.pathname}${url.search}${url.hash}`;
 }
 

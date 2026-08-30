@@ -180,7 +180,7 @@ export default function AdminCardVisibility() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right"
+      className="mx-auto w-full max-w-[1440px] space-y-4 pb-4 text-right"
       dir="rtl"
     >
       <PageHeader

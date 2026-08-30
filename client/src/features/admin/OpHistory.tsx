@@ -137,10 +137,9 @@ export default function OpHistory() {
     setPage(1);
   };
 
-
   return (
     <div className="w-full space-y-6 pb-4 text-right" dir="rtl">
-      <Card>
+      <Card className="rounded-lg border-border shadow-none">
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <History className="h-5 w-5 text-primary" />
@@ -449,8 +448,11 @@ function ServiceCodeMappingDialog({
       suggestion: suggestOperationTypeFromServiceName(u.serviceName),
     }))
     .filter(
-      (u): u is typeof u & { suggestion: { type: "PRK" | "Lasik"; reason: string } } =>
-        u.suggestion != null && u.suggestion.type !== "femto",
+      (
+        u,
+      ): u is typeof u & {
+        suggestion: { type: "PRK" | "Lasik"; reason: string };
+      } => u.suggestion != null && u.suggestion.type !== "femto",
     );
   const femtoAmbiguous = unmapped.filter(
     (u) => suggestOperationTypeFromServiceName(u.serviceName)?.type === "femto",
@@ -550,8 +552,8 @@ function ServiceCodeMappingDialog({
           )}
           {femtoAmbiguous.length > 0 && (
             <div className="rounded-md border border-amber-400/40 bg-amber-50 p-2 text-sm text-amber-800">
-              فيه {femtoAmbiguous.length} كود فيمتو محتاج اختيار يدوي بين F.S
-              و F.L (مش واضح من الاسم أي نوع بالظبط):{" "}
+              فيه {femtoAmbiguous.length} كود فيمتو محتاج اختيار يدوي بين F.S و
+              F.L (مش واضح من الاسم أي نوع بالظبط):{" "}
               {femtoAmbiguous.map((u) => u.serviceCode).join("، ")}
             </div>
           )}

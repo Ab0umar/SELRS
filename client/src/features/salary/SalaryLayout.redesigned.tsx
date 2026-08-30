@@ -7,6 +7,7 @@ import {
   Percent,
   UserRound,
   SlidersHorizontal,
+  WalletCards,
   ChevronRight,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -66,6 +67,13 @@ const navigationSections = [
         description: "تسجيل عمولات الكشف والبنتاكام",
         activeFor: ["/salary/pools"],
         icon: Percent,
+      },
+      {
+        href: "/salary/funds",
+        label: "الصندوق والعيدية",
+        description: "صندوق العمليات وعيديات الموظفين",
+        activeFor: ["/salary/funds"],
+        icon: WalletCards,
       },
       {
         href: "/salary/penalties",

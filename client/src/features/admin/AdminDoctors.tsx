@@ -151,6 +151,7 @@ export default function AdminDoctors() {
     doctorType: "consultant",
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -224,6 +225,10 @@ export default function AdminDoctors() {
       return code.includes(term) || name.includes(term);
     });
   }, [sortedDoctors, searchTerm]);
+  const selectedDoctor =
+    filteredDoctors.find((doctor) => doctor.id === selectedDoctorId) ??
+    filteredDoctors[0] ??
+    null;
 
   const addDoctor = () => {
     const typedCode = newDoctor.code.trim();
@@ -385,6 +390,15 @@ export default function AdminDoctors() {
   const removeDoctor = (id: string) => {
     setDoctors((prev) => prev.filter((d) => d.id !== id));
     if (expandedId === id) setExpandedId(null);
+    if (selectedDoctorId === id) setSelectedDoctorId(null);
+  };
+
+  const updateDoctor = (id: string, patch: Partial<DoctorEntry>) => {
+    setDoctors((prev) =>
+      prev.map((doctor) =>
+        doctor.id === id ? { ...doctor, ...patch } : doctor,
+      ),
+    );
   };
 
   const formFieldsUi = (
@@ -530,34 +544,24 @@ export default function AdminDoctors() {
         }
       />
 
-      <div
-        className={cn(
-          STAT_CARDS_MOBILE_ROW,
-          "gap-2 sm:grid sm:grid-cols-3 sm:gap-4",
-        )}
-      >
-        <StatCard
-          title="إجمالي السجلات"
-          value={doctorsTotal}
-          icon={Activity}
-          iconColor="bg-primary text-primary-foreground"
-        />
-        <StatCard
-          title="نشط"
-          value={doctorsActive}
-          icon={CheckCircle2}
-          iconColor="bg-success/15 text-success"
-        />
-        <StatCard
-          title="معطّل"
-          value={doctorsInactive}
-          icon={XCircle}
-          iconColor="bg-destructive/10 text-destructive"
-        />
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border bg-muted/15 px-4 py-3 text-xs">
+        <span className="font-black text-foreground">ملخص السجل</span>
+        <span className="text-muted-foreground">
+          الإجمالي{" "}
+          <strong className="mr-1 text-foreground">{doctorsTotal}</strong>
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="size-2 rounded-full bg-success" />
+          نشط <strong className="text-foreground">{doctorsActive}</strong>
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="size-2 rounded-full bg-destructive" />
+          معطّل <strong className="text-foreground">{doctorsInactive}</strong>
+        </span>
       </div>
 
-      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <CardContent className="space-y-4 p-4 sm:p-5 lg:p-6 bg-muted/5">
+      <div className="border-b border-border pb-4">
+        <div className="space-y-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
             <div className="w-full lg:max-w-md">
               <SearchBar
@@ -633,10 +637,255 @@ export default function AdminDoctors() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="grid min-h-[600px] overflow-hidden rounded-lg border border-border bg-background lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-l">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h2 className="text-sm font-black">دليل الأطباء</h2>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                {filteredDoctors.length} نتيجة
+              </p>
+            </div>
+            <Stethoscope className="size-4 text-primary" />
+          </div>
+          <div className="max-h-[540px] overflow-y-auto p-2">
+            {filteredDoctors.map((doctor) => {
+              const active = selectedDoctor?.id === doctor.id;
+              return (
+                <button
+                  key={doctor.id}
+                  type="button"
+                  onClick={() => setSelectedDoctorId(doctor.id)}
+                  className={cn(
+                    "mb-1 flex w-full items-center gap-3 rounded-md px-3 py-3 text-right transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-background",
+                  )}
+                >
+                  <Avatar className="size-9 shrink-0 border border-current/15">
+                    <AvatarFallback
+                      className={cn(
+                        "text-xs font-black",
+                        active
+                          ? "bg-primary-foreground/15 text-primary-foreground"
+                          : "bg-primary/10 text-primary",
+                      )}
+                    >
+                      {doctorArabicInitials(doctor.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-black">
+                      {doctor.name}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block text-[10px]",
+                        active
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {doctor.code} · {doctorTypeLabel(doctor.doctorType)}
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      "size-2 rounded-full",
+                      doctor.isActive ? "bg-success" : "bg-muted-foreground/40",
+                    )}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="min-w-0">
+          {selectedDoctor ? (
+            <div>
+              <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-12 border border-border">
+                    <AvatarFallback className="bg-primary/10 font-black text-primary">
+                      {doctorArabicInitials(selectedDoctor.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="text-lg font-black">
+                      {selectedDoctor.name}
+                    </h2>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge
+                        className={cn(
+                          "rounded text-[10px]",
+                          doctorTypeBadgeClass(selectedDoctor.doctorType),
+                        )}
+                      >
+                        {doctorTypeLabel(selectedDoctor.doctorType)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {locationLabel(selectedDoctor.locationType)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-xs font-bold">
+                  <Checkbox
+                    checked={selectedDoctor.isActive}
+                    onCheckedChange={(checked) =>
+                      updateDoctor(selectedDoctor.id, {
+                        isActive: Boolean(checked),
+                      })
+                    }
+                  />
+                  {selectedDoctor.isActive ? "الحساب نشط" : "الحساب معطّل"}
+                </label>
+              </div>
+
+              <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_240px]">
+                <div>
+                  <h3 className="mb-4 text-sm font-black">بيانات الطبيب</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="selected-doctor-name">اسم الطبيب</Label>
+                      <Input
+                        id="selected-doctor-name"
+                        value={selectedDoctor.name}
+                        onChange={(event) =>
+                          updateDoctor(selectedDoctor.id, {
+                            name: event.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="selected-doctor-code">الكود</Label>
+                      <Input
+                        id="selected-doctor-code"
+                        dir="ltr"
+                        className="font-mono"
+                        value={selectedDoctor.code}
+                        onChange={(event) =>
+                          updateDoctor(selectedDoctor.id, {
+                            code: event.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>النوع</Label>
+                      <Select
+                        value={selectedDoctor.doctorType}
+                        onValueChange={(value) =>
+                          updateDoctor(selectedDoctor.id, {
+                            doctorType: value as DoctorEntry["doctorType"],
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="consultant">استشاري</SelectItem>
+                          <SelectItem value="specialist">أخصائي</SelectItem>
+                          <SelectItem value="external">طبيب خارجي</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>المقر</Label>
+                      <Select
+                        value={selectedDoctor.locationType}
+                        onValueChange={(value) =>
+                          updateDoctor(selectedDoctor.id, {
+                            locationType: value as DoctorEntry["locationType"],
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="center">المركز</SelectItem>
+                          <SelectItem value="external">خارج المركز</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => void saveDoctors()}
+                      disabled={updateDoctorsMutation.isPending}
+                    >
+                      {updateDoctorsMutation.isPending
+                        ? "جاري الحفظ"
+                        : "حفظ التغييرات"}
+                    </Button>
+                  </div>
+                </div>
+
+                <aside className="border-t border-border pt-5 xl:border-t-0 xl:border-r xl:pr-5 xl:pt-0">
+                  <h3 className="text-sm font-black">إجراءات الحساب</h3>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    الحذف يزيل الطبيب من الدليل بعد حفظ التغييرات.
+                  </p>
+                  {delConfirmDoctor === selectedDoctor.id ? (
+                    <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                      <p className="text-xs font-bold text-destructive">
+                        حذف {selectedDoctor.name}؟
+                      </p>
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            removeDoctor(selectedDoctor.id);
+                            setDelConfirmDoctor(null);
+                          }}
+                        >
+                          تأكيد الحذف
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setDelConfirmDoctor(null)}
+                        >
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 w-full gap-2 text-destructive"
+                      onClick={() => setDelConfirmDoctor(selectedDoctor.id)}
+                    >
+                      <Trash2 className="size-4" />
+                      حذف الطبيب
+                    </Button>
+                  )}
+                </aside>
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-[500px] items-center justify-center text-sm text-muted-foreground">
+              لا يوجد طبيب مطابق للبحث.
+            </div>
+          )}
+        </section>
+      </div>
+
+      <Card className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-none">
         <CardContent className="p-0">
           <div className="overflow-hidden">
             <Table className="min-w-[900px] text-right" dir="rtl">
@@ -872,8 +1121,7 @@ export default function AdminDoctors() {
                                             ? {
                                                 ...d,
                                                 locationType: value as
-                                                  | "center"
-                                                  | "external",
+                                                  "center" | "external",
                                               }
                                             : d,
                                         ),

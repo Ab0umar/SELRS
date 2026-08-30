@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { StatCard } from "@/components/shared/StatCard";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { SERVICES_HUB_MODULE_ICON_WRAP } from "@/lib/servicesHubModules";
 import EgyptianDrugReferencePage from "./EgyptianDrugReferencePage";
 
 type HubModuleCard = {
@@ -36,39 +37,37 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "مرجع الأدوية المصرية",
     description: "بحث عربي وإنجليزي وإضافة الدواء المختار إلى كتالوج الروشتات.",
     icon: BookOpen,
-    iconWrap: "bg-primary/10 text-primary",
+    iconWrap: SERVICES_HUB_MODULE_ICON_WRAP["drug-reference"],
   },
   {
     href: "/services-hub/medications",
     title: "الأدوية",
     description: "إدارة قائمة الأدوية والمستحضرات الطبية.",
     icon: Pill,
-    iconWrap: "bg-primary/10 text-primary",
+    iconWrap: SERVICES_HUB_MODULE_ICON_WRAP.medications,
   },
   {
     href: "/services-hub/catalog",
     title: "كتالوج الفحوصات",
     description: "عرض وإدارة قائمة الفحوصات والخدمات الطبية.",
     icon: FlaskConical,
-    iconWrap: "bg-success/15 text-success",
+    iconWrap: SERVICES_HUB_MODULE_ICON_WRAP.catalog,
   },
   {
     href: "/services-hub/registry",
     title: "سجل الأدوية",
     description: "تتبع وإدارة سجلات الأدوية والمخزون.",
     icon: Pill,
-    iconWrap: "bg-secondary/15 text-primary",
+    iconWrap: SERVICES_HUB_MODULE_ICON_WRAP.registry,
   },
   {
     href: "/services-hub/txhub",
     title: "ربط النتائج الخارجية",
     description: "استيراد نتائج المختبر والأشعة وربطها بالمدى الطبيعي.",
     icon: Network,
-    iconWrap: "bg-primary/15 text-primary",
+    iconWrap: SERVICES_HUB_MODULE_ICON_WRAP.txhub,
   },
 ];
-
-const MORE_LINKS: { href: string; label: string }[] = [];
 
 export default function ServicesHubShell() {
   const [location] = useLocation();
@@ -264,27 +263,6 @@ export default function ServicesHubShell() {
           </div>
         </aside>
       </div>
-
-      {MORE_LINKS.length > 0 && (
-        <Card className="mt-4 border-border/80 bg-muted/20 shadow-sm">
-          <CardContent className="space-y-3 p-4">
-            <SectionHeader title="روابط إضافية" />
-            <div className="flex flex-wrap gap-2 justify-end">
-              {MORE_LINKS.map((item) => (
-                <Button
-                  key={item.href}
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="rounded-full"
-                >
-                  <Link href={item.href}>{item.label}</Link>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </>
   );
 

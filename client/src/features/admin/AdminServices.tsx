@@ -46,16 +46,9 @@ import { trpc } from "@/lib/trpc";
 import { cn, getTrpcErrorMessage } from "@/lib/utils";
 
 type ServiceType =
-  | "consultant"
-  | "specialist"
-  | "lasik"
-  | "surgery"
-  | "external";
+  "consultant" | "specialist" | "lasik" | "surgery" | "external";
 type ServiceCategory =
-  | "examination"
-  | "radiology"
-  | "operations"
-  | "miscellaneous";
+  "examination" | "radiology" | "operations" | "miscellaneous";
 type SheetType =
   | ServiceType
   | "pentacam"
@@ -278,6 +271,9 @@ export default function AdminServices() {
   const [sheetTarget, setSheetTarget] = useState<SheetType>("consultant");
   const [isInitialized, setIsInitialized] = useState(false);
   const [servicesPage, setServicesPage] = useState(1);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+    null,
+  );
   const [doctorSearchTerm, setDoctorSearchTerm] = useState("");
   const [serviceSearchTerm, setServiceSearchTerm] = useState("");
   const [mappingSheetType, setMappingSheetType] =
@@ -476,6 +472,10 @@ export default function AdminServices() {
       return code.includes(term) || name.includes(term);
     });
   }, [sortedServices, hubSearch, hubStatus, hubCategory]);
+  const selectedService =
+    hubFilteredServices.find((service) => service.id === selectedServiceId) ??
+    hubFilteredServices[0] ??
+    null;
 
   const filteredDoctors = useMemo(() => {
     const term = doctorSearchTerm.trim().toLowerCase();
@@ -967,34 +967,24 @@ export default function AdminServices() {
           </Button>
         }
       />
-      <div
-        className={cn(
-          STAT_CARDS_MOBILE_ROW,
-          "gap-2 sm:grid sm:grid-cols-3 sm:gap-4",
-        )}
-      >
-        <StatCard
-          title="إجمالي الخدمات"
-          value={servicesTotal}
-          icon={Activity}
-          iconColor="bg-secondary text-secondary-foreground"
-        />
-        <StatCard
-          title="فعالة"
-          value={servicesActive}
-          icon={CheckCircle2}
-          iconColor="bg-success/15 text-success"
-        />
-        <StatCard
-          title="معطلة"
-          value={servicesInactive}
-          icon={XCircle}
-          iconColor="bg-destructive/10 text-destructive"
-        />
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border bg-muted/15 px-4 py-3 text-xs">
+        <span className="font-black text-foreground">ملخص الخدمات</span>
+        <span className="text-muted-foreground">
+          الإجمالي{" "}
+          <strong className="mr-1 text-foreground">{servicesTotal}</strong>
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="size-2 rounded-full bg-success" />
+          فعالة <strong className="text-foreground">{servicesActive}</strong>
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="size-2 rounded-full bg-destructive" />
+          معطلة <strong className="text-foreground">{servicesInactive}</strong>
+        </span>
       </div>
 
-      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <CardContent className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <Card className="overflow-hidden rounded-lg border border-border bg-card shadow-none">
+        <CardContent className="space-y-5 p-4 sm:p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-start xl:justify-between">
             <div className="w-full xl:max-w-sm">
               <label className="mb-2 block text-sm font-medium text-foreground">
@@ -1214,7 +1204,262 @@ export default function AdminServices() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="grid min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:grid-cols-[340px_minmax(0,1fr)]">
+        <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-l">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h2 className="text-sm font-black">دليل الخدمات</h2>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                {hubFilteredServices.length} خدمة مطابقة
+              </p>
+            </div>
+            <Settings className="size-4 text-primary" />
+          </div>
+          <div className="max-h-[560px] overflow-y-auto p-2">
+            {hubFilteredServices.map((service) => {
+              const active = selectedService?.id === service.id;
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => setSelectedServiceId(service.id)}
+                  className={cn(
+                    "mb-1 flex w-full items-center gap-3 rounded-md px-3 py-3 text-right transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-background",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-9 shrink-0 items-center justify-center rounded-md text-sm",
+                      active
+                        ? "bg-primary-foreground/15"
+                        : "bg-primary/10 text-primary",
+                    )}
+                  >
+                    {getCategoryEmoji(service.category || "examination")}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-black">
+                      {service.name}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block font-mono text-[10px]",
+                        active
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {service.code}
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      "size-2 rounded-full",
+                      service.isActive
+                        ? "bg-success"
+                        : "bg-muted-foreground/40",
+                    )}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="min-w-0">
+          {selectedService ? (
+            <div>
+              <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-black">
+                      {selectedService.name}
+                    </h2>
+                    <Badge variant="outline" className="rounded text-[10px]">
+                      {getCategoryLabel(
+                        selectedService.category || "examination",
+                      )}
+                    </Badge>
+                  </div>
+                  <p
+                    className="mt-1 font-mono text-xs text-muted-foreground"
+                    dir="ltr"
+                  >
+                    {selectedService.code}
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-xs font-bold">
+                  <Checkbox
+                    checked={selectedService.isActive}
+                    onCheckedChange={(checked) =>
+                      updateService(selectedService.id, {
+                        isActive: Boolean(checked),
+                      })
+                    }
+                  />
+                  {selectedService.isActive ? "الخدمة فعالة" : "الخدمة معطلة"}
+                </label>
+              </div>
+              <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_240px]">
+                <div>
+                  <h3 className="mb-4 text-sm font-black">إعدادات الخدمة</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-bold">اسم الخدمة</span>
+                      <Input
+                        value={selectedService.name}
+                        onChange={(event) =>
+                          updateService(selectedService.id, {
+                            name: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-bold">الكود</span>
+                      <Input
+                        value={selectedService.code}
+                        dir="ltr"
+                        className="font-mono"
+                        onChange={(event) =>
+                          updateService(selectedService.id, {
+                            code: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-bold">الفئة</span>
+                      <Select
+                        value={selectedService.category}
+                        onValueChange={(value) =>
+                          updateService(selectedService.id, {
+                            category: value as ServiceCategory,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="examination">كشف</SelectItem>
+                          <SelectItem value="radiology">أشعة</SelectItem>
+                          <SelectItem value="operations">عمليات</SelectItem>
+                          <SelectItem value="miscellaneous">
+                            إيرادات متنوعة
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-bold">الشيت الافتراضي</span>
+                      <Select
+                        value={selectedService.defaultSheet}
+                        onValueChange={(value) =>
+                          updateService(selectedService.id, {
+                            defaultSheet: value as SheetType,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sheetOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-bold">السعر</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={selectedService.price ?? 0}
+                        onChange={(event) =>
+                          updateService(selectedService.id, {
+                            price: Number(event.target.value),
+                          })
+                        }
+                        onBlur={() =>
+                          updateMssqlPriceMutation.mutate({
+                            code: selectedService.code,
+                            price: selectedService.price ?? 0,
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-bold">
+                        جهة تقديم الخدمة
+                      </span>
+                      <Select
+                        value={selectedService.srvTyp}
+                        onValueChange={(value) =>
+                          updateService(selectedService.id, {
+                            srvTyp: value as "1" | "2",
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">المركز</SelectItem>
+                          <SelectItem value="2">جهة خارجية</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </label>
+                  </div>
+                  <div className="mt-5 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => void saveServices()}
+                      disabled={updateServiceInDbMutation.isPending}
+                    >
+                      {updateServiceInDbMutation.isPending
+                        ? "جاري الحفظ"
+                        : "حفظ التغييرات"}
+                    </Button>
+                  </div>
+                </div>
+                <aside className="border-t border-border pt-5 xl:border-t-0 xl:border-r xl:pr-5 xl:pt-0">
+                  <h3 className="text-sm font-black">إجراءات الخدمة</h3>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    يمكن حذف الخدمة من القائمة ثم حفظ التغييرات.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 w-full gap-2 text-destructive"
+                    onClick={() => {
+                      deleteService(selectedService.id);
+                      setSelectedServiceId(null);
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                    حذف الخدمة
+                  </Button>
+                </aside>
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-[500px] items-center justify-center text-sm text-muted-foreground">
+              لا توجد خدمة مطابقة للتصفية.
+            </div>
+          )}
+        </section>
+      </div>
+
+      <Card className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <CardHeader className="border-b border-border/70">
           <CardTitle className="text-base">
             قائمة الخدمات ({hubFilteredServices.length})
@@ -1722,7 +1967,7 @@ export default function AdminServices() {
           )}
         </CardContent>
       </Card>
-      <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/10 px-3 py-2 text-xs sm:text-sm">
+      <div className="hidden items-center justify-between rounded-lg border border-border/60 bg-muted/10 px-3 py-2 text-xs sm:text-sm">
         <span className="text-muted-foreground">
           صفحة {servicesPage} من {servicesTotalPages}
         </span>

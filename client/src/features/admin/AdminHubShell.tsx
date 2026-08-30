@@ -15,7 +15,6 @@ import {
   Users,
   Wrench,
   FileSearch,
-  Settings,
   Link2,
   TestTube2,
   Copy,
@@ -240,11 +239,11 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/admin-hub/settings",
-    label: "إعدادات المركز",
-    helper: "المتغيرات والخيارات العامة",
-    icon: Settings,
-    tone: "text-[#c2781c] bg-[#fff4e6]",
+    href: "/admin-hub/settings/pricing-rules",
+    label: "قواعد تسعير المواعيد",
+    helper: "أسعار الكشوفات وحسابات الأطباء",
+    icon: CalendarDays,
+    tone: "text-[#157a67] bg-[#edf8f4]",
     category: "system",
   },
   {
@@ -327,7 +326,8 @@ export default function AdminHubShell({
 
   const filteredModules = useMemo(() => {
     return accessibleModules.filter((card) => {
-      const matchCat = activeCategory === "all" || card.category === activeCategory;
+      const matchCat =
+        activeCategory === "all" || card.category === activeCategory;
       const matchQuery =
         !searchQuery.trim() ||
         card.label.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
@@ -346,9 +346,16 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/migrations") return <AdminMigrations />;
     if (loc === "/admin-hub/api") return <AdminApiTools />;
     if (loc === "/admin-hub/status") return <AdminStatus />;
-    if (loc === "/admin-hub/settings") return <AdminSettings />;
+    if (loc === "/admin-hub/settings/pricing-rules")
+      return <AdminSettings pricingOnly />;
+    if (loc === "/admin-hub/settings") return <AdminStatus />;
     if (loc === "/admin-hub/permissions") return <AdminPermissions />;
-    if (loc === "/admin-hub/sheets" || loc === "/admin-hub/forms" || loc === "/admin-hub/sheet-copies") return <AdminSheets />;
+    if (
+      loc === "/admin-hub/sheets" ||
+      loc === "/admin-hub/forms" ||
+      loc === "/admin-hub/sheet-copies"
+    )
+      return <AdminSheets />;
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
     if (loc === "/admin-hub/doctors") return <AdminDoctors />;
     if (loc === "/admin-hub/pentacam-failed") return <AdminPentacamFailed />;
@@ -402,15 +409,29 @@ export default function AdminHubShell({
               {/* Status Capsules */}
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
-                  <span className={cn("size-2.5 rounded-full shadow-xs", opsHealth?.dbConnected ? "bg-emerald-500" : "bg-rose-500")} />
-                  <span>قاعدة البيانات: {opsHealth?.dbConnected ? "متصلة" : "منفصلة"}</span>
+                  <span
+                    className={cn(
+                      "size-2.5 rounded-full shadow-xs",
+                      opsHealth?.dbConnected ? "bg-emerald-500" : "bg-rose-500",
+                    )}
+                  />
+                  <span>
+                    قاعدة البيانات:{" "}
+                    {opsHealth?.dbConnected ? "متصلة" : "منفصلة"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
                   <Zap className="size-3.5 text-emerald-600" />
-                  <span>النفق الآمن: {opsHealth?.tunnelConnected ? "نشط" : "غير نشط"}</span>
+                  <span>
+                    النفق الآمن:{" "}
+                    {opsHealth?.tunnelConnected ? "نشط" : "غير نشط"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs font-mono">
-                  <span>مرضى اليوم: {(opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG")}</span>
+                  <span>
+                    مرضى اليوم:{" "}
+                    {(opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG")}
+                  </span>
                 </div>
               </div>
             </div>
@@ -425,7 +446,8 @@ export default function AdminHubShell({
                   const count =
                     cat.id === "all"
                       ? accessibleModules.length
-                      : accessibleModules.filter((m) => m.category === cat.id).length;
+                      : accessibleModules.filter((m) => m.category === cat.id)
+                          .length;
                   return (
                     <button
                       key={cat.id}
@@ -443,7 +465,9 @@ export default function AdminHubShell({
                       <span
                         className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                          active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500",
+                          active
+                            ? "bg-white/20 text-white"
+                            : "bg-slate-100 text-slate-500",
                         )}
                       >
                         {count}
@@ -471,7 +495,11 @@ export default function AdminHubShell({
               {filteredModules.map((card) => {
                 const Icon = card.icon;
                 return (
-                  <Link key={card.href} href={card.href} className={cardClassName}>
+                  <Link
+                    key={card.href}
+                    href={card.href}
+                    className={cardClassName}
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <span
                         className={`flex size-9 items-center justify-center rounded-xl ${card.tone} sm:size-10`}
@@ -495,7 +523,6 @@ export default function AdminHubShell({
           </section>
         ) : (
           <section className="space-y-5">
-            {/* Branded Subpage Top Navigation Bar */}
             <div className="flex items-center justify-between gap-4 border-b border-[#dfe7f2] pb-4 flex-wrap">
               <div className="flex items-center gap-3">
                 <Link
@@ -511,7 +538,6 @@ export default function AdminHubShell({
                 </span>
               </div>
 
-              {/* Quick Jump Selector */}
               <select
                 className="px-4 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 outline-none cursor-pointer shadow-2xs hover:border-slate-300 transition"
                 value={hubLocation}
@@ -529,7 +555,6 @@ export default function AdminHubShell({
               </select>
             </div>
 
-            {/* Subpage Content Container */}
             <div className="rounded-2xl border border-[#dfe7f2] bg-white p-4 sm:p-6 shadow-[0_6px_20px_rgba(42,79,154,0.05)]">
               <Suspense fallback={<AppShellSkeleton />}>
                 {renderComponent()}

@@ -40,8 +40,6 @@ import AdminDoctors from "./AdminDoctors";
 import AdminPentacamFailed from "./AdminPentacamFailed";
 import AdminServices from "./AdminServices";
 import TestsManagement from "../../pages/TestsManagement";
-import AdminSheetCopies from "./AdminSheetCopies";
-import AdminFormsHub from "./AdminFormsHub";
 import AdminCardVisibility from "./AdminCardVisibility";
 import AdminDiagnostics from "./AdminDiagnostics";
 import AdminDataSourceAudit from "./AdminDataSourceAudit";
@@ -340,8 +338,7 @@ export default function AdminHubShell() {
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
     if (loc === "/admin-hub/doctors") return <AdminDoctors />;
     if (loc === "/admin-hub/pentacam-failed") return <AdminPentacamFailed />;
-    if (loc === "/admin-hub/sheet-copies") return <AdminSheetCopies />;
-    if (loc === "/admin-hub/forms") return <AdminFormsHub />;
+    if (loc === "/admin-hub/sheet-copies" || loc === "/admin-hub/forms") return <AdminSheets />;
     if (loc === "/admin-hub/patients") return <AdminPatients />;
     if (loc === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
     if (loc === "/admin-hub/card-visibility") return <AdminCardVisibility />;

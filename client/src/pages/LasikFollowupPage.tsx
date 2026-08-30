@@ -342,6 +342,13 @@ export default function LasikFollowupPage() {
       className="followup-print-root lasik-followup-page min-h-screen print:min-h-0 bg-[#dde1e7] text-foreground"
       style={{ fontFamily: "Arial, Tahoma, sans-serif" }}
     >
+      <style>{`
+        @media print {
+          .followup-print-page .sheet-followup-body {
+            transform: translateX(${followupLabels.offsetXmm}mm) translateY(${followupLabels.offsetYmm}mm) scale(${followupLabels.scale}) !important;
+          }
+        }
+      `}</style>
 
       {/* Top nav */}
       <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">

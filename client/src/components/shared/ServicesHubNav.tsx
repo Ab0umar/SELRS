@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { SERVICES_HUB_MODULE_ICON_WRAP } from "@/lib/servicesHubModules";
 
 type ServicesHubSurface =
   "hub" | "medications" | "registry" | "catalog" | "drug-reference" | "txhub";
@@ -37,7 +38,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "الأدوية",
     description: "قائمة الأدوية والإدارة التشغيلية.",
     icon: Pill,
-    accent: "bg-primary/10 text-primary",
+    accent: SERVICES_HUB_MODULE_ICON_WRAP.medications,
   },
   {
     id: "registry",
@@ -45,7 +46,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "السجل",
     description: "الأدوية والفحوصات والأمراض والأعراض.",
     icon: LayoutGrid,
-    accent: "bg-secondary/15 text-primary",
+    accent: SERVICES_HUB_MODULE_ICON_WRAP.registry,
   },
   {
     id: "catalog",
@@ -53,7 +54,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "كتالوج الفحوصات",
     description: "تعريف الفحوصات والمرجع الطبيعي.",
     icon: FlaskConical,
-    accent: "bg-success/15 text-success",
+    accent: SERVICES_HUB_MODULE_ICON_WRAP.catalog,
   },
   {
     id: "drug-reference",
@@ -61,7 +62,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "مرجع الأدوية",
     description: "بحث في قاعدة الأدوية المصرية وإضافة المختار للروشتات.",
     icon: BookOpen,
-    accent: "bg-primary/10 text-primary",
+    accent: SERVICES_HUB_MODULE_ICON_WRAP["drug-reference"],
   },
   {
     id: "txhub",
@@ -69,7 +70,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "ربط النتائج",
     description: "استيراد النتائج الخارجية وربطها بالمدى الطبيعي.",
     icon: Network,
-    accent: "bg-primary/15 text-primary",
+    accent: SERVICES_HUB_MODULE_ICON_WRAP.txhub,
   },
 ];
 
