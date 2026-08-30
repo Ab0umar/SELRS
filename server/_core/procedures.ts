@@ -246,8 +246,21 @@ export const accountingWriteProcedure = t.procedure.use(
 // Hierarchy rule: "/accounting:rw" covers all "/accounting/*" pages.
 //                 "/accounting/advances:rw" covers only that page.
 
+function normalizePermissionPath(path: string): string {
+  const normalized = path.trim().toLowerCase().replace(/\/+$/, "");
+  return normalized || "/";
+}
+
 function permMatchesPath(clean: string, pagePath: string): boolean {
-  return clean === pagePath || pagePath.startsWith(clean + "/");
+  const normalizedClean = normalizePermissionPath(clean);
+  const normalizedPagePath = normalizePermissionPath(pagePath);
+  if (normalizedClean === "/" || normalizedPagePath === "/") {
+    return normalizedClean === normalizedPagePath;
+  }
+  return (
+    normalizedClean === normalizedPagePath ||
+    normalizedPagePath.startsWith(`${normalizedClean}/`)
+  );
 }
 
 export function makePageProcedure(pagePath: string) {

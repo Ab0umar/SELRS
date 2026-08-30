@@ -147,6 +147,7 @@ const headersToObject = (headers: Headers) => {
 };
 
 const MAX_NATIVE_FETCH_ATTEMPTS = 2;
+const NATIVE_FETCH_RETRY_BASE_DELAY_MS = 300;
 const NATIVE_HTTP_TIMEOUT_MS = 600_000; // 10 minutes for long-running operations like patient sync
 
 const attemptNativeFetch = async (
@@ -197,9 +198,6 @@ const nativeAwareFetch = async (
   const errors: string[] = [];
   for (let attempt = 1; attempt <= MAX_NATIVE_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      console.warn(
-        `[native-fetch] ${method} ${requestUrl} attempt ${attempt}/${MAX_NATIVE_FETCH_ATTEMPTS}`,
-      );
       const response = await attemptNativeFetch(requestUrl, {
         method,
         headers,
@@ -238,7 +236,9 @@ const nativeAwareFetch = async (
           `Native HTTP request failed after ${MAX_NATIVE_FETCH_ATTEMPTS} attempts.\n${errors.join("\n")}`,
         );
       }
-      await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+      const retryDelay =
+        NATIVE_FETCH_RETRY_BASE_DELAY_MS * 2 ** Math.max(0, attempt - 1);
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
   }
   throw new Error("Native HTTP request failed unexpectedly.");

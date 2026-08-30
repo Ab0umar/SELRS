@@ -66,6 +66,16 @@ const HEALTH_POLL_MS = 60_000;
 const NATIVE_HEALTH_POLL_MS = 5 * 60_000;
 const NATIVE_HEALTH_FAILURE_THRESHOLD = 3;
 const DESKTOP_SHELL_HEALTH_POLL_MS = 15 * 60_000;
+
+function buildInfoMatches(left: BuildInfo | null, right: BuildInfo): boolean {
+  return Boolean(
+    left &&
+      left.version === right.version &&
+      left.buildTime === right.buildTime &&
+      left.commit === right.commit,
+  );
+}
+
 async function fetchHealthSnapshot(signal?: AbortSignal): Promise<BuildInfo> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort("timeout"), 8_000);
@@ -327,28 +337,16 @@ function App() {
         if (sequence !== healthCheckSequenceRef.current) return;
         nativeHealthFailureCountRef.current = 0;
         setServerReachable(true);
-        setBuildInfo((prev) => {
-          if (
-            prev &&
-            prev.version === nextBuild.version &&
-            prev.buildTime === nextBuild.buildTime &&
-            prev.commit === nextBuild.commit
-          ) {
-            return prev;
-          }
-          return nextBuild;
-        });
+        setBuildInfo((prev) =>
+          buildInfoMatches(prev, nextBuild) ? prev : nextBuild,
+        );
         saveCachedBuildInfo(nextBuild);
         setApiIssue(null);
         setOfflineCacheSummary(getOfflineCacheSummary());
 
         if (!initialBuildRef.current) {
           initialBuildRef.current = nextBuild;
-        } else if (
-          initialBuildRef.current.version !== nextBuild.version ||
-          initialBuildRef.current.buildTime !== nextBuild.buildTime ||
-          initialBuildRef.current.commit !== nextBuild.commit
-        ) {
+        } else if (!buildInfoMatches(initialBuildRef.current, nextBuild)) {
           setUpdateAvailable(nextBuild);
         }
       } catch (error) {
@@ -576,17 +574,9 @@ function App() {
     void fetchHealthSnapshot()
       .then((nextBuild) => {
         setServerReachable(true);
-        setBuildInfo((prev) => {
-          if (
-            prev &&
-            prev.version === nextBuild.version &&
-            prev.buildTime === nextBuild.buildTime &&
-            prev.commit === nextBuild.commit
-          ) {
-            return prev;
-          }
-          return nextBuild;
-        });
+        setBuildInfo((prev) =>
+          buildInfoMatches(prev, nextBuild) ? prev : nextBuild,
+        );
         saveCachedBuildInfo(nextBuild);
         if (!initialBuildRef.current) {
           initialBuildRef.current = nextBuild;

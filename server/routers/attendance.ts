@@ -879,21 +879,27 @@ export const attendanceRouter = router({
       const empCd = mapping[0].machineUserId;
       const noteVal = input.note || null;
 
-      // Raw SQL insert — bypasses Drizzle date column mapping entirely
-      await db.execute(
-        sql`INSERT INTO attendance_leaves (emp_cd, date_from, date_to, type, approved, note)
-            VALUES (${empCd}, ${dateFrom}, ${dateTo}, ${input.type}, 0, ${noteVal})`,
-      );
+      await db.insert(attendanceLeaves).values({
+        empCd,
+        dateFrom: dateFrom as any,
+        dateTo: dateTo as any,
+        type: input.type,
+        approved: false,
+        note: noteVal,
+      });
 
       // Read back what was actually stored
-      const stored = await db.execute(
-        sql`SELECT date_from, date_to FROM attendance_leaves
-            WHERE emp_cd = ${empCd}
-            ORDER BY id DESC LIMIT 1`,
-      );
-      const row = (stored as any)[0]?.[0] ?? {};
-      const storedFrom = fmtDate(row.date_from ?? dateFrom);
-      const storedTo = fmtDate(row.date_to ?? dateTo);
+      const [stored] = await db
+        .select({
+          dateFrom: attendanceLeaves.dateFrom,
+          dateTo: attendanceLeaves.dateTo,
+        })
+        .from(attendanceLeaves)
+        .where(eq(attendanceLeaves.empCd, empCd))
+        .orderBy(desc(attendanceLeaves.id))
+        .limit(1);
+      const storedFrom = fmtDate(stored?.dateFrom ?? dateFrom);
+      const storedTo = fmtDate(stored?.dateTo ?? dateTo);
 
       const userName = String(ctx.user.name || ctx.user.username || "");
       const ns = await getAppNotificationSettings().catch(

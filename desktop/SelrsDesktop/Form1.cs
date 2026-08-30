@@ -50,7 +50,9 @@ public partial class Form1 : Form
     private readonly System.Windows.Forms.Timer _topBarTimer = new() { Interval = 150 };
     private DateTime _lastTopEdgeHoverUtc = DateTime.UtcNow;
     private readonly List<TouchMessageHook> _touchHooks = [];
+    private readonly HashSet<IntPtr> _touchHookHandles = [];
     private Panel? _bottomTaskbarReveal;
+    private bool _chromeInitialized;
 
     private static readonly Color ShellBg = Color.FromArgb(246, 248, 252);
     private static readonly Color PanelBg = Color.FromArgb(253, 254, 255);
@@ -69,6 +71,7 @@ public partial class Form1 : Form
 #if !NETFRAMEWORK
     // Background services
     private CancellationTokenSource? _wsCts;
+    private Task? _wsTask;
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
 #endif
 
@@ -153,8 +156,13 @@ public partial class Form1 : Form
         }
         // Real exit — clean up
 #if !NETFRAMEWORK
-        _wsCts?.Cancel();
+        StopWsListener();
 #endif
+        _topBarTimer.Stop();
+        foreach (var hook in _touchHooks) hook.Dispose();
+        _touchHooks.Clear();
+        _touchHookHandles.Clear();
+        _trayMenu?.Dispose();
         _trayIcon?.Dispose();
     }
 
@@ -174,18 +182,35 @@ public partial class Form1 : Form
     // ── WebSocket background listener ─────────────────────────────────────────
     private void StartWsListener()
     {
-        _wsCts = new CancellationTokenSource();
-        _ = Task.Run(() => WsListenLoop(_wsCts.Token));
+        StopWsListener();
+        var cts = new CancellationTokenSource();
+        var listenerHomeUrl = _homeUrl;
+        _wsCts = cts;
+        _wsTask = Task.Run(() => WsListenLoop(listenerHomeUrl, cts.Token));
     }
 
-    private async Task WsListenLoop(CancellationToken ct)
+    private void StopWsListener()
+    {
+        var cts = _wsCts;
+        if (cts == null) return;
+        var task = _wsTask;
+        _wsCts = null;
+        _wsTask = null;
+        cts.Cancel();
+        if (task == null)
+            cts.Dispose();
+        else
+            _ = task.ContinueWith(_ => cts.Dispose(), TaskScheduler.Default);
+    }
+
+    private async Task WsListenLoop(string homeUrl, CancellationToken ct)
     {
         var delay = 3000;
         while (!ct.IsCancellationRequested)
         {
             try
             {
-                var wsUrl = _homeUrl
+                var wsUrl = homeUrl
                     .Replace("https://", "wss://", StringComparison.OrdinalIgnoreCase)
                     .Replace("http://", "ws://", StringComparison.OrdinalIgnoreCase)
                     .TrimEnd('/') + "/ws";
@@ -198,17 +223,27 @@ public partial class Form1 : Form
                 var buf = new byte[8192];
                 while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
                 {
-                    var result = await ws.ReceiveAsync(buf, ct);
-                    if (result.MessageType == WebSocketMessageType.Close) break;
+                    using var message = new MemoryStream();
+                    WebSocketReceiveResult result;
+                    do
+                    {
+                        result = await ws.ReceiveAsync(buf, ct);
+                        if (result.MessageType == WebSocketMessageType.Close) break;
+                        message.Write(buf, 0, result.Count);
+                    } while (!result.EndOfMessage && !ct.IsCancellationRequested);
 
-                    var json = Encoding.UTF8.GetString(buf, 0, result.Count);
+                    if (result.MessageType == WebSocketMessageType.Close) break;
+                    if (result.MessageType != WebSocketMessageType.Text || message.Length == 0) continue;
+
+                    var json = Encoding.UTF8.GetString(message.ToArray());
                     HandleWsMessage(json);
                 }
             }
             catch (OperationCanceledException) { return; }
-            catch { /* server down — retry */ }
+            catch (Exception ex) { LogError("WebSocket listener failed; retrying", ex); }
 
-            await Task.Delay(Math.Min(delay, 30_000), ct).ContinueWith(_ => { });
+            try { await Task.Delay(Math.Min(delay, 30_000), ct); }
+            catch (OperationCanceledException) { return; }
             delay = Math.Min(delay * 2, 30_000);
         }
     }
@@ -295,13 +330,13 @@ public partial class Form1 : Form
             var environment = await CoreWebView2Environment.CreateAsync(null, _userDataDir);
             await webView.EnsureCoreWebView2Async(environment);
 
-            if (webView.CoreWebView2 == null)
-                throw new InvalidOperationException("WebView2 initialized without CoreWebView2.");
+            var coreWebView = webView.CoreWebView2
+                ?? throw new InvalidOperationException("WebView2 initialized without CoreWebView2.");
 
 #if !NETFRAMEWORK
             // Auto-grant notification permission so web push works natively.
             // Also force-set via Profile API to override any cached denial.
-            webView.CoreWebView2.PermissionRequested += (_, e) =>
+            coreWebView.PermissionRequested += (_, e) =>
             {
                 if (e.PermissionKind == CoreWebView2PermissionKind.Notifications)
                     e.State = CoreWebView2PermissionState.Allow;
@@ -309,7 +344,7 @@ public partial class Form1 : Form
             try
             {
                 var origin = new Uri(_homeUrl).GetLeftPart(UriPartial.Authority);
-                await webView.CoreWebView2.Profile.SetPermissionStateAsync(
+                await coreWebView.Profile.SetPermissionStateAsync(
                     CoreWebView2PermissionKind.Notifications,
                     origin,
                     CoreWebView2PermissionState.Allow);
@@ -317,9 +352,9 @@ public partial class Form1 : Form
             catch { /* SetPermissionStateAsync unavailable on older runtimes — ignore */ }
 #endif
 
-            webView.CoreWebView2.ContextMenuRequested += HandleContextMenuRequested;
-            webView.CoreWebView2.WebMessageReceived += HandleWebMessage;
-            webView.CoreWebView2.Navigate(_homeUrl);
+            coreWebView.ContextMenuRequested += HandleContextMenuRequested;
+            coreWebView.WebMessageReceived += HandleWebMessage;
+            coreWebView.Navigate(_homeUrl);
         }
         catch (Exception ex)
         {
@@ -381,7 +416,7 @@ public partial class Form1 : Form
             var configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SELRSDesktop", "url_config.txt");
             if (File.Exists(configPath)) { var saved = File.ReadAllText(configPath).Trim(); return string.IsNullOrWhiteSpace(saved) ? "" : saved; }
         }
-        catch { }
+        catch (Exception ex) { LogError("Failed to load saved desktop URL", ex); }
         return "";
     }
 
@@ -393,25 +428,25 @@ public partial class Form1 : Form
             Directory.CreateDirectory(configDir);
             File.WriteAllText(Path.Combine(configDir, "url_config.txt"), url);
         }
-        catch { }
+        catch (Exception ex) { LogError("Failed to save desktop URL", ex); }
     }
 
     private void SwitchUrl(string newUrl)
     {
         var normalized = NormalizeHomeUrl(newUrl);
-        if (normalized == _currentUrl) return;
+        if (string.Equals(normalized, _currentUrl, StringComparison.OrdinalIgnoreCase)) return;
         _homeUrl = normalized;
         _currentUrl = normalized;
         SaveUrl(normalized);
 
 #if !NETFRAMEWORK
         // Restart WebSocket listener with new URL
-        _wsCts?.Cancel();
         StartWsListener();
 #endif
 
-        if (webView.CoreWebView2 != null)
-            webView.CoreWebView2.Navigate(normalized);
+        var coreWebView = webView.CoreWebView2;
+        if (coreWebView != null)
+            coreWebView.Navigate(normalized);
         else
             MessageBox.Show("WebView is not initialized yet. Please try again in a moment.", "Navigation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
@@ -520,7 +555,10 @@ public partial class Form1 : Form
             {
                 Text = preset.label,
                 Tag = preset.url,
-                Checked = NormalizeHomeUrl(preset.url) == _currentUrl,
+                Checked = string.Equals(
+                    NormalizeHomeUrl(preset.url),
+                    _currentUrl,
+                    StringComparison.OrdinalIgnoreCase),
                 AutoSize = false,
             };
             radios[i] = rb;
@@ -559,7 +597,7 @@ public partial class Form1 : Form
         {
             var u = url;
             var item = new ToolStripMenuItem(label);
-            if (NormalizeHomeUrl(url) == _currentUrl) item.Checked = true;
+            if (string.Equals(NormalizeHomeUrl(url), _currentUrl, StringComparison.OrdinalIgnoreCase)) item.Checked = true;
             item.Click += (_, _) => SwitchUrl(u);
             menu.Items.Add(item);
         }
@@ -625,6 +663,8 @@ public partial class Form1 : Form
 
     private void EnableAutoHideTopBar()
     {
+        if (_chromeInitialized) return;
+        _chromeInitialized = true;
         BackColor = ShellBg;
         if (titleLabel != null)
         {
@@ -691,6 +731,7 @@ public partial class Form1 : Form
     private void HookTouch(Control control, Action action)
     {
         if (!control.IsHandleCreated) _ = control.Handle;
+        if (!_touchHookHandles.Add(control.Handle)) return;
         _touchHooks.Add(new TouchMessageHook(control.Handle, () => BeginInvoke(action)));
     }
 
@@ -723,8 +764,13 @@ public partial class Form1 : Form
     {
         switch (e.TryGetWebMessageAsString())
         {
-            case "retry": webView.CoreWebView2?.Navigate(_homeUrl); break;
-            case "chooser": if (ShowStartupUrlChooser()) webView.CoreWebView2?.Navigate(_homeUrl); else Close(); break;
+            case "retry":
+                webView.CoreWebView2?.Navigate(_homeUrl);
+                break;
+            case "chooser":
+                if (ShowStartupUrlChooser()) webView.CoreWebView2?.Navigate(_homeUrl);
+                else Close();
+                break;
         }
     }
 
@@ -775,9 +821,16 @@ h1{font-size:20px;font-weight:700;margin:0;line-height:1.35}
 </html>
 """;
         Text = "SELRS Desktop - Offline";
-        try { if (webView.CoreWebView2 != null) { webView.NavigateToString(html); return; } } catch (Exception ex) { LogError("Failed to render error page", ex); }
+        try
+        {
+            var coreWebView = webView.CoreWebView2;
+            if (coreWebView != null) { webView.NavigateToString(html); return; }
+        }
+        catch (Exception ex) { LogError("Failed to render error page", ex); }
         var label = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Padding = new Padding(40), Font = new Font("Segoe UI", 11F), ForeColor = Color.FromArgb(17, 28, 48), BackColor = Color.FromArgb(248, 250, 252), Text = $"{title}{Environment.NewLine}{Environment.NewLine}{details}{Environment.NewLine}{_homeUrl}" };
-        Controls.Remove(webView); Controls.Add(label); label.BringToFront();
+        if (Controls.Contains(webView)) Controls.Remove(webView);
+        Controls.Add(label);
+        label.BringToFront();
     }
 
     private static void LogError(string message, Exception? exception)
@@ -798,7 +851,7 @@ h1{font-size:20px;font-weight:700;margin:0;line-height:1.35}
     }
 }
 
-internal sealed class TouchMessageHook : NativeWindow
+internal sealed class TouchMessageHook : NativeWindow, IDisposable
 {
     private const int WmTouch = 0x0240;
     private const int WmPointerDown = 0x0246;
@@ -815,5 +868,10 @@ internal sealed class TouchMessageHook : NativeWindow
     {
         if (m.Msg is WmTouch or WmPointerDown or WmGesture) _onTouch();
         base.WndProc(ref m);
+    }
+
+    public void Dispose()
+    {
+        ReleaseHandle();
     }
 }
