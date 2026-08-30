@@ -37,7 +37,7 @@ export default function TodayPatientsPanel() {
     {
       icon: FileCheck,
       label: "Reports",
-      color: "text-secondary",
+      color: "text-primary",
       hoverColor: "hover:bg-secondary/10",
       onClick: () => setLocation("/medical-reports"),
     },

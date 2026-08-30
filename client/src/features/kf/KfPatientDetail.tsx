@@ -477,7 +477,7 @@ export default function KfPatientDetail() {
               <hr className="my-4 border-border/60" />
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1 p-2 rounded bg-secondary/5 border border-secondary/20">
-                  <span className="text-xs text-secondary font-bold block">التاريخ المرضي العام</span>
+                  <span className="text-xs text-primary font-bold block">التاريخ المرضي العام</span>
                   <p className="text-xs text-foreground mt-1 whitespace-pre-wrap">{patient.medicalHistory || "لا يوجد"}</p>
                 </div>
                 <div className="space-y-1 p-2 rounded bg-destructive/10 border border-destructive/10">

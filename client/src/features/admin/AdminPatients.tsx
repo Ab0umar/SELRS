@@ -116,7 +116,7 @@ export default function AdminPatients() {
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
-                  <BarChart3 className="h-4 w-4 text-secondary" aria-hidden />
+                  <BarChart3 className="h-4 w-4 text-primary" aria-hidden />
                   <span className="text-sm sm:text-base">
                     إحصائيات شهرية ({monthTitleKey})
                   </span>
@@ -171,7 +171,7 @@ export default function AdminPatients() {
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
                 <div className="flex items-center gap-2 font-semibold text-foreground">
-                  <BarChart3 className="h-4 w-4 text-secondary" aria-hidden />
+                  <BarChart3 className="h-4 w-4 text-primary" aria-hidden />
                   <span className="text-sm sm:text-base">
                     إحصائيات سنوية ({list.statsYear})
                   </span>

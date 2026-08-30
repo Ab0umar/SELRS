@@ -3,6 +3,8 @@ import {
   router,
   makeSalaryProcedure,
   makeSalaryWriteProcedure,
+  makePageProcedure,
+  makePageWriteProcedure,
 } from "../_core/procedures";
 import { getDb } from "../db";
 import { shiftStaff, shiftAttendance } from "../../drizzle/schema";
@@ -10,7 +12,7 @@ import { eq, and } from "drizzle-orm";
 
 export const shiftStaffRouter = router({
   // ── Staff CRUD ───────────────────────────────────────────
-  listStaff: makeSalaryProcedure("/salary").query(async () => {
+  listStaff: makePageProcedure("/attendance/shift-schedule").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db
@@ -19,7 +21,7 @@ export const shiftStaffRouter = router({
       .orderBy(shiftStaff.type, shiftStaff.name);
   }),
 
-  addStaff: makeSalaryWriteProcedure("/salary")
+  addStaff: makePageWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         name: z.string().min(1),
@@ -38,7 +40,7 @@ export const shiftStaffRouter = router({
       return { id: (result as any).insertId };
     }),
 
-  updateStaff: makeSalaryWriteProcedure("/salary")
+  updateStaff: makePageWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         id: z.number(),
@@ -64,7 +66,7 @@ export const shiftStaffRouter = router({
     }),
 
   // ── Schedule ─────────────────────────────────────────────
-  getSchedule: makeSalaryProcedure("/salary")
+  getSchedule: makePageProcedure("/attendance/shift-schedule")
     .input(z.object({ year: z.number(), month: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -88,7 +90,7 @@ export const shiftStaffRouter = router({
       return { staff, attendance };
     }),
 
-  addShift: makeSalaryWriteProcedure("/salary")
+  addShift: makePageWriteProcedure("/attendance/shift-schedule")
     .input(
       z.object({
         staffId: z.number(),
@@ -120,7 +122,7 @@ export const shiftStaffRouter = router({
       return { success: true };
     }),
 
-  togglePresent: makeSalaryWriteProcedure("/salary")
+  togglePresent: makePageWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ id: z.number(), present: z.boolean() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -132,7 +134,7 @@ export const shiftStaffRouter = router({
       return { success: true };
     }),
 
-  deleteShift: makeSalaryWriteProcedure("/salary")
+  deleteShift: makePageWriteProcedure("/attendance/shift-schedule")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();

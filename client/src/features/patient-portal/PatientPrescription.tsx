@@ -1,4 +1,4 @@
-﻿import {
+import {
   RefreshCw,
   ShieldAlert,
   Pill,
@@ -60,14 +60,14 @@ function PrescriptionCard({ row }: { row: any }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+                    <div className="size-8 rounded-lg bg-secondary/10 text-primary flex items-center justify-center shrink-0">
                       <Pill className="size-4" />
                     </div>
                     <p className="text-sm font-bold text-foreground">
                       {valueText(item.medicationName)}
                     </p>
                   </div>
-                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[10px] font-bold text-secondary">
+                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
                     {valueText(item.duration)}
                   </span>
                 </div>
@@ -190,7 +190,7 @@ export default function PatientPrescription() {
             <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-secondary">
+                  <p className="text-xs font-bold text-primary">
                     آخر روشتة صادرة
                   </p>
                   <h3 className="text-lg font-bold text-foreground">

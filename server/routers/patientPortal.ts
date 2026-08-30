@@ -6,6 +6,7 @@ import {
   protectedProcedure,
   adminProcedure,
   patientPortalProcedure,
+  receptionProcedure,
 } from "../_core/procedures";
 import {
   getDb,
@@ -391,7 +392,7 @@ export const patientPortalRouter = router({
             title: "طلب حجز جديد",
             message: `${typeLabel} — ${input.requestedDate}`,
             kind: "info",
-            targetRoles: targetUserIds ? null : ["admin", "reception"],
+            targetRoles: targetUserIds ? null : ["admin", "reception", "accountant"],
             targetUserIds,
             source: "booking",
             entityType: "booking",
@@ -457,7 +458,7 @@ export const patientPortalRouter = router({
             title: "طلب حجز جديد (زائر)",
             message: `${input.guestName} — ${typeLabel2} — ${input.requestedDate}`,
             kind: "info",
-            targetRoles: targetUserIds ? null : ["admin", "reception"],
+            targetRoles: targetUserIds ? null : ["admin", "reception", "accountant"],
             targetUserIds,
             source: "booking",
             entityType: "booking",
@@ -527,7 +528,7 @@ export const patientPortalRouter = router({
 
   // ── Staff / Admin ─────────────────────────────────────────────────────────
 
-  listBookings: protectedProcedure
+  listBookings: receptionProcedure
     .input(
       z.object({
         date: z.string().optional(),
@@ -586,7 +587,7 @@ export const patientPortalRouter = router({
       }));
     }),
 
-  createStaffBooking: protectedProcedure
+  createStaffBooking: receptionProcedure
     .input(
       z.object({
         patientId: z.number().int(),
@@ -688,7 +689,7 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
-  createStaffGuestBooking: protectedProcedure
+  createStaffGuestBooking: receptionProcedure
     .input(
       z.object({
         guestName: z.string().min(1).max(255),
@@ -768,7 +769,7 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
-  deleteBooking: protectedProcedure
+  deleteBooking: receptionProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -801,7 +802,7 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
-  updateBooking: protectedProcedure
+  updateBooking: receptionProcedure
     .input(
       z.object({
         id: z.number().int(),
@@ -948,7 +949,7 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
-  getSchedule: protectedProcedure
+  getSchedule: receptionProcedure
     .input(z.object({ branch: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -985,7 +986,7 @@ export const patientPortalRouter = router({
 
   // ── Closure periods ───────────────────────────────────────────────────────
 
-  listClosures: protectedProcedure.query(async () => {
+  listClosures: receptionProcedure.query(async () => {
     const db = await getDb();
     if (!db)
       throw new TRPCError({
@@ -995,7 +996,7 @@ export const patientPortalRouter = router({
     return db.select().from(bookingClosures).orderBy(bookingClosures.startDate);
   }),
 
-  addClosure: protectedProcedure
+  addClosure: receptionProcedure
     .input(
       z.object({
         label: z.string().min(1).max(255),
@@ -1029,7 +1030,7 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
-  deleteClosure: protectedProcedure
+  deleteClosure: receptionProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1042,7 +1043,7 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
-  updateSchedule: protectedProcedure
+  updateSchedule: receptionProcedure
     .input(
       z.object({
         bookingType: z.enum([

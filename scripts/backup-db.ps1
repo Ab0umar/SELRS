@@ -59,5 +59,10 @@ $latestFile = Join-Path $backupRoot "latest.sql"
 Copy-Item -Path $OutFile -Destination $latestFile -Force
 Write-Host "Latest backup updated: $latestFile"
 
+$hash = (Get-FileHash -LiteralPath $OutFile -Algorithm SHA256).Hash.ToLowerInvariant()
+Set-Content -LiteralPath "$OutFile.sha256" -Value "$hash  $(Split-Path -Leaf $OutFile)" -Encoding ascii
+Set-Content -LiteralPath "$latestFile.sha256" -Value "$hash  $(Split-Path -Leaf $latestFile)" -Encoding ascii
+Write-Host "SHA256: $hash"
+
 # Keep most recent 30 backups by default
 Get-ChildItem $backupRoot -Filter "selrs_db_*.sql" | Sort-Object LastWriteTime -Descending | Select-Object -Skip 30 | Remove-Item -Force -ErrorAction SilentlyContinue

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,7 +119,10 @@ function AssignmentPanel({
   }
 
   function addExtra() {
-    if (!addShiftId) { toast.error("اختر الوردية"); return; }
+    if (!addShiftId) {
+      toast.error("اختر الوردية");
+      return;
+    }
     addMut.mutate({
       empCd,
       shiftId: addShiftId,
@@ -178,10 +181,17 @@ function AssignmentPanel({
           {/* Existing assignments list with delete */}
           {assignments.length > 0 && (
             <div className="space-y-1 pt-1 border-t border-border/30">
-              <p className="text-xs font-semibold text-muted-foreground">الورديات الحالية</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                الورديات الحالية
+              </p>
               {assignments.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-3 py-1.5 text-xs">
-                  <span className="font-medium">{a.shiftName} — {maskLabel(a.weekdayMask)}</span>
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-3 py-1.5 text-xs"
+                >
+                  <span className="font-medium">
+                    {a.shiftName} — {maskLabel(a.weekdayMask)}
+                  </span>
                   <button
                     type="button"
                     onClick={() => deleteMut.mutate({ id: a.id })}
@@ -197,7 +207,9 @@ function AssignmentPanel({
 
           {/* Add extra assignment without overwriting */}
           <div className="space-y-2 pt-1 border-t border-border/30">
-            <p className="text-xs font-semibold text-muted-foreground">إضافة وردية إضافية</p>
+            <p className="text-xs font-semibold text-muted-foreground">
+              إضافة وردية إضافية
+            </p>
             <div className="flex flex-wrap gap-2">
               <select
                 value={addShiftId}
@@ -206,7 +218,9 @@ function AssignmentPanel({
               >
                 <option value={0}>-- اختر الوردية --</option>
                 {shifts.map((s: any) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
                 ))}
               </select>
               <div className="flex flex-wrap gap-1">
@@ -311,9 +325,9 @@ function TempSwapPanel({
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ArrowLeftRight size={14} className="text-secondary" />
+              <ArrowLeftRight size={14} className="text-primary" />
               <p className="text-sm font-semibold text-foreground">
-                تبديل مؤقت — <span className="text-secondary">{empName}</span>
+                تبديل مؤقت — <span className="text-primary">{empName}</span>
               </p>
             </div>
             <button
@@ -421,6 +435,10 @@ export default function EmployeesList() {
   const [editingCd, setEditingCd] = useState<string | null>(null);
   const [panelCd, setPanelCd] = useState<string | null>(null);
   const [swapCd, setSwapCd] = useState<string | null>(null);
+  const [terminationCd, setTerminationCd] = useState<string | null>(null);
+  const [terminationDate, setTerminationDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
   const [editRow, setEditRow] = useState<{
     fullName: string;
     department: string;
@@ -458,6 +476,36 @@ export default function EmployeesList() {
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
+  const terminateMutation = trpc.attendance.terminateEmployee.useMutation({
+    onSuccess: () => {
+      setTerminationCd(null);
+      employeesQuery.refetch();
+      toast.success("تم تسجيل ترك العمل وإخفاء الموظف من النظام");
+    },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+
+  const startTermination = (empCd: string) => {
+    setTerminationCd(empCd);
+    setTerminationDate(new Date().toISOString().split("T")[0]);
+    setEditingCd(null);
+    setPanelCd(null);
+    setSwapCd(null);
+  };
+
+  const confirmTermination = (emp: any) => {
+    if (!terminationDate) {
+      toast.error("اختر تاريخ ترك العمل");
+      return;
+    }
+    if (
+      confirm(
+        `تأكيد أن ${emp.fullName} ترك العمل بتاريخ ${terminationDate}؟ سيختفي من جميع القوائم والاختيارات مع الاحتفاظ بسجلاته القديمة.`,
+      )
+    ) {
+      terminateMutation.mutate({ empCd: emp.empCd, terminationDate });
+    }
+  };
 
   const startEdit = (emp: any) => {
     setEditingCd(emp.empCd);
@@ -486,14 +534,12 @@ export default function EmployeesList() {
   >();
   for (const a of allAssignments) {
     if (!assignmentsMap.has(a.empCd)) assignmentsMap.set(a.empCd, []);
-    assignmentsMap
-      .get(a.empCd)!
-      .push({
-        id: a.id,
-        shiftId: a.shiftId,
-        shiftName: a.shiftName,
-        weekdayMask: a.weekdayMask ?? 127,
-      });
+    assignmentsMap.get(a.empCd)!.push({
+      id: a.id,
+      shiftId: a.shiftId,
+      shiftName: a.shiftName,
+      weekdayMask: a.weekdayMask ?? 127,
+    });
   }
 
   const centerEmployees = allEmployees.filter(
@@ -545,6 +591,7 @@ export default function EmployeesList() {
             const isEditing = editingCd === emp.empCd;
             const showPanel = panelCd === emp.empCd;
             const showSwap = swapCd === emp.empCd;
+            const showTermination = terminationCd === emp.empCd;
             const isClinic =
               emp.department === "عيادة" ||
               emp.department === "clinic" ||
@@ -674,6 +721,23 @@ export default function EmployeesList() {
                 </div>
 
                 <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
+                  {!isEditing && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startTermination(emp.empCd)}
+                      title="تسجيل ترك العمل"
+                      className="h-10 gap-1 px-2 text-xs text-destructive"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={showTermination}
+                        readOnly
+                        className="h-4 w-4 accent-destructive"
+                      />
+                      ترك عمل
+                    </Button>
+                  )}
                   {isEditing ? (
                     <>
                       <Button
@@ -741,7 +805,7 @@ export default function EmployeesList() {
                           setPanelCd(null);
                         }}
                         title="تبديل مؤقت للوردية"
-                        className={`h-10 w-10 p-0 ${showSwap ? "text-secondary" : "text-muted-foreground"}`}
+                        className={`h-10 w-10 p-0 ${showSwap ? "text-primary" : "text-muted-foreground"}`}
                       >
                         <ArrowLeftRight size={15} />
                       </Button>
@@ -761,6 +825,36 @@ export default function EmployeesList() {
                     </>
                   )}
                 </div>
+
+                {showTermination && (
+                  <div className="mt-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+                    <label className="mb-2 block text-xs font-semibold text-destructive">
+                      تاريخ ترك العمل
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <DateInput
+                        value={terminationDate}
+                        onChange={(e) => setTerminationDate(e.target.value)}
+                        className="min-w-0 flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={terminateMutation.isPending}
+                        onClick={() => confirmTermination(emp)}
+                      >
+                        تأكيد
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setTerminationCd(null)}
+                      >
+                        إلغاء
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {showPanel && (
                   <div className="mt-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
@@ -833,6 +927,9 @@ export default function EmployeesList() {
               <th className="px-4 py-3 text-center font-semibold">
                 أيام الدوام
               </th>
+              <th className="px-4 py-3 text-center font-semibold w-28">
+                ترك العمل
+              </th>
               <th className="px-4 py-3 text-center font-semibold w-24">
                 الإجراءات
               </th>
@@ -843,6 +940,7 @@ export default function EmployeesList() {
               const isEditing = editingCd === emp.empCd;
               const showPanel = panelCd === emp.empCd;
               const showSwap = swapCd === emp.empCd;
+              const showTermination = terminationCd === emp.empCd;
               const isClinic =
                 emp.department === "عيادة" ||
                 emp.department === "clinic" ||
@@ -1007,6 +1105,45 @@ export default function EmployeesList() {
                       )}
                     </td>
 
+                    <td className="px-4 py-3 text-center">
+                      {showTermination ? (
+                        <div className="flex min-w-48 items-center gap-1">
+                          <DateInput
+                            value={terminationDate}
+                            onChange={(e) => setTerminationDate(e.target.value)}
+                            className="h-8 min-w-32 text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={terminateMutation.isPending}
+                            onClick={() => confirmTermination(emp)}
+                            className="h-8 px-2"
+                          >
+                            <Check size={14} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setTerminationCd(null)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <X size={14} />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-muted-foreground hover:text-destructive">
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={() => startTermination(emp.empCd)}
+                            className="h-4 w-4 accent-destructive"
+                          />
+                          ترك عمل
+                        </label>
+                      )}
+                    </td>
+
                     {/* Actions */}
                     <td className="px-4 py-3 text-center">
                       {isEditing ? (
@@ -1077,7 +1214,7 @@ export default function EmployeesList() {
                               setPanelCd(null);
                             }}
                             title="تبديل مؤقت للوردية"
-                            className={`h-8 w-8 p-0 ${showSwap ? "text-secondary" : "text-muted-foreground"}`}
+                            className={`h-8 w-8 p-0 ${showSwap ? "text-primary" : "text-muted-foreground"}`}
                           >
                             <ArrowLeftRight size={14} />
                           </Button>

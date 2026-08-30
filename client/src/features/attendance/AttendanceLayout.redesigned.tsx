@@ -146,7 +146,7 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
           : device?.status === "connecting"
             ? "جارٍ"
             : "غير متصل",
-      tone: "text-secondary",
+      tone: "text-primary",
       accent: "bg-secondary/10 border-secondary/20",
     },
   ];
@@ -163,7 +163,7 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
             {/* Title section */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary">
+                <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-xs font-medium text-primary">
                   <span className="h-2 w-2 rounded-full bg-secondary" />
                   نظام الحضور والانصراف
                 </div>
@@ -230,7 +230,7 @@ export default function AttendanceLayout({ children, fullWidth }: AttendanceLayo
                           href={item.href}
                           className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 focus-visible:ring-offset-2 ${
                             itemActive
-                              ? "bg-secondary/10 text-secondary font-medium shadow-sm"
+                              ? "bg-secondary/10 text-primary font-medium shadow-sm"
                               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           }`}
                         >

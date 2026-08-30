@@ -1515,7 +1515,7 @@ export default function MedicationsManagement() {
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/[0.07]0/10 text-secondary">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/[0.07]0/10 text-primary">
                     <Microscope className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-lg">

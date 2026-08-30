@@ -53,7 +53,7 @@ const ACCENT: Record<Accent, { bar: string; iconWrap: string; icon: string }> =
     orange: {
       bar: "border-t-secondary",
       iconWrap: "bg-primary/15 text-primary",
-      icon: "text-secondary",
+      icon: "text-primary",
     },
     emerald: {
       bar: "border-t-success",

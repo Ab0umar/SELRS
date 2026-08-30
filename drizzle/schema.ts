@@ -41,9 +41,28 @@ export const users = mysqlTable("users", {
     .notNull(),
   shift: int("shift").default(1).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
+  authVersion: int("authVersion").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn"),
+});
+
+export const authSessions = mysqlTable(
+  "auth_sessions",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: int("user_id").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("idx_auth_sessions_user").on(table.userId)],
+);
+
+export const loginRateLimits = mysqlTable("login_rate_limits", {
+  key: varchar("key", { length: 255 }).primaryKey(),
+  attempts: int("attempts").notNull().default(0),
+  resetAt: timestamp("reset_at").notNull(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -1570,6 +1589,7 @@ export const attendanceEmployees = mysqlTable(
     }),
     defaultShiftId: int("default_shift_id"),
     active: boolean("active").default(true).notNull(),
+    terminationDate: date("termination_date"),
     commAttendance: boolean("comm_attendance").default(true).notNull(),
     commExam: boolean("comm_exam").default(true).notNull(),
     commPentacam: boolean("comm_pentacam").default(true).notNull(),
@@ -1582,6 +1602,9 @@ export const attendanceEmployees = mysqlTable(
   (table) => ({
     idxActive: index("idx_active").on(table.active),
     idxDept: index("idx_dept").on(table.department),
+    idxTerminationDate: index("idx_employee_termination_date").on(
+      table.terminationDate,
+    ),
   }),
 );
 
@@ -1805,7 +1828,9 @@ export const attendanceDaily = mysqlTable(
     computedAt: timestamp("computedAt").notNull(),
   },
   (table) => ({
-    pkAttendanceDaily: primaryKey({ columns: [table.empCd, table.workDate, table.shiftId] }),
+    pkAttendanceDaily: primaryKey({
+      columns: [table.empCd, table.workDate, table.shiftId],
+    }),
     idxDateStatus: index("idx_date_status").on(table.workDate, table.status),
     idxInsideNow: index("idx_inside_now").on(table.insideNow),
   }),

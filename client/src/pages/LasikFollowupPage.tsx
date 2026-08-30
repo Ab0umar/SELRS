@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Printer } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
@@ -13,9 +12,8 @@ import {
   saveSheetDesignerConfig,
 } from "@/lib/sheetDesigner";
 import { printOrExportPdf } from "@/lib/nativePdf";
-import { DateInput } from "@/components/ui/date-input";
-import SheetCenterHeader from "@/components/SheetCenterHeader";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
+import { operationTypeLabelAr } from "@shared/opTypes";
 
 const FOLLOWUP_TITLES = [
   "المتابعة الأولى",
@@ -79,6 +77,26 @@ export default function LasikFollowupPage() {
     enabled: Boolean(initialPatientId),
     refetchOnWindowFocus: false,
   });
+  // Requested-service code is the only reference available for the
+  // operation type — pre-fill this field from it once per patient, still
+  // freely editable afterward (never re-applied once the patient is set).
+  const suggestedOperationTypeQuery =
+    trpc.opHistory.getSuggestedOperationType.useQuery(
+      { patientId: initialPatientId ?? 0 },
+      { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    );
+  const appliedSuggestionForPatientRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!initialPatientId || !suggestedOperationTypeQuery.data) return;
+    if (appliedSuggestionForPatientRef.current === initialPatientId) return;
+    appliedSuggestionForPatientRef.current = initialPatientId;
+    setOperationType(
+      operationTypeLabelAr(suggestedOperationTypeQuery.data.operationType),
+    );
+    if (suggestedOperationTypeQuery.data.operationDate) {
+      setOperationDateRight(suggestedOperationTypeQuery.data.operationDate);
+    }
+  }, [initialPatientId, suggestedOperationTypeQuery.data]);
   const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: initialPatientId ?? 0, page: "examination" },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
@@ -313,140 +331,22 @@ export default function LasikFollowupPage() {
     "Later Follow-up",
   ];
 
+  const followupPages: typeof followups[] = [];
+  for (let i = 0; i < followups.length; i += 4) {
+    followupPages.push(followups.slice(i, i + 4));
+  }
+  if (followupPages.length === 0) followupPages.push([]);
+
   return (
     <div
-      className="lasik-followup-page min-h-screen bg-[#dde1e7] text-foreground"
-      style={{ fontFamily: "Inter, sans-serif" }}
+      className="followup-print-root lasik-followup-page min-h-screen print:min-h-0 bg-[#dde1e7] text-foreground"
+      style={{ fontFamily: "Arial, Tahoma, sans-serif" }}
     >
-      <style>{`
-        @media print {
-          @page { size: A4 portrait; margin: 0; }
-          .print\\:hidden { display: none !important; }
-          html,
-          body,
-          #root,
-          .lasik-followup-page,
-          .lasik-followup-page main {
-            width: 210mm !important;
-            min-height: 297mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-          }
-          .print-page-center-a4 {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            min-height: 297mm !important;
-            margin: 0 auto;
-          }
-          .sheet-followup-body {
-            width: 210mm !important;
-            min-height: 297mm !important;
-            box-sizing: border-box !important;
-            margin: 0 auto;
-            padding: 10mm !important;
-          }
-          .sheet-followup-body section { page-break-inside: avoid !important; }
-          .sheet-followup-body table { font-size: inherit !important; }
-          .sheet-followup-body th,
-          .sheet-followup-body td {
-            padding: 0 !important;
-            line-height: normal !important;
-          }
-          .sheet-followup-body input,
-          .sheet-followup-body select,
-          .sheet-followup-body textarea {
-            line-height: normal !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-          }
-          .sheet-followup-body .followup-record-table input {
-            font-size: 12px !important;
-          }
-          .sheet-followup-body .followup-record-title > input {
-            font-size: 13px !important;
-          }
-          .sheet-followup-body section { box-shadow: none !important; }
-        }
-        .print-page-center-a4 {
-          width: 210mm;
-          max-width: calc(100vw - 32px);
-          margin: 0 auto;
-        }
-        .print-page-center-a4 .sheet-followup-body {
-          width: 210mm;
-          max-width: 100%;
-          min-height: 297mm;
-          box-sizing: border-box;
-          padding: 10mm;
-        }
-        .a4-canvas {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 20px auto;
-            background: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            padding: 15mm;
-            position: relative;
-        }
-        .od-bg { background-color: rgba(0, 61, 155, 0.03); }
-        .os-bg { background-color: transparent; }
-        .table-input-cell {
-            padding: 0 !important;
-        }
-        .table-input-cell input {
-            height: 100%;
-            border-radius: 0;
-            text-align: center;
-            background-color: transparent;
-            border: 1px solid transparent;
-            width: 100%;
-            transition: all 0.2s;
-        }
-        .table-input-cell input:focus {
-            border-color: #003d9b;
-            background-color: #ffffff;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(0, 61, 155, 0.1);
-        }
-        .text-on-surface { color: #191c1e; }
-        .text-primary { color: #003d9b; }
-        .bg-primary { background-color: #003d9b; }
-        .hover\:bg-primary-container:hover { background-color: #0052cc; }
-        .bg-primary-container { background-color: #0052cc; }
-        .text-on-primary-container { color: #c4d2ff; }
-        .text-on-surface-variant { color: #434654; }
-        .text-outline { color: #737685; }
-        .border-outline-variant { border-color: #c3c6d6; }
-        .border-outline { border-color: #737685; }
-        .bg-surface-container-lowest { background-color: #ffffff; }
-        .bg-surface-container-low { background-color: #f3f4f6; }
-        .bg-surface-container-high { background-color: #e7e8ea; }
-        .bg-surface-container-highest { background-color: #e1e2e4; }
-        .bg-tertiary-container { background-color: #006476; }
-        .text-on-tertiary-container { color: #70e2ff; }
-        .text-secondary { color: #526069; }
-        .bg-surface-variant { background-color: #e1e2e4; }
-        .bg-surface { background-color: #f8f9fb; }
-        
-        .mb-section-margin { margin-bottom: 32px; }
-        .mt-section-margin { margin-top: 32px; }
-        .gap-gutter { gap: 16px; }
-        .pt-gutter { padding-top: 16px; }
-        
-        .font-body-md, .text-body-md { font-size: 14px; line-height: 20px; font-weight: 400; }
-        .font-headline-md, .text-headline-md { font-size: 24px; line-height: 32px; font-weight: 600; }
-        .font-headline-sm, .text-headline-sm { font-size: 20px; line-height: 28px; font-weight: 600; }
-        .font-body-lg, .text-body-lg { font-size: 16px; line-height: 24px; font-weight: 400; }
-        .font-display-lg, .text-display-lg { font-size: 32px; line-height: 40px; letter-spacing: -0.02em; font-weight: 700; }
-        .font-data-mono { font-size: 14px; line-height: 20px; font-weight: 600; }
-        .font-label-caps { font-size: 12px; line-height: 16px; letter-spacing: 0.05em; font-weight: 700; text-transform: uppercase; }
-      `}</style>
 
       {/* Top nav */}
       <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">
         <span className="text-base font-bold text-primary">
-          Ophthalmic Clinic Management
+          متابعة الليزك
         </span>
         <div className="flex items-center gap-3">
           <Button
@@ -457,7 +357,7 @@ export default function LasikFollowupPage() {
               setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)
             }
           >
-            ← Lasik Sheet
+            العودة إلى شيت الليزك
           </Button>
           <div className="w-60">
             <PatientPicker
@@ -471,7 +371,7 @@ export default function LasikFollowupPage() {
             onClick={handleSaveFollowup}
             disabled={saveFollowupSheetMutation.isPending}
           >
-            {saveFollowupSheetMutation.isPending ? "Saving..." : "Save Sheet"}
+            {saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}
           </Button>
           <Button
             type="button"
@@ -484,31 +384,39 @@ export default function LasikFollowupPage() {
               )
             }
           >
-            <Printer className="h-3 w-3 mr-1" /> Print PDF
+            <Printer className="h-3 w-3 ml-1" /> طباعة
           </Button>
         </div>
       </header>
 
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen print:min-h-0">
         {/* Main content */}
         <main className="py-8 px-6 flex-1 print:p-0">
-          <div className="print-page-center-a4">
-            <FollowupTablesBody
-              titleEn="Lasik Follow-up"
-              titleAr="متابعة الليزك"
-              patientName={patientName}
-              patientDOB={patientDOB}
-              operationType={operationType}
-              setOperationType={setOperationType}
-              operationEyes={operationEyes}
-              setOperationEyes={setOperationEyes}
-              operationDateRight={operationDateRight}
-              setOperationDateRight={setOperationDateRight}
-              followups={followups}
-              setFollowups={setFollowups}
-              followupLabels={followupLabels}
-              signatures={signatures}
-            />
+          <div data-print-document="followup" data-followup-kind="lasik">
+            {followupPages.map((page, pageIndex) => (
+              <div
+                key={pageIndex}
+                className="followup-print-page"
+                style={pageIndex > 0 ? { marginTop: "8mm" } : undefined}
+              >
+                <FollowupTablesBody
+                  titleEn="Lasik Follow-up"
+                  titleAr="متابعة الليزك"
+                  patientName={patientName}
+                  patientDOB={patientDOB}
+                  operationType={operationType}
+                  setOperationType={setOperationType}
+                  operationEyes={operationEyes}
+                  setOperationEyes={setOperationEyes}
+                  operationDateRight={operationDateRight}
+                  setOperationDateRight={setOperationDateRight}
+                  followups={page}
+                  setFollowups={setFollowups}
+                  followupLabels={followupLabels}
+                  signatures={signatures}
+                />
+              </div>
+            ))}
           </div>
         </main>
       </div>

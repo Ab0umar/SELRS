@@ -1,0 +1,381 @@
+.sheet-followup-body,
+.sheet-followup-body * {
+  box-sizing: border-box;
+}
+
+/* The shadcn Input/DateInput's own bg-transparent utility class can lose to
+   another [data-slot="input"] rule elsewhere in the cascade — force it here
+   so every field inside a followup card stays see-through for the
+   watermark instead of showing up as an opaque white patch. */
+.sheet-followup-body input,
+.sheet-followup-body [data-slot="input"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* A disabled/read-only DateInput (the attached, non-editable followup
+   section embedded in the main sheet) otherwise falls back to the
+   browser's very low-contrast default "disabled" text color, which reads
+   as blank against the sheet's light background — same fix as the print
+   version below, but for the on-screen attached view too. */
+.sheet-followup-body .followup-date-input input:disabled {
+  color: #172033 !important;
+  -webkit-text-fill-color: #172033 !important;
+  opacity: 1 !important;
+}
+
+.sheet-followup-body .followup-record-title,
+.sheet-followup-body .followup-record-title input,
+.sheet-followup-body .followup-record-title label,
+.sheet-followup-body .followup-record-table th,
+.sheet-followup-body .followup-record-table td,
+.sheet-followup-body .followup-record-table input,
+.sheet-followup-body .followup-record-section > div:last-child,
+.sheet-followup-body .followup-record-section > div:last-child > div {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.sheet-followup-body[data-print-followup-body="true"],
+.sheet-followup-body[data-print-followup-body="true"] * {
+  scrollbar-width: none;
+}
+
+.sheet-followup-body[data-print-followup-body="true"]::-webkit-scrollbar,
+.sheet-followup-body[data-print-followup-body="true"] *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.followup-print-page {
+  width: 210mm;
+  max-width: calc(100vw - 32px);
+  margin: 0 auto;
+}
+
+.followup-print-page .sheet-followup-body {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 10mm;
+}
+
+.combined-followup-screen {
+  width: 210mm;
+  max-width: calc(100vw - 32px);
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+.combined-followup-screen .sheet-followup-body {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 10mm;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  .followup-print-root,
+  .followup-print-root main,
+  [data-print-document="followup"] {
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Each printed follow-up group is its own paper page — a patient with more
+     than 4 recorded visits grows [data-print-document="followup"] into
+     several stacked .followup-print-page blocks instead of clipping the
+     rest, so later visits still show up in print/PDF output. */
+  .followup-print-page {
+    width: 210mm !important;
+    height: 296mm !important;
+    min-height: 296mm !important;
+    max-height: 296mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .followup-print-page + .followup-print-page {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .followup-print-root .print\:hidden {
+    display: none !important;
+  }
+
+  .sheet-followup-body[data-print-followup-body="true"] {
+    width: 210mm !important;
+    height: 296mm !important;
+    min-height: 296mm !important;
+    max-height: 296mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 6mm 8mm !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .sheet-followup-body .sheet-followup-content {
+    position: relative !important;
+    z-index: 1 !important;
+    display: grid !important;
+    grid-template-rows: 16mm 20mm minmax(0, 1fr) !important;
+    gap: 2mm !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  [data-print-document="lasik"].combined-sheet-print {
+    display: block !important;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    page-break-after: avoid !important;
+    break-after: avoid-page !important;
+  }
+
+  /* Chrome's PDF/print pagination measures page height in its own rounded
+     px conversion of the CSS mm value, not the exact mm figure — with two
+     296mm pages stacked back to back (main + attached followup) in one
+     document, that per-page rounding error compounds and can tip the total
+     just over 2 A4 pages, producing a trailing blank 3rd page. 293mm leaves
+     enough headroom for that rounding on both pages combined. */
+  [data-print-document="lasik"].combined-sheet-print > [data-print-page] {
+    width: 210mm !important;
+    height: 293mm !important;
+    min-height: 293mm !important;
+    max-height: 293mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid-page !important;
+  }
+
+  [data-print-document="lasik"].combined-sheet-print
+    > [data-print-page="main"] {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  [data-print-document="lasik"].combined-sheet-print
+    > [data-print-page="followup"] {
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-after: avoid !important;
+    break-after: avoid-page !important;
+  }
+
+  .attached-followup-page > .sheet-followup-body[data-print-variant="attached"] {
+    width: 210mm !important;
+    /* Must not exceed the 293mm .attached-followup-page ([data-print-page])
+       parent above, or this inner box overflows its own page. */
+    height: 293mm !important;
+    min-height: 293mm !important;
+    max-height: 293mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 6mm 8mm !important;
+    overflow: hidden !important;
+  }
+
+  .sheet-followup-body[data-print-variant="attached"]
+    .sheet-followup-content {
+    grid-template-rows: 20mm minmax(0, 1fr) !important;
+  }
+
+  .sheet-followup-body[data-print-variant="attached"] .sheet-print-header {
+    display: none !important;
+  }
+
+  .sheet-followup-body .sheet-print-header {
+    width: 100% !important;
+    height: 16mm !important;
+    min-height: 16mm !important;
+    margin: 0 !important;
+    padding: 0 0 1.5mm !important;
+    overflow: hidden !important;
+  }
+
+  .sheet-followup-body .sheet-print-logo {
+    width: 11mm !important;
+    height: 11mm !important;
+  }
+
+  .sheet-followup-body .sheet-print-clinic-name {
+    font-size: 15px !important;
+  }
+
+  .sheet-followup-body .sheet-print-clinic-tagline {
+    font-size: 8px !important;
+  }
+
+  .sheet-followup-body .sheet-print-type {
+    font-size: 13px !important;
+    white-space: nowrap !important;
+  }
+
+  .sheet-followup-body .followup-record-head {
+    height: 20mm !important;
+    min-height: 20mm !important;
+    overflow: hidden !important;
+    border-radius: 0 !important;
+  }
+
+  .sheet-followup-body .followup-record-head > div:first-child {
+    height: 13mm !important;
+  }
+
+  .sheet-followup-body .followup-record-head .px-3 {
+    padding: 1mm 1.5mm !important;
+  }
+
+  .sheet-followup-body .followup-record-head strong {
+    font-size: 12px !important;
+    line-height: 1.1 !important;
+  }
+
+  .sheet-followup-body .followup-record-head span,
+  .sheet-followup-body .followup-record-head input,
+  .sheet-followup-body .followup-record-head button {
+    font-size: 8px !important;
+    line-height: 1.05 !important;
+  }
+
+  .sheet-followup-body .followup-record-head input,
+  .sheet-followup-body .followup-record-head button {
+    height: 5mm !important;
+    min-height: 5mm !important;
+  }
+
+  .sheet-followup-body .followup-record-head > div:last-child {
+    height: 7mm !important;
+    min-height: 7mm !important;
+    padding-block: 0.5mm !important;
+  }
+
+  .sheet-followup-body .followup-date-input {
+    opacity: 1 !important;
+  }
+
+  .sheet-followup-body .followup-date-input button {
+    display: none !important;
+  }
+
+  .sheet-followup-body .followup-date-input input:disabled {
+    color: #172033 !important;
+    -webkit-text-fill-color: #172033 !important;
+    opacity: 1 !important;
+  }
+
+  .sheet-followup-body .followup-record-list {
+    display: grid !important;
+    grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+    gap: 2mm !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .sheet-followup-body .followup-record-section {
+    display: flex !important;
+    min-height: 0 !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .sheet-followup-body .followup-record-title {
+    flex: 0 0 7mm !important;
+    grid-template-columns: minmax(0, 1fr) 48mm 48mm !important;
+    height: 7mm !important;
+    min-height: 7mm !important;
+  }
+
+  .sheet-followup-body .followup-record-title input,
+  .sheet-followup-body .followup-record-title label,
+  .sheet-followup-body .followup-record-title > div {
+    height: 7mm !important;
+    min-height: 7mm !important;
+    padding-block: 0 !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+  }
+
+  .sheet-followup-body .followup-record-table {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  .sheet-followup-body .followup-record-table tr {
+    height: auto !important;
+  }
+
+  .sheet-followup-body .followup-record-table th,
+  .sheet-followup-body .followup-record-table td {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 1px !important;
+    font-size: 7.5px !important;
+    line-height: 1 !important;
+  }
+
+  .sheet-followup-body .followup-record-table input {
+    min-height: 0 !important;
+    padding: 0 1mm !important;
+    font-size: 7.5px !important;
+    line-height: 1 !important;
+  }
+
+  .sheet-followup-body .followup-record-section > div:last-child {
+    flex: 0 0 5mm !important;
+    height: 5mm !important;
+    min-height: 5mm !important;
+    font-size: 7px !important;
+  }
+
+  .sheet-followup-body .sheet-watermark img {
+    width: 120mm !important;
+    height: 120mm !important;
+    opacity: 0.07 !important;
+  }
+}

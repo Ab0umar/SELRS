@@ -1,0 +1,6 @@
+# Copy to android/app/key.properties only on the build machine, or set the
+# equivalent ANDROID_* environment variables in CI. Do not commit real values.
+storeFile=../release-signing.keystore
+storePassword=
+keyAlias=release
+keyPassword=

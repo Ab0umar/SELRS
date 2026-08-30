@@ -197,7 +197,7 @@ export default function LeaveBalanceReport({ department }: { department?: string
                 size="sm"
                 onClick={handlePrint}
                 disabled={!rows.length}
-                className="gap-2 border-secondary/20 text-secondary hover:bg-secondary/10"
+                className="gap-2 border-secondary/20 text-primary hover:bg-secondary/10"
               >
                 <Printer className="h-4 w-4" /> طباعة
               </Button>

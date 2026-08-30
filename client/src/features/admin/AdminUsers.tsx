@@ -150,7 +150,7 @@ function roleBadgeClass(role: UserRole): string {
     manager: "bg-destructive/10 text-destructive border-0",
     doctor: "bg-primary/10 text-primary border-0",
     reception: "bg-success/15 text-foreground border-0",
-    nurse: "bg-secondary/15 text-secondary border-0",
+    nurse: "bg-secondary/15 text-primary border-0",
     technician: "bg-warning/20 text-warning border-0",
     accountant: "bg-primary/15 text-primary border-0",
     admin: "bg-border text-foreground border-0",

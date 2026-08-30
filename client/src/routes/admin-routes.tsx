@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Redirect, Route, useRoute } from "wouter";
+import { Redirect, Route } from "wouter";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { ROUTES } from "../../../shared/routes";
 const AdminHubShell = lazy(() => import("../features/admin/AdminHubShell"));
@@ -46,21 +46,23 @@ const TestsManagement = lazy(() => import("../pages/TestsManagement"));
 export const AdminRoutes = (
   <>
     {/* Admin routes */}
+    {/* Legacy namespace remains functional, but all generated navigation stays canonical under Admin Hub. */}
     {/* Admin Hub - handles all /admin-hub routes internally */}
     <Route
-      path={ROUTES.adminHubRoot}
-      component={() => <Redirect href={ROUTES.adminHub} />}
+      path={ROUTES.legacyAdminHub}
+      component={() => (
+        <ProtectedRoute requiredRoles={["admin"]}>
+          <AdminHubShell basePath={ROUTES.legacyAdminHub} />
+        </ProtectedRoute>
+      )}
     />
     <Route
-      path={ROUTES.adminHubRestWildcard}
-      component={() => {
-        const [, params] = useRoute("/admin-hub/:rest*");
-        return (
-          <Redirect
-            href={`${ROUTES.adminHub}/${(params as Record<string, string>)?.["rest*"] ?? ""}`}
-          />
-        );
-      }}
+      path={ROUTES.legacyAdminHubRestWildcard}
+      component={() => (
+        <ProtectedRoute requiredRoles={["admin"]}>
+          <AdminHubShell basePath={ROUTES.legacyAdminHub} />
+        </ProtectedRoute>
+      )}
     />
     <Route
       path={ROUTES.adminHub}
@@ -82,261 +84,133 @@ export const AdminRoutes = (
     {/* selrs.cc top-level aliases (معادلات للصفحات الإدارية) */}
     <Route
       path={ROUTES.users}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminUsers />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/users" />}
     />
     <Route
       path={ROUTES.doctors}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminDoctors />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/doctors" />}
     />
     <Route
       path={ROUTES.permissions}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminPermissions />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/permissions" />}
     />
     <Route
       path={ROUTES.services}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminServices />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/services" />}
     />
     <Route
       path={ROUTES.medicalSheets}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminSheets />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/sheets" />}
     />
     <Route
       path={ROUTES.sheetDesigner}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminSheetDesigner />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/sheet-designer" />}
     />
     <Route
       path={ROUTES.systemStatus}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminStatus />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/status" />}
     />
     <Route
       path={ROUTES.migrations}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminMigrations />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/migrations" />}
     />
     <Route
       path={ROUTES.apiTools}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminApiTools />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/api" />}
     />
     <Route
       path={ROUTES.adminPatients}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminPatients />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/patients" />}
     />
     <Route
       path={ROUTES.adminLegacyPatients}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminLegacyPatients />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/legacy-patients" />}
     />
     <Route
       path={ROUTES.opHistory}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <OpHistory />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/op-history" />}
     />
     <Route
       path={ROUTES.whatsappInbox}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminWhatsAppInbox />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/whatsapp-inbox" />}
     />
 
     {/* Legacy admin routes */}
     <Route
       path={ROUTES.adminUsers}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminUsers />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/users" />}
     />
     <Route
       path={ROUTES.adminMigrations}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminMigrations />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/migrations" />}
     />
     <Route
       path={ROUTES.adminApiTools}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminApiTools />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/api" />}
     />
     <Route
       path={ROUTES.adminStatus}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminStatus />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/status" />}
     />
     <Route
       path={ROUTES.adminCardVisibility}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminCardVisibility />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/card-visibility" />}
     />
     <Route
       path={ROUTES.adminSettingsPricingRules}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminSettings pricingOnly />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/settings/pricing-rules" />}
     />
     <Route
       path={ROUTES.adminSettings}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminSettings />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/settings" />}
     />
     <Route
       path={ROUTES.adminNotificationSettings}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminNotificationSettings />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/notifications" />}
     />
     <Route
       path={ROUTES.adminPermissions}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminPermissions />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/permissions" />}
     />
     <Route
       path={ROUTES.adminPatientsRoute}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminPatients />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/patients" />}
     />
     <Route
       path={ROUTES.adminForms}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminFormsHub />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/forms" />}
     />
     <Route
       path={ROUTES.adminSheets}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminSheets />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/sheets" />}
     />
     <Route
       path={ROUTES.adminSheetDesigner}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminSheetDesigner />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/sheet-designer" />}
     />
     <Route
       path={ROUTES.adminSheetCopies}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminSheetCopies />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/sheet-copies" />}
     />
     <Route
       path={ROUTES.adminDoctors}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminDoctors />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/doctors" />}
     />
     <Route
       path={ROUTES.adminPentacamFailed}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminPentacamFailed />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/pentacam-failed" />}
     />
     <Route
       path={ROUTES.adminServices}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminServices />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/services" />}
     />
     <Route
       path={ROUTES.adminTests}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <TestsManagement />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/tests" />}
     />
     <Route
       path={ROUTES.adminDataSourceAudit}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminDataSourceAudit />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/admin-hub/audit" />}
     />
   </>
 );

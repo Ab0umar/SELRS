@@ -1,6 +1,8 @@
 export const ROUTES = {
   // Core navigation
+  root: "/",
   home: "/",
+  mainHome: "/home",
   login: "/login",
   dashboard: "/dashboard",
   profile: "/profile",
@@ -61,6 +63,7 @@ export const ROUTES = {
 
   // Bookings / today
   today: "/bookings",
+  workflow: "/workflow",
   workflowPrototype: "/workflow-prototype",
 
   // Admin / accounting
@@ -90,10 +93,10 @@ export const ROUTES = {
   accountingInstapay: "/accounting/instapay",
   accountingDrSaadany: "/accounting/dr-saadany",
   accountingPrint: "/accounting/print",
-  adminHub: "/booking-triage",
-  portalBookings: "/booking-triage/portal-bookings",
+  adminHub: "/admin-hub",
+  portalBookings: "/admin-hub/portal-bookings",
   adminSettingsPricingRules: "/admin/settings/pricing-rules",
-  adminHubSettingsPricingRules: "/booking-triage/settings/pricing-rules",
+  adminHubSettingsPricingRules: "/admin-hub/settings/pricing-rules",
   opsMssqlAdd: "/ops/mssql-add",
   todayRoute: "/today",
   txhubRoute: "/txhub",
@@ -102,8 +105,8 @@ export const ROUTES = {
   page404: "/404",
   kfSheetsRestWildcard: "/KFsheets/:rest*",
   adminRootPath: "/admin",
-  adminHubRoot: "/admin-hub",
-  adminHubRestWildcard: "/admin-hub/:rest*",
+  legacyAdminHub: "/booking-triage",
+  legacyAdminHubRestWildcard: "/booking-triage/:rest*",
   adminPatients: "/admin-patients",
   adminLegacyPatients: "/admin/legacy-patients",
   opHistory: "/admin/op-history",

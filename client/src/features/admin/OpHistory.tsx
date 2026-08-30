@@ -34,7 +34,7 @@ import {
 import { DateInput } from "@/components/ui/date-input";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
-import { OP_TYPE_OPTIONS } from "@shared/opTypes";
+import { OP_TYPE_OPTIONS, operationTypeLabelAr } from "@shared/opTypes";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
 
@@ -59,6 +59,9 @@ export default function OpHistory() {
   const [, setLocation] = useLocation();
 
   const [activeType, setActiveType] = useState<string | null>(null);
+  const [locationType, setLocationType] = useState<
+    "all" | "center" | "external"
+  >("all");
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -85,6 +88,7 @@ export default function OpHistory() {
       page,
       pageSize,
       query: query || undefined,
+      locationType: locationType === "all" ? undefined : locationType,
     },
     { enabled: Boolean(activeType) },
   );
@@ -127,6 +131,12 @@ export default function OpHistory() {
     setPageSize(Number(value) as (typeof PAGE_SIZE_OPTIONS)[number]);
     setPage(1);
   };
+
+  const handleLocationTypeChange = (value: string) => {
+    setLocationType(value as "all" | "center" | "external");
+    setPage(1);
+  };
+
 
   return (
     <div className="w-full space-y-6 pb-4 text-right" dir="rtl">
@@ -218,6 +228,19 @@ export default function OpHistory() {
               </button>
             </form>
             <Select
+              value={locationType}
+              onValueChange={handleLocationTypeChange}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="المكان" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">الكل (مركز وخارجي)</SelectItem>
+                <SelectItem value="center">مركز</SelectItem>
+                <SelectItem value="external">خارجي</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
               value={String(pageSize)}
               onValueChange={handlePageSizeChange}
             >
@@ -247,13 +270,14 @@ export default function OpHistory() {
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[10%]">كود المريض</TableHead>
-                    <TableHead className="w-[20%]">الاسم</TableHead>
-                    <TableHead className="w-[12%]">تاريخ العملية</TableHead>
-                    <TableHead className="w-[8%]">العين</TableHead>
-                    <TableHead className="w-[14%]">الطبيب</TableHead>
-                    <TableHead className="w-[10%]">المصدر</TableHead>
-                    <TableHead className="w-[16%]">ملاحظات</TableHead>
+                    <TableHead className="w-[9%]">كود المريض</TableHead>
+                    <TableHead className="w-[16%]">الاسم</TableHead>
+                    <TableHead className="w-[14%]">اسم العملية</TableHead>
+                    <TableHead className="w-[10%]">تاريخ العملية</TableHead>
+                    <TableHead className="w-[7%]">العين</TableHead>
+                    <TableHead className="w-[12%]">الطبيب</TableHead>
+                    <TableHead className="w-[9%]">المصدر</TableHead>
+                    <TableHead className="w-[13%]">ملاحظات</TableHead>
                     <TableHead className="w-[10%]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -265,6 +289,9 @@ export default function OpHistory() {
                       </TableCell>
                       <TableCell className="truncate">
                         {row.patientFullName}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        {operationTypeLabelAr(row.operationType)}
                       </TableCell>
                       <TableCell className="truncate">
                         {formatDate(row.operationDate)}
@@ -338,6 +365,24 @@ export default function OpHistory() {
   );
 }
 
+// Keyword rules against the SRVCMF Arabic service name, given by the
+// clinic: "سطحي" -> PRK, "تصحيح" -> Lasik, "ميتال هيد" -> Lasik (mechanical
+// microkeratome, not femto). "فيمتو" alone is genuinely ambiguous between
+// F.S and F.L (both are femto-based) — flagged for a human to pick rather
+// than guessed, per OP_TYPE_ALIASES' own FL="فيمتو ليزك"/FS="فيمتو سمايل"
+// split. cataract/IOL/ICL have no service codes yet, so no rule for them.
+function suggestOperationTypeFromServiceName(
+  serviceName: string,
+): { type: "PRK" | "Lasik"; reason: string } | { type: "femto" } | null {
+  const name = serviceName.trim();
+  if (!name) return null;
+  if (name.includes("سطحي")) return { type: "PRK", reason: "سطحي" };
+  if (name.includes("ميتال")) return { type: "Lasik", reason: "ميتال هيد" };
+  if (name.includes("تصحيح")) return { type: "Lasik", reason: "تصحيح" };
+  if (name.includes("فيمتو")) return { type: "femto" };
+  return null;
+}
+
 function ServiceCodeMappingDialog({
   open,
   onOpenChange,
@@ -394,6 +439,60 @@ function ServiceCodeMappingDialog({
     });
   };
 
+  const unmapped: { serviceCode: string; serviceName: string }[] =
+    unmappedQuery.data ?? [];
+  const mappings = mappingsQuery.data ?? [];
+
+  const suggestions = unmapped
+    .map((u) => ({
+      ...u,
+      suggestion: suggestOperationTypeFromServiceName(u.serviceName),
+    }))
+    .filter(
+      (u): u is typeof u & { suggestion: { type: "PRK" | "Lasik"; reason: string } } =>
+        u.suggestion != null && u.suggestion.type !== "femto",
+    );
+  const femtoAmbiguous = unmapped.filter(
+    (u) => suggestOperationTypeFromServiceName(u.serviceName)?.type === "femto",
+  );
+
+  const applySuggestionsMutation =
+    trpc.opHistory.upsertServiceCodeMapping.useMutation({
+      onSuccess: (data) => {
+        toast.success(`تم ربط ${data.count} كود تلقائيًا حسب القواعد`);
+        utils.opHistory.getServiceCodeMappings.invalidate();
+        utils.opHistory.listUnmappedServiceCodes.invalidate();
+        utils.opHistory.getTypeCounts.invalidate();
+      },
+      onError: (error) => {
+        toast.error(
+          "فشل التطبيق التلقائي: " + (error.message || "خطأ غير معروف"),
+        );
+      },
+    });
+
+  const applyAllSuggestions = () => {
+    if (suggestions.length === 0) return;
+    const operationTypes: Record<string, string> = {};
+    const labels: Record<string, string> = {};
+    for (const s of suggestions) {
+      operationTypes[s.serviceCode] = s.suggestion.type;
+      if (s.serviceName) labels[s.serviceCode] = s.serviceName;
+    }
+    applySuggestionsMutation.mutate(
+      {
+        serviceCodes: suggestions.map((s) => s.serviceCode),
+        // Required by the schema but overridden per-code by operationTypes below.
+        operationType: suggestions[0].suggestion.type,
+        operationTypes,
+        labels,
+      },
+      {
+        onSuccess: () => syncMutation.mutate(),
+      },
+    );
+  };
+
   const handleAssign = () => {
     const codes = new Set(selectedCodes);
     const custom = customCode.trim();
@@ -402,8 +501,19 @@ function ServiceCodeMappingDialog({
       toast.error("يرجى اختيار كود واحد على الأقل ونوع العملية");
       return;
     }
+    // Each code keeps its own real operation name (resolved from MSSQL)
+    // instead of every code in a multi-select batch sharing one label.
+    const labels: Record<string, string> = {};
+    for (const code of codes) {
+      const name = unmapped.find((u) => u.serviceCode === code)?.serviceName;
+      if (name) labels[code] = name;
+    }
     assignMutation.mutate(
-      { serviceCodes: Array.from(codes), operationType: targetType },
+      {
+        serviceCodes: Array.from(codes),
+        operationType: targetType,
+        labels,
+      },
       {
         onSuccess: () => {
           // Pull in any patientServiceEntries rows already using these codes.
@@ -413,9 +523,6 @@ function ServiceCodeMappingDialog({
     );
   };
 
-  const unmapped = unmappedQuery.data ?? [];
-  const mappings = mappingsQuery.data ?? [];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-w-2xl">
@@ -423,6 +530,31 @@ function ServiceCodeMappingDialog({
           <DialogTitle>ربط أكواد الخدمات بنوع العملية</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {suggestions.length > 0 && (
+            <div className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-sm">
+              <span>
+                فيه {suggestions.length} كود ينطبق عليهم قواعد تلقائية (سطحي ←
+                PRK، تصحيح/ميتال هيد ← Lasik)
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                onClick={applyAllSuggestions}
+                disabled={applySuggestionsMutation.isPending}
+              >
+                {applySuggestionsMutation.isPending
+                  ? "...جاري التطبيق"
+                  : "طبّق كل الاقتراحات"}
+              </Button>
+            </div>
+          )}
+          {femtoAmbiguous.length > 0 && (
+            <div className="rounded-md border border-amber-400/40 bg-amber-50 p-2 text-sm text-amber-800">
+              فيه {femtoAmbiguous.length} كود فيمتو محتاج اختيار يدوي بين F.S
+              و F.L (مش واضح من الاسم أي نوع بالظبط):{" "}
+              {femtoAmbiguous.map((u) => u.serviceCode).join("، ")}
+            </div>
+          )}
           <div>
             <label className="text-sm font-medium">
               أكواد غير مربوطة (اختر واحد أو أكثر)
@@ -433,15 +565,39 @@ function ServiceCodeMappingDialog({
                   لا توجد أكواد غير مربوطة
                 </span>
               ) : (
-                unmapped.map((code: string) => (
-                  <label key={code} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selectedCodes.has(code)}
-                      onCheckedChange={() => toggleCode(code)}
-                    />
-                    {code}
-                  </label>
-                ))
+                unmapped.map(({ serviceCode, serviceName }) => {
+                  const suggestion =
+                    suggestOperationTypeFromServiceName(serviceName);
+                  return (
+                    <label
+                      key={serviceCode}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={selectedCodes.has(serviceCode)}
+                        onCheckedChange={() => toggleCode(serviceCode)}
+                      />
+                      <span className="font-medium">{serviceCode}</span>
+                      {serviceName ? (
+                        <span className="text-muted-foreground">
+                          — {serviceName}
+                        </span>
+                      ) : null}
+                      {suggestion && suggestion.type !== "femto" ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          {suggestion.type}
+                        </Badge>
+                      ) : suggestion?.type === "femto" ? (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-400 text-[10px] text-amber-700"
+                        >
+                          فيمتو؟
+                        </Badge>
+                      ) : null}
+                    </label>
+                  );
+                })
               )}
             </div>
           </div>
@@ -488,12 +644,21 @@ function ServiceCodeMappingDialog({
                     id: number;
                     serviceCode: string;
                     operationType: string;
+                    label?: string | null;
                   }) => (
                     <div
                       key={m.id}
                       className="flex items-center justify-between text-sm"
                     >
-                      <span>{m.serviceCode}</span>
+                      <span>
+                        {m.serviceCode}
+                        {m.label ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            — {m.label}
+                          </span>
+                        ) : null}
+                      </span>
                       <Badge variant="secondary">{m.operationType}</Badge>
                     </div>
                   ),

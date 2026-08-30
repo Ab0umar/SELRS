@@ -85,6 +85,7 @@ type AppTopNavProps = {
   onOpenAccount: () => void;
   onOpenPassword: () => void;
   onLogout: () => void;
+  hideShortcuts?: boolean;
 };
 
 function DashboardAppbarIndicators() {
@@ -148,6 +149,7 @@ export function AppTopNav({
   onOpenAccount,
   onOpenPassword,
   onLogout,
+  hideShortcuts = false,
 }: AppTopNavProps) {
   const { user } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
@@ -473,7 +475,7 @@ export function AppTopNav({
     ].filter((section) => section.items.length > 0);
   }, [isAdmin, navGroups, leafVisible]);
 
-  const logoTarget = isAdmin ? "/dashboard?tab=admin" : "/today";
+  const logoTarget = "/home";
 
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -507,29 +509,33 @@ export function AppTopNav({
     <header
       data-app-top-nav
       dir="rtl"
-      className="relative z-40 shrink-0 border-b border-border/80 bg-card/95 pt-[env(safe-area-inset-top)] shadow-[0_1px_2px_oklch(0.28_0.04_257_/_0.06)] print:hidden"
+      className="relative z-40 shrink-0 border-b border-[#dce5f3] bg-[#f8fbff]/95 pt-[env(safe-area-inset-top)] shadow-[0_8px_24px_rgba(42,79,154,0.08)] backdrop-blur-xl print:hidden"
     >
-      <div className="selrs-gradient-bar h-0.5 w-full" aria-hidden />
+      <div className="selrs-gradient-bar h-1 w-full" aria-hidden />
 
       <div
         data-app-top-nav-row
-        className="flex h-14 w-full items-center gap-2 px-2"
+        className={cn(
+          "flex h-[4.5rem] w-full items-center gap-3 px-3 sm:px-4 lg:px-5",
+          hideShortcuts && "justify-between",
+        )}
+        dir="rtl"
       >
         {/* Logo */}
         <button
           type="button"
           onClick={() => onNavigate(logoTarget)}
-          className="flex h-10 shrink-0 items-center gap-2 rounded-2xl border border-border bg-background/80 px-2.5 transition-opacity hover:opacity-90 md:px-3"
+          className="flex h-11 shrink-0 items-center gap-2.5 rounded-2xl border border-[#dbe5f2] bg-white px-2.5 shadow-[0_4px_14px_rgba(42,79,154,0.07)] transition-all hover:-translate-y-0.5 hover:border-[#b8c9e3] hover:shadow-[0_8px_18px_rgba(42,79,154,0.12)] md:px-3.5"
           aria-label="الرئيسية"
         >
-          <BrandLogo className="h-7 w-7 shrink-0 rounded-xl border border-border/60 bg-background" />
+          <BrandLogo className="h-8 w-8 shrink-0 rounded-xl border border-[#dbe5f2] bg-[#f7faff]" />
           <span className="hidden text-sm font-black text-foreground 2xl:block">
             {BRAND_NAME_AR}
           </span>
         </button>
 
         {/* Main tabs, desktop only */}
-        <nav
+        {!hideShortcuts && <nav
           className="hidden min-w-0 flex-1 items-stretch overflow-x-auto whitespace-nowrap md:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="القائمة الرئيسية"
         >
@@ -744,14 +750,20 @@ export function AppTopNav({
                 </DropdownMenu>
               </div>
             )}
-        </nav>
+        </nav>}
 
         {/* Controls */}
-        <div className="flex shrink-0 items-center gap-0.5 px-1">
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-1 rounded-2xl border border-[#e0e8f3] bg-white/75 p-1 shadow-[0_3px_12px_rgba(42,79,154,0.05)]",
+            hideShortcuts && "order-last",
+          )}
+          dir="rtl"
+        >
           {isDashboardRoute && <DashboardAppbarIndicators />}
 
           {/* المزيد popover, desktop only, accordion sections closed by default */}
-          {moreGroups.length > 0 && (
+          {!hideShortcuts && moreGroups.length > 0 && (
             <Popover
               open={moreOpen}
               onOpenChange={(o) => {

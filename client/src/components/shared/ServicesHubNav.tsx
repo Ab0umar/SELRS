@@ -45,7 +45,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
     title: "السجل",
     description: "الأدوية والفحوصات والأمراض والأعراض.",
     icon: LayoutGrid,
-    accent: "bg-secondary/15 text-secondary",
+    accent: "bg-secondary/15 text-primary",
   },
   {
     id: "catalog",

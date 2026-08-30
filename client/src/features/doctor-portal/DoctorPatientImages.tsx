@@ -1,4 +1,4 @@
-﻿import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -260,14 +260,14 @@ function PrescriptionCard({ row }: { row: any }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+                    <div className="size-8 rounded-lg bg-secondary/10 text-primary flex items-center justify-center shrink-0">
                       <Pill className="size-4" />
                     </div>
                     <p className="text-sm font-bold text-foreground">
                       {v(item.medicationName)}
                     </p>
                   </div>
-                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[10px] font-bold text-secondary">
+                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
                     {v(item.duration)}
                   </span>
                 </div>
@@ -395,7 +395,7 @@ export default function DoctorPatientImages() {
                         {data.patient.fullName}
                       </h3>
                       {data.patient.status && (
-                        <Badge className="bg-secondary/15 text-secondary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[10px] pointer-events-none">
+                        <Badge className="bg-secondary/15 text-primary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[10px] pointer-events-none">
                           {STATUS_LABEL[data.patient.status] ??
                             data.patient.status}
                         </Badge>
@@ -558,7 +558,7 @@ export default function DoctorPatientImages() {
                       </div>
 
                       <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
-                        <div className="flex items-center gap-1.5 font-bold text-xs text-secondary">
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
                           <ShieldAlert className="size-4" />
                           <span>حالات الحساسية</span>
                         </div>

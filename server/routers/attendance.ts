@@ -9,6 +9,8 @@ import {
   makeAttProcedure,
   makeAttWriteProcedure,
   protectedProcedure,
+  makePageProcedure,
+  makePageWriteProcedure,
   adminProcedure,
 } from "../_core/procedures";
 import { DashboardService } from "../services/attendance/dashboard.service";
@@ -140,14 +142,19 @@ export const attendanceRouter = router({
       };
     }),
   employeesList: makeAttProcedure("/attendance/employees")
-    .input(z.object({}).optional())
-    .query(async () => {
+    .input(z.object({ includeFormer: z.boolean().default(false) }).optional())
+    .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       const employees = await db
         .select()
         .from(attendanceEmployees)
+        .where(
+          input?.includeFormer
+            ? undefined
+            : eq(attendanceEmployees.active, true),
+        )
         .orderBy(attendanceEmployees.empCd);
 
       return {
@@ -158,6 +165,8 @@ export const attendanceRouter = router({
           salaryType: e.salaryType,
           jobTitle: e.jobTitle,
           active: e.active,
+          terminationDate: e.terminationDate,
+          attendanceCommissionRate: e.attendanceCommissionRate,
         })),
         total: employees.length,
       };
@@ -287,7 +296,8 @@ export const attendanceRouter = router({
       if (!db) throw new Error("Database not available");
 
       const punchAt = new Date(`${input.date}T${input.time}:00`);
-      if (Number.isNaN(punchAt.getTime())) throw new Error("تاريخ/وقت غير صالح");
+      if (Number.isNaN(punchAt.getTime()))
+        throw new Error("تاريخ/وقت غير صالح");
 
       const insertId = await db.transaction(async (tx: any) => {
         const emp = await tx
@@ -334,7 +344,11 @@ export const attendanceRouter = router({
       AuditLogService.log({
         action: "manual_punch_added",
         empCd: input.empCd,
-        details: { punchAt: punchAt.toISOString(), direction: input.direction, note: input.note },
+        details: {
+          punchAt: punchAt.toISOString(),
+          direction: input.direction,
+          note: input.note,
+        },
         userId: ctx.user.id,
         status: "success",
       });
@@ -359,7 +373,9 @@ export const attendanceRouter = router({
         }
 
         const punchAt = new Date(row[0].punchAt);
-        await tx.delete(attendancePunches).where(eq(attendancePunches.id, input.id));
+        await tx
+          .delete(attendancePunches)
+          .where(eq(attendancePunches.id, input.id));
         await DailyMaterializer.recomputeRange(
           punchAt,
           punchAt,
@@ -385,7 +401,9 @@ export const attendanceRouter = router({
     const rows = await db
       .selectDistinct({ department: attendanceEmployees.department })
       .from(attendanceEmployees)
-      .where(sql`${attendanceEmployees.department} IS NOT NULL AND ${attendanceEmployees.department} != ''`)
+      .where(
+        sql`${attendanceEmployees.department} IS NOT NULL AND ${attendanceEmployees.department} != ''`,
+      )
       .orderBy(attendanceEmployees.department);
     return rows.map((r: any) => r.department as string);
   }),
@@ -393,15 +411,24 @@ export const attendanceRouter = router({
   dailyByDate: makeAttProcedure("/attendance")
     .input(
       z.object({
-        date: z.string(), // YYYY-MM-DD
+        date: z.string().optional(), // YYYY-MM-DD
+        fromDate: z.string().optional(),
+        toDate: z.string().optional(),
         department: z.string().optional(),
+      }).refine((value) => Boolean(value.date || (value.fromDate && value.toDate)), {
+        message: "date or fromDate/toDate is required",
       }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const conditions: any[] = [eq(attendanceDaily.workDate, input.date as any)];
+      const conditions: any[] = input.date
+        ? [eq(attendanceDaily.workDate, input.date as any)]
+        : [
+            gte(attendanceDaily.workDate, input.fromDate as any),
+            lte(attendanceDaily.workDate, input.toDate as any),
+          ];
       if (input.department) {
         conditions.push(
           or(
@@ -447,10 +474,65 @@ export const attendanceRouter = router({
         .where(and(...conditions))
         .orderBy(attendanceDaily.empCd);
 
-      return daily.map((d: any) => ({
+      const permissionConditions: any[] = [
+        input.date
+          ? eq(attendancePermissions.date, input.date as any)
+          : gte(attendancePermissions.date, input.fromDate as any),
+        ...(input.date ? [] : [lte(attendancePermissions.date, input.toDate as any)]),
+        eq(attendancePermissions.approved, true),
+      ];
+      if (input.department) {
+        permissionConditions.push(
+          or(
+            eq(attendanceEmployees.department, input.department),
+            eq(attendanceEmployees.department, "المركز والعيادة"),
+          ),
+        );
+      }
+      const permissions = await db
+        .select({
+        empCd: attendancePermissions.empCd,
+          date: attendancePermissions.date,
+          type: attendancePermissions.type,
+          durationMinutes: attendancePermissions.durationMinutes,
+        })
+        .from(attendancePermissions)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendancePermissions.empCd, attendanceEmployees.empCd),
+        )
+        .where(and(...permissionConditions));
+
+      const permissionByEmployee = new Map<
+        string,
+        { entryMinutes: number; exitMinutes: number }
+      >();
+      for (const permission of permissions) {
+        const key = input.date
+          ? permission.empCd
+          : `${permission.empCd}|${String((permission as any).date).slice(0, 10)}`;
+        const totals = permissionByEmployee.get(key) ?? {
+          entryMinutes: 0,
+          exitMinutes: 0,
+        };
+        const minutes = Number(permission.durationMinutes ?? 0);
+        if (permission.type === "in") totals.entryMinutes += minutes;
+        if (permission.type === "out") totals.exitMinutes += minutes;
+        permissionByEmployee.set(key, totals);
+      }
+
+      return daily.map((d: any) => {
+        const workDate = d.workDate.toISOString().split("T")[0];
+        const permission = permissionByEmployee.get(
+          input.date ? d.empCd : `${d.empCd}|${workDate}`,
+        ) ?? {
+          entryMinutes: 0,
+          exitMinutes: 0,
+        };
+        return {
         empCd: d.empCd,
         empName: d.empName ?? null,
-        workDate: d.workDate.toISOString().split("T")[0],
+        workDate,
         shiftId: d.shiftId,
         firstIn: d.firstIn?.toISOString() ?? null,
         lastOut: d.lastOut?.toISOString() ?? null,
@@ -469,7 +551,10 @@ export const attendanceRouter = router({
         status: d.status,
         insideNow: d.insideNow,
         computedAt: d.computedAt.toISOString(),
-      }));
+        entryPermissionMinutes: permission.entryMinutes,
+        exitPermissionMinutes: permission.exitMinutes,
+        };
+      });
     }),
   setDailyOvertimeEnabled: makeAttWriteProcedure("/attendance")
     .input(
@@ -591,7 +676,7 @@ export const attendanceRouter = router({
       await setEntryPermissionRequestsEnabled(input.enabled);
       return { success: true, enabled: input.enabled };
     }),
-  myAttendanceProfile: protectedProcedure.query(async ({ ctx }) => {
+  myAttendanceProfile: makePageProcedure("/attendance/my").query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
@@ -769,7 +854,7 @@ export const attendanceRouter = router({
       })),
     };
   }),
-  myRequestLeave: protectedProcedure
+  myRequestLeave: makePageWriteProcedure("/attendance/my")
     .input(
       z.object({
         dateFrom: z.string(),
@@ -840,7 +925,7 @@ export const attendanceRouter = router({
 
       return { success: true, dateFrom: storedFrom, dateTo: storedTo };
     }),
-  myRequestPermission: protectedProcedure
+  myRequestPermission: makePageWriteProcedure("/attendance/my")
     .input(
       z.object({
         date: z.string(),
@@ -925,7 +1010,7 @@ export const attendanceRouter = router({
 
       return { success: true };
     }),
-  myRequestShiftChange: protectedProcedure
+  myRequestShiftChange: makePageWriteProcedure("/attendance/my")
     .input(
       z.object({
         requestType: z.enum(["daily", "weekly", "monthly", "swap"]),
@@ -1054,5 +1139,5 @@ export const attendanceRouter = router({
         });
       }
       return { success: true };
-    })
+    }),
 });

@@ -164,7 +164,7 @@ export function AppointmentsSection({
 
   const [mainTab, setMainTab] = useState<MainTab>("patients");
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("confirmed");
-  const [showExternal, setShowExternal] = useState(false);
+  const [showExternal, setShowExternal] = useState(true);
 
   const { merged, isLoading, byStatus } = useTodayQueuePatientsMerged(
     selectedDate,

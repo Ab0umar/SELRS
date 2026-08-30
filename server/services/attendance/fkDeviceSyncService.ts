@@ -12,7 +12,7 @@ import {
   attendanceSyncRuns,
   attendanceEmployees,
 } from "../../../drizzle/schema";
-import { sql, eq, desc, inArray, and } from "drizzle-orm";
+import { sql, eq, desc, inArray, and, gte, lte } from "drizzle-orm";
 import crypto from "crypto";
 
 const BATCH_SIZE = 500;
@@ -103,12 +103,23 @@ export class FKDeviceSyncService {
       const affected = new Set<string>();
       let totalInserted = 0;
 
+      // The device's own InOutMode flag is unreliable on this hardware (every
+      // punch often reports the same mode) — infer in/out instead by
+      // alternating chronologically per employee per day, continuing from
+      // however many punches that employee already has that day. This is
+      // cosmetic only (rulesEngine derives firstIn/lastOut from timestamps,
+      // not this field) but keeps the raw-logs/live-board direction badges
+      // meaningful.
+      const directionByRowId = await this.inferDirections(db, fkPunches);
+
       for (let i = 0; i < fkPunches.length; i += BATCH_SIZE) {
         const batch = fkPunches.slice(i, i + BATCH_SIZE);
         const rows = batch.map((punch) => ({
           empCd: String(punch.enrollNo),
           punchAt: punch.timestamp,
-          direction: (punch.inOutMode === 1 ? "in" : "out") as
+          direction: (directionByRowId.get(
+            `${punch.enrollNo}_${punch.timestamp.getTime()}`,
+          ) ?? (punch.inOutMode === 1 ? "in" : "out")) as
             | "in"
             | "out"
             | "unknown",
@@ -239,6 +250,74 @@ export class FKDeviceSyncService {
 
       return result;
     }
+  }
+
+  /**
+   * Infer in/out direction per punch by alternating chronologically within
+   * each employee's day, continuing the parity from punches already stored
+   * for that employee/day. Keyed by `${enrollNo}_${timestamp.getTime()}`
+   * (matches the sourceRowId built for each row below).
+   */
+  private static async inferDirections(
+    db: any,
+    punches: FKPunch[],
+  ): Promise<Map<string, "in" | "out">> {
+    const directionByRowId = new Map<string, "in" | "out">();
+    if (punches.length === 0) return directionByRowId;
+
+    const dateKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    const groups = new Map<string, FKPunch[]>();
+    for (const p of punches) {
+      const key = `${p.enrollNo}|${dateKey(p.timestamp)}`;
+      const group = groups.get(key);
+      if (group) group.push(p);
+      else groups.set(key, [p]);
+    }
+
+    const empCds = [...new Set(punches.map((p) => String(p.enrollNo)))];
+    const timestamps = punches.map((p) => p.timestamp.getTime());
+    const rangeStart = new Date(Math.min(...timestamps));
+    rangeStart.setHours(0, 0, 0, 0);
+    const rangeEnd = new Date(Math.max(...timestamps));
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    const existingRows = await db
+      .select({
+        empCd: attendancePunches.empCd,
+        punchAt: attendancePunches.punchAt,
+      })
+      .from(attendancePunches)
+      .where(
+        and(
+          inArray(attendancePunches.empCd, empCds),
+          gte(attendancePunches.punchAt, rangeStart),
+          lte(attendancePunches.punchAt, rangeEnd),
+        ),
+      );
+
+    const existingCounts = new Map<string, number>();
+    for (const row of existingRows as any[]) {
+      const key = `${row.empCd}|${dateKey(new Date(row.punchAt))}`;
+      existingCounts.set(key, (existingCounts.get(key) ?? 0) + 1);
+    }
+
+    for (const [key, group] of groups) {
+      const sorted = [...group].sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+      );
+      const startCount = existingCounts.get(key) ?? 0;
+      sorted.forEach((p, idx) => {
+        const rowId = `${p.enrollNo}_${p.timestamp.getTime()}`;
+        directionByRowId.set(
+          rowId,
+          (startCount + idx) % 2 === 0 ? "in" : "out",
+        );
+      });
+    }
+
+    return directionByRowId;
   }
 
   /**

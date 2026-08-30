@@ -1,0 +1,8 @@
+{
+  "projectId": "a340fcf8-6371-4b62-8eb9-8c78348b09de",
+  "pkg": "selrs-ui",
+  "globalName": "SELRSUI",
+  "shape": "package",
+  "tsconfig": "../design-system/tsconfig.json",
+  "cssEntry": "../design-system/dist/styles.css"
+}

@@ -51,6 +51,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
@@ -686,6 +687,9 @@ export default function WorkflowPrototypeLive() {
   const [selectedMedicationIds, setSelectedMedicationIds] = useState<
     Array<string | number>
   >([]);
+  const [medicationDetailsById, setMedicationDetailsById] = useState<
+    Record<string, { frequency: string; duration: string; instructions: string }>
+  >({});
   const [referenceMedicationItems, setReferenceMedicationItems] = useState<
     CatalogItem[]
   >([]);
@@ -910,9 +914,20 @@ export default function WorkflowPrototypeLive() {
   }, [activeWorkflowVisitId, finalTestRequestsQuery.data]);
 
   useEffect(() => {
-    setSelectedMedicationIds(
-      ((finalPrescriptionsQuery.data as any[]) ?? []).flatMap((prescription) =>
-        (prescription.items ?? []).map((item: any) => item.medicationId),
+    const items = ((finalPrescriptionsQuery.data as any[]) ?? []).flatMap(
+      (prescription) => prescription.items ?? [],
+    );
+    setSelectedMedicationIds(items.map((item: any) => item.medicationId));
+    setMedicationDetailsById(
+      Object.fromEntries(
+        items.map((item: any) => [
+          String(item.medicationId),
+          {
+            frequency: item.frequency ?? "",
+            duration: item.duration ?? "",
+            instructions: item.instructions ?? "",
+          },
+        ]),
       ),
     );
   }, [activeWorkflowVisitId, finalPrescriptionsQuery.data]);
@@ -1322,9 +1337,13 @@ export default function WorkflowPrototypeLive() {
           const medication = medicationItems.find(
             (item) => String(item.id) === String(medicationId),
           );
+          const details = medicationDetailsById[String(medicationId)];
           return {
             medicationId: Number(medicationId),
             medicationName: medication?.name || String(medicationId),
+            frequency: details?.frequency || undefined,
+            duration: details?.duration || undefined,
+            instructions: details?.instructions || undefined,
           };
         }),
       });
@@ -2496,8 +2515,7 @@ export default function WorkflowPrototypeLive() {
           <span className="mb-0.5 block text-[10px] font-semibold text-slate-600">
             Visit Date
           </span>
-          <Input
-            type="date"
+          <DateInput
             value={selectedDate}
             onChange={(event) => {
               setSelectedDate(event.target.value);
@@ -2505,7 +2523,8 @@ export default function WorkflowPrototypeLive() {
               setSelectedLiveVisitId(null);
             }}
             aria-label="Visit Date"
-            className="h-8 text-xs"
+            className="h-8 w-full text-xs"
+            inputClassName="h-7 w-full text-xs"
           />
         </label>
         <label className="block min-w-0 flex-1">
@@ -2945,17 +2964,31 @@ export default function WorkflowPrototypeLive() {
       toast.success(`تم إضافة ${ids.length} فحص من القالب`);
     };
     const applyPrescriptionTemplate = (template: any) => {
-      const ids = Array.isArray(template?.prescriptionItems)
+      const templateItems: Array<{ id: any; item: any }> = Array.isArray(
+        template?.prescriptionItems,
+      )
         ? template.prescriptionItems
-            .map(
-              (item: any) =>
-                medicationItems.find(
-                  (medication) => medication.name === item.medicationName,
-                )?.id,
-            )
-            .filter((id: any) => id !== undefined && id !== null)
+            .map((item: any) => ({
+              id: medicationItems.find(
+                (medication) => medication.name === item.medicationName,
+              )?.id,
+              item,
+            }))
+            .filter(({ id }: any) => id !== undefined && id !== null)
         : [];
-      if (ids.length === 0) return;
+      if (templateItems.length === 0) return;
+      const ids = templateItems.map(({ id }) => id);
+      setMedicationDetailsById((current) => {
+        const next = { ...current };
+        for (const { id, item } of templateItems) {
+          next[String(id)] = {
+            frequency: item.frequency ?? "",
+            duration: item.duration ?? "",
+            instructions: item.instructions ?? "",
+          };
+        }
+        return next;
+      });
       setSelectedMedicationIds((current) => {
         const next = Array.from(new Set([...current, ...ids]));
         const value = selectedNames(medicationItems, next);

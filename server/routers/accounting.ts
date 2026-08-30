@@ -59,6 +59,19 @@ import {
 } from "../services/accounting/receiptsInquiry.service";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 
+function getMssqlPatientsTable(): string {
+  const configured = String(
+    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
+  ).trim();
+  if (!/^op\d{4}\.dbo\.PAJRNRCVH$/i.test(configured)) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Invalid MSSQL patient table configuration",
+    });
+  }
+  return configured;
+}
+
 async function accountingQuery<T>(
   operation: string,
   run: () => Promise<T>,
@@ -410,9 +423,7 @@ export const accountingRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const targetTable = String(
-        process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-      ).trim();
+      const targetTable = getMssqlPatientsTable();
       const pool = await createMssqlPool();
       try {
         await pool.connect();
@@ -455,9 +466,7 @@ export const accountingRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const targetTable = String(
-        process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-      ).trim();
+      const targetTable = getMssqlPatientsTable();
       const parts: string[] = [];
       if (input.paidAmount != null) parts.push("PA_VL = @PA_VL");
       if (input.discount != null) parts.push("DISC = @DISC");

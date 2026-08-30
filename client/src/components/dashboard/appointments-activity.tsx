@@ -173,7 +173,7 @@ export function AppointmentsSection({
   };
 
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("confirmed");
-  const [showExternal, setShowExternal] = useState(false);
+  const [showExternal, setShowExternal] = useState(true);
   const [activeSection, setActiveSection] = useState<"patients" | "operations">(
     "patients",
   );
@@ -200,11 +200,29 @@ export function AppointmentsSection({
     Record<number, PatientMedicalStatus> | undefined;
 
   // ── Portal bookings for the selected date ───────────────────────────────
+  const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
+  const myPermissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: Boolean(user) && !isAdmin,
+    refetchOnWindowFocus: false,
+  });
+  const hasActionPermission = (actionId: string) =>
+    isAdmin ||
+    (myPermissionsQuery.isSuccess &&
+      ((myPermissionsQuery.data ?? []) as string[]).some(
+        (perm) => perm.replace(/:r[w]?$/, "") === actionId,
+      ));
+  const canSeePortalBookings = hasActionPermission("action/portal-bookings");
   const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
     { date: selectedDate, limit: 200 },
-    { staleTime: 60_000, refetchOnWindowFocus: false },
+    {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      enabled: canSeePortalBookings,
+    },
   );
-  const bookingsForDate = (bookingsQuery.data ?? []) as any[];
+  const bookingsForDate = canSeePortalBookings
+    ? ((bookingsQuery.data ?? []) as any[])
+    : [];
 
   // ── Schedule requests (from حجز موعد/كشف dialog) ────────────────────────
   const scheduleRequestsQuery = trpc.patient.getVisitScheduleRequests.useQuery(
@@ -1167,7 +1185,9 @@ function QueuePatientCard({
                       query.set("includeFollowups", "1");
                     }
                     window.open(
-                      `/sheets/${value}/${patient.id}?${query.toString()}`,
+                      buildPrintUrl(
+                        `/sheets/${value}/${patient.id}?${query.toString()}`,
+                      ),
                       "_blank",
                     );
                   }}
@@ -1335,7 +1355,7 @@ function TodayOperationListItemCard({
   const operationLabel =
     row.item.operation?.trim() || row.listOperationType?.trim() || "عملية";
   const stStyle = row.isAutoFromMssql
-    ? "border-secondary/30 bg-secondary/5 text-secondary"
+    ? "border-secondary/30 bg-secondary/5 text-primary"
     : "border-destructive/30 bg-destructive/5 text-destructive";
 
   return (

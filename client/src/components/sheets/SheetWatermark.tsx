@@ -31,7 +31,7 @@ export default function SheetWatermark({
         src={src}
         alt=""
         aria-hidden
-        className={`h-[120mm] w-[120mm] object-contain opacity-[0.055] grayscale ${imageClassName ?? ""}`}
+        className={`h-[120mm] w-[120mm] object-contain opacity-[0.07] grayscale ${imageClassName ?? ""}`}
         decoding="async"
         onError={() => setSourceIndex((index) => index + 1)}
       />

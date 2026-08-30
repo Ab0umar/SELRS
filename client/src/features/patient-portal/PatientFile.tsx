@@ -1,4 +1,4 @@
-﻿import {
+import {
   RefreshCw,
   Stethoscope,
   ShieldAlert,
@@ -139,7 +139,7 @@ export default function PatientFile() {
                         {data.fullName}
                       </h3>
                       {data.status && (
-                        <Badge className="bg-secondary/15 text-secondary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[10px]">
+                        <Badge className="bg-secondary/15 text-primary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[10px]">
                           {STATUS_LABEL[data.status] ?? data.status}
                         </Badge>
                       )}
@@ -209,7 +209,7 @@ export default function PatientFile() {
 
                 <Link href="/my/prescription">
                   <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
-                    <div className="size-11 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
+                    <div className="size-11 rounded-xl bg-secondary/10 text-primary flex items-center justify-center">
                       <Pill className="size-5" />
                     </div>
                     <div className="space-y-1">
@@ -335,7 +335,7 @@ export default function PatientFile() {
                   </div>
 
                   <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
-                    <div className="flex items-center gap-1.5 font-bold text-xs text-secondary">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
                       <ShieldAlert className="size-4" />
                       <span>حالات الحساسية</span>
                     </div>

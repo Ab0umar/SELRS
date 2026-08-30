@@ -139,7 +139,7 @@ export default function RawLogs({ department }: { department?: string }) {
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="gap-2 border-secondary/20 text-secondary hover:bg-secondary/10"
+              className="gap-2 border-secondary/20 text-primary hover:bg-secondary/10"
             >
               <Download className="h-4 w-4" />
               تصدير CSV

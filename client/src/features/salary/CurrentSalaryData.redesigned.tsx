@@ -814,7 +814,7 @@ export default function CurrentSalaryData() {
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="text-sm text-muted-foreground">موظفو العيادة</div>
-          <div className="mt-2 text-2xl font-bold text-secondary">
+          <div className="mt-2 text-2xl font-bold text-primary">
             {clinicSalaries.length}
           </div>
         </div>

@@ -41,10 +41,19 @@ async function main() {
       inDb: applied.size,
       missingInDb,
       extraInDb,
-      inSync: missingInDb.length === 0 && extraInDb.length === 0,
+      // Older releases may have migration files that were intentionally removed
+      // from the current source tree. Missing current migrations remain fatal.
+      inSync:
+        missingInDb.length === 0 &&
+        (process.env.STRICT_DB_SYNC !== "1" || extraInDb.length === 0),
     };
 
     console.log(JSON.stringify(result, null, 2));
+    if (extraInDb.length > 0 && process.env.STRICT_DB_SYNC !== "1") {
+      console.warn(
+        `[db:sync-check] Ignoring ${extraInDb.length} historical migration record(s); set STRICT_DB_SYNC=1 to fail on extras.`,
+      );
+    }
     if (!result.inSync) process.exitCode = 1;
   } finally {
     await conn.end();

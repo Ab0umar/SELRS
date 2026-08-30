@@ -31,6 +31,16 @@ function Find-MySql {
 
 if (!(Test-Path $InFile)) { throw "Backup file not found: $InFile" }
 
+$checksumFile = "$InFile.sha256"
+if (Test-Path $checksumFile) {
+  $expectedHash = ((Get-Content -LiteralPath $checksumFile -Raw).Trim() -split "\s+")[0].ToLowerInvariant()
+  $actualHash = (Get-FileHash -LiteralPath $InFile -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($expectedHash -ne $actualHash) {
+    throw "Backup checksum mismatch: $InFile"
+  }
+  Write-Host "Backup checksum verified: $actualHash"
+}
+
 $sqlText = Get-Content -Raw $InFile
 if ([string]::IsNullOrWhiteSpace($sqlText)) {
   throw "Backup file is empty."
@@ -66,8 +76,18 @@ if ($DryRun) {
   exit 0
 }
 
+if ($env:ALLOW_DB_RESTORE -ne "1") {
+  throw "Refusing destructive restore. Set ALLOW_DB_RESTORE=1 explicitly after verifying DATABASE_URL and backup file."
+}
+
 $env:MYSQL_PWD = $pass
-Get-Content -Raw $InFile | & $mysql --host=$dbHost --port=$port --user=$user --database=$dbName
+# Dumps made with `--databases` contain a source `USE` statement. Replace it
+# so a restore can never silently target the source database.
+$restoreSql = $sqlText `
+  -replace '(?im)^\s*CREATE DATABASE[^;]*;\s*', '' `
+  -replace '(?im)^\s*DROP DATABASE[^;]*;\s*', '' `
+  -replace '(?im)^\s*USE\s+(`?)[^;\r\n]+\1\s*;\s*', "USE ``$dbName``;`r`n"
+$restoreSql | & $mysql --host=$dbHost --port=$port --user=$user --database=$dbName
 if ($LASTEXITCODE -ne 0) { throw "mysql restore failed with code $LASTEXITCODE" }
 
 Write-Host "Restore completed from: $InFile"

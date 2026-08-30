@@ -18,6 +18,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
 import { formatMoneyAr, formatCountAr } from "./accountingFormat";
 
 interface AccountingShellProps {
@@ -137,9 +138,18 @@ export default function AccountingShell({ children }: AccountingShellProps) {
     { refetchInterval: 60_000, refetchIntervalInBackground: false },
   );
 
+  // The balance is cashbook data — only surface it to users who can open both
+  // الخزنة and القيود.
+  const canSeeCashbookBalance =
+    canAccess("/accounting/cashbook") && canAccess("/accounting/ledger");
+
   const cashbookSummaryQ = (trpc as any).accounting.accLedgerSummary.useQuery(
     {},
-    { refetchInterval: 60_000, refetchIntervalInBackground: false },
+    {
+      refetchInterval: 60_000,
+      refetchIntervalInBackground: false,
+      enabled: canSeeCashbookBalance,
+    },
   );
 
   const s = summaryQ.data;
@@ -159,13 +169,17 @@ export default function AccountingShell({ children }: AccountingShellProps) {
         : formatCountAr(s?.totalReceiptsToday ?? 0),
       icon: ReceiptText,
     },
-    {
-      label: "رصيد الخزنة",
-      value: cashbookSummaryQ.isLoading
-        ? "—"
-        : `${formatMoneyAr(cashbook?.currentBalance ?? 0)} ج.م`,
-      icon: Wallet,
-    },
+    ...(canSeeCashbookBalance
+      ? [
+          {
+            label: "رصيد الخزنة",
+            value: cashbookSummaryQ.isLoading
+              ? "—"
+              : `${formatMoneyAr(cashbook?.currentBalance ?? 0)} ج.م`,
+            icon: Wallet,
+          },
+        ]
+      : []),
   ];
 
   const visibleNavItems = topbarNavItems.filter((item) => canAccess(item.href));
@@ -191,7 +205,14 @@ export default function AccountingShell({ children }: AccountingShellProps) {
           </div>
         </div>
 
-        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 md:w-auto md:min-w-[520px]">
+        <div
+          className={cn(
+            "grid w-full grid-cols-1 gap-2 md:w-auto",
+            canSeeCashbookBalance
+              ? "sm:grid-cols-3 md:min-w-[520px]"
+              : "sm:grid-cols-2 md:min-w-[350px]",
+          )}
+        >
           {shellMetrics.map((metric) => {
             const Icon = metric.icon;
             return (

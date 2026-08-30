@@ -76,7 +76,7 @@ const TABS: Array<{
     id: "hub",
     label: "مركز المريض",
     icon: Users,
-    iconWrapCls: "bg-secondary/15 text-secondary",
+    iconWrapCls: "bg-secondary/15 text-primary",
     permPath: "/patient-hub",
   },
   {
@@ -105,7 +105,7 @@ const TABS: Array<{
     label: "الحجوزات",
     icon: CalendarDays,
     iconWrapCls: "bg-info/15 text-info",
-    permPath: "/booking-triage/portal-bookings",
+    permPath: "/admin-hub/portal-bookings",
   },
 ];
 
@@ -459,7 +459,7 @@ function TodayPanel({
       cls: "bg-secondary text-secondary-foreground",
       bgCls:
         "bg-secondary/5 border-secondary/20 hover:border-secondary/40 text-foreground",
-      labelCls: "text-secondary/80",
+      labelCls: "text-primary/80",
     },
   ];
 
@@ -995,7 +995,7 @@ function AttendancePanel() {
     {
       label: "لم يسجل الخروج أمس",
       value: d?.missingCheckoutYesterday ?? 0,
-      cls: "text-secondary",
+      cls: "text-primary",
     },
   ];
 
@@ -1310,7 +1310,7 @@ export default function Dashboard() {
   const stockQ = trpc.stockroom.getReports.useQuery({});
   const bookingsQ = (trpc as any).patientPortal.listBookings.useQuery(
     { status: "pending", limit: 200 },
-    { staleTime: 60_000, refetchOnWindowFocus: false, enabled: canAccess("/booking-triage/portal-bookings") },
+    { staleTime: 60_000, refetchOnWindowFocus: false, enabled: canAccess("/admin-hub/portal-bookings") },
   );
 
   const todayBadge = merged.length;
@@ -1430,7 +1430,7 @@ export default function Dashboard() {
                   id: "workspaces" as const,
                   label: "مساحات العمل",
                   icon: LayoutDashboard,
-                  cls: "border-secondary/30 bg-secondary/15 text-secondary",
+                  cls: "border-secondary/30 bg-secondary/15 text-primary",
                 },
               ].map(({ id, label, icon: Icon, cls }) => {
                 const active = mobileAsidePanel === id;
@@ -1449,7 +1449,7 @@ export default function Dashboard() {
                       "flex h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-[background-color,border-color,transform] active:scale-[0.98]",
                       active
                         ? cls
-                        : "border-border/60 bg-background text-muted-foreground hover:border-secondary/30 hover:bg-secondary/10 hover:text-secondary",
+                        : "border-border/60 bg-background text-muted-foreground hover:border-secondary/30 hover:bg-secondary/10 hover:text-primary",
                     )}
                   >
                     <span
@@ -1580,7 +1580,7 @@ export default function Dashboard() {
                     <Activity className="h-3.5 w-3.5" aria-hidden />
                     متابعة حية
                   </span>
-                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary/15 px-3 text-sm font-semibold text-secondary tabular-nums">
+                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary/15 px-3 text-sm font-semibold text-primary tabular-nums">
                     <Clock className="h-3.5 w-3.5" aria-hidden />
                     {timeStr}
                   </span>

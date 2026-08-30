@@ -1,4 +1,4 @@
-﻿import {
+import {
   CalendarDays,
   ClipboardList,
   RefreshCw,
@@ -91,7 +91,7 @@ export default function PatientBookings() {
                   </p>
                 </div>
                 <div className="bg-secondary/8 border border-secondary/15 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-secondary font-bold">
+                  <p className="text-[10px] text-primary font-bold">
                     قيد الانتظار
                   </p>
                   <p className="text-xl font-black text-foreground mt-1">
@@ -213,7 +213,7 @@ export default function PatientBookings() {
                           </div>
                         ) : (
                           <div className="bg-secondary/8 border border-secondary/15 rounded-xl p-3 space-y-0.5">
-                            <p className="text-[10px] text-secondary font-bold">
+                            <p className="text-[10px] text-primary font-bold">
                               تأكيد الموعد
                             </p>
                             <p className="text-xs font-bold text-foreground font-sans">
@@ -238,7 +238,7 @@ export default function PatientBookings() {
 
                         {item.staffNotes && (
                           <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-3.5 text-xs leading-5">
-                            <div className="flex items-start gap-2 text-secondary font-bold mb-1">
+                            <div className="flex items-start gap-2 text-primary font-bold mb-1">
                               <ClipboardList className="size-4 shrink-0" />
                               <span>ملاحظة موظف الاستقبال:</span>
                             </div>

@@ -99,7 +99,7 @@ export default function WritePrescription({
   const canDeletePrescriptions = ["admin", "manager"].includes(
     user?.role || "",
   );
-  const isReadOnly = user?.role === "reception";
+  const isReadOnly = user?.role === "reception" || user?.role === "accountant";
   const editingForbidden = isReadOnly || Boolean(patientHubReadOnly);
   const canImportReadyTemplates = isAdmin;
   const initialPatientId = params?.id ? Number(params.id) : 0;

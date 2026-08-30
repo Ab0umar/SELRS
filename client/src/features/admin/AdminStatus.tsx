@@ -81,7 +81,11 @@ export default function AdminStatus() {
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
+  const serverBuildQuery = trpc.medical.getBuildInfo.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
   const health = (opsHealthQuery.data ?? null) as HealthState | null;
+  const serverBuild = serverBuildQuery.data;
 
   const buildInfo = useMemo(() => {
     const cssAsset =
@@ -495,7 +499,16 @@ export default function AdminStatus() {
             <CardContent className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "الإصدار", value: buildInfo.version, mono: true },
+                  {
+                    label: "إصدار الواجهة",
+                    value: buildInfo.version,
+                    mono: true,
+                  },
+                  {
+                    label: "إصدار السيرفر",
+                    value: serverBuild?.version ?? "—",
+                    mono: true,
+                  },
                   { label: "الجلسة", value: formatSessionDuration(sessionMs) },
                   { label: "الترحيلات", value: migrationCount },
                   { label: "البيئة", value: health?.env ?? "—" },
@@ -523,7 +536,15 @@ export default function AdminStatus() {
                   وقت البناء
                 </div>
                 <div className="text-xs font-mono break-all">
-                  {buildInfo.buildTime}
+                  {serverBuild?.buildTime ?? buildInfo.buildTime}
+                </div>
+              </div>
+              <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
+                  Commit
+                </div>
+                <div className="text-xs font-mono break-all">
+                  {serverBuild?.commit ?? "—"}
                 </div>
               </div>
               <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">

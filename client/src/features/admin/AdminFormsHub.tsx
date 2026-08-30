@@ -24,7 +24,7 @@ const FORM_MODULES = [
     title: "نسخ النماذج",
     description: "أداة لنسخ بيانات النماذج بين المرضى.",
     icon: Copy,
-    iconWrap: "bg-secondary/[0.07] text-secondary",
+    iconWrap: "bg-secondary/[0.07] text-primary",
   },
 ];
 

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -17,6 +18,8 @@ import {
   Zap,
   Activity,
   Info,
+  Play,
+  ShieldAlert,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
@@ -24,6 +27,20 @@ import { cn } from "@/lib/utils";
 export default function AdminDiagnostics() {
   const { user } = useAuth();
   const autoFixAllMutation = trpc.medical.autoFixAllDataIssues.useMutation();
+  const checksQuery = trpc.system.diagnosticChecks.useQuery();
+  const runMutation = trpc.system.runDiagnostic.useMutation();
+  const [results, setResults] = useState<Record<string, { status: string; durationMs?: number; output?: string }>>({});
+
+  const availableChecks = Object.entries(checksQuery.data ?? {}) as Array<[
+    string,
+    { label: string; command: string; safe: boolean },
+  ]>;
+
+  const runCheck = async (checkId: string) => {
+    setResults((current) => ({ ...current, [checkId]: { status: "running" } }));
+    const result = await runMutation.mutateAsync({ checkId });
+    setResults((current) => ({ ...current, [checkId]: result }));
+  };
 
   const handleAutoFixAll = async () => {
     if (
@@ -123,7 +140,7 @@ export default function AdminDiagnostics() {
                     value:
                       autoFixAllMutation.data.fixVisitsWithoutAppointmentId
                         .fixed,
-                    color: "text-secondary",
+                    color: "text-primary",
                   },
                 ].map((stat) => (
                   <div
@@ -170,6 +187,70 @@ export default function AdminDiagnostics() {
         </CardContent>
       </Card>
 
+      <Card className="border-border/60 bg-card shadow-sm">
+        <CardHeader className="border-b bg-muted/5 py-4 px-6">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            كل الاختبارات المتاحة
+          </CardTitle>
+          <CardDescription>شغّل الفحوصات الآمنة وتابع آخر نتيجة لكل فحص.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 p-6 md:grid-cols-2">
+          <div className="md:col-span-2 flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={runMutation.isPending || availableChecks.length === 0}
+              onClick={async () => {
+                for (const [checkId, check] of availableChecks) {
+                  if (check.safe) await runCheck(checkId);
+                }
+              }}
+            >
+              <Play className="ml-2 h-4 w-4" /> تشغيل كل الآمن
+            </Button>
+          </div>
+          {availableChecks.map(([checkId, check]) => {
+            const result = results[checkId];
+            return (
+            <div
+              key={checkId}
+              className="space-y-3 rounded-lg border border-border/60 bg-background p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-foreground">{check.label}</p>
+                  <code className="block truncate text-xs text-muted-foreground" dir="ltr">
+                    {check.command}
+                  </code>
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title={check.safe ? "تشغيل الاختبار" : "يحتاج تأكيداً منفصلاً"}
+                  disabled={!check.safe || runMutation.isPending}
+                  onClick={() => void runCheck(checkId)}
+                >
+                  {result?.status === "running" ? <Loader2 className="h-4 w-4 animate-spin" /> : check.safe ? <Play className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <code className="block truncate text-xs text-muted-foreground" dir="ltr">
+                  {result?.durationMs ? `${result.durationMs}ms` : "لم يُشغّل بعد"}
+                </code>
+                <Badge variant="outline" className="shrink-0">
+                  {result?.status === "passed" ? "نجح" : result?.status === "failed" ? "فشل" : check.safe ? "آمن" : "يحتاج تأكيد"}
+                </Badge>
+              </div>
+              {result?.output && (
+                <pre className="max-h-32 overflow-auto rounded-md bg-muted/50 p-3 text-left text-[11px] leading-relaxed" dir="ltr">{result.output}</pre>
+              )}
+            </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {/* INFO CARD */}
       <Card className="border-border/60 bg-card shadow-sm">
         <CardHeader className="border-b bg-muted/5 py-4 px-6">
@@ -201,7 +282,7 @@ export default function AdminDiagnostics() {
               </p>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-2 font-bold text-secondary">
+              <div className="flex items-center gap-2 font-bold text-primary">
                 <div className="h-2 w-2 rounded-full bg-secondary/[0.07]0" />
                 توافق المواعيد
               </div>

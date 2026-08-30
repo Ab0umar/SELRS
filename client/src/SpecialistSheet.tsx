@@ -257,7 +257,7 @@ export default function SpecialistSheet() {
     const role = String(user?.role ?? "").toLowerCase();
     setSignatures((prev) => ({
       ...prev,
-      reception: role === "reception" ? fullName : prev.reception,
+      reception: ["reception", "accountant"].includes(role) ? fullName : prev.reception,
       nurse: role === "nurse" ? fullName : prev.nurse,
       technician: role === "technician" ? fullName : prev.technician,
       doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor,

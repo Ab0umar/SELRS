@@ -327,7 +327,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
               value={stats.followups}
               icon={CalendarRange}
               description={`نوع: متابعة`}
-              iconColor="bg-secondary/15 text-secondary"
+              iconColor="bg-secondary/15 text-primary"
             />
           </div>
         </>

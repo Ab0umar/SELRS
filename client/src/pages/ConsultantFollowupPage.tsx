@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Printer } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
@@ -14,6 +13,7 @@ import {
 } from "@/lib/sheetDesigner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
+import { operationTypeLabelAr } from "@shared/opTypes";
 
 const FOLLOWUP_TITLES = [
   "المتابعة الأولى",
@@ -84,6 +84,26 @@ export default function ConsultantFollowupPage() {
     enabled: Boolean(initialPatientId),
     refetchOnWindowFocus: false,
   });
+  // Requested-service code is the only reference available for the
+  // operation type — pre-fill this field from it once per patient, still
+  // freely editable afterward (never re-applied once the patient is set).
+  const suggestedOperationTypeQuery =
+    trpc.opHistory.getSuggestedOperationType.useQuery(
+      { patientId: initialPatientId ?? 0 },
+      { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    );
+  const appliedSuggestionForPatientRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!initialPatientId || !suggestedOperationTypeQuery.data) return;
+    if (appliedSuggestionForPatientRef.current === initialPatientId) return;
+    appliedSuggestionForPatientRef.current = initialPatientId;
+    setOperationType(
+      operationTypeLabelAr(suggestedOperationTypeQuery.data.operationType),
+    );
+    if (suggestedOperationTypeQuery.data.operationDate) {
+      setOperationDateRight(suggestedOperationTypeQuery.data.operationDate);
+    }
+  }, [initialPatientId, suggestedOperationTypeQuery.data]);
   const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: initialPatientId ?? 0, page: "examination" },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
@@ -326,263 +346,18 @@ export default function ConsultantFollowupPage() {
     if (patient?.id) setLocation(`/sheets/consultant/${patient.id}/followup`);
   };
 
+  const followupPages: typeof followups[] = [];
+  for (let i = 0; i < followups.length; i += 4) {
+    followupPages.push(followups.slice(i, i + 4));
+  }
+  if (followupPages.length === 0) followupPages.push([]);
+
   return (
     <div
-      className="min-h-screen bg-[#dde1e7] text-foreground"
+      className="followup-print-root consultant-followup-page min-h-screen print:min-h-0 bg-[#dde1e7] text-foreground"
       style={{ fontFamily: "Inter, sans-serif" }}
       dir="rtl"
     >
-      <style>{`
-        .consultant-followup-page {
-          background: #dde1e7;
-        }
-        .consultant-followup-toolbar {
-          backdrop-filter: blur(8px);
-        }
-        .consultant-followup-shell {
-          width: 210mm;
-          max-width: calc(100vw - 32px);
-          margin: 0 auto;
-        }
-        .consultant-followup-shell .sheet-followup-body {
-          width: 210mm;
-          min-height: 0;
-          margin: 0 auto;
-          border: 0;
-          padding: 10mm;
-          box-shadow: 0 18px 45px rgba(25, 28, 30, 0.12);
-        }
-        @media print {
-          @page { size: A4 portrait; margin: 0; }
-          .print\\:hidden,
-          .consultant-followup-toolbar {
-            display: none !important;
-          }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          html, body {
-            width: 100% !important;
-            height: auto !important;
-            min-height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow-x: hidden !important;
-            overflow-y: hidden !important;
-            background: white !important;
-          }
-          .consultant-followup-page,
-          .consultant-followup-page main {
-            display: block !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow-x: hidden !important;
-            overflow-y: hidden !important;
-          }
-          .print-page-center-a4 {
-            width: 100% !important;
-            height: auto !important;
-            min-height: 0 !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background: white !important;
-          }
-          .sheet-followup-body {
-            width: 100% !important;
-            height: auto !important;
-            max-height: none !important;
-            min-height: 0 !important;
-            margin: 0 auto !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
-            box-shadow: none !important;
-            border: 0 !important;
-            padding: 8mm 10mm !important;
-            background: white !important;
-          }
-          .sheet-followup-body .sheet-followup-content {
-            height: auto !important;
-            flex: 0 0 auto !important;
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 1.5mm !important;
-          }
-          .sheet-followup-body, .sheet-followup-body * {
-            box-sizing: border-box !important;
-            font-size: 10px !important;
-            line-height: 1.2 !important;
-            font-weight: 400 !important;
-            text-decoration: none !important;
-          }
-          .sheet-followup-body th { font-weight: 700 !important; }
-          .sheet-followup-body .sheet-print-header {
-            flex: 0 0 16mm !important;
-            height: 16mm !important;
-            min-height: 16mm !important;
-            padding: 0 0 1.5mm !important;
-            margin: 0 !important;
-            align-items: center !important;
-          }
-          .sheet-followup-body .sheet-print-clinic-name {
-            font-size: 14px !important;
-            font-weight: 700 !important;
-          }
-          .sheet-followup-body .sheet-print-clinic-tagline {
-            font-size: 8px !important;
-          }
-          .sheet-followup-body .sheet-print-type {
-            font-size: 12px !important;
-            font-weight: 700 !important;
-          }
-          .sheet-followup-body .sheet-print-logo {
-            width: 10mm !important;
-            height: 10mm !important;
-          }
-          .sheet-followup-body .followup-record-head {
-            flex: 0 0 19mm !important;
-            height: 19mm !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-            border-radius: 0.8mm !important;
-          }
-          .sheet-followup-body .followup-record-head,
-          .sheet-followup-body .followup-record-head * {
-            font-size: 9.5px !important;
-            line-height: 1.15 !important;
-          }
-          .sheet-followup-body .followup-record-head input,
-          .sheet-followup-body .followup-record-head button {
-            height: 4.5mm !important;
-            min-height: 4.5mm !important;
-            border-radius: 1mm !important;
-          }
-          .sheet-followup-body .followup-record-list {
-            flex: 0 0 auto !important;
-            min-height: 0 !important;
-            gap: 2.2mm !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: flex-start !important;
-          }
-          .sheet-followup-body .followup-record-section {
-            flex: 0 0 56mm !important;
-            height: 56mm !important;
-            min-height: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-            border-radius: 0.8mm !important;
-          }
-          .sheet-followup-body .followup-record-title {
-            flex: 0 0 8mm !important;
-            height: 8mm !important;
-            min-height: 8mm !important;
-            padding: 0 !important;
-            grid-template-columns: minmax(0, 1fr) 55mm 55mm !important;
-            gap: 0 !important;
-          }
-          .sheet-followup-body .followup-record-title input {
-            height: 6mm !important;
-            min-height: 6mm !important;
-            font-size: 10.5px !important;
-            padding: 0 1mm !important;
-          }
-          .sheet-followup-body .followup-clinical-grid {
-            flex: 0 0 21mm !important;
-            height: 21mm !important;
-            min-height: 0 !important;
-            display: flex !important;
-            overflow: hidden !important;
-          }
-          .sheet-followup-body .followup-record-table {
-            flex: 1 1 auto !important;
-            height: 42mm !important;
-            min-height: 0 !important;
-            table-layout: fixed !important;
-            border-collapse: collapse !important;
-          }
-          .sheet-followup-body .followup-record-table th {
-            height: auto !important;
-            padding: 0.45mm 0.7mm !important;
-            font-size: 8.5px !important;
-            letter-spacing: 0 !important;
-          }
-          .sheet-followup-body .followup-record-table td {
-            height: auto !important;
-            min-height: 0 !important;
-            padding: 0 !important;
-          }
-          .sheet-followup-body .followup-record-title .followup-date-label {
-            font-size: 8.5px !important;
-            line-height: 1 !important;
-          }
-          .sheet-followup-body .followup-record-table tr {
-            height: auto !important;
-          }
-          .sheet-followup-body .followup-section-bottom {
-            flex: 0 0 12mm !important;
-            height: 12mm !important;
-            min-height: 12mm !important;
-            grid-template-columns: 1fr 48mm !important;
-          }
-          .sheet-followup-body .followup-section-bottom span,
-          .sheet-followup-body .followup-section-bottom label {
-            font-size: 7px !important;
-            line-height: 1.05 !important;
-          }
-          .sheet-followup-body .followup-section-bottom textarea {
-            height: 8mm !important;
-            min-height: 8mm !important;
-            padding: 0.7mm 1.2mm !important;
-            font-size: 8px !important;
-          }
-          .sheet-followup-body .followup-section-bottom input[type="checkbox"] {
-            width: 2.2mm !important;
-            height: 2.2mm !important;
-          }
-          .sheet-followup-body .followup-signature-row {
-            flex: 0 0 16mm !important;
-            height: 16mm !important;
-            gap: 4mm !important;
-            padding-top: 4mm !important;
-            font-size: 9.5px !important;
-          }
-          .sheet-followup-body section {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          .sheet-followup-body input,
-          .sheet-followup-body textarea {
-            font-size: 9px !important;
-            min-height: 0 !important;
-            box-shadow: none !important;
-            outline: 0 !important;
-          }
-          .sheet-followup-body input[type="date"]::-webkit-calendar-picker-indicator {
-            display: none !important;
-          }
-          .sheet-followup-body .followup-record-title label button,
-          .sheet-followup-body .followup-record-head label button {
-            display: none !important;
-          }
-          .sheet-followup-body .h-10 { height: 5mm !important; }
-          .sheet-followup-body .h-8 { height: 5mm !important; }
-          .sheet-followup-body .h-7 { height: 5mm !important; }
-          .sheet-followup-body .p-6 { padding: 8mm 10mm !important; }
-          .sheet-followup-body section { box-shadow: none !important; }
-          .sheet-followup-body .sheet-watermark img {
-            width: 120mm !important;
-            height: 120mm !important;
-            opacity: 0.055 !important;
-            print-color-adjust: exact !important;
-            -webkit-print-color-adjust: exact !important;
-          }
-        }
-      `}</style>
 
       {/* Top nav */}
       <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-5 py-2 bg-[#f8f9fb]/95 border-b border-[#c3c6d6]">
@@ -629,26 +404,34 @@ export default function ConsultantFollowupPage() {
         </div>
       </header>
 
-      <div className="consultant-followup-page flex min-h-screen">
+      <div className="flex min-h-screen print:min-h-0">
         {/* Main content */}
         <main className="py-6 px-4 flex-1 print:p-0">
-          <div className="consultant-followup-shell print-page-center-a4">
-            <FollowupTablesBody
-              titleEn="Consultant Follow-up"
-              titleAr="متابعة الاستشاري"
-              patientName={patientName}
-              patientDOB={patientDOB}
-              operationType={operationType}
-              setOperationType={setOperationType}
-              operationEyes={operationEyes}
-              setOperationEyes={setOperationEyes}
-              operationDateRight={operationDateRight}
-              setOperationDateRight={setOperationDateRight}
-              followups={followups}
-              setFollowups={setFollowups}
-              followupLabels={followupLabels}
-              signatures={signatures}
-            />
+          <div data-print-document="followup" data-followup-kind="consultant">
+            {followupPages.map((page, pageIndex) => (
+              <div
+                key={pageIndex}
+                className="followup-print-page"
+                style={pageIndex > 0 ? { marginTop: "8mm" } : undefined}
+              >
+                <FollowupTablesBody
+                  titleEn="Consultant Follow-up"
+                  titleAr="متابعة الاستشاري"
+                  patientName={patientName}
+                  patientDOB={patientDOB}
+                  operationType={operationType}
+                  setOperationType={setOperationType}
+                  operationEyes={operationEyes}
+                  setOperationEyes={setOperationEyes}
+                  operationDateRight={operationDateRight}
+                  setOperationDateRight={setOperationDateRight}
+                  followups={page}
+                  setFollowups={setFollowups}
+                  followupLabels={followupLabels}
+                  signatures={signatures}
+                />
+              </div>
+            ))}
           </div>
         </main>
       </div>

@@ -82,7 +82,7 @@ async function fetchHealthSnapshot(signal?: AbortSignal): Promise<BuildInfo> {
       }
     }
 
-    const response = await fetch(getApiUrl("/healthz"), {
+    const response = await fetch(getApiUrl("/version"), {
       cache: "no-store",
       credentials: "include",
       signal: controller.signal,
@@ -92,23 +92,23 @@ async function fetchHealthSnapshot(signal?: AbortSignal): Promise<BuildInfo> {
     });
 
     if (!response.ok) {
-      throw new Error(`Health check failed with status ${response.status}`);
+      throw new Error(`Version check failed with status ${response.status}`);
     }
 
     const raw = await response.text();
     if (!raw.trim()) {
-      throw new Error("Health check returned an empty response");
+      throw new Error("Version check returned an empty response");
     }
 
     let data: Partial<BuildInfo> & { ok?: boolean };
     try {
       data = JSON.parse(raw) as Partial<BuildInfo> & { ok?: boolean };
     } catch {
-      throw new Error("Health check returned invalid JSON");
+      throw new Error("Version check returned invalid JSON");
     }
 
     if (!data.ok) {
-      throw new Error("Health check reported an unhealthy state");
+      throw new Error("Version check reported an unhealthy state");
     }
 
     return {

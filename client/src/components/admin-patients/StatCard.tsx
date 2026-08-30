@@ -15,14 +15,14 @@ export function StatCard({ label, value, isTotal = false }: StatCardProps) {
     >
       <p
         className={`text-xs sm:text-sm font-medium leading-tight tracking-tight ${
-          isTotal ? "text-secondary font-semibold" : "text-muted-foreground"
+          isTotal ? "text-primary font-semibold" : "text-muted-foreground"
         }`}
       >
         {label}
       </p>
       <p
         className={`mt-1 text-xl sm:text-2xl font-bold tabular-nums leading-none ${
-          isTotal ? "text-secondary" : "text-foreground"
+          isTotal ? "text-primary" : "text-foreground"
         }`}
       >
         {value}

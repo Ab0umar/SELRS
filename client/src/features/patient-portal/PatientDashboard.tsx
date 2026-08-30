@@ -1,4 +1,4 @@
-﻿import { CalendarDays, FileText, Glasses, Pill, ScanLine, ArrowRight } from "lucide-react";
+import { CalendarDays, FileText, Glasses, Pill, ScanLine, ArrowRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export default function PatientDashboard() {
                 icon={ScanLine}
                 label="الأشعة والفحوصات"
                 description="عرض صور الأشعة (Pentacam) وتحميل التقارير الطبية."
-                color="bg-secondary/10 text-secondary"
+                color="bg-secondary/10 text-primary"
               />
               <QuickAction
                 href="/my/refraction"

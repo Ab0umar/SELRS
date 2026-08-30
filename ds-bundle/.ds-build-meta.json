@@ -1,0 +1,9 @@
+{
+  "namespace": "SELRSUI",
+  "source": "selrs-ui@0.0.1",
+  "shape": "package",
+  "provider": null,
+  "componentCount": 285,
+  "skippedStoryIds": [],
+  "runtimeFontPrefixes": []
+}

@@ -53,9 +53,9 @@ export function ModuleNavigation({
       focusRing: "focus-visible:ring-primary/30",
     },
     secondary: {
-      activeText: "text-secondary",
-      activeBg: "bg-secondary/10",
-      focusRing: "focus-visible:ring-secondary/30",
+      activeText: "text-primary",
+      activeBg: "bg-primary/10",
+      focusRing: "focus-visible:ring-primary/30",
     },
   };
 
@@ -201,7 +201,7 @@ export function ModuleHeader({
                 className={`inline-flex items-center gap-2 rounded-full border ${
                   colorScheme === "primary"
                     ? "border-primary/20 bg-primary/10 text-primary"
-                    : "border-secondary/20 bg-secondary/10 text-secondary"
+                    : "border-primary/20 bg-primary/10 text-primary"
                 } px-3 py-1 text-xs font-medium`}
               >
                 {BadgeIcon && <BadgeIcon className="h-3.5 w-3.5" />}

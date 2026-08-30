@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useLocation, Link, Redirect } from "wouter";
 import { usePermissions } from "@/hooks/usePermissions";
+import { permissionPathForHubLink } from "@/lib/hubPermissionPaths";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -56,7 +57,7 @@ const MAIN_MODULES: HubModuleCard[] = [
     title: "سجل الأدوية",
     description: "تتبع وإدارة سجلات الأدوية والمخزون.",
     icon: Pill,
-    iconWrap: "bg-secondary/15 text-secondary",
+    iconWrap: "bg-secondary/15 text-primary",
   },
   {
     href: "/services-hub/txhub",
@@ -106,6 +107,15 @@ export default function ServicesHubShell() {
 
   const renderComponent = () => {
     if (isHubHome) return null;
+    // Hub sub-paths inherit the hub permission, so re-check the permission that
+    // actually guards the page being rendered.
+    if (!canAccess(permissionPathForHubLink(location))) {
+      return (
+        <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
+          لا تملك صلاحية فتح هذه الصفحة.
+        </div>
+      );
+    }
 
     if (location === "/services-hub/medications") {
       return <Redirect to="/medications" />;
@@ -163,7 +173,9 @@ export default function ServicesHubShell() {
             />
 
             <div className="space-y-2">
-              {MAIN_MODULES.filter((mod) => canAccess(mod.href)).map((mod) => {
+              {MAIN_MODULES.filter((mod) =>
+          canAccess(permissionPathForHubLink(mod.href)),
+        ).map((mod) => {
                 const Icon = mod.icon;
                 return (
                   <div

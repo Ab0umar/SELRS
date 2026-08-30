@@ -32,7 +32,7 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
               <h1 className="text-base font-bold text-primary leading-tight">
                 مركز عيون الشروق
               </h1>
-              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wider">
+              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
                 بوابة الأطباء الخارجيين
               </p>
             </div>

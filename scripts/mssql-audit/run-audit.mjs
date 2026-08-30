@@ -5,12 +5,22 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const server = process.env.MSSQL_HOST || process.env.MSSQL_SERVER;
+const user = process.env.MSSQL_USER;
+const password = process.env.MSSQL_PASS || process.env.MSSQL_PASSWORD;
+
+if (!server || !user || !password) {
+  throw new Error(
+    "MSSQL_HOST (or MSSQL_SERVER), MSSQL_USER, and MSSQL_PASS (or MSSQL_PASSWORD) are required.",
+  );
+}
+
 const config = {
-  server: process.env.MSSQL_HOST || "192.168.0.100",
+  server,
   port: 1433,
-  user: process.env.MSSQL_USER || "selrs",
-  password: process.env.MSSQL_PASS || "SELRS258288",
-  database: "op2026",
+  user,
+  password,
+  database: process.env.MSSQL_DATABASE || "op2026",
   options: {
     encrypt: false,
     trustServerCertificate: true,

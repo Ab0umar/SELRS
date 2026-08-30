@@ -13,6 +13,7 @@ import {
   managerProcedure,
   adminProcedure,
   medicalStaffProcedure,
+  makePageProcedure,
 } from "../_core/procedures";
 import { authService } from "../_core/auth";
 import {
@@ -783,19 +784,19 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  getTestRequestsByPatient: protectedProcedure
+  getTestRequestsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getTestRequestsByPatient(input.patientId);
     }),
 
-  getPatientTestRequests: protectedProcedure
+  getPatientTestRequests: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getTestRequestsByPatient(input.patientId);
     }),
 
-  getMedicalHistoryByPatient: protectedProcedure
+  getMedicalHistoryByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getMedicalHistoryByPatient(input.patientId);
@@ -863,7 +864,7 @@ export const medicalCatalogRoutes = {
       }
     }),
 
-  getPrescriptionsByVisit: protectedProcedure
+  getPrescriptionsByVisit: makePageProcedure("/patient-file")
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPrescriptionsByVisit(input.visitId);
@@ -956,13 +957,13 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  getPrescriptionsByPatient: protectedProcedure
+  getPrescriptionsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPrescriptionsByPatient(input.patientId);
     }),
 
-  getPrescriptionsWithItemsByPatient: protectedProcedure
+  getPrescriptionsWithItemsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPrescriptionsWithItemsByPatient(input.patientId);
@@ -992,7 +993,7 @@ export const medicalCatalogRoutes = {
       });
     }),
 
-  getPrescriptionsWithItemsByVisit: protectedProcedure
+  getPrescriptionsWithItemsByVisit: makePageProcedure("/patient-file")
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPrescriptionsWithItemsByVisit(input.visitId);
@@ -1060,7 +1061,7 @@ export const medicalCatalogRoutes = {
       }
     }),
 
-  getSurgeriesByPatient: protectedProcedure
+  getSurgeriesByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getSurgeriesByPatient(input.patientId);
@@ -1150,13 +1151,13 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  getPostOpFollowupsByPatient: protectedProcedure
+  getPostOpFollowupsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPostOpFollowupsByPatient(input.patientId);
     }),
 
-  getPostOpFollowupsBySurgery: protectedProcedure
+  getPostOpFollowupsBySurgery: makePageProcedure("/patient-file")
     .input(z.object({ surgeryId: z.number() }))
     .query(async ({ input }) => {
       return await db.getPostOpFollowupsBySurgery(input.surgeryId);

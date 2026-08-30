@@ -18,7 +18,7 @@ import os from "node:os";
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerAuthRoutes } from "./auth";
+import { authService, registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
 import { registerWhatsAppWebhook } from "./whatsappWebhook";
 import { appRouter } from "../routers";
@@ -119,6 +119,18 @@ function isAllowedCorsOrigin(
       (parsed.protocol === "http:" || parsed.protocol === "https:") &&
       parsed.hostname === "localhost"
     );
+  } catch {
+    return false;
+  }
+}
+
+function isSameRequestOrigin(
+  req: express.Request,
+  origin: string | undefined,
+): boolean {
+  if (!origin) return false;
+  try {
+    return new URL(origin).host === req.get("host");
   } catch {
     return false;
   }
@@ -1413,9 +1425,38 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+        "style-src 'self' 'unsafe-inline' https:",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data: https:",
+        "connect-src 'self' https: ws: wss:",
+        "frame-src 'self' https:",
+      ].join("; "),
+    );
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (process.env.NODE_ENV === "production" && req.secure) {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    next();
+  });
+  app.use((req, res, next) => {
     const origin =
       typeof req.headers.origin === "string" ? req.headers.origin : undefined;
-    if (isAllowedCorsOrigin(origin, allowedCorsOrigins)) {
+    if (
+      origin &&
+      (isAllowedCorsOrigin(origin, allowedCorsOrigins) ||
+        isSameRequestOrigin(req, origin))
+    ) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Vary", "Origin");
       res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -1438,6 +1479,22 @@ async function startServer() {
       return;
     }
 
+    next();
+  });
+  app.use((req, res, next) => {
+    const unsafeMethod = !["GET", "HEAD", "OPTIONS"].includes(req.method);
+    const origin =
+      typeof req.headers.origin === "string" ? req.headers.origin : undefined;
+    if (
+      unsafeMethod &&
+      origin &&
+      req.path.startsWith("/api/") &&
+      !isAllowedCorsOrigin(origin, allowedCorsOrigins) &&
+      !isSameRequestOrigin(req, origin)
+    ) {
+      res.status(403).json({ error: "Cross-origin request rejected" });
+      return;
+    }
     next();
   });
   app.use(
@@ -1915,52 +1972,44 @@ async function startServer() {
     }
   });
 
-  app.get("/healthz", async (_req, res) => {
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+
+  app.get("/healthz/diagnostics", async (req, res) => {
+    const user = await authService.authenticateRequest(req);
+    if (!user) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    if (user.role !== "admin") {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
     const build = await getBuildInfo().catch(() => ({
       version: "unknown",
       buildTime: "unknown",
       commit: "unknown",
     }));
-    const payload: {
-      ok: boolean;
-      env: string;
-      dbConnected: boolean;
-      version: string;
-      buildTime: string;
-      commit: string;
-      patientsCount?: number;
-      dbError?: string;
-    } = {
+    res.status(200).json({
       ok: true,
-      env: process.env.NODE_ENV || "development",
-      dbConnected: false,
       version: build.version,
       buildTime: build.buildTime,
       commit: build.commit,
-    };
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      payload.dbError = "DATABASE_URL is missing";
-      res.status(200).json(payload);
-      return;
-    }
-    let conn: mysql.Connection | null = null;
-    try {
-      conn = await mysql.createConnection(databaseUrl);
-      const [rows] = await conn.query("SELECT COUNT(*) AS c FROM patients");
-      const first =
-        Array.isArray(rows) && rows.length > 0 ? (rows[0] as any) : null;
-      payload.dbConnected = true;
-      payload.patientsCount = Number(first?.c ?? 0);
-    } catch (error: any) {
-      payload.dbConnected = false;
-      payload.dbError = String(
-        error?.code || error?.message || "DB ping failed",
-      );
-    } finally {
-      if (conn) await conn.end();
-    }
-    res.status(200).json(payload);
+      nodeEnv: process.env.NODE_ENV ?? "development",
+    });
+  });
+
+  app.get("/version", async (_req, res) => {
+    const build = await getBuildInfo().catch(() => ({
+      version: "unknown",
+      buildTime: "unknown",
+      commit: "unknown",
+    }));
+    res.status(200).json({
+      ok: true,
+      version: build.version,
+    });
   });
   // Local auth routes
   registerAuthRoutes(app);
@@ -2291,13 +2340,27 @@ async function startServer() {
   // Bind to all interfaces by default to allow LAN/mobile access.
   const host = process.env.HOST || "0.0.0.0";
   const branchName = process.env.BRANCH || "clinic";
-  const port = await findAvailablePort(preferredPort);
+  const isProduction = process.env.NODE_ENV === "production";
+  let port = preferredPort;
+  if (isProduction) {
+    if (!(await isPortAvailable(preferredPort))) {
+      throw new Error(
+        `[${branchName}] Port ${preferredPort} is busy in production; refusing to bind to a fallback port`,
+      );
+    }
+  } else {
+    port = await findAvailablePort(preferredPort);
+  }
 
   if (port !== preferredPort) {
     console.log(
       `[${branchName}] Port ${preferredPort} is busy, using port ${port} instead`,
     );
   }
+
+  server.on("error", (error) => {
+    throw error;
+  });
 
   server.listen(port, host, () => {
     console.log(`[${branchName}] Server running on http://${host}:${port}/`);

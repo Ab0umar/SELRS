@@ -32,7 +32,6 @@ export default function SpecialistSheet() {
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/sheets/specialist/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
-  const printMode = usePrintMode({ ready: Boolean(initialPatientId) });
 
   const [formData, setFormData] = useState({
     patientName: "",
@@ -156,6 +155,16 @@ export default function SpecialistSheet() {
     { patientId: initialPatientId ?? 0, page: "examination" },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
+  // Auto-print (triggered by usePrintMode below) must wait for the sheet's
+  // own data to finish loading — otherwise the print preview/dialog fires
+  // against a still-empty page.
+  const printMode = usePrintMode({
+    ready:
+      Boolean(initialPatientId) &&
+      !patientQuery.isLoading &&
+      !examinationsQuery.isLoading &&
+      !sheetQuery.isLoading,
+  });
   useEffect(() => {
     if (!initialPatientId) return;
     const socket = connectSheetUpdates({

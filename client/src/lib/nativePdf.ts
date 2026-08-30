@@ -562,7 +562,11 @@ export async function printOrExportPdf(
   // Only use native Android print (full page dump) when no specific element
   // target was provided — otherwise fall back to browser print which respects
   // the CSS @media print visibility hack on the target element.
-  if (!hasSpecificTarget && canUseNativeAndroidPrint()) {
+  if (
+    !options?.forceBrowserPrint &&
+    !hasSpecificTarget &&
+    canUseNativeAndroidPrint()
+  ) {
     const restoreTheme = forceLightThemeForPrint();
     try {
       await requestNativeAndroidPrint(document.title || "SELRS Print");

@@ -218,7 +218,7 @@ export default function ScheduleSwap() {
       <Card className="border-border">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-            <Clock className="h-5 w-5 text-secondary" />
+            <Clock className="h-5 w-5 text-primary" />
             طلبات تغيير وتبديل المواعيد قيد الانتظار
           </CardTitle>
           <CardDescription>
@@ -907,7 +907,7 @@ export default function ScheduleSwap() {
                       <span className="font-semibold text-foreground">
                         {aAssign.empName}
                       </span>
-                      <ArrowLeftRight size={13} className="text-secondary" />
+                      <ArrowLeftRight size={13} className="text-primary" />
                       <span className="text-primary font-medium">
                         {bAssign.shiftName}
                       </span>
@@ -919,7 +919,7 @@ export default function ScheduleSwap() {
                       <span className="font-semibold text-foreground">
                         {bAssign.empName}
                       </span>
-                      <ArrowLeftRight size={13} className="text-secondary" />
+                      <ArrowLeftRight size={13} className="text-primary" />
                       <span className="text-primary font-medium">
                         {aAssign.shiftName}
                       </span>

@@ -163,7 +163,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             autoFocus={autoFocus}
             aria-required={required}
             aria-label={ariaLabel}
-            placeholder={placeholder || "dd/mm/yyyy"}
+            placeholder={placeholder || "يوم/شهر/سنة"}
             // Keep the default wide enough for the full date. Dense layouts
             // can opt into a smaller input through inputClassName.
             size={11}

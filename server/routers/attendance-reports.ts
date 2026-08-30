@@ -133,11 +133,145 @@ export const attendanceReportsRoutes = {
       return MonthlyComputeService.summaryReport(monthly);
     }),
 
-  rangeReport: makeAttProcedure("/attendance")
-    .input(z.object({ from: z.string(), to: z.string(), department: z.string().optional() }))
+  monthlyPunches: makeAttProcedure("/attendance/reports")
+    .input(
+      z.object({
+        fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        empCd: z.string().optional(),
+        department: z.string().optional(),
+        limit: z.number().int().min(1).max(50000).default(10000),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      if (input.toDate < input.fromDate) {
+        throw new Error("تاريخ النهاية لازم يكون بعد أو يساوي تاريخ البداية");
+      }
+      const requestedDays =
+        (Date.parse(`${input.toDate}T00:00:00Z`) -
+          Date.parse(`${input.fromDate}T00:00:00Z`)) /
+          86_400_000 +
+        1;
+      if (requestedDays > 366) {
+        throw new Error("الفترة لا يمكن أن تتجاوز 366 يومًا");
+      }
+
+      const fromDate = new Date(`${input.fromDate}T00:00:00.000Z`);
+      const toDateExclusive = new Date(`${input.toDate}T00:00:00.000Z`);
+      toDateExclusive.setUTCDate(toDateExclusive.getUTCDate() + 1);
+      const conditions: any[] = [
+        gte(attendancePunches.punchAt, fromDate),
+        lt(attendancePunches.punchAt, toDateExclusive),
+      ];
+
+      if (input.empCd) {
+        conditions.push(eq(attendancePunches.empCd, input.empCd));
+      }
+      if (input.department) {
+        conditions.push(
+          or(
+            eq(attendanceEmployees.department, input.department),
+            eq(attendanceEmployees.department, "المركز والعيادة"),
+          ),
+        );
+      }
+
+      const punches = await db
+        .select({
+          empCd: attendancePunches.empCd,
+          empName: attendanceEmployees.fullName,
+          department: attendanceEmployees.department,
+          punchAt: attendancePunches.punchAt,
+          direction: attendancePunches.direction,
+        })
+        .from(attendancePunches)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendancePunches.empCd, attendanceEmployees.empCd),
+        )
+        .where(and(...conditions))
+        .orderBy(attendancePunches.empCd, attendancePunches.punchAt)
+        .limit(input.limit);
+
+      type DayPunches = { in: string[]; out: string[]; other: string[] };
+      type EmployeePunches = {
+        empCd: string;
+        empName: string;
+        department: string | null;
+        section: "center" | "clinic";
+        days: Record<string, DayPunches>;
+        totalPunches: number;
+      };
+
+      const grouped = new Map<string, EmployeePunches>();
+      for (const punch of punches) {
+        const punchAt = new Date(punch.punchAt);
+        const dateKey = punchAt.toISOString().slice(0, 10);
+        const employee: EmployeePunches = grouped.get(punch.empCd) ?? {
+          empCd: punch.empCd,
+          empName: punch.empName ?? "-",
+          department: punch.department ?? null,
+          section:
+            punch.department === "عيادة" ||
+            punch.department === "clinic" ||
+            punch.department === "المركز والعيادة"
+              ? "clinic"
+              : "center",
+          days: {} as Record<string, DayPunches>,
+          totalPunches: 0,
+        };
+        const day = employee.days[dateKey] ?? { in: [], out: [], other: [] };
+        const iso = punchAt.toISOString();
+        if (punch.direction === "in") day.in.push(iso);
+        else if (punch.direction === "out") day.out.push(iso);
+        else day.other.push(iso);
+        employee.days[dateKey] = day;
+        employee.totalPunches += 1;
+        grouped.set(punch.empCd, employee);
+      }
+
+      return {
+        fromDate: input.fromDate,
+        toDate: input.toDate,
+        totalDays:
+          Math.floor(
+            (Date.parse(`${input.toDate}T00:00:00Z`) -
+              Date.parse(`${input.fromDate}T00:00:00Z`)) /
+              86_400_000,
+          ) + 1,
+        totalPunches: punches.length,
+        truncated: punches.length >= input.limit,
+        employees: Array.from(grouped.values()).sort((a, b) =>
+          a.empCd.localeCompare(b.empCd, undefined, { numeric: true }),
+        ),
+      };
+    }),
+
+  rangeReport: makeAttProcedure("/attendance")
+    .input(
+      z.object({
+        from: z.string(),
+        to: z.string(),
+        department: z.string().optional(),
+        limit: z.number().int().min(1).max(50000).default(10000),
+      }),
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      if (input.to < input.from) {
+        throw new Error("تاريخ النهاية لازم يكون بعد أو يساوي تاريخ البداية");
+      }
+      const requestedDays =
+        (Date.parse(`${input.to}T00:00:00Z`) -
+          Date.parse(`${input.from}T00:00:00Z`)) /
+          86_400_000 +
+        1;
+      if (requestedDays > 366) {
+        throw new Error("الفترة لا يمكن أن تتجاوز 366 يومًا");
+      }
       const conditions: any[] = [
         gte(attendanceDaily.workDate, input.from as any),
         lte(attendanceDaily.workDate, input.to as any),
@@ -165,7 +299,8 @@ export const attendanceReportsRoutes = {
           attendanceEmployees,
           eq(attendanceDaily.empCd, attendanceEmployees.empCd),
         )
-        .where(and(...conditions));
+        .where(and(...conditions))
+        .limit(input.limit);
 
       const grouped = new Map<string, any>();
       for (const d of daily) {
@@ -200,5 +335,5 @@ export const attendanceReportsRoutes = {
       return Array.from(grouped.values()).sort((a, b) =>
         a.empCd.localeCompare(b.empCd),
       );
-    })
+    }),
 };

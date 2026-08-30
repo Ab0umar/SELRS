@@ -9,10 +9,13 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  Building2,
+  Stethoscope,
 } from "lucide-react";
 import { toast } from "sonner";
 import { localISODate } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const today = localISODate();
 
@@ -653,6 +656,9 @@ export default function SalaryBasics() {
   const [form, setForm] = useState<BasicForm>(BLANK);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Section Tabs (Center / Clinic)
+  const [activeSectionTab, setActiveSectionTab] = useState<"center" | "clinic">("center");
+
   // Tabs status for Center
   const [centerTab, setCenterTab] = useState<"salaries" | "shifts">("salaries");
 
@@ -1283,75 +1289,101 @@ export default function SalaryBasics() {
         </div>
       )}
 
-      {/* ── Center Section (المركز) ── */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
-          <h2 className="text-lg font-black text-foreground">المركز</h2>
-          {/* Tabs header for Center */}
-          <div className="flex bg-muted/10 rounded-lg p-0.5 border border-border/60">
-            <button
-              onClick={() => setCenterTab("shifts")}
-              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                centerTab === "shifts"
-                  ? "bg-background text-primary shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+      {/* Main Section Tabs (مركز / عيادة) */}
+      <Tabs
+        value={activeSectionTab}
+        onValueChange={(val) => setActiveSectionTab(val as "center" | "clinic")}
+        className="space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-3 gap-3">
+          <TabsList className="h-11 bg-muted/60 p-1 rounded-xl border border-border/60">
+            <TabsTrigger
+              value="center"
+              className="gap-2 px-5 py-2 text-sm font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs rounded-lg transition-all"
             >
-              الشفتات
-            </button>
-            <button
-              onClick={() => setCenterTab("salaries")}
-              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                centerTab === "salaries"
-                  ? "bg-background text-primary shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              <Building2 className="h-4 w-4" />
+              <span>المركز</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
+                {centerSalaries.length + centerShifts.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="clinic"
+              className="gap-2 px-5 py-2 text-sm font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs rounded-lg transition-all"
             >
-              الرواتب
-            </button>
-          </div>
+              <Stethoscope className="h-4 w-4" />
+              <span>العيادة</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
+                {clinicSalaries.length}
+              </span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Sub-tabs for Center when Center is active */}
+          {activeSectionTab === "center" && (
+            <div className="flex bg-muted/40 rounded-lg p-1 border border-border/60 self-start sm:self-auto">
+              <button
+                onClick={() => setCenterTab("salaries")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  centerTab === "salaries"
+                    ? "bg-background text-primary shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                رواتب المركز ({centerSalaries.length})
+              </button>
+              <button
+                onClick={() => setCenterTab("shifts")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  centerTab === "shifts"
+                    ? "bg-background text-primary shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                طاقم الشفتات ({centerShifts.length})
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Tab Content for Center */}
-        {centerTab === "salaries" ? (
+        {/* ── Center Tab Content ── */}
+        <TabsContent value="center" className="space-y-4 m-0 focus-visible:outline-none">
+          {centerTab === "salaries" ? (
+            <SalaryTable
+              title="رواتب موظفي المركز"
+              data={centerSalaries}
+              employees={employees}
+              onEdit={handleEdit}
+              onDelete={(id) => deleteMut.mutate({ id })}
+              isPending={deleteMut.isPending}
+            />
+          ) : (
+            <ShiftsTable
+              title="طاقم شفتات المركز"
+              data={centerShifts}
+              employees={employees}
+              onEdit={handleEditShift}
+              onDelete={(id) => deleteShiftMut.mutate({ id })}
+              isPending={deleteShiftMut.isPending}
+            />
+          )}
+        </TabsContent>
+
+        {/* ── Clinic Tab Content ── */}
+        <TabsContent value="clinic" className="space-y-4 m-0 focus-visible:outline-none">
           <SalaryTable
-            title="رواتب موظفي المركز"
-            data={centerSalaries}
+            title="رواتب موظفي العيادة"
+            data={clinicSalaries}
             employees={employees}
             onEdit={handleEdit}
             onDelete={(id) => deleteMut.mutate({ id })}
             isPending={deleteMut.isPending}
           />
-        ) : (
-          <ShiftsTable
-            title="طاقم شفتات المركز"
-            data={centerShifts}
-            employees={employees}
-            onEdit={handleEditShift}
-            onDelete={(id) => deleteShiftMut.mutate({ id })}
-            isPending={deleteShiftMut.isPending}
-          />
-        )}
-      </div>
-
-      {/* ── Clinic Section (العيادة) ── */}
-      <div className="space-y-3 pt-4">
-        <div className="border-b border-border pb-2">
-          <h2 className="text-lg font-black text-foreground">العيادة</h2>
-        </div>
-
-        <SalaryTable
-          title="رواتب موظفي العيادة"
-          data={clinicSalaries}
-          employees={employees}
-          onEdit={handleEdit}
-          onDelete={(id) => deleteMut.mutate({ id })}
-          isPending={deleteMut.isPending}
-        />
-      </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Summary Statistics */}
-      <div className="grid gap-4 sm:grid-cols-3 pt-4">
+      <div className="grid gap-4 sm:grid-cols-3 pt-2">
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
           <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             إجمالي الموظفين والكادر
@@ -1372,7 +1404,7 @@ export default function SalaryBasics() {
           <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             إجمالي العيادة
           </div>
-          <div className="mt-2 text-2xl font-black text-secondary tabular-nums">
+          <div className="mt-2 text-2xl font-black text-primary tabular-nums">
             {clinicSalaries.length}
           </div>
         </div>

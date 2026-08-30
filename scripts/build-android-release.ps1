@@ -13,6 +13,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $packageJsonPath = Join-Path $repoRoot "package.json"
 $androidDir = Join-Path $repoRoot "android"
+$androidSigningProperties = Join-Path $androidDir "app\key.properties"
 
 # المسار الافتراضي للنسخ داخل OneDrive الخاص بالمستخدم الحالي
 $localOneDrive = if ($env:OneDrive) { $env:OneDrive } else { Join-Path $env:USERPROFILE "OneDrive" }
@@ -50,7 +51,32 @@ if (-not (Test-Path $packageJsonPath)) {
     throw "package.json not found at $packageJsonPath"
 }
 
-Assert-Command "pnpm", "npx", "java"
+Assert-Command "corepack", "npx", "java"
+if (-not (Get-Command pnpm -ErrorAction Ignore)) {
+    function pnpm { corepack pnpm @args }
+}
+
+function Test-AndroidReleaseSigning {
+    $requiredEnvironment = @(
+        "ANDROID_STORE_FILE",
+        "ANDROID_STORE_PASSWORD",
+        "ANDROID_KEY_ALIAS",
+        "ANDROID_KEY_PASSWORD"
+    )
+    $hasEnvironmentSigning = $requiredEnvironment | ForEach-Object {
+        -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_))
+    }
+
+    if (($hasEnvironmentSigning | Where-Object { $_ }).Count -eq $requiredEnvironment.Count) {
+        return
+    }
+
+    if (Test-Path $androidSigningProperties) {
+        return
+    }
+
+    throw "Android release signing is not configured. Set the ANDROID_* environment variables or create the untracked file android/app/key.properties from key.properties.example."
+}
 
 # 1. قراءة وتحديد الإصدار
 $packageJsonObj = Get-Content -Raw $packageJsonPath | ConvertFrom-Json
@@ -90,7 +116,12 @@ Write-Step "Building Android release"
 Write-Host "VersionName: $VersionName"
 Write-Host "VersionCode: $VersionCode"
 
+if (-not $DryRun) {
+    Test-AndroidReleaseSigning
+}
+
 Push-Location $repoRoot
+$buildStartedAt = Get-Date
 try {
     if (-not $SkipWebBuild) {
         Write-Step "Running web build"
@@ -108,6 +139,9 @@ try {
         $env:APP_VERSION_CODE = [string]$VersionCode
         if (-not $DryRun) {
             .\gradlew assembleRelease "-PversionCode=$VersionCode" "-PversionName=$VersionName"
+            if ($LASTEXITCODE -ne 0) {
+                throw "Gradle assembleRelease failed with exit code $LASTEXITCODE."
+            }
         }
     }
     finally { Pop-Location }
@@ -117,7 +151,10 @@ finally { Pop-Location }
 # 2. تسمية الملف النهائي بنظام SELRS + VersionName
 Write-Step "Finalizing APK"
 $gradleApkDir = Join-Path $androidDir "app\build\outputs\apk\release"
-$apkFile = Get-ChildItem -Path $gradleApkDir -Filter "*.apk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$apkFile = Get-ChildItem -Path $gradleApkDir -Filter "*.apk" |
+    Where-Object { $_.LastWriteTime -ge $buildStartedAt } |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
 
 if ($apkFile) {
     # تعديل الاسم هنا ليصبح SELRS_1.0.115.apk مثلاً

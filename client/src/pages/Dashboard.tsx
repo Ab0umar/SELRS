@@ -89,7 +89,7 @@ const TABS: Array<{
     id: "hub",
     label: "مركز المريض",
     icon: Users,
-    iconWrapCls: "bg-secondary/15 text-secondary",
+    iconWrapCls: "bg-secondary/15 text-primary",
     permPath: "/patient-hub",
   },
   {
@@ -118,7 +118,7 @@ const TABS: Array<{
     label: "الحجوزات",
     icon: CalendarDays,
     iconWrapCls: "bg-info/15 text-info",
-    permPath: "/booking-triage/portal-bookings",
+    permPath: "/admin-hub/portal-bookings",
   },
   {
     id: "admin",
@@ -849,7 +849,7 @@ function AttendancePanel() {
     {
       label: "لم يسجل الخروج أمس",
       value: d?.missingCheckoutYesterday ?? 0,
-      cls: "text-secondary",
+      cls: "text-primary",
     },
   ];
 
@@ -1050,19 +1050,19 @@ const ADMIN_GROUPS = [
     icon: Users,
     items: [
       {
-        href: "/booking-triage/users",
+        href: "/admin-hub/users",
         label: "المستخدمون والموظفون",
         description: "إدارة الحسابات، الحالة، والأدوار",
         icon: Users,
       },
       {
-        href: "/booking-triage/permissions",
+        href: "/admin-hub/permissions",
         label: "صلاحيات الأدوار",
         description: "تحديد صفحات القراءة والتعديل لكل دور",
         icon: Shield,
       },
       {
-        href: "/booking-triage/doctors",
+        href: "/admin-hub/doctors",
         label: "الأطباء",
         description: "بيانات الأطباء وربط الحسابات",
         icon: Stethoscope,
@@ -1075,19 +1075,19 @@ const ADMIN_GROUPS = [
     icon: Settings,
     items: [
       {
-        href: "/booking-triage/services",
+        href: "/admin-hub/services",
         label: "الخدمات والأسعار",
         description: "تسعير الخدمات وقواعد الحساب",
         icon: HeartPulse,
       },
       {
-        href: "/booking-triage/forms",
+        href: "/admin-hub/forms",
         label: "مركز النماذج",
         description: "نماذج التشغيل والفحص",
         icon: LayoutDashboard,
       },
       {
-        href: "/booking-triage/settings",
+        href: "/admin-hub/settings",
         label: "الإعدادات العامة",
         description: "إعدادات المركز والتكاملات",
         icon: Settings,
@@ -1100,19 +1100,19 @@ const ADMIN_GROUPS = [
     icon: Terminal,
     items: [
       {
-        href: "/booking-triage/status",
+        href: "/admin-hub/status",
         label: "حالة النظام",
         description: "الخدمات، الكاش، والاتصال",
         icon: Terminal,
       },
       {
-        href: "/booking-triage/migrations",
+        href: "/admin-hub/migrations",
         label: "ترحيل البيانات",
         description: "متابعة مهام الترحيل والصيانة",
         icon: Database,
       },
       {
-        href: "/booking-triage/notifications",
+        href: "/admin-hub/notifications",
         label: "إخطارات التطبيق",
         description: "إعدادات التنبيهات والإرسال",
         icon: Bell,
@@ -1351,7 +1351,7 @@ export default function Dashboard() {
     {
       staleTime: 60_000,
       refetchOnWindowFocus: false,
-      enabled: canAccess("/booking-triage/portal-bookings"),
+      enabled: canAccess("/admin-hub/portal-bookings"),
     },
   );
 
@@ -1543,7 +1543,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary/15 px-2.5 text-[10px] font-bold text-secondary tabular-nums shrink-0">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary/15 px-2.5 text-[10px] font-bold text-primary tabular-nums shrink-0">
                 <Clock className="h-3 w-3" aria-hidden />
                 {timeStr}
               </span>

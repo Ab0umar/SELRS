@@ -37,6 +37,7 @@ const PatientBookings = lazy(
   () => import("../features/patient-portal/PatientBookings"),
 );
 const Home = lazy(() => import("../pages/Home"));
+const MainHome = lazy(() => import("../pages/MainHome"));
 const ForcePasswordChange = lazy(() => import("../pages/ForcePasswordChange"));
 const Profile = lazy(() => import("../pages/Profile"));
 const PatientHubShell = lazy(() => import("../pages/PatientHubShell"));
@@ -168,7 +169,15 @@ export const MiscRoutes = (
         </ProtectedRoute>
       )}
     />
-    <Route path={ROUTES.home} component={Home} />
+    <Route path={ROUTES.root} component={() => <Redirect to={ROUTES.mainHome} />} />
+    <Route
+      path={ROUTES.mainHome}
+      component={() => (
+        <ProtectedRoute>
+          <MainHome />
+        </ProtectedRoute>
+      )}
+    />
     <Route
       path={`${ROUTES.patientHub}/*?`}
       component={() => (
@@ -274,12 +283,16 @@ export const MiscRoutes = (
       )}
     />
     <Route
-      path={ROUTES.workflowPrototype}
+      path={ROUTES.workflow}
       component={() => (
         <ProtectedRoute>
           <WorkflowPrototypeLive />
         </ProtectedRoute>
       )}
+    />
+    <Route
+      path={ROUTES.workflowPrototype}
+      component={() => <Redirect to={ROUTES.workflow} />}
     />
 
     <Route

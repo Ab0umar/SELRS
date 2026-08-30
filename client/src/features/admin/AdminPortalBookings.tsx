@@ -1287,7 +1287,7 @@ export default function AdminPortalBookings() {
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                       branchFilter === b.value
-                        ? "border-secondary/40 bg-secondary/10 text-secondary"
+                        ? "border-secondary/40 bg-secondary/10 text-primary"
                         : "border-border bg-white text-muted-foreground hover:bg-muted/40",
                     )}
                   >

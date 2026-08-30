@@ -8,6 +8,7 @@ import {
   sql,
   inArray,
   gte,
+  gt,
   lte,
   lt,
   getTableColumns,
@@ -26,6 +27,8 @@ import { promisify } from "node:util";
 import {
   InsertUser,
   users,
+  authSessions,
+  loginRateLimits,
   patients,
   patientImportStaging,
   appointments,
@@ -753,6 +756,20 @@ export async function updateUserLastSignedIn(userId: number) {
   await db
     .update(users)
     .set({ lastSignedIn: new Date() })
+    .where(eq(users.id, userId));
+}
+
+/** Increment the user's auth version to invalidate previously issued tokens. */
+export async function bumpUserAuthVersion(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot revoke user sessions: database not available");
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({ authVersion: sql`${users.authVersion} + 1` })
     .where(eq(users.id, userId));
 }
 
@@ -3189,9 +3206,10 @@ export async function getAppointmentsByPatient(patientId: number) {
     .where(eq(appointments.patientId, patientId));
 }
 
-export async function getAllAppointments(branch?: string) {
+export async function getAllAppointments(branch?: string, limit = 500) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const cap = Math.min(Math.max(limit, 1), 1000);
 
   const baseQuery = db
     .select({
@@ -3216,9 +3234,12 @@ export async function getAllAppointments(branch?: string) {
   if (branch) {
     result = await baseQuery
       .where(eq(appointments.branch, branch as any))
-      .orderBy(desc(appointments.appointmentDate));
+      .orderBy(desc(appointments.appointmentDate))
+      .limit(cap);
   } else {
-    result = await baseQuery.orderBy(desc(appointments.appointmentDate));
+    result = await baseQuery
+      .orderBy(desc(appointments.appointmentDate))
+      .limit(cap);
   }
 
   const withPatientInfo = result.filter((r: any) => r.patientName !== null);
@@ -3538,9 +3559,10 @@ export async function deleteFollowupSheet(sheetId: number) {
   await db.delete(followupSheets).where(eq(followupSheets.id, sheetId));
 }
 
-export async function getAllFollowupItems() {
+export async function getAllFollowupItems(limit = 500) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const cap = Math.min(Math.max(limit, 1), 1000);
 
   return await db
     .select({
@@ -3567,7 +3589,8 @@ export async function getAllFollowupItems() {
     )
     .innerJoin(patients, eq(followupSheets.patientId, patients.id))
     .where(sql`${followupItems.followupDate} IS NOT NULL`)
-    .orderBy(desc(followupItems.followupDate));
+    .orderBy(desc(followupItems.followupDate))
+    .limit(cap);
 }
 
 // ============ EXAMINATION OPERATIONS ============
@@ -3636,9 +3659,10 @@ export async function getExaminationsByPatient(patientId: number) {
     .orderBy(desc(examinations.createdAt));
 }
 
-export async function getAllExaminations() {
+export async function getAllExaminations(limit = 250) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const cap = Math.min(Math.max(limit, 1), 500);
 
   const result = await db
     .select({
@@ -3647,7 +3671,8 @@ export async function getAllExaminations() {
     })
     .from(examinations)
     .leftJoin(sheetEntries, eq(examinations.patientId, sheetEntries.patientId))
-    .orderBy(desc(examinations.createdAt));
+    .orderBy(desc(examinations.createdAt))
+    .limit(cap);
 
   return result;
 }
@@ -5008,14 +5033,67 @@ export async function deleteMedicalConditionReportTemplate(id: number) {
     .where(eq(medicalConditionReportTemplates.id, id));
 }
 
-export async function getAllDoctorReports() {
+export async function getAllDoctorReports(limit = 250) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const cap = Math.min(Math.max(limit, 1), 500);
 
   return await db
     .select()
     .from(doctorReports)
-    .orderBy(desc(doctorReports.createdAt));
+    .orderBy(desc(doctorReports.createdAt))
+    .limit(cap);
+}
+
+export async function createAuthSession(id: string, userId: number, expiresAt: Date) {
+  const database = await getDb();
+  if (!database) return;
+  await database.insert(authSessions).values({ id, userId, expiresAt });
+}
+
+export async function isAuthSessionActive(id: string, userId: number) {
+  const database = await getDb();
+  if (!database) return false;
+  const [session] = await database
+    .select({ id: authSessions.id })
+    .from(authSessions)
+    .where(and(eq(authSessions.id, id), eq(authSessions.userId, userId), isNull(authSessions.revokedAt), gt(authSessions.expiresAt, new Date())))
+    .limit(1);
+  return Boolean(session);
+}
+
+export async function revokeAuthSession(id: string) {
+  const database = await getDb();
+  if (!database) return;
+  await database
+    .update(authSessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(authSessions.id, id), isNull(authSessions.revokedAt)));
+}
+
+export async function consumeLoginRateLimit(key: string, now: Date, windowMs: number) {
+  const database = await getDb();
+  if (!database) return null;
+  const [existing] = await database
+    .select()
+    .from(loginRateLimits)
+    .where(eq(loginRateLimits.key, key))
+    .limit(1);
+  const resetAt = existing && existing.resetAt > now
+    ? existing.resetAt
+    : new Date(now.getTime() + windowMs);
+  const attempts = existing && existing.resetAt > now ? existing.attempts + 1 : 1;
+  await database
+    .insert(loginRateLimits)
+    .values({ key, attempts, resetAt })
+    .onDuplicateKeyUpdate({ set: { attempts, resetAt } });
+  return attempts;
+}
+
+export async function clearLoginRateLimit(key: string) {
+  const database = await getDb();
+  if (!database) return;
+  await database.delete(loginRateLimits).where(eq(loginRateLimits.key, key));
 }
 
 /** Joined rows for التقارير الطبية hub (جدول + إحصائيات). */
@@ -6158,7 +6236,6 @@ function getDefaultTeamPermissions(): TeamPermissionsMap {
     admin: [],
     manager: [],
     accountant: [
-      "/appointments",
       "/ops/mssql-add",
       "/bookings",
       "/operations",
@@ -7723,6 +7800,56 @@ async function syncOperationsFromFollowups(): Promise<{
 
 // ============ OP HISTORY: SERVICE CODE MAPPING ============
 
+/** Resolve a patient's current requested-service code (patients.serviceCode)
+ * to a mapped operation type/label, for pre-filling the operation-type
+ * fields on the Lasik/consultant/external print sheets and the followup
+ * pages — the only reference available for that is the service code, per
+ * serviceCodeOpTypeMap (built from the op-history "ربط أكواد الخدمات" admin
+ * tool). Returns null when the patient has no service code, or the code
+ * isn't mapped yet — callers should leave their field for manual entry. */
+export async function getSuggestedOperationTypeForPatient(
+  patientId: number,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // patients.serviceCode only ever holds the patient's CURRENT/latest
+  // requested service — a patient who had a mapped operation but has since
+  // had another visit (a follow-up consultation, say) would show that
+  // operation correctly in سجل العمليات (which scans full service-entry
+  // history) while this endpoint found nothing, since the current code no
+  // longer matches. Search the same full history instead, most recent
+  // mapped entry first, so the sheet's suggestion matches what's already
+  // showing there.
+  const rows = await db
+    .select({
+      serviceCode: patientServiceEntries.serviceCode,
+      serviceDate: patientServiceEntries.serviceDate,
+      operationType: serviceCodeOpTypeMap.operationType,
+      label: serviceCodeOpTypeMap.label,
+    })
+    .from(patientServiceEntries)
+    .innerJoin(
+      serviceCodeOpTypeMap,
+      eq(patientServiceEntries.serviceCode, serviceCodeOpTypeMap.serviceCode),
+    )
+    .where(eq(patientServiceEntries.patientId, patientId))
+    .orderBy(desc(patientServiceEntries.serviceDate))
+    .limit(1);
+  const match = rows[0];
+  if (!match) return null;
+  const operationDate = match.serviceDate
+    ? match.serviceDate instanceof Date
+      ? match.serviceDate.toISOString().slice(0, 10)
+      : String(match.serviceDate).slice(0, 10)
+    : null;
+  return {
+    serviceCode: match.serviceCode,
+    operationType: match.operationType,
+    label: match.label,
+    operationDate,
+  };
+}
+
 export async function getServiceCodeOpTypeMappings() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -7925,6 +8052,7 @@ export async function getPatientOperationsByType(input: {
   page: number;
   pageSize: number;
   query?: string;
+  locationType?: "center" | "external";
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -7939,15 +8067,30 @@ export async function getPatientOperationsByType(input: {
   const typeCondition = matchingRawTypes.length
     ? inArray(patientOperations.operationType, matchingRawTypes)
     : sql`1 = 0`;
-  const whereClause = normalizedQuery
-    ? and(
-        typeCondition,
-        or(
-          like(patients.fullName, `%${normalizedQuery}%`),
-          like(patients.patientCode, `%${normalizedQuery}%`),
-        ),
-      )
-    : typeCondition;
+  const conditions = [typeCondition];
+  if (normalizedQuery) {
+    conditions.push(
+      or(
+        like(patients.fullName, `%${normalizedQuery}%`),
+        like(patients.patientCode, `%${normalizedQuery}%`),
+      )!,
+    );
+  }
+  // مركز/خارجي: the operating doctor's own locationType is the primary
+  // signal (doctors.locationType — set per doctor, e.g. a visiting/referral
+  // doctor is always "external" regardless of which service code got
+  // billed). Only fall back to the patient's service-derived locationType
+  // when the operation's doctorCode has no matching row in `doctors` at
+  // all (COALESCE picks the first non-null).
+  if (input.locationType) {
+    conditions.push(
+      eq(
+        sql`COALESCE(${doctorsLookup.locationType}, ${patients.locationType})`,
+        input.locationType,
+      ),
+    );
+  }
+  const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
   const rows = await db
     .select({
@@ -7955,6 +8098,7 @@ export async function getPatientOperationsByType(input: {
       patientId: patientOperations.patientId,
       patientFullName: patients.fullName,
       patientCode: patients.patientCode,
+      operationType: patientOperations.operationType,
       operationDate: patientOperations.operationDate,
       source: patientOperations.source,
       doctorCode: patientOperations.doctorCode,
@@ -7963,6 +8107,7 @@ export async function getPatientOperationsByType(input: {
     })
     .from(patientOperations)
     .innerJoin(patients, eq(patientOperations.patientId, patients.id))
+    .leftJoin(doctorsLookup, eq(patientOperations.doctorCode, doctorsLookup.code))
     .where(whereClause)
     .orderBy(desc(patientOperations.operationDate));
 

@@ -74,7 +74,7 @@ const VISIBILITY_GROUPS = [
   {
     title: "كروت الأدوية والروشتات",
     description: "الوصول السريع إلى الروشتات، الأدوية، والتحاليل.",
-    color: "bg-secondary/[0.07] text-secondary",
+    color: "bg-secondary/[0.07] text-primary",
     icon: Pill,
     options: [
       { key: "showPrescription", label: "الروشتة" },

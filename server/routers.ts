@@ -25,6 +25,7 @@ import {
   authService,
   AUTH_COOKIE_NAME,
   LEGACY_AUTH_COOKIE_NAME,
+  revokeSessionFromRequest,
 } from "./_core/auth";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -162,6 +163,7 @@ export const appRouter = router({
         );
         await db.updateUser(ctx.user.id, { password: hashedPassword as any });
         await db.markPasswordChanged(ctx.user.id);
+        await db.bumpUserAuthVersion(ctx.user.id);
         await db.logAuditEvent(
           ctx.user.id,
           "CHANGE_PASSWORD",
@@ -171,7 +173,9 @@ export const appRouter = router({
 
         return { success: true } as const;
       }),
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      await revokeSessionFromRequest(ctx.req);
+      if (ctx.user) await db.bumpUserAuthVersion(ctx.user.id);
       const cookieOptions = getSessionCookieOptions(ctx.req);
       const clearVariants = [
         { ...cookieOptions, sameSite: "lax" as const },

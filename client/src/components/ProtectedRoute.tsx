@@ -14,7 +14,9 @@ import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
 
 // Paths that have their own explicit permission entry — parent permission does NOT cover these.
 const DEFINED_PERMISSION_PATHS = new Set(
-  PAGE_PERMISSION_DEFINITIONS.map((p) => p.id).filter((id) => id.startsWith("/")),
+  PAGE_PERMISSION_DEFINITIONS.map((p) => p.id).filter((id) =>
+    id.startsWith("/"),
+  ),
 );
 const PERMISSIONS_CACHE_KEY = "selrs:my-permissions-cache";
 const PERMISSIONS_RECOVERY_INTERVAL_MS = 10_000;
@@ -23,14 +25,13 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredRoles?: string[];
   requiredBranches?: string[];
+  hideAppShell?: boolean;
 }
 
 function normalizePath(path: string): string {
   const raw = String(path ?? "").trim();
   if (!raw) return ROUTES.home;
-  const withSlash = raw.startsWith(ROUTES.home)
-    ? raw
-    : `${ROUTES.home}${raw}`;
+  const withSlash = raw.startsWith(ROUTES.home) ? raw : `${ROUTES.home}${raw}`;
   const noHashOrQuery = withSlash.split("?")[0].split("#")[0];
   if (noHashOrQuery.length > 1 && noHashOrQuery.endsWith(ROUTES.home)) {
     return noHashOrQuery.slice(0, -1);
@@ -59,12 +60,19 @@ function cachePermissions(cacheKey: string, permissions: string[]) {
   } catch {}
 }
 
+function isPrintModeUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("print") === "1";
+}
+
 export default function ProtectedRoute({
   children,
   requiredRoles,
   requiredBranches,
+  hideAppShell = false,
 }: ProtectedRouteProps) {
   const { user, loading, logout } = useAuth();
+  const printMode = useMemo(() => isPrintModeUrl(), []);
   const userRole = String(user?.role ?? "").toLowerCase();
   const permissionsCacheKey = `${PERMISSIONS_CACHE_KEY}:${String(
     user?.id ?? user?.username ?? userRole,
@@ -93,7 +101,7 @@ export default function ProtectedRoute({
       }
       return failureCount < 5;
     },
-    retryDelay: attempt => Math.min(1_000 * 2 ** attempt, 8_000),
+    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
     staleTime: 5 * 60 * 1000,
   });
   const [cachedPermissions, setCachedPermissions] = useState<string[] | null>(
@@ -112,11 +120,7 @@ export default function ProtectedRoute({
       setCachedPermissions(permissions);
       cachePermissions(permissionsCacheKey, permissions);
     }
-  }, [
-    permissionsCacheKey,
-    permissionsQuery.data,
-    permissionsQuery.isSuccess,
-  ]);
+  }, [permissionsCacheKey, permissionsQuery.data, permissionsQuery.isSuccess]);
 
   useEffect(() => {
     if (!permissionsQuery.isError || !user || userRole === "admin") return;
@@ -127,10 +131,7 @@ export default function ProtectedRoute({
         void logout({ redirectToLogin: true });
         return;
       }
-      if (
-        error.data?.code === "FORBIDDEN" ||
-        status === 403
-      ) {
+      if (error.data?.code === "FORBIDDEN" || status === 403) {
         return;
       }
     }
@@ -170,10 +171,12 @@ export default function ProtectedRoute({
   const isPathAllowed = useMemo(() => {
     if (!user) return false;
     if (userRole === "admin") return true;
+    if (cleanPath === ROUTES.mainHome) return true;
     if (cleanPath === ROUTES.profile) return true;
     if (cleanPath === ROUTES.attendanceMy) return true;
     if (cleanPath === ROUTES.attendanceShiftSchedule) return true;
-    if (userRole === "reception" && cleanPath === ROUTES.examination) return true;
+    if (userRole === "reception" && cleanPath === ROUTES.examination)
+      return true;
     if (
       userRole === "reception" &&
       (cleanPath === ROUTES.portalBookings ||
@@ -197,7 +200,8 @@ export default function ProtectedRoute({
       cleanPath.startsWith(`${ROUTES.kfSheetsConsultant}/`)
     ) {
       const matchKf = allowedPaths.some(
-        (p) => p === ROUTES.kf || (p !== ROUTES.home && p.startsWith(ROUTES.kf)),
+        (p) =>
+          p === ROUTES.kf || (p !== ROUTES.home && p.startsWith(ROUTES.kf)),
       );
       if (matchKf) return true;
     }
@@ -205,9 +209,11 @@ export default function ProtectedRoute({
     const isServicesHubPath =
       cleanPath === "/services-hub" || cleanPath.startsWith("/services-hub/");
     const isMedicationsPath =
-      cleanPath === ROUTES.medications || cleanPath.startsWith(`${ROUTES.medications}/`);
+      cleanPath === ROUTES.medications ||
+      cleanPath.startsWith(`${ROUTES.medications}/`);
     const isExamCatalogPath =
-      cleanPath === ROUTES.examCatalog || cleanPath.startsWith(`${ROUTES.examCatalog}/`);
+      cleanPath === ROUTES.examCatalog ||
+      cleanPath.startsWith(`${ROUTES.examCatalog}/`);
     const isTxHubPath =
       cleanPath === ROUTES.txhub ||
       cleanPath.startsWith(`${ROUTES.txhub}/`) ||
@@ -232,12 +238,16 @@ export default function ProtectedRoute({
       allowedPaths.includes(ROUTES.txhubRoute) ||
       allowedPaths.includes("/txhub") ||
       allowedPaths.includes("/treatment") ||
-      allowedPaths.some((p) => p.startsWith("/txhub") || p.startsWith("/treatment"));
+      allowedPaths.some(
+        (p) => p.startsWith("/txhub") || p.startsWith("/treatment"),
+      );
     const matchTests = allowedPaths.some(
-      (p) => p === ROUTES.tests || (p !== ROUTES.home && p.startsWith(ROUTES.tests)),
+      (p) =>
+        p === ROUTES.tests || (p !== ROUTES.home && p.startsWith(ROUTES.tests)),
     );
     const matchRegistry = allowedPaths.some(
-      (p) => p === "/medications/registry" || p.startsWith("/medications/registry"),
+      (p) =>
+        p === "/medications/registry" || p.startsWith("/medications/registry"),
     );
 
     const hasAnyServiceHubPermission =
@@ -259,7 +269,8 @@ export default function ProtectedRoute({
       }
     }
     if (isExamCatalogPath) {
-      if (matchServicesHub || matchExamCatalog || matchTests || matchMeds) return true;
+      if (matchServicesHub || matchExamCatalog || matchTests || matchMeds)
+        return true;
     }
     if (isTxHubPath) {
       if (matchServicesHub || matchTx || matchTests || matchMeds) return true;
@@ -278,7 +289,10 @@ export default function ProtectedRoute({
         return true;
     }
     /** مركز المريض: نفس مستوى الوصول لقائمة المرضى / ملف المريض */
-    if (cleanPath === ROUTES.patientHub || cleanPath.startsWith(`${ROUTES.patientHub}/`)) {
+    if (
+      cleanPath === ROUTES.patientHub ||
+      cleanPath.startsWith(`${ROUTES.patientHub}/`)
+    ) {
       if (
         allowedPaths.includes(ROUTES.patients) ||
         allowedPaths.includes(ROUTES.patientsById)
@@ -293,18 +307,24 @@ export default function ProtectedRoute({
       if (
         allowedPaths.includes(ROUTES.prescriptions) ||
         allowedPaths.some(
-          (p) => p === ROUTES.prescription || p.startsWith(`${ROUTES.prescription}/`),
+          (p) =>
+            p === ROUTES.prescription ||
+            p.startsWith(`${ROUTES.prescription}/`),
         )
       ) {
         return true;
       }
     }
     if (cleanPath === forcePasswordRoute) return true;
-    if (cleanPath === ROUTES.home || cleanPath === ROUTES.dashboard) return true;
+    if (cleanPath === ROUTES.home || cleanPath === ROUTES.dashboard)
+      return true;
     // /today (/bookings) and /today (alias) are the same page — treat them as interchangeable
     if (cleanPath === ROUTES.today) {
       return allowedPaths.some(
-        (p) => p === ROUTES.today || p === ROUTES.todayRoute || p === "/today-patients",
+        (p) =>
+          p === ROUTES.today ||
+          p === ROUTES.todayRoute ||
+          p === "/today-patients",
       );
     }
     if (!allowedPaths.length) {
@@ -325,7 +345,10 @@ export default function ProtectedRoute({
       if (permission.includes(`${ROUTES.home}:`)) {
         const base = permission.split(`${ROUTES.home}:`)[0];
         if (cleanPath === base) return true;
-        if (cleanPath.startsWith(`${base}/`) && !DEFINED_PERMISSION_PATHS.has(cleanPath as any))
+        if (
+          cleanPath.startsWith(`${base}/`) &&
+          !DEFINED_PERMISSION_PATHS.has(cleanPath as any)
+        )
           return true;
       }
       return false;
@@ -401,7 +424,9 @@ export default function ProtectedRoute({
     }
 
     if (userRole !== "admin" && permissionsVerified && !isPathAllowed) {
-      const fallback = allowedPaths.includes(ROUTES.kf) ? ROUTES.kf : ROUTES.home;
+      const fallback = allowedPaths.includes(ROUTES.kf)
+        ? ROUTES.kf
+        : ROUTES.home;
       setLocation(fallback !== cleanPath ? fallback : ROUTES.home);
       return;
     }
@@ -419,7 +444,7 @@ export default function ProtectedRoute({
   ]);
 
   if (loading || (userRole !== "admin" && permissionsQuery.isLoading)) {
-    return <AppShellSkeleton />;
+    return printMode ? null : <AppShellSkeleton />;
   }
 
   if (!user) {
@@ -543,5 +568,13 @@ export default function ProtectedRoute({
     );
   }
 
-  return <AppShell>{children}</AppShell>;
+  if (printMode || hideAppShell) {
+    return <>{children}</>;
+  }
+
+  return (
+    <AppShell hideTopShortcuts={location === ROUTES.mainHome}>
+      {children}
+    </AppShell>
+  );
 }

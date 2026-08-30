@@ -13,6 +13,7 @@ import {
   managerProcedure,
   adminProcedure,
   medicalStaffProcedure,
+  makePageProcedure,
 } from "../_core/procedures";
 import { authService } from "../_core/auth";
 import {
@@ -57,7 +58,7 @@ import {
 import { normalizeVisitType } from "./_medical/service-helpers";
 
 export const medicalExaminationsRoutes = {
-  getAppointmentsByPatient: protectedProcedure
+  getAppointmentsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getAppointmentsByPatient(input.patientId);
@@ -67,17 +68,23 @@ export const medicalExaminationsRoutes = {
     return await db.getMedicalTotals();
   }),
 
-  getOperations: protectedProcedure.query(async () => {
-    return await db.getAllAppointments();
-  }),
+  getOperations: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .query(async ({ input }) => {
+      return await db.getAllAppointments(undefined, input?.limit ?? 500);
+    }),
 
-  getAllOperations: protectedProcedure.query(async () => {
-    return await db.getAllAppointments();
-  }),
+  getAllOperations: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .query(async ({ input }) => {
+      return await db.getAllAppointments(undefined, input?.limit ?? 500);
+    }),
 
-  getAppointments: protectedProcedure.query(async () => {
-    return await db.getAllAppointments();
-  }),
+  getAppointments: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .query(async ({ input }) => {
+      return await db.getAllAppointments(undefined, input?.limit ?? 500);
+    }),
 
   deleteAppointment: managerProcedure
     .input(z.object({ appointmentId: z.number() }))
@@ -266,13 +273,13 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
-  getExaminationsByPatient: protectedProcedure
+  getExaminationsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getExaminationsByPatient(input.patientId);
     }),
 
-  getAutorefractometryByPatient: protectedProcedure
+  getAutorefractometryByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getAutorefractometryByPatient(input.patientId);
@@ -300,19 +307,19 @@ export const medicalExaminationsRoutes = {
       });
     }),
 
-  getGlassesRecordsByPatient: protectedProcedure
+  getGlassesRecordsByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getGlassesRecordsByPatient(input.patientId);
     }),
 
-  getAfterRefractionByPatient: protectedProcedure
+  getAfterRefractionByPatient: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       return await db.getAfterRefractionByPatient(input.patientId);
     }),
 
-  saveAfterRefractionData: protectedProcedure
+  saveAfterRefractionData: medicalStaffProcedure
     .input(
       z.object({
         examinationId: z.number().int().positive(),
@@ -337,7 +344,7 @@ export const medicalExaminationsRoutes = {
       return await db.saveAfterRefractionData(input);
     }),
 
-  getVisitsByPatient: protectedProcedure
+  getVisitsByPatient: makePageProcedure("/patient-file")
     .input(
       z
         .union([z.number(), z.object({ patientId: z.number() })])
@@ -358,7 +365,7 @@ export const medicalExaminationsRoutes = {
       return await db.getVisitsByPatient(patientId);
     }),
 
-  getFollowupVisitsByPatient: protectedProcedure
+  getFollowupVisitsByPatient: makePageProcedure("/patient-file")
     .input(
       z
         .union([z.number(), z.object({ patientId: z.number() })])
@@ -422,7 +429,7 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
-  updateVisitExamData: protectedProcedure
+  updateVisitExamData: medicalStaffProcedure
     .input(
       z.object({
         visitId: z.number(),
@@ -481,7 +488,7 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
-  saveFollowupSheet: protectedProcedure
+  saveFollowupSheet: medicalStaffProcedure
     .input(
       z.object({
         patientId: z.number(),
@@ -646,7 +653,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, sheetId: sheet.id, version: sheet.version };
     }),
 
-  getFollowupSheets: protectedProcedure
+  getFollowupSheets: makePageProcedure("/patient-file")
     .input(
       z.object({
         patientId: z.number(),
@@ -669,13 +676,17 @@ export const medicalExaminationsRoutes = {
       return sheetsWithItems;
     }),
 
-  getAllFollowupItems: protectedProcedure.query(async () => {
-    return await db.getAllFollowupItems();
-  }),
+  getAllFollowupItems: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .query(async ({ input }) => {
+      return await db.getAllFollowupItems(input?.limit ?? 500);
+    }),
 
-  getAllExaminations: protectedProcedure.query(async () => {
-    return await db.getAllExaminations();
-  }),
+  getAllExaminations: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(500).default(250) }).optional())
+    .query(async ({ input }) => {
+      return await db.getAllExaminations(input?.limit ?? 250);
+    }),
 
   getRefractionsOverview: protectedProcedure
     .input(
@@ -699,7 +710,7 @@ export const medicalExaminationsRoutes = {
       });
     }),
 
-  getSheetEntry: protectedProcedure
+  getSheetEntry: makePageProcedure("/patient-file")
     .input(
       z.object({
         patientId: z.number(),
@@ -1037,7 +1048,7 @@ export const medicalExaminationsRoutes = {
       return JSON.stringify(payload);
     }),
 
-  saveSheetEntry: protectedProcedure
+  saveSheetEntry: medicalStaffProcedure
     .input(
       z.object({
         patientId: z.number(),
@@ -1091,7 +1102,7 @@ export const medicalExaminationsRoutes = {
       return result;
     }),
 
-  saveRefractionToExamination: protectedProcedure
+  saveRefractionToExamination: medicalStaffProcedure
     .input(
       z.object({
         patientId: z.number(),
@@ -1290,7 +1301,7 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
-  saveExaminationForm: protectedProcedure
+  saveExaminationForm: medicalStaffProcedure
     .input(
       z.object({
         patientId: z.number(),
@@ -1809,7 +1820,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, examinationId: examinationId ?? null, visitId };
     }),
 
-  saveMedicalVisit: protectedProcedure
+  saveMedicalVisit: medicalStaffProcedure
     .input(
       z.object({
         patientId: z.number(),
@@ -2205,7 +2216,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, visitId: visitId };
     }),
 
-  updateVisitQueueStatus: protectedProcedure
+  updateVisitQueueStatus: receptionProcedure
     .input(
       z.object({
         visitId: z.number(),
@@ -2233,6 +2244,7 @@ export const medicalExaminationsRoutes = {
         "nurse",
         "technician",
         "reception",
+        "accountant",
         "manager",
         "admin",
       ];
@@ -2246,7 +2258,7 @@ export const medicalExaminationsRoutes = {
       }
 
       if (input.queueStatus === "treated") {
-        if (!["reception", "admin"].includes(role)) {
+        if (!["reception", "accountant", "admin"].includes(role)) {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "تسجيل المريض كمعالج متاح للاستقبال والأدمن فقط.",
@@ -2297,11 +2309,11 @@ export const medicalExaminationsRoutes = {
       return { success: true };
     }),
 
-  undoVisitTreated: protectedProcedure
+  undoVisitTreated: receptionProcedure
     .input(z.object({ visitId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const role = String(ctx.user.role ?? "").toLowerCase();
-      const canUpdateQueue = ["reception", "admin"].includes(role);
+      const canUpdateQueue = ["reception", "accountant", "admin"].includes(role);
       if (!canUpdateQueue) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -2322,7 +2334,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, queueStatus: result.queueStatus };
     }),
 
-  addFollowupToQueue: protectedProcedure
+  addFollowupToQueue: receptionProcedure
     .input(
       z.object({
         patientId: z.number(),
@@ -2335,7 +2347,9 @@ export const medicalExaminationsRoutes = {
         ctx.user.role,
       );
       if (
-        String(ctx.user.role ?? "").toLowerCase() !== "admin" &&
+        !["admin", "accountant", "reception"].includes(
+          String(ctx.user.role ?? "").toLowerCase(),
+        ) &&
         !permissions.includes("action/followup-queue")
       ) {
         throw new TRPCError({

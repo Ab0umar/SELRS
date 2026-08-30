@@ -75,8 +75,14 @@ export default function GlobalCommandPalette() {
 
   const data = (searchQuery.data ?? []) as PatientSearchResult[];
 
+  const isAdminUser = String(user?.role ?? "").toLowerCase() === "admin";
+  const myPermissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
+    enabled: isAuthenticated && !isAdminUser,
+    refetchOnWindowFocus: false,
+  });
+
   const quickLinks = useMemo(() => {
-    const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
+    const isAdmin = isAdminUser;
     const items = [
       ...(!isAdmin
         ? [{ label: "لوحة التحكم", path: "/dashboard", icon: LayoutDashboard }]
@@ -100,8 +106,17 @@ export default function GlobalCommandPalette() {
         icon: Settings,
       });
     }
-    return items;
-  }, [user?.role]);
+    if (isAdmin) return items;
+    // Only surface destinations the user is actually allowed to open.
+    const allowed = ((myPermissionsQuery.data ?? []) as string[]).map((perm) =>
+      perm.replace(/:r[w]?$/, ""),
+    );
+    return items.filter((item) =>
+      allowed.some(
+        (perm) => perm === item.path || item.path.startsWith(`${perm}/`),
+      ),
+    );
+  }, [isAdminUser, myPermissionsQuery.data]);
 
   if (!isAuthenticated) return null;
 

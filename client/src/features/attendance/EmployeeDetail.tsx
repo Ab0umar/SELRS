@@ -53,7 +53,7 @@ const STATUS_CLS: Record<string, string> = {
   absent: "bg-destructive/10 text-destructive",
   leave: "bg-primary/10 text-primary",
   partial: "bg-warning/10 text-warning",
-  holiday: "bg-secondary/10 text-secondary",
+  holiday: "bg-secondary/10 text-primary",
   missing_checkout: "bg-muted text-muted-foreground",
 };
 
@@ -434,7 +434,7 @@ export default function EmployeeDetail() {
           <Card className="border-border">
             <CardHeader className="pb-2 pt-4">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <ShieldCheck className="h-4 w-4 text-secondary" />
+                <ShieldCheck className="h-4 w-4 text-primary" />
                 طلب إذن
               </CardTitle>
             </CardHeader>
@@ -544,7 +544,7 @@ export default function EmployeeDetail() {
           <Card className="border-border">
             <CardHeader className="pb-2 pt-4">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <ShieldCheck className="h-4 w-4 text-secondary" />
+                <ShieldCheck className="h-4 w-4 text-primary" />
                 سجل الأذونات
               </CardTitle>
             </CardHeader>
@@ -1443,7 +1443,7 @@ function StatPill({
 }) {
   const cls = {
     primary: "border-primary/20 bg-primary/5 text-primary",
-    secondary: "border-secondary/20 bg-secondary/5 text-secondary",
+    secondary: "border-secondary/20 bg-secondary/5 text-primary",
     warning: "border-warning/30 bg-warning/5 text-warning",
     destructive: "border-destructive/20 bg-destructive/5 text-destructive",
     muted: "border-border bg-muted/30 text-muted-foreground",

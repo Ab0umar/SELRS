@@ -300,7 +300,7 @@ export default function Reports({ department }: { department?: string }) {
     late: "border-destructive/20 bg-destructive/10 text-destructive",
     absent: "border-warning/30 bg-warning/10 text-warning",
     ot: "border-success/20 bg-success/10 text-success",
-    permissions: "border-secondary/20 bg-secondary/10 text-secondary",
+    permissions: "border-secondary/20 bg-secondary/10 text-primary",
     leaves: "border-muted-foreground/20 bg-muted/70 text-foreground",
   };
 
@@ -551,7 +551,7 @@ export default function Reports({ department }: { department?: string }) {
               size="sm"
               onClick={() => handlePrint(activeRows(), activeLabel)}
               disabled={!activeRows().length}
-              className="w-full gap-2 border-secondary/20 text-secondary hover:bg-secondary/10 sm:w-auto"
+              className="w-full gap-2 border-secondary/20 text-primary hover:bg-secondary/10 sm:w-auto"
             >
               <Printer className="w-4 h-4" /> طباعة / PDF
             </Button>

@@ -109,10 +109,10 @@ export const receptionProcedure = t.procedure.use(
       });
     }
 
-    if (!["reception", "admin", "manager"].includes(ctx.user.role)) {
+    if (!["reception", "accountant", "admin", "manager"].includes(ctx.user.role)) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only reception staff can access this resource",
+        message: "Reception or accounting access required",
       });
     }
 
@@ -282,6 +282,25 @@ export function makePageProcedure(pagePath: string) {
         });
       }
 
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+export function makePageWriteProcedure(pagePath: string) {
+  return t.procedure.use(
+    t.middleware(async ({ ctx, next }) => {
+      if (!ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not authenticated" });
+      if (ctx.user.role === "admin") return next({ ctx: { ...ctx, user: ctx.user } });
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role ?? undefined);
+      const allowed = permissions.some((permission) => {
+        const raw = String(permission ?? "").trim();
+        if (!raw.endsWith(":rw")) return false;
+        return permMatchesPath(raw.slice(0, -3).trim(), pagePath);
+      });
+      if (!allowed)
+        throw new TRPCError({ code: "FORBIDDEN", message: "Page write permission required" });
       return next({ ctx: { ...ctx, user: ctx.user } });
     }),
   );

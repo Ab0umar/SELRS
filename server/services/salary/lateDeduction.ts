@@ -79,3 +79,23 @@ export function calcMissingPunchDeduction(
   }
   return Math.round(dayFractions * dailyRate * 100) / 100;
 }
+
+export function sumPayrollDeductions(values: {
+  absent: number;
+  missingCheckout: number;
+  late: number;
+  earlyLeave: number;
+  penalty: number;
+  advances: number;
+  insurance: number;
+}): number {
+  return round2(
+    values.absent +
+      values.missingCheckout +
+      values.late +
+      values.earlyLeave +
+      values.penalty +
+      values.advances +
+      values.insurance,
+  );
+}

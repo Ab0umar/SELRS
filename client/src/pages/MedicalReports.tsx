@@ -121,7 +121,7 @@ function typeLabel(cat: Exclude<MedicalReportCategory, "all">) {
 
 function typeBadgeClass(cat: Exclude<MedicalReportCategory, "all">) {
   const m: Record<string, string> = {
-    labs: "bg-secondary/15 text-secondary border-0",
+    labs: "bg-secondary/15 text-primary border-0",
     xrays: "bg-primary/10 text-primary border-0",
     images: "bg-success/15 text-success border-0",
     consult: "bg-warning/20 text-warning border-0",
@@ -1174,7 +1174,7 @@ export default function MedicalReports() {
                 title="تحاليل"
                 value={overviewStats.labs}
                 icon={FlaskConical}
-                iconColor="bg-secondary/15 text-secondary"
+                iconColor="bg-secondary/15 text-primary"
               />
               <StatCard
                 title="أشعة"
@@ -1772,7 +1772,7 @@ export default function MedicalReports() {
                     <h1 className="section-title text-2xl font-bold text-primary">
                       {BRAND_NAME_EN} Medical Suite
                     </h1>
-                    <p className="text-sm font-semibold text-secondary">
+                    <p className="text-sm font-semibold text-primary">
                       {BRAND_NAME_AR} - المجمع الطبي
                     </p>
                     <p className="text-[10px] text-outline mt-1 tracking-wider uppercase">
@@ -1781,7 +1781,7 @@ export default function MedicalReports() {
                   </div>
                 </div>
                 <div
-                  className="text-left text-[11px] leading-tight text-secondary"
+                  className="text-left text-[11px] leading-tight text-primary"
                   dir="ltr"
                 >
                   <p>Health Plaza, Building 42, Downtown</p>
@@ -1940,7 +1940,7 @@ export default function MedicalReports() {
                             </td>
                           </tr>
                           <tr>
-                            <td className="p-1 border border-outline-variant font-bold text-secondary">
+                            <td className="p-1 border border-outline-variant font-bold text-primary">
                               OS
                             </td>
                             <td className="p-1 border border-outline-variant">
@@ -1974,7 +1974,7 @@ export default function MedicalReports() {
                         فحص قاع العين (Fundus Exam)
                       </h3>
                     </div>
-                    <div className="p-3 text-[11px] leading-relaxed italic text-secondary bg-white">
+                    <div className="p-3 text-[11px] leading-relaxed italic text-primary bg-white">
                       <p className="mb-2">
                         <strong className="not-italic text-on-surface">
                           OD:
@@ -2035,13 +2035,13 @@ export default function MedicalReports() {
                     event_available
                   </span>
                   <div className="flex-1 border-l border-outline-variant pl-4">
-                    <h4 className="text-[10px] font-bold text-secondary uppercase">
+                    <h4 className="text-[10px] font-bold text-primary uppercase">
                       Follow-up Appointment
                     </h4>
                     <p className="text-sm font-bold">{followUpDate}</p>
                   </div>
                   <div className="px-4">
-                    <h4 className="text-[10px] font-bold text-secondary uppercase">
+                    <h4 className="text-[10px] font-bold text-primary uppercase">
                       Purpose
                     </h4>
                     <p className="text-[11px]">
@@ -2056,7 +2056,7 @@ export default function MedicalReports() {
                     <h3 className="section-title text-sm font-bold text-primary mb-2 border-r-2 border-primary pr-2">
                       ملاحظات سريرية (Clinical Notes)
                     </h3>
-                    <div className="text-[11px] leading-relaxed text-secondary whitespace-pre-wrap">
+                    <div className="text-[11px] leading-relaxed text-primary whitespace-pre-wrap">
                       {formatDisplayValue(selectedReport.notes)}
                     </div>
                   </section>
@@ -2080,7 +2080,7 @@ export default function MedicalReports() {
                   {/* Administrator Signature */}
                   <div className="text-center px-4">
                     <div className="border-b border-outline mb-1 pb-1">
-                      <span className="text-[11px] italic font-serif text-secondary">
+                      <span className="text-[11px] italic font-serif text-primary">
                         Authenticated Electronic Record
                       </span>
                     </div>
@@ -2166,7 +2166,7 @@ export default function MedicalReports() {
         /* Color classes mapping to the exact palette in the HTML design */
         .print-container .bg-primary { background-color: #003d9b !important; }
         .print-container .text-primary { color: #003d9b !important; }
-        .print-container .text-secondary { color: #526069 !important; }
+        .print-container .text-primary { color: #526069 !important; }
         .print-container .text-outline { color: #737685 !important; }
         .print-container .border-primary { border-color: #003d9b !important; }
         .print-container .border-outline-variant { border-color: #c3c6d6 !important; }
