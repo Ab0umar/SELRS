@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Link2, Plus, Search } from "lucide-react";
+import { Link2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,9 @@ type StockReferenceMatchRow = {
   };
 };
 
-export default function EgyptianDrugReferencePage() {
+export default function EgyptianDrugReferencePage({
+  embeddedInHub = false,
+}: { embeddedInHub?: boolean } = {}) {
   const [query, setQuery] = useState("");
   const [dosageForm, setDosageForm] = useState("all");
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
@@ -146,83 +148,73 @@ export default function EgyptianDrugReferencePage() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <ServicesHubNav active="drug-reference" />
+      {!embeddedInHub && <ServicesHubNav active="drug-reference" />}
 
-      <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-bold">مرجع الأدوية المصرية</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex flex-1 min-w-[280px] items-center gap-2">
+          <Select value={dosageForm} onValueChange={setDosageForm}>
+            <SelectTrigger className="h-9 w-36 sm:w-44 text-xs shrink-0">
+              <SelectValue placeholder="اختر النوع" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الأنواع</SelectItem>
+              <SelectItem value="drops">قطرات</SelectItem>
+              <SelectItem value="ointment">مرهم</SelectItem>
+              <SelectItem value="tablets">أقراص</SelectItem>
+              <SelectItem value="capsules">كبسولات</SelectItem>
+              <SelectItem value="ampoules">أمبولات وحقن</SelectItem>
+              <SelectItem value="solution">محلول</SelectItem>
+              <SelectItem value="suspension">معلق</SelectItem>
+              <SelectItem value="syrup">شراب</SelectItem>
+              <SelectItem value="cream">كريم</SelectItem>
+              <SelectItem value="gel">جل</SelectItem>
+              <SelectItem value="spray">بخاخ</SelectItem>
+              <SelectItem value="suppository">لبوس</SelectItem>
+              <SelectItem value="powder">بودرة وأكياس</SelectItem>
+              <SelectItem value="inhaler">جهاز استنشاق</SelectItem>
+              <SelectItem value="other">أخرى</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="ابحث بالاسم أو المادة الفعالة أو الشركة..."
+              className="h-9 pr-9 text-xs sm:text-sm"
+              autoFocus
+            />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            بحث مرجعي مستقل. لا يُضاف الدواء إلى كتالوج الروشتة إلا عند الضغط
-            على إضافة.
-          </p>
         </div>
-        <span className="text-xs text-muted-foreground">
-          المصدر محدث: يونيو 2026
-        </span>
-      </header>
 
-      <div className="grid max-w-4xl gap-3 sm:grid-cols-[220px_minmax(0,1fr)]">
-        <Select value={dosageForm} onValueChange={setDosageForm}>
-          <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder="اختر النوع" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الأنواع</SelectItem>
-            <SelectItem value="drops">قطرات</SelectItem>
-            <SelectItem value="ointment">مرهم</SelectItem>
-            <SelectItem value="tablets">أقراص</SelectItem>
-            <SelectItem value="capsules">كبسولات</SelectItem>
-            <SelectItem value="ampoules">أمبولات وحقن</SelectItem>
-            <SelectItem value="solution">محلول</SelectItem>
-            <SelectItem value="suspension">معلق</SelectItem>
-            <SelectItem value="syrup">شراب</SelectItem>
-            <SelectItem value="cream">كريم</SelectItem>
-            <SelectItem value="gel">جل</SelectItem>
-            <SelectItem value="spray">بخاخ</SelectItem>
-            <SelectItem value="suppository">لبوس</SelectItem>
-            <SelectItem value="powder">بودرة وأكياس</SelectItem>
-            <SelectItem value="inhaler">جهاز استنشاق</SelectItem>
-            <SelectItem value="other">أخرى</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative">
-          <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="ابحث بالاسم أو المادة الفعالة أو الشركة..."
-            className="h-12 pr-10 text-base"
-            autoFocus
-          />
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant={showExistingMatches ? "default" : "outline"}
+            className="h-9 text-xs gap-1"
+            onClick={() => {
+              setShowExistingMatches((current) => !current);
+              setShowStockMatches(false);
+            }}
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            مطابقة الأدوية
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={showStockMatches ? "default" : "outline"}
+            className="h-9 text-xs gap-1"
+            onClick={() => {
+              setShowStockMatches((current) => !current);
+              setShowExistingMatches(false);
+            }}
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            مطابقة المخزن
+          </Button>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant={showExistingMatches ? "default" : "outline"}
-          onClick={() => {
-            setShowExistingMatches((current) => !current);
-            setShowStockMatches(false);
-          }}
-        >
-          <Link2 className="ml-2 h-4 w-4" />
-          مطابقة الأدوية الحالية مع المرجع
-        </Button>
-        <Button
-          type="button"
-          variant={showStockMatches ? "default" : "outline"}
-          onClick={() => {
-            setShowStockMatches((current) => !current);
-            setShowExistingMatches(false);
-          }}
-        >
-          <Link2 className="ml-2 h-4 w-4" />
-          مطابقة قطرات المخزن
-        </Button>
       </div>
 
       {showExistingMatches ? (

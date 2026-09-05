@@ -33,7 +33,9 @@ function fmt(min: number): string {
   return h > 0 ? `${h}س ${m}د` : `${m}د`;
 }
 
-export default function MyAttendanceProfile() {
+export default function MyAttendanceProfile({
+  embeddedInHub = false,
+}: { embeddedInHub?: boolean } = {}) {
   const [permForm, setPermForm] = useState({
     date: todayStr,
     type: "out" as "in" | "out",
@@ -176,29 +178,36 @@ export default function MyAttendanceProfile() {
   const stats = data.monthStats;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-6" dir="rtl">
-      
-      {/* ── 1. Floating Bento Top Header Capsule ── */}
-      <header className="max-w-6xl mx-auto mb-6 bg-white border border-slate-200 rounded-3xl p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/attendance"
-            className="w-8 h-8 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-all shrink-0"
-          >
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <div>
-            <h1 className="text-sm font-black text-slate-900 leading-none">الملف الشخصي لحضوري</h1>
-            <span className="text-[10px] text-slate-400 block mt-1 font-medium">رصيد الإجازات، إحصائيات الغياب وطلب أذونات النوبات</span>
+    <div
+      className={
+        embeddedInHub
+          ? "w-full text-slate-800"
+          : "min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-6"
+      }
+      dir="rtl"
+    >
+      {!embeddedInHub && (
+        <header className="max-w-6xl mx-auto mb-6 bg-white border border-slate-200 rounded-3xl p-4 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/attendance"
+              className="w-8 h-8 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-all shrink-0"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <div>
+              <h1 className="text-sm font-black text-slate-900 leading-none">الملف الشخصي لحضوري</h1>
+              <span className="text-[10px] text-slate-400 block mt-1 font-medium">رصيد الإجازات، إحصائيات الغياب وطلب أذونات النوبات</span>
+            </div>
           </div>
-        </div>
-        <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-bold shadow-sm font-mono">
-          كود: {data.empCd}
-        </span>
-      </header>
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-bold shadow-sm font-mono">
+            كود: {data.empCd}
+          </span>
+        </header>
+      )}
 
       {/* ── 2. Bento Container Flow ── */}
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className={embeddedInHub ? "w-full space-y-6" : "max-w-6xl mx-auto space-y-6"}>
         
         {/* Top Section: Balances & Stats (2 columns) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

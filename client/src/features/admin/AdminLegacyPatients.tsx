@@ -1,12 +1,10 @@
 import { useState } from "react";
 import {
-  Archive,
   ChevronLeft,
   ChevronRight,
   Search,
-  Users,
 } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -88,31 +86,6 @@ export default function AdminLegacyPatients() {
         dir="rtl"
         className="overflow-hidden rounded-lg border-border text-right shadow-none"
       >
-        <CardHeader className="space-y-0 border-b border-border bg-muted/20 p-4 sm:p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Archive className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-foreground sm:text-xl">
-                  سجل المرضى
-                </h1>
-                <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                  بيانات السنوات السابقة للمراجعة فقط
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1.5 px-2.5 py-1">
-                <Users className="h-3.5 w-3.5" aria-hidden />
-                {rows.length} نتيجة
-              </Badge>
-              <Badge variant="secondary">سنة {year}</Badge>
-            </div>
-          </div>
-        </CardHeader>
-
         <CardContent className="p-4 sm:p-5">
           <form
             onSubmit={handleSearchSubmit}

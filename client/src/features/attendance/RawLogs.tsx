@@ -1,25 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Search } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
+import { ReportToolbar } from "./ReportToolbar";
 
 const directionTone = {
   in: "border-success/20 bg-success/10 text-success",
   out: "border-info/20 bg-info/10 text-info",
 };
 
-export default function RawLogs({ department }: { department?: string }) {
+export default function RawLogs({
+  from,
+  to,
+  department,
+}: {
+  from: string;
+  to: string;
+  department?: string;
+}) {
   const isMobile = useIsMobile();
   const [filters, setFilters] = useState({
     empNo: "",
     fromDate: "",
     toDate: "",
   });
+  useEffect(() => {
+    setFilters((current) => ({ ...current, fromDate: from, toDate: to }));
+  }, [from, to]);
 
   const rawPunchesQuery = (trpc as any).attendance.rawPunches.useQuery(
     {
@@ -71,21 +82,29 @@ export default function RawLogs({ department }: { department?: string }) {
   const punches = rawPunchesQuery.data?.punches ?? [];
 
   return (
-    <div className="mx-auto max-w-7xl p-6" dir="rtl">
+    <div className="w-full p-0" dir="rtl">
+      <ReportToolbar>
+        <Input
+          placeholder="كود الموظف"
+          value={filters.empNo}
+          onChange={(event) =>
+            setFilters((current) => ({ ...current, empNo: event.target.value }))
+          }
+          className="h-10 w-44"
+        />
+        <Button onClick={handleSearch} disabled={rawPunchesQuery.isLoading}>
+          <Search className="h-4 w-4" /> بحث
+        </Button>
+      </ReportToolbar>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground">السجلات الخام</h1>
-          <p className="text-sm text-muted-foreground">
-            فحص مباشر لبصمات الجهاز عندما تحتاج إلى تدقيق سريع أو تصدير خام.
-          </p>
-        </div>
+        <div />
         <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
           <Search className="h-3.5 w-3.5" />
           فلترة مباشرة
         </span>
       </div>
 
-      <Card className="mb-6 border-border bg-muted/20">
+      <Card className="hidden">
         <CardHeader>
           <CardTitle className="text-lg text-foreground">البحث</CardTitle>
         </CardHeader>
@@ -98,20 +117,6 @@ export default function RawLogs({ department }: { department?: string }) {
                 setFilters({ ...filters, empNo: e.target.value })
               }
               className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-            />
-            <DateInput
-              value={filters.fromDate}
-              onChange={(e) =>
-                setFilters({ ...filters, fromDate: e.target.value })
-              }
-              className="border-border bg-background text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
-            />
-            <DateInput
-              value={filters.toDate}
-              onChange={(e) =>
-                setFilters({ ...filters, toDate: e.target.value })
-              }
-              className="border-border bg-background text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
             />
             <div className="flex gap-2">
               <Button

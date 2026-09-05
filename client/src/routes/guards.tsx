@@ -15,7 +15,7 @@ export function LegacySurgerySheetRedirect() {
     );
     const id = match?.[1];
     if (id) {
-      setLocation(`/sheets/external/${id}`);
+      setLocation(`/sheets/operation/${id}`);
     }
   }, [setLocation]);
   return null;

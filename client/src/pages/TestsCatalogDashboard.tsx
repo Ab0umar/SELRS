@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { PageHeader } from "@/components/shared/PageHeader";
 import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
@@ -98,8 +97,10 @@ function rangeDisplay(row: Record<string, unknown>): string {
 
 export default function TestsCatalogDashboard({
   mode = "examinations",
+  embeddedInHub = false,
 }: {
   mode?: DashboardMode;
+  embeddedInHub?: boolean;
 }) {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -278,31 +279,12 @@ export default function TestsCatalogDashboard({
   return (
     <div className="min-h-screen bg-muted/30">
       <div
-        className="container mx-auto max-w-[1400px] px-3 py-6 sm:px-4 sm:py-8"
+        className="container mx-auto max-w-[1400px] px-3 py-4 sm:px-4 sm:py-6"
         dir="rtl"
       >
-        <PageHeader
-          title={isTx ? "ربط النتائج الخارجية" : "إدارة الفحوصات"}
-          description={
-            isTx
-              ? "استيراد تحاليل وأشعة من الأنظمة الخارجية، ثم ربطها بمدى طبيعي ليظهر التنبيه عند الخروج عنه."
-              : "إدارة جميع الفحوصات الطبية والمرجع الطبيعي لكل فحص."
-          }
-          icon={<FlaskConical className="h-5 w-5 text-primary" />}
-          action={
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-1 font-semibold"
-              onClick={resetForm}
-            >
-              <Plus className="h-4 w-4" />
-              {isTx ? "إضافة مرجع" : "إنشاء"}
-            </Button>
-          }
-        />
-
-        <ServicesHubNav active={isTx ? "txhub" : "catalog"} className="mb-4" />
+        {!embeddedInHub && (
+          <ServicesHubNav active={isTx ? "txhub" : "catalog"} className="mb-4" />
+        )}
 
         <div
           className={cn(
@@ -343,20 +325,31 @@ export default function TestsCatalogDashboard({
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-1 min-w-[240px] items-center gap-2">
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  placeholder={
+                    isTx ? "بحث في المرجع الخارجي..." : "بحث عن فحص..."
+                  }
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1 text-xs font-semibold shrink-0"
+                  onClick={resetForm}
+                >
+                  <Plus className="h-4 w-4" />
+                  {isTx ? "إضافة مرجع" : "إنشاء"}
+                </Button>
+              </div>
               <FilterBar
                 filters={isTx ? txhubFilters : examinationsFilters}
                 selected={typeFilter}
                 onSelect={setTypeFilter}
-                className="md:order-2"
-              />
-              <SearchBar
-                value={search}
-                onChange={setSearch}
-                placeholder={
-                  isTx ? "بحث في المرجع الخارجي..." : "بحث عن فحص..."
-                }
-                className="md:order-1 md:max-w-md md:flex-1"
               />
             </div>
 

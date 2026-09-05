@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1277,44 +1277,26 @@ export default function EmployeesList() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">الموظفون</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {activeTab === "center" ? "موظفو المركز" : "موظفو العيادة"}
-          </p>
-        </div>
-        <span className="text-sm text-muted-foreground">
-          عدد الموظفين:{" "}
-          <span className="font-semibold text-foreground">
-            {displayEmployees.length}
-          </span>
-        </span>
-      </div>
-
       {/* Tabs */}
-      <div className="sticky top-0 z-10 flex gap-1 border-b border-border bg-background/95 px-1 pt-1">
-        {(["center", "clinic"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-              activeTab === t
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t === "center"
-              ? `المركز (${centerEmployees.length})`
-              : `العيادة (${clinicEmployees.length})`}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex gap-3 items-center">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-1 pt-1">
+        <div className="flex gap-1">
+          {(["center", "clinic"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === t
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t === "center"
+                ? `المركز (${centerEmployees.length})`
+                : `العيادة (${clinicEmployees.length})`}
+            </button>
+          ))}
+        </div>
+        <div className="flex min-w-64 flex-1 items-center gap-3 pb-2 sm:max-w-md">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
               id="attendance-employee-search"
@@ -1326,18 +1308,10 @@ export default function EmployeesList() {
             <span className="whitespace-nowrap text-sm text-muted-foreground">
               {filteredEmployees.length} نتيجة
             </span>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>
-            {activeTab === "center" ? "موظفو المركز" : "موظفو العيادة"} (
-            {displayEmployees.length})
-          </CardTitle>
-        </CardHeader>
         <CardContent>
           <EmployeeTable
             employees={filteredEmployees}

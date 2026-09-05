@@ -40,6 +40,7 @@ const Home = lazy(() => import("../pages/Home"));
 const MainHome = lazy(() => import("../pages/MainHome"));
 const ForcePasswordChange = lazy(() => import("../pages/ForcePasswordChange"));
 const Profile = lazy(() => import("../pages/Profile"));
+const AccountPage = lazy(() => import("../pages/AccountPage"));
 const PatientHubShell = lazy(() => import("../pages/PatientHubShell"));
 const ClinicsHubShell = lazy(() => import("../pages/ClinicsHubShell"));
 const PatientsHubShell = lazy(() => import("../pages/PatientsHubShell"));
@@ -166,6 +167,22 @@ export const MiscRoutes = (
       component={() => (
         <ProtectedRoute>
           <Profile />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.account}
+      component={() => (
+        <ProtectedRoute>
+          <AccountPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.accountWildcard}
+      component={() => (
+        <ProtectedRoute>
+          <AccountPage />
         </ProtectedRoute>
       )}
     />

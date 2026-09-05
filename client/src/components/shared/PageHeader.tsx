@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
+import { Home, LogOut } from "lucide-react";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PageHeaderProps {
   title: string;
@@ -21,6 +24,8 @@ export function PageHeader({
   actions,
   className,
 }: PageHeaderProps) {
+  const [, setLocation] = useLocation();
+  const { logout, loading: logoutLoading } = useAuth();
   const subtitleText = description || subtitle;
 
   return (
@@ -47,11 +52,32 @@ export function PageHeader({
             ) : null}
           </div>
         </div>
-        {actions || action ? (
+        <div className="flex items-center gap-2 shrink-0">
+          {actions || action ? (
           <div className="flex items-center gap-2 shrink-0">
             {actions || action}
           </div>
-        ) : null}
+          ) : null}
+          <button
+            type="button"
+            aria-label="الصفحة الرئيسية"
+            title="الصفحة الرئيسية"
+            onClick={() => setLocation("/dashboard")}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted"
+          >
+            <Home className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="تسجيل الخروج"
+            title="تسجيل الخروج"
+            onClick={() => void logout()}
+            disabled={logoutLoading}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted disabled:opacity-50"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

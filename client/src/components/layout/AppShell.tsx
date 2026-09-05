@@ -276,7 +276,7 @@ export function AppShell({
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto print:h-auto print:min-h-0 print:overflow-visible ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} print:overflow-x-visible ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} ${isShiftScheduleRoute ? "p-0" : "px-1 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4"}`}
       >
         <div
-          className={`selrs-app-content mx-auto min-h-0 w-full flex-1 ${isAdminPatientsRoute || isShiftScheduleRoute ? "max-w-none" : "max-w-[1600px]"}`}
+          className="selrs-app-content mx-auto min-h-0 w-full flex-1 max-w-none"
         >
           {children}
         </div>

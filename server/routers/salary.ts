@@ -30,6 +30,7 @@ import {
   shiftPayrollAttendanceOverrides,
   attendanceShifts,
   salarySupervisionBonus,
+  salarySupervisionMembers,
   salaryMissingCheckoutExclude,
   salaryEmployeeSectionSettings,
 } from "../../drizzle/schema";
@@ -62,6 +63,54 @@ const allowanceInput = z.object({
   yearlyRaise: z.number().min(0).optional().default(0),
   insuranceDeduction: z.number().min(0).optional().default(0),
 });
+
+const FULL_SHIFT_MINUTES = 6 * 60;
+const HALF_SHIFT_MINUTES = 4 * 60;
+
+function shiftDurationMinutes(
+  startTime: string | null | undefined,
+  endTime: string | null | undefined,
+  fallbackMinutes: number,
+): number {
+  if (!startTime || !endTime) return fallbackMinutes;
+  const [startHour, startMinute] = String(startTime).split(":").map(Number);
+  const [endHour, endMinute] = String(endTime).split(":").map(Number);
+  let duration = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+  if (duration < 0) duration += 24 * 60;
+  return duration > 0 ? duration : fallbackMinutes;
+}
+
+function shiftBaseMinutes(durationMinutes: number): number {
+  return Math.abs(durationMinutes - HALF_SHIFT_MINUTES) <=
+    Math.abs(durationMinutes - FULL_SHIFT_MINUTES)
+    ? HALF_SHIFT_MINUTES
+    : FULL_SHIFT_MINUTES;
+}
+
+function splitShiftMinutesIntoUnits(
+  shifts: { durationMinutes: number; baseMinutes: number }[],
+): {
+  big: number;
+  small: number;
+} {
+  let big = 0;
+  let small = 0;
+  let extraMinutes = 0;
+
+  for (const { durationMinutes, baseMinutes } of shifts) {
+    if (baseMinutes === FULL_SHIFT_MINUTES) {
+      big++;
+    } else {
+      small++;
+    }
+    extraMinutes += Math.max(0, durationMinutes - baseMinutes);
+  }
+
+  big += Math.floor(extraMinutes / FULL_SHIFT_MINUTES);
+  extraMinutes %= FULL_SHIFT_MINUTES;
+  small += Math.floor(extraMinutes / HALF_SHIFT_MINUTES);
+  return { big, small };
+}
 
 function dateRangeToYearMonths(
   fromDate: string,
@@ -456,18 +505,16 @@ export const salaryRouter = router({
   getEmployeeFunds: makeSalaryProcedure("/salary/funds")
     .input(
       z.object({
-        year: z.number().int(),
-        month: z.number().int().min(1).max(12),
+        fromDate: z.string().date(),
+        toDate: z.string().date(),
+      }).refine((value) => value.fromDate <= value.toDate, {
+        message: "تاريخ البداية يجب أن يسبق تاريخ النهاية",
+        path: ["toDate"],
       }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const from = `${input.year}-${String(input.month).padStart(2, "0")}-01`;
-      const nextMonth =
-        input.month === 12
-          ? `${input.year + 1}-01-01`
-          : `${input.year}-${String(input.month + 1).padStart(2, "0")}-01`;
       const [employees, members, entries, eidBonuses] = await Promise.all([
         db
           .select({
@@ -487,14 +534,20 @@ export const salaryRouter = router({
           .from(salaryOperationFundEntries)
           .where(
             and(
-              gte(salaryOperationFundEntries.transactionDate, from as any),
-              lt(salaryOperationFundEntries.transactionDate, nextMonth as any),
+              gte(salaryOperationFundEntries.transactionDate, input.fromDate as any),
+              lte(salaryOperationFundEntries.transactionDate, input.toDate as any),
             ),
           )
           .orderBy(desc(salaryOperationFundEntries.transactionDate)),
         db
           .select()
           .from(salaryEidBonuses)
+          .where(
+            and(
+              gte(salaryEidBonuses.bonusDate, input.fromDate as any),
+              lte(salaryEidBonuses.bonusDate, input.toDate as any),
+            ),
+          )
           .orderBy(desc(salaryEidBonuses.bonusDate)),
       ]);
       const memberCodes = new Set(
@@ -571,6 +624,28 @@ export const salaryRouter = router({
       await db
         .delete(salaryOperationFundEntries)
         .where(eq(salaryOperationFundEntries.id, input.id));
+      return { success: true };
+    }),
+
+  settleOperationFund: makeSalaryWriteProcedure("/salary/funds")
+    .input(
+      z.object({
+        fromDate: z.string().date(),
+        toDate: z.string().date(),
+      }).refine((value) => value.fromDate <= value.toDate, {
+        message: "تاريخ البداية يجب أن يسبق تاريخ النهاية",
+        path: ["toDate"],
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db.delete(salaryOperationFundEntries).where(
+        and(
+          gte(salaryOperationFundEntries.transactionDate, input.fromDate as any),
+          lte(salaryOperationFundEntries.transactionDate, input.toDate as any),
+        ),
+      );
       return { success: true };
     }),
 
@@ -930,6 +1005,49 @@ export const salaryRouter = router({
         })
         .onDuplicateKeyUpdate({ set: { amount: String(input.amount) as any } });
       return { ok: true };
+    }),
+
+  listSupervisionMembers: makeSalaryProcedure("/salary/basics")
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      return db
+        .select({
+          id: salarySupervisionMembers.id,
+          empCd: salarySupervisionMembers.empCd,
+          fullName: attendanceEmployees.fullName,
+          department: attendanceEmployees.department,
+          jobTitle: attendanceEmployees.jobTitle,
+        })
+        .from(salarySupervisionMembers)
+        .leftJoin(
+          attendanceEmployees,
+          eq(salarySupervisionMembers.empCd, attendanceEmployees.empCd),
+        )
+        .orderBy(attendanceEmployees.fullName);
+    }),
+
+  addSupervisionMember: makeSalaryWriteProcedure("/salary/basics")
+    .input(z.object({ empCd: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .insert(salarySupervisionMembers)
+        .values({ empCd: input.empCd })
+        .onDuplicateKeyUpdate({ set: { empCd: input.empCd } });
+      return { success: true };
+    }),
+
+  removeSupervisionMember: makeSalaryWriteProcedure("/salary/basics")
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .delete(salarySupervisionMembers)
+        .where(eq(salarySupervisionMembers.id, input.id));
+      return { success: true };
     }),
 
   getPayroll: makeSalaryProcedure("/salary/payroll")
@@ -2037,6 +2155,39 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
+  updateMyShiftEntry: makePageWriteProcedure("/attendance/shift-schedule")
+    .input(
+      z.object({
+        id: z.number().int(),
+        startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      if (input.endTime <= input.startTime)
+        throw new Error("Shift end time must be later than start time");
+      const [entry] = await db
+        .select({ staffId: shiftAttendance.staffId })
+        .from(shiftAttendance)
+        .where(eq(shiftAttendance.id, input.id))
+        .limit(1);
+      if (!entry) throw new Error("Entry not found");
+      const staff = await resolveMyShiftStaff(db, ctx.user);
+      if (!staff || staff.id !== entry.staffId)
+        throw new Error("Not authorized to modify this entry");
+      await db
+        .update(shiftAttendance)
+        .set({
+          shiftName: `${input.startTime}-${input.endTime}`,
+          startTime: input.startTime,
+          endTime: input.endTime,
+        })
+        .where(eq(shiftAttendance.id, input.id));
+      return { success: true };
+    }),
+
   listUsersForShiftLink: makeSalaryProcedure("/salary").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
@@ -2150,6 +2301,30 @@ export const salaryRouter = router({
       await db
         .update(shiftAttendance)
         .set({ present: input.present })
+        .where(eq(shiftAttendance.id, input.id));
+      return { success: true };
+    }),
+
+  updateShiftEntry: makeSalaryWriteProcedure("/salary")
+    .input(
+      z.object({
+        id: z.number().int(),
+        startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      if (input.endTime <= input.startTime)
+        throw new Error("Shift end time must be later than start time");
+      await db
+        .update(shiftAttendance)
+        .set({
+          shiftName: `${input.startTime}-${input.endTime}`,
+          startTime: input.startTime,
+          endTime: input.endTime,
+        })
         .where(eq(shiftAttendance.id, input.id));
       return { success: true };
     }),
@@ -2331,22 +2506,22 @@ export const salaryRouter = router({
         .limit(1);
       const deductionsEnabled = deductionsConfig[0]?.value !== "false";
 
-      // Build shift-name → size map
-      const shiftSizeMap = new Map<string, "big" | "small">();
+      // Each shift keeps its configured base: 6 hours for large, 4 for small.
+      const shiftBaseMinutesMap = new Map<string, number>();
       for (const sd of shiftDefs as any[]) {
-        let size: "big" | "small" = "big";
-        if (sd.shiftSize === "big") size = "big";
-        else if (sd.shiftSize === "small") size = "small";
-        else {
-          // auto: compute duration in minutes
-          const [sh, sm] = (sd.startTime as string).split(":").map(Number);
-          const [eh, em] = (sd.endTime as string).split(":").map(Number);
-          let dur = eh * 60 + em - (sh * 60 + sm);
-          if (dur < 0) dur += 24 * 60; // crosses midnight
-          const threshold = sd.autoSmallThresholdMin ?? 270;
-          size = dur <= threshold ? "small" : "big";
-        }
-        shiftSizeMap.set(sd.name as string, size);
+        const duration = shiftDurationMinutes(
+          sd.startTime,
+          sd.endTime,
+          FULL_SHIFT_MINUTES,
+        );
+        shiftBaseMinutesMap.set(
+          sd.name as string,
+          sd.shiftSize === "small"
+            ? HALF_SHIFT_MINUTES
+            : sd.shiftSize === "big"
+              ? FULL_SHIFT_MINUTES
+              : shiftBaseMinutes(duration),
+        );
       }
 
       const attendance = attendanceAll;
@@ -2412,8 +2587,12 @@ export const salaryRouter = router({
       return staff.map((s: any) => {
         const rows = attendance.filter((a: any) => a.staffId === s.id);
         const rateBig = Number(s.ratePerShift);
-        const rateSmall = Number(s.rateSmallShift ?? 0) || rateBig;
         const mainShiftMinutes = Number(s.mainShiftMinutes ?? 360) || 360;
+        const hourlyRate = rateBig / mainShiftMinutes;
+        // A small shift is four hours. Its displayed value and any manual
+        // attendance override must use the same hourly rate as a full shift.
+        const rateSmall =
+          Math.round(hourlyRate * HALF_SHIFT_MINUTES * 100) / 100;
         const byShift: Record<
           string,
           { scheduled: number; attended: number; rate: number }
@@ -2421,11 +2600,14 @@ export const salaryRouter = router({
         let attended = 0;
         let scheduledMinutes = 0;
         let attendedMinutes = 0;
-        // Explicit big/small breakdown, sized per each shift's own definition (shiftSizeMap)
-        let bigScheduled = 0,
-          bigAttended = 0,
-          smallScheduled = 0,
-          smallAttended = 0;
+        const scheduledShiftMinutes: {
+          durationMinutes: number;
+          baseMinutes: number;
+        }[] = [];
+        const attendedShiftMinutes: {
+          durationMinutes: number;
+          baseMinutes: number;
+        }[] = [];
 
         // The roster entry is the source of truth for both the shift and its
         // attendance state. A day-level punch cannot identify which one of
@@ -2433,36 +2615,35 @@ export const salaryRouter = router({
         for (const a of rows) {
           const present = Boolean(a.present);
           if (present) attended++;
-          const size: "big" | "small" = shiftSizeMap.get(a.shiftName) ?? "big";
-          let durationMinutes = mainShiftMinutes;
-          if (a.startTime && a.endTime) {
-            const [startHour, startMinute] = String(a.startTime)
-              .split(":")
-              .map(Number);
-            const [endHour, endMinute] = String(a.endTime)
-              .split(":")
-              .map(Number);
-            durationMinutes =
-              endHour * 60 + endMinute - (startHour * 60 + startMinute);
-            if (durationMinutes <= 0) durationMinutes = mainShiftMinutes;
-          }
-          const rate =
-            Math.round(((rateBig * durationMinutes) / mainShiftMinutes) * 100) /
-            100;
+          const durationMinutes = shiftDurationMinutes(
+            a.startTime,
+            a.endTime,
+            mainShiftMinutes,
+          );
+          const baseMinutes =
+            shiftBaseMinutesMap.get(a.shiftName) ??
+            shiftBaseMinutes(durationMinutes);
+          const rate = Math.round(hourlyRate * durationMinutes * 100) / 100;
           scheduledMinutes += durationMinutes;
-          if (present) attendedMinutes += durationMinutes;
+          scheduledShiftMinutes.push({ durationMinutes, baseMinutes });
+          if (present) {
+            attendedMinutes += durationMinutes;
+            attendedShiftMinutes.push({ durationMinutes, baseMinutes });
+          }
           if (!byShift[a.shiftName])
             byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
           byShift[a.shiftName].scheduled++;
           if (present) byShift[a.shiftName].attended++;
-          if (size === "small") {
-            smallScheduled++;
-            if (present) smallAttended++;
-          } else {
-            bigScheduled++;
-            if (present) bigAttended++;
-          }
         }
+
+        const scheduledUnits = splitShiftMinutesIntoUnits(
+          scheduledShiftMinutes,
+        );
+        const attendedUnits = splitShiftMinutesIntoUnits(attendedShiftMinutes);
+        let bigScheduled = scheduledUnits.big;
+        let smallScheduled = scheduledUnits.small;
+        let bigAttended = attendedUnits.big;
+        let smallAttended = attendedUnits.small;
 
         // Manual override: accountant-entered attended counts win over computed attendance.
         const override = overrideMap.get(s.id) as
@@ -2482,11 +2663,9 @@ export const salaryRouter = router({
         const bigTotal = Math.round(bigScheduled * rateBig * 100) / 100;
         const smallTotal = Math.round(smallScheduled * rateSmall * 100) / 100;
         const scheduledHourlyPay =
-          Math.round((scheduledMinutes / mainShiftMinutes) * rateBig * 100) /
-          100;
+          Math.round(hourlyRate * scheduledMinutes * 100) / 100;
         const attendedHourlyPay =
-          Math.round((attendedMinutes / mainShiftMinutes) * rateBig * 100) /
-          100;
+          Math.round(hourlyRate * attendedMinutes * 100) / 100;
         const basicSalary = !deductionsEnabled
           ? scheduledHourlyPay
           : hasOverride
@@ -2517,6 +2696,7 @@ export const salaryRouter = router({
           empCd: s.empCd ?? null,
           ratePerShift: rateBig,
           rateSmallShift: rateSmall,
+          hourlyRate,
           mainShiftMinutes,
           scheduledMinutes,
           attendedMinutes,

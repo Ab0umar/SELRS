@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/useMobile";
+import { ReportToolbar } from "./ReportToolbar";
 
 interface EditRow {
   empCd: string;
@@ -30,9 +31,16 @@ const toneForBalance = (remaining: number, total: number) => {
   return "border-destructive/20 bg-destructive/10 text-destructive";
 };
 
-export default function LeaveBalanceReport({ department }: { department?: string }) {
+export default function LeaveBalanceReport({
+  to,
+  department,
+}: {
+  from: string;
+  to: string;
+  department?: string;
+}) {
   const isMobile = useIsMobile();
-  const [year, setYear] = useState(new Date().getFullYear());
+  const year = Number(to.slice(0, 4));
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     empCd: "",
@@ -139,43 +147,21 @@ export default function LeaveBalanceReport({ department }: { department?: string
   };
 
   return (
-    <div className="mx-auto max-w-5xl p-6" dir="rtl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground">رصيد الإجازات</h1>
-          <p className="text-sm text-muted-foreground">
-            ألوان الرصيد توضح سريعًا من لديه فائض، ومن يقترب من النفاد.
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs font-semibold text-success">
-          <CalendarCheck className="h-3.5 w-3.5" />
-          {year}
-        </span>
-      </div>
-
-      <Card className="mb-6 border-border bg-muted/20">
+    <div className="w-full p-0" dir="rtl">
+      <ReportToolbar>
+        <Button onClick={() => setShowForm(!showForm)}>
+          <Plus size={16} /> تعيين رصيد موظف
+        </Button>
+        <Button variant="outline" onClick={handleExport} disabled={!rows.length}>
+          <Download className="h-4 w-4" /> CSV
+        </Button>
+        <Button variant="outline" onClick={handlePrint} disabled={!rows.length}>
+          <Printer className="h-4 w-4" /> طباعة
+        </Button>
+      </ReportToolbar>
+      <Card className="hidden">
         <CardContent className="pt-4">
           <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
-                السنة
-              </label>
-              <input
-                type="number"
-                min={2020}
-                max={2099}
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value))}
-                className="w-24 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
-            <Button
-              onClick={() => query.refetch()}
-              variant="outline"
-              className="border-primary/20 text-primary hover:bg-primary/10"
-            >
-              تحديث
-            </Button>
             <Button
               onClick={() => setShowForm(!showForm)}
               className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -299,56 +285,6 @@ export default function LeaveBalanceReport({ department }: { department?: string
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {rows.length > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[
-            {
-              label: "إجمالي الرصيد",
-              value: totalAlloc + totalCarry,
-              tone: "primary",
-            },
-            { label: "المستخدم", value: totalUsed, tone: "warning" },
-            { label: "المتبقي", value: totalRemain, tone: "success" },
-            { label: "عدد الموظفين", value: rows.length, tone: "info" },
-          ].map((card) => (
-            <Card key={card.label} className="border-border bg-background">
-              <CardContent className="space-y-2 px-4 py-4">
-                <div
-                  className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                    card.tone === "primary"
-                      ? "border-primary/20 bg-primary/10 text-primary"
-                      : card.tone === "warning"
-                        ? "border-warning/30 bg-warning/10 text-warning"
-                        : card.tone === "success"
-                          ? "border-success/20 bg-success/10 text-success"
-                          : "border-info/20 bg-info/10 text-info"
-                  }`}
-                >
-                  <span
-                    className="h-2 w-2 rounded-full bg-current"
-                    aria-hidden
-                  />
-                  {card.label}
-                </div>
-                <div
-                  className={`text-2xl font-bold tabular-nums ${
-                    card.tone === "primary"
-                      ? "text-primary"
-                      : card.tone === "warning"
-                        ? "text-warning"
-                        : card.tone === "success"
-                          ? "text-success"
-                          : "text-info"
-                  }`}
-                >
-                  {card.value}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       )}
 
       <Card>

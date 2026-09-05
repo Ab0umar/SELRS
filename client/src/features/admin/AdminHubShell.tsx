@@ -52,6 +52,8 @@ import OpHistory from "./OpHistory";
 import AdminWhatsAppInbox from "./AdminWhatsAppInbox";
 import AdminPentacamLinking from "./AdminPentacamLinking";
 import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
+import PentacamPage from "../../pages/PentacamPage";
+import PatientsRecordsPage from "../../pages/PatientsRecordsPage";
 import ExternalDoctors from "../../pages/ExternalDoctors";
 import ExternalDoctorReferrals from "../../pages/ExternalDoctorReferrals";
 import { cn } from "@/lib/utils";
@@ -155,27 +157,11 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/admin-hub/pentacam-linking",
-    label: "ربط البنتاكام",
-    helper: "استيراد صور وفحوصات الأشعة",
+    href: "/pentacam",
+    label: "البنتاكام",
+    helper: "شيت وصور الأشعة وربط الملفات وتدقيق التكرار",
     icon: Hospital,
     tone: "text-[#c2781c] bg-[#fff4e6]",
-    category: "services",
-  },
-  {
-    href: "/admin-hub/pentacam-duplicates",
-    label: "البنتاكام المكرر",
-    helper: "تنظيف الملفات المكررة بأمان",
-    icon: Copy,
-    tone: "text-[#b6534d] bg-[#fff0ef]",
-    category: "services",
-  },
-  {
-    href: "/admin-hub/pentacam-failed",
-    label: "فشل البنتاكام",
-    helper: "معالجة أخطاء رفع الفحوصات",
-    icon: Activity,
-    tone: "text-[#b6534d] bg-[#fff0ef]",
     category: "services",
   },
 
@@ -358,18 +344,21 @@ export default function AdminHubShell({
       return <AdminSheets />;
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
     if (loc === "/admin-hub/doctors") return <AdminDoctors />;
-    if (loc === "/admin-hub/pentacam-failed") return <AdminPentacamFailed />;
+    if (loc === "/admin-hub/pentacam-failed")
+      return <PentacamPage defaultTab="failed" embeddedInHub />;
     if (loc === "/admin-hub/patients") return <AdminPatients />;
-    if (loc === "/admin-hub/legacy-patients") return <AdminLegacyPatients />;
+    if (loc === "/admin-hub/legacy-patients")
+      return <PatientsRecordsPage defaultTab="record" embeddedInHub />;
     if (loc === "/admin-hub/whatsapp-inbox") return <AdminWhatsAppInbox />;
-    if (loc === "/admin-hub/op-history") return <OpHistory />;
+    if (loc === "/admin-hub/op-history")
+      return <PatientsRecordsPage defaultTab="op" embeddedInHub />;
     if (
       loc === "/admin-hub/pentacam-linking" ||
       loc.startsWith("/admin-hub/pentacam-linking/")
     )
-      return <AdminPentacamLinking />;
+      return <PentacamPage defaultTab="linking" embeddedInHub />;
     if (loc === "/admin-hub/pentacam-duplicates")
-      return <AdminPentacamDuplicates />;
+      return <PentacamPage defaultTab="duplicates" embeddedInHub />;
     if (loc === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
     if (loc === "/admin-hub/card-visibility") return <AdminCardVisibility />;
     if (loc === "/admin-hub/diagnostics") return <AdminDiagnostics />;
@@ -389,7 +378,7 @@ export default function AdminHubShell({
 
   return (
     <div className="min-h-screen bg-[#f7faff] text-[#10234f] pb-16" dir="rtl">
-      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+      <main className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         {isHubHome ? (
           <section className="space-y-6">
             {/* Header & Live System Status */}

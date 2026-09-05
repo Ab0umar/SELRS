@@ -7,6 +7,8 @@ export const ROUTES = {
   login: "/login",
   dashboard: "/dashboard",
   profile: "/profile",
+  account: "/account",
+  accountWildcard: "/account/*",
   forcePasswordChange: "/force-password-change",
 
   // Attendance
@@ -237,6 +239,11 @@ export const ROUTES = {
   servicesHubWildcard: "/services-hub/*",
   sheetCopies: "/sheet-copies",
   sheetDesigner: "/sheet-designer",
+  sheets: "/sheets",
+  archive: "/archive",
+  reports: "/reports",
+  patientsRecords: "/records/patients",
+  medicalRecords: "/records/medical",
   sheetsAutorefs: "/sheets/autorefs",
   sheetsAutorefsDashboard: "/sheets/autorefs/dashboard",
   sheetsConsultantDetail: "/sheets/consultant/:id",

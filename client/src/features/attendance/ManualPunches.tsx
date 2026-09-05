@@ -99,8 +99,6 @@ export default function ManualPunches() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <h1 className="text-3xl font-bold mb-6">تسجيل حضور يدوي</h1>
-
       <Card className="mb-4">
         <CardContent className="pt-4">
           <div className="grid gap-3 md:grid-cols-4 md:items-end">

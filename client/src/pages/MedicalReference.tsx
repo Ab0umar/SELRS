@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Filter, FolderPlus, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
+import { FolderPlus, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,37 +123,89 @@ export default function MedicalReference() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <header className="flex flex-col gap-4 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-primary">
-            <Filter className="h-5 w-5" aria-hidden />
-            <span className="text-sm font-semibold">البحث السريري المتقدم</span>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">المرجع الطبي وتصنيف المرضى</h1>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">ابحث في قياسات الانكسار وPentacam والتشخيصات والعمليات، منفردة أو مجتمعة.</p>
-        </div>
-        <div className="relative w-full lg:max-w-sm">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="اسم المريض أو رقم الملف" className="h-11 pr-9" />
-        </div>
-      </header>
-
       <section className="overflow-hidden rounded-lg border border-border bg-background">
-        <div className="flex flex-col gap-3 border-b border-border bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">طريقة المطابقة</span>
-            <div className="flex rounded-md border border-border bg-background p-1">
-              {(["and", "or"] as const).map((value) => (
-                <button key={value} type="button" onClick={() => setMode(value)} className={`min-h-9 rounded px-3 text-xs font-semibold ${mode === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
-                  {value === "and" ? "كل الشروط AND" : "أي شرط OR"}
-                </button>
-              ))}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground sm:text-sm">طريقة المطابقة</span>
+              <div className="flex rounded-md border border-border bg-background p-0.5">
+                {(["and", "or"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setMode(value)}
+                    className={`h-8 rounded px-2.5 text-xs font-semibold ${
+                      mode === value
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {value === "and" ? "كل الشروط AND" : "أي شرط OR"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() =>
+                  setCriteria([
+                    {
+                      id: newId(),
+                      kind: "refraction",
+                      metric: "sphere",
+                      eye: "either",
+                      max: -0.25,
+                    },
+                  ])
+                }
+              >
+                قصر نظر
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() =>
+                  setCriteria([
+                    {
+                      id: newId(),
+                      kind: "refraction",
+                      metric: "sphere",
+                      eye: "either",
+                      min: 0.25,
+                    },
+                  ])
+                }
+              >
+                طول نظر
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setCriteria([defaultCriterion()])}
+              >
+                <RotateCcw className="ml-1 h-3.5 w-3.5" />
+                مسح
+              </Button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setCriteria([{ id: newId(), kind: "refraction", metric: "sphere", eye: "either", max: -0.25 }])}>قصر نظر</Button>
-            <Button variant="outline" size="sm" onClick={() => setCriteria([{ id: newId(), kind: "refraction", metric: "sphere", eye: "either", min: 0.25 }])}>طول نظر</Button>
-            <Button variant="ghost" size="sm" onClick={() => setCriteria([defaultCriterion()])}><RotateCcw className="ml-1 h-4 w-4" />مسح</Button>
+
+          <div className="relative w-full sm:w-72">
+            <Search
+              className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="اسم المريض أو رقم الملف..."
+              className="h-9 pr-9 text-xs sm:text-sm bg-background"
+            />
           </div>
         </div>
 

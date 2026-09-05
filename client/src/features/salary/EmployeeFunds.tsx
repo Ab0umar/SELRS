@@ -6,13 +6,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   CalendarDays,
   Gift,
   Plus,
@@ -53,10 +46,25 @@ type EidBonus = {
   employeeCount: number;
 };
 
+type DoctorOption = {
+  id: number;
+  name: string;
+  isActive: boolean;
+};
+
 export default function EmployeeFunds() {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const cycleEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() + (now.getDate() >= 21 ? 1 : 0),
+    20,
+  );
+  const cycleStart = new Date(cycleEnd.getFullYear(), cycleEnd.getMonth() - 1, 21);
+  const fromDate = `${cycleStart.getFullYear()}-${String(cycleStart.getMonth() + 1).padStart(2, "0")}-21`;
+  const toDate = `${cycleEnd.getFullYear()}-${String(cycleEnd.getMonth() + 1).padStart(2, "0")}-20`;
+  const [activeFundTab, setActiveFundTab] = useState<"operations" | "eid">(
+    "operations",
+  );
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [entry, setEntry] = useState({
     transactionDate: now.toISOString().slice(0, 10),
@@ -72,12 +80,12 @@ export default function EmployeeFunds() {
   });
   const [printKind, setPrintKind] = useState<PrintKind>(null);
   const utils = trpc.useUtils();
-  const query = trpc.salary.getEmployeeFunds.useQuery({ year, month });
+  const query = trpc.salary.getEmployeeFunds.useQuery({ fromDate, toDate });
   const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
-  const doctors = (doctorsQuery.data ?? []).filter(
+  const doctors = ((doctorsQuery.data ?? []) as DoctorOption[]).filter(
     (doctor) => doctor.isActive,
   );
   const data = query.data;
@@ -92,7 +100,7 @@ export default function EmployeeFunds() {
   );
 
   const refresh = async () =>
-    utils.salary.getEmployeeFunds.invalidate({ year, month });
+    utils.salary.getEmployeeFunds.invalidate({ fromDate, toDate });
   const setMembers = trpc.salary.setOperationFundMembers.useMutation({
     onSuccess: async () => {
       await refresh();
@@ -115,6 +123,13 @@ export default function EmployeeFunds() {
   });
   const deleteEntry = trpc.salary.deleteOperationFundEntry.useMutation({
     onSuccess: refresh,
+  });
+  const settleFund = trpc.salary.settleOperationFund.useMutation({
+    onSuccess: async () => {
+      await refresh();
+      toast.success("تم تصفير صندوق العمليات وبدء دورة جديدة");
+    },
+    onError: (error) => toast.error(error.message),
   });
   const addEid = trpc.salary.addEidBonus.useMutation({
     onSuccess: async () => {
@@ -157,68 +172,68 @@ export default function EmployeeFunds() {
   };
 
   return (
-    <div className="space-y-5" dir="rtl">
-      <header className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-1 flex items-center gap-2 text-xs font-black text-primary">
-            <WalletCards className="size-4" />
-            صناديق الموظفين
+    <div className="salary-funds-page space-y-5" dir="rtl">
+      <Tabs
+        value={activeFundTab}
+        onValueChange={(value) =>
+          setActiveFundTab(value as "operations" | "eid")
+        }
+      >
+        <div
+          dir="rtl"
+          className="flex flex-row-reverse items-center justify-between gap-3 overflow-x-auto border-b border-border pb-4"
+        >
+          {activeFundTab === "operations" && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `تأكيد صرف صندوق الفترة من ${fromDate} إلى ${toDate}؟ سيتم تصفير حركات هذه الفترة.`,
+                    )
+                  )
+                    return;
+                  settleFund.mutate({ fromDate, toDate });
+                }}
+                disabled={settleFund.isPending || !entries.length}
+              >
+                <WalletCards className="ml-2 size-4" />
+                {settleFund.isPending
+                  ? "جاري التصفير..."
+                  : "تم الصرف وابدأ جديد"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => printSection("operations")}
+                disabled={!fundMembers.length}
+              >
+                <Printer className="ml-2 size-4" />
+                طباعة صندوق العمليات
+              </Button>
+            </div>
+          )}
+          <div className="flex shrink-0 items-center gap-2 text-sm font-semibold text-muted-foreground" dir="rtl">
+            <span>من {fromDate}</span>
+            <span>إلى {toDate}</span>
           </div>
-          <h1 className="text-2xl font-black">الصندوق والعيدية</h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            توزيع صندوق العمليات وإدارة العيديات المرتبطة بالموظفين.
-          </p>
+          <TabsList dir="rtl" className="flex w-80 shrink-0">
+            <TabsTrigger value="operations" className="flex-1">
+              <WalletCards className="ml-2 size-4" />
+              صندوق العمليات
+            </TabsTrigger>
+            <TabsTrigger value="eid" className="flex-1">
+              <Gift className="ml-2 size-4" />
+              العيدية
+            </TabsTrigger>
+          </TabsList>
         </div>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            min={2020}
-            max={2100}
-            value={year}
-            onChange={(event) => setYear(Number(event.target.value))}
-            className="w-24"
-            aria-label="السنة"
-          />
-          <select
-            value={month}
-            onChange={(event) => setMonth(Number(event.target.value))}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-            aria-label="الشهر"
-          >
-            {Array.from({ length: 12 }, (_, index) => (
-              <option key={index + 1} value={index + 1}>
-                شهر {index + 1}
-              </option>
-            ))}
-          </select>
-        </div>
-      </header>
 
-      <Tabs defaultValue="operations">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="operations">
-            <WalletCards className="ml-2 size-4" />
-            صندوق العمليات
-          </TabsTrigger>
-          <TabsTrigger value="eid">
-            <Gift className="ml-2 size-4" />
-            العيدية
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="operations" className="mt-4 space-y-4">
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => printSection("operations")}
-              disabled={!fundMembers.length}
-            >
-              <Printer className="ml-2 size-4" />
-              طباعة صندوق العمليات
-            </Button>
-          </div>
+        <TabsContent value="operations" className="mt-4 space-y-4" dir="rtl">
           <div className="grid overflow-hidden rounded-lg border border-border sm:grid-cols-3">
             <div className="p-4">
               <p className="text-xs text-muted-foreground">إجمالي الإيرادات</p>
@@ -244,7 +259,10 @@ export default function EmployeeFunds() {
             </div>
           </div>
 
-          <div className="grid overflow-hidden rounded-lg border border-border lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div
+            dir="rtl"
+            className="grid overflow-hidden rounded-lg border border-border lg:grid-cols-[320px_minmax(0,1fr)]"
+          >
             <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-l">
               <div className="border-b border-border p-3">
                 <h2 className="text-sm font-black">موظفو الصندوق</h2>
@@ -305,23 +323,21 @@ export default function EmployeeFunds() {
                     }
                     placeholder="المبلغ"
                   />
-                  <Select
-                    value={entry.doctorName}
-                    onValueChange={(value) =>
-                      setEntry({ ...entry, doctorName: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اسم الدكتور" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <>
+                    <Input
+                      list="operation-fund-doctors"
+                      value={entry.doctorName}
+                      onChange={(event) =>
+                        setEntry({ ...entry, doctorName: event.target.value })
+                      }
+                      placeholder="ابحث باسم الدكتور"
+                    />
+                    <datalist id="operation-fund-doctors">
                       {doctors.map((doctor) => (
-                        <SelectItem key={doctor.id} value={doctor.name}>
-                          {doctor.name}
-                        </SelectItem>
+                        <option key={doctor.id} value={doctor.name} />
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </datalist>
+                  </>
                   <Button
                     onClick={() =>
                       addEntry.mutate({
@@ -377,7 +393,7 @@ export default function EmployeeFunds() {
                 ))}
                 {!data?.entries.length ? (
                   <div className="p-12 text-center text-sm text-muted-foreground">
-                    لا توجد إيرادات مسجلة لهذا الشهر.
+                    لا توجد إيرادات مسجلة في الفترة المحددة.
                   </div>
                 ) : null}
               </div>
@@ -385,7 +401,7 @@ export default function EmployeeFunds() {
           </div>
         </TabsContent>
 
-        <TabsContent value="eid" className="mt-4 space-y-4">
+        <TabsContent value="eid" className="mt-4 space-y-4" dir="rtl">
           <div className="grid gap-4 rounded-lg border border-border p-5 lg:grid-cols-[minmax(0,1fr)_280px]">
             <div>
               <h2 className="text-base font-black">إضافة عيدية لكل الموظفين</h2>
@@ -504,22 +520,34 @@ export default function EmployeeFunds() {
       </Tabs>
 
       {printKind ? (
-        <div className="hidden print:block" dir="rtl">
+        <div className="fund-print-container hidden print:block" dir="rtl">
           <style>{`
             @media print {
               @page {
                 size: A4 portrait;
-                margin: 12mm;
+                margin: 8mm;
               }
-              body * { visibility: hidden; }
-              .fund-print-root, .fund-print-root * { visibility: visible; }
+              html, body { margin: 0 !important; padding: 0 !important; }
+              .salary-funds-page > * { display: none !important; }
+              .salary-funds-page > .fund-print-container { display: block !important; }
               .fund-print-root {
-                position: absolute;
-                inset: 0;
-                width: 210mm;
-                min-height: 297mm;
-                margin: 0 auto;
+                position: static;
+                width: 100%;
+                height: 281mm;
+                box-sizing: border-box;
                 padding: 0;
+                page-break-before: avoid;
+              }
+              .fund-print-root table {
+                width: 100%;
+                height: 230mm;
+                page-break-inside: auto;
+              }
+              .fund-print-root th,
+              .fund-print-root td { font-size: 13px; vertical-align: middle; }
+              .fund-print-root tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
               }
             }
           `}</style>
@@ -530,7 +558,7 @@ export default function EmployeeFunds() {
                 : eid.title || "العيدية"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              شهر {month} / {year}
+              من {fromDate} إلى {toDate}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>

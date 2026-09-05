@@ -47,6 +47,11 @@ const EMPTY: StaffForm = {
   userId: null,
 };
 
+function calculatedFourHourShiftRate(ratePerShift: number, mainShiftHours: string) {
+  const mainMinutes = (parseFloat(mainShiftHours) || 6) * 60;
+  return Math.round((ratePerShift / mainMinutes) * 240 * 100) / 100;
+}
+
 function buildDayShifts(sc: any[]): Map<number, Set<string>> {
   const map = new Map<number, Set<string>>();
   for (const c of sc) {
@@ -360,7 +365,10 @@ export default function ShiftStaff() {
       name: addForm.name.trim(),
       type: addForm.type,
       ratePerShift: rate,
-      rateSmallShift: parseFloat(addForm.rateSmallShift) || 0,
+      rateSmallShift: calculatedFourHourShiftRate(
+        rate,
+        addForm.mainShiftHours,
+      ),
       mainShiftMinutes: Math.round(
         (parseFloat(addForm.mainShiftHours) || 6) * 60,
       ),
@@ -394,7 +402,10 @@ export default function ShiftStaff() {
       name: editForm.name.trim(),
       type: editForm.type,
       ratePerShift: rate,
-      rateSmallShift: parseFloat(editForm.rateSmallShift) || 0,
+      rateSmallShift: calculatedFourHourShiftRate(
+        rate,
+        editForm.mainShiftHours,
+      ),
       mainShiftMinutes: Math.round(
         (parseFloat(editForm.mainShiftHours) || 6) * 60,
       ),
@@ -450,7 +461,7 @@ export default function ShiftStaff() {
                   setEditForm((f) => ({ ...f, ratePerShift: e.target.value }))
                 }
                 className="w-24 rounded border border-input bg-background px-2 py-1 text-sm text-right"
-                placeholder="شفت كبير"
+                placeholder="قيمة شفت 6 ساعات"
               />
             </td>
             <td className="px-4 py-2">
@@ -458,12 +469,13 @@ export default function ShiftStaff() {
                 type="number"
                 min={0}
                 step={0.01}
-                value={editForm.rateSmallShift}
-                onChange={(e) =>
-                  setEditForm((f) => ({ ...f, rateSmallShift: e.target.value }))
-                }
-                className="w-24 rounded border border-input bg-background px-2 py-1 text-sm text-right"
-                placeholder="شفت صغير"
+                value={calculatedFourHourShiftRate(
+                  parseFloat(editForm.ratePerShift) || 0,
+                  editForm.mainShiftHours,
+                )}
+                readOnly
+                className="w-24 rounded border border-input bg-muted px-2 py-1 text-sm text-right"
+                aria-label="قيمة شفت الأربع ساعات محسوبة تلقائيًا"
               />
             </td>
             <td className="px-4 py-2">
@@ -672,7 +684,7 @@ export default function ShiftStaff() {
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-foreground">
-              شفت كبير (ج.م)
+              قيمة شفت 6 ساعات (ج.م)
             </label>
             <input
               type="number"
@@ -687,17 +699,18 @@ export default function ShiftStaff() {
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-foreground">
-              شفت صغير (ج.م)
+              شفت 4 ساعات، محسوب تلقائيًا (ج.م)
             </label>
             <input
               type="number"
               min={0}
               step="0.01"
-              value={editForm.rateSmallShift}
-              onChange={(e) =>
-                setEditForm({ ...editForm, rateSmallShift: e.target.value })
-              }
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"
+              value={calculatedFourHourShiftRate(
+                parseFloat(editForm.ratePerShift) || 0,
+                editForm.mainShiftHours,
+              )}
+              readOnly
+              className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none"
             />
           </div>
           <div className="space-y-1.5">
@@ -921,8 +934,8 @@ export default function ShiftStaff() {
               <tr>
                 <th className="px-4 py-2 text-right font-medium">الاسم</th>
                 <th className="px-4 py-2 text-right font-medium">النوع</th>
-                <th className="px-4 py-2 text-right font-medium">شفت كبير</th>
-                <th className="px-4 py-2 text-right font-medium">شفت صغير</th>
+                <th className="px-4 py-2 text-right font-medium">شفت 6 ساعات</th>
+                <th className="px-4 py-2 text-right font-medium">شفت 4 ساعات</th>
                 <th className="px-4 py-2 text-right font-medium">ربط الحضور</th>
                 <th className="px-4 py-2 text-right font-medium">
                   حساب المستخدم
@@ -981,7 +994,7 @@ export default function ShiftStaff() {
                 type="number"
                 min={0}
                 step={0.01}
-                placeholder="شفت كبير"
+                placeholder="قيمة شفت 6 ساعات"
                 value={addForm.ratePerShift}
                 onChange={(e) =>
                   setAddForm((f) => ({ ...f, ratePerShift: e.target.value }))
@@ -1011,12 +1024,13 @@ export default function ShiftStaff() {
                 type="number"
                 min={0}
                 step={0.01}
-                placeholder="شفت صغير"
-                value={addForm.rateSmallShift}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, rateSmallShift: e.target.value }))
-                }
-                className="w-36 rounded border border-input bg-background px-3 py-1.5 text-sm pr-12"
+                placeholder="قيمة شفت 4 ساعات"
+                value={calculatedFourHourShiftRate(
+                  parseFloat(addForm.ratePerShift) || 0,
+                  addForm.mainShiftHours,
+                )}
+                readOnly
+                className="w-36 rounded border border-input bg-muted px-3 py-1.5 text-sm pr-12"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 ج.م

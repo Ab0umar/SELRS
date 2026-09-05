@@ -41,6 +41,7 @@ export default function TodayPatients() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [portalBookingOpen, setPortalBookingOpen] = useState(false);
   const [totalsOpen, setTotalsOpen] = useState(true);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(true);
 
   const [selectedDate, setSelectedDate] = useState(() => getLocalDateIso());
 
@@ -129,15 +130,26 @@ export default function TodayPatients() {
       />
 
       <div className="mx-auto w-full max-w-[1600px] space-y-4">
+        <h1 className="sr-only">مرضى اليوم</h1>
         {/* ── Quick Actions Bento Card ─────────────────────────────────── */}
         <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex-1 min-w-0">
-              <QuickActions
-                onOpenMeasurementsMedicalFile={openMedicalFilePicker}
-                onOpenOperationsBooking={() => setBookingOpen(true)}
-                extraPrimaryAction={
-                  <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-expanded={quickActionsOpen}
+                onClick={() => setQuickActionsOpen((open) => !open)}
+                className="mb-2 flex w-full items-center justify-between rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                إجراءات سريعة
+                <span aria-hidden>{quickActionsOpen ? "−" : "+"}</span>
+              </button>
+              {quickActionsOpen ? (
+                <QuickActions
+                  onOpenMeasurementsMedicalFile={openMedicalFilePicker}
+                  onOpenOperationsBooking={() => setBookingOpen(true)}
+                  extraPrimaryAction={
+                    <div className="flex items-center gap-2">
                     {userRole === "reception" || userRole === "admin" ? (
                       <Button
                         variant="outline"
@@ -165,9 +177,10 @@ export default function TodayPatients() {
                         className={cn("size-4", isLoading && "animate-spin")}
                       />
                     </Button>
-                  </div>
-                }
-              />
+                    </div>
+                  }
+                />
+              ) : null}
             </div>
           </div>
         </div>

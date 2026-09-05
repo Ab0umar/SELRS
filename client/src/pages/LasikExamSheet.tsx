@@ -2960,6 +2960,9 @@ export default function LasikExamSheet({
           .attached-followup-page > .sheet-followup-body[data-print-variant="attached"] {
             transform: translateX(${followupLabels.offsetXmm}mm) translateY(${followupLabels.offsetYmm}mm) scale(${followupLabels.scale}) !important;
           }
+          [data-sheet-type="consultant"] .attached-followup-page > .sheet-followup-body[data-print-variant="attached"] {
+            transform: none !important;
+          }
           .print-page-center-a4 > .lasik-sheet section {
             margin-block: 0 !important;
           }
@@ -3040,12 +3043,14 @@ export default function LasikExamSheet({
             font-size: 11px !important;
             font-weight: 700 !important;
           }
-          .sheet-type-consultant .print-lasik-patient-grid {
+          .sheet-type-consultant .print-lasik-patient-grid,
+          [data-sheet-type="consultant"] .print-lasik-patient-grid {
             min-height: 0 !important;
             padding: 5px !important;
             row-gap: 1mm !important;
           }
-          .sheet-type-consultant .print-lasik-patient-grid > div {
+          .sheet-type-consultant .print-lasik-patient-grid > div,
+          [data-sheet-type="consultant"] .print-lasik-patient-grid > div {
             row-gap: 3px !important;
           }
           .lasik-sheet .border-b,

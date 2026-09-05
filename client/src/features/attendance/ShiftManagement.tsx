@@ -152,10 +152,6 @@ export default function ShiftManagement() {
       
       {/* Action Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/40">
-        <div className="space-y-1">
-          <h2 className="text-base font-bold text-foreground">تعريف الورديات وقواعد العمل اليومي</h2>
-          <p className="text-xs text-muted-foreground">تحديد مواعيد الورديات الثابتة والمرنة، فترات الاستراحة، وقواعد الأجر الإضافي للمركز</p>
-        </div>
         <Button
           onClick={() => {
             setEditingId(null);

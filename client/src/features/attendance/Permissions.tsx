@@ -134,44 +134,9 @@ export default function Permissions() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <h1 className="text-3xl font-bold mb-6">الأذونات</h1>
-
-      <Card className="mb-4">
-        <CardContent className="flex items-center justify-between gap-4 pt-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <LogIn className="h-5 w-5 shrink-0 text-primary" />
-            <div className="min-w-0">
-              <div className="font-semibold">طلب إذن الدخول للمستخدمين</div>
-              <div className="text-xs text-muted-foreground">
-                يتحكم في ظهور وإرسال طلب الدخول المتأخر من الملف الشخصي للحضور.
-              </div>
-            </div>
-          </div>
-          <label className="flex shrink-0 cursor-pointer items-center gap-2">
-            <span className="text-sm font-medium">
-              {entryPermissionSettingQuery.data?.enabled !== false
-                ? "مفعّل"
-                : "ملغي"}
-            </span>
-            <input
-              type="checkbox"
-              className="h-5 w-5 accent-primary"
-              checked={entryPermissionSettingQuery.data?.enabled !== false}
-              disabled={
-                entryPermissionSettingQuery.isLoading ||
-                setEntryPermissionSetting.isPending
-              }
-              onChange={(event) =>
-                setEntryPermissionSetting.mutate({ enabled: event.target.checked })
-              }
-            />
-          </label>
-        </CardContent>
-      </Card>
-
       <Card className="mb-4">
         <CardContent className="pt-4">
-          <div className="grid gap-3 md:grid-cols-4 md:items-end">
+          <div className="grid gap-3 md:grid-cols-5 md:items-end">
             <div>
               <label htmlFor="attendance-perm-from" className="mb-1 block text-sm font-medium">من</label>
               <DateInput id="attendance-perm-from" value={filter.from} onChange={(e) => setFilter({ ...filter, from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
@@ -189,6 +154,24 @@ export default function Permissions() {
                 ))}
               </select>
             </div>
+            <label className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium">
+              <span className="flex items-center gap-2">
+                <LogIn className="h-4 w-4 text-primary" />
+                طلب إذن الدخول
+              </span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-primary"
+                checked={entryPermissionSettingQuery.data?.enabled !== false}
+                disabled={
+                  entryPermissionSettingQuery.isLoading ||
+                  setEntryPermissionSetting.isPending
+                }
+                onChange={(event) =>
+                  setEntryPermissionSetting.mutate({ enabled: event.target.checked })
+                }
+              />
+            </label>
             <div className="flex gap-2 md:justify-end">
               <Button onClick={() => permsQuery.refetch()} variant="outline" className="min-h-11 px-4">بحث</Button>
               <Button onClick={() => { setEditId(null); setForm(emptyForm()); setShowForm(true); }} className="min-h-11 gap-2 px-4">

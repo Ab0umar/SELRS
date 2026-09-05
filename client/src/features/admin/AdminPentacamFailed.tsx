@@ -79,7 +79,11 @@ function resolvePreviewUrl(raw: string): string {
   return getApiUrl(value.startsWith("/") ? value : `/${value}`);
 }
 
-export default function AdminPentacamFailed() {
+export default function AdminPentacamFailed({
+  hideDuplicates = false,
+}: {
+  hideDuplicates?: boolean;
+} = {}) {
   const [search, setSearch] = useState("");
   const [manualIds, setManualIds] = useState<Record<string, string>>({});
   const [renamePreview, setRenamePreview] = useState<
@@ -647,14 +651,16 @@ export default function AdminPentacamFailed() {
         </Card>
       ) : null}
 
-      <Card className="border-border">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">المكررات في قاعدة البيانات</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AdminPentacamDuplicates />
-        </CardContent>
-      </Card>
+      {!hideDuplicates ? (
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">المكررات في قاعدة البيانات</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AdminPentacamDuplicates />
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

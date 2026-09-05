@@ -1076,6 +1076,19 @@ export const medicalPatientRoutes = {
         });
       }
     }),
+  getPatient: makePageProcedure("/patient-file")
+    .input(z.object({ patientId: z.number() }))
+    .query(async ({ input }) => {
+      const patient = await db.getPatientById(input.patientId);
+      if (!patient) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Patient not found",
+        });
+      }
+      return patient;
+    }),
+
   getPatientServiceEntries: makePageProcedure("/patient-file")
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {

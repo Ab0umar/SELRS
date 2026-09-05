@@ -5,6 +5,7 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import PatientPicker from "@/components/PatientPicker";
 import PentacamFilesPanel from "@/components/PentacamFilesPanel";
 import { FilterBar } from "@/components/shared/FilterBar";
+import { cn } from "@/lib/utils";
 import {
   ArrowRight,
   BookOpenText,
@@ -70,12 +71,25 @@ function EmptyPanel() {
   );
 }
 
-export default function PentacamSheet() {
+export type PentacamSheetProps = {
+  embedded?: boolean;
+  initialPatientId?: number;
+  onSelectPatient?: (patient: PatientSummary | null) => void;
+  onSwitchTab?: (tab: string) => void;
+};
+
+export default function PentacamSheet({
+  embedded = false,
+  initialPatientId: propInitialPatientId,
+  onSelectPatient,
+  onSwitchTab,
+}: PentacamSheetProps = {}) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/sheets/:type/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const initialPatientId =
+    propInitialPatientId ?? (params?.id ? Number(params.id) : undefined);
 
   const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(
     null,
@@ -99,7 +113,10 @@ export default function PentacamSheet() {
     )
       return;
     setSelectedPatient(patient);
-    setLocation(`/sheets/pentacam/${patient.id}`);
+    onSelectPatient?.(patient);
+    if (!embedded) {
+      setLocation(`/sheets/pentacam/${patient.id}`);
+    }
   };
 
   useEffect(() => {
@@ -107,7 +124,8 @@ export default function PentacamSheet() {
     if (locationType === "all") return;
     if (selectedPatient.locationType === locationType) return;
     setSelectedPatient(null);
-  }, [locationType, selectedPatient]);
+    onSelectPatient?.(null);
+  }, [locationType, selectedPatient, onSelectPatient]);
 
   const summaryFields = useMemo(
     () =>
@@ -137,29 +155,41 @@ export default function PentacamSheet() {
   return (
     <div
       dir="rtl"
-      className="relative min-h-screen bg-background text-foreground"
+      className={cn(
+        "relative text-foreground",
+        !embedded && "min-h-screen bg-background",
+      )}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-border/40 bg-muted/20"
-      />
+      {!embedded ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-border/40 bg-muted/20"
+        />
+      ) : null}
 
-      <main className="relative z-10 flex min-h-screen w-full flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <main
+        className={cn(
+          "relative z-10 flex w-full flex-col",
+          !embedded ? "min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-6" : "p-0",
+        )}
+      >
         <header className="mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
           {/* Top row: back + badge */}
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <button
-              onClick={() => goBack()}
-              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <ArrowRight className="h-4 w-4" />
-              رجوع
-            </button>
-            <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              عرض JPG فقط
+          {!embedded ? (
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <button
+                onClick={() => goBack()}
+                className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ArrowRight className="h-4 w-4" />
+                رجوع
+              </button>
+              <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                عرض JPG فقط
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {/* Main header row: title + search + summary */}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -223,9 +253,13 @@ export default function PentacamSheet() {
                         variant="outline"
                         size="sm"
                         className="mr-auto h-7 px-2 text-xs"
-                        onClick={() =>
-                          setLocation(`/admin/pentacam/${selectedPatientId}`)
-                        }
+                        onClick={() => {
+                          if (onSwitchTab) {
+                            onSwitchTab("linking");
+                          } else {
+                            setLocation(`/admin/pentacam/${selectedPatientId}`);
+                          }
+                        }}
                       >
                         <FolderCog className="ml-1 h-3.5 w-3.5" />
                         صفحة الربط

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -35,26 +35,9 @@ export default function SalaryDashboard() {
     });
   }
 
-  // Calculate mock budget progress percentages based on Egyptian clinic averages
-  const totalPayPct = useMemo(() => {
-    if (!summary?.totalPay) return 0;
-    return Math.min(100, Math.round((summary.totalPay / 350000) * 100));
-  }, [summary?.totalPay]);
-
-  const commissionPct = useMemo(() => {
-    if (!summary?.totalCommissions) return 0;
-    return Math.min(100, Math.round((summary.totalCommissions / 100000) * 100));
-  }, [summary?.totalCommissions]);
-
   return (
     <div className="space-y-8 max-w-6xl mx-auto" dir="rtl">
       
-      {/* ── Page Title ── */}
-      <div className="pb-2 border-b border-border/40">
-        <h1 className="text-xl font-black text-foreground">مكتب عمليات الرواتب والعمولات</h1>
-        <p className="text-xs text-muted-foreground mt-1">تخطيط هيكلي جديد ينظم عمليات احتساب الأجور، العمولات، والخصومات الشهرية بدلاً من النماذج التقليدية</p>
-      </div>
-
       {/* ── Main Redesigned Layout Structure ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
@@ -63,57 +46,22 @@ export default function SalaryDashboard() {
           
           {/* Section A: Visual Shift Coverage Timelines -> Payroll Budget Progress */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">موازنة وتغطية الرواتب الحالية (Payroll Budget Roster)</h3>
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الإجماليات الحالية</h3>
             
             <div className="space-y-4">
-              {/* Morning Shift Timeline -> Basic Salaries Budget */}
+              {/* Basic salaries total */}
               <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm">
-                <div className="flex justify-between items-center text-xs">
-                  <div>
-                    <span className="font-bold text-foreground">الرواتب الأساسية والبدلات</span>
-                    <span className="text-[10px] text-muted-foreground block font-mono">الهدف الشهري المقدر: 350,000 ج.م</span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
-                    {isLoading ? "جاري التحميل..." : `${totalPayPct}% من الميزانية المحددة`}
-                  </span>
-                </div>
-                
-                {/* Horizontal Timeline Bar Representing Roster Coverage */}
-                <div className="w-full bg-muted rounded-full h-4 relative overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${isLoading ? 10 : totalPayPct}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-[9px] text-muted-foreground font-semibold">
-                  <span>ميزانية منخفضة</span>
-                  <span>المعدل المعتاد</span>
-                  <span>الحد الأقصى للميزانية</span>
+                <span className="text-sm font-bold text-foreground">إجمالي الرواتب الأساسية والبدلات</span>
+                <div className="text-3xl font-black text-primary font-mono">
+                  {isLoading ? "جاري التحميل..." : `${fmt(summary?.totalPay ?? 0)} ج.م`}
                 </div>
               </div>
 
-              {/* Evening Shift Timeline -> Commission Pools */}
+              {/* Commissions total */}
               <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm">
-                <div className="flex justify-between items-center text-xs">
-                  <div>
-                    <span className="font-bold text-foreground">عمولات الفحوصات والعمليات</span>
-                    <span className="text-[10px] text-muted-foreground block font-mono">الهدف الشهري المقدر: 100,000 ج.م</span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold">
-                    {isLoading ? "جاري التحميل..." : `${commissionPct}% من النشاط المتوقع`}
-                  </span>
-                </div>
-                
-                <div className="w-full bg-muted rounded-full h-4 relative overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${isLoading ? 10 : commissionPct}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-[9px] text-muted-foreground font-semibold">
-                  <span>نشاط منخفض</span>
-                  <span>نشاط طبيعي</span>
-                  <span>نشاط استثنائي</span>
+                <span className="text-sm font-bold text-foreground">إجمالي العمولات</span>
+                <div className="text-3xl font-black text-amber-500 font-mono">
+                  {isLoading ? "جاري التحميل..." : `${fmt(summary?.totalCommissions ?? 0)} ج.م`}
                 </div>
               </div>
             </div>

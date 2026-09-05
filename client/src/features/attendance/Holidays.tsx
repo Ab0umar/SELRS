@@ -73,8 +73,7 @@ export default function Holidays() {
   const holidays: any[] = (holidaysQuery.data as any[]) ?? [];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto" dir="rtl">
-      <h1 className="text-3xl font-bold mb-6">الإجازات الرسمية</h1>
+    <div className="w-full p-6" dir="rtl">
 
       {/* Controls */}
       <Card className="mb-4">

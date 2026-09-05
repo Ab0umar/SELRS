@@ -40,6 +40,8 @@ export function permissionsToAllowedRoots(permissions: string[]): string[] {
 // Paths accessible to all authenticated users regardless of role permissions
 const ALWAYS_GRANTED = new Set<string>([
   "/profile",
+  "/account",
+  "/account/attendance",
   "/attendance/my",
   "/attendance/shift-schedule",
 ]);
@@ -106,6 +108,19 @@ export function pathGrantedByRoots(
   }
   if (cleanPath === "/medications-tests" || cleanPath === "/tests") {
     if (hasAnyServiceHubPermission) return true;
+  }
+  if (cleanPath === "/archive" || cleanPath.startsWith("/archive/")) {
+    if (
+      allowedRoots.includes("/archive") ||
+      allowedRoots.includes("/admin-hub/legacy-patients") ||
+      allowedRoots.includes("/admin/legacy-patients") ||
+      allowedRoots.includes("/admin-hub/op-history") ||
+      allowedRoots.includes("/admin/op-history") ||
+      allowedRoots.includes("/medical-reference") ||
+      allowedRoots.includes("/patients-hub")
+    ) {
+      return true;
+    }
   }
 
   return allowedRoots.some((permission) => {

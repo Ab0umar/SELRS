@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { Calendar, CalendarPlus, Download, Timer } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarPlus, Download, Timer } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
+import { ReportToolbar } from "./ReportToolbar";
 
 const statusTone: Record<string, string> = {
   present: "border-success/20 bg-success/10 text-success",
@@ -34,7 +34,15 @@ const permissionHoursLabel = (minutes: unknown) => {
   return hours === "0" ? "-" : `${hours} ساعة`;
 };
 
-export default function DailyView({ department }: { department?: string }) {
+export default function DailyView({
+  from,
+  to,
+  department,
+}: {
+  from: string;
+  to: string;
+  department?: string;
+}) {
   const isMobile = useIsMobile();
   const today = new Date().toISOString().split("T")[0];
   const [dates, setDates] = useState({ from: today, to: today });
@@ -42,6 +50,9 @@ export default function DailyView({ department }: { department?: string }) {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const utils = trpc.useUtils();
+  useEffect(() => {
+    setDates({ from, to });
+  }, [from, to]);
   const setOvertimeEnabled =
     trpc.attendance.setDailyOvertimeEnabled.useMutation({
       onSuccess: (result, input) => {
@@ -153,28 +164,8 @@ export default function DailyView({ department }: { department?: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl p-6" dir="rtl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground">الحضور اليومي</h1>
-          <p className="text-sm text-muted-foreground">
-            عرض يومي سريع يفرق بين الدخول والخروج والتأخير والحالة العامة.
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
-          <Calendar className="h-3.5 w-3.5" />
-          سجل حي
-        </span>
-      </div>
-
-      <Card className="mb-6 border-border bg-muted/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            اختيار الفترة الزمنية
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="w-full p-0" dir="rtl">
+      <ReportToolbar>
           <div className="flex flex-wrap items-end gap-4">
             <Button
               onClick={handleLoadRange}
@@ -183,26 +174,6 @@ export default function DailyView({ department }: { department?: string }) {
             >
               {loading ? "جارٍ التحميل..." : "تحميل الفترة"}
             </Button>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
-                من
-              </label>
-              <DateInput
-                value={dates.from}
-                onChange={(e) => setDates({ ...dates, from: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
-                إلى
-              </label>
-              <DateInput
-                value={dates.to}
-                onChange={(e) => setDates({ ...dates, to: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
             <div className="space-y-1">
               <label className="block text-sm font-medium text-muted-foreground">
                 كود الموظف
@@ -216,15 +187,12 @@ export default function DailyView({ department }: { department?: string }) {
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </ReportToolbar>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-foreground">
-              الحضور من {dates.from} إلى {dates.to}
-            </CardTitle>
+            <div />
             <Button
               variant="outline"
               size="sm"

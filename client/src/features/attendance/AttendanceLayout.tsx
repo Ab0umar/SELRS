@@ -9,8 +9,6 @@ import {
   Clock,
   Settings,
 } from "lucide-react";
-import { trpc } from "@/lib/trpc";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface AttendanceLayoutProps {
   children: ReactNode;
@@ -91,63 +89,8 @@ function isItemActive(pathname: string, activeFor: string[]) {
 export default function AttendanceLayout({ children, fullWidth }: AttendanceLayoutProps) {
   const [location] = useLocation();
 
-  const deviceQuery = (trpc as any).attendance.deviceStatus.useQuery(
-    undefined,
-    {
-      refetchInterval: 20_000,
-      refetchIntervalInBackground: false,
-    },
-  );
-
-  const device = deviceQuery.data as any;
-  const isDeviceOnline = device?.status === "online" || device?.connected === true;
-  const isDeviceConnecting = device?.status === "connecting";
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-6" dir="rtl">
-      
-      {/* ── 1. Floating Bento Top Header Capsule ── */}
-      <header className="max-w-[1600px] mx-auto mb-6 bg-white border border-slate-200 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-mono font-black text-sm">
-            HR
-          </div>
-          <div>
-            <h1 className="text-sm font-black text-slate-900 leading-none">إدارة عمليات الموارد البشرية</h1>
-            <span className="text-[10px] text-slate-400 block mt-1 font-medium">سجل وبصمات الحضور والانصراف الطبي</span>
-          </div>
-        </div>
-
-        {/* Dynamic connection indicator badge inside header */}
-        <div className="flex items-center gap-3 self-start md:self-center">
-          {deviceQuery.isLoading ? (
-            <Skeleton className="h-6 w-24 rounded-full animate-pulse" />
-          ) : (
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border shadow-sm ${
-                isDeviceOnline
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-150"
-                  : isDeviceConnecting
-                    ? "bg-amber-50 text-amber-750 border-amber-150"
-                    : "bg-slate-100 text-slate-500 border-slate-200"
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isDeviceOnline
-                    ? "bg-emerald-500 animate-ping"
-                    : isDeviceConnecting
-                      ? "bg-amber-500 animate-pulse"
-                      : "bg-slate-400"
-                }`}
-              />
-              {isDeviceOnline ? "جهاز البصمة: متصل" : isDeviceConnecting ? "جهاز البصمة: جارٍ الاتصال" : "جهاز البصمة: غير متصل"}
-            </span>
-          )}
-        </div>
-      </header>
-
-      {/* ── 2. Floating Console Layout ── */}
       <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
         {/* Horizontal Top Navigation Bar (all breakpoints) */}
         <nav className="w-full flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 scrollbar-none print:hidden">

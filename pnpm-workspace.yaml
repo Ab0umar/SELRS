@@ -4,6 +4,7 @@ allowBuilds:
   msnodesqlv8: true
   puppeteer: true
   "@tailwindcss/oxide": true
+  sharp: true
 
 overrides:
   tailwindcss>nanoid: "3.3.7"

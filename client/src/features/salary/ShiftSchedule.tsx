@@ -2,11 +2,12 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
-  CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Pencil,
   Plus,
   Printer,
   RefreshCw,
@@ -24,6 +25,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const now = new Date();
 const todayStr = now.toISOString().split("T")[0];
@@ -133,6 +140,7 @@ function toDateKey(v: unknown): string {
 type Period = "day" | "week" | "weekly" | "month";
 type ShiftName = "Morning" | "Night";
 type StaffFilter = "all" | "doctor" | "tech";
+type RosterPanel = "summary" | "today" | "actions" | "upcoming";
 
 interface AddForm {
   staffId: string;
@@ -140,6 +148,12 @@ interface AddForm {
   endTime: string;
   period: Period;
   anchorDate: string;
+}
+
+interface EditShiftForm {
+  id: number;
+  startTime: string;
+  endTime: string;
 }
 
 const EMPTY_ADD: AddForm = {
@@ -313,23 +327,32 @@ export default function ShiftSchedule() {
   const { user } = useAuth();
   const isManager = ["admin", "manager"].includes(user?.role ?? "");
 
-  const isoMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [fromDate, setFromDate] = useState(`${isoMonth}-01`);
-  const [toDate, setToDate] = useState(
-    (() => {
-      const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      return `${isoMonth}-${String(last.getDate()).padStart(2, "0")}`;
-    })(),
+  const defaultPayrollEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() - (now.getDate() < 25 ? 1 : 0),
+    25,
   );
-  const [year, month] = fromDate.split("-").map(Number);
+  const defaultPayrollStart = new Date(
+    defaultPayrollEnd.getFullYear(),
+    defaultPayrollEnd.getMonth() - 1,
+    26,
+  );
+  const [fromDate, setFromDate] = useState(
+    `${defaultPayrollStart.getFullYear()}-${pad(defaultPayrollStart.getMonth() + 1)}-26`,
+  );
+  const [toDate, setToDate] = useState(
+    `${defaultPayrollEnd.getFullYear()}-${pad(defaultPayrollEnd.getMonth() + 1)}-25`,
+  );
+  const [year, month] = toDate.split("-").map(Number);
   const [showAdd, setShowAdd] = useState(false);
   const [showMobileAdd, setShowMobileAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>(EMPTY_ADD);
+  const [editShift, setEditShift] = useState<EditShiftForm | null>(null);
   const [showHolidayAdd, setShowHolidayAdd] = useState(false);
   const [holidayForm, setHolidayForm] = useState<HolidayForm>(EMPTY_HOLIDAY);
   const [staffFilter, setStaffFilter] = useState<StaffFilter>("all");
   const [selectedMobileDate, setSelectedMobileDate] = useState(todayStr);
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+  const [rosterPanel, setRosterPanel] = useState<RosterPanel | null>(null);
 
   const schedQ = isManager
     ? (trpc as any).salary.getShiftSchedule.useQuery({
@@ -406,6 +429,23 @@ export default function ShiftSchedule() {
   });
   const toggleMyMut = (trpc as any).salary.toggleMyShiftEntry.useMutation({
     onSuccess: () => schedQ.refetch(),
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  const updateEntryMut = (trpc as any).salary.updateShiftEntry.useMutation({
+    onSuccess: () => {
+      schedQ.refetch();
+      payrollQ.refetch();
+      setEditShift(null);
+      toast.success("تم تعديل الوردية");
+    },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  const updateMyEntryMut = (trpc as any).salary.updateMyShiftEntry.useMutation({
+    onSuccess: () => {
+      schedQ.refetch();
+      setEditShift(null);
+      toast.success("تم تعديل الوردية");
+    },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
   const deleteEntryMut = (trpc as any).salary.deleteShiftEntry.useMutation({
@@ -538,9 +578,9 @@ export default function ShiftSchedule() {
   const selectedMobileDateObj = new Date(`${selectedDateInMonth}T00:00:00`);
 
   function setWholeMonth(nextYear: number, nextMonth: number) {
-    const first = `${nextYear}-${pad(nextMonth)}-01`;
-    const lastDay = daysInMonth(nextYear, nextMonth);
-    const last = `${nextYear}-${pad(nextMonth)}-${pad(lastDay)}`;
+    const previousMonth = new Date(nextYear, nextMonth - 2, 26);
+    const first = `${previousMonth.getFullYear()}-${pad(previousMonth.getMonth() + 1)}-26`;
+    const last = `${nextYear}-${pad(nextMonth)}-25`;
     setFromDate(first);
     setToDate(last);
     setSelectedMobileDate(first);
@@ -603,6 +643,29 @@ export default function ShiftSchedule() {
       startTime: addForm.startTime,
       endTime: addForm.endTime,
     });
+  }
+
+  function openShiftEditor(entry: any) {
+    setEditShift({
+      id: entry.id,
+      startTime: String(entry.startTime ?? "09:00").slice(0, 5),
+      endTime: String(entry.endTime ?? "15:00").slice(0, 5),
+    });
+  }
+
+  function submitShiftEdit() {
+    if (!editShift) return;
+    if (editShift.endTime <= editShift.startTime) {
+      toast.error("وقت النهاية يجب أن يكون بعد وقت البداية");
+      return;
+    }
+    const input = {
+      id: editShift.id,
+      startTime: editShift.startTime,
+      endTime: editShift.endTime,
+    };
+    if (isManager) updateEntryMut.mutate(input);
+    else updateMyEntryMut.mutate(input);
   }
 
   function handlePrint() {
@@ -807,6 +870,7 @@ export default function ShiftSchedule() {
       <style>{`
         @media (hover: hover) and (pointer: fine) {
           .roster-add-shift,
+          .roster-edit-shift,
           .roster-delete-shift {
             opacity: 0;
             pointer-events: none;
@@ -814,43 +878,31 @@ export default function ShiftSchedule() {
           .roster-day-card:hover .roster-add-shift,
           .roster-day-card:focus-within .roster-add-shift,
           .roster-shift-pill:hover .roster-delete-shift,
-          .roster-shift-pill:focus-within .roster-delete-shift {
+          .roster-shift-pill:focus-within .roster-delete-shift,
+          .roster-shift-pill:hover .roster-edit-shift,
+          .roster-shift-pill:focus-within .roster-edit-shift {
             opacity: 1;
             pointer-events: auto;
           }
         }
-        @media (min-width: 1280px) {
-          .roster-desktop-layout {
-            grid-template-areas: "sidebar calendar";
-            grid-template-columns: 300px minmax(0, 1fr);
-          }
-          .roster-desktop-layout.roster-sidebar-closed {
-            grid-template-columns: 52px minmax(0, 1fr);
-          }
-          .roster-calendar-panel {
-            grid-area: calendar;
-          }
-          .roster-side-panel {
-            grid-area: sidebar;
-          }
+        .roster-menu[data-panel="summary"] .roster-menu-today,
+        .roster-menu[data-panel="summary"] .roster-menu-actions,
+        .roster-menu[data-panel="summary"] .roster-menu-upcoming,
+        .roster-menu[data-panel="today"] .roster-menu-summary,
+        .roster-menu[data-panel="today"] .roster-menu-actions,
+        .roster-menu[data-panel="today"] .roster-menu-upcoming,
+        .roster-menu[data-panel="actions"] .roster-menu-summary,
+        .roster-menu[data-panel="actions"] .roster-menu-today,
+        .roster-menu[data-panel="actions"] .roster-menu-upcoming,
+        .roster-menu[data-panel="upcoming"] .roster-menu-summary,
+        .roster-menu[data-panel="upcoming"] .roster-menu-today,
+        .roster-menu[data-panel="upcoming"] .roster-menu-actions {
+          display: none;
         }
       `}</style>
       <div className="space-y-4 px-4 pb-24 pt-3 md:hidden">
         <header className="sticky top-0 z-20 -mx-4 border-b border-border/70 bg-background/95 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <CalendarDays className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="truncate text-lg font-black text-primary">
-                  جدول الروستر الشهري
-                </h1>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  {isManager ? "إدارة الروستر" : "وردياتي"}
-                </p>
-              </div>
-            </div>
             <Button
               size="icon"
               variant="ghost"
@@ -1117,6 +1169,63 @@ export default function ShiftSchedule() {
           </DialogContent>
         </Dialog>
 
+        <Dialog
+          open={editShift !== null}
+          onOpenChange={(open) => !open && setEditShift(null)}
+        >
+          <DialogContent
+            className="w-[calc(100vw-2rem)] max-w-sm rounded-xl"
+            dir="rtl"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-right">تعديل وقت الوردية</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1.5 text-sm font-bold">
+                  <span>من</span>
+                  <input
+                    type="time"
+                    value={editShift?.startTime ?? ""}
+                    onChange={(e) =>
+                      setEditShift((current) =>
+                        current
+                          ? { ...current, startTime: e.target.value }
+                          : current,
+                      )
+                    }
+                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                  />
+                </label>
+                <label className="space-y-1.5 text-sm font-bold">
+                  <span>إلى</span>
+                  <input
+                    type="time"
+                    value={editShift?.endTime ?? ""}
+                    onChange={(e) =>
+                      setEditShift((current) =>
+                        current
+                          ? { ...current, endTime: e.target.value }
+                          : current,
+                      )
+                    }
+                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                  />
+                </label>
+              </div>
+              <Button
+                onClick={submitShiftEdit}
+                disabled={updateEntryMut.isPending || updateMyEntryMut.isPending}
+                className="h-11 w-full rounded-lg text-sm font-bold"
+              >
+                {updateEntryMut.isPending || updateMyEntryMut.isPending
+                  ? "جاري الحفظ..."
+                  : "حفظ التعديل"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <section className="space-y-3">
           <div>
             <div>
@@ -1164,6 +1273,17 @@ export default function ShiftSchedule() {
                         </span>
                       </div>
                     </div>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => openShiftEditor(entry)}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 text-primary"
+                        title="تعديل وقت الوردية"
+                        aria-label="تعديل وقت الوردية"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() =>
@@ -1423,29 +1543,9 @@ export default function ShiftSchedule() {
       </div>
 
       <div className="mx-auto hidden w-full max-w-none flex-col gap-4 px-4 py-4 md:flex lg:px-6">
-        <header className="flex flex-col gap-4 rounded-xl border border-border bg-card px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-bold text-primary">
-                <CalendarDays className="h-3.5 w-3.5" />
-                الروستر الشهري
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-bold text-muted-foreground">
-                {isManager ? "وضع المدير الإداري" : "عرض الموظف"}
-              </span>
-            </div>
-            <h1 className="text-2xl font-black tracking-normal text-foreground">
-              جدول الروستر الشهري
-            </h1>
-            <p className="mt-1 text-sm font-medium text-muted-foreground">
-              {MONTHS_AR[(month || 1) - 1]}{" "}
-              {arabicDigits(year || now.getFullYear())}، من{" "}
-              {arabicDigits(fromDate)} إلى {arabicDigits(toDate)}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="inline-flex rounded-xl bg-muted p-1">
+        <header className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card px-5 py-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2">
               {(
                 [
                   ["all", "الكل"],
@@ -1457,10 +1557,10 @@ export default function ShiftSchedule() {
                   key={value}
                   type="button"
                   onClick={() => setStaffFilter(value)}
-                  className={`min-h-9 rounded-lg px-4 text-sm font-bold transition-colors ${
+                  className={`min-h-10 rounded-xl border px-4 text-sm font-bold transition-colors ${
                     staffFilter === value
-                      ? "bg-background text-primary shadow-sm"
-                      : "text-muted-foreground hover:bg-background/70"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {label}
@@ -1498,6 +1598,40 @@ export default function ShiftSchedule() {
                 <Printer size={14} />
                 طباعة
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 gap-1.5 rounded-xl font-bold"
+                  >
+                    لوحات الروستر
+                    <ChevronDown size={15} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="min-w-44">
+                  {(
+                    [
+                      ["summary", "ملخص الروستر"],
+                      ["today", "ورديات اليوم"],
+                      ["actions", "إجراءات الروستر"],
+                      ["upcoming", "أقرب ورديات"],
+                    ] as [RosterPanel, string][]
+                  ).map(([panel, label]) => (
+                    <DropdownMenuItem
+                      key={panel}
+                      onSelect={() =>
+                        setRosterPanel((current) =>
+                          current === panel ? null : panel,
+                        )
+                      }
+                      className="cursor-pointer justify-end font-bold"
+                    >
+                      {label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
@@ -1513,11 +1647,7 @@ export default function ShiftSchedule() {
           </div>
         )}
 
-        <div
-          className={`roster-desktop-layout grid gap-4 ${
-            isSidePanelOpen ? "" : "roster-sidebar-closed"
-          }`}
-        >
+        <div className="roster-desktop-layout relative">
           <section className="roster-calendar-panel min-w-0 overflow-hidden rounded-xl border border-border bg-card">
             <div className="grid grid-cols-6 border-b border-border bg-primary/5">
               {DAYS_AR_CALENDAR.map((dayName) => (
@@ -1717,6 +1847,17 @@ export default function ShiftSchedule() {
                                           >
                                             {compactStaffName(staff)}
                                           </button>
+                                          {canEdit && (
+                                            <button
+                                              type="button"
+                                              onClick={() => openShiftEditor(entry)}
+                                              className="roster-edit-shift absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-opacity"
+                                              title="تعديل وقت الوردية"
+                                              aria-label="تعديل وقت الوردية"
+                                            >
+                                              <Pencil size={10} />
+                                            </button>
+                                          )}
                                           {isManager && (
                                             <button
                                               type="button"
@@ -1852,34 +1993,22 @@ export default function ShiftSchedule() {
             )}
           </section>
 
-          <aside className="roster-side-panel grid gap-3 md:grid-cols-2 xl:sticky xl:top-4 xl:grid-cols-1 xl:self-start">
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              onClick={() => setIsSidePanelOpen((open) => !open)}
-              className="h-11 w-full rounded-xl border-primary/20 text-primary"
-              title={
-                isSidePanelOpen
-                  ? "إغلاق القائمة الجانبية"
-                  : "فتح القائمة الجانبية"
-              }
-              aria-label={
-                isSidePanelOpen
-                  ? "إغلاق القائمة الجانبية"
-                  : "فتح القائمة الجانبية"
-              }
-              aria-expanded={isSidePanelOpen}
+          {rosterPanel && (
+            <aside
+              className="roster-menu absolute left-0 top-0 z-30 grid w-full max-w-xl gap-3 rounded-xl border border-border bg-background p-3 shadow-lg"
+              data-panel={rosterPanel}
             >
-              {isSidePanelOpen ? (
-                <ChevronRight className="h-5 w-5" />
-              ) : (
-                <ChevronLeft className="h-5 w-5" />
-              )}
-            </Button>
-            {isSidePanelOpen && (
+              <button
+                type="button"
+                onClick={() => setRosterPanel(null)}
+                className="absolute left-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="إغلاق لوحات الروستر"
+                title="إغلاق"
+              >
+                <X size={16} />
+              </button>
               <>
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="roster-menu-summary rounded-xl border border-border bg-card p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h2 className="text-base font-black text-primary">
@@ -1930,7 +2059,7 @@ export default function ShiftSchedule() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="roster-menu-today rounded-xl border border-border bg-card p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-black text-foreground">
                       ورديات اليوم
@@ -1967,6 +2096,7 @@ export default function ShiftSchedule() {
                   )}
                 </div>
 
+                <div className="roster-menu-actions contents">
                 {isManager ? (
                   <div className="space-y-4">
                     <div className="rounded-xl border border-border bg-card p-4">
@@ -2230,8 +2360,9 @@ export default function ShiftSchedule() {
                     )}
                   </div>
                 )}
+                </div>
 
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="roster-menu-upcoming rounded-xl border border-border bg-card p-4">
                   <h3 className="text-sm font-black text-foreground">
                     أقرب ورديات
                   </h3>
@@ -2270,8 +2401,8 @@ export default function ShiftSchedule() {
                   )}
                 </div>
               </>
-            )}
-          </aside>
+            </aside>
+          )}
         </div>
       </div>
     </div>

@@ -123,11 +123,11 @@ export const AdminRoutes = (
     />
     <Route
       path={ROUTES.adminLegacyPatients}
-      component={() => <Redirect to="/admin-hub/legacy-patients" />}
+      component={() => <Redirect to="/archive?tab=patients" />}
     />
     <Route
       path={ROUTES.opHistory}
-      component={() => <Redirect to="/admin-hub/op-history" />}
+      component={() => <Redirect to="/archive?tab=operations" />}
     />
     <Route
       path={ROUTES.whatsappInbox}

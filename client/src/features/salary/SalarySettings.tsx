@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RateForm {
   r3: string;
@@ -447,7 +448,7 @@ function EmployeeSettingsGrid() {
               </p>
             </div>
             <CardDescription className="text-[11px]">
-              تعديل نسب العمولات الخاصة ومعامل الحضور الإضافي وتفعيل عمولات
+              تعديل النسب الخاصة ومعامل الحضور الإضافي وتفعيل عمولات
               الحضور، الكشف، البنتاكام، وبدلات يوم 10.
             </CardDescription>
           </div>
@@ -1063,22 +1064,24 @@ function LateTiersCard() {
 
 export default function SalarySettings() {
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Title */}
-      <div className="space-y-1">
-        <h2 className="text-base font-bold text-foreground">
-          قواعد ونسب احتساب الرواتب
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          تعديل نسب عمولات الحضور العامة، والنسب المخصصة لكل موظف، واستحقاقات
-          بدلات المعيشة والانتقال.
-        </p>
-      </div>
-
+    <div className="w-full space-y-6">
       <DeductionsControl />
-      <GlobalRates />
-      <LateTiersCard />
-      <EmployeeSettingsGrid />
+      <Tabs defaultValue="global" dir="rtl" className="space-y-4">
+        <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl bg-muted/60 p-1">
+          <TabsTrigger value="global">نسب الحضور العامة (المركز)</TabsTrigger>
+          <TabsTrigger value="late">شرائح خصم التأخير (لكل يوم)</TabsTrigger>
+          <TabsTrigger value="employees">إعدادات الموظفين الخاصة</TabsTrigger>
+        </TabsList>
+        <TabsContent value="global" className="m-0">
+          <GlobalRates />
+        </TabsContent>
+        <TabsContent value="late" className="m-0">
+          <LateTiersCard />
+        </TabsContent>
+        <TabsContent value="employees" className="m-0">
+          <EmployeeSettingsGrid />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

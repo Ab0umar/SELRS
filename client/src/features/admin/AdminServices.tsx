@@ -239,7 +239,9 @@ function sheetOptionLabel(sheet: SheetType): string {
   return sheetOptions.find((o) => o.value === sheet)?.label ?? String(sheet);
 }
 
-export default function AdminServices() {
+export default function AdminServices({
+  embeddedInHub = false,
+}: { embeddedInHub?: boolean } = {}) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -951,22 +953,24 @@ export default function AdminServices() {
       className="mx-auto w-full max-w-[1440px] space-y-6 px-2 pb-4 text-right sm:px-4 lg:px-6"
       dir="rtl"
     >
-      <PageHeader
-        title="الخدمات"
-        subtitle="إدارة خدمات المركز الطبي"
-        icon={<Settings className="h-5 w-5" />}
-        action={
-          <Button
-            type="button"
-            size="sm"
-            className="selrs-gradient-btn gap-2 text-primary-foreground"
-            onClick={() => setAddOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            <span className="text-xs sm:text-sm">إضافة خدمة</span>
-          </Button>
-        }
-      />
+      {!embeddedInHub && (
+        <PageHeader
+          title="الخدمات"
+          subtitle="إدارة خدمات المركز الطبي"
+          icon={<Settings className="h-5 w-5" />}
+          action={
+            <Button
+              type="button"
+              size="sm"
+              className="selrs-gradient-btn gap-2 text-primary-foreground"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">إضافة خدمة</span>
+            </Button>
+          }
+        />
+      )}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border bg-muted/15 px-4 py-3 text-xs">
         <span className="font-black text-foreground">ملخص الخدمات</span>
         <span className="text-muted-foreground">

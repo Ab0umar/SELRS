@@ -229,7 +229,7 @@ export default function Patients() {
         }}
         className="min-h-screen"
       >
-        <main className="max-w-[1280px] mx-auto w-full px-4 py-8">
+        <main className="w-full px-4 py-6 sm:px-6">
           <div
             className={cn(
               STAT_CARDS_MOBILE_ROW,

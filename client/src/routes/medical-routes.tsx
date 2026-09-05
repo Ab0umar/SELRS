@@ -26,6 +26,12 @@ const ConsultantFollowupPage = lazy(
 const SpecialistSheet = lazy(() => import("../pages/SpecialistSheet"));
 const LasikExamSheet = lazy(() => import("../pages/LasikExamSheet"));
 const LasikFollowupPage = lazy(() => import("../pages/LasikFollowupPage"));
+const PentacamPage = lazy(() => import("../pages/PentacamPage"));
+const SheetsPage = lazy(() => import("../pages/SheetsPage"));
+const ArchivePage = lazy(() => import("../pages/ArchivePage"));
+const ClinicalReportsPage = lazy(() => import("../pages/ClinicalReportsPage"));
+const PatientsRecordsPage = lazy(() => import("../pages/PatientsRecordsPage"));
+const MedicalRecordsPage = lazy(() => import("../pages/MedicalRecordsPage"));
 const PentacamResultsDashboard = lazy(
   () => import("../pages/PentacamResultsDashboard"),
 );
@@ -135,10 +141,26 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/records/patients"
+      component={() => (
+        <ProtectedRoute>
+          <PatientsRecordsPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path="/patients-records"
+      component={() => (
+        <ProtectedRoute>
+          <PatientsRecordsPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.followups}
       component={() => (
         <ProtectedRoute>
-          <Followups />
+          <PatientsRecordsPage defaultTab="followups" />
         </ProtectedRoute>
       )}
     />
@@ -146,7 +168,7 @@ export const MedicalRoutes = (
       path={ROUTES.visitsId}
       component={() => (
         <ProtectedRoute>
-          <Visits />
+          <PatientsRecordsPage defaultTab="visits" />
         </ProtectedRoute>
       )}
     />
@@ -154,7 +176,7 @@ export const MedicalRoutes = (
       path={ROUTES.visits}
       component={() => (
         <ProtectedRoute>
-          <Visits />
+          <PatientsRecordsPage defaultTab="visits" />
         </ProtectedRoute>
       )}
     />
@@ -247,7 +269,7 @@ export const MedicalRoutes = (
       path={ROUTES.medicalReportsId}
       component={() => (
         <ProtectedRoute>
-          <MedicalReports />
+          <MedicalRecordsPage defaultTab="medical-reports" />
         </ProtectedRoute>
       )}
     />
@@ -255,17 +277,29 @@ export const MedicalRoutes = (
       path={ROUTES.medicalReports}
       component={() => (
         <ProtectedRoute>
-          <MedicalReports />
+          <MedicalRecordsPage defaultTab="medical-reports" />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.archive}
+      component={() => (
+        <ProtectedRoute>
+          <ArchivePage />
         </ProtectedRoute>
       )}
     />
     <Route
       path={ROUTES.medicalReference}
-      component={() => (
-        <ProtectedRoute>
-          <MedicalReference />
-        </ProtectedRoute>
-      )}
+      component={() => <Redirect to="/archive?tab=reference" />}
+    />
+    <Route
+      path={ROUTES.adminLegacyPatients}
+      component={() => <Redirect to="/archive?tab=patients" />}
+    />
+    <Route
+      path={ROUTES.opHistory}
+      component={() => <Redirect to="/archive?tab=operations" />}
     />
     <Route
       path={ROUTES.patientSummaryId}
@@ -292,10 +326,18 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/sheets"
+      component={() => (
+        <ProtectedRoute>
+          <SheetsPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path="/sheets/consultant"
       component={() => (
         <ProtectedRoute>
-          <ConsultantSheet />
+          <SheetsPage defaultTab="consultant" />
         </ProtectedRoute>
       )}
     />
@@ -319,7 +361,7 @@ export const MedicalRoutes = (
       path="/sheets/followup/consultant"
       component={() => (
         <ProtectedRoute>
-          <ConsultantFollowupPage />
+          <SheetsPage defaultTab="followup-consultant" />
         </ProtectedRoute>
       )}
     />
@@ -335,7 +377,7 @@ export const MedicalRoutes = (
       path="/sheets/specialist"
       component={() => (
         <ProtectedRoute>
-          <SpecialistSheet />
+          <SheetsPage defaultTab="specialist" />
         </ProtectedRoute>
       )}
     />
@@ -359,7 +401,7 @@ export const MedicalRoutes = (
       path="/sheets/lasik"
       component={() => (
         <ProtectedRoute>
-          <LasikExamSheet />
+          <SheetsPage defaultTab="lasik" />
         </ProtectedRoute>
       )}
     />
@@ -375,7 +417,7 @@ export const MedicalRoutes = (
       path="/sheets/followup/lasik"
       component={() => (
         <ProtectedRoute>
-          <LasikFollowupPage />
+          <SheetsPage defaultTab="followup-lasik" />
         </ProtectedRoute>
       )}
     />
@@ -383,7 +425,23 @@ export const MedicalRoutes = (
       path={ROUTES.sheetsPentacamDashboard}
       component={() => (
         <ProtectedRoute>
-          <PentacamResultsDashboard />
+          <PentacamPage defaultTab="dashboard" />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path="/records/medical"
+      component={() => (
+        <ProtectedRoute>
+          <MedicalRecordsPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path="/medical-records"
+      component={() => (
+        <ProtectedRoute>
+          <MedicalRecordsPage />
         </ProtectedRoute>
       )}
     />
@@ -391,7 +449,7 @@ export const MedicalRoutes = (
       path={ROUTES.sheetsRefractionsDashboard}
       component={() => (
         <ProtectedRoute>
-          <RefractionsDashboard />
+          <MedicalRecordsPage defaultTab="refraction" />
         </ProtectedRoute>
       )}
     />
@@ -399,7 +457,7 @@ export const MedicalRoutes = (
       path={ROUTES.sheetsRefractions}
       component={() => (
         <ProtectedRoute>
-          <RefractionsDashboard />
+          <MedicalRecordsPage defaultTab="refraction" />
         </ProtectedRoute>
       )}
     />
@@ -407,7 +465,7 @@ export const MedicalRoutes = (
       path={ROUTES.sheetsAutorefsDashboard}
       component={() => (
         <ProtectedRoute>
-          <AutorefsDashboard />
+          <MedicalRecordsPage defaultTab="autoref" />
         </ProtectedRoute>
       )}
     />
@@ -415,7 +473,7 @@ export const MedicalRoutes = (
       path={ROUTES.sheetsAutorefs}
       component={() => (
         <ProtectedRoute>
-          <AutorefsDashboard />
+          <MedicalRecordsPage defaultTab="autoref" />
         </ProtectedRoute>
       )}
     />
@@ -626,6 +684,22 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/reports"
+      component={() => (
+        <ProtectedRoute>
+          <ClinicalReportsPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path="/clinical-reports"
+      component={() => (
+        <ProtectedRoute>
+          <ClinicalReportsPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.sheetsReferralId}
       component={() => (
         <ProtectedRoute>
@@ -637,7 +711,7 @@ export const MedicalRoutes = (
       path={ROUTES.sheetsReferral}
       component={() => (
         <ProtectedRoute>
-          <ReferralLetter />
+          <ClinicalReportsPage defaultTab="referral" />
         </ProtectedRoute>
       )}
     />
@@ -653,7 +727,7 @@ export const MedicalRoutes = (
       path={ROUTES.clinicalReport}
       component={() => (
         <ProtectedRoute>
-          <ClinicalReport />
+          <ClinicalReportsPage defaultTab="clinical" />
         </ProtectedRoute>
       )}
     />
@@ -669,7 +743,7 @@ export const MedicalRoutes = (
       path={ROUTES.prePostOpReport}
       component={() => (
         <ProtectedRoute>
-          <PrePostOpReport />
+          <ClinicalReportsPage defaultTab="pre-post-op" />
         </ProtectedRoute>
       )}
     />
@@ -685,7 +759,7 @@ export const MedicalRoutes = (
       path={ROUTES.postOpOffdays}
       component={() => (
         <ProtectedRoute>
-          <PostOpOffdays />
+          <ClinicalReportsPage defaultTab="offdays" />
         </ProtectedRoute>
       )}
     />
@@ -717,7 +791,7 @@ export const MedicalRoutes = (
       path={ROUTES.medicalConditionReport}
       component={() => (
         <ProtectedRoute>
-          <MedicalConditionReport />
+          <ClinicalReportsPage defaultTab="condition" />
         </ProtectedRoute>
       )}
     />

@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Building2,
   Stethoscope,
+  UserRoundPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { localISODate } from "@/lib/utils";
@@ -660,17 +661,24 @@ export default function SalaryBasics() {
   const [activeSectionTab, setActiveSectionTab] = useState<"center" | "clinic">("center");
 
   // Tabs status for Center
-  const [centerTab, setCenterTab] = useState<"salaries" | "shifts">("salaries");
+  const [centerTab, setCenterTab] = useState<
+    "salaries" | "shifts" | "supervision"
+  >("salaries");
+  const [supervisionEmpCd, setSupervisionEmpCd] = useState("");
 
   const empsQ = (trpc as any).salary.listEmployees.useQuery();
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const shiftStaffQ = (trpc as any).salary.listShiftStaff.useQuery();
   const usersQ = (trpc as any).salary.listUsersForShiftLink.useQuery();
+  const supervisionMembersQ = (
+    trpc as any
+  ).salary.listSupervisionMembers.useQuery();
 
   const basics: any[] = basicsQ.data ?? [];
   const employees: any[] = empsQ.data ?? [];
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const usersList: any[] = usersQ.data ?? [];
+  const supervisionMembers: any[] = supervisionMembersQ.data ?? [];
 
   // Salary Mutations
   const setMut = (trpc as any).salary.setBasic.useMutation({
@@ -724,6 +732,25 @@ export default function SalaryBasics() {
     onSuccess: () => {
       shiftStaffQ.refetch();
       toast.success("تم حذف عضو الشفت");
+    },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  const addSupervisionMemberMut = (
+    trpc as any
+  ).salary.addSupervisionMember.useMutation({
+    onSuccess: () => {
+      supervisionMembersQ.refetch();
+      setSupervisionEmpCd("");
+      toast.success("تمت إضافة الموظف لمكافأة الإشراف");
+    },
+    onError: (e: any) => toast.error("خطأ: " + e.message),
+  });
+  const removeSupervisionMemberMut = (
+    trpc as any
+  ).salary.removeSupervisionMember.useMutation({
+    onSuccess: () => {
+      supervisionMembersQ.refetch();
+      toast.success("تم حذف الموظف من مكافأة الإشراف");
     },
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
@@ -858,66 +885,15 @@ export default function SalaryBasics() {
   const clinicSalaries = filteredBasics.filter((b) => {
     return b.section === "عيادة";
   });
+  const supervisionMemberCodes = new Set(
+    supervisionMembers.map((member) => member.empCd),
+  );
+  const supervisionCandidates = employees.filter(
+    (employee) => !supervisionMemberCodes.has(employee.empCd),
+  );
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            مسار التحضير
-          </p>
-          <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl mt-0.5">
-            بيانات الرواتب الأساسية
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            الرواتب والبدلات والزيادات التي يعتمد عليها كشف الشهر
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Real-time search bar */}
-          <div className="relative">
-            <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-            <input
-              type="text"
-              placeholder="بحث بالاسم أو الكود..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-64 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          <Button
-            onClick={() => {
-              setEditingId(null);
-              setEditingShiftId(null);
-              setFormType("salary");
-              setForm(BLANK);
-              setShowForm(true);
-            }}
-            className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 px-4 rounded-lg shadow-sm font-semibold transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            إضافة راتب أساسي
-          </Button>
-
-          <Button
-            onClick={() => {
-              setEditingId(null);
-              setEditingShiftId(null);
-              setFormType("shift");
-              setForm(BLANK);
-              setShowForm(true);
-            }}
-            className="gap-2 bg-primary text-white hover:bg-primary/90 h-10 px-4 rounded-lg shadow-sm font-semibold transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            إضافة عضو شفت
-          </Button>
-        </div>
-      </div>
-
       {/* Slide-Over Side Drawer Form */}
       {showForm && (
         <div className="fixed inset-0 z-50 overflow-hidden" dir="rtl">
@@ -1296,7 +1272,10 @@ export default function SalaryBasics() {
         className="space-y-4"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-3 gap-3">
-          <TabsList className="h-11 bg-muted/60 p-1 rounded-xl border border-border/60">
+          <TabsList
+            dir="rtl"
+            className="h-11 bg-muted/60 p-1 rounded-xl border border-border/60"
+          >
             <TabsTrigger
               value="center"
               className="gap-2 px-5 py-2 text-sm font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs rounded-lg transition-all"
@@ -1319,9 +1298,51 @@ export default function SalaryBasics() {
             </TabsTrigger>
           </TabsList>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+              <input
+                type="text"
+                placeholder="بحث بالاسم أو الكود..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-10 w-56 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                setEditingId(null);
+                setEditingShiftId(null);
+                setFormType("salary");
+                setForm(BLANK);
+                setShowForm(true);
+              }}
+              className="h-10 gap-2 rounded-lg bg-secondary px-4 font-semibold text-secondary-foreground shadow-sm transition-all hover:bg-secondary/90"
+            >
+              <Plus className="h-4 w-4" />
+              إضافة راتب أساسي
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingId(null);
+                setEditingShiftId(null);
+                setFormType("shift");
+                setForm(BLANK);
+                setShowForm(true);
+              }}
+              className="h-10 gap-2 rounded-lg bg-primary px-4 font-semibold text-white shadow-sm transition-all hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" />
+              إضافة عضو شفت
+            </Button>
+          </div>
+
           {/* Sub-tabs for Center when Center is active */}
           {activeSectionTab === "center" && (
-            <div className="flex bg-muted/40 rounded-lg p-1 border border-border/60 self-start sm:self-auto">
+            <div
+              dir="rtl"
+              className="flex bg-muted/40 rounded-lg p-1 border border-border/60 self-start sm:self-auto"
+            >
               <button
                 onClick={() => setCenterTab("salaries")}
                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
@@ -1342,6 +1363,16 @@ export default function SalaryBasics() {
               >
                 طاقم الشفتات ({centerShifts.length})
               </button>
+              <button
+                onClick={() => setCenterTab("supervision")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                  centerTab === "supervision"
+                    ? "bg-background text-primary shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                مكافأة الإشراف ({supervisionMembers.length})
+              </button>
             </div>
           )}
         </div>
@@ -1357,7 +1388,7 @@ export default function SalaryBasics() {
               onDelete={(id) => deleteMut.mutate({ id })}
               isPending={deleteMut.isPending}
             />
-          ) : (
+          ) : centerTab === "shifts" ? (
             <ShiftsTable
               title="طاقم شفتات المركز"
               data={centerShifts}
@@ -1366,6 +1397,90 @@ export default function SalaryBasics() {
               onDelete={(id) => deleteShiftMut.mutate({ id })}
               isPending={deleteShiftMut.isPending}
             />
+          ) : (
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
+              <div className="flex flex-col gap-3 border-b border-border bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-foreground">
+                    طاقم مكافأة الإشراف
+                  </h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    يبدأ فارغًا. الموظفون هنا يظلون محفوظين حتى تعدّلهم، وهم فقط الذين يظهرون في كشف الشهر.
+                  </p>
+                </div>
+                <div className="flex w-full gap-2 sm:w-auto">
+                  <select
+                    aria-label="إضافة موظف لمكافأة الإشراف"
+                    value={supervisionEmpCd}
+                    onChange={(event) => setSupervisionEmpCd(event.target.value)}
+                    className="min-h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-64"
+                  >
+                    <option value="">اختر موظفًا لإضافته</option>
+                    {supervisionCandidates.map((employee) => (
+                      <option key={employee.empCd} value={employee.empCd}>
+                        {employee.fullName} ({employee.empCd})
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      !supervisionEmpCd || addSupervisionMemberMut.isPending
+                    }
+                    onClick={() =>
+                      addSupervisionMemberMut.mutate({ empCd: supervisionEmpCd })
+                    }
+                    className="min-h-10 gap-1.5 whitespace-nowrap"
+                  >
+                    <UserRoundPlus className="h-4 w-4" /> إضافة
+                  </Button>
+                </div>
+              </div>
+              {supervisionMembers.length === 0 ? (
+                <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                  لا يوجد موظفون محددون لمكافأة الإشراف بعد.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-border bg-primary/8 text-right text-xs text-foreground">
+                      <tr>
+                        <th className="px-5 py-3 font-bold">الموظف</th>
+                        <th className="px-5 py-3 font-bold">القسم</th>
+                        <th className="px-5 py-3 text-left font-bold">إدارة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {supervisionMembers.map((member) => (
+                        <tr key={member.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
+                          <td className="px-5 py-3 font-medium">
+                            {member.fullName ?? member.empCd}
+                          </td>
+                          <td className="px-5 py-3 text-muted-foreground">
+                            {member.department || member.jobTitle || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-left">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={removeSupervisionMemberMut.isPending}
+                              onClick={() =>
+                                removeSupervisionMemberMut.mutate({ id: member.id })
+                              }
+                              className="gap-1.5 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> حذف
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           )}
         </TabsContent>
 

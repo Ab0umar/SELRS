@@ -16,8 +16,7 @@ const CommissionPools = lazy(
 const EmployeeFunds = lazy(() => import("../features/salary/EmployeeFunds"));
 const PayrollReport = lazy(() => import("../features/salary/PayrollReport"));
 const SalarySettings = lazy(() => import("../features/salary/SalarySettings"));
-const ShiftStaff = lazy(() => import("../features/salary/ShiftStaff"));
-const ShiftPayroll = lazy(() => import("../features/salary/ShiftPayroll"));
+const ShiftHub = lazy(() => import("../features/salary/ShiftHub"));
 const AbsentReport = lazy(() => import("../features/salary/AbsentReport"));
 const CurrentSalaryData = lazy(
   () => import("../features/salary/CurrentSalaryData.redesigned"),
@@ -101,7 +100,7 @@ export const SalaryRoutes = (
       component={() => (
         <ProtectedRoute>
           <SalaryLayout>
-            <ShiftStaff />
+            <ShiftHub />
           </SalaryLayout>
         </ProtectedRoute>
       )}
@@ -111,7 +110,7 @@ export const SalaryRoutes = (
       component={() => (
         <ProtectedRoute>
           <SalaryLayout>
-            <ShiftPayroll />
+            <ShiftHub />
           </SalaryLayout>
         </ProtectedRoute>
       )}

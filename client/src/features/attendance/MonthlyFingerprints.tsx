@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Download,
-  Fingerprint,
   Printer,
   RefreshCw,
   Search,
@@ -10,8 +9,8 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DateInput } from "@/components/ui/date-input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReportToolbar } from "./ReportToolbar";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const formatDate = (date: Date) =>
@@ -85,14 +84,22 @@ const renderTimes = (times: string[], tone: string) =>
   );
 
 export default function MonthlyFingerprints({
+  from,
+  to,
   department,
 }: {
+  from: string;
+  to: string;
   department?: string;
 }) {
   const [fromDate, setFromDate] = useState(defaultFrom);
   const [toDate, setToDate] = useState(defaultTo);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [appliedEmployee, setAppliedEmployee] = useState("");
+  useEffect(() => {
+    setFromDate(from);
+    setToDate(to);
+  }, [from, to]);
 
   const isValidRange = Boolean(fromDate && toDate && fromDate <= toDate);
   const monthlyQuery = trpc.attendance.monthlyPunches.useQuery(
@@ -405,47 +412,34 @@ export default function MonthlyFingerprints({
 
   return (
     <div className="space-y-5" dir="rtl">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Fingerprint className="h-5 w-5 text-cyan-600" />
-            <h2 className="text-xl font-bold text-foreground">
-              البصمات حسب الموظف
-            </h2>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            فترة حرة، بدون أعمدة أيام طويلة أو سكرول أفقي.
-          </p>
-        </div>
-        <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
-          {periodLabel}
-        </span>
-      </div>
-
-      <Card className="border-cyan-100 bg-cyan-50/30">
+      <ReportToolbar>
+        <Input
+          value={employeeSearch}
+          onChange={(event) => setEmployeeSearch(event.target.value)}
+          onKeyDown={(event) => event.key === "Enter" && applySearch()}
+          placeholder="رقم الموظف"
+          className="h-10 w-44 bg-background"
+        />
+        <Button onClick={applySearch} className="gap-2">
+          <Search className="h-4 w-4" /> بحث
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => monthlyQuery.refetch()}
+          disabled={!isValidRange || monthlyQuery.isFetching}
+        >
+          <RefreshCw className={`h-4 w-4 ${monthlyQuery.isFetching ? "animate-spin" : ""}`} />
+          تحديث
+        </Button>
+        <Button variant="outline" onClick={exportCsv} disabled={!employees.length}>
+          <Download className="h-4 w-4" /> تصدير CSV
+        </Button>
+        <Button variant="outline" onClick={printReport} disabled={!employees.length}>
+          <Printer className="h-4 w-4" /> طباعة / PDF
+        </Button>
+      </ReportToolbar>
+      <Card className="hidden">
         <CardContent className="flex flex-wrap items-end gap-3 pt-5">
-          <label className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
-            <span className="block text-xs font-semibold text-muted-foreground">
-              من تاريخ
-            </span>
-            <DateInput
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="h-10 w-full rounded-md border-border bg-background text-sm text-foreground focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/15"
-              inputClassName="h-9 w-full"
-            />
-          </label>
-          <label className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
-            <span className="block text-xs font-semibold text-muted-foreground">
-              إلى تاريخ
-            </span>
-            <DateInput
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="h-10 w-full rounded-md border-border bg-background text-sm text-foreground focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500/15"
-              inputClassName="h-9 w-full"
-            />
-          </label>
           <label className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
             <span className="block text-xs font-semibold text-muted-foreground">
               رقم الموظف
@@ -483,41 +477,6 @@ export default function MonthlyFingerprints({
           اختار تاريخ بداية قبل أو يساوي تاريخ النهاية.
         </div>
       )}
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Card>
-          <CardContent className="px-4 py-3">
-            <div className="text-xs text-muted-foreground">موظفو المركز</div>
-            <div className="mt-1 text-2xl font-bold text-cyan-700">
-              {groupedEmployees.center.length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="px-4 py-3">
-            <div className="text-xs text-muted-foreground">موظفو العيادة</div>
-            <div className="mt-1 text-2xl font-bold text-violet-700">
-              {groupedEmployees.clinic.length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="px-4 py-3">
-            <div className="text-xs text-muted-foreground">إجمالي الموظفين</div>
-            <div className="mt-1 text-2xl font-bold text-foreground">
-              {employees.length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="px-4 py-3">
-            <div className="text-xs text-muted-foreground">إجمالي البصمات</div>
-            <div className="mt-1 text-2xl font-bold text-foreground">
-              {monthlyQuery.data?.totalPunches ?? 0}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button

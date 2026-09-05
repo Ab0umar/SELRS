@@ -1,9 +1,10 @@
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "low"
 approvals_reviewer = "user"
 service_tier = "fast"
 sandbox_mode = "danger-full-access"
 model_verbosity = "low"
+
 [notice]
 hide_rate_limit_model_nudge = true
 hide_full_access_warning = true
@@ -13,67 +14,6 @@ fast_default_opt_out = true
 "gpt-5.1-codex-mini" = "gpt-5.2-codex"
 "gpt-5.2-codex" = "gpt-5.3-codex"
 "gpt-5.3-codex" = "gpt-5.4"
-
-
-[projects.'C:\Users\drels']
-trust_level = "trusted"
-
-[projects.'\\?\C:\Users\drels\Downloads\sales-center-accounting']
-trust_level = "trusted"
-
-[projects.'C:\Users\drels\Downloads']
-trust_level = "trusted"
-
-[projects.'C:\Users\drels\OneDrive\Desktop\New folder (3)\android']
-trust_level = "trusted"
-
-[projects.'C:\Users\drels\OneDrive\SELRS\MySQL']
-trust_level = "trusted"
-
-[projects.'D:\New folder (3)']
-trust_level = "trusted"
-
-[projects.'C:\Users\drels\Desktop']
-trust_level = "trusted"
-
-[projects.'D:\']
-trust_level = "trusted"
-
-[projects.'C:\Users\drels\Desktop\New folder (3)']
-trust_level = "trusted"
-
-[projects.'D:\OP.apk']
-trust_level = "trusted"
-
-[projects.'\\?\C:\Users\drels\Downloads\api']
-trust_level = "trusted"
-
-[projects.'\\?\C:\Users\drels\Downloads\API']
-trust_level = "trusted"
-
-[projects.'\\?\D:\OP\Web.selrs']
-trust_level = "trusted"
-
-[projects.'\\?\C:\Users\drels\OneDrive\OfficeMobile\Web.selrs']
-trust_level = "trusted"
-
-[projects.'\\?\D:\']
-trust_level = "trusted"
-
-[projects.'d:\selrs.cc']
-trust_level = "trusted"
-
-[projects.'d:\new.selrs.cc']
-trust_level = "trusted"
-
-[projects.'d:\codex.selrs.cc']
-trust_level = "trusted"
-
-[projects.'e:\selrs.cc']
-trust_level = "trusted"
-
-[projects.'c:\']
-trust_level = "trusted"
 
 [windows]
 sandbox = "elevated"
@@ -96,7 +36,6 @@ last_updated = "2026-05-17T13:49:16Z"
 last_revision = "4af581e23f17d112d8f9d6b7a5b7ff37823494e1"
 source_type = "git"
 source = "https://github.com/pbakaus/impeccable.git"
-
 
 [plugins."documents@openai-primary-runtime"]
 enabled = true
@@ -131,7 +70,10 @@ enabled = false
 
 [mcp_servers.socraticode]
 command = "npx"
-args = ["-y", "socraticode"]
+args = [
+    "-y",
+    "socraticode",
+]
 
 [mcp_servers.socraticode.tools.codebase_about]
 approval_mode = "approve"
@@ -159,6 +101,9 @@ approval_mode = "approve"
 
 [mcp_servers.socraticode.tools.codebase_symbol]
 approval_mode = "approve"
+
+[mcp_servers.graphify]
+url = "https://api.graphify.com/mcp"
 
 [sandbox_workspace_write]
 network_access = true

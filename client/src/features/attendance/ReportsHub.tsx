@@ -13,7 +13,7 @@ import {
   Server,
   Fingerprint,
 } from "lucide-react";
-import { trpc } from "@/lib/trpc";
+import { DateInput } from "@/components/ui/date-input";
 
 const TABS = [
   {
@@ -89,13 +89,13 @@ type TabKey = (typeof TABS)[number]["key"];
 export default function ReportsHub() {
   const [tab, setTab] = useState<TabKey>("daily");
   const [department, setDepartment] = useState<string | undefined>(undefined);
-  const currentTab = TABS.find((item) => item.key === tab) ?? TABS[0];
-  const deptQuery = trpc.attendance.listDepartments.useQuery();
+  const today = new Date().toISOString().slice(0, 10);
+  const [reportDates, setReportDates] = useState({ from: today, to: today });
 
   return (
     <div className="space-y-6" dir="rtl">
       {/* ── 1. Bento Dashboard Navigation Grid ── */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid w-full grid-cols-2 gap-2 border-b border-slate-200 pb-2 sm:grid-cols-3 xl:grid-cols-6">
         {TABS.map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.key;
@@ -107,7 +107,7 @@ export default function ReportsHub() {
               onClick={() => setTab(t.key)}
               aria-selected={isActive}
               aria-controls={`attendance-reports-panel-${t.key}`}
-              className={`p-4 border rounded-2xl text-right flex flex-col justify-between h-32 transition-all duration-200 hover:scale-[1.02] ${
+              className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-lg border-b-2 px-3 py-2 text-right text-xs font-bold transition-colors ${
                 isActive ? t.activeCls : t.themeCls
               }`}
             >
@@ -123,49 +123,47 @@ export default function ReportsHub() {
                 <span className="text-[11px] font-black block leading-none">
                   {t.label}
                 </span>
-                <span className="text-[8px] opacity-60 font-mono block leading-none">
-                  {t.subLabel}
-                </span>
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* ── 2. Bento Panel Console Container ── */}
       <div className="border border-slate-200 rounded-3xl bg-white p-6 shadow-sm shadow-slate-100/50">
-        <div className="pb-4 border-b border-slate-100 mb-6 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-4 bg-slate-900 rounded-full"></div>
-            <h2 className="text-sm font-bold text-slate-800">
-              {currentTab.label} ({currentTab.subLabel})
-            </h2>
-          </div>
-          <span className="text-[10px] text-slate-400 font-medium">
-            {currentTab.description}
-          </span>
+        <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4">
+          <DateInput
+            value={reportDates.from}
+            max={reportDates.to}
+            onChange={(event) =>
+              setReportDates((current) => ({ ...current, from: event.target.value }))
+            }
+            aria-label="من تاريخ التقرير"
+            className="h-10 w-40 rounded-lg border-slate-200 bg-white px-2 text-center text-sm"
+          />
+          <DateInput
+            value={reportDates.to}
+            min={reportDates.from}
+            onChange={(event) =>
+              setReportDates((current) => ({ ...current, to: event.target.value }))
+            }
+            aria-label="إلى تاريخ التقرير"
+            className="h-10 w-40 rounded-lg border-slate-200 bg-white px-2 text-center text-sm"
+          />
+          <select
+            value={department ?? ""}
+            onChange={(event) => setDepartment(event.target.value || undefined)}
+            aria-label="مكان العمل"
+            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          >
+            <option value="">الكل</option>
+            <option value="center">المركز</option>
+            <option value="clinic">العيادة</option>
+          </select>
+          <div
+            id="attendance-report-toolbar"
+            className="flex flex-wrap items-center gap-2"
+          />
         </div>
-
-        {/* ── Department Filter ── */}
-        {deptQuery.data && deptQuery.data.length > 0 && (
-          <div className="mb-4 flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-500 shrink-0">
-              الإدارة / المركز:
-            </label>
-            <select
-              value={department ?? ""}
-              onChange={(e) => setDepartment(e.target.value || undefined)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-            >
-              <option value="">الكل</option>
-              {deptQuery.data.map((d: string) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         <div
           id={`attendance-reports-panel-${tab}`}
@@ -173,13 +171,13 @@ export default function ReportsHub() {
           aria-labelledby={`attendance-reports-tab-${tab}`}
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          {tab === "daily" && <DailyView department={department} />}
-          {tab === "monthly" && <Reports department={department} />}
-          {tab === "perms" && <PermissionReport department={department} />}
-          {tab === "balance" && <LeaveBalanceReport department={department} />}
-          {tab === "logs" && <RawLogs department={department} />}
+          {tab === "daily" && <DailyView {...reportDates} department={department} />}
+          {tab === "monthly" && <Reports {...reportDates} department={department} />}
+          {tab === "perms" && <PermissionReport {...reportDates} department={department} />}
+          {tab === "balance" && <LeaveBalanceReport {...reportDates} department={department} />}
+          {tab === "logs" && <RawLogs {...reportDates} department={department} />}
           {tab === "fingerprints" && (
-            <MonthlyFingerprints department={department} />
+            <MonthlyFingerprints {...reportDates} department={department} />
           )}
         </div>
       </div>

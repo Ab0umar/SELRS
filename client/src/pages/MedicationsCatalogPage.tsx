@@ -89,7 +89,9 @@ function statusLabel(s: InventoryStatus): string {
   return "نفذت";
 }
 
-export default function MedicationsCatalogPage() {
+export default function MedicationsCatalogPage({
+  embeddedInHub = false,
+}: { embeddedInHub?: boolean } = {}) {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
@@ -263,23 +265,27 @@ export default function MedicationsCatalogPage() {
         className="container mx-auto max-w-[1200px] px-3 sm:px-4 py-6 sm:py-8"
         dir="rtl"
       >
-        <PageHeader
-          title="الأدوية"
-          description="إدارة قاعدة بيانات الأدوية"
-          icon={<Pill className="h-5 w-5 text-primary" />}
-          action={
-            <Button
-              type="button"
-              className="gap-1 font-semibold"
-              onClick={openCreate}
-            >
-              <Plus className="h-4 w-4" />
-              إضافة دواء
-            </Button>
-          }
-        />
+        {!embeddedInHub && (
+          <>
+            <PageHeader
+              title="الأدوية"
+              description="إدارة قاعدة بيانات الأدوية"
+              icon={<Pill className="h-5 w-5 text-primary" />}
+              action={
+                <Button
+                  type="button"
+                  className="gap-1 font-semibold"
+                  onClick={openCreate}
+                >
+                  <Plus className="h-4 w-4" />
+                  إضافة دواء
+                </Button>
+              }
+            />
 
-        <ServicesHubNav active="medications" className="mb-4" />
+            <ServicesHubNav active="medications" className="mb-4" />
+          </>
+        )}
 
         <div
           className={cn(

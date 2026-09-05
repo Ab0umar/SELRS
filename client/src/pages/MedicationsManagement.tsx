@@ -30,7 +30,6 @@ import {
   Edit2,
   Upload,
 } from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
 import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { toast } from "sonner";
@@ -83,7 +82,9 @@ function testTypeLabel(type: string | undefined | null): string {
   return m[String(type ?? "")] ?? String(type ?? "—");
 }
 
-export default function MedicationsManagement() {
+export default function MedicationsManagement({
+  embeddedInHub = false,
+}: { embeddedInHub?: boolean } = {}) {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -372,7 +373,8 @@ export default function MedicationsManagement() {
   const handleRegistryTabChange = (v: string) => {
     const tab = v as RegistryTab;
     setActiveTab(tab);
-    setLocation(`/medications/registry?tab=${tab}`, { replace: true });
+    const basePath = embeddedInHub ? "/services-hub/registry" : "/medications/registry";
+    setLocation(`${basePath}?tab=${tab}`, { replace: true });
   };
 
   useEffect(() => {
@@ -920,14 +922,8 @@ export default function MedicationsManagement() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 pb-4" dir="rtl">
-      <PageHeader
-        title="إدارة الأدوية والمراجع"
-        subtitle="إضافة وتعديل وحذف الأدوية والفحوصات والأمراض والأعراض"
-        icon={<Pill className="h-5 w-5" />}
-      />
-
-      <ServicesHubNav active="registry" className="mb-4" />
+    <div className="mx-auto w-full max-w-[1440px] space-y-4 pb-4" dir="rtl">
+      {!embeddedInHub && <ServicesHubNav active="registry" className="mb-4" />}
 
       <Tabs
         value={activeTab}

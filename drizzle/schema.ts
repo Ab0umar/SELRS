@@ -2370,6 +2370,24 @@ export const salarySupervisionBonus = mysqlTable(
 
 export type SalarySupervisionBonus = typeof salarySupervisionBonus.$inferSelect;
 
+// Permanent roster for the optional monthly supervision-bonus sheet. Keeping
+// this separate from the monthly amounts means the selected staff stay in place
+// until an administrator changes the roster.
+export const salarySupervisionMembers = mysqlTable(
+  "salary_supervision_members",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    empCd: varchar("emp_cd", { length: 32 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uqSupervisionMember: uniqueIndex("uq_supervision_member").on(table.empCd),
+  }),
+);
+
+export type SalarySupervisionMember =
+  typeof salarySupervisionMembers.$inferSelect;
+
 export const salaryMissingCheckoutExclude = mysqlTable(
   "salary_missing_checkout_exclude",
   {

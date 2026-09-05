@@ -1128,7 +1128,7 @@ export default function MedicalReports() {
           "mx-auto w-full print:p-0",
           inHubReports
             ? "prescription-root bg-background max-w-none px-2 pb-4 pt-1"
-            : "max-w-[1280px] px-4 pb-8 pt-4 md:px-6",
+            : "w-full max-w-none px-4 pb-8 pt-4 md:px-6",
         )}
         dir="rtl"
       >

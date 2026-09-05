@@ -575,51 +575,45 @@ export default function CommissionPools() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            مسار المتغيرات الشهرية
-          </p>
-          <h1 className="text-2xl font-bold text-foreground">النسب الشهرية</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            أدخل النسب وعمولات الكشف للشهر قبل احتساب كشف الرواتب.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <select
-            value={section}
-            onChange={(e) => setSection(e.target.value as Section)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            <option value="مركز">مركز</option>
-            <option value="عيادة">عيادة</option>
-          </select>
-          <select
-            value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value))}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {MONTHS.map((m, i) => (
-              <option key={i} value={i + 1}>{m}</option>
-            ))}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       {/* Form as Editable Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle>إضافة/تعديل نسب {periodLabel}</CardTitle>
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={section}
+              onChange={(e) => setSection(e.target.value as Section)}
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              aria-label="القسم"
+            >
+              <option value="مركز">مركز</option>
+              <option value="عيادة">عيادة</option>
+            </select>
+            <select
+              value={month}
+              onChange={(e) => setMonth(parseInt(e.target.value))}
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              aria-label="الشهر"
+            >
+              {MONTHS.map((monthName, index) => (
+                <option key={monthName} value={index + 1}>
+                  {monthName}
+                </option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              aria-label="السنة"
+            >
+              {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((optionYear) => (
+                <option key={optionYear} value={optionYear}>
+                  {optionYear}
+                </option>
+              ))}
+            </select>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-6">

@@ -334,14 +334,17 @@ export default function ShiftAssignments() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">الورديات</h1>
-        <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
+      <div className="flex flex-wrap justify-start gap-2">
+        <div className="flex flex-wrap gap-2">
           {(["assignments", "cycles", "swap"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                tab === t
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted"
+              }`}
             >
               {t === "assignments"
                 ? "التعيينات"

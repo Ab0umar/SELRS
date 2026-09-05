@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { History, ListChecks, Plus, RefreshCw } from "lucide-react";
+import { ListChecks, Plus, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -140,122 +140,122 @@ export default function OpHistory() {
   return (
     <div className="w-full space-y-6 pb-4 text-right" dir="rtl">
       <Card className="rounded-lg border-border shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" />
-            <div>
-              <h1 className="text-lg font-semibold">سجل العمليات</h1>
-              <p className="text-sm text-muted-foreground">
-                ملخص المرضى حسب نوع العملية — قد تظهر سجلات متكررة من أكثر من
-                مصدر
-              </p>
+        <CardContent className="space-y-3 p-3 sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap flex-1 items-center gap-2 min-w-[280px]">
+              <form
+                onSubmit={handleSearchSubmit}
+                className="flex flex-1 min-w-[180px] sm:min-w-[220px] items-center gap-1.5"
+              >
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="بحث بالاسم أو كود المريض..."
+                    className="h-9 pr-9 text-xs sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="inline-flex h-9 items-center gap-1 rounded-md border bg-background px-3 text-xs font-semibold hover:bg-accent"
+                >
+                  بحث
+                </button>
+              </form>
+
+              <Select
+                value={locationType}
+                onValueChange={handleLocationTypeChange}
+              >
+                <SelectTrigger className="h-9 w-28 sm:w-32 text-xs">
+                  <SelectValue placeholder="المكان" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل (مركز وخارجي)</SelectItem>
+                  <SelectItem value="center">مركز</SelectItem>
+                  <SelectItem value="external">خارجي</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={String(pageSize)}
+                onValueChange={handlePageSizeChange}
+              >
+                <SelectTrigger className="h-9 w-24 sm:w-28 text-xs">
+                  <SelectValue placeholder="عدد النتائج" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size} / صفحة
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => syncMutation.mutate()}
+                  disabled={syncMutation.isPending}
+                  className="h-9 text-xs gap-1"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span>{syncMutation.isPending ? "...جاري المزامنة" : "مزامنة الآن"}</span>
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => setMappingOpen(true)}
+                  className="h-9 text-xs gap-1"
+                >
+                  <ListChecks className="h-3.5 w-3.5" />
+                  <span>ربط أكواد الخدمات</span>
+                </Button>
+              )}
+              <Button size="sm" type="button" onClick={() => setAddOpen(true)} className="h-9 text-xs gap-1">
+                <Plus className="h-3.5 w-3.5" />
+                <span>إضافة عملية</span>
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {isAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={() => syncMutation.mutate()}
-                disabled={syncMutation.isPending}
-              >
-                <RefreshCw className="h-4 w-4 ms-1" />
-                {syncMutation.isPending ? "...جاري المزامنة" : "مزامنة الآن"}
-              </Button>
+
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
+            {counts.length === 0 ? (
+              <span className="text-xs text-muted-foreground py-1">
+                لا توجد بيانات — جرّب زر المزامنة
+              </span>
+            ) : (
+              counts.map((c: { operationType: string; count: number }) => (
+                <button
+                  key={c.operationType}
+                  type="button"
+                  onClick={() => handleTypeClick(c.operationType)}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                    activeType === c.operationType
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-muted/40 hover:bg-accent border-border/80 text-foreground"
+                  }`}
+                >
+                  {c.operationType}{" "}
+                  <span className="opacity-75 tabular-nums">({c.count})</span>
+                </button>
+              ))
             )}
-            {isAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={() => setMappingOpen(true)}
-              >
-                <ListChecks className="h-4 w-4 ms-1" />
-                ربط أكواد الخدمات
-              </Button>
-            )}
-            <Button size="sm" type="button" onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4 ms-1" />
-              إضافة عملية
-            </Button>
           </div>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          {counts.length === 0 ? (
-            <span className="text-sm text-muted-foreground">
-              لا توجد بيانات — جرّب زر المزامنة
-            </span>
-          ) : (
-            counts.map((c: { operationType: string; count: number }) => (
-              <button
-                key={c.operationType}
-                type="button"
-                onClick={() => handleTypeClick(c.operationType)}
-                className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                  activeType === c.operationType
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background hover:bg-accent"
-                }`}
-              >
-                {c.operationType}{" "}
-                <span className="opacity-70">({c.count})</span>
-              </button>
-            ))
-          )}
         </CardContent>
       </Card>
 
       {activeType && (
-        <Card>
-          <CardContent className="flex flex-wrap items-center gap-3 pt-6">
-            <form
-              onSubmit={handleSearchSubmit}
-              className="flex flex-1 min-w-[240px] items-center gap-2"
-            >
-              <Input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="بحث بالاسم أو كود المريض..."
-                className="flex-1"
-              />
-              <button
-                type="submit"
-                className="inline-flex h-9 items-center gap-1 rounded-md border bg-background px-3 text-sm hover:bg-accent"
-              >
-                بحث
-              </button>
-            </form>
-            <Select
-              value={locationType}
-              onValueChange={handleLocationTypeChange}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="المكان" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">الكل (مركز وخارجي)</SelectItem>
-                <SelectItem value="center">مركز</SelectItem>
-                <SelectItem value="external">خارجي</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={String(pageSize)}
-              onValueChange={handlePageSizeChange}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="عدد النتائج" />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={String(size)}>
-                    {size} / صفحة
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-
+        <Card className="rounded-lg border-border shadow-none overflow-hidden">
           <CardContent className="p-0">
             {listQuery.isLoading ? (
               <div className="p-6 text-center text-sm text-muted-foreground">

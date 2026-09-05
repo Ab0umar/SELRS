@@ -303,14 +303,8 @@ export function AppBottomNav({
       ),
     );
     const recordItems = [
-      ["/admin-hub/legacy-patients", "المرضى"],
-      ["/followups", "المتابعات"],
-      ["/visits", "الزيارات"],
-      ["/admin-hub/op-history", "العمليات"],
-      ["/sheets/autorefs/dashboard", "AutoRef"],
-      ["/sheets/refractions/dashboard", "Refractions"],
-      ["/sheets/pentacam/dashboard", "Pentacam"],
-      ["/medical-reports", "Medical Reports"],
+      ["/records/patients", "سجلات المرضى"],
+      ["/records/medical", "السجلات الطبية"],
     ]
       .map(([path, label]) => {
         const leaf = leafByPath.get(path);
@@ -329,7 +323,9 @@ export function AppBottomNav({
       "patients",
     ]);
     const movedPaths = new Set([
-      "/sheets/pentacam/dashboard",
+      "/pentacam",
+      "/records/medical",
+      "/records/patients",
       "/medical-reports",
     ]);
     const remainingSections = sections

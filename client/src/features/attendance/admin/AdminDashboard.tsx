@@ -36,8 +36,7 @@ export default function AdminDashboard() {
   const zk40Logs = (trpc as any).attendance.zk40SyncLogs.useQuery();
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Attendance Admin Dashboard</h1>
+    <div className="w-full p-6">
 
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-6 border-b">

@@ -128,12 +128,6 @@ export default function LiveBoard() {
   return (
     <div className="space-y-6" dir="rtl">
       
-      {/* ── Page Header ── */}
-      <div className="pb-2 border-b border-slate-200">
-        <h1 className="text-xl font-black text-slate-900">البث الفوري للبوابات الإلكترونية</h1>
-        <p className="text-xs text-slate-400 mt-1">تفريغ ومراقبة حركات الكادر الطبي عبر بوابات المستشفى بشكل مباشر</p>
-      </div>
-
       {/* ── Bento Grid Puzzle ── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         

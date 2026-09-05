@@ -174,7 +174,7 @@ export default function AutorefsDashboard() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8"
+      className="w-full px-4 py-4 sm:px-6 lg:px-8"
       dir="rtl"
     >
       <PageHeader

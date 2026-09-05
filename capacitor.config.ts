@@ -25,6 +25,18 @@ const config: CapacitorConfig = {
       overlaysWebView: true,
       style: "LIGHT",
     },
+    SplashScreen: {
+      // Keep the native splash up until the web boot-splash (client/index.html
+      // #boot-splash, blinking-eye logo) takes over and main.tsx calls hide()
+      // once the app shell is actually ready — see selrs-shell-ready in App.tsx.
+      launchAutoHide: false,
+      backgroundColor: "#FFFFFFFF",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_INSIDE",
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
   },
 };
 

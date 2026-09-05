@@ -39,12 +39,17 @@ const MONTHS = [
 function isoMonth(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-// يوم 1 (الحضور/الأساسي) بيتحسب من 26 الشهر اللي فات لـ 25 الشهر الحالي
+// The default is the most recently completed payroll period: day 26 through day 25.
+const defaultPayrollEnd = new Date(
+  now.getFullYear(),
+  now.getMonth() - (now.getDate() < 25 ? 1 : 0),
+  25,
+);
 const DEFAULT_FROM = (() => {
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 26);
+  const prev = new Date(defaultPayrollEnd.getFullYear(), defaultPayrollEnd.getMonth() - 1, 26);
   return `${isoMonth(prev)}-26`;
 })();
-const DEFAULT_TO = `${isoMonth(now)}-25`;
+const DEFAULT_TO = `${isoMonth(defaultPayrollEnd)}-25`;
 
 function fmt(n: any): string {
   return Number(n).toLocaleString("ar-EG", {
@@ -69,12 +74,16 @@ const SECTIONS = ["مركز", "عيادة"] as const;
 type Section = (typeof SECTIONS)[number];
 
 type TabType = "salaries" | "shifts" | "supervision";
+type PayrollSubTab = "basic" | "commissions";
 
 export default function PayrollReport() {
   const [fromDate, setFromDate] = useState(DEFAULT_FROM);
   const [toDate, setToDate] = useState(DEFAULT_TO);
   const [section, setSection] = useState<Section>("مركز");
   const [activeTab, setActiveTab] = useState<TabType>("salaries");
+  const [salariesSubTab, setSalariesSubTab] =
+    useState<PayrollSubTab>("basic");
+  const [shiftsSubTab, setShiftsSubTab] = useState<PayrollSubTab>("basic");
   const [searchTerm, setSearchTerm] = useState("");
   const [bonusEdits, setBonusEdits] = useState<Record<string, string>>({});
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
@@ -92,15 +101,14 @@ export default function PayrollReport() {
   const fromDateLabel = fromPeriodDate.toLocaleDateString("ar-EG");
   const toDateLabel = toPeriodDate.toLocaleDateString("ar-EG");
   const periodLabel = `${fromDateLabel} — ${toDateLabel}`;
-  const compactPeriodFrom = `${fromPeriodDate.getDate().toLocaleString("ar-EG")}/${(fromPeriodDate.getMonth() + 1).toLocaleString("ar-EG")}/${fromPeriodDate.getFullYear().toLocaleString("ar-EG", { useGrouping: false })}`;
-  const compactPeriodTo = `${toPeriodDate.getDate().toLocaleString("ar-EG")}/${(toPeriodDate.getMonth() + 1).toLocaleString("ar-EG")}/${toPeriodDate.getFullYear().toLocaleString("ar-EG", { useGrouping: false })}`;
 
-  const selectPayrollMonth = (selectedYear: number, selectedMonth: number) => {
+  const setPayrollPeriod = (selectedYear: number, selectedMonth: number) => {
     const previousMonth = new Date(selectedYear, selectedMonth - 2, 26);
     setFromDate(`${isoMonth(previousMonth)}-26`);
-    setToDate(`${selectedYear}-${String(selectedMonth).padStart(2, "0")}-25`);
+    setToDate(
+      `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-25`,
+    );
   };
-
   const centerQ = (trpc as any).salary.getPayroll.useQuery({
     year,
     month,
@@ -118,6 +126,9 @@ export default function PayrollReport() {
   const supervisionBonusQ = (trpc as any).salary.getSupervisionBonuses.useQuery(
     { year, month, section },
   );
+  const supervisionMembersQ = (
+    trpc as any
+  ).salary.listSupervisionMembers.useQuery();
   const supervisionBonusMap: Record<string, string> = (
     (supervisionBonusQ.data ?? []) as any[]
   ).reduce((acc: Record<string, string>, r: any) => {
@@ -212,6 +223,16 @@ export default function PayrollReport() {
   const shiftRows = rows.filter((r: any) =>
     String(r.empCd).startsWith("shift_"),
   );
+  const supervisionRows = ((supervisionMembersQ.data ?? []) as any[]).map(
+    (member) =>
+      regularRows.find((row: any) => row.empCd === member.empCd) ?? {
+        empCd: member.empCd,
+        fullName: member.fullName,
+        department: member.department,
+        jobTitle: member.jobTitle,
+        supervisionBonus: "0",
+      },
+  );
 
   // Build enhanced shift rows from computeShiftPayroll big/small breakdown
   const enhancedShiftRows = shiftStaff.map((staff: any) => {
@@ -221,7 +242,8 @@ export default function PayrollReport() {
     const payrollRow = rows.find((r: any) => r.empCd === `shift_${staff.id}`);
 
     const rateBig = Number(staff.ratePerShift ?? 0);
-    const rateSmall = Number(staff.rateSmallShift ?? 0) || rateBig;
+    const mainShiftMinutes = Number(staff.mainShiftMinutes ?? 360) || 360;
+    const rateSmall = Math.round((rateBig / mainShiftMinutes) * 240 * 100) / 100;
 
     // Trust the backend's big/small breakdown directly — it derives shift size
     // from each shift's actual definition (attendanceShifts.shiftSize / duration).
@@ -341,28 +363,6 @@ export default function PayrollReport() {
     },
   );
 
-  const totalsBySection = (sec: "مركز" | "عيادة") =>
-    allPrintRows
-      .filter((r: any) => r._section === sec)
-      .reduce(
-        (acc: any, r: any) => ({
-          basic: acc.basic + Number(r.basicSalary),
-          deductions: acc.deductions + Number(r.totalDeductions),
-          netBasic: acc.netBasic + Number(r.netBasic),
-          commission: acc.commission + getCommissionTotal(r),
-          overtime: acc.overtime + Number(r.overtimePay ?? 0),
-          totalPay: acc.totalPay + Number(r.totalPay),
-        }),
-        {
-          basic: 0,
-          deductions: 0,
-          netBasic: 0,
-          commission: 0,
-          overtime: 0,
-          totalPay: 0,
-        },
-      );
-
   const isFinalized =
     rows.length > 0 && rows.every((r: any) => r.payrollStatus === "final");
 
@@ -374,7 +374,7 @@ export default function PayrollReport() {
       background: oklch(99% 0.004 248);
       color: oklch(22% 0.035 248);
       font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      font-size: 8px;
+      font-size: 10px;
       line-height: 1.35;
     }
     .payroll-sheet {
@@ -482,13 +482,19 @@ export default function PayrollReport() {
       border: 1px solid oklch(84% 0.017 248);
       border-radius: 12px;
     }
-    table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    table {
+      width: fit-content;
+      min-width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: auto;
+    }
     thead th {
       background: oklch(93.5% 0.025 248);
       color: oklch(31% 0.047 248);
-      font-size: 7.4px;
+      font-size: 9px;
       font-weight: 900;
-      padding: 4px 3px;
+      padding: 5px 6px;
       border-inline-start: 1px solid oklch(83% 0.017 248);
       border-bottom: 1px solid oklch(80% 0.02 248);
       text-align: center;
@@ -497,9 +503,9 @@ export default function PayrollReport() {
     tbody td {
       background: oklch(99.5% 0.003 248);
       color: oklch(25% 0.03 248);
-      font-size: 7.4px;
+      font-size: 9px;
       font-weight: 700;
-      padding: 3px 3px;
+      padding: 5px 6px;
       border-inline-start: 1px solid oklch(88% 0.012 248);
       border-bottom: 1px solid oklch(88% 0.012 248);
       text-align: center;
@@ -510,13 +516,13 @@ export default function PayrollReport() {
     .emp-col {
       min-width: 115px;
       text-align: right !important;
-      font-size: 8px;
+      font-size: 10px;
       font-weight: 900;
       color: oklch(25% 0.045 248);
     }
     .money-strong {
       color: oklch(38% 0.105 248);
-      font-size: 8px;
+      font-size: 10px;
       font-weight: 900;
     }
     .total-row td {
@@ -1573,16 +1579,7 @@ export default function PayrollReport() {
 
   function printSupervisionSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const shiftSupRows = shiftStaff.map((s: any) => {
-      const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
-      return {
-        empCd: `shift_${s.id}`,
-        fullName: s.name,
-        department: "مناوبة",
-        supervisionBonus: pr?.supervisionBonus ?? "0",
-      };
-    });
-    const supRows = [...regularRows, ...shiftSupRows];
+    const supRows = supervisionRows;
     const totalBonus = supRows.reduce(
       (s: number, r: any) =>
         s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),
@@ -1628,16 +1625,7 @@ export default function PayrollReport() {
   }
 
   function printSupervisionSlips() {
-    const shiftSupRows2 = shiftStaff.map((s: any) => {
-      const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
-      return {
-        empCd: `shift_${s.id}`,
-        fullName: s.name,
-        department: "مناوبة",
-        supervisionBonus: pr?.supervisionBonus ?? "0",
-      };
-    });
-    const supRows = [...regularRows, ...shiftSupRows2].filter(
+    const supRows = supervisionRows.filter(
       (r: any) => Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0) > 0,
     );
     if (!supRows.length) {
@@ -1964,27 +1952,8 @@ export default function PayrollReport() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              الرواتب
-            </p>
-            <h2 className="text-2xl font-bold text-foreground">كشف الرواتب</h2>
-          </div>
-          <div dir="rtl" className="flex flex-1 justify-center">
-            <div className="flex flex-col items-center text-center">
-              <p className="w-full text-center text-lg font-bold tabular-nums">
-                {year.toLocaleString("ar-EG", { useGrouping: false })}
-              </p>
-              <p className="flex flex-row items-center gap-1 text-xs text-muted-foreground">
-                <span>من</span>
-                <bdi dir="ltr">{compactPeriodFrom}</bdi>
-                <span>-</span>
-                <bdi dir="ltr">{compactPeriodTo}</bdi>
-              </p>
-            </div>
-          </div>
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-lg border border-border overflow-hidden text-sm w-full sm:w-auto">
               {SECTIONS.map((s) => (
@@ -1998,6 +1967,32 @@ export default function PayrollReport() {
                 </button>
               ))}
             </div>
+            <select
+              value={month}
+              onChange={(event) => setPayrollPeriod(year, Number(event.target.value))}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground"
+              aria-label="الشهر"
+            >
+              {MONTHS.map((monthName, monthIndex) => (
+                <option key={monthName} value={monthIndex + 1}>
+                  {monthName}
+                </option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={(event) => setPayrollPeriod(Number(event.target.value), month)}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground"
+              aria-label="السنة"
+            >
+              {Array.from({ length: 11 }, (_, index) => year - 5 + index).map(
+                (optionYear) => (
+                  <option key={optionYear} value={optionYear}>
+                    {optionYear}
+                  </option>
+                ),
+              )}
+            </select>
             <Button
               onClick={() =>
                 computeMut.mutate({ year, month, section, fromDate, toDate })
@@ -2015,27 +2010,33 @@ export default function PayrollReport() {
               <>
                 {/* Desktop Print Actions */}
                 <div className="hidden lg:flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={printSheet}
-                    className="gap-2"
-                  >
-                    <Printer size={15} /> كامل
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={printDay1Slips}
-                    className="gap-2"
-                  >
-                    <Printer size={15} /> يوم 1
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={printDay10Slips}
-                    className="gap-2"
-                  >
-                    <Printer size={15} /> يوم 10
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Printer size={15} /> طباعة الكشف
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={printSheet}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> كامل
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printDay1Slips}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> يوم 1
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={printDay10Slips}
+                        className="gap-2 justify-start cursor-pointer"
+                      >
+                        <Printer size={14} /> يوم 10
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="gap-2">
@@ -2173,131 +2174,66 @@ export default function PayrollReport() {
             )}
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => selectPayrollMonth(year - 1, month)}
-              className="min-h-10 rounded-md border border-border px-3 text-xs font-bold hover:bg-muted"
-              aria-label="السنة السابقة"
-            >
-              ‹ السنة السابقة
-            </button>
-            <p className="text-sm font-semibold text-muted-foreground">
-              اختر الشهر
-            </p>
-            <button
-              type="button"
-              onClick={() => selectPayrollMonth(year + 1, month)}
-              className="min-h-10 rounded-md border border-border px-3 text-xs font-bold hover:bg-muted"
-              aria-label="السنة التالية"
-            >
-              السنة التالية ›
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-12">
-            {MONTHS.map((monthName, monthIndex) => {
-              const monthNumber = monthIndex + 1;
-              return (
-                <button
-                  key={monthName}
-                  type="button"
-                  onClick={() => selectPayrollMonth(year, monthNumber)}
-                  className={`min-h-10 rounded-md border px-2 text-xs font-semibold transition-colors ${
-                    month === monthNumber
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background hover:bg-muted"
-                  }`}
-                >
-                  {monthNumber.toLocaleString("ar-EG")} - {monthName}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
-
-      {rows.length > 0 &&
-        (() => {
-          const t = totalsBySection(section as "مركز" | "عيادة");
-          return (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-              {[
-                {
-                  label: "الرواتب الأساسية",
-                  value: fmt(t.basic),
-                  tone: "text-foreground",
-                },
-                {
-                  label: "الخصومات",
-                  value: fmt(t.deductions),
-                  tone: "text-destructive",
-                },
-                {
-                  label: "الإجمالي الكلي",
-                  value: fmt(t.totalPay),
-                  tone: "text-primary font-bold",
-                },
-                {
-                  label: "دفعة يوم 1 — الراتب",
-                  value: fmt(t.netBasic),
-                  tone: "text-foreground",
-                },
-                {
-                  label: "دفعة يوم 10 — المكافآت",
-                  value: fmt(t.commission + t.overtime),
-                  tone: "text-success",
-                },
-              ].map((m) => (
-                <div
-                  key={m.label}
-                  className="rounded-xl border border-border bg-card px-4 py-3"
-                >
-                  <div className="text-xs text-muted-foreground">{m.label}</div>
-                  <div className={`mt-1 text-base font-bold ${m.tone}`}>
-                    {m.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
 
       {/* ── Tabs Navigation ── */}
       {rows.length > 0 && (
         <div className="flex flex-col gap-2 border-b border-border sm:flex-row sm:items-end sm:justify-between">
           {section === "مركز" && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab("salaries")}
-                className={`px-4 py-3 font-medium text-sm transition-colors ${
-                  activeTab === "salaries"
-                    ? "border-b-2 border-primary text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                الرواتب
-              </button>
-              <button
-                onClick={() => setActiveTab("shifts")}
-                className={`px-4 py-3 font-medium text-sm transition-colors ${
-                  activeTab === "shifts"
-                    ? "border-b-2 border-primary text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                الشفتات
-              </button>
-              <button
-                onClick={() => setActiveTab("supervision")}
-                className={`px-4 py-3 font-medium text-sm transition-colors ${
-                  activeTab === "supervision"
-                    ? "border-b-2 border-primary text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                مكافأة الإشراف
-              </button>
+            <div className="flex flex-col gap-2" role="tablist" aria-label="أقسام كشف الشهر">
+              <div className="flex flex-wrap gap-2">
+                {([
+                  ["salaries", "الرواتب"],
+                  ["shifts", "الشفتات"],
+                  ["supervision", "مكافأة الإشراف"],
+                ] as const).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    role="tab"
+                    aria-selected={activeTab === tab}
+                    className={`px-4 py-3 font-medium text-sm transition-colors ${
+                      activeTab === tab
+                        ? "border-b-2 border-primary text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {activeTab !== "supervision" && (
+                <div className="flex w-fit gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+                  <button
+                    onClick={() =>
+                      activeTab === "salaries"
+                        ? setSalariesSubTab("basic")
+                        : setShiftsSubTab("basic")
+                    }
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
+                      (activeTab === "salaries" ? salariesSubTab : shiftsSubTab) === "basic"
+                        ? "bg-background text-primary shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    الأساسي
+                  </button>
+                  <button
+                    onClick={() =>
+                      activeTab === "salaries"
+                        ? setSalariesSubTab("commissions")
+                        : setShiftsSubTab("commissions")
+                    }
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
+                      (activeTab === "salaries" ? salariesSubTab : shiftsSubTab) === "commissions"
+                        ? "bg-background text-primary shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    العمولات
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <div className="relative mb-2 w-full sm:max-w-sm">
@@ -2314,7 +2250,8 @@ export default function PayrollReport() {
       )}
 
       {/* ── Salaries Tab ── */}
-      {(section === "عيادة" || activeTab === "salaries") &&
+      {(section === "عيادة" ||
+        (activeTab === "salaries" && salariesSubTab === "basic")) &&
         (() => {
           const filteredRegularRows = regularRows.filter(
             (r: any) =>
@@ -2726,6 +2663,7 @@ export default function PayrollReport() {
       {/* ── Shifts Tab (Center only) ── */}
       {section === "مركز" &&
         activeTab === "shifts" &&
+        shiftsSubTab === "basic" &&
         (() => {
           const filteredEnhancedShiftRows = enhancedShiftRows.filter(
             (r: any) =>
@@ -3092,9 +3030,10 @@ export default function PayrollReport() {
           );
         })()}
 
-      {/* ── Shift Commissions (inside Shifts tab) ── */}
+      {/* ── Shift Commissions Tab ── */}
       {section === "مركز" &&
         activeTab === "shifts" &&
+        shiftsSubTab === "commissions" &&
         enhancedShiftRows.length > 0 &&
         (() => {
           const totalShiftPay = enhancedShiftRows
@@ -3435,8 +3374,9 @@ export default function PayrollReport() {
           );
         })()}
 
-      {/* ── Commissions section — hidden in shifts tab ── */}
-      {(section === "عيادة" || activeTab === "salaries") &&
+      {/* ── Commissions Tab ── */}
+      {(section === "عيادة" ||
+        (activeTab === "salaries" && salariesSubTab === "commissions")) &&
         (() => {
           const filteredRegularRows = regularRows.filter(
             (r: any) =>
@@ -4350,16 +4290,7 @@ export default function PayrollReport() {
       {section === "مركز" &&
         activeTab === "supervision" &&
         (() => {
-          const shiftSupRows3 = shiftStaff.map((s: any) => {
-            const pr = shiftRows.find((r: any) => r.empCd === `shift_${s.id}`);
-            return {
-              empCd: `shift_${s.id}`,
-              fullName: s.name,
-              department: "مناوبة",
-              supervisionBonus: pr?.supervisionBonus ?? "0",
-            };
-          });
-          const supRows = [...regularRows, ...shiftSupRows3];
+          const supRows = supervisionRows;
           const totalBonus = supRows.reduce(
             (s: number, r: any) =>
               s + Number(bonusEdits[r.empCd] ?? r.supervisionBonus ?? 0),

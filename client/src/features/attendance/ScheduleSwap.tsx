@@ -35,6 +35,9 @@ const DAYS_FULL = [
 export default function ScheduleSwap() {
   const isMobile = useIsMobile();
   const [subTab, setSubTab] = useState<"change" | "swap">("change");
+  const [requestTab, setRequestTab] = useState<
+    "daily" | "weekly" | "monthly" | "swap"
+  >("daily");
 
   // State for single employee change
   const [empCd, setEmpCd] = useState("");
@@ -138,6 +141,10 @@ export default function ScheduleSwap() {
   const shifts = shiftsQuery.data ?? [];
   const cycles = cyclesQuery.data ?? [];
   const assignments = assignmentsQuery.data ?? [];
+  const pendingRequests: any[] = pendingRequestsQuery.data ?? [];
+  const visiblePendingRequests = pendingRequests.filter(
+    (request) => request.requestType === requestTab,
+  );
 
   // Helper functions
   const toggleWeeklyDay = (dayIndex: number) => {
@@ -217,14 +224,29 @@ export default function ScheduleSwap() {
       {/* ── Pending Shift Change & Swap Requests ── */}
       <Card className="border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-            <Clock className="h-5 w-5 text-primary" />
-            طلبات تغيير وتبديل المواعيد قيد الانتظار
-          </CardTitle>
-          <CardDescription>
-            طلبات تغيير مواعيد العمل أو تبادل الورديات المقدمة من الموظفين
-            بانتظار الاعتماد.
-          </CardDescription>
+          <div className="flex flex-wrap justify-start gap-2">
+            {(
+              [
+                ["daily", "طلبات يومية"],
+                ["weekly", "طلبات أسبوعية"],
+                ["monthly", "طلبات الدورات"],
+                ["swap", "طلبات التبادل"],
+              ] as const
+            ).map(([type, label]) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setRequestTab(type)}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                  requestTab === type
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {pendingRequestsQuery.isLoading ? (
@@ -232,13 +254,13 @@ export default function ScheduleSwap() {
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-8 w-full" />
             </div>
-          ) : !pendingRequestsQuery.data?.length ? (
+          ) : !visiblePendingRequests.length ? (
             <div className="py-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
               لا توجد طلبات تغيير مواعيد معلقة حالياً.
             </div>
           ) : isMobile ? (
             <div className="space-y-2">
-              {pendingRequestsQuery.data.map((r: any) => {
+              {visiblePendingRequests.map((r: any) => {
                 const typeAr =
                   r.requestType === "daily"
                     ? "يومي (مؤقت)"
@@ -365,7 +387,7 @@ export default function ScheduleSwap() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingRequestsQuery.data.map((r: any) => {
+                  {visiblePendingRequests.map((r: any) => {
                     const typeAr =
                       r.requestType === "daily"
                         ? "يومي (مؤقت)"

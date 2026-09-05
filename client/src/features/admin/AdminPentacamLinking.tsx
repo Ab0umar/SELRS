@@ -50,17 +50,31 @@ function SummaryField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function AdminPentacamLinking() {
+export type AdminPentacamLinkingProps = {
+  embedded?: boolean;
+  initialPatientId?: number;
+  onSelectPatient?: (patient: PatientSummary | null) => void;
+  onSwitchTab?: (tab: string) => void;
+};
+
+export default function AdminPentacamLinking({
+  embedded = false,
+  initialPatientId: propInitialPatientId,
+  onSelectPatient,
+  onSwitchTab,
+}: AdminPentacamLinkingProps = {}) {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
   const [, legacyParams] = useRoute("/admin/pentacam/:id");
   const [, hubParams] = useRoute("/admin-hub/pentacam-linking/:id");
-  const initialPatientId = hubParams?.id
-    ? Number(hubParams.id)
-    : legacyParams?.id
-      ? Number(legacyParams.id)
-      : undefined;
+  const initialPatientId =
+    propInitialPatientId ??
+    (hubParams?.id
+      ? Number(hubParams.id)
+      : legacyParams?.id
+        ? Number(legacyParams.id)
+        : undefined);
 
   const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(
     null,
@@ -84,7 +98,10 @@ export default function AdminPentacamLinking() {
     )
       return;
     setSelectedPatient(patient);
-    setLocation(`/admin-hub/pentacam-linking/${patient.id}`);
+    onSelectPatient?.(patient);
+    if (!embedded) {
+      setLocation(`/admin-hub/pentacam-linking/${patient.id}`);
+    }
   };
 
   useEffect(() => {
@@ -92,7 +109,8 @@ export default function AdminPentacamLinking() {
     if (locationType === "all") return;
     if (selectedPatient.locationType === locationType) return;
     setSelectedPatient(null);
-  }, [locationType, selectedPatient]);
+    onSelectPatient?.(null);
+  }, [locationType, selectedPatient, onSelectPatient]);
 
   const summaryFields = useMemo(
     () =>
@@ -124,19 +142,21 @@ export default function AdminPentacamLinking() {
       <main className="flex w-full flex-col">
         <header className="mb-5 border-b border-border pb-5">
           {/* Top row: back + badge */}
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <button
-              onClick={() => goBack()}
-              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <ArrowRight className="h-4 w-4" />
-              رجوع
-            </button>
-            <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              صفحة للإدارة فقط
+          {!embedded ? (
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <button
+                onClick={() => goBack()}
+                className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ArrowRight className="h-4 w-4" />
+                رجوع
+              </button>
+              <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success sm:inline-flex">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                صفحة للإدارة فقط
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {/* Main header row: title + search + summary */}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -208,9 +228,13 @@ export default function AdminPentacamLinking() {
                         variant="outline"
                         size="sm"
                         className="mr-auto h-7 px-2 text-xs"
-                        onClick={() =>
-                          setLocation(`/sheets/pentacam/${selectedPatientId}`)
-                        }
+                        onClick={() => {
+                          if (onSwitchTab) {
+                            onSwitchTab("sheet");
+                          } else {
+                            setLocation(`/sheets/pentacam/${selectedPatientId}`);
+                          }
+                        }}
                       >
                         <FileSpreadsheet className="ml-1 h-3.5 w-3.5" />
                         عرض JPG

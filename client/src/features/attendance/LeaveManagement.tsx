@@ -121,8 +121,6 @@ export default function LeaveManagement() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <h1 className="text-3xl font-bold mb-6">إجازات الموظفين (أيام الغياب)</h1>
-
       <Card className="mb-4">
         <CardContent className="pt-4">
           <div className="grid gap-3 md:grid-cols-4 md:items-end">

@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -26,6 +28,18 @@ function redact(value: string) {
     .replace(/(mysql:\/\/[^\s]+|postgres(?:ql)?:\/\/[^\s]+)/gi, "[redacted-database-url]");
 }
 
+function resolveWindowsPackageManager() {
+  const userProfile = process.env.USERPROFILE;
+  const pnpmHome = process.env.PNPM_HOME;
+  const candidates = [
+    pnpmHome && join(pnpmHome, "pnpm.CMD"),
+    userProfile && join(userProfile, "AppData", "Local", "pnpm", "bin", "pnpm.CMD"),
+    process.env.ProgramFiles && join(process.env.ProgramFiles, "nodejs", "corepack.cmd"),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? "pnpm";
+}
+
 export async function runDiagnostic(checkId: DiagnosticCheckId) {
   const check = DIAGNOSTIC_CHECKS[checkId];
   if (!check.safe) {
@@ -33,10 +47,9 @@ export async function runDiagnostic(checkId: DiagnosticCheckId) {
   }
 
   const script = check.command.slice("pnpm ".length);
-  const command = process.platform === "win32" ? "cmd.exe" : "pnpm";
-  const args = process.platform === "win32"
-    ? ["/d", "/s", "/c", `pnpm ${script}`]
-    : [script];
+  const packageManager = process.platform === "win32" ? resolveWindowsPackageManager() : "pnpm";
+  const command = packageManager;
+  const args = [script];
   const startedAt = Date.now();
   try {
     const result = await execFileAsync(command, args, {
@@ -44,6 +57,7 @@ export async function runDiagnostic(checkId: DiagnosticCheckId) {
       env: process.env,
       timeout: 120_000,
       maxBuffer: 512 * 1024,
+      shell: process.platform === "win32",
       windowsHide: process.platform === "win32",
     });
     return { checkId, label: check.label, command: check.command, status: "passed" as const, durationMs: Date.now() - startedAt, output: redact(`${result.stdout}${result.stderr ? `\n${result.stderr}` : ""}`).trim() };

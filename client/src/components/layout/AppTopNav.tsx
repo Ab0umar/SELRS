@@ -275,20 +275,19 @@ export function AppTopNav({
         roles: ["doctor", "technician", "manager"],
       },
       {
-        icon: History,
-        label: "سجل المرضى",
-        path: "/admin-hub/legacy-patients",
-        key: "legacy-patients",
-        paths: ["/admin-hub/legacy-patients"],
-        checkPath: "/admin-hub/legacy-patients",
-      },
-      {
-        icon: ScrollText,
-        label: "سجل العمليات",
-        path: "/admin-hub/op-history",
-        key: "op-history",
-        paths: ["/admin-hub/op-history"],
-        checkPath: "/admin-hub/op-history",
+        icon: Archive,
+        label: "أرشيف",
+        path: "/archive",
+        key: "archive",
+        paths: [
+          "/archive",
+          "/admin-hub/legacy-patients",
+          "/admin/legacy-patients",
+          "/admin-hub/op-history",
+          "/admin/op-history",
+          "/medical-reference",
+        ],
+        checkPath: "/archive",
       },
       {
         icon: MessageCircle,
@@ -360,26 +359,17 @@ export function AppTopNav({
         path: "/stockroom",
       },
       {
-        type: "menu" as const,
-        key: "archive",
+        type: "link" as const,
         icon: Archive,
         label: "أرشيف",
-        items: [
-          {
-            icon: History,
-            label: "سجل المرضى",
-            path: "/admin-hub/legacy-patients",
-          },
-          {
-            icon: ScrollText,
-            label: "سجل العمليات",
-            path: "/admin-hub/op-history",
-          },
-          {
-            icon: Filter,
-            label: "المرجع الطبي",
-            path: "/medical-reference",
-          },
+        path: "/archive",
+        paths: [
+          "/archive",
+          "/admin-hub/legacy-patients",
+          "/admin/legacy-patients",
+          "/admin-hub/op-history",
+          "/admin/op-history",
+          "/medical-reference",
         ],
       },
       {
@@ -413,14 +403,8 @@ export function AppTopNav({
       ),
     );
     const recordItems = [
-      ["/admin-hub/legacy-patients", "المرضى"],
-      ["/followups", "المتابعات"],
-      ["/visits", "الزيارات"],
-      ["/admin-hub/op-history", "العمليات"],
-      ["/sheets/autorefs/dashboard", "AutoRef"],
-      ["/sheets/refractions/dashboard", "Refractions"],
-      ["/sheets/pentacam/dashboard", "Pentacam"],
-      ["/medical-reports", "Medical Reports"],
+      ["/records/patients", "سجلات المرضى"],
+      ["/records/medical", "السجلات الطبية"],
     ]
       .map(([path, label]) => {
         const leaf = leafByPath.get(path);
@@ -439,7 +423,9 @@ export function AppTopNav({
       "patients",
     ]);
     const movedPaths = new Set([
-      "/sheets/pentacam/dashboard",
+      "/pentacam",
+      "/records/medical",
+      "/records/patients",
       "/medical-reports",
     ]);
     const remainingSections = sections
@@ -544,7 +530,9 @@ export function AppTopNav({
                 const Icon = item.icon;
                 const active =
                   item.type === "link"
-                    ? tabActive(location, item.path)
+                    ? (item.paths
+                        ? item.paths.some((p) => tabActive(location, p))
+                        : tabActive(location, item.path))
                     : item.items.some((child) =>
                         tabActive(location, child.path),
                       );

@@ -174,11 +174,16 @@ function toArabicWords(amount: number): string {
 
 const isoMonthStr = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-const DEFAULT_FROM = `${isoMonthStr(now)}-01`;
-const DEFAULT_TO = (() => {
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return `${isoMonthStr(last)}-${String(last.getDate()).padStart(2, "0")}`;
+const defaultPayrollEnd = new Date(
+  now.getFullYear(),
+  now.getMonth() - (now.getDate() < 25 ? 1 : 0),
+  25,
+);
+const DEFAULT_FROM = (() => {
+  const previousMonth = new Date(defaultPayrollEnd.getFullYear(), defaultPayrollEnd.getMonth() - 1, 26);
+  return `${isoMonthStr(previousMonth)}-26`;
 })();
+const DEFAULT_TO = `${isoMonthStr(defaultPayrollEnd)}-25`;
 
 export default function ShiftPayroll() {
   const [fromDate, setFromDate] = useState(DEFAULT_FROM);
@@ -188,7 +193,8 @@ export default function ShiftPayroll() {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const [year, month] = fromDate.split("-").map(Number);
+  // The payroll month follows the range end, matching the monthly payroll page.
+  const [year, month] = toDate.split("-").map(Number);
   const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
 
   const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
@@ -217,9 +223,6 @@ export default function ShiftPayroll() {
   const doctors = rows.filter((r: any) => r.type === "doctor");
   const techs = rows.filter((r: any) => r.type === "tech");
 
-  const totalScheduled = rows.reduce((s: number, r: any) => s + r.scheduled, 0);
-  const totalAttended = rows.reduce((s: number, r: any) => s + r.attended, 0);
-  const totalAbsent = rows.reduce((s: number, r: any) => s + r.absent, 0);
   const totalPay = rows.reduce((s: number, r: any) => s + r.totalPay, 0);
 
   function printSlips() {
@@ -570,15 +573,6 @@ export default function ShiftPayroll() {
     <div className="space-y-6">
       {/* Header controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            مسار الشفتات
-          </p>
-          <h2 className="text-2xl font-bold">كشف الشفتات</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            مستحقات الأطباء والفنيين حسب الشفتات المسجلة.
-          </p>
-        </div>
         <div className="flex flex-wrap items-center gap-2">
           <DateInput
             value={fromDate}
@@ -610,42 +604,6 @@ export default function ShiftPayroll() {
           )}
         </div>
       </div>
-
-      {/* Summary cards */}
-      {rows.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              label: "الشفتات المجدولة",
-              value: String(totalScheduled),
-              tone: "text-foreground",
-            },
-            {
-              label: "تم الحضور",
-              value: String(totalAttended),
-              tone: "text-success font-bold",
-            },
-            {
-              label: "غياب",
-              value: String(totalAbsent),
-              tone: "text-destructive",
-            },
-            {
-              label: "إجمالي المستحق",
-              value: fmt(totalPay) + " ج.م",
-              tone: "text-primary font-bold",
-            },
-          ].map((card) => (
-            <div
-              key={card.label}
-              className="rounded-xl border border-border bg-card px-4 py-3"
-            >
-              <div className="text-xs text-muted-foreground">{card.label}</div>
-              <div className={`mt-1 text-lg ${card.tone}`}>{card.value}</div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Tables */}
       {payrollQ.isLoading ? (

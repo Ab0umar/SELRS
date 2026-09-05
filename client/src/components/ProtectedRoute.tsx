@@ -185,6 +185,8 @@ export default function ProtectedRoute({
     if (userRole === "admin") return true;
     if (cleanPath === ROUTES.mainHome) return true;
     if (cleanPath === ROUTES.profile) return true;
+    if (cleanPath === ROUTES.account || cleanPath.startsWith(`${ROUTES.account}/`))
+      return true;
     if (cleanPath === ROUTES.attendanceMy) return true;
     if (cleanPath === ROUTES.attendanceShiftSchedule) return true;
     if (userRole === "reception" && cleanPath === ROUTES.examination)
@@ -323,6 +325,23 @@ export default function ProtectedRoute({
             p === ROUTES.prescription ||
             p.startsWith(`${ROUTES.prescription}/`),
         )
+      ) {
+        return true;
+      }
+    }
+    /** الأرشيف: متاح لمن يملك صلاحية الأرشيف أو سجل المرضى أو العمليات أو المرجع الطبي */
+    if (
+      cleanPath === ROUTES.archive ||
+      cleanPath.startsWith(`${ROUTES.archive}/`)
+    ) {
+      if (
+        allowedPaths.includes(ROUTES.archive) ||
+        allowedPaths.includes("/admin-hub/legacy-patients") ||
+        allowedPaths.includes(ROUTES.adminLegacyPatients) ||
+        allowedPaths.includes("/admin-hub/op-history") ||
+        allowedPaths.includes(ROUTES.opHistory) ||
+        allowedPaths.includes(ROUTES.medicalReference) ||
+        allowedPaths.includes(ROUTES.patientsHub)
       ) {
         return true;
       }

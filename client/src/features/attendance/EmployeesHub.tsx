@@ -101,7 +101,7 @@ export default function EmployeesHub() {
     <div className="space-y-6" dir="rtl">
       
       {/* ── 1. Bento Dashboard Navigation Grid ── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="flex w-full gap-1 overflow-x-auto border-b border-slate-200 pb-1">
         {TABS.map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.key;
@@ -113,7 +113,7 @@ export default function EmployeesHub() {
               onClick={() => setTab(t.key)}
               aria-selected={isActive}
               aria-controls={`attendance-employees-panel-${t.key}`}
-              className={`p-4 border rounded-2xl text-right flex flex-col justify-between h-32 transition-all duration-200 hover:scale-[1.02] ${
+              className={`inline-flex shrink-0 items-center gap-2 rounded-lg border-b-2 px-4 py-2 text-right text-xs font-bold transition-colors ${
                 isActive ? t.activeCls : t.themeCls
               }`}
             >
@@ -125,7 +125,6 @@ export default function EmployeesHub() {
               {/* Title & Desc */}
               <div className="space-y-0.5 mt-3">
                 <span className="text-[11px] font-black block leading-none">{t.label}</span>
-                <span className="text-[8px] opacity-60 font-mono block leading-none">{t.subLabel}</span>
               </div>
             </button>
           );
@@ -134,13 +133,6 @@ export default function EmployeesHub() {
 
       {/* ── 2. Bento Panel Console Container ── */}
       <div className="border border-slate-200 rounded-3xl bg-white p-6 shadow-sm shadow-slate-100/50">
-        <div className="pb-4 border-b border-slate-100 mb-6 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-4 bg-slate-900 rounded-full"></div>
-            <h2 className="text-sm font-bold text-slate-800">{currentTab.label} ({currentTab.subLabel})</h2>
-          </div>
-          <span className="text-[10px] text-slate-400 font-medium">{currentTab.description}</span>
-        </div>
 
         <div
           id={`attendance-employees-panel-${tab}`}

@@ -4,26 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Pencil, Check, X, Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
+import AbsentReport from "./AbsentReport";
 
 const now = new Date();
 const isoMonthStr = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-const DEFAULT_FROM = `${isoMonthStr(now)}-01`;
-const DEFAULT_TO = (() => {
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return `${isoMonthStr(last)}-${String(last.getDate()).padStart(2, "0")}`;
+const defaultPayrollEnd = new Date(
+  now.getFullYear(),
+  now.getMonth() - (now.getDate() < 25 ? 1 : 0),
+  25,
+);
+const DEFAULT_FROM = (() => {
+  const previousMonth = new Date(defaultPayrollEnd.getFullYear(), defaultPayrollEnd.getMonth() - 1, 26);
+  return `${isoMonthStr(previousMonth)}-26`;
 })();
+const DEFAULT_TO = `${isoMonthStr(defaultPayrollEnd)}-25`;
 
-type Tab = "penalties" | "advances" | "lates" | "earlyleave" | "missingcheckout" | "insurance";
+type Tab = "penalties" | "advances" | "absent" | "lates" | "earlyleave" | "missingcheckout" | "insurance";
 
 const PRINT_CSS = `
-  @page { size: A4 landscape; margin: 10mm; }
+  @page { size: A4 landscape; margin: 8mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 9px; color: #000; direction: rtl; }
-  h1 { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-  th { background: #ddd; padding: 3px 5px; border: 1px solid #999; font-size: 8px; text-align: center; }
-  td { padding: 3px 5px; border: 1px solid #ccc; font-size: 8px; text-align: center; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11px; color: #000; direction: rtl; }
+  h1 { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+  table { width: fit-content; min-width: 100%; border-collapse: collapse; margin-top: 6px; table-layout: auto; }
+  th { background: #ddd; padding: 5px 8px; border: 1px solid #999; font-size: 10px; text-align: center; white-space: nowrap; }
+  td { padding: 5px 8px; border: 1px solid #ccc; font-size: 10px; text-align: center; white-space: nowrap; }
   .emp-col { text-align: right; font-weight: bold; }
   .total-row { background: #eee; font-weight: bold; }
   .zero { color: #aaa; }
@@ -34,7 +40,8 @@ export default function SalaryPenalties() {
   const [toDate, setToDate] = useState(DEFAULT_TO);
   const [tab, setTab] = useState<Tab>("penalties");
 
-  const [year, month] = fromDate.split("-").map(Number);
+  // Keep newly added penalties and advances in the same payroll month as the range end.
+  const [year, month] = toDate.split("-").map(Number);
   const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
   const [showForm, setShowForm] = useState(false);
   const [editPenaltyId, setEditPenaltyId] = useState<number | null>(null);
@@ -441,8 +448,9 @@ export default function SalaryPenalties() {
           Number(pr?.lateDeduction ?? 0) + Number(pr?.earlyLeaveDeduction ?? 0);
         const tameenat = insuranceMap[empCd] ?? 0;
         const ghiyab = Number(pr?.absentDeduction ?? 0);
-        const total = jazaat + takhirat + tameenat + ghiyab;
-        return { name, dept, jazaat, takhirat, tameenat, ghiyab, total };
+        const advances = Number(pr?.advancesDeduction ?? 0);
+        const total = jazaat + takhirat + tameenat + ghiyab + advances;
+        return { name, dept, jazaat, takhirat, tameenat, ghiyab, advances, total };
       })
       .sort((a, b) => a.name.localeCompare(b.name, "ar"));
 
@@ -450,6 +458,7 @@ export default function SalaryPenalties() {
     const totTakhirat = rows.reduce((s, r) => s + r.takhirat, 0);
     const totTameenat = rows.reduce((s, r) => s + r.tameenat, 0);
     const totGhiyab = rows.reduce((s, r) => s + r.ghiyab, 0);
+    const totAdvances = rows.reduce((s, r) => s + r.advances, 0);
     const totAll = rows.reduce((s, r) => s + r.total, 0);
 
     const bodyRows = rows
@@ -462,6 +471,7 @@ export default function SalaryPenalties() {
         <td>${fmt(r.takhirat)}</td>
         <td>${fmt(r.tameenat)}</td>
         <td>${fmt(r.ghiyab)}</td>
+        <td>${fmt(r.advances)}</td>
         <td><strong>${fmt(r.total)}</strong></td>
       </tr>`,
       )
@@ -479,6 +489,7 @@ export default function SalaryPenalties() {
           <th>تأخيرات</th>
           <th>تأمينات</th>
           <th>غياب</th>
+          <th>سلف</th>
           <th>الإجمالي</th>
         </tr></thead>
         <tbody>
@@ -489,6 +500,7 @@ export default function SalaryPenalties() {
             <td>${totTakhirat.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
             <td>${totTameenat.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
             <td>${totGhiyab.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
+            <td>${totAdvances.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
             <td>${totAll.toLocaleString("ar-EG", { minimumFractionDigits: 2 })}</td>
           </tr>
         </tbody>
@@ -504,10 +516,10 @@ export default function SalaryPenalties() {
   }
 
   // ── Shared helpers ─────────────────────────────────────────────────────────
-  const rows = tab === "penalties" ? penalties : advances;
+  const rows = tab === "penalties" ? penalties : tab === "advances" ? advances : [];
   const total = rows.reduce((s: number, r: any) => s + Number(r.amount), 0);
   const isPending =
-    tab === "penalties" ? addPenaltyMut.isPending : addAdvanceMut.isPending;
+    tab === "penalties" ? addPenaltyMut.isPending : tab === "advances" && addAdvanceMut.isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -541,6 +553,7 @@ export default function SalaryPenalties() {
   const tabDefs: { key: Tab; label: string }[] = [
     { key: "penalties", label: "جزاءات" },
     { key: "advances", label: "سلف" },
+    { key: "absent", label: "الغياب" },
     { key: "lates", label: "تأخيرات" },
     { key: "earlyleave", label: "خروج مبكر" },
     { key: "missingcheckout", label: "بصمة واحدة" },
@@ -549,131 +562,88 @@ export default function SalaryPenalties() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            مسار المتغيرات الشهرية
-          </p>
-          <h2 className="text-2xl font-bold text-foreground">
-            الخصومات والسلف
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            جزاءات وسلف وتأمينات الشهر قبل توليد كشف الرواتب.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Date range — shown when not on fixed insurance tab */}
-          {tab !== "insurance" && (
-            <>
-              <DateInput
-                value={fromDate}
-                onChange={(e) => { setFromDate(e.target.value); resetForm(); }}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-              />
-              <span className="text-sm text-muted-foreground">—</span>
-              <DateInput
-                value={toDate}
-                onChange={(e) => { setToDate(e.target.value); resetForm(); }}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-              />
-              {tab !== "lates" && tab !== "earlyleave" && tab !== "missingcheckout" && (
-                <>
-                  <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-                    <Plus size={16} />
-                    {tab === "penalties" ? "إضافة جزاء" : "إضافة سلفة"}
-                  </Button>
-                  {tab === "advances" && (
-                    <Button variant="outline" onClick={() => {
-                      setShowAccImport((v) => {
-                        if (!v) { accAdvQ.refetch().then((res: any) => { if (res.data) initImportState(res.data); }); }
-                        else { setImportState({}); }
-                        return !v;
-                      });
-                    }} className="gap-2">
-                      استيراد من المحاسبة
-                    </Button>
-                  )}
-                  <Button variant="outline" onClick={handlePrint} className="gap-2">
-                    <Printer size={16} /> طباعة
-                  </Button>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* ── KPI Summary Cards Section ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        {/* Card 1: Penalties */}
-        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
-          <span className="text-[10px] font-black text-muted-foreground uppercase block">إجمالي الجزاءات النشطة</span>
-          <span className="text-lg font-black text-foreground font-mono block mt-1">
-            {penalties.reduce((s: number, r: any) => s + Number(r.amount), 0).toLocaleString()} ج.م
-          </span>
-          <span className="text-[9px] text-rose-500 font-semibold block mt-0.5">
-            {penalties.length} سجلات خصم
-          </span>
-        </div>
-
-        {/* Card 2: Advances */}
-        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
-          <span className="text-[10px] font-black text-muted-foreground uppercase block">إجمالي السلف الصادرة</span>
-          <span className="text-lg font-black text-foreground font-mono block mt-1">
-            {advances.reduce((s: number, r: any) => s + Number(r.amount), 0).toLocaleString()} ج.م
-          </span>
-          <span className="text-[9px] text-teal-500 font-semibold block mt-0.5">
-            {advances.length} سجل سلف
-          </span>
-        </div>
-
-        {/* Card 3: Late Minutes */}
-        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
-          <span className="text-[10px] font-black text-muted-foreground uppercase block">دقائق التأخير الإجمالية</span>
-          <span className="text-lg font-black text-foreground font-mono block mt-1">
-            {lateEmpRows.reduce((s, emp) => s + emp.days.reduce((ss, d) => ss + d.lateMinutes, 0), 0)} دقيقة
-          </span>
-          <span className="text-[9px] text-amber-500 font-semibold block mt-0.5">
-            تأثير البصمة التلقائي
-          </span>
-        </div>
-
-        {/* Card 4: Insurance */}
-        <div className="p-4 bg-card border border-border/60 rounded-xl shadow-xs">
-          <span className="text-[10px] font-black text-muted-foreground uppercase block">إجمالي خصومات التأمين</span>
-          <span className="text-lg font-black text-foreground font-mono block mt-1">
-            {latestByEmp.reduce((s: number, b: any) => s + Number(b.insuranceDeduction ?? 0), 0).toLocaleString()} ج.م
-          </span>
-          <span className="text-[9px] text-indigo-500 font-semibold block mt-0.5">
-            حساب اشتراكات التأمينات
-          </span>
-        </div>
-      </div>
-
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1 w-fit">
-        {tabDefs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => {
-              setTab(key);
-              resetForm();
-              setEditingInsurance(null);
-            }}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-              tab === key
-                ? "bg-background shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex flex-nowrap items-center justify-between gap-2 overflow-x-auto">
+        <div className="flex shrink-0 gap-1 rounded-lg border border-border bg-muted/30 p-1">
+          {tabDefs.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => {
+                setTab(key);
+                resetForm();
+                setEditingInsurance(null);
+              }}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                tab === key
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {(
+          <div id="salary-penalties-actions" className="flex shrink-0 flex-nowrap items-center gap-2">
+            <DateInput
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); resetForm(); }}
+              className="w-[132px] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            <span className="text-sm text-muted-foreground">—</span>
+            <DateInput
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); resetForm(); }}
+              className="w-[132px] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            {(tab === "penalties" || tab === "advances") && (
+              <>
+                <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+                  <Plus size={16} />
+                  {tab === "penalties" ? "إضافة جزاء" : "إضافة سلفة"}
+                </Button>
+                {tab === "advances" && (
+                  <Button variant="outline" onClick={() => {
+                    setShowAccImport((v) => {
+                      if (!v) { accAdvQ.refetch().then((res: any) => { if (res.data) initImportState(res.data); }); }
+                      else { setImportState({}); }
+                      return !v;
+                    });
+                  }} className="gap-2">
+                    استيراد من المحاسبة
+                  </Button>
+                )}
+                <Button variant="outline" onClick={handlePrint} className="gap-2">
+                  <Printer size={16} /> طباعة
+                </Button>
+              </>
+            )}
+            {tab === "lates" && (
+              <Button variant="outline" onClick={printLatesTab} className="gap-2">
+                <Printer size={16} /> طباعة
+              </Button>
+            )}
+            {tab === "earlyleave" && (
+              <Button variant="outline" onClick={printEarlyLeaveTab} className="gap-2">
+                <Printer size={16} /> طباعة
+              </Button>
+            )}
+            {tab === "missingcheckout" && (
+              <Button variant="outline" onClick={printMissingCheckoutTab} className="gap-2">
+                <Printer size={16} /> طباعة
+              </Button>
+            )}
+            {tab === "insurance" && (
+              <Button variant="outline" onClick={printInsuranceTab} className="gap-2">
+                <Printer size={16} /> طباعة
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Add form — penalties & advances only */}
-      {showForm && tab !== "insurance" && tab !== "lates" && tab !== "earlyleave" && tab !== "missingcheckout" && (
+      {showForm && tab !== "insurance" && tab !== "absent" && tab !== "lates" && tab !== "earlyleave" && tab !== "missingcheckout" && (
         <section className="rounded-xl border border-border bg-background">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
@@ -786,14 +756,9 @@ export default function SalaryPenalties() {
                   الإجمالي: {total.toLocaleString("ar-EG")} ج.م
                 </span>
               )}
-              {rows.length > 0 && (
-                <Button variant="outline" size="sm" onClick={tab === "penalties" ? printPenaltiesTab : printAdvancesTab} className="gap-1.5 h-8 text-xs">
-                  <Printer size={13} /> طباعة
-                </Button>
-              )}
             </div>
           </div>
-          <div className="hidden lg:block overflow-x-auto" dir="rtl">
+          <div className="block overflow-x-auto" dir="rtl">
             <table dir="rtl" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -888,7 +853,7 @@ export default function SalaryPenalties() {
           </div>
 
           {/* Mobile Accordion Cards View */}
-          <div className="block lg:hidden divide-y divide-border/60">
+          <div className="hidden" aria-hidden="true">
             {rows.map((r: any) => {
               const isExpanded = !!expandedRows[r.id];
               return (
@@ -1048,6 +1013,17 @@ export default function SalaryPenalties() {
         </section>
       )}
 
+      {tab === "absent" && (
+        <section className="rounded-xl border border-border bg-background p-4">
+          <AbsentReport
+            sharedFromDate={fromDate}
+            sharedToDate={toDate}
+            onFromDateChange={(value) => { setFromDate(value); resetForm(); }}
+            onToDateChange={(value) => { setToDate(value); resetForm(); }}
+          />
+        </section>
+      )}
+
       {/* Late Days tab */}
       {tab === "lates" && (
         <section className="rounded-xl border border-border bg-background">
@@ -1056,11 +1032,6 @@ export default function SalaryPenalties() {
               <h3 className="text-base font-semibold">التأخيرات — {periodLabel}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">أيام التأخير لكل موظف مع مدة التأخير يومياً</p>
             </div>
-            {lateEmpRows.length > 0 && (
-              <Button variant="outline" size="sm" onClick={printLatesTab} className="gap-1.5 h-8 text-xs">
-                <Printer size={13} /> طباعة
-              </Button>
-            )}
           </div>
 
           {lateEmpRows.length === 0 ? (
@@ -1145,11 +1116,6 @@ export default function SalaryPenalties() {
               <h3 className="text-base font-semibold">الخروج المبكر — {periodLabel}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">أيام الخروج المبكر لكل موظف مع مدة الخروج يومياً</p>
             </div>
-            {earlyEmpRows.length > 0 && (
-              <Button variant="outline" size="sm" onClick={printEarlyLeaveTab} className="gap-1.5 h-8 text-xs">
-                <Printer size={13} /> طباعة
-              </Button>
-            )}
           </div>
 
           {earlyEmpRows.length === 0 ? (
@@ -1234,11 +1200,6 @@ export default function SalaryPenalties() {
               <h3 className="text-base font-semibold">بصمة واحدة (بدون انصراف) — {periodLabel}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">أيام الحضور التي لا يوجد فيها بصمة انصراف — خصم ¼ يوم لكل يوم</p>
             </div>
-            {missingEmpRows.length > 0 && (
-              <Button variant="outline" size="sm" onClick={printMissingCheckoutTab} className="gap-1.5 h-8 text-xs">
-                <Printer size={13} /> طباعة
-              </Button>
-            )}
           </div>
 
           {missingEmpRows.length === 0 ? (
@@ -1337,15 +1298,7 @@ export default function SalaryPenalties() {
       {tab === "insurance" && (
         <section className="rounded-xl border border-border bg-background">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div>
-              <h3 className="text-base font-semibold">خصم التأمينات</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">مبلغ ثابت يُخصم شهرياً من راتب كل موظف</p>
-            </div>
-            {latestByEmp.length > 0 && (
-              <Button variant="outline" size="sm" onClick={printInsuranceTab} className="gap-1.5 h-8 text-xs">
-                <Printer size={13} /> طباعة
-              </Button>
-            )}
+            <div />
           </div>
           <div className="hidden lg:block overflow-x-auto" dir="rtl">
             <table dir="rtl" className="w-full text-sm">

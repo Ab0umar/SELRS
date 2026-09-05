@@ -10,12 +10,9 @@ import {
   ChevronDown,
   History,
   Hospital,
-  KeyRound,
-  LogOut,
   MessageCircle,
   MoreHorizontal,
   Settings,
-  ShieldCheck,
   Stethoscope,
   UserCog,
   Users,
@@ -43,7 +40,7 @@ type HomeCard = {
   href?: string;
   permissionPaths?: string[];
   moreGroup?: string;
-  menu?: "more" | "account" | "employees" | "archive" | "section";
+  menu?: "more" | "account" | "employees" | "section";
   icon: LucideIcon;
   tone: string;
 };
@@ -54,8 +51,8 @@ const HOME_CARDS: HomeCard[] = [
     helper: "الحجوزات والمرضى",
     href: "/today",
     permissionPaths: ["/today", "/bookings", "/today-patients"],
-    icon: Hospital,
-    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
+    icon: CalendarCheck,
+    tone: "text-[#2a4f9a] bg-[#edf3ff]",
   },
   {
     label: "مسار اليوم",
@@ -108,9 +105,16 @@ const HOME_CARDS: HomeCard[] = [
   {
     label: "أرشيف",
     helper: "سجلات المرضى والعمليات",
-    href: "/admin/legacy-patients",
-    permissionPaths: ["/admin/legacy-patients", "/admin/op-history", "/medical-reference", "/patients-hub"],
-    menu: "archive",
+    href: "/archive",
+    permissionPaths: [
+      "/archive",
+      "/admin/legacy-patients",
+      "/admin-hub/legacy-patients",
+      "/admin/op-history",
+      "/admin-hub/op-history",
+      "/medical-reference",
+      "/patients-hub",
+    ],
     icon: History,
     tone: "text-[#6c4bb1] bg-[#f1edff]",
   },
@@ -140,7 +144,8 @@ const HOME_CARDS: HomeCard[] = [
   {
     label: "الحساب",
     helper: "الملف الشخصي والإعدادات",
-    menu: "account",
+    href: "/account",
+    permissionPaths: ["/account", "/profile"],
     icon: UserCog,
     tone: "text-[#8b5b18] bg-[#fff5df]",
   },
@@ -159,12 +164,6 @@ type MoreMenuGroup = {
 const EMPLOYEE_ITEMS = [
   { label: "الحضور", href: "/attendance", icon: CalendarCheck, permissionPaths: ["/attendance"] },
   { label: "المرتبات", href: "/salary", icon: Banknote, permissionPaths: ["/salary"] },
-];
-
-const ARCHIVE_ITEMS = [
-  { label: "سجل المرضى", href: "/admin/legacy-patients", icon: History, permissionPaths: ["/admin/legacy-patients", "/patients-hub"] },
-  { label: "سجل العمليات", href: "/admin/op-history", icon: Archive, permissionPaths: ["/admin/op-history"] },
-  { label: "المرجع الطبي", href: "/medical-reference", icon: ShieldCheck, permissionPaths: ["/medical-reference"] },
 ];
 
 const MORE_GROUPS: MoreMenuGroup[] = [
@@ -213,16 +212,6 @@ const MORE_GROUPS: MoreMenuGroup[] = [
       { label: "خطاب الإحالة", href: "/sheets/referral", icon: MessageCircle },
     ],
   },
-  {
-    label: "مركز الخدمات",
-    items: [
-      { label: "الأدوية", href: "/medications", icon: Stethoscope },
-      { label: "تحاليل وأشعة", href: "/examinations/catalog", icon: Activity },
-      { label: "أمراض", href: "/medications/registry?tab=diseases", icon: Hospital },
-      { label: "أعراض", href: "/medications/registry?tab=symptoms", icon: Activity },
-      { label: "TXHUB", href: "/txhub", icon: Hospital },
-    ],
-  },
 ];
 
 const HOME_CARD_ORDER = [
@@ -249,8 +238,10 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
   {
     label: "السجل",
     helper: "سجلات المرضى والعمليات",
-    href: "/patients-hub",
+    href: "/records/patients",
     permissionPaths: [
+      "/records/patients",
+      "/patients-records",
       "/patients-hub",
       "/medicalfile",
       "/followups",
@@ -258,54 +249,50 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
       "/admin/legacy-patients",
       "/admin/op-history",
     ],
-    moreGroup: "السجل",
-    menu: "section",
     icon: History,
     tone: "text-[#6c4bb1] bg-[#f1edff]",
   },
   {
     label: "البنتاكام",
     helper: "لوحات وشيتات البنتاكام",
-    href: "/sheets/pentacam/dashboard",
+    href: "/pentacam",
     permissionPaths: [
+      "/pentacam",
       "/sheets/pentacam/dashboard",
       "/sheets/pentacam",
       "/admin/pentacam",
     ],
-    moreGroup: "البنتاكام",
-    menu: "section",
     icon: Hospital,
     tone: "text-[#c2781c] bg-[#fff4e6]",
   },
   {
     label: "الشيتات",
     helper: "شيتات الكشف والمتابعة",
-    href: "/sheets/consultant",
+    href: "/sheets",
     permissionPaths: [
+      "/sheets",
       "/sheets/consultant",
       "/sheets/specialist",
       "/sheets/lasik",
       "/sheets/followup/consultant",
       "/sheets/followup/lasik",
     ],
-    moreGroup: "الشيتات",
-    menu: "section",
     icon: Stethoscope,
     tone: "text-[#157a67] bg-[#edf8f4]",
   },
   {
     label: "التقارير",
     helper: "التقارير والخطابات الطبية",
-    href: "/clinical-report",
+    href: "/reports",
     permissionPaths: [
+      "/reports",
+      "/clinical-reports",
       "/clinical-report",
       "/pre-post-op-report",
       "/post-op-offdays",
       "/medical-condition-report",
       "/sheets/referral",
     ],
-    moreGroup: "التقارير",
-    menu: "section",
     icon: Archive,
     tone: "text-[#4b5cc4] bg-[#eef0ff]",
   },
@@ -321,8 +308,6 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
       "/medications/registry?tab=symptoms",
       "/txhub",
     ],
-    moreGroup: "مركز الخدمات",
-    menu: "section",
     icon: Settings,
     tone: "text-[#334c80] bg-[#edf2fb]",
   },
@@ -338,7 +323,7 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
 ];
 
 export default function MainHome() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [openMoreGroup, setOpenMoreGroup] = useState<string | null>(null);
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
@@ -381,7 +366,6 @@ export default function MainHome() {
       ) as HomeCard[];
 
       return orderedCards.filter((card) => {
-        if (card.menu === "account") return true;
         if (card.menu === "employees") return visibleEmployeeItems.length > 0;
         if (card.moreGroup) {
           return visibleMoreGroups.some((group) => group.label === card.moreGroup);
@@ -483,46 +467,6 @@ export default function MainHome() {
       );
     }
 
-    if (card.menu === "archive") {
-      const visibleArchiveItems = ARCHIVE_ITEMS.filter((item) =>
-        canAccess(item.permissionPaths),
-      );
-      return (
-        <DropdownMenu key={card.label}>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className={cardClassName}>
-              {cardContent}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="w-64 rounded-2xl p-1.5"
-            style={{ direction: "rtl" }}
-          >
-            <DropdownMenuLabel className="px-3 py-2 text-sm font-black">
-              أرشيف
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {visibleArchiveItems.map((item) => {
-              const ItemIcon = item.icon;
-              return (
-                <DropdownMenuItem
-                  key={item.href}
-                  asChild
-                  className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold"
-                >
-                  <Link href={item.href}>
-                    <ItemIcon className="size-4 text-muted-foreground" />
-                    {item.label}
-                  </Link>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-
     if (card.menu === "section" && card.moreGroup) {
       const group = MORE_GROUPS.find((item) => item.label === card.moreGroup);
       const items = group?.items.filter((item) =>
@@ -596,66 +540,6 @@ export default function MainHome() {
                 </DropdownMenuItem>
               );
             })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-
-    if (card.menu === "account") {
-      return (
-        <DropdownMenu key={card.label}>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className={cardClassName}>
-              {cardContent}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="w-64 rounded-2xl p-1.5"
-            style={{ direction: "rtl" }}
-          >
-            <DropdownMenuLabel className="px-3 py-2 text-sm font-black">
-              الحساب
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold">
-              <Link href="/profile">
-                <UserCog className="size-4 text-muted-foreground" />
-                الملف الشخصي
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold">
-              <Link href="/attendance/my">
-                <CalendarCheck className="size-4 text-muted-foreground" />
-                حضوري
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold">
-              <Link href="/admin-hub">
-                <Settings className="size-4 text-muted-foreground" />
-                مركز الإدارة
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold">
-              <Link href="/profile">
-                <ShieldCheck className="size-4 text-muted-foreground" />
-                Account Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold">
-              <Link href="/profile">
-                <KeyRound className="size-4 text-muted-foreground" />
-                تغيير كلمة المرور
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-destructive focus:text-destructive"
-              onClick={() => void logout()}
-            >
-              <LogOut className="size-4" />
-              خروج
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

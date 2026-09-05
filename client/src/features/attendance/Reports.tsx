@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Calendar, Printer } from "lucide-react";
-import { DateInput } from "@/components/ui/date-input";
+import { Download, Printer } from "lucide-react";
 import { useIsMobile } from "@/hooks/useMobile";
+import { ReportToolbar } from "./ReportToolbar";
 
 type ReportTab =
   | "summary"
@@ -17,27 +17,19 @@ type ReportTab =
   | "monthly";
 
 const todayStr = new Date().toISOString().split("T")[0];
-const firstOfMonth = new Date(
-  new Date().getFullYear(),
-  new Date().getMonth(),
-  1,
-)
-  .toISOString()
-  .split("T")[0];
-
-export default function Reports({ department }: { department?: string }) {
+export default function Reports({
+  from,
+  to,
+  department,
+}: {
+  from: string;
+  to: string;
+  department?: string;
+}) {
   const isMobile = useIsMobile();
-  const [dates, setDates] = useState({ from: firstOfMonth, to: todayStr });
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
-  const [balanceYear, setBalanceYear] = useState(new Date().getFullYear());
-
-  const selectedDays = (() => {
-    const from = new Date(`${dates.from}T00:00:00`);
-    const to = new Date(`${dates.to}T00:00:00`);
-    if (Number.isNaN(from.valueOf()) || Number.isNaN(to.valueOf()) || to < from)
-      return 0;
-    return Math.floor((to.valueOf() - from.valueOf()) / 86_400_000) + 1;
-  })();
+  const dates = useMemo(() => ({ from, to }), [from, to]);
+  const balanceYear = Number(to.slice(0, 4));
 
   const rangeQuery = trpc.attendance.rangeReport.useQuery({
     from: dates.from,
@@ -323,186 +315,54 @@ export default function Reports({ department }: { department?: string }) {
         : rangeQuery.isLoading;
 
   const activeLabel = tabs.find((t) => t.key === activeTab)?.label ?? "";
-  const summaryCards = [
-    {
-      label: "أيام الحضور",
-      value: summaryData.reduce((sum, row) => sum + Number(row.حاضر ?? 0), 0),
-      tone: "primary",
-    },
-    {
-      label: "التأخير",
-      value: summaryData.reduce(
-        (sum, row) => sum + Number(row["تأخير (د)"] ?? 0),
-        0,
-      ),
-      tone: "destructive",
-    },
-    {
-      label: "الغياب",
-      value: summaryData.reduce((sum, row) => sum + Number(row.غائب ?? 0), 0),
-      tone: "warning",
-    },
-    {
-      label: "الإضافي",
-      value: summaryData.reduce(
-        (sum, row) => sum + Number(row["إضافي (د)"] ?? 0),
-        0,
-      ),
-      tone: "success",
-    },
-  ];
-
   return (
-    <div className="p-6 max-w-7xl mx-auto" dir="rtl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground">تقارير الحضور</h1>
-          <p className="text-sm text-muted-foreground">
-            ملخصات ملوّنة للحضور، الأذونات، الإجازات، والسجلات الخام.
-          </p>
-        </div>
-        <span
-          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${tabToneClasses[activeTab]}`}
+    <div className="p-6 w-full" dir="rtl">
+      <ReportToolbar>
+        <div
+          role="tablist"
+          aria-label="أنواع التقارير"
+          className="flex flex-wrap gap-2"
         >
-          <span className="h-2 w-2 rounded-full bg-current" aria-hidden />
-          {activeLabel || "التقارير"}
-        </span>
-      </div>
-
-      <Card className="mb-6 border-border bg-muted/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="h-5 w-5 text-primary" />
-            اختيار الفترة
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 items-end flex-wrap">
-            <div className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
-              <label
-                htmlFor="attendance-report-from"
-                className="block text-sm font-medium text-muted-foreground"
-              >
-                من
-              </label>
-              <DateInput
-                id="attendance-report-from"
-                value={dates.from}
-                onChange={(e) => setDates({ ...dates, from: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
-            <div className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
-              <label
-                htmlFor="attendance-report-to"
-                className="block text-sm font-medium text-muted-foreground"
-              >
-                إلى
-              </label>
-              <DateInput
-                id="attendance-report-to"
-                value={dates.to}
-                onChange={(e) => setDates({ ...dates, to: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                rangeQuery.refetch();
-                permQuery.refetch();
-              }}
-              variant="outline"
-              className="w-full border-primary/20 text-primary hover:bg-primary/10 sm:w-auto"
+          {tabs.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveTab(key)}
+              className={`h-10 rounded-lg border px-3 text-sm font-semibold ${
+                activeTab === key
+                  ? tabToneClasses[key]
+                  : "border-border text-muted-foreground hover:bg-muted"
+              }`}
             >
-              تحديث البيانات
-            </Button>
-
-            {activeTab === "leaves" && (
-              <div className="mr-auto flex flex-wrap items-end gap-2">
-                <div className="min-w-[9rem] space-y-1">
-                  <label
-                    htmlFor="attendance-balance-year"
-                    className="block text-sm font-medium text-muted-foreground"
-                  >
-                    سنة الرصيد
-                  </label>
-                  <input
-                    id="attendance-balance-year"
-                    type="number"
-                    min={2020}
-                    max={2099}
-                    value={balanceYear}
-                    onChange={(e) => setBalanceYear(parseInt(e.target.value))}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
-                  />
-                </div>
-                <Button
-                  onClick={() => balanceQuery.refetch()}
-                  variant="outline"
-                  className="w-full border-success/20 text-success hover:bg-success/10 sm:w-auto"
-                >
-                  تحديث الرصيد
-                </Button>
-              </div>
-            )}
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            الفترة المختارة: من {dates.from} إلى {dates.to}
-            {selectedDays > 0 ? ` (${selectedDays} يوم)` : ""}
-          </p>
-        </CardContent>
-      </Card>
-
-      {activeRows().length > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {summaryCards.map((card) => (
-            <Card
-              key={card.label}
-              className="overflow-hidden border-border bg-background"
-            >
-              <CardContent className="space-y-2 px-4 py-4">
-                <div
-                  className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                    card.tone === "primary"
-                      ? "border-primary/20 bg-primary/10 text-primary"
-                      : card.tone === "destructive"
-                        ? "border-destructive/20 bg-destructive/10 text-destructive"
-                        : card.tone === "warning"
-                          ? "border-warning/30 bg-warning/10 text-warning"
-                          : "border-success/20 bg-success/10 text-success"
-                  }`}
-                >
-                  <span
-                    className="h-2 w-2 rounded-full bg-current"
-                    aria-hidden
-                  />
-                  {card.label}
-                </div>
-                <div
-                  className={`text-2xl font-bold tabular-nums ${
-                    card.tone === "primary"
-                      ? "text-primary"
-                      : card.tone === "destructive"
-                        ? "text-destructive"
-                        : card.tone === "warning"
-                          ? "text-warning"
-                          : "text-success"
-                  }`}
-                >
-                  {card.value}
-                </div>
-              </CardContent>
-            </Card>
+              {label}
+            </button>
           ))}
         </div>
-      )}
-
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            handleExportCSV(activeRows(), `${activeLabel}-${dates.from}-${dates.to}.csv`)
+          }
+          disabled={!activeRows().length}
+        >
+          <Download className="w-4 h-4" /> تصدير CSV
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePrint(activeRows(), activeLabel)}
+          disabled={!activeRows().length}
+        >
+          <Printer className="w-4 h-4" /> طباعة / PDF
+        </Button>
+      </ReportToolbar>
       <Card>
         <CardHeader>
           <div
             role="tablist"
             aria-label="أنواع التقارير"
-            className="flex flex-wrap gap-2 border-b border-border overflow-x-auto"
+            className="hidden"
           >
             {tabs.map(({ key, label }) => (
               <button
@@ -531,7 +391,7 @@ export default function Reports({ department }: { department?: string }) {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="mb-4 flex flex-wrap gap-2">
+          <div className="hidden">
             <Button
               variant="outline"
               size="sm"

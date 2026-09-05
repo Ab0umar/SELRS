@@ -1,18 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { DateInput } from "@/components/ui/date-input";
 
 const now = new Date();
 function isoMonth(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-const DEFAULT_FROM = `${isoMonth(now)}-01`;
-const DEFAULT_TO = (() => {
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return `${isoMonth(last)}-${String(last.getDate()).padStart(2, "0")}`;
+const defaultPayrollEnd = new Date(
+  now.getFullYear(),
+  now.getMonth() - (now.getDate() < 25 ? 1 : 0),
+  25,
+);
+const DEFAULT_FROM = (() => {
+  const previousMonth = new Date(defaultPayrollEnd.getFullYear(), defaultPayrollEnd.getMonth() - 1, 26);
+  return `${isoMonth(previousMonth)}-26`;
 })();
+const DEFAULT_TO = `${isoMonth(defaultPayrollEnd)}-25`;
 
 function fmtAr(d: string) {
   if (!d) return "-";
@@ -32,9 +37,23 @@ const PRINT_CSS = `
   .total-row { background: #eee; font-weight: bold; }
 `;
 
-export default function AbsentReport() {
-  const [fromDate, setFromDate] = useState(DEFAULT_FROM);
-  const [toDate, setToDate] = useState(DEFAULT_TO);
+export default function AbsentReport({
+  sharedFromDate,
+  sharedToDate,
+  onFromDateChange,
+  onToDateChange,
+}: {
+  sharedFromDate?: string;
+  sharedToDate?: string;
+  onFromDateChange?: (value: string) => void;
+  onToDateChange?: (value: string) => void;
+}) {
+  const [localFromDate, setLocalFromDate] = useState(DEFAULT_FROM);
+  const [localToDate, setLocalToDate] = useState(DEFAULT_TO);
+  const fromDate = sharedFromDate ?? localFromDate;
+  const toDate = sharedToDate ?? localToDate;
+  const setFromDate = onFromDateChange ?? setLocalFromDate;
+  const setToDate = onToDateChange ?? setLocalToDate;
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const toggleRow = (empCd: string) => {
     setExpandedRows((prev) => ({ ...prev, [empCd]: !prev[empCd] }));
@@ -58,6 +77,11 @@ export default function AbsentReport() {
   );
 
   const periodLabel = `${fmtAr(fromDate)} — ${fmtAr(toDate)}`;
+
+  const [actionsHost, setActionsHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setActionsHost(document.getElementById("salary-penalties-actions"));
+  }, []);
 
   function handlePrint() {
     const bodyRows = empEntries
@@ -113,64 +137,17 @@ export default function AbsentReport() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            مسار المتغيرات الشهرية
-          </p>
-          <h2 className="text-2xl font-bold text-foreground">تقرير الغياب</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            مراجعة الغياب المؤثر على خصومات الشهر.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DateInput
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          />
-          <span className="text-sm text-muted-foreground">—</span>
-          <DateInput
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          />
-          <Button
-            variant="outline"
-            onClick={handlePrint}
-            className="gap-2"
-            disabled={absentQ.isLoading}
-          >
-            <Printer size={15} /> طباعة
-          </Button>
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card px-4 py-3">
-          <div className="text-xs text-muted-foreground">
-            إجمالي أيام الغياب
-          </div>
-          <div className="mt-1 text-2xl font-bold text-destructive">
-            {rows.length} يوم
-          </div>
-        </div>
-        <div className="rounded-xl border border-border bg-card px-4 py-3">
-          <div className="text-xs text-muted-foreground">
-            عدد الموظفين المتغيبين
-          </div>
-          <div className="mt-1 text-2xl font-bold text-foreground">
-            {empEntries.length}
-          </div>
-        </div>
-        <div className="rounded-xl border border-border bg-card px-4 py-3">
-          <div className="text-xs text-muted-foreground">الفترة</div>
-          <div className="mt-1 text-sm font-semibold text-foreground">
-            {periodLabel}
-          </div>
-        </div>
-      </div>
+      {actionsHost && createPortal(
+        <Button
+          variant="outline"
+          onClick={handlePrint}
+          className="gap-2"
+          disabled={absentQ.isLoading}
+        >
+          <Printer size={16} /> طباعة
+        </Button>,
+        actionsHost,
+      )}
 
       {absentQ.isLoading && (
         <p className="text-sm text-muted-foreground animate-pulse">

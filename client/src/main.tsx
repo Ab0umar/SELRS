@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { Suspense, lazy } from "react";
@@ -250,9 +251,13 @@ if (Capacitor.isNativePlatform()) {
 
 const hideBootSplash = () => {
   const splash = document.getElementById("boot-splash");
-  if (!splash || splash.classList.contains("is-hidden")) return;
-  splash.classList.add("is-hidden");
-  window.setTimeout(() => splash.remove(), 260);
+  if (splash && !splash.classList.contains("is-hidden")) {
+    splash.classList.add("is-hidden");
+    window.setTimeout(() => splash.remove(), 260);
+  }
+  if (Capacitor.isNativePlatform()) {
+    SplashScreen.hide().catch(() => {});
+  }
 };
 
 const clearStoredSession = () => {
@@ -334,10 +339,11 @@ window.addEventListener("error", (event) => {
   });
 });
 
+// Only the real app-ready signal (or the safety timeout below) may dismiss the
+// loader — DOMContentLoaded/load fire long before auth/data are resolved and
+// would reveal a blank shell underneath, especially on the native cold start.
 window.addEventListener("selrs-shell-ready", hideBootSplash, { once: true });
-document.addEventListener("DOMContentLoaded", hideBootSplash, { once: true });
-window.addEventListener("load", hideBootSplash, { once: true });
-window.setTimeout(hideBootSplash, 6000);
+window.setTimeout(hideBootSplash, 8000);
 window.addEventListener("unhandledrejection", (event) => {
   const reason = event.reason;
   if (reason instanceof TRPCClientError) return;

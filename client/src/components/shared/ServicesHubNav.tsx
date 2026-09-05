@@ -34,7 +34,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
   },
   {
     id: "medications",
-    href: "/medications",
+    href: "/services-hub/medications",
     title: "الأدوية",
     description: "قائمة الأدوية والإدارة التشغيلية.",
     icon: Pill,
@@ -42,7 +42,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
   },
   {
     id: "registry",
-    href: "/medications/registry",
+    href: "/services-hub/registry",
     title: "السجل",
     description: "الأدوية والفحوصات والأمراض والأعراض.",
     icon: LayoutGrid,
@@ -50,7 +50,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
   },
   {
     id: "catalog",
-    href: "/examinations/catalog",
+    href: "/services-hub/catalog",
     title: "كتالوج الفحوصات",
     description: "تعريف الفحوصات والمرجع الطبيعي.",
     icon: FlaskConical,
@@ -66,7 +66,7 @@ const SURFACE_ITEMS: HubNavItem[] = [
   },
   {
     id: "txhub",
-    href: "/txhub",
+    href: "/services-hub/txhub",
     title: "ربط النتائج",
     description: "استيراد النتائج الخارجية وربطها بالمدى الطبيعي.",
     icon: Network,

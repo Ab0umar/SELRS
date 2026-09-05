@@ -1405,7 +1405,7 @@ export default function Dashboard() {
       className="min-h-screen bg-background text-foreground p-4 sm:p-6"
       dir="rtl"
     >
-      <div className="mx-auto w-full max-w-[1600px] space-y-6">
+      <div className="w-full space-y-6">
         {medicalFilePortal}
         <OperationsBookingQuickDialog
           open={bookingOpen}

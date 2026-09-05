@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Clock, Download, Printer } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
+import { ReportToolbar } from "./ReportToolbar";
 
 const todayStr = new Date().toISOString().split("T")[0];
 const firstOfMonth = new Date(
@@ -16,10 +16,22 @@ const firstOfMonth = new Date(
   .toISOString()
   .split("T")[0];
 
-export default function PermissionReport({ department }: { department?: string }) {
+export default function PermissionReport({
+  from: reportFrom,
+  to: reportTo,
+  department,
+}: {
+  from: string;
+  to: string;
+  department?: string;
+}) {
   const isMobile = useIsMobile();
   const [from, setFrom] = useState(firstOfMonth);
   const [to, setTo] = useState(todayStr);
+  useEffect(() => {
+    setFrom(reportFrom);
+    setTo(reportTo);
+  }, [reportFrom, reportTo]);
 
   const query = trpc.attendance.permissionReport.useQuery({ from, to, department });
   const rows: any[] = (query.data as any[]) ?? [];
@@ -130,45 +142,19 @@ export default function PermissionReport({ department }: { department?: string }
   ];
 
   return (
-    <div className="mx-auto max-w-5xl p-6" dir="rtl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground">تقرير الأذونات</h1>
-          <p className="text-sm text-muted-foreground">
-            أذونات الدخول والخروج تظهر الآن بلون مختلف عن المجاميع والرصيد.
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-2 rounded-full border border-info/20 bg-info/10 px-3 py-1 text-xs font-semibold text-info">
-          <Clock className="h-3.5 w-3.5" />
-          {from} — {to}
-        </span>
-      </div>
-
-      <Card className="mb-6 border-border bg-muted/20">
+    <div className="w-full p-0" dir="rtl">
+      <ReportToolbar>
+        <Button onClick={() => query.refetch()} variant="outline">تحديث</Button>
+        <Button variant="outline" onClick={handleExport} disabled={!rows.length}>
+          <Download className="h-4 w-4" /> تصدير CSV
+        </Button>
+        <Button variant="outline" onClick={handlePrint} disabled={!rows.length}>
+          <Printer className="h-4 w-4" /> طباعة / PDF
+        </Button>
+      </ReportToolbar>
+      <Card className="hidden">
         <CardContent className="pt-4">
           <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
-                من
-              </label>
-              <DateInput
-                value={from}
-                max={to}
-                onChange={(e) => setFrom(e.target.value)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-muted-foreground">
-                إلى
-              </label>
-              <DateInput
-                value={to}
-                min={from}
-                onChange={(e) => setTo(e.target.value)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-            </div>
             <Button
               onClick={() => query.refetch()}
               variant="outline"

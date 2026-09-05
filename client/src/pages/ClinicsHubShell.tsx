@@ -15,6 +15,8 @@ import {
 import ExaminationForm from "./ExaminationForm";
 import MedicalReports from "./MedicalReports";
 import PatientSummary from "./PatientSummary";
+import PentacamPage from "./PentacamPage";
+import MedicalRecordsPage from "./MedicalRecordsPage";
 import PentacamResultsDashboard from "./PentacamResultsDashboard";
 import PrescriptionsList from "./PrescriptionsList";
 import RefractionsDashboard from "./RefractionsDashboard";
@@ -121,14 +123,15 @@ export default function ClinicsHubShell() {
       );
     }
     if (location === "/clinics-hub/examination") return <ExaminationForm />;
-    if (location === "/clinics-hub/medical-reports") return <MedicalReports />;
+    if (location === "/clinics-hub/medical-reports")
+      return <MedicalRecordsPage defaultTab="medical-reports" embeddedInHub />;
     if (location === "/clinics-hub/patient-summary") return <PatientSummary />;
     if (location === "/clinics-hub/pentacam")
-      return <PentacamResultsDashboard />;
+      return <PentacamPage defaultTab="dashboard" embeddedInHub />;
     if (location === "/clinics-hub/refractions-dashboard")
-      return <RefractionsDashboard />;
+      return <MedicalRecordsPage defaultTab="refraction" embeddedInHub />;
     if (location === "/clinics-hub/autorefs-dashboard")
-      return <AutorefsDashboard />;
+      return <MedicalRecordsPage defaultTab="autoref" embeddedInHub />;
     if (location === "/clinics-hub/prescriptions-dashboard")
       return <PrescriptionsDashboard />;
     if (location === "/clinics-hub/prescriptions") return <PrescriptionsList />;
@@ -230,7 +233,7 @@ export default function ClinicsHubShell() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-right"
+      className="w-full space-y-5 px-4 py-6 sm:px-6 pb-10 text-right"
       dir="rtl"
     >
       {!isHubHome ? (

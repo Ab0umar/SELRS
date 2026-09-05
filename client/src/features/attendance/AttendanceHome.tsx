@@ -168,13 +168,8 @@ export default function AttendanceHome() {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto" dir="rtl">
+    <div className="w-full space-y-8" dir="rtl">
       
-      {/* ── Page Title ── */}
-      <div className="pb-2 border-b border-slate-200">
-        <h1 className="text-xl font-black text-slate-900">مكتب عمليات الحضور اليومي</h1>
-        <p className="text-xs text-slate-400 mt-1">تخطيط هيكلي جديد ينظم العمليات كخطوط تغطية ونوبات مرئية بدلاً من البطاقات التقليدية</p>
-      </div>
 
       {/* ── Main Redesigned Layout Structure ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -184,14 +179,12 @@ export default function AttendanceHome() {
           
           {/* Section A: Visual Shift Coverage Timelines */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-450 uppercase tracking-wider">تغطية نوبات العمل اليوم (Shift Timeline Roster)</h3>
             
             <div className="space-y-4">
               {/* Morning Shift Timeline */}
               <div className="p-5 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm">
                 <div className="flex justify-between items-center text-xs">
                   <div>
-                    <span className="font-bold text-slate-800">الوردية الصباحية</span>
                     <span className="text-[10px] text-slate-400 block font-mono">10:00 ص - 04:00 م</span>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold ${getMorningBadgeClass()}`}>
@@ -217,7 +210,6 @@ export default function AttendanceHome() {
               <div className="p-5 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm">
                 <div className="flex justify-between items-center text-xs">
                   <div>
-                    <span className="font-bold text-slate-800">الوردية المسائية</span>
                     <span className="text-[10px] text-slate-400 block font-mono">01:00 م - 07:00 م</span>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold ${getEveningBadgeClass()}`}>

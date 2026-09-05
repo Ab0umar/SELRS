@@ -211,38 +211,15 @@ export const adminNavGroups: NavGroup[] = [
     items: [{ icon: FileText, label: "ملف المريض", path: "/medicalfile" }],
   },
   {
-    label: "القياسات",
+    label: "السجلات الطبية",
     navKey: "clinics-measurements",
-    groupPath: "/sheets/refractions/dashboard",
+    groupPath: "/records/medical",
     items: [
       {
         icon: Activity,
-        label: "لوحة Autoref",
-        path: "/sheets/autorefs/dashboard",
+        label: "السجلات الطبية",
+        path: "/records/medical",
       },
-      {
-        icon: Glasses,
-        label: "لوحة الانكسارات",
-        path: "/sheets/refractions/dashboard",
-      },
-    ],
-  },
-  {
-    label: "البنتاكام",
-    navKey: "clinics-pentacam",
-    groupPath: "/sheets/pentacam/dashboard",
-    items: [
-      {
-        icon: CircleDot,
-        label: "لوحة البنتاكام",
-        path: "/sheets/pentacam/dashboard",
-      },
-      {
-        icon: FileSpreadsheet,
-        label: "شيتات البنتاكام",
-        path: "/sheets/pentacam",
-      },
-      { icon: Eye, label: "البنتاكام (إداري)", path: "/admin/pentacam" },
     ],
   },
   {
@@ -266,49 +243,17 @@ export const adminNavGroups: NavGroup[] = [
   {
     label: "الشيتات",
     navKey: "clinics-sheets",
-    groupPath: "/sheets/consultant",
+    groupPath: "/sheets",
     items: [
-      { icon: Stethoscope, label: "شيت كشف", path: "/sheets/consultant" },
-      {
-        icon: UserRound,
-        label: "شيت مقاس نظاره / اشعه خارجي",
-        path: "/sheets/specialist",
-      },
-      { icon: Zap, label: "شيت تصحيح ابصار", path: "/sheets/lasik" },
-      {
-        icon: Repeat,
-        label: "متابعة الاستشاري",
-        path: "/sheets/followup/consultant",
-      },
-      {
-        icon: Repeat,
-        label: "متابعة الليزك",
-        path: "/sheets/followup/lasik",
-      },
+      { icon: FileSpreadsheet, label: "الشيتات الطبية", path: "/sheets" },
     ],
   },
   {
     label: "التقارير",
     navKey: "clinics-reports",
-    groupPath: "/clinical-report",
+    groupPath: "/reports",
     items: [
-      { icon: FileText, label: "التقرير الشامل", path: "/clinical-report" },
-      {
-        icon: FileCheck2,
-        label: "تقرير ما قبل وبعد العملية",
-        path: "/pre-post-op-report",
-      },
-      {
-        icon: CalendarOff,
-        label: "إجازة ما بعد العملية",
-        path: "/post-op-offdays",
-      },
-      {
-        icon: FileWarning,
-        label: "تقرير حالة طبية",
-        path: "/medical-condition-report",
-      },
-      { icon: Send, label: "خطاب الإحالة", path: "/sheets/referral" },
+      { icon: FileText, label: "التقارير الطبية", path: "/reports" },
     ],
   },
   {
@@ -322,20 +267,13 @@ export const adminNavGroups: NavGroup[] = [
   {
     label: "المرضى",
     navKey: "patients",
-    groupPath: "/patients-hub",
+    groupPath: "/records/patients",
     items: [
       { icon: FileText, label: "ملف المريض", path: "/medicalfile" },
-      { icon: Repeat, label: "المتابعات", path: "/followups" },
-      { icon: CalendarCheck, label: "الزيارات", path: "/visits" },
       {
         icon: History,
-        label: "سجل المرضى",
-        path: "/admin-hub/legacy-patients",
-      },
-      {
-        icon: ScrollText,
-        label: "سجل العمليات",
-        path: "/admin-hub/op-history",
+        label: "سجلات المرضى",
+        path: "/records/patients",
       },
     ],
   },
@@ -343,25 +281,7 @@ export const adminNavGroups: NavGroup[] = [
     label: "مركز الخدمات",
     navKey: "services",
     groupPath: "/services-hub",
-    items: [
-      { icon: Pill, label: "الأدوية", path: "/medications" },
-      {
-        icon: FlaskConical,
-        label: "تحاليل وأشعة",
-        path: "/examinations/catalog",
-      },
-      {
-        icon: Stethoscope,
-        label: "أمراض",
-        path: "/medications/registry?tab=diseases",
-      },
-      {
-        icon: ClipboardList,
-        label: "أعراض",
-        path: "/medications/registry?tab=symptoms",
-      },
-      { icon: Network, label: "TXHUB", path: "/txhub" },
-    ],
+    items: [{ icon: Pill, label: "مركز الخدمات", path: "/services-hub" }],
   },
 ];
 
