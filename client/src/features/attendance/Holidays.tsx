@@ -179,7 +179,7 @@ export default function Holidays() {
               ))}
             </div>
           ) : !holidays.length ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               لا توجد إجازات لهذا العام
             </div>
           ) : isMobile ? (
@@ -236,7 +236,7 @@ export default function Holidays() {
                             size="sm"
                             onClick={() => setEditingDate(null)}
                           >
-                            <X size={15} className="text-gray-500" />
+                            <X size={15} className="text-muted-foreground" />
                           </Button>
                         </div>
                       </div>
@@ -247,7 +247,7 @@ export default function Holidays() {
                           {h.paid ? (
                             <span className="text-xs text-success">مدفوعة</span>
                           ) : (
-                            <span className="text-xs text-gray-400">غير مدفوعة</span>
+                            <span className="text-xs text-muted-foreground">غير مدفوعة</span>
                           )}
                         </div>
                         <div className="flex gap-1">
@@ -280,7 +280,7 @@ export default function Holidays() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm" dir="rtl">
                 <thead>
-                  <tr className="border-b bg-gray-50">
+                  <tr className="border-b bg-muted/40">
                     <th className="text-right py-3 px-4">التاريخ</th>
                     <th className="text-right py-3 px-4">اسم العطلة</th>
                     <th className="text-right py-3 px-4">مدفوعة</th>
@@ -293,7 +293,7 @@ export default function Holidays() {
                     return (
                       <tr
                         key={h.date}
-                        className={`border-b ${isEditing ? "bg-primary/10" : "hover:bg-gray-50"}`}
+                        className={`border-b ${isEditing ? "bg-primary/10" : "hover:bg-muted/40"}`}
                       >
                         <td className="py-2 px-4 font-mono">{h.date}</td>
                         {isEditing ? (
@@ -346,7 +346,7 @@ export default function Holidays() {
                                   size="sm"
                                   onClick={() => setEditingDate(null)}
                                 >
-                                  <X size={15} className="text-gray-500" />
+                                  <X size={15} className="text-muted-foreground" />
                                 </Button>
                               </div>
                             </td>
@@ -358,7 +358,7 @@ export default function Holidays() {
                               {h.paid ? (
                                 <span className="text-success">نعم</span>
                               ) : (
-                                <span className="text-gray-400">لا</span>
+                                <span className="text-muted-foreground">لا</span>
                               )}
                             </td>
                             <td className="py-2 px-4">

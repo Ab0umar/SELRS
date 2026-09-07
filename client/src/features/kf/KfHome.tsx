@@ -90,7 +90,7 @@ export default function KfHome() {
   const handleChange = (key: keyof typeof initialForm, value: string) => {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      
+
       // Auto-sync Age and Date of Birth
       if (key === "dateOfBirth" && value) {
         const dob = new Date(value);
@@ -123,12 +123,12 @@ export default function KfHome() {
     });
 
     if (errors[key]) {
-      setErrors((prev) => { 
-        const c = { ...prev }; 
+      setErrors((prev) => {
+        const c = { ...prev };
         delete c[key];
         if (key === "age") delete c.dateOfBirth;
         if (key === "dateOfBirth") delete c.age;
-        return c; 
+        return c;
       });
     }
   };
@@ -186,10 +186,10 @@ export default function KfHome() {
     <section dir="rtl" className="space-y-12 pb-12">
       {/* ── Main Layout: Split Form and Feeds ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
-        
+
         {/* Left Column: Quick Registration (tabbed: patient / ledger) */}
         <div className="xl:col-span-9 flex flex-col print:hidden">
-          <div className="mb-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="mb-6 border-b border-border/60">
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -197,8 +197,8 @@ export default function KfHome() {
                 className={cn(
                   "flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 -mb-px transition-colors",
                   leftTab === "patient"
-                    ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-                    : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white",
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 <UserPlus className="h-4 w-4" />
@@ -210,8 +210,8 @@ export default function KfHome() {
                 className={cn(
                   "flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 -mb-px transition-colors",
                   leftTab === "ledger"
-                    ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
-                    : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white",
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Wallet className="h-4 w-4" />
@@ -225,31 +225,31 @@ export default function KfHome() {
             {/* Row 1: الاسم الرباعي | تاريخ الميلاد | السن */}
             <div className="grid grid-cols-4 gap-4">
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="kh-name" className="text-sm font-semibold text-slate-900 dark:text-slate-200">الاسم الرباعي <span className="text-rose-500">*</span></Label>
+                <Label htmlFor="kh-name" className="text-sm font-semibold text-foreground">الاسم الرباعي <span className="text-rose-500">*</span></Label>
                 <Input
                   id="kh-name"
                   placeholder="مثال: محمد أحمد علي محمود"
                   value={form.fullName}
                   onChange={(e) => handleChange("fullName", e.target.value)}
                   className={cn(
-                    "h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800",
-                    errors.fullName && "border-rose-500"
+                    "h-12 bg-muted/40 border-border/60",
+                    errors.fullName && "border-primary"
                   )}
                 />
                 {errors.fullName && <p className="text-xs font-medium text-rose-500 mt-1">{errors.fullName}</p>}
               </div>
               <div className="space-y-2 col-span-1">
-                <Label htmlFor="kh-dob" className="text-sm font-semibold text-slate-900 dark:text-slate-200">تاريخ الميلاد</Label>
+                <Label htmlFor="kh-dob" className="text-sm font-semibold text-foreground">تاريخ الميلاد</Label>
                 <DateInput
                   id="kh-dob"
                   value={form.dateOfBirth}
                   onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                  className="h-12 w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  className="h-12 w-full bg-muted/40 border-border/60"
                   inputClassName="h-11 w-full"
                 />
               </div>
               <div className="space-y-2 col-span-1">
-                <Label htmlFor="kh-age" className="text-sm font-semibold text-slate-900 dark:text-slate-200">السن</Label>
+                <Label htmlFor="kh-age" className="text-sm font-semibold text-foreground">السن</Label>
                 <Input
                   id="kh-age"
                   type="number"
@@ -257,7 +257,7 @@ export default function KfHome() {
                   placeholder="45"
                   value={form.age}
                   onChange={(e) => handleChange("age", e.target.value)}
-                  className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  className="h-12 bg-muted/40 border-border/60"
                 />
               </div>
             </div>
@@ -265,9 +265,9 @@ export default function KfHome() {
             {/* Row 2: النوع | رقم الهاتف | الوظيفه */}
             <div className="grid grid-cols-4 gap-4">
               <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-slate-900 dark:text-slate-200">النوع</Label>
+                <Label className="text-sm font-semibold text-foreground">النوع</Label>
                 <Select value={form.gender} onValueChange={(v: "male" | "female") => handleChange("gender", v)}>
-                  <SelectTrigger className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                  <SelectTrigger className="h-12 bg-muted/40 border-border/60">
                     <SelectValue placeholder="اختر..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -277,24 +277,24 @@ export default function KfHome() {
                 </Select>
               </div>
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="kh-phone" className="text-sm font-semibold text-slate-900 dark:text-slate-200">رقم الهاتف</Label>
+                <Label htmlFor="kh-phone" className="text-sm font-semibold text-foreground">رقم الهاتف</Label>
                 <Input
                   id="kh-phone"
                   placeholder="01xxxxxxxxx"
                   value={form.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
-                  className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-left"
+                  className="h-12 bg-muted/40 border-border/60 text-left"
                   dir="ltr"
                 />
               </div>
               <div className="space-y-2 col-span-1">
-                <Label htmlFor="kh-job" className="text-sm font-semibold text-slate-900 dark:text-slate-200">الوظيفة</Label>
+                <Label htmlFor="kh-job" className="text-sm font-semibold text-foreground">الوظيفة</Label>
                 <Input
                   id="kh-job"
                   placeholder="مثال: مدرس"
                   value={form.occupation}
                   onChange={(e) => handleChange("occupation", e.target.value)}
-                  className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  className="h-12 bg-muted/40 border-border/60"
                 />
               </div>
             </div>
@@ -302,9 +302,9 @@ export default function KfHome() {
             {/* Row 3: الطبيب | ملاحظات \ تاريخ مرضي */}
             <div className="grid grid-cols-4 gap-4">
               <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-slate-900 dark:text-slate-200">الطبيب</Label>
+                <Label className="text-sm font-semibold text-foreground">الطبيب</Label>
                 <Select value={form.doctorName} onValueChange={(v) => handleChange("doctorName", v)}>
-                  <SelectTrigger className="h-12 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                  <SelectTrigger className="h-12 bg-muted/40 border-border/60">
                     <SelectValue placeholder="تحديد الطبيب..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -314,92 +314,92 @@ export default function KfHome() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2 col-span-3">
-                <Label htmlFor="kh-history" className="text-sm font-semibold text-slate-900 dark:text-slate-200">ملاحظات \ تاريخ مرضي</Label>
+                <Label htmlFor="kh-history" className="text-sm font-semibold text-foreground">ملاحظات \ تاريخ مرضي</Label>
                 <Textarea
                   id="kh-history"
                   rows={2}
                   placeholder="سجل أي ملاحظات هامة هنا..."
                   value={form.medicalHistory}
                   onChange={(e) => handleChange("medicalHistory", e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 resize-none text-base"
+                  className="bg-muted/40 border-border/60 resize-none text-base"
                 />
               </div>
             </div>
 
             <div className="pt-6 flex items-center justify-between">
-              <Button 
-                type="submit" 
-                disabled={createMutation.isPending} 
-                className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-base"
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-base"
               >
                 <Save className="h-5 w-5 ml-2.5" />
                 {createMutation.isPending ? "جاري الحفظ..." : "حفظ المريض"}
               </Button>
-              <Link href={ROUTES.kfPatientsNew} className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-bold flex items-center gap-1.5">
+              <Link href={ROUTES.kfPatientsNew} className="text-sm text-primary hover:text-primary font-bold flex items-center gap-1.5">
                 فتح الملف الشامل
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </div>
           </form>
           ) : (
-          <form onSubmit={handleLedgerSubmit} className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 space-y-5">
+          <form onSubmit={handleLedgerSubmit} className="bg-muted/40 rounded-2xl p-6 border border-border/60 space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-slate-900 dark:text-slate-200">النوع</Label>
+                <Label className="text-sm font-semibold text-foreground">النوع</Label>
                 <Select value={ledgerForm.type} onValueChange={(v: "income" | "expense") => setLedgerForm(prev => ({...prev, type: v}))}>
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-bold">
+                  <SelectTrigger className="h-11 bg-white border-border/60 font-bold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="income" className="text-emerald-600 font-bold">إيراد</SelectItem>
-                    <SelectItem value="expense" className="text-rose-600 font-bold">مصروف</SelectItem>
+                    <SelectItem value="income" className="text-primary font-bold">إيراد</SelectItem>
+                    <SelectItem value="expense" className="text-primary font-bold">مصروف</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-slate-900 dark:text-slate-200">المبلغ</Label>
+                <Label className="text-sm font-semibold text-foreground">المبلغ</Label>
                 <Input
                   type="number"
                   min="0"
                   placeholder="0"
                   value={ledgerForm.amount}
                   onChange={(e) => setLedgerForm(prev => ({...prev, amount: e.target.value}))}
-                  className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono text-lg"
+                  className="h-11 bg-white border-border/60 font-mono text-lg"
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label className="text-sm font-semibold text-slate-900 dark:text-slate-200">التاريخ</Label>
+                <Label className="text-sm font-semibold text-foreground">التاريخ</Label>
                 <DateInput
                   value={ledgerForm.entryDate}
                   onChange={(e) => setLedgerForm(prev => ({...prev, entryDate: e.target.value}))}
-                  className="h-11 w-full bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  className="h-11 w-full bg-white border-border/60"
                   inputClassName="h-10 w-full"
                 />
               </div>
             </div>
             <div className="flex gap-4 items-end">
               <div className="space-y-2 flex-1">
-                <Label className="text-sm font-semibold text-slate-900 dark:text-slate-200">البيان \ الملاحظات</Label>
+                <Label className="text-sm font-semibold text-foreground">البيان \ الملاحظات</Label>
                 <Input
                   placeholder="بيان القيد..."
                   value={ledgerForm.notes}
                   onChange={(e) => setLedgerForm(prev => ({...prev, notes: e.target.value}))}
-                  className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                  className="h-11 bg-white border-border/60"
                 />
               </div>
               <Button
                 type="submit"
                 disabled={ledgerMutation.isPending}
-                className="h-11 px-6 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900 text-white font-bold rounded-xl"
+                className="h-11 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl"
               >
                 <Plus className="h-5 w-5 ml-1.5" />
                 {ledgerMutation.isPending ? "..." : "إضافة القيد"}
               </Button>
             </div>
             <div className="pt-1 text-right">
-              <Link href={ROUTES.kfAccounting} className="text-sm font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
+              <Link href={ROUTES.kfAccounting} className="text-sm font-bold text-primary hover:text-primary">
                 دفتر الحسابات &larr;
               </Link>
             </div>
@@ -409,7 +409,7 @@ export default function KfHome() {
 
         {/* Right Column: Feeds & Lists (tabbed: bookings / operations) */}
         <div className="xl:col-span-3 flex flex-col print:hidden">
-          <div className="mb-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="mb-6 border-b border-border/60">
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -417,8 +417,8 @@ export default function KfHome() {
                 className={cn(
                   "flex items-center gap-2 px-3 py-3 text-sm font-bold border-b-2 -mb-px transition-colors",
                   rightTab === "bookings"
-                    ? "border-amber-500 text-amber-600 dark:text-amber-400"
-                    : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white",
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 <CalendarPlus className="h-4 w-4" />
@@ -430,8 +430,8 @@ export default function KfHome() {
                 className={cn(
                   "flex items-center gap-2 px-3 py-3 text-sm font-bold border-b-2 -mb-px transition-colors",
                   rightTab === "operations"
-                    ? "border-rose-500 text-rose-600 dark:text-rose-400"
-                    : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white",
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Activity className="h-4 w-4" />
@@ -447,12 +447,12 @@ export default function KfHome() {
                 type="button"
                 size="sm"
                 onClick={() => setBookingDialogOpen(true)}
-                className="h-9 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg"
+                className="h-9 w-full rounded-lg bg-primary font-bold text-primary-foreground hover:bg-primary/90"
               >
                 <Plus className="h-4 w-4 ml-1.5" />
                 إضافة موعد
               </Button>
-              <Link href={ROUTES.kfBookings} className="text-sm font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-center">
+              <Link href={ROUTES.kfBookings} className="text-sm font-bold text-primary hover:text-primary text-center">
                 كل الحجوزات &larr;
               </Link>
             </div>
@@ -468,21 +468,21 @@ export default function KfHome() {
               </div>
             ) : upcomingBookings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CalendarPlus className="h-10 w-10 text-slate-300 mb-3" />
-                <h4 className="text-sm text-slate-900 dark:text-white font-bold mb-1">لا توجد مواعيد قادمة</h4>
-                <p className="text-xs text-slate-500">لا توجد حجوزات بانتظار التأكيد حالياً.</p>
+                <CalendarPlus className="h-10 w-10 text-muted-foreground mb-3" />
+                <h4 className="text-sm text-foreground font-bold mb-1">لا توجد مواعيد قادمة</h4>
+                <p className="text-xs text-muted-foreground">لا توجد حجوزات بانتظار التأكيد حالياً.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="divide-y divide-border/60">
                 {upcomingBookings.slice(0, 5).map((b: any) => (
                   <div key={b.id} className="flex items-center gap-3 py-4">
                     <div className="w-2 h-10 rounded-full bg-amber-500 shrink-0" />
                     <div className="min-w-0">
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                      <h4 className="font-bold text-sm text-foreground truncate">
                         {b.patientName ?? b.guestName ?? "—"}
                       </h4>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                        <span className="font-semibold text-foreground">
                           {b.typeLabel ?? b.bookingType}
                         </span>
                         <span>•</span>
@@ -501,12 +501,12 @@ export default function KfHome() {
                 type="button"
                 size="sm"
                 onClick={() => setOperationDialogOpen(true)}
-                className="h-9 w-full bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg"
+                className="h-9 w-full rounded-lg bg-primary font-bold text-primary-foreground hover:bg-primary/90"
               >
                 <Plus className="h-4 w-4 ml-1.5" />
                 حجز عملية
               </Button>
-              <Link href={ROUTES.kfOperations} className="text-sm font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-center">
+              <Link href={ROUTES.kfOperations} className="text-sm font-bold text-primary hover:text-primary text-center">
                 الجدول الكامل &larr;
               </Link>
             </div>
@@ -522,24 +522,24 @@ export default function KfHome() {
               </div>
             ) : activeOperations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Activity className="h-10 w-10 text-slate-300 mb-3" />
-                <h4 className="text-sm text-slate-900 dark:text-white font-bold mb-1">لا توجد عمليات</h4>
-                <p className="text-xs text-slate-500">جميع المواعيد مكتملة حالياً.</p>
+                <Activity className="h-10 w-10 text-muted-foreground mb-3" />
+                <h4 className="text-sm text-foreground font-bold mb-1">لا توجد عمليات</h4>
+                <p className="text-xs text-muted-foreground">جميع المواعيد مكتملة حالياً.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="divide-y divide-border/60">
                 {activeOperations.slice(0, 5).map((op: any) => (
                   <div key={op.kfOpId} className="flex items-center gap-3 py-4 group">
                     <div className="w-2 h-10 rounded-full bg-rose-500 shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                      <h4 className="font-bold text-sm text-foreground truncate">
                         {op.opType}
-                        <span className="text-xs font-normal text-slate-500 mr-1.5">
+                        <span className="text-xs font-normal text-muted-foreground mr-1.5">
                           ({op.eye === "both" ? "العينين" : op.eye === "right" ? "اليمنى" : "اليسرى"})
                         </span>
                       </h4>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                        <span className="font-semibold text-foreground truncate">
                           {op.patientName || `مريض ${op.kfPatientId}`}
                         </span>
                         <span>•</span>
@@ -548,7 +548,7 @@ export default function KfHome() {
                     </div>
                     <Link
                       href={`/kf/patients/${op.kfPatientId}`}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      className="text-xs font-bold text-primary hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                     >
                       تفاصيل
                     </Link>

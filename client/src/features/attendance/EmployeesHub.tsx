@@ -16,9 +16,9 @@ const BASE_TABS = [
     subLabel: "Staff List",
     description: "بيانات الموظفين وحالة الربط وساعات العمل الرسمية",
     icon: Users,
-    themeCls: "bg-teal-50/60 border-teal-100 hover:border-teal-300 text-teal-900",
-    activeCls: "ring-2 ring-teal-500 bg-teal-100/70 border-teal-300",
-    iconCls: "bg-teal-500 text-white",
+    themeCls: "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "leaves",
@@ -26,9 +26,9 @@ const BASE_TABS = [
     subLabel: "Leaves",
     description: "متابعة أرصدة وطلبات إجازات الموظفين السنوية والمرضية",
     icon: FileSpreadsheet,
-    themeCls: "bg-rose-50/60 border-rose-100 hover:border-rose-300 text-rose-900",
-    activeCls: "ring-2 ring-rose-500 bg-rose-100/70 border-rose-300",
-    iconCls: "bg-rose-500 text-white",
+    themeCls: "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "permissions",
@@ -36,9 +36,9 @@ const BASE_TABS = [
     subLabel: "Permits",
     description: "مراجعة واعتماد طلبات أذونات الخروج والدخول المتأخر",
     icon: FileClock,
-    themeCls: "bg-sky-50/60 border-sky-100 hover:border-sky-300 text-sky-900",
-    activeCls: "ring-2 ring-sky-500 bg-sky-100/70 border-sky-300",
-    iconCls: "bg-sky-500 text-white",
+    themeCls: "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "manual-punches",
@@ -46,9 +46,9 @@ const BASE_TABS = [
     subLabel: "Manual Punches",
     description: "إضافة وتسجيل بصمات دخول وخروج يدويًا لموظف معيّن",
     icon: Fingerprint,
-    themeCls: "bg-emerald-50/60 border-emerald-100 hover:border-emerald-300 text-emerald-900",
-    activeCls: "ring-2 ring-emerald-500 bg-emerald-100/70 border-emerald-300",
-    iconCls: "bg-emerald-500 text-white",
+    themeCls: "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "shifts",
@@ -56,9 +56,9 @@ const BASE_TABS = [
     subLabel: "Shift Allocations",
     description: "ربط الموظفين والكوادر الطبية بالورديات ونوبات العمل",
     icon: CalendarClock,
-    themeCls: "bg-indigo-50/60 border-indigo-100 hover:border-indigo-300 text-indigo-900",
-    activeCls: "ring-2 ring-indigo-500 bg-indigo-100/70 border-indigo-300",
-    iconCls: "bg-indigo-500 text-white",
+    themeCls: "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "schedule-swap",
@@ -66,9 +66,9 @@ const BASE_TABS = [
     subLabel: "Schedule Swaps",
     description: "طلبات تغيير المواعيد المؤقتة أو التبادل بين زملاء النوبة",
     icon: Shuffle,
-    themeCls: "bg-amber-50/60 border-amber-100 hover:border-[#FCD34D] text-amber-900",
-    activeCls: "ring-2 ring-amber-500 bg-amber-100/70 border-amber-300",
-    iconCls: "bg-amber-500 text-white",
+    themeCls: "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
 ] as const;
 
@@ -88,9 +88,9 @@ export default function EmployeesHub() {
           subLabel: "User Mappings",
           description: "ربط حسابات النظام الطبية والإدارية بموظفي الحضور",
           icon: Link2,
-          themeCls: "bg-slate-50 border-slate-200 hover:border-slate-350 text-slate-900",
-          activeCls: "ring-2 ring-slate-600 bg-slate-200 border-slate-350",
-          iconCls: "bg-slate-600 text-white",
+          themeCls: "bg-muted/40 border-border/60 hover:border-border/60 text-foreground",
+          activeCls: "ring-2 ring-primary bg-primary/10 border-border/60",
+          iconCls: "bg-primary text-primary-foreground",
         },
       ]
     : BASE_TABS;
@@ -99,9 +99,9 @@ export default function EmployeesHub() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      
+
       {/* ── 1. Bento Dashboard Navigation Grid ── */}
-      <div className="flex w-full gap-1 overflow-x-auto border-b border-slate-200 pb-1">
+      <div className="flex w-full gap-1 overflow-x-auto border-b border-border/60 pb-1">
         {TABS.map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.key;
@@ -118,7 +118,7 @@ export default function EmployeesHub() {
               }`}
             >
               {/* Icon Container */}
-              <div className={`p-2 rounded-xl shrink-0 w-fit ${isActive ? t.iconCls : "bg-white text-slate-600 border border-slate-100"}`}>
+              <div className={`p-2 rounded-xl shrink-0 w-fit ${isActive ? t.iconCls : "bg-card text-muted-foreground border border-border/60"}`}>
                 <Icon className="w-4 h-4" />
               </div>
 
@@ -132,7 +132,7 @@ export default function EmployeesHub() {
       </div>
 
       {/* ── 2. Bento Panel Console Container ── */}
-      <div className="border border-slate-200 rounded-3xl bg-white p-6 shadow-sm shadow-slate-100/50">
+      <div className="rounded-2xl border border-border/60 bg-card p-6">
 
         <div
           id={`attendance-employees-panel-${tab}`}

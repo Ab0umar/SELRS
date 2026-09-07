@@ -212,15 +212,15 @@ export default function PatientGuestBook() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
+      className="min-h-screen flex flex-col bg-muted/40 text-foreground font-sans selection:bg-secondary/20 selection:text-secondary-foreground"
       dir="rtl"
     >
       {/* Sticky top header bar */}
-      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
+      <header className="sticky top-0 z-40 w-full bg-card/90 backdrop-blur-md border-b border-border/60 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           {/* Logo & Portal title */}
           <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl">
+            <div className="p-1.5 bg-muted/40 border border-border/60 rounded-xl">
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
@@ -263,7 +263,7 @@ export default function PatientGuestBook() {
       <div className="flex-grow flex flex-col items-center">
         <div className="patient-guest-content w-full max-w-xl px-4 py-6 md:py-8 space-y-5 flex flex-col items-stretch">
           {/* Progress Stepper */}
-          <div className="space-y-2 bg-white border border-[#dbe7f4] rounded-2xl p-4 shadow-xs">
+          <div className="space-y-2 bg-card border border-border/60 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
               <span>
                 {step === 1 && "الخطوة 1 من 4: البيانات 👤"}
@@ -280,7 +280,7 @@ export default function PatientGuestBook() {
                 {step === 4 && "100% مكتمل"}
               </span>
             </div>
-            <div className="h-1.5 w-full bg-[#e2edf7] rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
               <div
                 className={`h-full bg-primary rounded-full transition-all duration-500 ${
                   step === 1
@@ -297,8 +297,8 @@ export default function PatientGuestBook() {
 
           {step === 1 && (
             /* Step 1: Personal Details Card */
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-5">
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   بيانات الزائر
                 </h3>
@@ -323,7 +323,7 @@ export default function PatientGuestBook() {
                         }));
                     }}
                     placeholder="الاسم ثلاثي أو رباعي كما بالبطاقة"
-                    className={`h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 transition-all ${
+                    className={`h-11 rounded-xl border-border/60 focus-visible:ring-primary/10 transition-all ${
                       errors.guestName
                         ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5"
                         : guestName.trim()
@@ -355,7 +355,7 @@ export default function PatientGuestBook() {
                         }));
                     }}
                     placeholder="01XXXXXXXXX"
-                    className={`h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 text-left font-medium tracking-wide transition-all ${
+                    className={`h-11 rounded-xl border-border/60 focus-visible:ring-primary/10 text-left font-medium tracking-wide transition-all ${
                       errors.guestPhone
                         ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5"
                         : /^01\d{9}$/.test(guestPhone.trim())
@@ -385,7 +385,7 @@ export default function PatientGuestBook() {
                       }
                     }}
                     placeholder="name@example.com"
-                    className={`h-11 rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 text-left font-medium transition-all ${
+                    className={`h-11 rounded-xl border-border/60 focus-visible:ring-primary/10 text-left font-medium transition-all ${
                       errors.guestEmail ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5" : ""
                     }`}
                     dir="ltr"
@@ -408,8 +408,8 @@ export default function PatientGuestBook() {
 
           {step === 2 && (
             /* Step 2: Branch + Service Selection Card */
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-5">
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   الفرع والخدمة المطلوبة
                 </h3>
@@ -486,7 +486,7 @@ export default function PatientGuestBook() {
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 text-xs font-bold border-[#d7e2ee] rounded-xl cursor-pointer"
+                  className="flex-1 h-11 text-xs font-bold border-border/60 rounded-xl cursor-pointer"
                   onClick={() => setStep(1)}
                 >
                   السابق
@@ -504,8 +504,8 @@ export default function PatientGuestBook() {
 
           {step === 3 && (
             /* Step 3: Date Picker Card */
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-5">
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   اليوم والوقت
                 </h3>
@@ -543,7 +543,7 @@ export default function PatientGuestBook() {
 
               {!loadingDates && schedule && availableCount > 0 && (
                 <div className="space-y-4">
-                  <div className="mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-[#dbe7f4] bg-[#f8fbff] p-2 sm:max-w-[20rem]">
+                  <div className="mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/30 p-2 sm:max-w-[20rem]">
                     <Calendar
                       mode="single"
                       dir="rtl"
@@ -603,7 +603,7 @@ export default function PatientGuestBook() {
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 text-xs font-bold border-[#d7e2ee] rounded-xl cursor-pointer"
+                  className="flex-1 h-11 text-xs font-bold border-border/60 rounded-xl cursor-pointer"
                   onClick={() => setStep(2)}
                 >
                   السابق
@@ -621,8 +621,8 @@ export default function PatientGuestBook() {
 
           {step === 4 && (
             /* Step 4: Summary, Notes, and Submission Card */
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-5">
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-5">
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   مراجعة وملاحظات وإرسال
                 </h3>
@@ -654,7 +654,7 @@ export default function PatientGuestBook() {
                 ].map(({ label, value }) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border bg-[#F4F8FB]/20 px-4 py-2.5"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/15 px-4 py-2.5"
                   >
                     <span className="text-xs text-muted-foreground font-semibold">
                       {label}
@@ -676,11 +676,11 @@ export default function PatientGuestBook() {
                   value={notes}
                   placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ الاستقبال بها..."
                   onChange={(e) => setNotes(e.target.value)}
-                  className="resize-none rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10 text-xs"
+                  className="resize-none rounded-xl border-border/60 focus-visible:ring-primary/10 text-xs"
                 />
               </div>
 
-              <div className="rounded-xl border border-[#e2edf7] bg-[#F4F8FB]/60 p-3.5 text-xs text-muted-foreground space-y-1 leading-5">
+              <div className="rounded-xl border border-border/60 bg-muted/50 p-3.5 text-xs text-muted-foreground space-y-1 leading-5">
                 <p className="font-semibold text-primary">تنبيه هام:</p>
                 <p>
                   بعد إرسال طلب الحجز بنجاح، سيتواصل معك الاستقبال هاتفياً
@@ -691,7 +691,7 @@ export default function PatientGuestBook() {
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
-                  className="flex-1 h-11 text-xs font-bold border-[#d7e2ee] rounded-xl cursor-pointer"
+                  className="flex-1 h-11 text-xs font-bold border-border/60 rounded-xl cursor-pointer"
                   onClick={() => setStep(3)}
                   disabled={createGuestBooking.isPending}
                 >

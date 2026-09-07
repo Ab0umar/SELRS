@@ -228,7 +228,7 @@ export default function AbsentReport({
               return (
                 <div
                   key={empCd}
-                  className="p-4 bg-card hover:bg-slate-50/20 transition-colors"
+                  className="bg-card p-4 transition-colors hover:bg-muted/30"
                 >
                   <div
                     className="flex items-center justify-between cursor-pointer"

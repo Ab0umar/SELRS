@@ -52,7 +52,7 @@ export default function PatientScans() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            className="gap-2 border-border/60 bg-card text-primary hover:bg-muted/50 cursor-pointer"
             onClick={handleBack}
           >
             <ArrowLeft className="size-4" />
@@ -90,7 +90,7 @@ export default function PatientScans() {
         {data && data.length > 0 && (
           <div className="space-y-6">
             {/* Quick summary card */}
-            <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-primary">
@@ -107,7 +107,7 @@ export default function PatientScans() {
                     {data.length === 1 ? "ملف أشعة متاح" : "ملفات أشعة متاحة"}
                   </p>
                 </div>
-                <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl px-5 py-3 text-center min-w-[120px]">
+                <div className="bg-muted/40 border border-border/60 rounded-xl px-5 py-3 text-center min-w-[120px]">
                   <p className="text-[10px] text-muted-foreground font-semibold">
                     الملفات المرفوعة
                   </p>
@@ -125,7 +125,7 @@ export default function PatientScans() {
                 return (
                   <div
                     key={scan.id}
-                    className="flex flex-col justify-between rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs hover:border-primary/20 transition-all duration-200"
+                    className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card p-5 shadow-xs hover:border-primary/20 transition-all duration-200"
                   >
                     <div className="flex items-start gap-3.5 mb-4">
                       <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -136,7 +136,7 @@ export default function PatientScans() {
                           {scan.fileName || `أشعة وفحص #${scan.id}`}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-                          <span className="rounded-lg bg-[#F4F8FB] border border-[#e2edf7] px-2 py-0.5">
+                          <span className="rounded-lg bg-muted/40 border border-border/60 px-2 py-0.5">
                             {scan.mimeType.split("/")[1].toUpperCase()}
                           </span>
                           <span>
@@ -146,7 +146,7 @@ export default function PatientScans() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t border-[#f0f5fa]">
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/40">
                       <a
                         href={scan.viewUrl}
                         target="_blank"
@@ -156,7 +156,7 @@ export default function PatientScans() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full h-9 text-xs rounded-xl gap-1.5 border-[#dbe7f4] hover:bg-muted/40 cursor-pointer"
+                          className="w-full h-9 text-xs rounded-xl gap-1.5 border-border/60 hover:bg-muted/40 cursor-pointer"
                         >
                           <Eye className="size-3.5" />
                           <span>عرض الملف</span>

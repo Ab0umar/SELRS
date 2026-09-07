@@ -13,8 +13,8 @@ export default function NotFound() {
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden selrs-login-bg p-4">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute right-[-5rem] top-[-4rem] h-56 w-56 rounded-full bg-[color-mix(in_srgb,var(--selrs-navy)_12%,transparent)] blur-3xl" />
-        <div className="absolute bottom-[-3rem] left-[-4rem] h-64 w-64 rounded-full bg-[color-mix(in_srgb,var(--selrs-orange)_18%,transparent)] blur-3xl" />
+        <div className="absolute right-[-5rem] top-[-4rem] h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-[-3rem] left-[-4rem] h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
       </div>
       <Card className="selrs-glass-card relative mx-auto w-full max-w-xl overflow-hidden border-white/80 bg-background/90 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
         <div

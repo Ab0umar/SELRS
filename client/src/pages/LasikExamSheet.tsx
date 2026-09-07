@@ -3362,7 +3362,7 @@ export default function LasikExamSheet({
       `}</style>
       {!embedded ? (
         <header
-          className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6]"
+          className="sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden"
           style={{ fontFamily: "Inter, sans-serif" }}
         >
           {initialPatientId ? (
@@ -3386,7 +3386,7 @@ export default function LasikExamSheet({
                     key={tab.key}
                     type="button"
                     onClick={() => setLocation(href)}
-                    className={`px-3 py-1.5 rounded font-bold ${active ? "bg-[#003d9b] text-white" : "text-[#434654] hover:bg-[#003d9b]/10"}`}
+                    className={`rounded px-3 py-1.5 font-bold ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/10"}`}
                   >
                     {tab.label}
                   </button>
@@ -3405,7 +3405,7 @@ export default function LasikExamSheet({
             </div>
             <Button
               size="sm"
-              className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
+              className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground hover:opacity-90 active:scale-95"
               onClick={handleSaveSheet}
               disabled={saveSheetMutation.isPending}
               type="button"
@@ -3415,7 +3415,7 @@ export default function LasikExamSheet({
             <Button
               size="sm"
               variant="outline"
-              className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
+              className="rounded border-primary px-4 py-2 font-bold text-primary hover:bg-primary/5"
               onClick={handlePrint}
               type="button"
             >

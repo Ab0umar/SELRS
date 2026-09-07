@@ -113,15 +113,15 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans"
+      className="min-h-screen flex flex-col bg-background text-foreground font-sans"
       dir="rtl"
     >
       {/* Sticky top brand navigation bar */}
-      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
+      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-card/95 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           {/* Logo & Portal title */}
           <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl hidden sm:block">
+            <div className="hidden rounded-xl border border-border/60 bg-muted/40 p-1.5 sm:block">
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
@@ -154,7 +154,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
             >
               <Bell className="size-5 text-muted-foreground" />
               {notificationCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 size-4 bg-secondary text-secondary-foreground text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground ring-2 ring-background">
                   {notificationCount}
                 </span>
               )}
@@ -177,7 +177,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
       {/* Main layout frame */}
       <div className="patient-portal-frame flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 flex flex-col gap-6">
         {/* Desktop sub-navigation tabs */}
-        <nav className="hidden md:flex flex-wrap items-center gap-1.5 border-b border-[#dbe7f4] pb-4">
+        <nav className="hidden flex-wrap items-center gap-1.5 border-b border-border/60 pb-4 md:flex">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = location.startsWith(item.href);
@@ -188,7 +188,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                     "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 cursor-pointer",
                     active
                       ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-[#dbe7f4]",
+                      : "border border-transparent text-muted-foreground hover:border-border/60 hover:bg-card hover:text-primary",
                   )}
                 >
                   <Icon className="size-4" />
@@ -201,8 +201,8 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
 
         {/* Notifications Slide-Down Box */}
         {showNotifications && (
-          <div className="rounded-2xl border border-[#dbe7f4] bg-white p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-2">
               <div>
                 <h3 className="text-sm font-bold text-foreground">
                   آخر التحديثات والإشعارات
@@ -264,15 +264,15 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
 
             {isLoading ? (
               <div className="space-y-2 py-4">
-                <div className="h-12 animate-pulse rounded-xl bg-[#eef4fa]" />
-                <div className="h-12 animate-pulse rounded-xl bg-[#eef4fa]" />
+                <div className="h-12 animate-pulse rounded-xl bg-muted" />
+                <div className="h-12 animate-pulse rounded-xl bg-muted" />
               </div>
             ) : recentNotifications.length > 0 ? (
               <div className="grid gap-2">
                 {recentNotifications.map((item: any) => (
                   <div
                     key={item.id}
-                    className="rounded-xl border border-[#e1ebf6] bg-[#fbfdff] p-3 text-xs leading-5"
+                    className="rounded-xl border border-border/60 bg-muted/20 p-3 text-xs leading-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
@@ -310,7 +310,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                       </span>
                     </div>
                     {item.staffNotes && (
-                      <p className="mt-2 rounded-lg bg-[#eff4fa]/60 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+                      <p className="mt-2 rounded-lg bg-muted/60 px-2.5 py-1.5 text-[11px] text-muted-foreground">
                         {item.staffNotes}
                       </p>
                     )}
@@ -318,7 +318,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-[#d7e2ee] bg-[#f7fbfe] py-8 text-center text-xs text-muted-foreground">
+              <div className="rounded-xl border border-dashed border-border/60 bg-muted/30 py-8 text-center text-xs text-muted-foreground">
                 لا توجد إشعارات أو تحديثات جديدة حالياً
               </div>
             )}
@@ -332,7 +332,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile Fixed Bottom Navigation bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white border-t border-[#e2edf7] flex items-center justify-around px-2 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border/60 bg-card px-2 shadow-lg md:hidden">
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = location.startsWith(item.href);

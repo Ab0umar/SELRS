@@ -167,9 +167,9 @@ export default function MyAttendanceProfile({
   if (!data?.linked) {
     return (
       <div className="flex flex-col items-center gap-3 p-8 text-center" dir="rtl">
-        <AlertCircle className="h-10 w-10 text-slate-400" />
-        <p className="text-slate-600 font-bold">حسابك غير مرتبط بسجل موظف في الحضور.</p>
-        <p className="text-xs text-slate-400">تواصل مع المسؤول لربط حسابك.</p>
+        <AlertCircle className="h-10 w-10 text-muted-foreground" />
+        <p className="font-bold text-foreground">حسابك غير مرتبط بسجل موظف في الحضور.</p>
+        <p className="text-xs text-muted-foreground">تواصل مع المسؤول لربط حسابك.</p>
       </div>
     );
   }
@@ -181,26 +181,22 @@ export default function MyAttendanceProfile({
     <div
       className={
         embeddedInHub
-          ? "w-full text-slate-800"
-          : "min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-6"
+          ? "w-full text-foreground"
+          : "min-h-screen bg-background p-4 text-foreground sm:p-6"
       }
       dir="rtl"
     >
       {!embeddedInHub && (
-        <header className="max-w-6xl mx-auto mb-6 bg-white border border-slate-200 rounded-3xl p-4 flex items-center justify-between shadow-sm">
+        <header className="mx-auto mb-5 flex max-w-6xl items-center justify-between rounded-2xl border border-border/60 bg-card p-4">
           <div className="flex items-center gap-3">
             <Link
               href="/attendance"
-              className="w-8 h-8 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-all shrink-0"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <div>
-              <h1 className="text-sm font-black text-slate-900 leading-none">الملف الشخصي لحضوري</h1>
-              <span className="text-[10px] text-slate-400 block mt-1 font-medium">رصيد الإجازات، إحصائيات الغياب وطلب أذونات النوبات</span>
-            </div>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-bold shadow-sm font-mono">
+          <span className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground font-mono">
             كود: {data.empCd}
           </span>
         </header>
@@ -208,61 +204,61 @@ export default function MyAttendanceProfile({
 
       {/* ── 2. Bento Container Flow ── */}
       <div className={embeddedInHub ? "w-full space-y-6" : "max-w-6xl mx-auto space-y-6"}>
-        
+
         {/* Top Section: Balances & Stats (2 columns) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
+
           {/* Bento Box 1: Leave Balance (Mint Theme) */}
-          <div className="p-6 bg-[#ECFDF5] border border-emerald-150 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
-            <div className="flex items-center gap-2 border-b border-emerald-100/50 pb-2">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-2">
               <Calendar className="h-4 w-4 text-emerald-600" />
               <h3 className="text-xs font-black text-emerald-950">رصيد إجازاتي السنوية ({new Date().getFullYear()})</h3>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
-                <span className="text-[9px] text-slate-400 block font-bold">المخصص سنوياً</span>
+              <div className="p-3 bg-card border border-border/60 rounded-xl">
+                <span className="text-[9px] text-muted-foreground block font-bold">المخصص سنوياً</span>
                 <span className="font-mono font-black text-emerald-950 text-base block mt-0.5">{bal.annualAllocation} يوم</span>
               </div>
-              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
-                <span className="text-[9px] text-slate-400 block font-bold">المستخدم</span>
+              <div className="p-3 bg-card border border-border/60 rounded-xl">
+                <span className="text-[9px] text-muted-foreground block font-bold">المستخدم</span>
                 <span className="font-mono font-black text-rose-600 text-base block mt-0.5">{bal.usedAnnual} يوم</span>
               </div>
-              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
-                <span className="text-[9px] text-slate-400 block font-bold">المتبقي</span>
+              <div className="p-3 bg-card border border-border/60 rounded-xl">
+                <span className="text-[9px] text-muted-foreground block font-bold">المتبقي</span>
                 <span className="font-mono font-black text-emerald-600 text-base block mt-0.5">{bal.remainingAnnual} يوم</span>
               </div>
-              <div className="p-3 bg-white border border-emerald-100 rounded-xl">
-                <span className="text-[9px] text-slate-400 block font-bold">مرضية مستخدمة</span>
+              <div className="p-3 bg-card border border-border/60 rounded-xl">
+                <span className="text-[9px] text-muted-foreground block font-bold">مرضية مستخدمة</span>
                 <span className="font-mono font-black text-emerald-950 text-base block mt-0.5">{bal.usedSick} يوم</span>
               </div>
             </div>
           </div>
 
           {/* Bento Box 2: Monthly Stats (Amber/Rose Theme) */}
-          <div className="p-6 bg-[#FFFBEB] border border-amber-150 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200 flex flex-col justify-between">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 border-b border-amber-100/50 pb-2">
+              <div className="flex items-center gap-2 border-b border-border/60/50 pb-2">
                 <Clock className="h-4 w-4 text-amber-600" />
                 <h3 className="text-xs font-black text-amber-950">مؤشرات الحضور والمخالفات هذا الشهر</h3>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-3 mt-3">
-                <div className="p-3 bg-white border border-amber-100 rounded-xl">
-                  <span className="text-[9px] text-slate-400 block font-bold">دقائق التأخير</span>
+                <div className="p-3 bg-card border border-border/60 rounded-xl">
+                  <span className="text-[9px] text-muted-foreground block font-bold">دقائق التأخير</span>
                   <span className="font-mono font-black text-rose-600 text-base block mt-0.5">{fmt(stats.lateMins)}</span>
                 </div>
-                <div className="p-3 bg-white border border-amber-100 rounded-xl">
-                  <span className="text-[9px] text-slate-400 block font-bold">خروج مبكر</span>
+                <div className="p-3 bg-card border border-border/60 rounded-xl">
+                  <span className="text-[9px] text-muted-foreground block font-bold">خروج مبكر</span>
                   <span className="font-mono font-black text-amber-600 text-base block mt-0.5">{fmt(stats.earlyMins)}</span>
                 </div>
               </div>
             </div>
 
             {stats.permOutMins > 0 && (
-              <div className="p-3 bg-white border border-amber-100 rounded-2xl text-xs text-slate-700 font-bold flex justify-between mt-2">
+              <div className="p-3 bg-card border border-border/60 rounded-2xl text-xs text-foreground font-bold flex justify-between mt-2">
                 <span>أذونات الخروج المعتمدة هذا الشهر:</span>
-                <span className="font-mono text-slate-900">{fmt(stats.permOutMins)}</span>
+                <span className="font-mono text-foreground">{fmt(stats.permOutMins)}</span>
               </div>
             )}
           </div>
@@ -273,26 +269,26 @@ export default function MyAttendanceProfile({
         {(data.pendingLeaves.length > 0 ||
           data.pendingPerms.length > 0 ||
           (data.pendingShiftChanges && data.pendingShiftChanges.length > 0)) && (
-          <div className="p-6 bg-[#F0F9FF] border border-sky-150 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
-            <div className="flex items-center gap-2 border-b border-sky-100/50 pb-2">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-2">
               <Hourglass className="h-4 w-4 text-sky-600" />
               <h3 className="text-xs font-black text-sky-950">الطلبات المعلقة قيد المراجعة والاعتماد</h3>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {data.pendingLeaves.map((l: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 p-3 bg-white border border-sky-100 rounded-2xl text-xs font-bold text-slate-800">
+                <div key={i} className="flex items-center gap-2 p-3 bg-card border border-border/60 rounded-2xl text-xs font-bold text-foreground">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                   <span>طلب إجازة {l.type === "annual" ? "سنوية" : "مرضية"}:</span>
-                  <span className="font-mono text-slate-500">{String(l.dateFrom).slice(0, 10)} ← {String(l.dateTo).slice(0, 10)}</span>
+                  <span className="font-mono text-muted-foreground">{String(l.dateFrom).slice(0, 10)} ← {String(l.dateTo).slice(0, 10)}</span>
                 </div>
               ))}
 
               {data.pendingPerms.map((p: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 p-3 bg-white border border-sky-100 rounded-2xl text-xs font-bold text-slate-800">
+                <div key={i} className="flex items-center gap-2 p-3 bg-card border border-border/60 rounded-2xl text-xs font-bold text-foreground">
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>
                   <span>طلب إذن {p.type === "in" ? "دخول متأخر" : "خروج مبكر"}:</span>
-                  <span className="font-mono text-slate-500">{p.durationMinutes} دقيقة يوم {String(p.date).slice(0, 10)}</span>
+                  <span className="font-mono text-muted-foreground">{p.durationMinutes} دقيقة يوم {String(p.date).slice(0, 10)}</span>
                 </div>
               ))}
 
@@ -306,10 +302,10 @@ export default function MyAttendanceProfile({
                         ? "شهري"
                         : "تبادل";
                 return (
-                  <div key={i} className="flex items-center gap-2 p-3 bg-white border border-sky-100 rounded-2xl text-xs font-bold text-slate-800">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                  <div key={i} className="flex items-center gap-2 p-3 bg-card border border-border/60 rounded-2xl text-xs font-bold text-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                     <span>طلب تغيير موعد ({typeAr}):</span>
-                    <span className="font-mono text-slate-500">{s.dateFrom} {s.dateTo ? `→ ${s.dateTo}` : ""}</span>
+                    <span className="font-mono text-muted-foreground">{s.dateFrom} {s.dateTo ? `→ ${s.dateTo}` : ""}</span>
                   </div>
                 );
               })}
@@ -319,21 +315,21 @@ export default function MyAttendanceProfile({
 
         {/* Bottom Section: The 3 forms side-by-side (beside each other) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           {/* Form 1: Permission Request */}
-          <div className="p-6 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+            <h3 className="text-xs font-black text-foreground uppercase tracking-wider border-b border-border/40 pb-2 flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-sky-600" />
               طلب إذن نوبة
             </h3>
-            
+
             <div className="space-y-3.5 text-xs">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">النوع</label>
+                <label className="text-[10px] font-bold text-muted-foreground">النوع</label>
                 <select
                   value={permForm.type}
                   onChange={(e) => setPermForm({ ...permForm, type: e.target.value as "in" | "out" })}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none focus:border-teal-500 focus:bg-white transition-all font-bold text-slate-700"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 outline-none focus:border-primary focus:bg-card transition-all font-bold text-foreground"
                 >
                   <option value="out">خروج مبكر</option>
                   {entryPermissionEnabled && (
@@ -343,16 +339,16 @@ export default function MyAttendanceProfile({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">التاريخ</label>
+                <label className="text-[10px] font-bold text-muted-foreground">التاريخ</label>
                 <DateInput
                   value={permForm.date}
                   onChange={(e) => setPermForm({ ...permForm, date: e.target.value })}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500 focus:bg-white transition-all"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary focus:bg-card transition-all"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">المدة (بالدقائق)</label>
+                <label className="text-[10px] font-bold text-muted-foreground">المدة (بالدقائق)</label>
                 <input
                   type="number"
                   min={15}
@@ -360,18 +356,18 @@ export default function MyAttendanceProfile({
                   step={15}
                   value={permForm.durationMinutes}
                   onChange={(e) => setPermForm({ ...permForm, durationMinutes: Number(e.target.value) })}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500 focus:bg-white transition-all font-mono"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary focus:bg-card transition-all font-mono"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">السبب أو الملاحظة</label>
+                <label className="text-[10px] font-bold text-muted-foreground">السبب أو الملاحظة</label>
                 <input
                   type="text"
                   value={permForm.note}
                   placeholder="ملاحظات اختيارية"
                   onChange={(e) => setPermForm({ ...permForm, note: e.target.value })}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500 focus:bg-white transition-all"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary focus:bg-card transition-all"
                 />
               </div>
 
@@ -388,7 +384,7 @@ export default function MyAttendanceProfile({
                   setPermMsg(null);
                   permMut.mutate(permForm);
                 }}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl py-2 h-auto"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl py-2 h-auto"
               >
                 {permMut.isPending ? "جاري الإرسال…" : "إرسال طلب الإذن"}
               </Button>
@@ -396,19 +392,19 @@ export default function MyAttendanceProfile({
           </div>
 
           {/* Form 2: Leave Request */}
-          <div className="p-6 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+            <h3 className="text-xs font-black text-foreground uppercase tracking-wider border-b border-border/40 pb-2 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-600" />
               طلب إجازة جديدة
             </h3>
-            
+
             <div className="space-y-3.5 text-xs">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">النوع</label>
+                <label className="text-[10px] font-bold text-muted-foreground">النوع</label>
                 <select
                   value={leaveForm.type}
                   onChange={(e) => setLeaveForm((prev) => ({ ...prev, type: e.target.value as "annual" | "sick" }))}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none focus:border-teal-500 focus:bg-white transition-all font-bold text-slate-700"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 outline-none focus:border-primary focus:bg-card transition-all font-bold text-foreground"
                 >
                   <option value="annual">سنوية</option>
                   <option value="sick">مرضية</option>
@@ -417,7 +413,7 @@ export default function MyAttendanceProfile({
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-455">من تاريخ</label>
+                  <label className="text-[10px] font-bold text-muted-foreground">من تاريخ</label>
                   <DateInput
                     value={leaveForm.dateFrom}
                     onChange={(e) => {
@@ -428,34 +424,34 @@ export default function MyAttendanceProfile({
                         dateTo: prev.dateTo < from ? from : prev.dateTo,
                       }));
                     }}
-                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500"
+                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-455">إلى تاريخ</label>
+                  <label className="text-[10px] font-bold text-muted-foreground">إلى تاريخ</label>
                   <DateInput
                     value={leaveForm.dateTo}
                     min={leaveForm.dateFrom}
                     onChange={(e) => setLeaveForm((prev) => ({ ...prev, dateTo: e.target.value }))}
-                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none focus:border-teal-500"
+                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary"
                   />
                 </div>
               </div>
 
               {leaveForm.dateFrom && leaveForm.dateTo && leaveForm.dateTo >= leaveForm.dateFrom && (
-                <div className="text-[10px] text-slate-450 font-bold bg-slate-50 px-3 py-1 rounded-lg">
+                <div className="text-[10px] text-muted-foreground font-bold bg-muted/40 px-3 py-1 rounded-lg">
                   أيام الإجازة: {Math.round((new Date(leaveForm.dateTo).getTime() - new Date(leaveForm.dateFrom).getTime()) / 86400000) + 1} يوم
                 </div>
               )}
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">السبب أو الملاحظة</label>
+                <label className="text-[10px] font-bold text-muted-foreground">السبب أو الملاحظة</label>
                 <input
                   type="text"
                   value={leaveForm.note}
                   placeholder="ملاحظات اختيارية"
                   onChange={(e) => setLeaveForm((prev) => ({ ...prev, note: e.target.value }))}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none"
                 />
               </div>
 
@@ -476,7 +472,7 @@ export default function MyAttendanceProfile({
                   setLeaveMsg(null);
                   leaveMut.mutate(leaveForm);
                 }}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl py-2 h-auto"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl py-2 h-auto"
               >
                 {leaveMut.isPending ? "جاري الإرسال…" : "إرسال طلب الإجازة"}
               </Button>
@@ -484,19 +480,19 @@ export default function MyAttendanceProfile({
           </div>
 
           {/* Form 3: Shift Swap/Change Request */}
-          <div className="p-6 bg-white border border-slate-200 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-indigo-600" />
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+            <h3 className="text-xs font-black text-foreground uppercase tracking-wider border-b border-border/40 pb-2 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
               تغيير / تبديل الوردية
             </h3>
-            
+
             <div className="space-y-3.5 text-xs">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">نوع التغيير المطلوب</label>
+                <label className="text-[10px] font-bold text-muted-foreground">نوع التغيير المطلوب</label>
                 <select
                   value={shiftRequestForm.requestType}
                   onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, requestType: e.target.value as any })}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none focus:border-teal-500 font-bold text-slate-700"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 outline-none focus:border-primary font-bold text-foreground"
                 >
                   <option value="daily">يومي (مؤقت لفترة)</option>
                   <option value="weekly">أسبوعي (أيام عمل ووردية)</option>
@@ -507,7 +503,7 @@ export default function MyAttendanceProfile({
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-455">من تاريخ</label>
+                  <label className="text-[10px] font-bold text-muted-foreground">من تاريخ</label>
                   <DateInput
                     value={shiftRequestForm.dateFrom}
                     onChange={(e) =>
@@ -517,7 +513,7 @@ export default function MyAttendanceProfile({
                         dateTo: e.target.value > shiftRequestForm.dateTo ? e.target.value : shiftRequestForm.dateTo,
                       })
                     }
-                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
+                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none"
                   />
                 </div>
 
@@ -525,12 +521,12 @@ export default function MyAttendanceProfile({
                   shiftRequestForm.requestType === "swap" ||
                   shiftRequestForm.requestType === "monthly") && (
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-455">حتى تاريخ</label>
+                    <label className="text-[10px] font-bold text-muted-foreground">حتى تاريخ</label>
                     <DateInput
                       value={shiftRequestForm.dateTo}
                       min={shiftRequestForm.dateFrom}
                       onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, dateTo: e.target.value })}
-                      className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
+                      className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none"
                     />
                   </div>
                 )}
@@ -538,11 +534,11 @@ export default function MyAttendanceProfile({
 
               {(shiftRequestForm.requestType === "daily" || shiftRequestForm.requestType === "weekly") && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-455">الوردية المطلوبة</label>
+                  <label className="text-[10px] font-bold text-muted-foreground">الوردية المطلوبة</label>
                   <select
                     value={shiftRequestForm.newShiftId || ""}
                     onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, newShiftId: e.target.value ? parseInt(e.target.value) : 0 })}
-                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none font-bold text-slate-700"
+                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 outline-none font-bold text-foreground"
                   >
                     <option value="">— اختر الوردية —</option>
                     {shifts.map((s: any) => (
@@ -556,7 +552,7 @@ export default function MyAttendanceProfile({
 
               {shiftRequestForm.requestType === "weekly" && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-455">أيام العمل المطلوبة</label>
+                  <label className="text-[10px] font-bold text-muted-foreground">أيام العمل المطلوبة</label>
                   <div className="flex flex-wrap gap-1">
                     {DAYS_FULL.map((name, index) => {
                       const active = weeklyDays.has(index);
@@ -567,8 +563,8 @@ export default function MyAttendanceProfile({
                           onClick={() => toggleWeeklyDay(index)}
                           className={`rounded-full px-2.5 py-1 text-[9px] font-bold border transition-all ${
                             active
-                              ? "bg-slate-900 border-slate-900 text-white shadow-sm"
-                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                              ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                              : "bg-card border-border/60 text-muted-foreground hover:bg-muted/40"
                           }`}
                         >
                           {name}
@@ -581,11 +577,11 @@ export default function MyAttendanceProfile({
 
               {shiftRequestForm.requestType === "monthly" && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-455">الدورة المطلوبة</label>
+                  <label className="text-[10px] font-bold text-muted-foreground">الدورة المطلوبة</label>
                   <select
                     value={shiftRequestForm.cycleId || ""}
                     onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, cycleId: e.target.value ? parseInt(e.target.value) : 0 })}
-                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none font-bold text-slate-700"
+                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 outline-none font-bold text-foreground"
                   >
                     <option value="">— اختر الدورة —</option>
                     {cycles.map((c: any) => (
@@ -599,11 +595,11 @@ export default function MyAttendanceProfile({
 
               {shiftRequestForm.requestType === "swap" && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-455">الزميل المراد التبادل معه</label>
+                  <label className="text-[10px] font-bold text-muted-foreground">الزميل المراد التبادل معه</label>
                   <select
                     value={shiftRequestForm.swapEmpCd}
                     onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, swapEmpCd: e.target.value })}
-                    className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 outline-none font-bold text-slate-700"
+                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 outline-none font-bold text-foreground"
                   >
                     <option value="">— اختر الزميل —</option>
                     {employees
@@ -618,13 +614,13 @@ export default function MyAttendanceProfile({
               )}
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-455">ملاحظة أو سبب الطلب</label>
+                <label className="text-[10px] font-bold text-muted-foreground">ملاحظة أو سبب الطلب</label>
                 <input
                   type="text"
                   value={shiftRequestForm.note}
                   placeholder="ملاحظات اختيارية"
                   onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, note: e.target.value })}
-                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 outline-none"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none"
                 />
               </div>
 
@@ -657,7 +653,7 @@ export default function MyAttendanceProfile({
                   setShiftRequestMsg(null);
                   shiftRequestMut.mutate(shiftRequestForm);
                 }}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl py-2 h-auto"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl py-2 h-auto"
               >
                 {shiftRequestMut.isPending ? "جاري الإرسال…" : "إرسال طلب التبديل"}
               </Button>

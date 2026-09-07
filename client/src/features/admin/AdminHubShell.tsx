@@ -87,7 +87,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "المستخدمين",
     helper: "الحسابات والموظفين",
     icon: Users,
-    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
+    tone: "bg-muted text-primary",
     category: "staff",
   },
   {
@@ -95,7 +95,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "الأطباء",
     helper: "الكادر الطبي والتخصصات",
     icon: Stethoscope,
-    tone: "text-[#157a67] bg-[#edf8f4]",
+    tone: "bg-muted text-primary",
     category: "staff",
   },
   {
@@ -103,7 +103,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "الصلاحيات",
     helper: "أدوار ومجموعات العمل",
     icon: Shield,
-    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    tone: "bg-muted text-primary",
     category: "staff",
   },
   {
@@ -111,7 +111,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "الأطباء الخارجيين",
     helper: "أطباء الإحالة والتعاقدات",
     icon: UserCheck,
-    tone: "text-[#16718a] bg-[#eaf8fb]",
+    tone: "bg-muted text-primary",
     category: "staff",
   },
   {
@@ -119,7 +119,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "إحالات الأطباء",
     helper: "الحالات المحولة والعمولات",
     icon: FileSearch,
-    tone: "text-[#c2781c] bg-[#fff4e6]",
+    tone: "bg-muted text-primary",
     category: "staff",
   },
 
@@ -129,7 +129,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "ربط الخدمات",
     helper: "التكويد والمطابقة",
     icon: Link2,
-    tone: "text-[#b6534d] bg-[#fff0ef]",
+    tone: "bg-muted text-primary",
     category: "services",
   },
   {
@@ -137,7 +137,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "الفحوصات",
     helper: "الأسعار وإعدادات الباقات",
     icon: TestTube2,
-    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
+    tone: "bg-muted text-primary",
     category: "services",
   },
   {
@@ -145,7 +145,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "ملفات الفحص الإلكترونية",
     helper: "استمارات العيادات والقوالب",
     icon: Layers,
-    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    tone: "bg-muted text-primary",
     category: "services",
   },
   {
@@ -153,7 +153,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "مصمم النماذج",
     helper: "بناء وتعديل حقول الكشف",
     icon: Scan,
-    tone: "text-[#6c4bb1] bg-[#f1edff]",
+    tone: "bg-muted text-primary",
     category: "services",
   },
   {
@@ -161,7 +161,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "البنتاكام",
     helper: "شيت وصور الأشعة وربط الملفات وتدقيق التكرار",
     icon: Hospital,
-    tone: "text-[#c2781c] bg-[#fff4e6]",
+    tone: "bg-muted text-primary",
     category: "services",
   },
 
@@ -171,7 +171,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "سجل المرضى الكلي",
     helper: "البحث في كافة المرضى",
     icon: Users,
-    tone: "text-[#157a67] bg-[#edf8f4]",
+    tone: "bg-muted text-primary",
     category: "portal",
   },
   {
@@ -179,7 +179,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "الأرشيف التاريخي",
     helper: "سجلات السنوات السابقة",
     icon: Users,
-    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
+    tone: "bg-muted text-primary",
     category: "portal",
   },
   {
@@ -187,7 +187,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "حجوزات البوابة",
     helper: "طلبات الحجز الخارجي",
     icon: CalendarDays,
-    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    tone: "bg-muted text-primary",
     category: "portal",
   },
   {
@@ -195,7 +195,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "رسائل واتساب",
     helper: "صندوق الوارد والتواصل",
     icon: Bell,
-    tone: "text-[#16836a] bg-[#e9f8f1]",
+    tone: "bg-muted text-primary",
     category: "portal",
   },
 
@@ -205,7 +205,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "حالة السيرفر",
     helper: "مراقبة الأداء والاتصال",
     icon: Terminal,
-    tone: "text-[#157a67] bg-[#edf8f4]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -213,7 +213,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "اسكيما وتحديثات",
     helper: "ترحيل جداول الداتابيز",
     icon: Database,
-    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -221,7 +221,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "سجل العمليات",
     helper: "سجل التعديلات والإجراءات",
     icon: FileSearch,
-    tone: "text-[#2a4f9a] bg-[#eaf1ff]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -229,7 +229,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "قواعد تسعير المواعيد",
     helper: "أسعار الكشوفات وحسابات الأطباء",
     icon: CalendarDays,
-    tone: "text-[#157a67] bg-[#edf8f4]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -237,7 +237,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "بطاقات اللوحة",
     helper: "التحكم في ظهور الكروت",
     icon: Eye,
-    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -245,7 +245,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "تدقيق البيانات",
     helper: "سجل حركات وتعديل المبالغ",
     icon: FileSearch,
-    tone: "text-[#b6534d] bg-[#fff0ef]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -253,7 +253,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "الإشعارات",
     helper: "قنوات التنبيه والإرسال",
     icon: Bell,
-    tone: "text-[#c2781c] bg-[#fff4e6]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -261,7 +261,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "tRPC API",
     helper: "أدوات مطوري النظام",
     icon: Terminal,
-    tone: "text-[#334c80] bg-[#edf2fb]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
   {
@@ -269,7 +269,7 @@ const ALL_MODULES: HubModuleCard[] = [
     label: "التشخيص والإصلاح",
     helper: "فحص الأعطال والشبكة",
     icon: Wrench,
-    tone: "text-[#157a67] bg-[#edf8f4]",
+    tone: "bg-muted text-primary",
     category: "system",
   },
 ];
@@ -374,30 +374,30 @@ export default function AdminHubShell({
   };
 
   const cardClassName =
-    "group flex min-h-[116px] w-full flex-col justify-between rounded-xl border border-[#dfe7f2] bg-white p-3 text-right shadow-[0_6px_20px_rgba(42,79,154,0.05)] transition-all duration-200 hover:-translate-y-1 hover:border-[#b5c6e2] hover:shadow-[0_14px_30px_rgba(42,79,154,0.12)] active:translate-y-0 sm:min-h-[138px] sm:rounded-2xl sm:p-4";
+    "group flex min-h-[116px] w-full flex-col justify-between rounded-xl border border-border/60 bg-card p-3 text-right transition-colors hover:border-primary/40 hover:bg-muted/30 active:bg-muted sm:min-h-[138px] sm:rounded-2xl sm:p-4";
 
   return (
-    <div className="min-h-screen bg-[#f7faff] text-[#10234f] pb-16" dir="rtl">
+    <div className="min-h-screen bg-background pb-16 text-foreground" dir="rtl">
       <main className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         {isHubHome ? (
           <section className="space-y-6">
             {/* Header & Live System Status */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-[#dfe7f2]">
+            <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="mb-1.5 text-[10px] font-black tracking-[0.16em] text-[#c2781c]">
+                <div className="mb-1.5 text-[10px] font-black tracking-[0.16em] text-primary">
                   ADMINISTRATION HUB
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-[#10265d] tracking-tight">
+                <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
                   مركز الإدارة والتحكم
                 </h2>
-                <p className="text-xs sm:text-sm font-bold text-slate-400 mt-1">
+                <p className="mt-1 text-xs font-bold text-muted-foreground sm:text-sm">
                   أدوات التحكم والإعدادات المتقدمة وصيانة المنظومة في مكان واحد
                 </p>
               </div>
 
               {/* Status Capsules */}
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
+                <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground">
                   <span
                     className={cn(
                       "size-2.5 rounded-full shadow-xs",
@@ -409,14 +409,14 @@ export default function AdminHubShell({
                     {opsHealth?.dbConnected ? "متصلة" : "منفصلة"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
+                <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground">
                   <Zap className="size-3.5 text-emerald-600" />
                   <span>
                     النفق الآمن:{" "}
                     {opsHealth?.tunnelConnected ? "نشط" : "غير نشط"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs font-mono">
+                <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground font-mono">
                   <span>
                     مرضى اليوم:{" "}
                     {(opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG")}
@@ -445,8 +445,8 @@ export default function AdminHubShell({
                       className={cn(
                         "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 border whitespace-nowrap",
                         active
-                          ? "bg-[#10265d] text-white border-[#10265d] shadow-sm"
-                          : "bg-white text-slate-600 border-[#dfe7f2] hover:bg-slate-50 hover:border-slate-300",
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
                       <CatIcon className="size-3.5" />
@@ -456,7 +456,7 @@ export default function AdminHubShell({
                           "px-2 py-0.5 rounded-full text-[10px] font-bold",
                           active
                             ? "bg-white/20 text-white"
-                            : "bg-slate-100 text-slate-500",
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
                         {count}
@@ -468,13 +468,13 @@ export default function AdminHubShell({
 
               {/* Quick Search Input */}
               <div className="relative min-w-[240px]">
-                <Search className="size-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="size-4 text-muted-foreground absolute right-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="بحث سريع في البطاقات والأدوات..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-3 pr-9 py-2 rounded-xl bg-white border border-[#dfe7f2] text-xs font-bold text-[#10265d] placeholder:text-slate-400 outline-none focus:border-[#2a4f9a] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                  className="w-full rounded-xl border border-border/60 bg-card py-2 pl-3 pr-9 text-xs font-bold text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -495,13 +495,13 @@ export default function AdminHubShell({
                       >
                         <Icon className="size-4.5 sm:size-5" strokeWidth={2} />
                       </span>
-                      <ArrowUpLeft className="size-4 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:text-[#2a4f9a]" />
+                      <ArrowUpLeft className="size-4 text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:text-primary" />
                     </div>
                     <div className="mt-2">
-                      <h3 className="text-xs font-black leading-snug text-[#10265d] sm:text-sm">
+                      <h3 className="text-xs font-black leading-snug text-foreground sm:text-sm">
                         {card.label}
                       </h3>
-                      <p className="mt-1 text-[10px] font-bold leading-normal text-slate-400 line-clamp-2">
+                      <p className="mt-1 text-[10px] font-bold leading-normal text-muted-foreground line-clamp-2">
                         {card.helper}
                       </p>
                     </div>
@@ -512,23 +512,23 @@ export default function AdminHubShell({
           </section>
         ) : (
           <section className="space-y-5">
-            <div className="flex items-center justify-between gap-4 border-b border-[#dfe7f2] pb-4 flex-wrap">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
               <div className="flex items-center gap-3">
                 <Link
                   href="/admin-hub"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-[#10265d] hover:bg-slate-50 transition shadow-2xs"
+                  className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground transition hover:bg-muted"
                 >
                   <ArrowUpLeft className="size-3.5 rotate-90" />
                   <span>العودة لمركز الإدارة</span>
                 </Link>
-                <div className="h-4 w-px bg-slate-300" />
-                <span className="text-xs font-bold text-slate-500">
+                <div className="h-4 w-px bg-border" />
+                <span className="text-xs font-bold text-muted-foreground">
                   {currentModule?.label || "صفحة الإدارة"}
                 </span>
               </div>
 
               <select
-                className="px-4 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 outline-none cursor-pointer shadow-2xs hover:border-slate-300 transition"
+                className="cursor-pointer rounded-xl border border-border/60 bg-card px-4 py-2 text-xs font-bold text-foreground outline-none transition hover:border-primary/40"
                 value={hubLocation}
                 onChange={(e) => {
                   if (e.target.value) setLocation(e.target.value);
@@ -544,7 +544,7 @@ export default function AdminHubShell({
               </select>
             </div>
 
-            <div className="rounded-2xl border border-[#dfe7f2] bg-white p-4 sm:p-6 shadow-[0_6px_20px_rgba(42,79,154,0.05)]">
+            <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-6">
               <Suspense fallback={<AppShellSkeleton />}>
                 {renderComponent()}
               </Suspense>

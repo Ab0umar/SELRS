@@ -165,7 +165,7 @@ export default function AdminPentacamLinking({
                 <FolderCog className="h-3.5 w-3.5" />
                 ربط إداري
               </div>
-              <h1 className="text-2xl font-black text-foreground">
+              <h1 className="sr-only">
                 ربط صور البنتاكام
               </h1>
               <p className="text-sm leading-6 text-muted-foreground">

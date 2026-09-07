@@ -37,17 +37,17 @@ export default function SalaryDashboard() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto" dir="rtl">
-      
+
       {/* ── Main Redesigned Layout Structure ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         {/* Left 8/12: Coverage Timelines & Circular Gauges */}
         <div className="lg:col-span-8 space-y-8">
-          
+
           {/* Section A: Visual Shift Coverage Timelines -> Payroll Budget Progress */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الإجماليات الحالية</h3>
-            
+
             <div className="space-y-4">
               {/* Basic salaries total */}
               <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm">
@@ -71,7 +71,7 @@ export default function SalaryDashboard() {
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">مؤشرات الأداء المالي والجزاءات</h3>
             <div className="grid grid-cols-3 gap-6">
-              
+
               {/* Lateness Gauge -> Total Penalties */}
               <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-sm">
                 <div className="w-14 h-14 rounded-full border-4 border-rose-500/20 border-t-rose-500 flex items-center justify-center font-bold text-xs mx-auto font-mono text-foreground">
@@ -103,21 +103,21 @@ export default function SalaryDashboard() {
 
         {/* Right 4/12: Control Badges & Device Status Radar */}
         <div className="lg:col-span-4 space-y-8">
-          
+
           {/* Section C: Oval Command Badges */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">أزرار الإجراءات والتحكم</h3>
             <div className="flex flex-col gap-3">
-              
+
               <Link
                 href="/salary/basics"
-                className="w-full flex items-center justify-between p-4 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 text-teal-400 rounded-xl transition-all duration-200 text-right text-xs font-bold"
+                className="w-full flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 p-4 text-right text-xs font-bold text-primary transition-all duration-200 hover:bg-primary/15"
               >
                 <span className="flex items-center gap-2.5">
-                  <Users className="h-4.5 w-4.5 text-teal-400" />
+                  <Users className="h-4.5 w-4.5 text-primary" />
                   <span>تحضير الرواتب الأساسية</span>
                 </span>
-                <span className="text-[9px] bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full font-mono font-bold">
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-mono font-bold text-primary">
                   إعداد
                 </span>
               </Link>

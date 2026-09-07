@@ -49,7 +49,7 @@ function DetailItem({
 }) {
   if (value === null || value === undefined || value === "") return null;
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#f0f5fa] py-3.5 last:border-0 last:pb-0">
+    <div className="flex items-center justify-between gap-4 border-b border-border/40 py-3.5 last:border-0 last:pb-0">
       <div className="flex items-center gap-2">
         {Icon && <Icon className="size-4 text-muted-foreground" />}
         <span className="text-sm font-semibold text-muted-foreground">
@@ -126,11 +126,11 @@ export default function PatientFile() {
             </div>
 
             {/* Premium Passport-Style Patient Profile Card */}
-            <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 {/* Profile Photo/Initial Badge and core status */}
                 <div className="flex items-center gap-4">
-                  <div className="size-16 shrink-0 bg-[#003D82] text-white font-bold text-xl rounded-2xl flex items-center justify-center shadow-xs">
+                  <div className="size-16 shrink-0 bg-primary text-primary-foreground font-bold text-xl rounded-2xl flex items-center justify-center shadow-xs">
                     {data.fullName.trim().charAt(0)}
                   </div>
                   <div className="space-y-1">
@@ -146,7 +146,7 @@ export default function PatientFile() {
                     </div>
                     <p className="text-xs text-muted-foreground leading-none">
                       كود المريض:{" "}
-                      <span className="font-bold text-[#003D82] font-mono">
+                      <span className="font-bold text-primary font-mono">
                         {data.patientCode}
                       </span>
                     </p>
@@ -155,7 +155,7 @@ export default function PatientFile() {
 
                 {/* Info parameters stamps */}
                 <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:min-w-[360px]">
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
                     <p className="text-[10px] font-semibold text-muted-foreground">
                       الجنس
                     </p>
@@ -165,7 +165,7 @@ export default function PatientFile() {
                         : "غير محدد"}
                     </p>
                   </div>
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
                     <p className="text-[10px] font-semibold text-muted-foreground">
                       العمر
                     </p>
@@ -173,7 +173,7 @@ export default function PatientFile() {
                       {data.age ? `${data.age} سنة` : "غير محدد"}
                     </p>
                   </div>
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
                     <p className="text-[10px] font-semibold text-muted-foreground">
                       آخر زيارة
                     </p>
@@ -192,7 +192,7 @@ export default function PatientFile() {
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
                 <Link href="/my/refraction">
-                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                  <div className="bg-card border border-border/60 rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
                     <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                       <Glasses className="size-5" />
                     </div>
@@ -208,7 +208,7 @@ export default function PatientFile() {
                 </Link>
 
                 <Link href="/my/prescription">
-                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                  <div className="bg-card border border-border/60 rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
                     <div className="size-11 rounded-xl bg-secondary/10 text-primary flex items-center justify-center">
                       <Pill className="size-5" />
                     </div>
@@ -224,7 +224,7 @@ export default function PatientFile() {
                 </Link>
 
                 <Link href="/my/scans">
-                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                  <div className="bg-card border border-border/60 rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
                     <div className="size-11 rounded-xl bg-success/10 text-success flex items-center justify-center">
                       <ScanLine className="size-5" />
                     </div>
@@ -240,7 +240,7 @@ export default function PatientFile() {
                 </Link>
 
                 <Link href="/my/book">
-                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                  <div className="bg-card border border-border/60 rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
                     <div className="size-11 rounded-xl bg-muted/40 text-muted-foreground flex items-center justify-center">
                       <CalendarDays className="size-5" />
                     </div>
@@ -256,7 +256,7 @@ export default function PatientFile() {
                 </Link>
 
                 <Link href="/my/bookings" className="col-span-2 md:col-span-1">
-                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
+                  <div className="bg-card border border-border/60 rounded-2xl p-4 text-center space-y-3 shadow-xs hover:border-primary/30 transition-all duration-200 cursor-pointer h-full flex flex-col justify-center items-center">
                     <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
                       <UserRound className="size-5" />
                     </div>
@@ -276,8 +276,8 @@ export default function PatientFile() {
             {/* Medical details page blocks */}
             <div className="grid gap-6 md:grid-cols-2">
               {/* Contact details */}
-              <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-                <div className="border-b border-[#f0f5fa] pb-2">
+              <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="border-b border-border/40 pb-2">
                   <h4 className="text-sm font-bold text-foreground">
                     البيانات الشخصية والاتصال
                   </h4>
@@ -314,8 +314,8 @@ export default function PatientFile() {
               </div>
 
               {/* Medical History */}
-              <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-                <div className="border-b border-[#f0f5fa] pb-2">
+              <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="border-b border-border/40 pb-2">
                   <h4 className="text-sm font-bold text-foreground">
                     التاريخ المرضي والحساسية
                   </h4>
@@ -324,7 +324,7 @@ export default function PatientFile() {
                   </p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-2">
                     <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
                       <Stethoscope className="size-4" />
                       <span>الأمراض السابقة</span>
@@ -334,7 +334,7 @@ export default function PatientFile() {
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-2">
                     <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
                       <ShieldAlert className="size-4" />
                       <span>حالات الحساسية</span>

@@ -112,12 +112,12 @@ function RefractionReportTable({
   return (
     <div className="patient-summary-refraction-block break-inside-avoid-page">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold text-slate-500" dir="rtl">
+        <span className="text-xs font-semibold text-muted-foreground" dir="rtl">
           {visitDate}
         </span>
         {metrics.length > 0 && (
           <div
-            className="flex flex-1 items-center justify-center gap-5 border-b border-[#b8c7dc] pb-1 text-center text-[11px] font-bold uppercase tracking-wide text-[#003d9b]"
+            className="flex flex-1 items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-[11px] font-bold uppercase tracking-wide text-primary"
             dir="ltr"
           >
             {metrics.includes("ucva") && (
@@ -142,35 +142,35 @@ function RefractionReportTable({
       </div>
 
       <div
-        className="overflow-hidden rounded border border-[#c3c6d6]"
+        className="overflow-hidden rounded border border-border/60"
         dir="ltr"
       >
         <table className="w-full table-fixed border-collapse text-center text-[11px]">
           <thead>
-            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
-              <th className="w-[18%] border-e border-[#c3c6d6] px-3 py-2">
+            <tr className="border-b border-border/60 bg-muted/40 text-primary">
+              <th className="w-[18%] border-e border-border/60 px-3 py-2">
                 {title}
               </th>
               <th
                 colSpan={3}
-                className="border-e border-[#c3c6d6] px-3 py-2 text-center"
+                className="border-e border-border/60 px-3 py-2 text-center"
               >
                 OD
               </th>
               <th
                 colSpan={3}
-                className="border-e border-[#c3c6d6] px-3 py-2 text-center"
+                className="border-e border-border/60 px-3 py-2 text-center"
               >
                 OS
               </th>
               {showIpd && <th className="w-[12%] px-3 py-2" />}
             </tr>
-            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
-              <th className="border-e border-[#c3c6d6] px-3 py-2">Distance</th>
+            <tr className="border-b border-border/60 bg-muted/40 text-primary">
+              <th className="border-e border-border/60 px-3 py-2">Distance</th>
               {["S", "C", "A", "S", "C", "A"].map((label, index) => (
                 <th
                   key={`${label}-${index}`}
-                  className="border-e border-[#c3c6d6] px-3 py-2"
+                  className="border-e border-border/60 px-3 py-2"
                 >
                   {label}
                 </th>
@@ -179,13 +179,13 @@ function RefractionReportTable({
             </tr>
           </thead>
           <tbody>
-            <tr className="bg-[#003d9b]/[0.04]">
-              <td className="border-e border-[#c3c6d6] px-3 py-2">&nbsp;</td>
+            <tr className="bg-primary/5">
+              <td className="border-e border-border/60 px-3 py-2">&nbsp;</td>
               {[od.s, od.c, od.axis, os.s, os.c, os.axis].map(
                 (value, index) => (
                   <td
                     key={index}
-                    className="border-e border-[#c3c6d6] px-3 py-2 font-mono"
+                    className="border-e border-border/60 px-3 py-2 font-mono"
                   >
                     {shown(value)}
                   </td>
@@ -201,8 +201,8 @@ function RefractionReportTable({
               )}
             </tr>
             {showReading && (
-              <tr className="border-t border-[#c3c6d6]">
-                <td className="border-e border-[#c3c6d6] px-3 py-3 font-bold text-[#003d9b]">
+              <tr className="border-t border-border/60">
+                <td className="border-e border-border/60 px-3 py-3 font-bold text-primary">
                   Reading
                 </td>
                 <td colSpan={showIpd ? 7 : 6} className="px-4 py-3">
@@ -251,35 +251,35 @@ function PentacamReportTable({
 
   return (
     <div className="patient-summary-refraction-block break-inside-avoid-page">
-      <p className="mb-2 text-xs font-semibold text-slate-500" dir="rtl">
+      <p className="mb-2 text-xs font-semibold text-muted-foreground" dir="rtl">
         {visitDate}
       </p>
       <div
-        className="overflow-x-auto rounded border border-[#c3c6d6]"
+        className="overflow-x-auto rounded border border-border/60"
         dir="ltr"
       >
         <table className="w-full min-w-[850px] table-fixed border-collapse text-center text-[10px] print:min-w-0 print:text-[7px]">
           <thead>
-            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
-              <th className="w-[11%] border-e border-[#b8c7dc] px-2 py-2">
+            <tr className="border-b border-border/60 bg-muted/40 text-primary">
+              <th className="w-[11%] border-e border-border/60 px-2 py-2">
                 Pentacam
               </th>
-              <th colSpan={8} className="border-e border-[#b8c7dc] px-2 py-2">
+              <th colSpan={8} className="border-e border-border/60 px-2 py-2">
                 OD
               </th>
               <th colSpan={8} className="px-2 py-2">
                 OS
               </th>
             </tr>
-            <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] text-[#003d9b]">
+            <tr className="border-b border-border/60 bg-muted/40 text-primary">
               <th
-                className="border-e border-[#b8c7dc] px-2 py-2"
+                className="border-e border-border/60 px-2 py-2"
                 aria-label="Pentacam values"
               />
               {[...metrics, ...metrics].map(([label, key], index) => (
                 <th
                   key={`${key}-${index}`}
-                  className="border-e border-[#b8c7dc] px-1 py-2 last:border-e-0"
+                  className="border-e border-border/60 px-1 py-2 last:border-e-0"
                 >
                   {label}
                 </th>
@@ -287,12 +287,12 @@ function PentacamReportTable({
             </tr>
           </thead>
           <tbody>
-            <tr className="bg-[#003d9b]/[0.04]">
-              <td className="border-e border-[#c3c6d6] px-2 py-2">&nbsp;</td>
+            <tr className="bg-primary/5">
+              <td className="border-e border-border/60 px-2 py-2">&nbsp;</td>
               {metrics.map(([, key]) => (
                 <td
                   key={`od-${key}`}
-                  className="border-e border-[#c3c6d6] px-1 py-2 font-mono"
+                  className="border-e border-border/60 px-1 py-2 font-mono"
                 >
                   {shown(od?.[key])}
                 </td>
@@ -300,7 +300,7 @@ function PentacamReportTable({
               {metrics.map(([, key], index) => (
                 <td
                   key={`os-${key}`}
-                  className={`px-1 py-2 font-mono ${index < metrics.length - 1 ? "border-e border-[#c3c6d6]" : ""}`}
+                  className={`px-1 py-2 font-mono ${index < metrics.length - 1 ? "border-e border-border/60" : ""}`}
                 >
                   {shown(os?.[key])}
                 </td>
@@ -315,10 +315,10 @@ function PentacamReportTable({
 
 function SectionHeading({ id, label }: { id: string; label: string }) {
   return (
-    <div className="mb-4 flex items-center gap-3 border-b border-[#b8c7dc] pb-2">
+    <div className="mb-4 flex items-center gap-3 border-b border-border/60 pb-2">
       <h2
         id={`sum-${id}`}
-        className="scroll-mt-20 shrink-0 text-base font-bold text-[#003d9b]"
+        className="scroll-mt-20 shrink-0 text-base font-bold text-primary"
       >
         {label}
       </h2>
@@ -335,28 +335,28 @@ function DataTable({
 }) {
   return (
     <div
-      className="patient-summary-data-table overflow-x-auto rounded-xl border border-slate-200/90 shadow-2xs bg-white my-1"
+      className="patient-summary-data-table overflow-x-auto rounded-xl border border-border/60 shadow-2xs bg-card my-1"
       dir="ltr"
     >
       <table className="w-full border-collapse text-center text-xs" dir="ltr">
         <thead>
-          <tr className="border-b border-[#b8c7dc] bg-[#eaf1fa] font-bold text-[#003d9b]">
+          <tr className="border-b border-border/60 bg-muted/40 font-bold text-primary">
             {headers.map((h, idx) => (
               <th
                 key={`${h}-${idx}`}
-                className="border-x border-[#b8c7dc] px-3 py-2.5 text-center text-[11px] font-bold tracking-wide first:border-l-0 last:border-r-0 whitespace-nowrap"
+                className="border-x border-border/60 px-3 py-2.5 text-center text-[11px] font-bold tracking-wide first:border-l-0 last:border-r-0 whitespace-nowrap"
               >
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border/60">
           {rows.length === 0 ? (
             <tr>
               <td
                 colSpan={headers.length}
-                className="px-3 py-6 text-center text-xs text-slate-400 font-medium italic"
+                className="px-3 py-6 text-center text-xs text-muted-foreground font-medium italic"
               >
                 لا توجد بيانات محفوظة في الجدول
               </td>
@@ -365,7 +365,7 @@ function DataTable({
             rows.map((row, i) => (
               <tr
                 key={i}
-                className="hover:bg-blue-50/40 transition-colors odd:bg-white even:bg-slate-50/50"
+                className="hover:bg-muted/40 transition-colors odd:bg-card even:bg-muted/30"
               >
                 {row.map((cell, j) => {
                   const val = formatDisplayValue(cell);
@@ -374,7 +374,7 @@ function DataTable({
                   return (
                     <td
                       key={j}
-                      className="px-3 py-2 font-mono text-xs text-slate-700 text-center whitespace-nowrap align-middle border-x border-slate-100 first:border-l-0 last:border-r-0"
+                      className="px-3 py-2 font-mono text-xs text-foreground text-center whitespace-nowrap align-middle border-x border-border/60 first:border-l-0 last:border-r-0"
                       dir="ltr"
                     >
                       {isEyeOD ? (
@@ -1234,17 +1234,17 @@ export default function PatientSummary() {
 
         <main ref={contentRef} className="flex-1 overflow-y-auto">
           <article className="patient-summary-print-root mx-auto w-full max-w-5xl space-y-8 bg-background px-4 py-6 pb-16 sm:px-6 lg:my-5 lg:border lg:border-border lg:px-8 print:space-y-5">
-            <div className="hidden border-b-2 border-[#003d9b] pb-3 print:flex print:items-end print:justify-between">
+            <div className="hidden border-b-2 border-primary pb-3 print:flex print:items-end print:justify-between">
               <div>
-                <h1 className="text-xl font-black text-[#002f6c]">
+                <h1 className="text-xl font-black text-primary">
                   التقرير الملخص | Patient Summary
                 </h1>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   سجل الزيارات والقياسات الطبية
                 </p>
               </div>
-              <div className="text-left text-xs text-slate-600" dir="rtl">
-                <p className="font-bold text-[#002f6c]">{patientName}</p>
+              <div className="text-left text-xs text-muted-foreground" dir="rtl">
+                <p className="font-bold text-primary">{patientName}</p>
                 <p dir="ltr">{patient?.patientCode ?? "—"}</p>
               </div>
             </div>

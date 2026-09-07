@@ -1472,7 +1472,9 @@ export async function searchPatients(
     );
   }
 
-  const result = await db.select().from(patients).where(whereClause).limit(50);
+  // This powers patient pickers and global search. Do not silently discard
+  // matches: callers render the complete matching set in a scrollable list.
+  const result = await db.select().from(patients).where(whereClause);
   const enriched = await attachTreatingDoctor(result);
   return enriched.map((row) => decodePatientRow(row as any));
 }

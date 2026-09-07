@@ -149,7 +149,7 @@ export default function ShiftManagement() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      
+
       {/* Action Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/40">
         <Button
@@ -178,7 +178,7 @@ export default function ShiftManagement() {
           {/* Drawer container */}
           <div className="pointer-events-none fixed inset-y-0 left-0 flex max-w-full pl-10 sm:pl-16">
             <div className="pointer-events-auto w-screen max-w-md transform bg-card shadow-2xl transition-transform duration-300 ease-in-out border-r border-border flex flex-col h-full animate-in slide-in-from-left">
-              
+
               {/* Header */}
               <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between bg-muted/10">
                 <h3 className="text-sm font-bold text-foreground">
@@ -198,11 +198,11 @@ export default function ShiftManagement() {
 
               {/* Scrollable Form Body */}
               <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-                
+
                 {/* Basic Info */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-bold text-primary border-b border-border pb-1">البيانات الأساسية</h4>
-                  
+
                   <div className="space-y-2">
                     <label className="block text-xs font-semibold text-foreground">اسم الوردية</label>
                     <input
@@ -317,7 +317,7 @@ export default function ShiftManagement() {
                 {/* Clock Configuration */}
                 <div className="space-y-4 pt-2">
                   <h4 className="text-xs font-bold text-primary border-b border-border pb-1">مواعيد التوقيت وقواعد التأخير</h4>
-                  
+
                   {form.isFlexible ? (
                     <div className="space-y-4 animate-in fade-in duration-300">
                       <div className="p-3 bg-muted/20 border border-border/60 rounded-xl space-y-3">
@@ -532,9 +532,9 @@ export default function ShiftManagement() {
                   </div>
                   <div className="flex flex-col gap-1.5 items-end">
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                      s.isFlexible 
-                        ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" 
-                        : "bg-teal-500/10 text-teal-400 border-teal-500/20"
+                      s.isFlexible
+                        ? "bg-primary/10 text-primary border-primary/20"
+                        : "bg-primary/10 text-primary border-primary/20"
                     }`}>
                       {s.isFlexible ? "مرنة" : "ثابتة"}
                     </span>
@@ -621,7 +621,7 @@ export default function ShiftManagement() {
           ))}
         </div>
       </section>
-      
+
     </div>
   );
 }

@@ -132,31 +132,31 @@ export default function DeviceSettings() {
   const admsOnline = admsMins < 60;
 
   const inputCls =
-    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all duration-200 text-slate-800 font-medium";
+    "w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-xs outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 text-foreground font-medium";
 
   return (
     <div className="space-y-6" dir="rtl">
       {showSuccess && (
-        <Alert variant="default" className="border-teal-200 bg-teal-50 text-teal-800 shadow-md shadow-teal-50/50 animate-in fade-in duration-300">
-          <CheckCircle className="h-4 w-4 text-teal-600" />
+        <Alert variant="default" className="border-primary/20 bg-primary/5 text-primary shadow-md shadow-teal-50/50 animate-in fade-in duration-300">
+          <CheckCircle className="h-4 w-4 text-primary" />
           <AlertDescription className="font-semibold text-xs">تم حفظ إعدادات أجهزة الحضور بنجاح</AlertDescription>
         </Alert>
       )}
 
       {/* ── Bento Grid Puzzle ── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        
+
         {/* Bento Box 1: EF10K Live Monitor (col-span-6) - Mint Theme */}
-        <div className="md:col-span-6 p-6 bg-[#ECFDF5] border border-emerald-150 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
+        <div className="md:col-span-6 p-6 bg-card border border-border/60 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
           <div className="space-y-4">
-            <div className="flex justify-between items-center border-b border-emerald-100/50 pb-2">
+            <div className="flex justify-between items-center border-b border-border/60 pb-2">
               <div className="flex items-center gap-2">
-                <div className="p-1 rounded-lg bg-emerald-600 text-white font-mono text-[9px] font-bold">DEV 01</div>
-                <h3 className="text-xs font-black text-emerald-950">جهاز EF10K (الرئيسي)</h3>
+                <div className="p-1 rounded-lg bg-primary text-primary-foreground font-mono text-[9px] font-bold">DEV 01</div>
+                <h3 className="text-xs font-black text-foreground">جهاز EF10K (الرئيسي)</h3>
               </div>
-              
+
               {status.connected ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-emerald-600/10 text-emerald-700 border border-emerald-350 shadow-[0_0_12px_rgba(16,185,129,0.1)]">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-emerald-350 shadow-[0_0_12px_rgba(16,185,129,0.1)]">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -171,26 +171,26 @@ export default function DeviceSettings() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-white/80 rounded-xl border border-emerald-100/50">
-                <span className="text-[9px] text-emerald-800/60 block font-bold">آخر وقت للمزامنة</span>
-                <span className="font-mono font-bold text-emerald-950 text-[10px] mt-1 block">
+              <div className="p-3 bg-muted/30 rounded-xl border border-border/60">
+                <span className="text-[9px] text-muted-foreground block font-bold">آخر وقت للمزامنة</span>
+                <span className="font-mono font-bold text-foreground text-[10px] mt-1 block">
                   {status.lastConnected ? new Date(status.lastConnected).toLocaleTimeString("ar-EG") : "—"}
                 </span>
               </div>
-              <div className="p-3 bg-white/80 rounded-xl border border-emerald-100/50">
-                <span className="text-[9px] text-emerald-800/60 block font-bold">سجلات البصمة</span>
-                <span className="font-mono font-bold text-emerald-950 text-[10px] mt-1 block">
+              <div className="p-3 bg-muted/30 rounded-xl border border-border/60">
+                <span className="text-[9px] text-muted-foreground block font-bold">سجلات البصمة</span>
+                <span className="font-mono font-bold text-foreground text-[10px] mt-1 block">
                   {status.punchCount ?? 0} بصمة
                 </span>
               </div>
             </div>
 
-            <div className="flex gap-2 flex-wrap pt-3 border-t border-emerald-100/50">
+            <div className="flex gap-2 flex-wrap pt-3 border-t border-border/60">
               <Button
                 size="sm"
                 onClick={() => connectDevice.mutateAsync().then(() => statusQuery.refetch())}
                 disabled={connectDevice.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
               >
                 اتصال
               </Button>
@@ -199,7 +199,7 @@ export default function DeviceSettings() {
                 variant="outline"
                 onClick={() => disconnectDevice.mutateAsync().then(() => statusQuery.refetch())}
                 disabled={disconnectDevice.isPending}
-                className="border-emerald-250 hover:bg-emerald-100 text-emerald-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg"
+                className="border-border/60 hover:bg-emerald-100 text-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg"
               >
                 فصل
               </Button>
@@ -207,9 +207,9 @@ export default function DeviceSettings() {
                 size="sm"
                 variant="outline"
                 onClick={() => window.open("/attendance/admin/console", "_blank")}
-                className="border-emerald-250 hover:bg-emerald-100 text-emerald-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg gap-1.5"
+                className="border-border/60 hover:bg-emerald-100 text-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg gap-1.5"
               >
-                <Terminal className="w-3.5 h-3.5 text-emerald-700" />
+                <Terminal className="w-3.5 h-3.5 text-primary" />
                 شاشة الفحص
               </Button>
             </div>
@@ -217,17 +217,17 @@ export default function DeviceSettings() {
         </div>
 
         {/* Bento Box 2: ZK40 Live Monitor (col-span-6) - Sky Theme */}
-        <div className="md:col-span-6 p-6 bg-[#F0F9FF] border border-sky-150 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
+        <div className="md:col-span-6 p-6 bg-card border border-border/60 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
           <div className="space-y-4">
-            <div className="flex justify-between items-center border-b border-sky-100/50 pb-2">
+            <div className="flex justify-between items-center border-b border-border/60 pb-2">
               <div className="flex items-center gap-2">
-                <div className="p-1 rounded-lg bg-sky-600 text-white font-mono text-[9px] font-bold">DEV 02</div>
-                <h3 className="text-xs font-black text-sky-950">جهاز K40 Pro (الفرعي)</h3>
+                <div className="p-1 rounded-lg bg-primary text-primary-foreground font-mono text-[9px] font-bold">DEV 02</div>
+                <h3 className="text-xs font-black text-foreground">جهاز K40 Pro (الفرعي)</h3>
               </div>
-              
+
               {k40.zk40Protocol === "tcp" ? (
                 zk40Status.data?.connected ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-sky-350 shadow-[0_0_12px_rgba(56,189,248,0.1)]">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-sky-350 shadow-[0_0_12px_rgba(56,189,248,0.1)]">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
@@ -240,7 +240,7 @@ export default function DeviceSettings() {
                   </span>
                 )
               ) : admsOnline ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-sky-350 shadow-[0_0_12px_rgba(56,189,248,0.1)]">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-sky-350 shadow-[0_0_12px_rgba(56,189,248,0.1)]">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
@@ -255,11 +255,11 @@ export default function DeviceSettings() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-white/80 rounded-xl border border-sky-100/50">
-                <span className="text-[9px] text-sky-800/60 block font-bold">
+              <div className="p-3 bg-muted/30 rounded-xl border border-border/60">
+                <span className="text-[9px] text-muted-foreground block font-bold">
                   {k40.zk40Protocol === "tcp" ? "آخر وقت للاتصال" : "آخر نبضة مستلمة"}
                 </span>
-                <span className="font-mono font-bold text-sky-950 text-[10px] mt-1 block">
+                <span className="font-mono font-bold text-foreground text-[10px] mt-1 block">
                   {k40.zk40Protocol === "tcp"
                     ? zk40Status.data?.lastConnected
                       ? new Date(zk40Status.data.lastConnected).toLocaleTimeString("ar-EG")
@@ -269,20 +269,20 @@ export default function DeviceSettings() {
                       : "—"}
                 </span>
               </div>
-              <div className="p-3 bg-white/80 rounded-xl border border-sky-100/50">
-                <span className="text-[9px] text-sky-800/60 block font-bold">سجلات البصمة</span>
-                <span className="font-mono font-bold text-sky-950 text-[10px] mt-1 block">
+              <div className="p-3 bg-muted/30 rounded-xl border border-border/60">
+                <span className="text-[9px] text-muted-foreground block font-bold">سجلات البصمة</span>
+                <span className="font-mono font-bold text-foreground text-[10px] mt-1 block">
                   {adms?.punchCount ?? 0} بصمة
                 </span>
               </div>
             </div>
 
-            <div className="flex gap-2 flex-wrap pt-3 border-t border-sky-100/50">
+            <div className="flex gap-2 flex-wrap pt-3 border-t border-border/60">
               <Button
                 size="sm"
                 onClick={() => connectZK40.mutateAsync().then(() => zk40Status.refetch())}
                 disabled={connectZK40.isPending || !k40.ip}
-                className="bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
               >
                 اتصال
               </Button>
@@ -291,7 +291,7 @@ export default function DeviceSettings() {
                 variant="outline"
                 onClick={() => disconnectZK40.mutateAsync().then(() => zk40Status.refetch())}
                 disabled={disconnectZK40.isPending}
-                className="border-sky-250 hover:bg-sky-100 text-sky-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg"
+                className="border-border/60 hover:bg-sky-100 text-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg"
               >
                 فصل
               </Button>
@@ -304,7 +304,7 @@ export default function DeviceSettings() {
                   } catch {}
                 }}
                 disabled={syncZK40.isPending || !k40.ip}
-                className="bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
               >
                 تزامن يدوي
               </Button>
@@ -313,23 +313,23 @@ export default function DeviceSettings() {
         </div>
 
         {/* Bento Box 3: Network Configuration (col-span-12) - White with details */}
-        <div className="md:col-span-12 p-6 bg-white border border-slate-200 rounded-3xl space-y-6">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <Settings2 className="w-4.5 h-4.5 text-teal-600" />
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">تفاصيل تهيئة المنافذ والبروتوكول</h3>
+        <div className="md:col-span-12 p-6 bg-card border border-border/60 rounded-3xl space-y-6">
+          <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+            <Settings2 className="w-4.5 h-4.5 text-primary" />
+            <h3 className="text-xs font-black text-foreground uppercase tracking-wider">تفاصيل تهيئة المنافذ والبروتوكول</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
+
             {/* EF10K Config Form */}
-            <div className="space-y-4 md:border-l md:border-slate-100 md:pl-8">
-              <div className="flex items-center gap-2 border-b border-slate-50 pb-2">
-                <div className="w-1 h-3 bg-teal-600 rounded-full"></div>
-                <h4 className="text-xs font-bold text-slate-800">تهيئة جهاز EF10K</h4>
+            <div className="space-y-4 md:border-l md:border-border/60 md:pl-8">
+              <div className="flex items-center gap-2 border-b border-border/60 pb-2">
+                <div className="h-3 w-1 rounded-full bg-primary"></div>
+                <h4 className="text-xs font-bold text-foreground">تهيئة جهاز EF10K</h4>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 block">رقم البروتوكول (FK Protocol)</label>
+                <label className="text-[10px] font-bold text-muted-foreground block">رقم البروتوكول (FK Protocol)</label>
                 <select
                   value={ef10k.fkProtocol}
                   onChange={(e) => setEf10k({ ...ef10k, fkProtocol: parseInt(e.target.value) as 0 | 1 })}
@@ -342,27 +342,27 @@ export default function DeviceSettings() {
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2 space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 block">IP الجهاز</label>
+                  <label className="text-[10px] font-bold text-muted-foreground block">IP الجهاز</label>
                   <input
                     type="text"
                     value={ef10k.ip}
                     disabled
                     readOnly
-                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
+                    className={`${inputCls} font-mono bg-muted/40 text-muted-foreground cursor-not-allowed`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 block">المنفذ</label>
+                  <label className="text-[10px] font-bold text-muted-foreground block">المنفذ</label>
                   <input
                     type="number"
                     value={ef10k.port}
                     disabled
                     readOnly
-                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
+                    className={`${inputCls} font-mono bg-muted/40 text-muted-foreground cursor-not-allowed`}
                   />
                 </div>
               </div>
-              <p className="text-[9px] text-slate-400">
+              <p className="text-[9px] text-muted-foreground">
                 * يُقرأ IP والمنفذ من متغيرات البيئة (.env) فقط ولا يمكن تعديلهما من هنا
               </p>
 
@@ -372,9 +372,9 @@ export default function DeviceSettings() {
                   id="ef10k-enabled-bento"
                   checked={ef10k.enabled}
                   onChange={(e) => setEf10k({ ...ef10k, enabled: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-border/60 text-primary focus:ring-teal-500 cursor-pointer"
                 />
-                <label htmlFor="ef10k-enabled-bento" className="text-[10px] font-bold text-slate-600 cursor-pointer select-none">
+                <label htmlFor="ef10k-enabled-bento" className="text-[10px] font-bold text-muted-foreground cursor-pointer select-none">
                   تفعيل ومزامنة الجهاز في النظام
                 </label>
               </div>
@@ -382,7 +382,7 @@ export default function DeviceSettings() {
               <Button
                 onClick={saveEF10K}
                 disabled={updateSettings.isPending}
-                className="w-full text-[10px] font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-lg py-2 h-auto"
+                className="w-full text-[10px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto"
               >
                 {updateSettings.isPending ? "جاري..." : "حفظ إعدادات EF10K"}
               </Button>
@@ -401,13 +401,13 @@ export default function DeviceSettings() {
 
             {/* K40 Pro Config Form */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-50 pb-2">
-                <div className="w-1 h-3 bg-sky-600 rounded-full"></div>
-                <h4 className="text-xs font-bold text-slate-800">تهيئة جهاز K40 Pro</h4>
+              <div className="flex items-center gap-2 border-b border-border/60 pb-2">
+                <div className="w-1 h-3 bg-primary rounded-full"></div>
+                <h4 className="text-xs font-bold text-foreground">تهيئة جهاز K40 Pro</h4>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 block">بروتوكول الاتصال</label>
+                <label className="text-[10px] font-bold text-muted-foreground block">بروتوكول الاتصال</label>
                 <select
                   value={k40.zk40Protocol}
                   onChange={(e) => setK40({ ...k40, zk40Protocol: e.target.value as "adms" | "tcp" })}
@@ -420,27 +420,27 @@ export default function DeviceSettings() {
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2 space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 block">IP الجهاز</label>
+                  <label className="text-[10px] font-bold text-muted-foreground block">IP الجهاز</label>
                   <input
                     type="text"
                     value={k40.ip}
                     disabled
                     readOnly
-                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
+                    className={`${inputCls} font-mono bg-muted/40 text-muted-foreground cursor-not-allowed`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 block">المنفذ</label>
+                  <label className="text-[10px] font-bold text-muted-foreground block">المنفذ</label>
                   <input
                     type="number"
                     value={k40.port}
                     disabled
                     readOnly
-                    className={`${inputCls} font-mono bg-slate-50 text-slate-500 cursor-not-allowed`}
+                    className={`${inputCls} font-mono bg-muted/40 text-muted-foreground cursor-not-allowed`}
                   />
                 </div>
               </div>
-              <p className="text-[9px] text-slate-400">
+              <p className="text-[9px] text-muted-foreground">
                 * يُقرأ IP والمنفذ من متغيرات البيئة (.env) فقط ولا يمكن تعديلهما من هنا
               </p>
 
@@ -450,9 +450,9 @@ export default function DeviceSettings() {
                   id="k40-enabled-bento"
                   checked={k40.enabled}
                   onChange={(e) => setK40({ ...k40, enabled: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-border/60 text-primary focus:ring-teal-500 cursor-pointer"
                 />
-                <label htmlFor="k40-enabled-bento" className="text-[10px] font-bold text-slate-600 cursor-pointer select-none">
+                <label htmlFor="k40-enabled-bento" className="text-[10px] font-bold text-muted-foreground cursor-pointer select-none">
                   تفعيل ومزامنة الجهاز في النظام
                 </label>
               </div>
@@ -460,7 +460,7 @@ export default function DeviceSettings() {
               <Button
                 onClick={saveK40}
                 disabled={updateSettings.isPending}
-                className="w-full text-[10px] font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-lg py-2 h-auto"
+                className="w-full text-[10px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto"
               >
                 {updateSettings.isPending ? "جاري..." : "حفظ إعدادات K40 Pro"}
               </Button>

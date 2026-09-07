@@ -354,7 +354,7 @@ export default function ConsultantFollowupPage() {
 
   return (
     <div
-      className="followup-print-root consultant-followup-page min-h-screen print:min-h-0 bg-[#dde1e7] text-foreground"
+      className="followup-print-root consultant-followup-page min-h-screen print:min-h-0 bg-background text-foreground"
       style={{ fontFamily: "Inter, sans-serif" }}
       dir="rtl"
     >
@@ -367,12 +367,12 @@ export default function ConsultantFollowupPage() {
       `}</style>
 
       {/* Top nav */}
-      <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-5 py-2 bg-[#f8f9fb]/95 border-b border-[#c3c6d6]">
+      <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-5 py-2 bg-background/95 border-b border-border/60">
         <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
-            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-[#edeef0]"
+            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-muted/60"
             onClick={() =>
               setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)
             }
@@ -389,7 +389,7 @@ export default function ConsultantFollowupPage() {
         <div className="flex items-center gap-3">
           <Button
             type="button"
-            className="bg-[#003d9b] text-white text-xs font-bold px-4 py-2 rounded hover:opacity-80 active:scale-95 disabled:opacity-60"
+            className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
             disabled={saveFollowupSheetMutation.isPending}
           >
@@ -398,7 +398,7 @@ export default function ConsultantFollowupPage() {
           <Button
             type="button"
             variant="outline"
-            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-[#edeef0]"
+            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-muted/60"
             onClick={() =>
               void printOrExportPdf(
                 `consultant-followup-${initialPatientId ?? "sheet"}.pdf`,

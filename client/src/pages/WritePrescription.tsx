@@ -307,7 +307,7 @@ export default function WritePrescription({
   });
   const referenceMedicationsQuery =
     trpc.medical.searchEgyptianDrugReference.useQuery(
-      { query: medicationSearch.trim(), limit: 20 },
+      { query: medicationSearch.trim(), limit: 10_000 },
       {
         enabled: medicationsOpen && medicationSearch.trim().length >= 2,
         refetchOnWindowFocus: false,
@@ -1213,7 +1213,7 @@ export default function WritePrescription({
   return (
     <div
       className={cn(
-        "prescription-root bg-[#f5f7fb] text-[#172033]",
+        "prescription-root bg-background text-foreground",
         hidePageChrome ? "min-h-0" : "min-h-screen",
       )}
       dir="rtl"
@@ -1242,9 +1242,9 @@ export default function WritePrescription({
           }
         >
           <div className="space-y-4">
-            <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
-              <CardHeader className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+            <Card className="overflow-hidden border-border/60 shadow-none print:hidden">
+              <CardHeader className="border-b border-border/60 bg-muted/30 px-4 py-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
                   <UserRound className="h-4 w-4" />
                   بيانات المريض
                 </CardTitle>
@@ -1297,13 +1297,13 @@ export default function WritePrescription({
                 </div>
                 <div className="grid grid-cols-1 gap-2 mt-2">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600">التشخيص (Diagnosis)</label>
+                    <label className="text-xs font-bold text-muted-foreground">التشخيص (Diagnosis)</label>
                     <Input
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
                       placeholder="اكتب التشخيص هنا..."
                       disabled={editingForbidden}
-                      className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right font-medium"
+                      className="h-9 border-border/60 bg-muted/30 text-right font-medium"
                       dir="rtl"
                     />
                   </div>
@@ -1311,9 +1311,9 @@ export default function WritePrescription({
               </CardContent>
             </Card>
             {!editingForbidden && (
-              <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
-                <div className="flex items-center gap-3 border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-3 flex-nowrap">
-                  <div className="flex shrink-0 items-center gap-2 text-sm font-bold text-[#1e3a66]">
+              <Card className="overflow-hidden border-border/60 shadow-none print:hidden">
+                <div className="flex items-center gap-3 border-b border-border/40 bg-muted/30 px-4 py-3 flex-nowrap">
+                  <div className="flex shrink-0 items-center gap-2 text-sm font-bold text-foreground">
                     <Pill className="h-4 w-4" />
                     الأدوية
                   </div>
@@ -1346,7 +1346,7 @@ export default function WritePrescription({
                 {medicationsOpen ? (
                   <CardContent className="space-y-2 max-h-[52vh] overflow-y-auto p-3">
                     <Button
-                      className="w-full bg-[#ff6b35] text-white hover:bg-[#e85f2f]"
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                       onClick={() => {
                         const name = window.prompt("اسم الدواء");
                         if (!name) return;
@@ -1367,8 +1367,8 @@ export default function WritePrescription({
                       إضافة دواء
                     </Button>
                     {medicationSearch.trim().length >= 2 ? (
-                      <div className="space-y-2 border-b border-[#d9e2ef] pb-3">
-                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-[#1e3a66]">
+                      <div className="space-y-2 border-b border-border/60 pb-3">
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-foreground">
                           <span>مرجع الأدوية المصرية</span>
                           <span className="font-normal text-muted-foreground">
                             {referenceMedicationsQuery.data?.total ?? 0} نتيجة
@@ -1387,11 +1387,11 @@ export default function WritePrescription({
                                 onClick={() =>
                                   handleAddReferenceMedication(drug)
                                 }
-                                className="flex w-full items-center justify-between gap-3 rounded-md border border-[#dbe5f2] bg-[#f8fbff] px-3 py-2 text-left hover:border-[#2563eb]"
+                                className="flex w-full items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-left hover:border-primary/60"
                                 dir="ltr"
                               >
                                 <span className="min-w-0">
-                                  <span className="block text-sm font-bold text-[#172033]">
+                                  <span className="block text-sm font-bold text-foreground">
                                     {drug.commercialNameEn}
                                   </span>
                                   <span className="block truncate text-xs text-muted-foreground">
@@ -1420,12 +1420,12 @@ export default function WritePrescription({
                           className={cn(
                             "flex items-center justify-between gap-2 rounded-md border px-3 py-2 transition-colors",
                             checked
-                              ? "border-[#2563eb] bg-[#eef5ff]"
-                              : "border-[#e2e8f0] bg-white hover:bg-[#f8fafc]",
+                              ? "border-primary/60 bg-primary/10"
+                              : "border-border/60 bg-card hover:bg-muted/30",
                           )}
                           dir="ltr"
                         >
-                          <span className="text-sm font-medium text-left text-[#172033]">
+                          <span className="text-sm font-medium text-left text-foreground">
                             {med.name}
                           </span>
                           <input
@@ -1448,10 +1448,10 @@ export default function WritePrescription({
           </div>
           <div className="space-y-4">
             {!editingForbidden && (
-              <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
-                <CardHeader className="border-b border-[#e5ebf3] bg-white px-4 py-3">
+              <Card className="overflow-hidden border-border/60 shadow-none print:hidden">
+                <CardHeader className="border-b border-border/40 bg-card px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+                    <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
                       <ClipboardList className="h-4 w-4" />
                       روشتات جاهزة
                     </CardTitle>
@@ -1460,7 +1460,7 @@ export default function WritePrescription({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-xs text-[#1e3a66] hover:bg-slate-100 h-8"
+                        className="text-xs text-foreground hover:bg-muted/60 h-8"
                         onClick={() => setShowTemplateManagement((p) => !p)}
                       >
                         {showTemplateManagement
@@ -1506,7 +1506,7 @@ export default function WritePrescription({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="bg-[#f0f4fa] text-[#1e3a66] hover:bg-[#e0eaf7] border-[#d9e2ef] font-semibold text-xs h-8 px-3 rounded-md flex items-center gap-1"
+                              className="bg-muted/50 text-foreground hover:bg-muted/70 border-border/60 font-semibold text-xs h-8 px-3 rounded-md flex items-center gap-1"
                             >
                               <span>{tab}</span>
                               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
@@ -1524,7 +1524,7 @@ export default function WritePrescription({
                               templatesInTab.map((template) => (
                                 <DropdownMenuItem
                                   key={template.id}
-                                  className="text-right text-xs cursor-pointer hover:bg-[#eef5ff] pr-4 py-2"
+                                  className="text-right text-xs cursor-pointer hover:bg-primary/10 pr-4 py-2"
                                   onClick={() =>
                                     handleApplyReadyPrescription(template.id)
                                   }
@@ -1579,19 +1579,19 @@ export default function WritePrescription({
                         persistKey={READY_TABS_PERSIST_KEY}
                         dir="rtl"
                       >
-                        <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-[#f3f6fb] p-1">
+                        <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-muted/50 p-1">
                           {READY_TABS.map((tab) => (
                             <TabsTrigger
                               key={tab}
                               value={tab}
-                              className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-white data-[state=active]:text-[#1e3a66] data-[state=active]:shadow-sm"
+                              className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                             >
                               {tab}
                             </TabsTrigger>
                           ))}
                         </TabsList>
                       </Tabs>
-                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-2">
+                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-2">
                         <label className="flex items-center gap-2 text-sm">
                           <Checkbox
                             checked={allFilteredReadyTemplatesSelected}
@@ -1645,11 +1645,11 @@ export default function WritePrescription({
                   )}
                 </CardContent>
                 {showTemplateManagement && (
-                  <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-[#eef2f7] p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-border/40 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredReadyTemplates.map((template) => (
                       <div
                         key={template.id}
-                        className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white p-1"
+                        className="flex items-center gap-1 rounded-lg border border-border/60 bg-card p-1"
                       >
                         <Checkbox
                           checked={selectedTemplateIds.includes(template.id)}
@@ -1664,7 +1664,7 @@ export default function WritePrescription({
                         <Button
                           variant="outline"
                           type="button"
-                          className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-[#eef5ff]"
+                          className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-primary/10"
                           onClick={() =>
                             handleApplyReadyPrescription(template.id)
                           }
@@ -1753,12 +1753,12 @@ export default function WritePrescription({
               <Card className="border-0 bg-transparent shadow-none print:[direction:ltr] print:border-0 print:shadow-none">
                 <CardHeader className="hidden print:hidden" />
                 <CardContent className="prescription-print-rx p-0">
-                  <div className="rx-mark text-2xl font-black tracking-tight text-[#1e3a66]">
+                  <div className="rx-mark text-2xl font-black tracking-tight text-foreground">
                     RX :
                   </div>
                   {editingForbidden ? (
                     prescriptionItems.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-[#cbd5e1] py-10 text-center text-muted-foreground">
+                      <p className="rounded-lg border border-dashed border-border/60 py-10 text-center text-muted-foreground">
                         لا توجد روشتة مسجلة لهذا المريض
                       </p>
                     ) : (
@@ -1785,14 +1785,14 @@ export default function WritePrescription({
                       ))
                     )
                   ) : prescriptionItems.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] py-12 text-center text-sm text-muted-foreground">
+                    <p className="rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 text-center text-sm text-muted-foreground">
                       لا توجد أدوية بعد
                     </p>
                   ) : (
                     filteredItems.map((item) => (
                       <div
                         key={item.id}
-                        className="prescription-item rounded-xl border border-[#dbe4f0] bg-white p-3 print:border-0 print:rounded-none"
+                        className="prescription-item rounded-xl border border-border/60 bg-card p-3 print:border-0 print:rounded-none"
                       >
                         <div
                           className="flex items-start justify-between gap-3"
@@ -1811,7 +1811,7 @@ export default function WritePrescription({
                                 )
                               }
                               placeholder="Medication name"
-                              className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-left font-semibold print:hidden"
+                              className="h-9 border-border/60 bg-muted/30 text-left font-semibold print:hidden"
                               dir="ltr"
                             />
                             <div className="prescription-medication-name hidden print:block font-bold text-left">
@@ -1841,7 +1841,7 @@ export default function WritePrescription({
                                   )
                                 }
                                 placeholder="الجرعة"
-                                className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right"
+                                className="h-9 border-border/60 bg-muted/30 text-right"
                               />
                               <Input
                                 value={item.frequency}
@@ -1855,7 +1855,7 @@ export default function WritePrescription({
                                   )
                                 }
                                 placeholder="التكرار"
-                                className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right"
+                                className="h-9 border-border/60 bg-muted/30 text-right"
                               />
                               <Input
                                 value={item.duration}
@@ -1869,7 +1869,7 @@ export default function WritePrescription({
                                   )
                                 }
                                 placeholder="المدة"
-                                className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right"
+                                className="h-9 border-border/60 bg-muted/30 text-right"
                               />
                             </div>
                             <Textarea
@@ -1884,7 +1884,7 @@ export default function WritePrescription({
                                 )
                               }
                               placeholder="تعليمات إضافية"
-                              className="min-h-14 w-full border-[#dbe4f0] bg-[#f8fafc] text-center print:hidden"
+                              className="min-h-14 w-full border-border/60 bg-muted/30 text-center print:hidden"
                             />
                           </div>
                           <Button
@@ -2042,16 +2042,16 @@ export default function WritePrescription({
               )}
             </div>
             <div
-              className={`print:hidden sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3.5 shadow-lg backdrop-blur-md transition-all ${printMode.printView ? "hidden" : ""}`}
+              className={`print:hidden sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card/90 p-3.5 shadow-lg backdrop-blur-md transition-all ${printMode.printView ? "hidden" : ""}`}
             >
-              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium px-2">
-                <Pill className="h-4 w-4 text-[#2563eb]" />
+              <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium px-2">
+                <Pill className="h-4 w-4 text-primary" />
                 <span>الروشتة العلاجية</span>
               </div>
               <div className="flex items-center gap-2">
                 {!editingForbidden && (
                   <Button
-                    className="bg-[#2563eb] text-white hover:bg-[#1d4ed8] font-bold shadow-sm h-9 px-5 rounded-xl"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-sm h-9 px-5 rounded-xl"
                     onClick={handleSave}
                     type="button"
                   >
@@ -2063,9 +2063,9 @@ export default function WritePrescription({
                   variant="outline"
                   onClick={handlePrint}
                   type="button"
-                  className="border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold h-9 px-4 rounded-xl"
+                  className="border-border text-foreground hover:bg-muted/50 font-semibold h-9 px-4 rounded-xl"
                 >
-                  <Printer className="h-4 w-4 ml-1.5 text-slate-600" />
+                  <Printer className="h-4 w-4 ml-1.5 text-muted-foreground" />
                   طباعة
                 </Button>
               </div>

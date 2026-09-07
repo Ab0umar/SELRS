@@ -23,9 +23,9 @@ const TABS = [
     description: "مراجعة حضور وانصراف الموظفين ليوم محدد أو فترة قصيرة",
     icon: FileText,
     themeCls:
-      "bg-teal-50/60 border-teal-100 hover:border-teal-300 text-teal-900",
-    activeCls: "ring-2 ring-teal-500 bg-teal-100/70 border-teal-300",
-    iconCls: "bg-teal-500 text-white",
+      "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "monthly",
@@ -35,9 +35,9 @@ const TABS = [
       "تقارير الحضور حسب الفترة المختارة والتحليل الكامل لساعات التأخير",
     icon: BarChart3,
     themeCls:
-      "bg-indigo-50/60 border-indigo-100 hover:border-indigo-300 text-indigo-900",
-    activeCls: "ring-2 ring-indigo-500 bg-indigo-100/70 border-indigo-300",
-    iconCls: "bg-indigo-500 text-white",
+      "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "perms",
@@ -45,9 +45,9 @@ const TABS = [
     subLabel: "Permits",
     description: "رصد وتفصيل أذونات خروج ودخول الموظفين خلال النوبات",
     icon: Clock,
-    themeCls: "bg-sky-50/60 border-sky-100 hover:border-sky-300 text-sky-900",
-    activeCls: "ring-2 ring-sky-500 bg-sky-100/70 border-sky-300",
-    iconCls: "bg-sky-500 text-white",
+    themeCls: "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "balance",
@@ -56,9 +56,9 @@ const TABS = [
     description: "حساب استهلاك الإجازات السنوية والمرضية المعتمدة لكل موظف",
     icon: CalendarDays,
     themeCls:
-      "bg-rose-50/60 border-rose-100 hover:border-rose-300 text-rose-900",
-    activeCls: "ring-2 ring-rose-500 bg-rose-100/70 border-rose-300",
-    iconCls: "bg-rose-500 text-white",
+      "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "logs",
@@ -67,9 +67,9 @@ const TABS = [
     description: "عرض حركات البصمة الفورية كما وصلت من الأجهزة مباشرة",
     icon: Server,
     themeCls:
-      "bg-slate-50 border-slate-200 hover:border-slate-350 text-slate-900",
-    activeCls: "ring-2 ring-slate-600 bg-slate-200 border-slate-350",
-    iconCls: "bg-slate-600 text-white",
+      "bg-muted/40 border-border/60 hover:border-border/60 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-border/60",
+    iconCls: "bg-primary text-primary-foreground",
   },
   {
     key: "fingerprints",
@@ -78,9 +78,9 @@ const TABS = [
     description: "جدول شهري لحركات البصمة مقسّم حسب رقم الموظف واليوم",
     icon: Fingerprint,
     themeCls:
-      "bg-cyan-50/60 border-cyan-100 hover:border-cyan-300 text-cyan-900",
-    activeCls: "ring-2 ring-cyan-500 bg-cyan-100/70 border-cyan-300",
-    iconCls: "bg-cyan-600 text-white",
+      "bg-muted/40 border-border/60 hover:border-primary/40 text-foreground",
+    activeCls: "ring-2 ring-primary bg-primary/10 border-primary/40",
+    iconCls: "bg-primary text-primary-foreground",
   },
 ] as const;
 
@@ -95,7 +95,7 @@ export default function ReportsHub() {
   return (
     <div className="space-y-6" dir="rtl">
       {/* ── 1. Bento Dashboard Navigation Grid ── */}
-      <div className="grid w-full grid-cols-2 gap-2 border-b border-slate-200 pb-2 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid w-full grid-cols-2 gap-2 border-b border-border/60 pb-2 sm:grid-cols-3 xl:grid-cols-6">
         {TABS.map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.key;
@@ -113,7 +113,7 @@ export default function ReportsHub() {
             >
               {/* Icon Container */}
               <div
-                className={`p-2 rounded-xl shrink-0 w-fit ${isActive ? t.iconCls : "bg-white text-slate-600 border border-slate-100"}`}
+                className={`p-2 rounded-xl shrink-0 w-fit ${isActive ? t.iconCls : "bg-card text-muted-foreground border border-border/60"}`}
               >
                 <Icon className="w-4 h-4" />
               </div>
@@ -129,8 +129,8 @@ export default function ReportsHub() {
         })}
       </div>
 
-      <div className="border border-slate-200 rounded-3xl bg-white p-6 shadow-sm shadow-slate-100/50">
-        <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4">
+      <div className="rounded-2xl border border-border/60 bg-card p-6">
+        <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border/60 pb-4">
           <DateInput
             value={reportDates.from}
             max={reportDates.to}
@@ -138,7 +138,7 @@ export default function ReportsHub() {
               setReportDates((current) => ({ ...current, from: event.target.value }))
             }
             aria-label="من تاريخ التقرير"
-            className="h-10 w-40 rounded-lg border-slate-200 bg-white px-2 text-center text-sm"
+            className="h-10 w-40 rounded-lg border-border/60 bg-card px-2 text-center text-sm"
           />
           <DateInput
             value={reportDates.to}
@@ -147,13 +147,13 @@ export default function ReportsHub() {
               setReportDates((current) => ({ ...current, to: event.target.value }))
             }
             aria-label="إلى تاريخ التقرير"
-            className="h-10 w-40 rounded-lg border-slate-200 bg-white px-2 text-center text-sm"
+            className="h-10 w-40 rounded-lg border-border/60 bg-card px-2 text-center text-sm"
           />
           <select
             value={department ?? ""}
             onChange={(event) => setDepartment(event.target.value || undefined)}
             aria-label="مكان العمل"
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="h-10 rounded-lg border border-border/60 bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="">الكل</option>
             <option value="center">المركز</option>

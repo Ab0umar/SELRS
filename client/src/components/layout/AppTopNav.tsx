@@ -495,7 +495,7 @@ export function AppTopNav({
     <header
       data-app-top-nav
       dir="rtl"
-      className="relative z-40 shrink-0 border-b border-[#dce5f3] bg-[#f8fbff]/95 pt-[env(safe-area-inset-top)] shadow-[0_8px_24px_rgba(42,79,154,0.08)] backdrop-blur-xl print:hidden"
+      className="relative z-40 shrink-0 border-b border-border/60 bg-background/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-xl print:hidden"
     >
       <div className="selrs-gradient-bar h-1 w-full" aria-hidden />
 
@@ -511,10 +511,10 @@ export function AppTopNav({
         <button
           type="button"
           onClick={() => onNavigate(logoTarget)}
-          className="flex h-11 shrink-0 items-center gap-2.5 rounded-2xl border border-[#dbe5f2] bg-white px-2.5 shadow-[0_4px_14px_rgba(42,79,154,0.07)] transition-all hover:-translate-y-0.5 hover:border-[#b8c9e3] hover:shadow-[0_8px_18px_rgba(42,79,154,0.12)] md:px-3.5"
+          className="flex h-11 shrink-0 items-center gap-2.5 rounded-2xl border border-border/60 bg-card px-2.5 shadow-xs transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm md:px-3.5"
           aria-label="الرئيسية"
         >
-          <BrandLogo className="h-8 w-8 shrink-0 rounded-xl border border-[#dbe5f2] bg-[#f7faff]" />
+          <BrandLogo className="h-8 w-8 shrink-0 rounded-xl border border-border/60 bg-muted/40" />
           <span className="hidden text-sm font-black text-foreground 2xl:block">
             {BRAND_NAME_AR}
           </span>
@@ -743,7 +743,7 @@ export function AppTopNav({
         {/* Controls */}
         <div
           className={cn(
-            "flex shrink-0 items-center gap-1 rounded-2xl border border-[#e0e8f3] bg-white/75 p-1 shadow-[0_3px_12px_rgba(42,79,154,0.05)]",
+            "flex shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-card/75 p-1 shadow-xs",
             hideShortcuts && "order-last",
           )}
           dir="rtl"

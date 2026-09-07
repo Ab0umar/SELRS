@@ -5,7 +5,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, ArrowLeft, CalendarDays, FileText } from "lucide-react";
 import { Link } from "wouter";
 import type { ReactNode } from "react";
-import { BrandLogo } from "@/components/BrandLogo";
 
 const DAY_NAMES = [
   "الأحد",
@@ -32,8 +31,6 @@ export function formatArabicDateTime(value: string | Date | null | undefined) {
 }
 
 export function PortalShell({
-  title,
-  subtitle,
   actions,
   children,
 }: {
@@ -44,27 +41,7 @@ export function PortalShell({
 }) {
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <div className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-primary">
-            <BrandLogo className="size-4 shrink-0" />
-            <span className="text-[11px] font-medium uppercase tracking-[0.2em]">
-              SELRS
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-[1.75rem]">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              {subtitle}
-            </p>
-          )}
-        </div>
-        {actions && (
-          <div className="flex shrink-0 items-center gap-2">{actions}</div>
-        )}
-      </div>
+      {actions ? <div className="flex justify-end gap-2">{actions}</div> : null}
       {children}
     </div>
   );
@@ -86,7 +63,7 @@ export function PortalPanel({
   return (
     <section
       className={cn(
-        "rounded-[1.5rem] border border-[#dbe7f4] bg-white p-4 shadow-[0_12px_36px_rgba(28,64,104,0.06)] sm:p-5",
+        "rounded-[1.5rem] border border-border/60 bg-card p-4 shadow-[0_12px_36px_rgba(28,64,104,0.06)] sm:p-5",
         className,
       )}
     >
@@ -152,8 +129,8 @@ export function PortalEmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-dashed border-[#d7e2ee] bg-[#f7fbfe] px-4 py-10 text-center">
-      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-white text-primary shadow-[0_10px_24px_rgba(28,64,104,0.08)]">
+    <div className="rounded-[1.5rem] border border-dashed border-border/60 bg-muted/30 px-4 py-10 text-center">
+      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-card text-primary shadow-[0_10px_24px_rgba(28,64,104,0.08)]">
         {icon ?? <AlertCircle className="size-5" />}
       </div>
       <div className="mx-auto max-w-md space-y-1">
@@ -175,14 +152,14 @@ export function PortalLoadingRows({ rows = 4 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, index) => (
         <div
           key={index}
-          className="flex items-center gap-3 rounded-[1.25rem] border border-[#dbe7f4] bg-white p-3"
+          className="flex items-center gap-3 rounded-[1.25rem] border border-border/60 bg-card p-3"
         >
-          <Skeleton className="size-10 rounded-xl bg-[#e8f0f8]" />
+          <Skeleton className="size-10 rounded-xl bg-muted/60" />
           <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-2/3 bg-[#e8f0f8]" />
-            <Skeleton className="h-3 w-1/2 bg-[#eef4fa]" />
+            <Skeleton className="h-4 w-2/3 bg-muted/60" />
+            <Skeleton className="h-3 w-1/2 bg-muted/60" />
           </div>
-          <Skeleton className="h-8 w-20 rounded-lg bg-[#eef4fa]" />
+          <Skeleton className="h-8 w-20 rounded-lg bg-muted/60" />
         </div>
       ))}
     </div>
@@ -220,7 +197,7 @@ export function PortalStatusBadge({
         lower === "cancelled" &&
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         lower === "completed" &&
-          "border-[#d7e2ee] bg-[#eff4fa] text-foreground hover:bg-[#eff4fa]",
+          "border-border/60 bg-muted/60 text-foreground hover:bg-muted/60",
         className,
       )}
     >

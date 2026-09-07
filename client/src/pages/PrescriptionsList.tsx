@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -49,9 +49,20 @@ export default function PrescriptionsList() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, tab]);
 
   const overviewQuery = trpc.medical.getPrescriptionsOverview.useQuery(
-    undefined,
+    {
+      page,
+      pageSize,
+      search: search.trim() || undefined,
+      statusFilter: tab as "all" | RxStatus,
+    },
     {
       enabled: Boolean(isAuthenticated),
       refetchOnWindowFocus: false,
@@ -69,6 +80,8 @@ export default function PrescriptionsList() {
     patientCode: string | null;
     itemCount: number;
   }>;
+  const total = overviewQuery.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   const stats = useMemo(() => {
     let active = 0;
@@ -274,6 +287,29 @@ export default function PrescriptionsList() {
           </div>
         )}
       </div>
+      {total > pageSize ? (
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => current - 1)}
+          >
+            السابق
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            صفحة {page} من {pageCount}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= pageCount}
+            onClick={() => setPage((current) => current + 1)}
+          >
+            التالي
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

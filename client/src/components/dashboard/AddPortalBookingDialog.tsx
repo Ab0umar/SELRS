@@ -242,7 +242,7 @@ export function AddPortalBookingDialog({
                       searchResults &&
                       searchResults.length > 0 && (
                         <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
-                          {(searchResults as any[]).slice(0, 8).map((p) => (
+                          {(searchResults as any[]).map((p) => (
                             <button
                               key={p.id}
                               type="button"

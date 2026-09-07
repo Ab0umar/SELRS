@@ -52,13 +52,13 @@ function showBrowserNotification(title: string, body: string) {
 // ── Skeleton row ──────────────────────────────────────────────────────────────
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-[#e8f0f9] bg-white p-4">
-      <div className="size-11 shrink-0 animate-pulse rounded-xl bg-[#eef4fa]" />
+    <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4">
+      <div className="size-11 shrink-0 animate-pulse rounded-xl bg-muted/60" />
       <div className="min-w-0 flex-1 space-y-2">
-        <div className="h-3.5 w-40 animate-pulse rounded-full bg-[#eef4fa]" />
-        <div className="h-2.5 w-56 animate-pulse rounded-full bg-[#eef4fa]" />
+        <div className="h-3.5 w-40 animate-pulse rounded-full bg-muted/60" />
+        <div className="h-2.5 w-56 animate-pulse rounded-full bg-muted/60" />
       </div>
-      <div className="h-8 w-24 shrink-0 animate-pulse rounded-xl bg-[#eef4fa]" />
+      <div className="h-8 w-24 shrink-0 animate-pulse rounded-xl bg-muted/60" />
     </div>
   );
 }
@@ -76,8 +76,8 @@ function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-[#d7e2ee] bg-[#f7fbfe] px-4 py-12 text-center">
-      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-[#eef4fa] text-muted-foreground/60">
+    <div className="rounded-2xl border border-dashed border-border/60 bg-muted/30 px-4 py-12 text-center">
+      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground/60">
         {icon}
       </div>
       <p className="text-sm font-semibold text-foreground">{title}</p>
@@ -119,9 +119,9 @@ function PatientRow({
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
-      className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-[#e1ebf6] bg-white p-4 transition-all duration-150 hover:border-secondary/30 hover:bg-[#f4f9ff] hover:shadow-xs"
+      className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/60 bg-card p-4 transition-all duration-150 hover:border-secondary/30 hover:bg-muted/50 hover:shadow-xs"
     >
-      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#003D82] text-base font-bold text-white shadow-xs">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-xs">
         {initial}
       </div>
       <div className="min-w-0 flex-1">
@@ -246,7 +246,7 @@ export default function DoctorDashboard() {
             type="button"
             onClick={() => void handleRefresh()}
             disabled={isLoading || refreshing}
-            className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#dbe7f4] bg-white text-muted-foreground shadow-xs transition-colors hover:bg-[#f4f9ff] hover:text-primary disabled:opacity-40"
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground shadow-xs transition-colors hover:bg-muted/50 hover:text-primary disabled:opacity-40"
             aria-label="تحديث القائمة"
           >
             <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
@@ -260,7 +260,7 @@ export default function DoctorDashboard() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="ابحث بالاسم أو جزء منه..."
-            className="h-11 rounded-xl border-[#d7e2ee] bg-white pr-10 focus-visible:ring-primary/10"
+            className="h-11 rounded-xl border-border/60 bg-card pr-10 focus-visible:ring-primary/10"
             dir="rtl"
           />
         </div>

@@ -298,13 +298,45 @@
 
   .dark [class*="bg-[#f8fbff]"],
   .dark [class*="bg-[#F8FBFF]"],
-  .dark [class*="bg-[#f7fbfe]"] {
+  .dark [class*="bg-[#f7fbfe]"],
+  .dark [class*="bg-[#f7faff]"],
+  .dark [class*="bg-[#F7FAFF]"],
+  .dark [class*="bg-[#f8f9fb]"],
+  .dark [class*="bg-[#F8F9FB]"],
+  .dark [class*="bg-[#f7f9fc]"],
+  .dark [class*="bg-[#F7F9FC]"] {
     background-color: #000000 !important;
+  }
+
+  .dark [class*="text-[#10234f]"],
+  .dark [class*="text-[#191c1e]"] {
+    color: var(--foreground) !important;
   }
 
   .dark [class*="border-[#dbe7f4]"],
   .dark [class*="border-[#e2edf7]"],
-  .dark [class*="border-[#d7e2ee]"] {
+  .dark [class*="border-[#d7e2ee]"],
+  .dark [class*="border-["] {
+    border-color: transparent !important;
+  }
+
+  .dark [class*="border-blue-"],
+  .dark [class*="border-red-"],
+  .dark [class*="border-green-"],
+  .dark [class*="border-yellow-"],
+  .dark [class*="border-orange-"],
+  .dark [class*="border-purple-"],
+  .dark [class*="border-pink-"],
+  .dark [class*="border-emerald-"],
+  .dark [class*="border-amber-"],
+  .dark [class*="border-cyan-"],
+  .dark [class*="border-indigo-"],
+  .dark [class*="border-teal-"],
+  .dark [class*="border-rose-"],
+  .dark [class*="border-sky-"],
+  .dark [class*="border-violet-"],
+  .dark [class*="border-fuchsia-"],
+  .dark [class*="border-lime-"] {
     border-color: transparent !important;
   }
 }

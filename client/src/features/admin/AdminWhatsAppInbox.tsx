@@ -201,7 +201,7 @@ export default function AdminWhatsAppInbox() {
                 <MessageCircle className="h-5 w-5" aria-hidden />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground sm:text-xl">
+                <h1 className="sr-only">
                   رسائل واتساب الواردة
                 </h1>
                 <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">

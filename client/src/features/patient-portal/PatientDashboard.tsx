@@ -20,7 +20,7 @@ function QuickAction({ href, icon: Icon, label, description, color }: {
 }) {
   return (
     <Link href={href}>
-      <a className="group flex flex-col gap-3 rounded-2xl border border-[#dbe7f4] bg-white p-5 transition-all hover:border-primary/20 hover:shadow-[0_12px_24px_rgba(28,64,104,0.08)]">
+      <a className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5 transition-all hover:border-primary/20 hover:shadow-[0_12px_24px_rgba(28,64,104,0.08)]">
         <div className={`flex size-12 items-center justify-center rounded-xl ${color} shadow-sm transition-transform group-hover:scale-110`}>
           <Icon className="size-6" />
         </div>

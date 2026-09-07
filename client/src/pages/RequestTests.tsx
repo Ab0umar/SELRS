@@ -1001,7 +1001,7 @@ export default function RequestTests({
   return (
     <div
       className={cn(
-        "request-tests-root bg-[#f5f7fb] text-[#172033]",
+        "request-tests-root bg-background text-foreground",
         hidePageChrome ? "min-h-0" : "min-h-screen",
       )}
       dir="rtl"
@@ -1033,9 +1033,9 @@ export default function RequestTests({
           {/* Patient Selection (Hidden when embedded or printing) */}
           <aside className="space-y-4 print:hidden">
             {!embeddedInPatientHub && !printMode.printView && (
-              <Card className="overflow-hidden border-[#d9e2ef] shadow-none">
-                <CardHeader className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+              <Card className="overflow-hidden border-border/60 shadow-none">
+                <CardHeader className="border-b border-border/60 bg-muted/30 px-4 py-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
                     <UserRound className="h-4 w-4" />
                     بيانات المريض
                   </CardTitle>
@@ -1076,9 +1076,9 @@ export default function RequestTests({
               </Card>
             )}
 
-            <Card className="overflow-hidden border-[#d9e2ef] shadow-none">
-              <CardHeader className="border-b border-[#e5ebf3] bg-white px-4 py-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+            <Card className="overflow-hidden border-border/60 shadow-none">
+              <CardHeader className="border-b border-border/60 bg-card px-4 py-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
                   <FileText className="h-4 w-4" />
                   بيانات الطلب
                 </CardTitle>
@@ -1131,13 +1131,13 @@ export default function RequestTests({
                 </div>
                 <div className="grid grid-cols-1 gap-2 mt-2">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600">التشخيص (Diagnosis)</label>
+                    <label className="text-xs font-bold text-muted-foreground">التشخيص (Diagnosis)</label>
                     <Input
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
                       placeholder="اكتب التشخيص هنا..."
                       disabled={editingForbidden}
-                      className="h-9 border-[#dbe4f0] bg-[#f8fafc] text-right font-medium"
+                      className="h-9 border-border/60 bg-muted/30 text-right font-medium"
                       dir="rtl"
                     />
                   </div>
@@ -1146,10 +1146,10 @@ export default function RequestTests({
             </Card>
 
             {!editingForbidden && !printMode.printView && (
-              <Card className="overflow-hidden border-[#d9e2ef] shadow-none print:hidden">
-                <CardHeader className="border-b border-[#e5ebf3] bg-white px-4 py-3">
+              <Card className="overflow-hidden border-border/60 shadow-none print:hidden">
+                <CardHeader className="border-b border-border/40 bg-card px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+                    <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
                       <ClipboardList className="h-4 w-4" />
                       فحوصات جاهزة
                     </CardTitle>
@@ -1158,7 +1158,7 @@ export default function RequestTests({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-xs text-[#1e3a66] hover:bg-slate-100 h-8"
+                        className="text-xs text-foreground hover:bg-muted/60 h-8"
                         onClick={() => setShowTemplateManagement((p) => !p)}
                       >
                         {showTemplateManagement
@@ -1202,7 +1202,7 @@ export default function RequestTests({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="bg-[#f0f4fa] text-[#1e3a66] hover:bg-[#e0eaf7] border-[#d9e2ef] font-semibold text-xs h-8 px-3 rounded-md flex items-center gap-1"
+                              className="bg-muted/50 text-foreground hover:bg-muted/70 border-border/60 font-semibold text-xs h-8 px-3 rounded-md flex items-center gap-1"
                             >
                               <span>{tab}</span>
                               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
@@ -1220,7 +1220,7 @@ export default function RequestTests({
                               templatesInTab.map((template) => (
                                 <DropdownMenuItem
                                   key={template.id}
-                                  className="text-right text-xs cursor-pointer hover:bg-[#eef5ff] pr-4 py-2"
+                                  className="text-right text-xs cursor-pointer hover:bg-primary/10 pr-4 py-2"
                                   onClick={() =>
                                     handleApplyReadyTestTemplate(template.id)
                                   }
@@ -1275,19 +1275,19 @@ export default function RequestTests({
                         persistKey={READY_TABS_PERSIST_KEY}
                         dir="rtl"
                       >
-                        <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-[#f3f6fb] p-1">
+                        <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-muted/50 p-1">
                           {READY_TABS.map((tab) => (
                             <TabsTrigger
                               key={tab}
                               value={tab}
-                              className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-white data-[state=active]:text-[#1e3a66] data-[state=active]:shadow-sm"
+                              className="whitespace-nowrap rounded-md px-3 text-xs data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                             >
                               {tab}
                             </TabsTrigger>
                           ))}
                         </TabsList>
                       </Tabs>
-                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-2">
+                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-2">
                         <label className="flex items-center gap-2 text-sm">
                           <Checkbox
                             checked={allFilteredReadyTemplatesSelected}
@@ -1341,11 +1341,11 @@ export default function RequestTests({
                   )}
                 </CardContent>
                 {showTemplateManagement && (
-                  <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-[#eef2f7] p-3 sm:grid-cols-2">
+                  <CardContent className="grid max-h-[34vh] grid-cols-1 gap-2 overflow-y-auto border-t border-border/40 p-3 sm:grid-cols-2">
                     {filteredReadyTemplates.map((template) => (
                       <div
                         key={template.id}
-                        className="flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white p-1"
+                        className="flex items-center gap-1 rounded-lg border border-border/60 bg-card p-1"
                       >
                         <Checkbox
                           checked={selectedTemplateIds.includes(template.id)}
@@ -1360,7 +1360,7 @@ export default function RequestTests({
                         <Button
                           variant="outline"
                           type="button"
-                          className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-[#eef5ff]"
+                          className="h-8 flex-1 justify-start border-0 bg-transparent px-2 text-xs shadow-none hover:bg-primary/10"
                           onClick={() =>
                             handleApplyReadyTestTemplate(template.id)
                           }
@@ -1414,9 +1414,9 @@ export default function RequestTests({
             )}
 
             {!printMode.printView && (
-              <Card className="overflow-hidden border-[#d9e2ef] shadow-none">
-                <CardHeader className="border-b border-[#e5ebf3] bg-white px-4 py-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1e3a66]">
+              <Card className="overflow-hidden border-border/60 shadow-none">
+                <CardHeader className="border-b border-border/40 bg-card px-4 py-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
                     <ClipboardList className="h-4 w-4" />
                     ملاحظات عامة
                   </CardTitle>
@@ -1427,7 +1427,7 @@ export default function RequestTests({
                     readOnly={editingForbidden}
                     onChange={(e) => setGeneralNotes(e.target.value)}
                     placeholder="ملاحظات إضافية..."
-                    className="min-h-28 border-[#dbe4f0] bg-[#f8fafc] text-right text-sm"
+                    className="min-h-28 border-border/60 bg-muted/30 text-right text-sm"
                   />
                 </CardContent>
               </Card>
@@ -1464,14 +1464,14 @@ export default function RequestTests({
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-[#dbe4f0] bg-white shadow-none request-tests-print-list">
-              <div className="flex items-center justify-between border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-3 text-sm font-bold text-[#1e3a66] print:hidden">
+            <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-none request-tests-print-list">
+              <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 px-4 py-3 text-sm font-bold text-foreground print:hidden">
                 <span className="flex items-center gap-2">
                   <ClipboardList className="h-4 w-4" />
                   الفحوصات المطلوبة
                 </span>
                 <span
-                  className="rounded-md bg-[#eef5ff] px-2 py-1 text-xs"
+                  className="rounded-md bg-primary/10 px-2 py-1 text-xs"
                   dir="ltr"
                 >
                   {selectedTests.length}
@@ -1479,7 +1479,7 @@ export default function RequestTests({
               </div>
               <div className="divide-y divide-[#e5ebf3] p-4">
                 {selectedTests.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] py-12 text-center text-sm text-muted-foreground">
+                  <p className="rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 text-center text-sm text-muted-foreground">
                     لا توجد فحوصات مسجّلة لهذا الطلب بعد.
                   </p>
                 ) : (
@@ -1531,8 +1531,8 @@ export default function RequestTests({
               </div>
             </div>
             {generalNotes ? (
-              <div className="request-tests-general-note rounded-xl border border-[#dbe4f0] bg-white p-4 text-sm">
-                <div className="mb-1 font-bold text-[#1e3a66] print:text-black">
+              <div className="request-tests-general-note rounded-xl border border-border/60 bg-card p-4 text-sm">
+                <div className="mb-1 font-bold text-foreground print:text-black">
                   ملاحظات عامة
                 </div>
                 <div className="whitespace-pre-line">{generalNotes}</div>
@@ -1543,16 +1543,16 @@ export default function RequestTests({
             </div>
           </div>
           <div
-            className={`print:hidden sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3.5 shadow-lg backdrop-blur-md transition-all xl:col-start-2 ${printMode.printView ? "hidden" : ""}`}
+            className={`print:hidden sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card/90 p-3.5 shadow-lg backdrop-blur-md transition-all xl:col-start-2 ${printMode.printView ? "hidden" : ""}`}
           >
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium px-2">
-              <FileText className="h-4 w-4 text-[#2563eb]" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium px-2">
+              <FileText className="h-4 w-4 text-primary" />
               <span>طلب الفحوصات والتحاليل</span>
             </div>
             <div className="flex items-center gap-2">
               {!editingForbidden ? (
                 <Button
-                  className="bg-[#2563eb] text-white hover:bg-[#1d4ed8] font-bold shadow-sm h-9 px-5 rounded-xl"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-sm h-9 px-5 rounded-xl"
                   onClick={handleSaveRequest}
                   disabled={createRequestMutation.isPending}
                   type="button"
@@ -1569,9 +1569,9 @@ export default function RequestTests({
                 variant="outline"
                 onClick={handlePrint}
                 type="button"
-                className="border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold h-9 px-4 rounded-xl"
+                className="border-border text-foreground hover:bg-muted/50 font-semibold h-9 px-4 rounded-xl"
               >
-                <Printer className="h-4 w-4 ml-1.5 text-slate-600" />
+                <Printer className="h-4 w-4 ml-1.5 text-muted-foreground" />
                 طباعة
               </Button>
             </div>

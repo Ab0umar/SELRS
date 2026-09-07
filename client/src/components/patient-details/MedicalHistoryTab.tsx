@@ -155,13 +155,13 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
 
   return (
     <div className="w-full" dir="rtl">
-      <Card className="patient-medical-history-card border-slate-200/80 bg-white shadow-xs w-full rounded-2xl overflow-hidden">
+      <Card className="patient-medical-history-card border-border/60 bg-card shadow-xs w-full rounded-2xl overflow-hidden">
         <CardContent className="patient-medical-history-content p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
             {/* Right Side: Chronic Diseases Cards */}
             <div>
               <div className="flex items-center justify-between mb-2 h-5">
-                <Label className="text-xs font-bold text-slate-800 flex items-center">
+                <Label className="text-xs font-bold text-foreground flex items-center">
                   🩺 التاريخ المرضي العام (Medical History):
                 </Label>
                 {patientId && (
@@ -169,7 +169,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                     size="sm"
                     onClick={handleSave}
                     disabled={saveMutation.isPending}
-                    className="bg-blue-600 text-white hover:bg-blue-700 font-bold h-7 px-3 rounded-lg gap-1 text-[11px] shadow-2xs"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-7 px-3 rounded-lg gap-1 text-[11px] shadow-2xs"
                   >
                     <Save className="h-3 w-3" />
                     {saveMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
@@ -237,8 +237,8 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                     key={item.label}
                     className={`flex items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer ${
                       item.state
-                        ? "border-blue-300 bg-blue-50/60 text-blue-900 font-bold shadow-2xs"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "border-primary/50 bg-primary/10 text-primary font-bold shadow-2xs"
+                        : "border-border bg-card text-foreground hover:bg-muted/50"
                     }`}
                   >
                     <Checkbox
@@ -258,7 +258,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
             {/* Left Side: Text Inputs Stacked Vertically */}
             <div className="flex flex-col gap-2">
               <div>
-                <Label className="text-xs font-bold text-slate-700 mb-2 block flex items-center h-5">
+                <Label className="text-xs font-bold text-foreground mb-2 block flex items-center h-5">
                   العمليات الجراحية السابقة:
                 </Label>
                 <Input
@@ -269,7 +269,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-700 mb-1 block">
+                <Label className="text-xs font-bold text-foreground mb-1 block">
                   الأدوية والعلاجات الحالية:
                 </Label>
                 <Input
@@ -280,7 +280,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-700 mb-1 block">
+                <Label className="text-xs font-bold text-foreground mb-1 block">
                   التاريخ المرضي العائلي:
                 </Label>
                 <Input
@@ -294,8 +294,8 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
           </div>
 
           {history && (
-            <div className="mt-3 rounded-lg border border-slate-200 p-3 bg-slate-50 text-xs text-slate-700 whitespace-pre-wrap">
-              <span className="font-bold block mb-1 text-slate-800">
+            <div className="mt-3 rounded-lg border border-border p-3 bg-muted/50 text-xs text-foreground whitespace-pre-wrap">
+              <span className="font-bold block mb-1 text-foreground">
                 ملاحظات تاريخية سابقة:
               </span>
               {history}

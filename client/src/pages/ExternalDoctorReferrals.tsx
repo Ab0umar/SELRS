@@ -100,7 +100,7 @@ export default function ExternalDoctorReferrals() {
     <div className="mx-auto w-full max-w-[1200px] space-y-4 pb-4" dir="rtl">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">إحالات المرضى</h1>
+          <h1 className="sr-only">إحالات المرضى</h1>
           <p className="text-sm text-muted-foreground">
             تحديد المرضى المتاحين لكل طبيب خارجي
           </p>

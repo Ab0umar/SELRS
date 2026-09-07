@@ -120,16 +120,16 @@ export default function KfOperationForm() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">حجز وجدولة عملية جراحية</h1>
+      <div className="sr-only">
+        <h1 className="sr-only">حجز وجدولة عملية جراحية</h1>
         <p className="text-muted-foreground text-sm">
           تسجيل موعد إجراء عملية للمريض: <strong>{patient.fullName}</strong> ({patient.kfCode})
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-lg">بيانات العملية الجراحية</CardTitle>
             <CardDescription>أدخل تفاصيل الإجراء الجراحي المقرر للعين وموعد التنفيذ</CardDescription>
           </CardHeader>

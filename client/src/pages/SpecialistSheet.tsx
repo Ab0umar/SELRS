@@ -654,7 +654,7 @@ export default function SpecialistSheet() {
       `}</style>
       {/* Header */}
       <header
-        className={`sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-[#f8f9fb] border-b border-[#c3c6d6] ${printMode.printView ? "hidden" : ""}`}
+        className={`sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
         dir="ltr"
         style={{ fontFamily: "Inter, sans-serif" }}
       >
@@ -671,7 +671,7 @@ export default function SpecialistSheet() {
         <div className="flex items-center gap-3">
           <Button
             size="sm"
-            className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90 active:scale-95"
+            className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground hover:opacity-90 active:scale-95"
             onClick={handleSaveSheet}
             disabled={saveSheetMutation.isPending}
             type="button"
@@ -681,7 +681,7 @@ export default function SpecialistSheet() {
           <Button
             size="sm"
             variant="outline"
-            className="border-[#003d9b] text-[#003d9b] font-bold px-4 py-2 rounded hover:bg-[#003d9b]/5"
+            className="rounded border-primary px-4 py-2 font-bold text-primary hover:bg-primary/5"
             onClick={handlePrint}
             type="button"
           >

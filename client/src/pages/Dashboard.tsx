@@ -124,7 +124,7 @@ const TABS: Array<{
     id: "admin",
     label: "الإدارة",
     icon: Shield,
-    iconWrapCls: "bg-slate-900 text-white",
+    iconWrapCls: "bg-primary text-primary-foreground",
     permPath: "/admin-hub",
   },
 ];
@@ -615,7 +615,7 @@ function PatientHubPanel() {
                 )}
                 {searchQuery.data && searchQuery.data.length > 0 && (
                   <div className="divide-y divide-border/40">
-                    {searchQuery.data.slice(0, 8).map((p) => (
+                    {searchQuery.data.map((p) => (
                       <Link
                         key={p.id}
                         href={`/patients/${p.id}`}
@@ -1129,7 +1129,7 @@ function AdminPanel() {
 
   return (
     <div className="space-y-12 pb-12 animate-in fade-in duration-500">
-      
+
       {/* ── Top Nav Chips (Flattened) ── */}
       <nav className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 print:hidden scrollbar-none">
         {navItems.map((item) => {
@@ -1138,7 +1138,7 @@ function AdminPanel() {
             <Link
               key={item.href}
               href={item.href}
-              className="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Icon className="h-4 w-4" aria-hidden />
               <span>{item.label}</span>
@@ -1149,38 +1149,38 @@ function AdminPanel() {
 
       {/* ── Main Layout: Hero vs Links ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
-        
+
         {/* Left Side (Hero & Stats) */}
         <div className="xl:col-span-4 flex flex-col space-y-6">
-          <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
-            <h2 className="flex items-center gap-2.5 text-2xl font-black text-slate-900 dark:text-white">
-              <Shield className="h-6 w-6 text-slate-900 dark:text-white" />
+          <div className="border-b border-border/60 pb-4">
+            <h2 className="flex items-center gap-2.5 text-2xl font-black text-foreground">
+              <Shield className="h-6 w-6 text-foreground" />
               لوحة التحكم الإدارية
             </h2>
-            <p className="mt-3 text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+            <p className="mt-3 text-base text-muted-foreground leading-relaxed">
               مسارات المستخدمين، الصلاحيات، تعريفات المركز، وحالة النظام في مكان واحد بنفس إيقاع صفحات التشغيل.
             </p>
           </div>
 
           <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between py-2 text-base">
-              <span className="text-slate-600 dark:text-slate-400 font-semibold">مجموعات الإدارة</span>
-              <span className="font-bold text-slate-900 dark:text-white tabular-nums">{ADMIN_GROUPS.length}</span>
+              <span className="text-muted-foreground font-semibold">مجموعات الإدارة</span>
+              <span className="font-bold text-foreground tabular-nums">{ADMIN_GROUPS.length}</span>
             </div>
             <div className="flex items-center justify-between py-2 text-base">
-              <span className="text-slate-600 dark:text-slate-400 font-semibold">مسارات مباشرة</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">{navItems.length}</span>
+              <span className="text-muted-foreground font-semibold">مسارات مباشرة</span>
+              <span className="font-bold text-primary tabular-nums">{navItems.length}</span>
             </div>
             <div className="flex items-center justify-between py-2 text-base">
-              <span className="text-slate-600 dark:text-slate-400 font-semibold">حالة الوصول</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">مفعل</span>
+              <span className="text-muted-foreground font-semibold">حالة الوصول</span>
+              <span className="font-bold text-primary">مفعل</span>
             </div>
           </div>
 
           <div className="pt-4">
             <Link
               href="/admin-hub"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-base font-bold transition-transform hover:bg-slate-800 dark:hover:bg-slate-200"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-base font-bold transition-transform hover:bg-primary/90"
             >
               فتح مركز الإدارة الكامل
               <ChevronLeft className="h-5 w-5" aria-hidden />
@@ -1194,15 +1194,15 @@ function AdminPanel() {
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href} className="group block">
-                <div className="flex items-start gap-4 p-4 -m-4 rounded-2xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600 dark:group-hover:bg-indigo-500/20 dark:group-hover:text-indigo-400">
+                <div className="flex items-start gap-4 p-4 -m-4 rounded-2xl transition-colors hover:bg-muted/50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
                     <Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <div className="pt-1">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                       {item.label}
                     </h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-snug">
+                    <p className="mt-1 text-sm text-muted-foreground leading-snug">
                       {item.description}
                     </p>
                   </div>
@@ -1488,7 +1488,7 @@ export default function Dashboard() {
                   className={cn(
                     "flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition-all sm:px-4",
                     isActive
-                      ? "bg-slate-900 text-white shadow-md dark:bg-primary dark:text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                   )}
                   aria-selected={isActive}

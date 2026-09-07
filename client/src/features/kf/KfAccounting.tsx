@@ -31,8 +31,8 @@ export default function KfAccounting() {
 
   return (
     <section dir="rtl" className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">حسابات وحدة KF</h1>
+      <div className="sr-only">
+        <h1 className="sr-only">حسابات وحدة KF</h1>
         <p className="text-muted-foreground text-sm">الإيراد والإيصالات — كشف استشاري 465ج · كشف أخصائي 215ج</p>
       </div>
 
@@ -54,8 +54,8 @@ export default function KfAccounting() {
 
       {/* Revenue summary */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="sm:col-span-1 shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="sm:col-span-1 shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي الإيراد</CardTitle>
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -78,7 +78,7 @@ export default function KfAccounting() {
           const row = (revenue?.breakdown ?? []).find((b: any) => b.visitType === type);
           return (
             <Card key={type}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{KF_LABELS[type]}</CardTitle>
                 <span className="text-xs text-muted-foreground">{price} ج / كشف</span>
               </CardHeader>
@@ -98,8 +98,8 @@ export default function KfAccounting() {
       </div>
 
       {/* Receipts table */}
-      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-        <CardHeader className="flex flex-row items-center gap-2 py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+      <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+        <CardHeader className="flex flex-row items-center gap-2 py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
           <Receipt className="h-4 w-4 text-muted-foreground" />
           <CardTitle className="text-base">الإيصالات</CardTitle>
         </CardHeader>

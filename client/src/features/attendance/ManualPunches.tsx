@@ -22,6 +22,7 @@ const toLocalIsoDate = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 const today = toLocalIsoDate(new Date());
+const PAGE_SIZE = 200;
 const emptyForm = (): PunchForm => ({
   empCd: "",
   date: today,
@@ -33,6 +34,7 @@ const emptyForm = (): PunchForm => ({
 export default function ManualPunches() {
   const isMobile = useIsMobile();
   const [filter, setFilter] = useState({ empCd: "", from: today, to: today });
+  const [offset, setOffset] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<PunchForm>(emptyForm());
 
@@ -41,7 +43,8 @@ export default function ManualPunches() {
     fromDate: filter.from || undefined,
     toDate: filter.to || undefined,
     source: "manual",
-    limit: 200,
+    limit: PAGE_SIZE,
+    offset,
   });
 
   const empsQuery = trpc.attendance.employeesList.useQuery();
@@ -52,6 +55,11 @@ export default function ManualPunches() {
     setShowForm(false);
     setForm(emptyForm());
     punchesQuery.refetch();
+  };
+
+  const updateFilter = (next: Partial<typeof filter>) => {
+    setOffset(0);
+    setFilter((current) => ({ ...current, ...next }));
   };
 
   const addMut = (trpc as any).attendance.addManualPunch.useMutation({
@@ -104,15 +112,15 @@ export default function ManualPunches() {
           <div className="grid gap-3 md:grid-cols-4 md:items-end">
             <div>
               <label htmlFor="manual-punch-from" className="mb-1 block text-sm font-medium">من</label>
-              <DateInput id="manual-punch-from" value={filter.from} onChange={(e) => setFilter({ ...filter, from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <DateInput id="manual-punch-from" value={filter.from} onChange={(e) => updateFilter({ from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
             </div>
             <div>
               <label htmlFor="manual-punch-to" className="mb-1 block text-sm font-medium">إلى</label>
-              <DateInput id="manual-punch-to" value={filter.to} onChange={(e) => setFilter({ ...filter, to: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <DateInput id="manual-punch-to" value={filter.to} onChange={(e) => updateFilter({ to: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
             </div>
             <div>
               <label htmlFor="manual-punch-employee" className="mb-1 block text-sm font-medium">الموظف</label>
-              <select id="manual-punch-employee" value={filter.empCd} onChange={(e) => setFilter({ ...filter, empCd: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+              <select id="manual-punch-employee" value={filter.empCd} onChange={(e) => updateFilter({ empCd: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
                 <option value="">الكل</option>
                 {employees.map((emp) => (
                   <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
@@ -120,7 +128,7 @@ export default function ManualPunches() {
               </select>
             </div>
             <div className="flex gap-2 md:justify-end">
-              <Button onClick={() => punchesQuery.refetch()} variant="outline" className="min-h-11 px-4">بحث</Button>
+              <Button onClick={() => { setOffset(0); punchesQuery.refetch(); }} variant="outline" className="min-h-11 px-4">بحث</Button>
               <Button onClick={() => { setForm(emptyForm()); setShowForm(true); }} className="min-h-11 gap-2 px-4">
                 <Plus size={16} /> تسجيل بصمة
               </Button>
@@ -279,6 +287,13 @@ export default function ManualPunches() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {punchesQuery.data && punchesQuery.data.total > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <Button variant="outline" size="sm" disabled={offset === 0 || punchesQuery.isFetching} onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}>السابق</Button>
+              <span className="text-xs text-muted-foreground">صفحة {Math.floor(offset / PAGE_SIZE) + 1}</span>
+              <Button variant="outline" size="sm" disabled={offset + PAGE_SIZE >= punchesQuery.data.total || punchesQuery.isFetching} onClick={() => setOffset((current) => current + PAGE_SIZE)}>التالي</Button>
             </div>
           )}
         </CardContent>

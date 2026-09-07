@@ -69,7 +69,7 @@ function EyeCard({
         {cols.map(({ l, val }) => (
           <div
             key={l}
-            className="rounded-xl border border-white bg-white/90 p-2 text-center shadow-xs"
+            className="rounded-xl border border-white bg-card/90 p-2 text-center shadow-xs"
           >
             <div className="text-[11px] font-bold text-muted-foreground">
               {l}
@@ -82,7 +82,7 @@ function EyeCard({
       </div>
       {va && va !== "—" && (
         <div
-          className="mt-3 rounded-xl border border-white bg-white/90 px-3 py-1.5 flex justify-between items-center"
+          className="mt-3 rounded-xl border border-white bg-card/90 px-3 py-1.5 flex justify-between items-center"
           dir="ltr"
         >
           <span className="text-[10px] font-bold text-muted-foreground">
@@ -104,9 +104,9 @@ function RefractionRecord({ row }: { row: any }) {
   };
 
   return (
-    <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4 print:border-0 print:shadow-none print:p-0">
+    <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4 print:border-0 print:shadow-none print:p-0">
       {/* Header with print button */}
-      <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
+      <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <div className="space-y-0.5">
           <h3 className="text-sm font-bold text-foreground">{visitDate}</h3>
           <p className="text-[10px] text-muted-foreground">
@@ -117,7 +117,7 @@ function RefractionRecord({ row }: { row: any }) {
           variant="outline"
           size="sm"
           onClick={handlePrint}
-          className="h-8 gap-1.5 border-[#dbe7f4] hover:bg-muted/40 rounded-lg text-xs cursor-pointer print:hidden animate-none"
+          className="h-8 gap-1.5 border-border/60 hover:bg-muted/40 rounded-lg text-xs cursor-pointer print:hidden animate-none"
         >
           <Printer className="size-3.5" />
           <span>طباعة</span>
@@ -145,7 +145,7 @@ function RefractionRecord({ row }: { row: any }) {
 
         {row.notes && (
           <div
-            className="rounded-xl border border-border bg-[#F4F8FB]/40 p-4"
+            className="rounded-xl border border-border bg-muted/30 p-4"
             dir="rtl"
           >
             <p className="text-xs font-bold text-foreground">ملاحظات الطبيب</p>
@@ -189,7 +189,7 @@ export default function PatientRefraction() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            className="gap-2 border-border/60 bg-card text-primary hover:bg-muted/50 cursor-pointer"
             onClick={handleBack}
           >
             <ArrowLeft className="size-4" />
@@ -227,7 +227,7 @@ export default function PatientRefraction() {
         {!isLoading && !error && records.length > 0 && (
           <div className="space-y-6">
             {/* Summary details card */}
-            <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-primary">
@@ -245,7 +245,7 @@ export default function PatientRefraction() {
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl px-4 py-2.5 text-center min-w-[100px]">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
                     <p className="text-[10px] text-muted-foreground font-semibold">
                       إجمالي القراءات
                     </p>
@@ -253,7 +253,7 @@ export default function PatientRefraction() {
                       {records.length}
                     </p>
                   </div>
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl px-4 py-2.5 text-center min-w-[100px]">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
                     <p className="text-[10px] text-muted-foreground font-semibold">
                       تاريخ الفحص الأخير
                     </p>

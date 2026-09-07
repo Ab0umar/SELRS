@@ -146,7 +146,7 @@ export default function TestsManagement() {
               <FlaskConical className="size-4" />
               كتالوج الفحوصات
             </div>
-            <h1 className="text-xl font-black text-foreground sm:text-2xl">
+            <h1 className="sr-only">
               إدارة الفحوصات
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">

@@ -63,7 +63,7 @@ export default function PatientBookings() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            className="gap-2 border-border/60 bg-card text-primary hover:bg-muted/50 cursor-pointer"
             onClick={handleBack}
           >
             <ArrowLeft className="size-4" />
@@ -75,8 +75,8 @@ export default function PatientBookings() {
           {/* Summary Column */}
           <div className="space-y-4">
             {/* Quick Summary Card */}
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   ملخص حالة الحجوزات
                 </h3>
@@ -98,7 +98,7 @@ export default function PatientBookings() {
                     {summary.pending}
                   </p>
                 </div>
-                <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-3 text-center col-span-2">
+                <div className="bg-muted/40 border border-border/60 rounded-xl p-3 text-center col-span-2">
                   <p className="text-[10px] text-muted-foreground font-semibold">
                     إجمالي الزيارات والطلبات
                   </p>
@@ -110,7 +110,7 @@ export default function PatientBookings() {
             </div>
 
             {/* Quick Booking Call-to-action */}
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-xl bg-muted/40 text-muted-foreground flex items-center justify-center shrink-0">
                   <Sparkles className="size-4.5" />
@@ -173,10 +173,10 @@ export default function PatientBookings() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4"
+                      className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4"
                     >
                       {/* Top title & status badge */}
-                      <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
+                      <div className="flex items-center justify-between border-b border-border/40 pb-2">
                         <div className="space-y-0.5">
                           <h4 className="text-sm font-bold text-foreground">
                             {item.typeLabel}
@@ -193,7 +193,7 @@ export default function PatientBookings() {
 
                       {/* Booking dates info grid */}
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-3 space-y-0.5">
+                        <div className="bg-muted/40 border border-border/60 rounded-xl p-3 space-y-0.5">
                           <p className="text-[10px] text-muted-foreground font-semibold">
                             تاريخ الطلب المفضل
                           </p>
@@ -226,7 +226,7 @@ export default function PatientBookings() {
                       {/* Notes & staff notes */}
                       <div className="space-y-2">
                         {item.notes && (
-                          <div className="rounded-xl border border-border bg-[#F4F8FB]/30 p-3.5 text-xs leading-5">
+                          <div className="rounded-xl border border-border bg-muted/20 p-3.5 text-xs leading-5">
                             <p className="font-bold text-foreground mb-0.5">
                               ملاحظتك للطلب:
                             </p>

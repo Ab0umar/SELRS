@@ -243,7 +243,7 @@ export default function ClinicalReport() {
 
   return (
     <div
-      className="clinical-report-root medical-report-brand bg-[#f1f2f4] min-h-screen print:min-h-0"
+      className="clinical-report-root medical-report-brand min-h-screen bg-background text-foreground print:min-h-0"
       dir="ltr"
     >
       <style>{`
@@ -276,7 +276,7 @@ export default function ClinicalReport() {
         }
       `}</style>
 
-      <header className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-white border-b border-[#c3c6d6]">
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden">
         <Button
           size="sm"
           variant="ghost"
@@ -298,7 +298,7 @@ export default function ClinicalReport() {
           </div>
           {visits.length > 0 ? (
             <select
-              className="text-xs border border-[#c3c6d6] rounded px-2 py-1.5 bg-white"
+              className="rounded border border-border/60 bg-card px-2 py-1.5 text-xs"
               value={selectedVisitId ?? ""}
               onChange={(e) => setSelectedVisitId(Number(e.target.value))}
             >
@@ -313,7 +313,7 @@ export default function ClinicalReport() {
           <Button
             size="sm"
             variant="outline"
-            className="border-[#003d9b] text-[#003d9b] font-bold"
+            className="border-primary text-primary font-bold"
             onClick={handleSave}
             disabled={
               createReportMutation.isPending || updateReportMutation.isPending
@@ -327,7 +327,7 @@ export default function ClinicalReport() {
           </Button>
           <Button
             size="sm"
-            className="bg-[#003d9b] text-white font-bold px-4 py-2 rounded hover:opacity-90"
+            className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground hover:opacity-90"
             onClick={handlePrint}
             type="button"
           >
@@ -336,16 +336,16 @@ export default function ClinicalReport() {
         </div>
       </header>
 
-      <main className="medical-report-page max-w-[210mm] mx-auto p-8 print:p-[10mm]">
-        <div className="bg-white rounded-xl p-8 print:p-0 print:rounded-none border border-[#c3c6d6] print:border-0 shadow-sm print:shadow-none">
+      <main className="medical-report-page mx-auto max-w-[210mm] bg-background p-4 sm:p-8 print:p-[10mm]">
+        <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none">
           {/* Header */}
-          <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-[#003d9b]">
+          <div className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
             <div />
             <div className="text-left clinical-ltr">
-              <h1 className="text-xl font-extrabold text-[#191c1e] uppercase tracking-tight">
+              <h1 className="text-xl font-extrabold uppercase tracking-tight text-foreground">
                 Clinical Report | تقرير طبي
               </h1>
-              <p className="text-xs text-[#434654]">
+              <p className="text-xs text-muted-foreground">
                 Generated:{" "}
                 {displaySheetDate(
                   requestedVisitDate ||
@@ -360,7 +360,7 @@ export default function ClinicalReport() {
           </div>
 
           {!initialPatientId ? (
-            <div className="p-8 text-center text-[#434654]">
+            <div className="p-8 text-center text-muted-foreground">
               اختر مريضاً لعرض التقرير
             </div>
           ) : (
@@ -368,31 +368,31 @@ export default function ClinicalReport() {
               {/* Patient Info + Allergies/Chronic */}
               <section className="grid grid-cols-12 gap-4 mb-6" dir="rtl">
                 <div
-                  className="col-span-8 grid grid-cols-12 auto-rows-min content-center gap-x-4 gap-y-6 p-4 bg-[#f3f4f6] rounded-lg border border-[#c3c6d6] text-center"
+                  className="col-span-8 grid grid-cols-12 auto-rows-min content-center gap-x-4 gap-y-6 p-4 bg-muted/40 rounded-lg border border-border/60 text-center"
                   dir="rtl"
                 >
                   <div className="col-span-6 min-w-0">
-                    <p className="mb-1 text-[10px] text-[#434654] uppercase font-bold">
+                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       اسم المريض:
                     </p>
                     <input
-                      className="min-w-0 w-full text-center text-sm font-bold bg-transparent border-b border-transparent hover:border-[#c3c6d6] focus:border-[#003d9b] outline-none print:border-0"
+                      className="min-w-0 w-full text-center text-sm font-bold bg-transparent border-b border-transparent hover:border-border/60 focus:border-primary outline-none print:border-0"
                       value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
                     />
                   </div>
                   <div className="col-span-3 min-w-0">
-                    <p className="mb-1 text-[10px] text-[#434654] uppercase font-bold">
+                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       الكود:
                     </p>
                     <input
-                      className="min-w-0 w-full text-center text-sm font-bold bg-transparent border-b border-transparent hover:border-[#c3c6d6] focus:border-[#003d9b] outline-none print:border-0"
+                      className="min-w-0 w-full text-center text-sm font-bold bg-transparent border-b border-transparent hover:border-border/60 focus:border-primary outline-none print:border-0"
                       value={patientCode}
                       onChange={(e) => setPatientCode(e.target.value)}
                     />
                   </div>
                   <div className="col-span-3 min-w-0">
-                    <p className="mb-1 text-[10px] text-[#434654] uppercase font-bold">
+                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       السن:
                     </p>
                     <p className="w-full text-center text-sm font-bold">
@@ -400,7 +400,7 @@ export default function ClinicalReport() {
                     </p>
                   </div>
                   <div className="col-span-5 min-w-0">
-                    <p className="mb-1 whitespace-nowrap text-[10px] text-[#434654] uppercase font-bold">
+                    <p className="mb-1 whitespace-nowrap text-[10px] text-muted-foreground uppercase font-bold">
                       تاريخ الميلاد:
                     </p>
                     <p
@@ -411,7 +411,7 @@ export default function ClinicalReport() {
                     </p>
                   </div>
                   <div className="col-span-4 min-w-0">
-                    <p className="mb-1 text-[10px] text-[#434654] uppercase font-bold">
+                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       موبايل:
                     </p>
                     <p
@@ -422,7 +422,7 @@ export default function ClinicalReport() {
                     </p>
                   </div>
                   <div className="col-span-3 min-w-0">
-                    <p className="mb-1 text-[10px] text-[#434654] uppercase font-bold">
+                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       الوظيفة:
                     </p>
                     <p className="min-w-0 truncate text-sm font-bold">
@@ -434,19 +434,19 @@ export default function ClinicalReport() {
                   className="col-span-4 flex flex-col gap-2 text-left"
                   dir="ltr"
                 >
-                  <div className="bg-[#ffdad6]/50 p-3 rounded-lg border border-[#ba1a1a]/20 flex-1">
-                    <div className="flex items-center gap-1 text-[#ba1a1a] text-[10px] font-bold uppercase mb-1">
+                  <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/20 flex-1">
+                    <div className="flex items-center gap-1 text-destructive text-[10px] font-bold uppercase mb-1">
                       Allergies
                     </div>
-                    <p className="text-xs font-bold text-[#93000a]">
+                    <p className="text-xs font-bold text-destructive">
                       {allergiesText}
                     </p>
                   </div>
-                  <div className="bg-[#006476]/10 p-3 rounded-lg border border-[#006476]/20 flex-1">
-                    <div className="flex items-center gap-1 text-[#006476] text-[10px] font-bold uppercase mb-1">
+                  <div className="bg-primary/10 p-3 rounded-lg border border-primary/20 flex-1">
+                    <div className="flex items-center gap-1 text-primary text-[10px] font-bold uppercase mb-1">
                       Chronic Conditions
                     </div>
-                    <p className="text-xs font-bold text-[#004b58]">
+                    <p className="text-xs font-bold text-primary">
                       {chronicConditionsText}
                     </p>
                   </div>
@@ -455,7 +455,7 @@ export default function ClinicalReport() {
 
               {/* Refraction */}
               <div className="mb-6">
-                <div className="mb-2 flex items-center justify-center gap-5 border-b border-[#e1e2e4] pb-1 text-center text-[11px] font-bold uppercase tracking-wide">
+                <div className="mb-2 flex items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-[11px] font-bold uppercase tracking-wide">
                   <span>
                     UCVA {selectedAutoref?.ucvaOD || "........."} /{" "}
                     {selectedAutoref?.ucvaOS || "........."}
@@ -475,10 +475,10 @@ export default function ClinicalReport() {
                     {selectedAutoref?.iopOS || "........."}
                   </span>
                 </div>
-                <div className="border border-[#c3c6d6] rounded overflow-hidden clinical-ltr">
+                <div className="border border-border/60 rounded overflow-hidden clinical-ltr">
                   <table className="clinical-refraction-table w-full table-fixed border-collapse text-center text-[11px]">
                     <thead>
-                      <tr className="bg-[#e7e8ea] border-b border-[#c3c6d6]">
+                      <tr className="bg-muted border-b border-border/60">
                         <th className="w-[18%] px-3 py-2">Refraction</th>
                         <th colSpan={3} className="px-3 py-2 text-center">
                           OD
@@ -488,7 +488,7 @@ export default function ClinicalReport() {
                         </th>
                         <th className="w-[12%] px-3 py-2" />
                       </tr>
-                      <tr className="bg-[#e7e8ea] border-b border-[#c3c6d6]">
+                      <tr className="bg-muted border-b border-border/60">
                         <th className="px-3 py-2">Distance</th>
                         <th className="px-3 py-2">S</th>
                         <th className="px-3 py-2">C</th>
@@ -499,8 +499,8 @@ export default function ClinicalReport() {
                         <th className="px-3 py-2">IPD</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#c3c6d6]/30">
-                      <tr className="bg-[#003d9b]/[0.04]">
+                    <tbody className="divide-y divide-border/60">
+                      <tr className="bg-primary/5">
                         <td className="px-3 py-2">&nbsp;</td>
                         <td className="px-3 py-2 font-mono">
                           {selectedGlasses.od.s || "—"}
@@ -529,7 +529,7 @@ export default function ClinicalReport() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="px-3 py-3 font-bold text-[#003d9b]">
+                        <td className="px-3 py-3 font-bold text-primary">
                           Reading
                         </td>
                         <td colSpan={7} className="px-4 py-3">
@@ -552,32 +552,32 @@ export default function ClinicalReport() {
 
               {/* Anterior + Posterior Segment */}
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-3 border border-[#c3c6d6] rounded-lg">
-                  <h3 className="text-[11px] font-bold text-[#003d9b] uppercase mb-2">
+                <div className="p-3 border border-border/60 rounded-lg">
+                  <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
                     Anterior Segment
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     <div>
-                      <p className="text-[9px] text-[#434654] font-bold uppercase">
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
                         OD
                       </p>
                       <p>{selectedExam?.anteriorSegmentOD || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-[#434654] font-bold uppercase">
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
                         OS
                       </p>
                       <p>{selectedExam?.anteriorSegmentOS || "—"}</p>
                     </div>
                   </div>
                 </div>
-                <div className="p-3 border border-[#c3c6d6] rounded-lg">
-                  <h3 className="text-[11px] font-bold text-[#003d9b] uppercase mb-2">
+                <div className="p-3 border border-border/60 rounded-lg">
+                  <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
                     Fundus Exam
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     <div>
-                      <p className="text-[9px] text-[#434654] font-bold uppercase">
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
                         OD
                       </p>
                       <p>
@@ -585,7 +585,7 @@ export default function ClinicalReport() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-[#434654] font-bold uppercase">
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
                         OS
                       </p>
                       <p>
@@ -597,8 +597,8 @@ export default function ClinicalReport() {
               </div>
 
               {/* Diagnosis + Recommendations */}
-              <div className="p-4 border-2 border-[#c3c6d6] rounded-xl bg-white mb-6">
-                <h3 className="text-[11px] font-bold text-[#003d9b] uppercase mb-2">
+              <div className="p-4 border-2 border-border/60 rounded-xl bg-card mb-6">
+                <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
                   Final Diagnosis
                 </h3>
                 <Textarea
@@ -610,7 +610,7 @@ export default function ClinicalReport() {
                 />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] text-[#003d9b] font-bold uppercase mb-2">
+                    <p className="text-[10px] text-primary font-bold uppercase mb-2">
                       Recommendations
                     </p>
                     <Textarea
@@ -621,8 +621,8 @@ export default function ClinicalReport() {
                       onChange={(e) => setRecommendations(e.target.value)}
                     />
                   </div>
-                  <div className="bg-[#003d9b]/5 p-3 rounded-lg border border-[#003d9b]/20">
-                    <p className="text-[10px] text-[#003d9b] font-bold uppercase mb-1">
+                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                    <p className="text-[10px] text-primary font-bold uppercase mb-1">
                       Follow-up
                     </p>
                     <DateInput
@@ -635,11 +635,11 @@ export default function ClinicalReport() {
               </div>
 
               {/* Footer */}
-              <footer className="mt-8 border-t border-[#c3c6d6] pt-4 flex justify-between items-end">
+              <footer className="mt-8 border-t border-border/60 pt-4 flex justify-between items-end">
                 <div />
                 <div className="text-center w-48">
-                  <div className="h-10 border-b border-[#434654] mb-1" />
-                  <p className="text-[8px] text-[#434654] uppercase">
+                  <div className="mb-1 h-10 border-b border-border" />
+                  <p className="text-[8px] text-muted-foreground uppercase">
                     توقيع الطبيب المعالج
                   </p>
                 </div>

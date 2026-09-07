@@ -32,7 +32,7 @@ function Detail({
 }) {
   return (
     <div className={`min-w-0 ${className}`}>
-      <p className="mb-1 text-xs font-bold uppercase text-[#434654]">
+      <p className="mb-1 text-xs font-bold uppercase text-muted-foreground">
         {label}
       </p>
       <div className="min-w-0 truncate text-center text-base font-bold">
@@ -47,7 +47,7 @@ function ReportTitle({ title }: { title: string }) {
     .split("|")
     .map((part) => part.trim());
   return (
-    <h1 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-tight text-[#191c1e]">
+    <h1 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-tight text-foreground">
       <span dir="ltr">{englishTitle}</span>
       {arabicTitle ? (
         <>
@@ -71,7 +71,7 @@ export function ClinicalReportFrame({
 }: ClinicalReportFrameProps) {
   return (
     <main
-      className={`clinical-report-frame medical-report-page mx-auto max-w-[210mm] p-8 ${className}`}
+      className={`clinical-report-frame medical-report-page mx-auto max-w-[210mm] bg-background p-4 text-foreground sm:p-8 ${className}`}
       dir={dir}
     >
       <style>{`
@@ -176,12 +176,12 @@ export function ClinicalReportFrame({
           }
         }
       `}</style>
-      <div className="rounded-xl border border-[#c3c6d6] bg-white p-8 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
-        <header className="mb-6 flex items-start justify-between border-b-2 border-[#003d9b] pb-4">
+      <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+        <header className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
           <div />
           <div className="text-left" dir="ltr">
             <ReportTitle title={title} />
-            <p className="text-xs text-[#434654]">
+            <p className="text-xs text-muted-foreground">
               Generated: {displaySheetDate(generatedDate)}
             </p>
           </div>
@@ -189,7 +189,7 @@ export function ClinicalReportFrame({
 
         <section className="mb-4 grid grid-cols-12 gap-3" dir="rtl">
           <div
-            className={`${sidePanel ? "col-span-8" : "col-span-12"} grid grid-cols-12 content-center gap-x-3 gap-y-2 rounded-lg border border-[#c3c6d6] bg-[#f3f4f6] px-3 py-2 text-center`}
+            className={`${sidePanel ? "col-span-8" : "col-span-12"} grid grid-cols-12 content-center gap-x-3 gap-y-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-center`}
           >
             <Detail
               label="اسم المريض:"
@@ -229,11 +229,11 @@ export function ClinicalReportFrame({
 
         <div className="clinical-report-content">{children}</div>
 
-        <footer className="mt-8 flex items-end justify-between border-t border-[#c3c6d6] pt-4">
+        <footer className="mt-8 flex items-end justify-between border-t border-border/60 pt-4">
           <div />
           <div className="w-48 text-center">
-            <div className="mb-1 h-10 border-b border-[#434654]" />
-            <p className="text-[10px] uppercase text-[#434654]">
+            <div className="mb-1 h-10 border-b border-border" />
+            <p className="text-[10px] uppercase text-muted-foreground">
               {signatureLabel}
             </p>
           </div>

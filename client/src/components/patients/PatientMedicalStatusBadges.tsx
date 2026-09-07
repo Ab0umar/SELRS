@@ -24,7 +24,7 @@ function getBadges(
       title: "قياس الانكسار الآلي + ما بعد الانكسار",
     });
   if (canAccess("/refraction") && status.glasses)
-    badges.push({ color: "bg-blue-600", title: "مقاس النظارة / الانكسار" });
+    badges.push({ color: "bg-primary", title: "مقاس النظارة / الانكسار" });
   if (canAccess("/sheets") && status.pentacam)
     badges.push({ color: "bg-red-600", title: "بيانات بنتاكام" });
   if (

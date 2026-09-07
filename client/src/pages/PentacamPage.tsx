@@ -273,7 +273,7 @@ export default function PentacamPage({
                 value="linking"
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
               >
-                <Link2 className="h-4 w-4 shrink-0 text-[#c2781c]" />
+                <Link2 className="h-4 w-4 shrink-0 text-primary" />
                 <span>ربط البنتاكام</span>
               </TabsTrigger>
 

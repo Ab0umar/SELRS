@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "wouter";
+import OperationalModuleShell from "@/components/layout/OperationalModuleShell";
 import {
   BadgeDollarSign,
   BarChart3,
@@ -8,7 +8,6 @@ import {
   UserRound,
   SlidersHorizontal,
   WalletCards,
-  ChevronRight,
 } from "lucide-react";
 
 interface SalaryLayoutProps {
@@ -123,53 +122,16 @@ const navigationSections = [
   },
 ];
 
-function isItemActive(pathname: string, activeFor: string[]) {
-  return activeFor.some((path) =>
-    path === "/salary"
-      ? pathname === path
-      : pathname === path || pathname.startsWith(`${path}/`),
-  );
-}
-
 export default function SalaryLayout({ children }: SalaryLayoutProps) {
-  const [location] = useLocation();
-
   return (
-    <div
-      className="salary-table-redesign min-h-screen bg-background text-foreground p-4 sm:p-6"
-      dir="rtl"
+    <OperationalModuleShell
+      moduleName="salary"
+      title="الرواتب والعمولات"
+      description="تجهيز الرواتب، المتغيرات الشهرية، وكشف الاستحقاقات"
+      mark={<BadgeDollarSign className="h-5 w-5" />}
+      navigation={navigationSections.flatMap((section) => section.items)}
     >
-      {/* ── 2. Floating Console Layout ── */}
-      <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
-        {/* Horizontal Top Navigation Bar (all breakpoints) */}
-        <nav className="w-full flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 scrollbar-none print:hidden">
-          {navigationSections.flatMap((section) =>
-            section.items.map((item) => {
-              const isActive = isItemActive(location, item.activeFor);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all ${
-                    isActive
-                      ? "bg-slate-900 text-white shadow-md shadow-slate-900/10 dark:bg-primary dark:text-primary-foreground dark:shadow-primary/10"
-                      : "bg-card border border-border/60 text-muted-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            }),
-          )}
-        </nav>
-
-        {/* Main Content Floating Bento Container */}
-        <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
-          {children}
-        </main>
-      </div>
-    </div>
+      {children}
+    </OperationalModuleShell>
   );
 }

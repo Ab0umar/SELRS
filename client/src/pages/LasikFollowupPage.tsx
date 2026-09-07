@@ -339,7 +339,7 @@ export default function LasikFollowupPage() {
 
   return (
     <div
-      className="followup-print-root lasik-followup-page min-h-screen print:min-h-0 bg-[#dde1e7] text-foreground"
+      className="followup-print-root lasik-followup-page min-h-screen print:min-h-0 bg-background text-foreground"
       style={{ fontFamily: "Arial, Tahoma, sans-serif" }}
     >
       <style>{`
@@ -359,7 +359,7 @@ export default function LasikFollowupPage() {
           <Button
             type="button"
             variant="outline"
-            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
+            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-muted/60"
             onClick={() =>
               setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)
             }
@@ -374,7 +374,7 @@ export default function LasikFollowupPage() {
           </div>
           <Button
             type="button"
-            className="bg-[#003d9b] text-white text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:opacity-80 active:scale-95 disabled:opacity-60"
+            className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
             disabled={saveFollowupSheetMutation.isPending}
           >
@@ -383,7 +383,7 @@ export default function LasikFollowupPage() {
           <Button
             type="button"
             variant="outline"
-            className="border-[#737685] text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-[#edeef0]"
+            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-muted/60"
             onClick={() =>
               void printOrExportPdf(
                 `lasik-followup-${initialPatientId ?? "sheet"}.pdf`,

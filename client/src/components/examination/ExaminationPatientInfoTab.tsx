@@ -211,8 +211,8 @@ export default function ExaminationPatientInfoTab({
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
             {/* Column 1: Patient Information */}
-            <div className="patient-personal-card space-y-4 border border-slate-200/80 rounded-2xl p-4 bg-white shadow-xs">
-              <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-2">
+            <div className="patient-personal-card space-y-4 border border-border/60 rounded-2xl p-4 bg-card shadow-xs">
+              <h3 className="font-bold text-foreground text-sm border-b border-border/40 pb-2">
                 👤 البيانات الشخصية للمريض:
               </h3>
               <div className="patient-details-fields space-y-3">
@@ -394,7 +394,7 @@ export default function ExaminationPatientInfoTab({
               title="💳 الخدمة"
               summary={`${patientShare.toFixed(2)} EGP`}
             >
-          <div className="patient-services-panel min-w-0 space-y-3 h-full flex flex-col border border-slate-200/80 rounded-2xl p-4 bg-white shadow-xs">
+          <div className="patient-services-panel min-w-0 space-y-3 h-full flex flex-col border border-border/60 rounded-2xl p-4 bg-card shadow-xs">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-end">
               <div className="space-y-1">
                 <Label className="font-semibold text-[11px] text-muted-foreground">
@@ -491,7 +491,7 @@ export default function ExaminationPatientInfoTab({
                 {services.map((srv, idx) => (
                   <div
                     key={idx}
-                    className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_auto] items-center gap-2 rounded-lg border border-slate-200/80 bg-background p-1.5"
+                    className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_auto] items-center gap-2 rounded-lg border border-border/60 bg-background p-1.5"
                   >
                     <span className="h-8 min-w-0 flex items-center truncate px-1 text-xs font-semibold text-foreground">
                       {sortedServices.find((s) => s.code === srv.code)?.name ||
@@ -504,7 +504,7 @@ export default function ExaminationPatientInfoTab({
                       onChange={(e) =>
                         updateService(idx, { qty: e.target.value })
                       }
-                      className="h-8 border-slate-200/80 text-center font-bold text-[11px]"
+                      className="h-8 border-border/60 text-center font-bold text-[11px]"
                       min="1"
                     />
                     <Input
@@ -516,7 +516,7 @@ export default function ExaminationPatientInfoTab({
                           price: Math.max(0, Number(e.target.value) || 0),
                         })
                       }
-                      className="h-8 border-slate-200/80 text-center font-bold text-[11px]"
+                      className="h-8 border-border/60 text-center font-bold text-[11px]"
                     />
                     <Input
                       type="number"
@@ -530,7 +530,7 @@ export default function ExaminationPatientInfoTab({
                           discount: Math.min(value, total),
                         });
                       }}
-                      className="h-8 border-slate-200/80 text-center font-bold text-[11px] text-destructive"
+                      className="h-8 border-border/60 text-center font-bold text-[11px] text-destructive"
                     />
                     {services.length > 1 ? (
                       <Button
@@ -551,7 +551,7 @@ export default function ExaminationPatientInfoTab({
               </div>
             </div>
 
-            <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div className="mt-auto pt-3 border-t border-border/40 flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="font-bold text-[11px] text-foreground block">
                   المطلوب تحصيله

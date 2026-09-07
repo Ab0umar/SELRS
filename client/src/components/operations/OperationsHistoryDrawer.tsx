@@ -107,27 +107,27 @@ export function OperationsHistoryDrawer({
 
       {/* Drawer panel */}
       <aside
-        className="fixed inset-y-0 left-0 z-50 flex w-full max-w-xl md:max-w-2xl flex-col bg-background border-r border-slate-200/80 shadow-2xl print:hidden"
+        className="fixed inset-y-0 left-0 z-50 flex w-full max-w-xl md:max-w-2xl flex-col bg-background border-r border-border/60 shadow-2xl print:hidden"
         dir="rtl"
         role="dialog"
         aria-modal="true"
         aria-label="سجل العمليات والقوائم المحفوظة"
       >
         {/* Drawer header */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/80 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-border/60 bg-muted/50 px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-[#2563eb]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <FolderOpen className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-800">سجل القوائم المحفوظة</h2>
-              <p className="text-xs text-slate-500">استعرض واسترجع القوائم السابقة المسجلة بسهولة</p>
+              <h2 className="text-base font-bold text-foreground">سجل القوائم المحفوظة</h2>
+              <p className="text-xs text-muted-foreground">استعرض واسترجع القوائم السابقة المسجلة بسهولة</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-600 transition-colors hover:bg-slate-300/80 hover:text-slate-900"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
@@ -135,14 +135,14 @@ export function OperationsHistoryDrawer({
         </div>
 
         {/* Search */}
-        <div className="px-5 py-3 border-b border-slate-200/60 bg-white">
+        <div className="px-5 py-3 border-b border-border/60 bg-card">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={historySearch}
               onChange={(e) => onHistorySearchChange(e.target.value)}
               placeholder="ابحث باسم المريض أو تاريخ القائمة..."
-              className="h-10 pr-9 text-right text-sm bg-slate-50/50 border-slate-200 focus:bg-white rounded-xl"
+              className="h-10 pr-9 text-right text-sm bg-muted/30 border-border focus:bg-card rounded-xl"
               dir="rtl"
               aria-label="بحث في سجل العمليات"
             />
@@ -152,16 +152,16 @@ export function OperationsHistoryDrawer({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {historyQuery.isLoading && (
-            <div className="flex items-center gap-2 text-sm text-slate-500 py-12 justify-center">
-              <Loader className="h-5 w-5 animate-spin text-[#2563eb]" aria-hidden />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-12 justify-center">
+              <Loader className="h-5 w-5 animate-spin text-primary" aria-hidden />
               جاري تحميل السجل والقوائم المحفوظة...
             </div>
           )}
 
           {!historyQuery.isLoading && itemsWithMatches.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground bg-muted/30 rounded-2xl border border-dashed border-border">
               <FolderOpen
-                className="h-10 w-10 text-slate-300"
+                className="h-10 w-10 text-muted-foreground/70"
                 aria-hidden
               />
               <span className="font-semibold">لا توجد قوائم محفوظة في هذا التاب حتى الآن.</span>
@@ -173,7 +173,7 @@ export function OperationsHistoryDrawer({
             itemsWithMatches.every(
               ({ item }) => (item.items ?? []).length === 0,
             ) && (
-              <p className="text-sm text-slate-500 text-center py-10">
+              <p className="text-sm text-muted-foreground text-center py-10">
                 لا توجد نتائج مطابقة في السجل.
               </p>
             )}
@@ -228,8 +228,8 @@ export function OperationsHistoryDrawer({
                   return Array.from(drMap.entries()).map(
                     ([dr, { lists, bookings }]) => (
                       <div key={dr} className="space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100/90 px-3 py-1.5 rounded-lg border border-slate-200/60">
-                          <User className="h-3.5 w-3.5 text-[#2563eb]" />
+                        <div className="flex items-center gap-2 text-xs font-bold text-foreground bg-muted/70 px-3 py-1.5 rounded-lg border border-border/60">
+                          <User className="h-3.5 w-3.5 text-primary" />
                           <span>{dr}</span>
                         </div>
                         <div className="flex flex-col gap-2.5">
@@ -288,11 +288,11 @@ export function OperationsHistoryDrawer({
                     );
                     return (
                       <div key={group.key} className="space-y-2">
-                        <div className="text-xs font-bold text-slate-700 bg-slate-100/90 px-3 py-1.5 rounded-lg border border-slate-200/60">
+                        <div className="text-xs font-bold text-foreground bg-muted/70 px-3 py-1.5 rounded-lg border border-border/60">
                           {group.key}
                         </div>
                         {groupItems.length === 0 ? (
-                          <p className="text-xs text-slate-400 px-2 pb-1">
+                          <p className="text-xs text-muted-foreground px-2 pb-1">
                             لا توجد نتائج محفوظة هنا.
                           </p>
                         ) : (
@@ -341,28 +341,28 @@ function HistoryItem({
   tabLabelByKey: (key: string) => string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xs hover:border-blue-300 hover:shadow-xs transition-all">
+    <div className="flex items-center justify-between gap-2.5 rounded-xl border border-border bg-card p-2.5 shadow-2xs hover:border-primary/50 hover:shadow-xs transition-all">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="font-bold text-xs text-slate-800 truncate">
+          <span className="font-bold text-xs text-foreground truncate">
             {item.doctorName ?? tabLabelByKey(item.doctorTab)}
           </span>
-          <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.2 text-[10px] font-semibold text-blue-700">
+          <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
             <CalendarClock className="h-2.5 w-2.5" />
             {formatDayDate(item.listDate)}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-1 text-[11px] text-slate-500">
-          <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.2 font-medium text-slate-700">
+        <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.2 font-medium text-foreground">
             {operationTypeLabel(item.operationType ?? "Other")}
           </span>
           {item.items?.length ? (
-            <span className="text-[10px] font-bold text-blue-600 bg-blue-50/80 px-1.5 py-0.2 rounded">
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded">
               {item.items.length} حالة
             </span>
           ) : null}
           {(matches[0] || item.items?.[0]?.name) && (
-            <span className="text-slate-600 font-medium text-[11px]">
+            <span className="text-muted-foreground font-medium text-[11px]">
               • {matches[0] ?? item.items?.[0]?.name}
             </span>
           )}
@@ -372,7 +372,7 @@ function HistoryItem({
         <Button
           variant="default"
           size="sm"
-          className="bg-[#2563eb] text-white hover:bg-[#1d4ed8] font-bold h-7 px-2.5 rounded-lg text-[11px] gap-1 shadow-2xs"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-7 px-2.5 rounded-lg text-[11px] gap-1 shadow-2xs"
           onClick={() => {
             onLoadListById(item.id);
             onClose();
@@ -384,7 +384,7 @@ function HistoryItem({
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
           onClick={() => onDeleteListById({ listId: item.id })}
           disabled={!canManageList}
           aria-label="حذف"

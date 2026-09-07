@@ -324,8 +324,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
         </Button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">تسجيل فحص طبي جديد</h1>
+      <div className="sr-only">
+        <h1 className="sr-only">تسجيل فحص طبي جديد</h1>
         <p className="text-muted-foreground text-sm">
           إدخال حدة الإبصار ومقاسات النظر للمريض: <strong>{patient.fullName}</strong> ({patient.kfCode})
         </p>
@@ -333,8 +333,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Core Info: Date, Doctor, Visit link */}
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base">معلومات الفحص الأساسية</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">
@@ -388,8 +388,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
         </Card>
 
         {/* Vision Acuity & IOP & Refraction Tables */}
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base">جدول حدة الإبصار والانكسار</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -852,8 +852,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
         </Card>
 
         {/* Section 3: Diagnosis & Treatment Plan */}
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
               <span>التشخيص والقرار الطبي</span>
@@ -896,8 +896,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
         </Card>
 
         {/* Section 4: Medical History Checklist */}
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base">التاريخ المرضي</CardTitle>
           </CardHeader>
           <CardContent>
@@ -916,7 +916,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                         [key]: Boolean(checked),
                       }))
                     }
-                    className="border-2 border-gray-700"
+                    className="border-2 border-border"
                   />
                 </div>
               ))}
@@ -925,8 +925,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
         </Card>
 
         {/* Section 5: Exam Images */}
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
               <Camera className="h-5 w-5 text-primary" />
               <span>صور الفحص</span>
@@ -940,8 +940,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
         </Card>
 
         {/* Section 6: Tests / Rays Request */}
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
               <FlaskConical className="h-5 w-5 text-primary" />
               <span>طلب تحاليل / أشعة</span>
@@ -1009,8 +1009,8 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
         </Card>
 
         {/* Section 7: Prescription */}
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="py-4 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
               <Pill className="h-5 w-5 text-primary" />
               <span>روشتة</span>

@@ -57,7 +57,7 @@ export default function EgyptianDrugReferencePage({
   const searchQuery = trpc.medical.searchEgyptianDrugReference.useQuery(
     {
       query: normalizedQuery,
-      limit: 40,
+      limit: 10_000,
       dosageForm: dosageForm === "all" ? undefined : (dosageForm as any),
     },
     {

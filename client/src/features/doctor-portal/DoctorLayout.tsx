@@ -17,15 +17,15 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-[#F4F8FB] text-foreground font-sans"
+      className="min-h-screen flex flex-col bg-background text-foreground font-sans"
       dir="rtl"
     >
       {/* Sticky top header */}
-      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-[#e2edf7] shadow-xs">
+      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-card/95 shadow-xs">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
           {/* Logo + portal title */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block p-1.5 bg-[#F4F8FB] border border-[#e2edf7] rounded-xl">
+            <div className="hidden rounded-xl border border-border/60 bg-muted/40 p-1.5 sm:block">
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
@@ -64,7 +64,7 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
       {/* Content frame */}
       <div className="flex-1 mx-auto w-full max-w-7xl px-4 py-6 md:py-8 flex flex-col gap-6">
         {/* Desktop nav tabs */}
-        <nav className="hidden md:flex flex-wrap items-center gap-1.5 border-b border-[#dbe7f4] pb-4">
+        <nav className="hidden flex-wrap items-center gap-1.5 border-b border-border/60 pb-4 md:flex">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = location.startsWith(item.href);
@@ -75,7 +75,7 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
                     "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 cursor-pointer",
                     active
                       ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-[#dbe7f4]",
+                      : "border border-transparent text-muted-foreground hover:border-border/60 hover:bg-card hover:text-primary",
                   )}
                 >
                   <Icon className="size-4" />
@@ -91,7 +91,7 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white border-t border-[#e2edf7] flex items-center justify-around px-2 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border/60 bg-card px-2 shadow-lg md:hidden">
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = location.startsWith(item.href);

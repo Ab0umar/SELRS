@@ -57,38 +57,38 @@ export function UnifiedRefractionTable({
           <span className="h-px flex-1 bg-border" />
         </div>
       ) : null}
-      <div className="min-w-[560px] overflow-hidden rounded-md border border-[#c3c6d6] bg-background">
+      <div className="min-w-[560px] overflow-hidden rounded-md border border-border/60 bg-background">
         <table className="w-full table-fixed border-collapse text-center text-xs">
           <thead className="font-semibold text-foreground">
-            <tr className="bg-[#e7e8ea]">
-              <th className="w-[18%] border border-[#c3c6d6] px-2 py-2">
+            <tr className="bg-muted/60">
+              <th className="w-[18%] border border-border/60 px-2 py-2">
                 {title}
               </th>
               <th
                 colSpan={fields.length}
-                className="border border-[#c3c6d6] px-2 py-2 text-center"
+                className="border border-border/60 px-2 py-2 text-center"
               >
                 OD
               </th>
               <th
                 colSpan={fields.length}
-                className="border border-[#c3c6d6] px-2 py-2 text-center"
+                className="border border-border/60 px-2 py-2 text-center"
               >
                 OS
               </th>
               {trailing.map((field) => (
                 <th
                   key={field.label}
-                  className="border border-[#c3c6d6] px-2 py-2"
+                  className="border border-border/60 px-2 py-2"
                 />
               ))}
             </tr>
-            <tr className="bg-[#e7e8ea]">
-              <th className="border border-[#c3c6d6] px-2 py-2">{rowLabel}</th>
+            <tr className="bg-muted/60">
+              <th className="border border-border/60 px-2 py-2">{rowLabel}</th>
               {fields.map((field) => (
                 <th
                   key={`od-${field.key}`}
-                  className="border border-[#c3c6d6] px-2 py-2"
+                  className="border border-border/60 px-2 py-2"
                 >
                   {field.label}
                 </th>
@@ -96,7 +96,7 @@ export function UnifiedRefractionTable({
               {fields.map((field) => (
                 <th
                   key={`os-${field.key}`}
-                  className="border border-[#c3c6d6] px-2 py-2"
+                  className="border border-border/60 px-2 py-2"
                 >
                   {field.label}
                 </th>
@@ -104,7 +104,7 @@ export function UnifiedRefractionTable({
               {trailing.map((field) => (
                 <th
                   key={field.label}
-                  className="border border-[#c3c6d6] px-2 py-2"
+                  className="border border-border/60 px-2 py-2"
                 >
                   {field.label}
                 </th>
@@ -113,11 +113,11 @@ export function UnifiedRefractionTable({
           </thead>
           <tbody>
             <tr className="bg-primary/[0.04] font-mono tabular-nums">
-              <td className="border border-[#c3c6d6] px-2 py-2">&nbsp;</td>
+              <td className="border border-border/60 px-2 py-2">&nbsp;</td>
               {fields.map((field) => (
                 <td
                   key={`od-value-${field.key}`}
-                  className="border border-[#c3c6d6] px-2 py-2"
+                  className="border border-border/60 px-2 py-2"
                 >
                   {displayValue(od[field.key])}
                 </td>
@@ -125,7 +125,7 @@ export function UnifiedRefractionTable({
               {fields.map((field) => (
                 <td
                   key={`os-value-${field.key}`}
-                  className="border border-[#c3c6d6] px-2 py-2"
+                  className="border border-border/60 px-2 py-2"
                 >
                   {displayValue(os[field.key])}
                 </td>
@@ -133,7 +133,7 @@ export function UnifiedRefractionTable({
               {trailing.map((field) => (
                 <td
                   key={`value-${field.label}`}
-                  className="border border-[#c3c6d6] px-2 py-2"
+                  className="border border-border/60 px-2 py-2"
                 >
                   {displayValue(field.value)}
                 </td>
@@ -141,12 +141,12 @@ export function UnifiedRefractionTable({
             </tr>
             {reading !== undefined ? (
               <tr>
-                <td className="border border-[#c3c6d6] px-2 py-2 font-bold text-primary">
+                <td className="border border-border/60 px-2 py-2 font-bold text-primary">
                   Reading
                 </td>
                 <td
                   colSpan={fields.length * 2 + trailing.length}
-                  className="border border-[#c3c6d6] px-4 py-2"
+                  className="border border-border/60 px-4 py-2"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span className="whitespace-nowrap font-bold">Add +</span>

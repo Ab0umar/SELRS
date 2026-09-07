@@ -101,10 +101,10 @@ export default function SyncStatus() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <Card className="border border-slate-100 shadow-lg shadow-slate-100/80 bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-slate-50/30 to-white">
-          <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-teal-50 text-teal-600 shrink-0">
+      <Card className="border border-border/60 shadow-lg shadow-slate-100/80 bg-card rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
+        <CardHeader className="pb-3 border-b border-border/60 bg-muted/40">
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/5 text-primary shrink-0">
               <ArrowDownToLine className="w-4 h-4" />
             </div>
             سحب بصمات الحضور اليدوي
@@ -113,35 +113,35 @@ export default function SyncStatus() {
         <CardContent className="p-5 space-y-4">
           <div className="flex gap-3">
             <div className="flex-1 space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 block">عنوان IP (اختياري)</label>
+              <label className="text-[10px] font-bold text-muted-foreground block">عنوان IP (اختياري)</label>
               <Input
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 placeholder="تلقائي من الإعدادات"
                 dir="ltr"
-                className="text-xs border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 font-mono py-1.5 h-auto rounded-lg"
+                className="text-xs border-border/60 focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono py-1.5 h-auto rounded-lg"
               />
             </div>
             <div className="w-24 space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 block">المنفذ</label>
+              <label className="text-[10px] font-bold text-muted-foreground block">المنفذ</label>
               <Input
                 value={port}
                 onChange={(e) => setPort(e.target.value)}
                 placeholder="5005"
                 dir="ltr"
-                className="text-xs border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 font-mono py-1.5 h-auto rounded-lg"
+                className="text-xs border-border/60 focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono py-1.5 h-auto rounded-lg"
               />
             </div>
           </div>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-[10px] text-muted-foreground">
             * اتركه فارغاً ليقوم النظام بالاتصال مباشرة بعنوان IP المثبت في نموذج الإعدادات.
           </p>
 
-          <div className="flex gap-2 pt-2 border-t border-slate-50">
+          <div className="flex gap-2 pt-2 border-t border-border/60">
             <Button
               onClick={handleSync}
               disabled={busy || exportMut.isPending}
-              className="text-xs font-semibold bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-lg py-2 h-auto flex-1 gap-1.5 shadow-md shadow-teal-100/50 hover:shadow-lg transition-all"
+              className="text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto flex-1 gap-1.5 shadow-md  hover:shadow-lg transition-all"
             >
               {busy ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -160,7 +160,7 @@ export default function SyncStatus() {
                 )
               }
               disabled={busy || exportMut.isPending}
-              className="text-xs font-semibold border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg py-2 h-auto gap-1.5"
+              className="text-xs font-semibold border-border/60 hover:bg-muted/40 text-foreground rounded-lg py-2 h-auto gap-1.5"
             >
               {exportMut.isPending ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -211,22 +211,22 @@ export default function SyncStatus() {
 
       {/* Recent sync runs timeline */}
       {runsQ?.data?.runs?.length > 0 && (
-        <Card className="border border-slate-100 shadow-lg shadow-slate-100/80 bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
-          <CardHeader className="pb-2 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-slate-50/30 to-white flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <div className="p-1 rounded bg-teal-50 text-teal-600 shrink-0">
+        <Card className="border border-border/60 shadow-lg shadow-slate-100/80 bg-card rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-2 border-b border-border/60 bg-muted/40 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <div className="p-1 rounded bg-primary/5 text-primary shrink-0">
                 <History className="w-3.5 h-3.5" />
               </div>
               سجل العمليات الأخيرة
             </CardTitle>
-            <Clock className="h-3.5 w-3.5 text-slate-400" />
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="p-0 bg-white">
-            <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+          <CardContent className="p-0 bg-card">
+            <div className="divide-y divide-border/60 max-h-72 overflow-y-auto">
               {runsQ.data.runs.map((run: any, i: number) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-xs"
+                  className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-xs"
                 >
                   <div className="flex items-center gap-2">
                     {run.status === "ok" ? (
@@ -238,12 +238,12 @@ export default function SyncStatus() {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                       </span>
                     )}
-                    <span className="text-slate-500 font-mono text-[10px]">
+                    <span className="text-muted-foreground font-mono text-[10px]">
                       {fmt(run.startedAt)}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 font-mono text-[10px]">
-                    <span className="text-slate-400">
+                    <span className="text-muted-foreground">
                       سجلات: {run.recordsSeen ?? 0}
                     </span>
                     <span className="font-bold text-emerald-600">

@@ -2013,7 +2013,7 @@ export default function MedicalReports() {
                     <h4 className="text-[10px] font-bold text-primary uppercase mb-1">
                       Treatment Protocol / Recommendation
                     </h4>
-                    <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">
+                    <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">
                       {formatDisplayValue(selectedReport.recommendation)}
                     </p>
                   </div>
@@ -2022,7 +2022,7 @@ export default function MedicalReports() {
                       <h4 className="text-[10px] font-bold text-primary uppercase mb-1">
                         Prescription / الروشتة
                       </h4>
-                      <p className="text-sm text-gray-800 mt-2 whitespace-pre-wrap">
+                      <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">
                         {formatDisplayValue(selectedReport.prescription)}
                       </p>
                     </div>
@@ -2128,10 +2128,10 @@ export default function MedicalReports() {
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
         @media print {
-          body { 
-            background: white !important; 
-            margin: 0 !important; 
-            padding: 0 !important; 
+          body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           body > div:not(.print-container) {
             display: none !important;
@@ -2177,7 +2177,7 @@ export default function MedicalReports() {
         .print-container .text-error { color: #ba1a1a !important; }
         .print-container .text-on-primary { color: #ffffff !important; }
         .print-container .text-on-surface { color: #191c1e !important; }
-        
+
         .print-container .section-title {
           font-family: 'Playfair Display', serif;
           letter-spacing: -0.01em;

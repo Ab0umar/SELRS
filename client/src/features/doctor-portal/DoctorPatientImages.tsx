@@ -64,7 +64,7 @@ function DetailItem({
 }) {
   if (value === null || value === undefined || value === "") return null;
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#f0f5fa] py-3.5 last:border-0 last:pb-0">
+    <div className="flex items-center justify-between gap-4 border-b border-border/40 py-3.5 last:border-0 last:pb-0">
       <div className="flex items-center gap-2">
         {Icon && <Icon className="size-4 text-muted-foreground" />}
         <span className="text-sm font-semibold text-muted-foreground">
@@ -133,7 +133,7 @@ function EyeCard({
         {cols.map(({ l, val }) => (
           <div
             key={l}
-            className="rounded-xl border border-white bg-white/90 p-2 text-center shadow-xs"
+            className="rounded-xl border border-white bg-card/90 p-2 text-center shadow-xs"
           >
             <div className="text-[11px] font-bold text-muted-foreground">
               {l}
@@ -146,7 +146,7 @@ function EyeCard({
       </div>
       {va && va !== "—" && (
         <div
-          className="mt-3 rounded-xl border border-white bg-white/90 px-3 py-1.5 flex justify-between items-center"
+          className="mt-3 rounded-xl border border-white bg-card/90 px-3 py-1.5 flex justify-between items-center"
           dir="ltr"
         >
           <span className="text-[10px] font-bold text-muted-foreground">
@@ -168,8 +168,8 @@ function RefractionRecord({ row }: { row: any }) {
   };
 
   return (
-    <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4 print:border-0 print:shadow-none print:p-0">
-      <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-2">
+    <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4 print:border-0 print:shadow-none print:p-0">
+      <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <div className="space-y-0.5">
           <h3 className="text-sm font-bold text-foreground">{visitDate}</h3>
           <p className="text-[10px] text-muted-foreground">
@@ -180,7 +180,7 @@ function RefractionRecord({ row }: { row: any }) {
           variant="outline"
           size="sm"
           onClick={handlePrint}
-          className="h-8 gap-1.5 border-[#dbe7f4] hover:bg-muted/40 rounded-lg text-xs cursor-pointer print:hidden"
+          className="h-8 gap-1.5 border-border/60 hover:bg-muted/40 rounded-lg text-xs cursor-pointer print:hidden"
         >
           <Printer className="size-3.5" />
           <span>طباعة</span>
@@ -208,7 +208,7 @@ function RefractionRecord({ row }: { row: any }) {
 
         {row.notes && (
           <div
-            className="rounded-xl border border-border bg-[#F4F8FB]/40 p-4"
+            className="rounded-xl border border-border bg-muted/30 p-4"
             dir="rtl"
           >
             <p className="text-xs font-bold text-foreground">ملاحظات الطبيب</p>
@@ -231,8 +231,8 @@ function PrescriptionCard({ row }: { row: any }) {
   };
 
   return (
-    <div className="bg-white border border-[#dbe7f4] rounded-2xl p-6 shadow-xs space-y-6 print:border-0 print:shadow-none print:p-0">
-      <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-4">
+    <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-xs space-y-6 print:border-0 print:shadow-none print:p-0">
+      <div className="flex items-center justify-between border-b border-border/40 pb-4">
         <div className="space-y-1">
           <span className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 rounded-lg uppercase">
             روشتة طبية
@@ -243,7 +243,7 @@ function PrescriptionCard({ row }: { row: any }) {
           variant="outline"
           size="sm"
           onClick={handlePrint}
-          className="h-9 gap-1.5 border-[#dbe7f4] hover:bg-muted/40 rounded-xl text-xs cursor-pointer print:hidden"
+          className="h-9 gap-1.5 border-border/60 hover:bg-muted/40 rounded-xl text-xs cursor-pointer print:hidden"
         >
           <Printer className="size-4" />
           <span>طباعة الروشتة</span>
@@ -256,7 +256,7 @@ function PrescriptionCard({ row }: { row: any }) {
             {row.items.map((item: any, index: number) => (
               <div
                 key={item.id ?? index}
-                className="rounded-xl border border-[#e2edf7] bg-[#F4F8FB]/30 p-4 space-y-2"
+                className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-2"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -281,7 +281,7 @@ function PrescriptionCard({ row }: { row: any }) {
 
                 {item.instructions && (
                   <div className="mt-2 pr-10">
-                    <p className="rounded-lg bg-white border border-[#e2edf7]/60 px-3 py-2 text-xs leading-5 text-muted-foreground">
+                    <p className="rounded-lg bg-card border border-border/40 px-3 py-2 text-xs leading-5 text-muted-foreground">
                       <span className="font-semibold text-foreground">
                         تعليمات:{" "}
                       </span>
@@ -302,7 +302,7 @@ function PrescriptionCard({ row }: { row: any }) {
       </div>
 
       {row.notes && (
-        <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/50 p-4 space-y-1">
+        <div className="rounded-xl border border-border/60 bg-muted/40 p-4 space-y-1">
           <p className="text-xs font-bold text-foreground">توجيهات الطبيب</p>
           <p className="text-xs leading-6 text-muted-foreground whitespace-pre-wrap">
             {row.notes}
@@ -334,7 +334,7 @@ export default function DoctorPatientImages() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            className="gap-2 border-border/60 bg-card text-primary hover:bg-muted/50 cursor-pointer"
             onClick={() => navigate("/doctor-portal/dashboard")}
           >
             <ArrowRight className="size-4" />
@@ -382,11 +382,11 @@ export default function DoctorPatientImages() {
         {data && data.patient && (
           <>
             {/* Premium Passport-Style Patient Profile Card */}
-            <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 {/* Profile Photo/Initial Badge and status */}
                 <div className="flex items-center gap-4">
-                  <div className="size-16 shrink-0 bg-[#003D82] text-white font-bold text-xl rounded-2xl flex items-center justify-center shadow-xs">
+                  <div className="size-16 shrink-0 bg-primary text-primary-foreground font-bold text-xl rounded-2xl flex items-center justify-center shadow-xs">
                     {data.patient.fullName.trim().charAt(0)}
                   </div>
                   <div className="space-y-1">
@@ -403,7 +403,7 @@ export default function DoctorPatientImages() {
                     </div>
                     <p className="text-xs text-muted-foreground leading-none">
                       كود المريض:{" "}
-                      <span className="font-bold text-[#003D82] font-mono">
+                      <span className="font-bold text-primary font-mono">
                         {data.patient.patientCode}
                       </span>
                     </p>
@@ -412,7 +412,7 @@ export default function DoctorPatientImages() {
 
                 {/* Info parameters stamps */}
                 <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:min-w-[360px]">
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
                     <p className="text-[10px] font-semibold text-muted-foreground">
                       الجنس
                     </p>
@@ -423,7 +423,7 @@ export default function DoctorPatientImages() {
                         : "غير محدد"}
                     </p>
                   </div>
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
                     <p className="text-[10px] font-semibold text-muted-foreground">
                       العمر
                     </p>
@@ -433,7 +433,7 @@ export default function DoctorPatientImages() {
                         : "غير محدد"}
                     </p>
                   </div>
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl p-2.5 text-center">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
                     <p className="text-[10px] font-semibold text-muted-foreground">
                       آخر زيارة
                     </p>
@@ -446,14 +446,14 @@ export default function DoctorPatientImages() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-[#e2edf7] overflow-x-auto gap-2 py-1 scrollbar-none">
+            <div className="flex border-b border-border/60 overflow-x-auto gap-2 py-1 scrollbar-none">
               <button
                 onClick={() => setActiveTab("profile")}
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
                   activeTab === "profile"
-                    ? "bg-[#003D82] text-white shadow-xs"
-                    : "text-muted-foreground hover:bg-[#eef4fa] hover:text-primary",
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-primary",
                 )}
               >
                 الملف الشخصي والبيانات
@@ -463,8 +463,8 @@ export default function DoctorPatientImages() {
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
                   activeTab === "refractions"
-                    ? "bg-[#003D82] text-white shadow-xs"
-                    : "text-muted-foreground hover:bg-[#eef4fa] hover:text-primary",
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-primary",
                 )}
               >
                 مقاس النظارة ({data.refractions.length})
@@ -474,8 +474,8 @@ export default function DoctorPatientImages() {
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
                   activeTab === "prescriptions"
-                    ? "bg-[#003D82] text-white shadow-xs"
-                    : "text-muted-foreground hover:bg-[#eef4fa] hover:text-primary",
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-primary",
                 )}
               >
                 الروشتات الطبية ({data.prescriptions.length})
@@ -485,8 +485,8 @@ export default function DoctorPatientImages() {
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
                   activeTab === "images"
-                    ? "bg-[#003D82] text-white shadow-xs"
-                    : "text-muted-foreground hover:bg-[#eef4fa] hover:text-primary",
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-primary",
                 )}
               >
                 صور الأشعة والملفات ({data.images.length})
@@ -498,8 +498,8 @@ export default function DoctorPatientImages() {
               {activeTab === "profile" && (
                 <div className="grid gap-6 md:grid-cols-2">
                   {/* Personal/Contact Info */}
-                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-                    <div className="border-b border-[#f0f5fa] pb-2">
+                  <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                    <div className="border-b border-border/40 pb-2">
                       <h4 className="text-sm font-bold text-foreground">
                         البيانات الشخصية والاتصال
                       </h4>
@@ -537,8 +537,8 @@ export default function DoctorPatientImages() {
                   </div>
 
                   {/* Medical History & Allergies */}
-                  <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-                    <div className="border-b border-[#f0f5fa] pb-2">
+                  <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+                    <div className="border-b border-border/40 pb-2">
                       <h4 className="text-sm font-bold text-foreground">
                         التاريخ المرضي والحساسية
                       </h4>
@@ -547,7 +547,7 @@ export default function DoctorPatientImages() {
                       </p>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-2">
                         <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
                           <Stethoscope className="size-4" />
                           <span>الأمراض السابقة</span>
@@ -557,7 +557,7 @@ export default function DoctorPatientImages() {
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/40 p-4 space-y-2">
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-2">
                         <div className="flex items-center gap-1.5 font-bold text-xs text-primary">
                           <ShieldAlert className="size-4" />
                           <span>حالات الحساسية</span>
@@ -621,7 +621,7 @@ export default function DoctorPatientImages() {
                         return (
                           <div
                             key={scan.id}
-                            className="flex flex-col justify-between rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs hover:border-primary/20 transition-all duration-200"
+                            className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card p-5 shadow-xs hover:border-primary/20 transition-all duration-200"
                           >
                             <div className="flex items-start gap-3.5 mb-4">
                               <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -632,7 +632,7 @@ export default function DoctorPatientImages() {
                                   {scan.fileName || `أشعة وفحص #${scan.id}`}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-                                  <span className="rounded-lg bg-[#F4F8FB] border border-[#e2edf7] px-2 py-0.5">
+                                  <span className="rounded-lg bg-muted/40 border border-border/60 px-2 py-0.5">
                                     {scan.mimeType.split("/")[1].toUpperCase()}
                                   </span>
                                   <span>
@@ -643,7 +643,7 @@ export default function DoctorPatientImages() {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 pt-2 border-t border-[#f0f5fa]">
+                            <div className="flex items-center gap-2 pt-2 border-t border-border/40">
                               <a
                                 href={scan.viewUrl}
                                 target="_blank"
@@ -653,7 +653,7 @@ export default function DoctorPatientImages() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="w-full h-9 text-xs rounded-xl gap-1.5 border-[#dbe7f4] hover:bg-muted/40 cursor-pointer"
+                                  className="w-full h-9 text-xs rounded-xl gap-1.5 border-border/60 hover:bg-muted/40 cursor-pointer"
                                 >
                                   <Eye className="size-3.5" />
                                   <span>عرض الملف</span>

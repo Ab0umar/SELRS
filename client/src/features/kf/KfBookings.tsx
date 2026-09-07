@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DateInput } from "@/components/ui/date-input";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { CalendarPlus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const BOOKING_TYPE_AR: Record<string, string> = {
@@ -51,20 +51,8 @@ export default function KfBookings() {
 
   return (
     <section dir="rtl" className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
-          <CalendarPlus className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">حجوزات فرع كفر الشيخ</h1>
-          <p className="text-sm text-muted-foreground">
-            حجوزات بوابة المرضى الخاصة بفرع كفر الشيخ فقط
-          </p>
-        </div>
-      </div>
-
-      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60">
-        <CardHeader className="py-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="py-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
           <CardTitle className="text-sm font-semibold">تصفية بالتاريخ</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4 items-end pt-4">

@@ -52,7 +52,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/today",
     permissionPaths: ["/today", "/bookings", "/today-patients"],
     icon: CalendarCheck,
-    tone: "text-[#2a4f9a] bg-[#edf3ff]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "مسار اليوم",
@@ -60,7 +60,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/workflow",
     permissionPaths: ["/workflow", "/workflow-hub"],
     icon: Activity,
-    tone: "text-[#157a67] bg-[#edf8f4]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "مركز المريض",
@@ -68,7 +68,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/patient-hub",
     permissionPaths: ["/patient-hub"],
     icon: Users,
-    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "الحسابات",
@@ -76,7 +76,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/accounting",
     permissionPaths: ["/accounting"],
     icon: Banknote,
-    tone: "text-[#b6534d] bg-[#fff0ef]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "الموظفين",
@@ -84,7 +84,7 @@ const HOME_CARDS: HomeCard[] = [
     permissionPaths: ["/attendance", "/salary"],
     menu: "employees",
     icon: UserCog,
-    tone: "text-[#3b7d4d] bg-[#edf7ee]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "كفرالشيخ",
@@ -92,7 +92,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/kf",
     permissionPaths: ["/kf"],
     icon: Hospital,
-    tone: "text-[#c2781c] bg-[#fff4e6]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "المخزن",
@@ -100,7 +100,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/stockroom",
     permissionPaths: ["/stockroom"],
     icon: Archive,
-    tone: "text-[#16718a] bg-[#eaf8fb]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "أرشيف",
@@ -116,7 +116,7 @@ const HOME_CARDS: HomeCard[] = [
       "/patients-hub",
     ],
     icon: History,
-    tone: "text-[#6c4bb1] bg-[#f1edff]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "رسائل واتساب",
@@ -124,7 +124,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/admin/whatsapp-inbox",
     permissionPaths: ["/admin/whatsapp-inbox"],
     icon: MessageCircle,
-    tone: "text-[#16836a] bg-[#e9f8f1]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "مركز الإدارة",
@@ -132,14 +132,14 @@ const HOME_CARDS: HomeCard[] = [
     href: "/admin-hub",
     permissionPaths: ["/admin-hub"],
     icon: Settings,
-    tone: "text-[#334c80] bg-[#edf2fb]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "المزيد",
     helper: "الخدمات والمراجع",
     menu: "more",
     icon: MoreHorizontal,
-    tone: "text-[#68758c] bg-[#f1f4f8]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "الحساب",
@@ -147,7 +147,7 @@ const HOME_CARDS: HomeCard[] = [
     href: "/account",
     permissionPaths: ["/account", "/profile"],
     icon: UserCog,
-    tone: "text-[#8b5b18] bg-[#fff5df]",
+    tone: "text-primary bg-primary/10",
   },
 ];
 
@@ -250,7 +250,7 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
       "/admin/op-history",
     ],
     icon: History,
-    tone: "text-[#6c4bb1] bg-[#f1edff]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "البنتاكام",
@@ -263,7 +263,7 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
       "/admin/pentacam",
     ],
     icon: Hospital,
-    tone: "text-[#c2781c] bg-[#fff4e6]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "الشيتات",
@@ -278,7 +278,7 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
       "/sheets/followup/lasik",
     ],
     icon: Stethoscope,
-    tone: "text-[#157a67] bg-[#edf8f4]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "التقارير",
@@ -294,7 +294,7 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
       "/sheets/referral",
     ],
     icon: Archive,
-    tone: "text-[#4b5cc4] bg-[#eef0ff]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "مركز الخدمات",
@@ -309,7 +309,7 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
       "/txhub",
     ],
     icon: Settings,
-    tone: "text-[#334c80] bg-[#edf2fb]",
+    tone: "text-primary bg-primary/10",
   },
   {
     label: "التسويق",
@@ -318,7 +318,7 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
     permissionPaths: ["/marketing"],
     moreGroup: "التسويق",
     icon: MessageCircle,
-    tone: "text-[#16836a] bg-[#e9f8f1]",
+    tone: "text-primary bg-primary/10",
   },
 ];
 
@@ -383,7 +383,7 @@ export default function MainHome() {
   );
 
   const cardClassName =
-    "group flex min-h-[116px] w-full flex-col justify-between rounded-xl border border-[#dfe7f2] bg-white p-2.5 text-right shadow-[0_6px_20px_rgba(42,79,154,0.05)] transition duration-200 hover:-translate-y-1 hover:border-[#b5c6e2] hover:shadow-[0_14px_30px_rgba(42,79,154,0.12)] active:translate-y-0 sm:min-h-[138px] sm:rounded-2xl sm:p-4";
+    "group flex min-h-[116px] w-full flex-col justify-between rounded-xl border border-border/60 bg-card p-2.5 text-right shadow-[0_6px_20px_rgba(42,79,154,0.05)] transition duration-200 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_14px_30px_rgba(42,79,154,0.12)] active:translate-y-0 sm:min-h-[138px] sm:rounded-2xl sm:p-4";
 
   const renderCard = (card: HomeCard) => {
     const Icon = card.icon;
@@ -395,11 +395,11 @@ export default function MainHome() {
           >
             <Icon className="size-4 sm:size-5" strokeWidth={2} />
           </span>
-          <ArrowUpLeft className="size-3.5 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:text-[#2a4f9a] sm:size-4" />
+          <ArrowUpLeft className="size-3.5 text-muted-foreground/70 transition group-hover:-translate-y-0.5 group-hover:text-primary sm:size-4" />
         </div>
         <div>
-          <h3 className="text-[11px] font-black leading-tight text-[#10265d] sm:text-sm">{card.label}</h3>
-          <p className="mt-1 text-[9px] font-bold leading-tight text-slate-400 sm:text-[10px]">
+          <h3 className="text-[11px] font-black leading-tight text-foreground sm:text-sm">{card.label}</h3>
+          <p className="mt-1 text-[9px] font-bold leading-tight text-muted-foreground sm:text-[10px]">
             {card.helper}
           </p>
         </div>
@@ -553,19 +553,19 @@ export default function MainHome() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7faff] text-[#10234f]" dir="rtl">
+    <div className="min-h-screen bg-background text-foreground" dir="rtl">
       <main className="mx-auto max-w-[1440px] px-5 py-8 lg:px-10 lg:py-12">
         <section className="mt-0">
           <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
-              <div className="mb-2 text-[10px] font-black tracking-[0.16em] text-[#c2781c]">
+              <div className="mb-2 text-[10px] font-black tracking-[0.16em] text-primary">
                 MAIN MENU
               </div>
-              <h2 className="text-2xl font-black text-[#10265d]">
+              <h2 className="text-2xl font-black text-foreground">
                 اختار من القائمة الرئيسية
               </h2>
             </div>
-            <p className="text-xs font-bold text-slate-400">
+            <p className="text-xs font-bold text-muted-foreground">
               اختصارات المنصة في مكان واحد
             </p>
           </div>

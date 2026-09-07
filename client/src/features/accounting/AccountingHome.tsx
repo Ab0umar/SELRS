@@ -746,21 +746,21 @@ export default function AccountingHome() {
         </section>
 
         {activityEverVisible && (
-          <section className="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+          <section className="w-full overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
               <div>
-                <h2 className="text-sm font-black text-slate-900">
+                <h2 className="text-sm font-black text-foreground">
                   {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
                 </h2>
-                <p className="mt-1 text-xs font-medium text-slate-400">
+                <p className="mt-1 text-xs font-medium text-muted-foreground">
                   إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {activityQuery.isFetching && !activityQuery.isLoading ? (
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                 ) : null}
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-black text-muted-foreground">
                   {activityQuery.isLoading
                     ? "..."
                     : formatCountAr(receipts.length)}

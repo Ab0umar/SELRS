@@ -683,10 +683,6 @@ export default function KfWorkflow() {
           <Button variant="ghost" className="rounded-full h-10 w-10 p-0" onClick={() => setLocation("/kf/patients")}>
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">سير العمل العيادي</h1>
-            <p className="text-xs text-muted-foreground">ملف متكامل ومبسط لإجراءات المريض</p>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-3">
@@ -943,7 +939,7 @@ export default function KfWorkflow() {
                   <table className="w-full text-center border-collapse text-sm">
                     <thead className="bg-muted">
                       <tr className="border-b border-border">
-                        <th className="p-2 border-r border-border font-bold text-slate-700" rowSpan={2}>Type</th>
+                        <th className="p-2 border-r border-border font-bold text-foreground" rowSpan={2}>Type</th>
                         <th colSpan={3} className="p-2 border-r border-border font-bold text-amber-800">OD (Right Eye)</th>
                         <th colSpan={3} className="p-2 font-bold text-blue-800">OS (Left Eye)</th>
                       </tr>
@@ -999,7 +995,7 @@ export default function KfWorkflow() {
                 {/* Mobile Cards Autoref (As requested in screenshot layout) */}
                 <div className="block md:hidden space-y-4" dir="ltr">
                   {/* OD Card */}
-                  <div className="bg-[#f8fafc] border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
                     <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OD (Right)
                     </div>
@@ -1028,7 +1024,7 @@ export default function KfWorkflow() {
                   </div>
 
                   {/* OS Card */}
-                  <div className="bg-[#f8fafc] border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
                     <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OS (Left)
                     </div>
@@ -1070,7 +1066,7 @@ export default function KfWorkflow() {
                   <table className="w-full text-center border-collapse text-sm">
                     <thead className="bg-muted">
                       <tr className="border-b border-border">
-                        <th className="p-2 border-r border-border font-bold text-slate-700" rowSpan={2}>Type</th>
+                        <th className="p-2 border-r border-border font-bold text-foreground" rowSpan={2}>Type</th>
                         <th colSpan={3} className="p-2 border-r border-border font-bold text-amber-800">OD (Right Eye)</th>
                         <th colSpan={3} className="p-2 font-bold text-blue-800">OS (Left Eye)</th>
                       </tr>
@@ -1126,7 +1122,7 @@ export default function KfWorkflow() {
                 {/* Mobile Cards After (As requested in screenshot layout) */}
                 <div className="block md:hidden space-y-4" dir="ltr">
                   {/* OD Card */}
-                  <div className="bg-[#f8fafc] border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
                     <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OD (Right)
                     </div>
@@ -1155,7 +1151,7 @@ export default function KfWorkflow() {
                   </div>
 
                   {/* OS Card */}
-                  <div className="bg-[#f8fafc] border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
                     <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OS (Left)
                     </div>
@@ -1251,7 +1247,7 @@ export default function KfWorkflow() {
                   <table className="w-full text-center border-collapse text-sm">
                     <thead className="bg-muted">
                       <tr className="border-b border-border">
-                        <th className="p-2 border-r border-border font-bold text-slate-700" rowSpan={2}>Type</th>
+                        <th className="p-2 border-r border-border font-bold text-foreground" rowSpan={2}>Type</th>
                         <th colSpan={3} className="p-2 border-r border-border font-bold text-amber-800">OD (Right Eye)</th>
                         <th colSpan={3} className="p-2 font-bold text-blue-800">OS (Left Eye)</th>
                       </tr>
@@ -1331,7 +1327,7 @@ export default function KfWorkflow() {
                 {/* Mobile Cards View Refraction (As requested in screenshot layout) */}
                 <div className="block md:hidden space-y-4" dir="ltr">
                   {/* OD Card */}
-                  <div className="bg-[#f8fafc] border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
                     <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OD (Right)
                     </div>
@@ -1360,7 +1356,7 @@ export default function KfWorkflow() {
                   </div>
 
                   {/* OS Card */}
-                  <div className="bg-[#f8fafc] border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
                     <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OS (Left)
                     </div>
@@ -1389,7 +1385,7 @@ export default function KfWorkflow() {
                   </div>
 
                   {/* Reading / Add + Card */}
-                  <div className="bg-[#f8fafc] border border-border/80 rounded-2xl p-3.5 flex items-center justify-between gap-4">
+                  <div className="bg-muted/30 border border-border/80 rounded-2xl p-3.5 flex items-center justify-between gap-4">
                     <span className="font-bold text-xs text-muted-foreground">Reading / Add +</span>
                     <div className="w-32">
                       <Select value={specialistForm.add} onValueChange={(val) => setSpecialistForm({ ...specialistForm, add: val })}>
@@ -1413,7 +1409,7 @@ export default function KfWorkflow() {
             {/* Diagnosis & Recommendations Section */}
             <div className="space-y-6">
               <div className="space-y-2 bg-card p-5 rounded-3xl border border-border shadow-sm">
-                <Label className="font-bold text-sm text-[#2563eb]">Diagnosis:</Label>
+                <Label className="font-bold text-sm text-primary">Diagnosis:</Label>
                 <Textarea
                   rows={3}
                   value={specialistForm.diagnosis}
@@ -1424,7 +1420,7 @@ export default function KfWorkflow() {
               </div>
 
               <div className="space-y-2 bg-card p-5 rounded-3xl border border-border shadow-sm">
-                <Label className="font-bold text-sm text-[#2563eb]">Recommendations:</Label>
+                <Label className="font-bold text-sm text-primary">Recommendations:</Label>
                 <Textarea
                   rows={3}
                   value={specialistForm.plan}
@@ -1458,7 +1454,7 @@ export default function KfWorkflow() {
                         onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                         className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <Trash2 className="h-4 w-4 text-white" />
+                        <Trash2 className="h-4 w-4 text-primary-foreground" />
                       </button>
                     </div>
                   ))}
@@ -1745,7 +1741,7 @@ export default function KfWorkflow() {
               <Button
                 onClick={() => handleSaveVisitAndExam("specialist")}
                 disabled={saving}
-                className="h-12 w-full sm:w-auto px-8 rounded-2xl gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white text-base"
+                className="h-12 w-full sm:w-auto px-8 rounded-2xl gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-primary-foreground text-base"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-5 w-5" />} اعتماد ومزامنة الملف كاملاً
               </Button>
@@ -1754,85 +1750,85 @@ export default function KfWorkflow() {
 
           {/* TAB 5: FINAL REPORT (الشيت النهائي) */}
           <TabsContent value="final-report" className="space-y-6">
-            <Card className="rounded-3xl shadow-md border border-border p-6 space-y-8 bg-white max-w-2xl mx-auto">
+            <Card className="rounded-3xl shadow-md border border-border p-6 space-y-8 bg-card max-w-2xl mx-auto">
               {/* Header */}
-              <div className="flex flex-col items-center border-b border-slate-200 pb-5 text-center">
+              <div className="flex flex-col items-center border-b border-border/60 pb-5 text-center">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Selrs Eye Center</span>
-                <h2 className="text-xl font-extrabold text-slate-800 mt-1">FINAL MEDICAL REPORT</h2>
+                <h2 className="text-xl font-extrabold text-foreground mt-1">FINAL MEDICAL REPORT</h2>
                 <span className="text-xs text-primary font-semibold mt-1">Digital Visit Summary</span>
 
                 <div className="flex gap-3 mt-4">
-                  <Button onClick={() => handleSaveVisitAndExam("specialist")} disabled={saving} className="h-9 px-4 rounded-xl gap-2 text-xs font-bold bg-[#1e3a8a] text-white">
+                  <Button onClick={() => handleSaveVisitAndExam("specialist")} disabled={saving} className="h-9 px-4 rounded-xl gap-2 text-xs font-bold bg-primary text-primary-foreground">
                     {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3.5 w-3.5" />} حفظ التقرير
                   </Button>
-                  <Button variant="outline" onClick={handlePrintReport} className="h-9 px-4 rounded-xl gap-2 text-xs font-bold border-slate-200 hover:bg-slate-50">
+                  <Button variant="outline" onClick={handlePrintReport} className="h-9 px-4 rounded-xl gap-2 text-xs font-bold border-border/60 hover:bg-muted/40">
                     <Printer className="h-3.5 w-3.5" /> Print Report
                   </Button>
                 </div>
               </div>
 
               {/* Report Information */}
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5 space-y-3">
-                <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Report Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
-                  <div>Patient Name: <span className="font-bold text-slate-900">{patientForm.fullName}</span></div>
-                  <div>Date of Birth: <span className="font-mono text-slate-900">{patientForm.dateOfBirth || "—"}</span></div>
-                  <div>Age: <span className="font-bold text-slate-900">{patientForm.age || "—"}</span></div>
-                  <div>Occupation: <span className="font-bold text-slate-900">{patientForm.occupation || "—"}</span></div>
+              <div className="bg-muted/40 border border-border/40 rounded-2xl p-4.5 space-y-3">
+                <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Report Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-foreground">
+                  <div>Patient Name: <span className="font-bold text-foreground">{patientForm.fullName}</span></div>
+                  <div>Date of Birth: <span className="font-mono text-foreground">{patientForm.dateOfBirth || "—"}</span></div>
+                  <div>Age: <span className="font-bold text-foreground">{patientForm.age || "—"}</span></div>
+                  <div>Occupation: <span className="font-bold text-foreground">{patientForm.occupation || "—"}</span></div>
                 </div>
               </div>
 
               {/* History & Complaints */}
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5 space-y-3">
-                <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">History & Complaints</h3>
-                <div className="space-y-2 text-sm text-slate-700">
-                  <div>Medical History: <span className="font-semibold text-slate-900">{patientForm.medicalHistory || "—"}</span></div>
-                  <div>Previous Operations: <span className="font-semibold text-slate-900">—</span></div>
-                  <div>Allergies: <span className="font-semibold text-slate-900">{patientForm.allergies || "—"}</span></div>
-                  <div>Complaint: <span className="font-semibold text-slate-900">{specialistForm.diagnosis || "—"}</span></div>
+              <div className="bg-muted/40 border border-border/40 rounded-2xl p-4.5 space-y-3">
+                <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">History & Complaints</h3>
+                <div className="space-y-2 text-sm text-foreground">
+                  <div>Medical History: <span className="font-semibold text-foreground">{patientForm.medicalHistory || "—"}</span></div>
+                  <div>Previous Operations: <span className="font-semibold text-foreground">—</span></div>
+                  <div>Allergies: <span className="font-semibold text-foreground">{patientForm.allergies || "—"}</span></div>
+                  <div>Complaint: <span className="font-semibold text-foreground">{specialistForm.diagnosis || "—"}</span></div>
                 </div>
               </div>
 
               {/* Measurements Table */}
               <div className="space-y-3">
-                <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Measurements</h3>
-                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Measurements</h3>
+                <div className="border border-border/60 rounded-xl overflow-hidden bg-card">
                   <table className="w-full text-center border-collapse text-xs">
-                    <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                    <thead className="bg-muted/40 text-muted-foreground font-bold border-b border-border/60">
                       <tr>
-                        <th className="p-2.5 border-r border-slate-200">Eye</th>
-                        <th className="p-2.5 border-r border-slate-200">OD (Right)</th>
+                        <th className="p-2.5 border-r border-border/60">Eye</th>
+                        <th className="p-2.5 border-r border-border/60">OD (Right)</th>
                         <th className="p-2.5">OS (Left)</th>
                       </tr>
                     </thead>
-                    <tbody className="text-slate-800">
-                      <tr className="border-b border-slate-200">
-                        <td className="p-2 border-r border-slate-200 font-semibold bg-slate-50/50">UCVA</td>
-                        <td className="p-2 border-r border-slate-200 font-mono">{nursingForm.ucvaOd || "—"}</td>
+                    <tbody className="text-foreground">
+                      <tr className="border-b border-border/60">
+                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">UCVA</td>
+                        <td className="p-2 border-r border-border/60 font-mono">{nursingForm.ucvaOd || "—"}</td>
                         <td className="p-2 font-mono">{nursingForm.ucvaOs || "—"}</td>
                       </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-2 border-r border-slate-200 font-semibold bg-slate-50/50">BCVA</td>
-                        <td className="p-2 border-r border-slate-200 font-mono">{specialistForm.bcvaOd || "—"}</td>
+                      <tr className="border-b border-border/60">
+                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">BCVA</td>
+                        <td className="p-2 border-r border-border/60 font-mono">{specialistForm.bcvaOd || "—"}</td>
                         <td className="p-2 font-mono">{specialistForm.bcvaOs || "—"}</td>
                       </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-2 border-r border-slate-200 font-semibold bg-slate-50/50">IOP</td>
-                        <td className="p-2 border-r border-slate-200 font-mono">{nursingForm.iopOd || "—"}</td>
+                      <tr className="border-b border-border/60">
+                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">IOP</td>
+                        <td className="p-2 border-r border-border/60 font-mono">{nursingForm.iopOd || "—"}</td>
                         <td className="p-2 font-mono">{nursingForm.iopOs || "—"}</td>
                       </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-2 border-r border-slate-200 font-semibold bg-slate-50/50">Autoref (S/C/A)</td>
-                        <td className="p-2 border-r border-slate-200 font-mono">
+                      <tr className="border-b border-border/60">
+                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">Autoref (S/C/A)</td>
+                        <td className="p-2 border-r border-border/60 font-mono">
                           {nursingForm.arOdSph} / {nursingForm.arOdCyl} / {nursingForm.arOdAxis || "0"}
                         </td>
                         <td className="p-2 font-mono">
                           {nursingForm.arOsSph} / {nursingForm.arOsCyl} / {nursingForm.arOsAxis || "0"}
                         </td>
                       </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-2 border-r border-slate-200 font-semibold bg-slate-50/50">Final Refraction</td>
-                        <td className="p-2 border-r border-slate-200 font-mono">
+                      <tr className="border-b border-border/60">
+                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">Final Refraction</td>
+                        <td className="p-2 border-r border-border/60 font-mono">
                           {specialistForm.odSph} / {specialistForm.odCyl} / {specialistForm.odAxis || "0"}
                         </td>
                         <td className="p-2 font-mono">
@@ -1840,14 +1836,14 @@ export default function KfWorkflow() {
                         </td>
                       </tr>
                       {specialistForm.add !== "---" && (
-                        <tr className="border-b border-slate-200">
-                          <td className="p-2 border-r border-slate-200 font-semibold bg-slate-50/50">Reading Addition (+Add)</td>
+                        <tr className="border-b border-border/60">
+                          <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">Reading Addition (+Add)</td>
                           <td colSpan={2} className="p-2 font-bold text-primary font-mono">{specialistForm.add}</td>
                         </tr>
                       )}
                       {specialistForm.pd && (
                         <tr>
-                          <td className="p-2 border-r border-slate-200 font-semibold bg-slate-50/50">PD</td>
+                          <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">PD</td>
                           <td colSpan={2} className="p-2 font-bold font-mono">{specialistForm.pd} mm</td>
                         </tr>
                       )}
@@ -1859,10 +1855,10 @@ export default function KfWorkflow() {
               {/* Treatment Plans / Prescription review */}
               {prescriptionItems.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Prescribed Treatment</h3>
-                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                  <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Prescribed Treatment</h3>
+                  <div className="border border-border/60 rounded-xl overflow-hidden bg-card">
                     <table className="w-full text-right text-xs">
-                      <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                      <thead className="bg-muted/40 text-muted-foreground font-bold border-b border-border/60">
                         <tr>
                           <th className="p-2.5">Medication Name</th>
                           <th className="p-2.5">Dosage</th>
@@ -1872,7 +1868,7 @@ export default function KfWorkflow() {
                       </thead>
                       <tbody>
                         {prescriptionItems.map((item, idx) => (
-                          <tr key={idx} className="border-b border-slate-200 text-slate-800 last:border-b-0">
+                          <tr key={idx} className="border-b border-border/60 text-foreground last:border-b-0">
                             <td className="p-2.5 font-bold">{item.medicationName}</td>
                             <td className="p-2.5">{item.dosage || "—"}</td>
                             <td className="p-2.5">{item.frequency || "—"}</td>

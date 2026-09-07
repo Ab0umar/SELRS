@@ -25,7 +25,7 @@ function SidebarItemSkeleton({ active = false }: { active?: boolean }) {
 export function AppShellSkeleton() {
   return (
     <div
-      className="min-h-screen bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--primary)_8%,transparent),transparent_34%),linear-gradient(180deg,var(--background),var(--selrs-light-blue))]"
+      className="min-h-screen bg-background"
       aria-busy="true"
       aria-label="جاري تحميل واجهة النظام"
       dir="rtl"

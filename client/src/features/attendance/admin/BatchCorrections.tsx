@@ -79,12 +79,6 @@ export default function BatchCorrections() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Batch Corrections</h1>
-      <p className="text-sm text-gray-600">
-        Add missing punches, correct timestamps, or manually override punch
-        records.
-      </p>
-
       {successMessage && (
         <Alert className="border-success/30 bg-success/10">
           <CheckCircle className="h-4 w-4 text-success" />
@@ -113,7 +107,7 @@ export default function BatchCorrections() {
         </CardHeader>
         <CardContent>
           {entries.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p>No entries added yet. Click "Add Entry" to get started.</p>
             </div>
           ) : (
@@ -121,10 +115,10 @@ export default function BatchCorrections() {
               {entries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="grid grid-cols-12 gap-2 p-4 bg-gray-50 rounded border items-end"
+                  className="grid grid-cols-12 gap-2 p-4 bg-muted/40 rounded border items-end"
                 >
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
                       Employee Code
                     </label>
                     <Input
@@ -138,7 +132,7 @@ export default function BatchCorrections() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
                       Date
                     </label>
                     <DateInput
@@ -150,7 +144,7 @@ export default function BatchCorrections() {
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
                       Time
                     </label>
                     <Input
@@ -163,7 +157,7 @@ export default function BatchCorrections() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
                       Direction
                     </label>
                     <select
@@ -179,7 +173,7 @@ export default function BatchCorrections() {
                     </select>
                   </div>
                   <div className="col-span-4">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
                       Note (optional)
                     </label>
                     <Input

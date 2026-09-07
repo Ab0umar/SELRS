@@ -48,7 +48,7 @@ export default function AdminDataSourceAudit() {
     >
       {/* Header */}
       <div className="space-y-2 border-b border-border pb-4">
-        <h1 className="text-3xl font-bold">مصدر البيانات — تدقيق</h1>
+        <h1 className="sr-only">مصدر البيانات — تدقيق</h1>
         <p className="text-sm text-muted-foreground">
           تحقق من أن البيانات الديموغرافية والسريرية تأتي من الجداول الصحيحة
         </p>

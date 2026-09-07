@@ -205,7 +205,7 @@ export default function Reports({
   const renderTable = (rows: any[]) => {
     if (!rows.length)
       return (
-        <div className="text-center py-8 text-gray-500">لا توجد بيانات</div>
+        <div className="text-center py-8 text-muted-foreground">لا توجد بيانات</div>
       );
     const cols = Object.keys(rows[0]);
 

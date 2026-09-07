@@ -178,8 +178,6 @@ interface ModuleHeaderProps {
 }
 
 export function ModuleHeader({
-  title,
-  subtitle,
   badge,
   badgeIcon: BadgeIcon,
   metrics,
@@ -194,8 +192,7 @@ export function ModuleHeader({
     <div className={`border-b ${borderColor} bg-gradient-to-b to-transparent`}>
       <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
         <div className="flex flex-col gap-4 sm:gap-6">
-          {/* Title section */}
-          <div className="space-y-2">
+          {badge ? (
             <div className="flex items-center gap-2">
               <div
                 className={`inline-flex items-center gap-2 rounded-full border ${
@@ -208,13 +205,7 @@ export function ModuleHeader({
                 {badge}
               </div>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {title}
-            </h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              {subtitle}
-            </p>
-          </div>
+          ) : null}
 
           {/* Metrics grid */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

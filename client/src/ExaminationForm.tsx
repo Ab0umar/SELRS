@@ -1284,7 +1284,7 @@ export default function ExaminationForm() {
                                 familyKeratoconus: Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                         <div
@@ -1306,7 +1306,7 @@ export default function ExaminationForm() {
                                   Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                         <div
@@ -1324,7 +1324,7 @@ export default function ExaminationForm() {
                                 symptomsWorseWithAirOrAC: Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                         <div
@@ -1342,7 +1342,7 @@ export default function ExaminationForm() {
                                 glaucomaTreatment: Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                       </div>
@@ -1363,7 +1363,7 @@ export default function ExaminationForm() {
                                 generalDiseases: Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                         <div
@@ -1381,7 +1381,7 @@ export default function ExaminationForm() {
                                 pregnancyOrLactation: Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                         <div
@@ -1403,7 +1403,7 @@ export default function ExaminationForm() {
                                   Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                         <div
@@ -1421,7 +1421,7 @@ export default function ExaminationForm() {
                                 acneTreatment: Boolean(checked),
                               }))
                             }
-                            className="border-2 border-gray-700"
+                            className="border-2 border-border"
                           />
                         </div>
                       </div>

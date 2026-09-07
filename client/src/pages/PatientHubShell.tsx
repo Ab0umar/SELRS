@@ -561,7 +561,7 @@ export default function PatientHubShell() {
                 </div>
               </>
             ) : (
-              <h1 className="font-semibold text-foreground">مركز المريض</h1>
+              <h1 className="sr-only">مركز المريض</h1>
             )}
           </div>
         </header>

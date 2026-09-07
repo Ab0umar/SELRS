@@ -45,8 +45,8 @@ export default function KfServiceRevenue() {
 
   return (
     <div className="space-y-5" dir="rtl">
-      <Card className="print:hidden shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-        <CardHeader className="gap-2 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+      <Card className="print:hidden shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+        <CardHeader className="gap-2 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle className="text-xl">إيراد الخدمات — KF</CardTitle>
@@ -83,16 +83,16 @@ export default function KfServiceRevenue() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 print:hidden">
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="pb-2 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-2 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-sm text-muted-foreground font-medium">إجمالي الإيراد</CardTitle>
           </CardHeader>
           <CardContent>
             {q.isLoading ? <Skeleton className="h-8 w-32" /> : <p className="text-3xl font-bold text-primary tabular-nums">{fmt(grandTotal)} ج</p>}
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-          <CardHeader className="pb-2 pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+        <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-2 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
             <CardTitle className="text-sm text-muted-foreground font-medium">إجمالي الكشوفات</CardTitle>
           </CardHeader>
           <CardContent>
@@ -102,8 +102,8 @@ export default function KfServiceRevenue() {
       </div>
 
       {/* Service breakdown */}
-      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-        <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl"><CardTitle className="text-base">تفصيل الخدمات</CardTitle></CardHeader>
+      <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl"><CardTitle className="text-base">تفصيل الخدمات</CardTitle></CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-3">
             الفترة: من {formatDateAr(filters.fromDate)} إلى {formatDateAr(filters.toDate)}

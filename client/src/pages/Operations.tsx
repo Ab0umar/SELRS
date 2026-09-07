@@ -85,7 +85,7 @@ export default function Operations() {
           </div>
           <div className="min-w-0">
             <div className="text-xs text-muted-foreground">العمليات</div>
-            <h1 className="text-base font-semibold text-foreground">
+            <h1 className="sr-only">
               العمليات
             </h1>
             <div className="text-[11px] text-muted-foreground">
@@ -138,7 +138,7 @@ export default function Operations() {
               <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
             )}
           </button>
-          
+
           <button
             type="button"
             onClick={() => setViewTab("booking")}

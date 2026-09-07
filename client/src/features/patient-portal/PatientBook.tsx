@@ -168,7 +168,7 @@ export default function PatientBook() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            className="gap-2 border-border/60 bg-card text-primary hover:bg-muted/50 cursor-pointer"
             onClick={handleBack}
           >
             <ArrowLeft className="size-4" />
@@ -180,8 +180,8 @@ export default function PatientBook() {
           {/* Form Content Column */}
           <div className="space-y-4">
             {/* 0. Branch */}
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   1. الفرع
                 </h3>
@@ -209,8 +209,8 @@ export default function PatientBook() {
             </div>
 
             {/* 1. Booking Type */}
-            <div className={["bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className={["bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   2. نوع الحجز والخدمة
                 </h3>
@@ -257,8 +257,8 @@ export default function PatientBook() {
             </div>
 
             {/* 2. Available Calendar Dates */}
-            <div className={["bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className={["bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   3. تاريخ الحجز المفضل
                 </h3>
@@ -293,7 +293,7 @@ export default function PatientBook() {
 
               {!loadingDates && schedule && availableCount > 0 && (
                 <div className="space-y-4">
-                  <div className="mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-[#dbe7f4] bg-[#f8fbff] p-2 sm:max-w-[22rem] sm:p-4">
+                  <div className="mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/30 p-2 sm:max-w-[22rem] sm:p-4">
                     <Calendar
                       mode="single"
                       dir="rtl"
@@ -352,8 +352,8 @@ export default function PatientBook() {
             </div>
 
             {/* 3. Notes */}
-            <div className={["bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className={["bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4", !branch ? "opacity-40 pointer-events-none" : ""].join(" ")}>
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   4. ملاحظات وتوجيهات إضافية
                 </h3>
@@ -363,22 +363,22 @@ export default function PatientBook() {
                 value={notes}
                 placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ العيادة بها..."
                 onChange={(e) => setNotes(e.target.value)}
-                className="resize-none rounded-xl border-[#d7e2ee] focus-visible:ring-primary/10"
+                className="resize-none rounded-xl border-border/60 focus-visible:ring-primary/10"
               />
             </div>
           </div>
 
           {/* Booking Summary Sidebar Column */}
           <div className="space-y-4">
-            <div className="bg-white border border-[#dbe7f4] rounded-2xl p-5 shadow-xs space-y-4">
-              <div className="border-b border-[#f0f5fa] pb-2">
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
+              <div className="border-b border-border/40 pb-2">
                 <h3 className="text-sm font-bold text-foreground">
                   ملخص الحجز
                 </h3>
               </div>
 
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                <div className="flex items-center justify-between border-b border-border/40 py-2 last:border-0">
                   <span className="text-xs text-muted-foreground font-semibold">
                     الفرع
                   </span>
@@ -386,7 +386,7 @@ export default function PatientBook() {
                     {branch ? BRANCHES.find((b) => b.value === branch)?.label : "لم يتم الاختيار"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                <div className="flex items-center justify-between border-b border-border/40 py-2 last:border-0">
                   <span className="text-xs text-muted-foreground font-semibold">
                     نوع الحجز
                   </span>
@@ -394,7 +394,7 @@ export default function PatientBook() {
                     {schedule?.label ?? bookingType}
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                <div className="flex items-center justify-between border-b border-border/40 py-2 last:border-0">
                   <span className="text-xs text-muted-foreground font-semibold">
                     تاريخ اليوم المختار
                   </span>
@@ -404,7 +404,7 @@ export default function PatientBook() {
                       : "لم يتم الاختيار بعد"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-b border-[#f0f5fa] py-2 last:border-0">
+                <div className="flex items-center justify-between border-b border-border/40 py-2 last:border-0">
                   <span className="text-xs text-muted-foreground font-semibold">
                     الخيارات المتاحة
                   </span>
@@ -415,7 +415,7 @@ export default function PatientBook() {
               </div>
 
               {notes.trim() && (
-                <div className="rounded-xl border border-border bg-[#F4F8FB]/30 p-3.5 space-y-1">
+                <div className="rounded-xl border border-border bg-muted/20 p-3.5 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-xs text-muted-foreground">
                     <ClipboardList className="size-4 shrink-0 text-primary" />
                     <span>ملاحظتك المرفقة:</span>

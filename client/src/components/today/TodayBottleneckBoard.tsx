@@ -1007,7 +1007,6 @@ export function TodayBottleneckBoard({
       <div className="shrink-0 border-b border-border/70 bg-background px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-lg font-bold text-foreground">مرضى اليوم</h1>
             <Badge
               variant={isHistoricalDate ? "outline" : "secondary"}
               className={cn(

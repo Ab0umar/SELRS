@@ -208,8 +208,7 @@ export const kfRouter = router({
         ? db.select().from(kfPatients).where(where)
         : db.select().from(kfPatients);
       return query
-        .orderBy(desc(kfPatients.createdAt), desc(kfPatients.kfId))
-        .limit(50);
+        .orderBy(desc(kfPatients.createdAt), desc(kfPatients.kfId));
     }),
 
   listVisits: makeKfProcedure("/kf/patients")

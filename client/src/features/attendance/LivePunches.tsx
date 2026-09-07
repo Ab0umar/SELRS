@@ -74,7 +74,6 @@ export default function LivePunches() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Live Punch Feed</h1>
         <div className="flex gap-2">
           <Button
             variant={isMonitoring ? "default" : "outline"}
@@ -112,17 +111,17 @@ export default function LivePunches() {
         <CardContent className="space-y-2 text-sm">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-gray-600">Status</p>
+              <p className="text-muted-foreground">Status</p>
               <p className="font-medium">
                 {deviceStatus?.connected ? "Connected" : "Disconnected"}
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Punches Received</p>
+              <p className="text-muted-foreground">Punches Received</p>
               <p className="font-medium">{deviceStatus?.punchCount ?? 0}</p>
             </div>
             <div>
-              <p className="text-gray-600">Last Punch</p>
+              <p className="text-muted-foreground">Last Punch</p>
               <p className="font-mono text-xs">
                 {deviceStatus?.lastPunch
                   ? new Date(deviceStatus.lastPunch).toLocaleTimeString()
@@ -130,7 +129,7 @@ export default function LivePunches() {
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Uptime</p>
+              <p className="text-muted-foreground">Uptime</p>
               <p className="font-mono text-xs">
                 {((deviceStatus?.uptime ?? 0) / 60) | 0}m{" "}
                 {(deviceStatus?.uptime ?? 0) % 60}s
@@ -154,13 +153,13 @@ export default function LivePunches() {
           <CardTitle>
             Recent Punches ({punches.length})
             {isLoading && (
-              <span className="text-xs text-gray-500 ml-2">Refreshing...</span>
+              <span className="text-xs text-muted-foreground ml-2">Refreshing...</span>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {punches.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <p>No punches recorded in the last 5 minutes</p>
             </div>
           ) : (
@@ -168,7 +167,7 @@ export default function LivePunches() {
               {punches.map((punch, idx) => (
                 <div
                   key={`${punch.empCd}-${punch.timestamp.getTime()}-${idx}`}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded border"
+                  className="flex items-center gap-3 p-3 bg-muted/40 rounded border"
                 >
                   <div className="flex-shrink-0">
                     {punch.direction === "in" ? (
@@ -183,15 +182,15 @@ export default function LivePunches() {
                     <div className="font-mono font-semibold text-sm">
                       {punch.empCd}
                     </div>
-                    <div className="text-xs text-gray-600">
+                    <div className="text-xs text-muted-foreground">
                       {punch.timestamp.toLocaleTimeString()}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs font-medium capitalize text-gray-600">
+                    <div className="text-xs font-medium capitalize text-muted-foreground">
                       {punch.direction}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       {punch.deviceId}
                     </div>
                   </div>
@@ -202,7 +201,7 @@ export default function LivePunches() {
         </CardContent>
       </Card>
 
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-muted-foreground">
         <p>Feed refreshes every 2 seconds when monitoring is active.</p>
         <p>Shows punches from the last 5 minutes.</p>
       </div>

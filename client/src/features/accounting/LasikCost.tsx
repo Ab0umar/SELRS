@@ -61,7 +61,7 @@ function rangeForMonths(months: number) {
 function metricTone(value: number) {
   if (value > 0) return "text-emerald-700";
   if (value < 0) return "text-red-700";
-  return "text-slate-900";
+  return "text-foreground";
 }
 
 function MetricCard({
@@ -78,17 +78,17 @@ function MetricCard({
   tone?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-        <Icon className="h-4 w-4 text-slate-600" />
+    <div className="rounded-2xl border border-border/60 bg-muted/40 p-4">
+      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+        <Icon className="h-4 w-4 text-muted-foreground" />
         {label}
       </div>
       <div
-        className={`mt-2 text-2xl font-black tabular-nums ${tone ?? "text-slate-900"}`}
+        className={`mt-2 text-2xl font-black tabular-nums ${tone ?? "text-foreground"}`}
       >
         {value}
       </div>
-      {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
+      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
     </div>
   );
 }
@@ -123,11 +123,11 @@ export default function LasikCost() {
 
   return (
     <div className="space-y-5" dir="rtl">
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border/60 shadow-sm">
         <CardHeader className="gap-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-xl font-black tracking-tight text-slate-900">
+              <CardTitle className="text-xl font-black tracking-tight text-foreground">
                 تكلفة عملية الليزك
               </CardTitle>
               <CardDescription className="mt-1 text-sm">
@@ -159,8 +159,8 @@ export default function LasikCost() {
                 onClick={() => applyPreset(option.key, option.months)}
                 className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition-colors ${
                   period === option.key
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/60 bg-card text-muted-foreground hover:bg-muted/40"
                 }`}
               >
                 <CalendarDays className="h-3.5 w-3.5" />
@@ -172,8 +172,8 @@ export default function LasikCost() {
               onClick={() => setPeriod("custom")}
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition-colors ${
                 period === "custom"
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/60 bg-card text-muted-foreground hover:bg-muted/40"
               }`}
             >
               <CalendarDays className="h-3.5 w-3.5" />
@@ -182,7 +182,7 @@ export default function LasikCost() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="space-y-1.5 text-sm font-bold text-slate-700">
+            <label className="space-y-1.5 text-sm font-bold text-foreground">
               <span>من تاريخ</span>
               <DateInput
                 value={range.fromDate}
@@ -195,7 +195,7 @@ export default function LasikCost() {
                 }}
               />
             </label>
-            <label className="space-y-1.5 text-sm font-bold text-slate-700">
+            <label className="space-y-1.5 text-sm font-bold text-foreground">
               <span>إلى تاريخ</span>
               <DateInput
                 value={range.toDate}
@@ -231,8 +231,8 @@ export default function LasikCost() {
       ) : summary ? (
         <Tabs defaultValue="cost" className="space-y-4" dir="rtl">
           {summary.fromDate !== range.fromDate ? (
-            <Card className="border-blue-200 bg-blue-50 shadow-sm">
-              <CardContent className="flex items-start gap-3 p-4 text-sm font-bold text-blue-900">
+            <Card className="border-warning/40 bg-warning/10 shadow-sm">
+              <CardContent className="flex items-start gap-3 p-4 text-sm font-bold text-warning">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                 <div>
                   بدأ الحساب فعليًا من {formatDateAr(summary.fromDate)} لأن
@@ -338,7 +338,7 @@ export default function LasikCost() {
             </div>
           </TabsContent>
 
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-border/60 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base font-black">
                 تفاصيل الحساب
@@ -351,47 +351,47 @@ export default function LasikCost() {
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-right text-xs font-bold text-slate-500">
+                  <tr className="border-b border-border/60 bg-muted/40 text-right text-xs font-bold text-muted-foreground">
                     <th className="px-4 py-3">البند</th>
                     <th className="px-4 py-3">القيمة</th>
                     <th className="px-4 py-3">ملاحظة</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-slate-100">
+                  <tr className="border-b border-border/60">
                     <td className="px-4 py-3 font-bold">
                       إجمالي MSSQL قبل الخصم
                     </td>
                     <td className="px-4 py-3 tabular-nums">
                       {formatMoneyAr(summary.revenue.totalGross)} ج.م
                     </td>
-                    <td className="px-4 py-3 text-slate-500">قسم الليزك ١٥</td>
+                    <td className="px-4 py-3 text-muted-foreground">قسم الليزك ١٥</td>
                   </tr>
-                  <tr className="border-b border-slate-100">
+                  <tr className="border-b border-border/60">
                     <td className="px-4 py-3 font-bold">خصومات MSSQL</td>
                     <td className="px-4 py-3 tabular-nums">
                       {formatMoneyAr(summary.revenue.totalDiscount)} ج.م
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3 text-muted-foreground">
                       مستبعدة من الصافي
                     </td>
                   </tr>
-                  <tr className="border-b border-slate-100">
+                  <tr className="border-b border-border/60">
                     <td className="px-4 py-3 font-bold">مصروفات مستبعدة</td>
                     <td className="px-4 py-3 tabular-nums">
                       {formatMoneyAr(summary.expenses.excludedExpense)} ج.م
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3 text-muted-foreground">
                       السلف، البيت، انستاباي، السعدني، العيادة، الدكتورة، أبو
                       عمر، أبو يوسف، والبنات حسب ملاحظات الخزنة والتصنيفات
                     </td>
                   </tr>
-                  <tr className="border-b border-slate-100">
+                  <tr className="border-b border-border/60">
                     <td className="px-4 py-3 font-bold">أصناف بلا سعر مخزن</td>
                     <td className="px-4 py-3 tabular-nums">
                       {formatCountAr(summary.stock.unpricedItemCount)}
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3 text-muted-foreground">
                       لا تدخل في قيمة الاستوك حتى يتم تسجيل سعر إدخال لها
                     </td>
                   </tr>

@@ -55,7 +55,7 @@ export default function DoctorLogin() {
 
   return (
     <div
-      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-[#2a4f9a]/10 selection:text-[#1f3f82]"
+      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-primary/10 selection:text-primary"
       dir="rtl"
     >
       <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-gradient-to-br from-[#15296a] via-[#0f2050] to-[#0c1840] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
@@ -120,25 +120,25 @@ export default function DoctorLogin() {
       </div>
 
       <div className="flex-1 overflow-hidden bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
-        <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-slate-200" />
+        <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-muted" />
 
         <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          <span className="inline-flex items-center gap-1.5 self-start text-[10px] sm:text-xs font-bold tracking-wider uppercase text-[#2a4f9a] mb-3">
+          <span className="inline-flex items-center gap-1.5 self-start text-[10px] sm:text-xs font-bold tracking-wider uppercase text-primary mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-[#d39c2a]" />
             تسجيل دخول آمن
           </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f2050] tracking-tight m-0">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight m-0">
             دخول الطبيب
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-2 mb-4 sm:mb-8 leading-relaxed">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-4 sm:mb-8 leading-relaxed">
             أدخل بيانات الطبيب المعتمدة للوصول إلى لوحة بوابة الأطباء.
           </p>
 
-          <div className="mb-4 sm:mb-6 flex items-center gap-3 rounded-xl border border-[#e6edf5] bg-slate-50 p-3 sm:p-3.5">
+          <div className="mb-4 sm:mb-6 flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3 sm:p-3.5">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#d39c2a]/15 text-[#d39c2a]">
               <Stethoscope className="size-5" />
             </span>
-            <p className="m-0 text-xs leading-5 text-slate-500">
+            <p className="m-0 text-xs leading-5 text-muted-foreground">
               هذه البوابة مخصصة للأطباء الخارجيين المعتمدين لمراجعة ملفات
               مرضاهم.
             </p>
@@ -147,7 +147,7 @@ export default function DoctorLogin() {
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
             <div className="space-y-1.5">
               <label
-                className="block text-xs sm:text-sm font-bold text-slate-700"
+                className="block text-xs sm:text-sm font-bold text-foreground"
                 htmlFor="doctor-username"
               >
                 اسم المستخدم
@@ -160,16 +160,16 @@ export default function DoctorLogin() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
-                  className="h-12 border-[#e6edf5] bg-slate-50 rounded-xl pr-12 focus-visible:ring-primary/10 text-right font-medium"
+                  className="h-12 border-border/60 bg-muted/40 rounded-xl pr-12 focus-visible:ring-primary/10 text-right font-medium"
                   disabled={loginMutation.isPending}
                 />
-                <UserRound className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <UserRound className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label
-                className="block text-xs sm:text-sm font-bold text-slate-700"
+                className="block text-xs sm:text-sm font-bold text-foreground"
                 htmlFor="doctor-password"
               >
                 كلمة المرور
@@ -182,20 +182,20 @@ export default function DoctorLogin() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  className="h-12 border-[#e6edf5] bg-slate-50 rounded-xl pr-12 pl-12 focus-visible:ring-primary/10 text-right font-medium"
+                  className="h-12 border-border/60 bg-muted/40 rounded-xl pr-12 pl-12 focus-visible:ring-primary/10 text-right font-medium"
                   disabled={loginMutation.isPending}
                   onKeyDown={(e) =>
                     e.key === "Enter" && canSubmit && handleSubmit(e as any)
                   }
                 />
-                <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <button
                   type="button"
                   aria-label={
                     showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
                   }
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2a4f9a] transition-colors cursor-pointer"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                   tabIndex={-1}
                 >
                   <Eye className="size-5" />
@@ -206,7 +206,7 @@ export default function DoctorLogin() {
             <div className="pt-2">
               <Button
                 type="submit"
-                className="h-12 w-full text-base font-bold bg-[#1f3f82] text-white hover:bg-[#1f3f82]/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 cursor-pointer"
+                className="h-12 w-full text-base font-bold bg-primary text-white hover:bg-primary/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 cursor-pointer"
                 disabled={!canSubmit}
               >
                 {loginMutation.isPending ? (
@@ -220,7 +220,7 @@ export default function DoctorLogin() {
               </Button>
             </div>
 
-            <div className="hidden sm:block rounded-xl border border-[#e6edf5] bg-slate-50 p-3.5 text-xs text-slate-500 space-y-1 leading-5">
+            <div className="hidden sm:block rounded-xl border border-border/60 bg-muted/40 p-3.5 text-xs text-muted-foreground space-y-1 leading-5">
               <div className="flex items-center gap-1.5 font-bold text-primary mb-1">
                 <ShieldCheck className="size-4 shrink-0" />
                 <span>تنبيه أمان البيانات</span>
@@ -234,14 +234,14 @@ export default function DoctorLogin() {
           </form>
         </div>
 
-        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-[#e6edf5] flex flex-row items-center justify-between text-[11px] sm:text-xs text-slate-400 w-full">
+        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-border/60 flex flex-row items-center justify-between text-[11px] sm:text-xs text-muted-foreground w-full">
           <Link
             href="/login"
-            className="font-bold text-[#2a4f9a] hover:underline"
+            className="font-bold text-primary hover:underline"
           >
             دخول النظام
           </Link>
-          <p className="m-0 text-slate-400/80">
+          <p className="m-0 text-muted-foreground/80">
             © {new Date().getFullYear()} مركز عيون الشروق
           </p>
         </footer>

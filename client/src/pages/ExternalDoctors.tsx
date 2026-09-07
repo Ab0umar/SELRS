@@ -297,7 +297,7 @@ export default function ExternalDoctors() {
     <div className="mx-auto w-full max-w-[1200px] space-y-4 pb-4" dir="rtl">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="sr-only">
             الأطباء الخارجيون
           </h1>
           <p className="text-sm text-muted-foreground">

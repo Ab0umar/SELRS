@@ -217,6 +217,8 @@ export default function PentacamResultsDashboard({
       Boolean(initial.toDate),
   );
   const [viewMode, setViewMode] = useState<"list" | "review">("list");
+  const [page, setPage] = useState(1);
+  const pageSize = 200;
 
   const eyeFilter = useMemo(() => {
     if (activeFilter === "OD" || activeFilter === "OS")
@@ -244,8 +246,9 @@ export default function PentacamResultsDashboard({
       toDate: toDate.trim() || undefined,
       eye: eyeFilter,
       quality: qualityFilter,
-      limit: 200,
-      offset: 0,
+      // Request one extra record so the UI can expose every matching page.
+      limit: pageSize + 1,
+      offset: (page - 1) * pageSize,
     }),
     [
       search,
@@ -257,6 +260,7 @@ export default function PentacamResultsDashboard({
       toDate,
       eyeFilter,
       qualityFilter,
+      page,
     ],
   );
 
@@ -264,6 +268,20 @@ export default function PentacamResultsDashboard({
     enabled: isAuthenticated,
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    search,
+    locationFilter,
+    visitId,
+    resultId,
+    patientId,
+    fromDate,
+    toDate,
+    eyeFilter,
+    qualityFilter,
+  ]);
 
   const statsQuery = trpc.medical.getPentacamDashboardStats.useQuery(
     locationFilter === "center" || locationFilter === "external"
@@ -321,7 +339,9 @@ export default function PentacamResultsDashboard({
     };
   }, [refsQuery.data]);
 
-  const dashboardRows = (listQuery.data?.rows ?? []) as PentacamDashboardRow[];
+  const requestedRows = (listQuery.data?.rows ?? []) as PentacamDashboardRow[];
+  const hasMoreRows = requestedRows.length > pageSize;
+  const dashboardRows = requestedRows.slice(0, pageSize);
 
   const rowsWithAttention = useMemo(
     () =>
@@ -1176,6 +1196,27 @@ export default function PentacamResultsDashboard({
                 </div>
               )}
             </div>
+          </div>
+        )}
+        {(page > 1 || hasMoreRows) && (
+          <div className="mt-4 flex items-center justify-center gap-3" dir="rtl">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1 || listQuery.isFetching}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              السابق
+            </Button>
+            <span className="text-xs text-muted-foreground">صفحة {page}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!hasMoreRows || listQuery.isFetching}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              التالي
+            </Button>
           </div>
         )}
       </div>

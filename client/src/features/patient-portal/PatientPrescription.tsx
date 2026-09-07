@@ -29,9 +29,9 @@ function PrescriptionCard({ row }: { row: any }) {
   };
 
   return (
-    <div className="bg-white border border-[#dbe7f4] rounded-2xl p-6 shadow-xs space-y-6 print:border-0 print:shadow-none print:p-0">
+    <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-xs space-y-6 print:border-0 print:shadow-none print:p-0">
       {/* Clinic Header Stamp on Prescription */}
-      <div className="flex items-center justify-between border-b border-[#f0f5fa] pb-4">
+      <div className="flex items-center justify-between border-b border-border/40 pb-4">
         <div className="space-y-1">
           <span className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 rounded-lg uppercase">
             روشتة طبية
@@ -42,7 +42,7 @@ function PrescriptionCard({ row }: { row: any }) {
           variant="outline"
           size="sm"
           onClick={handlePrint}
-          className="h-9 gap-1.5 border-[#dbe7f4] hover:bg-muted/40 rounded-xl text-xs cursor-pointer print:hidden"
+          className="h-9 gap-1.5 border-border/60 hover:bg-muted/40 rounded-xl text-xs cursor-pointer print:hidden"
         >
           <Printer className="size-4" />
           <span>طباعة الروشتة</span>
@@ -56,7 +56,7 @@ function PrescriptionCard({ row }: { row: any }) {
             {row.items.map((item: any, index: number) => (
               <div
                 key={item.id ?? index}
-                className="rounded-xl border border-[#e2edf7] bg-[#F4F8FB]/30 p-4 space-y-2"
+                className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-2"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -82,7 +82,7 @@ function PrescriptionCard({ row }: { row: any }) {
 
                 {item.instructions && (
                   <div className="mt-2 pr-10">
-                    <p className="rounded-lg bg-white border border-[#e2edf7]/60 px-3 py-2 text-xs leading-5 text-muted-foreground">
+                    <p className="rounded-lg bg-card border border-border/40 px-3 py-2 text-xs leading-5 text-muted-foreground">
                       <span className="font-semibold text-foreground">
                         تعليمات:{" "}
                       </span>
@@ -104,7 +104,7 @@ function PrescriptionCard({ row }: { row: any }) {
 
       {/* Notes */}
       {row.notes && (
-        <div className="rounded-xl border border-[#dbe7f4] bg-[#F4F8FB]/50 p-4 space-y-1">
+        <div className="rounded-xl border border-border/60 bg-muted/40 p-4 space-y-1">
           <p className="text-xs font-bold text-foreground">توجيهات الطبيب</p>
           <p className="text-xs leading-6 text-muted-foreground whitespace-pre-wrap">
             {row.notes}
@@ -149,7 +149,7 @@ export default function PatientPrescription() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#d8e4f1] bg-white text-primary hover:bg-[#f7fbff] cursor-pointer"
+            className="gap-2 border-border/60 bg-card text-primary hover:bg-muted/50 cursor-pointer"
             onClick={handleBack}
           >
             <ArrowLeft className="size-4" />
@@ -187,7 +187,7 @@ export default function PatientPrescription() {
         {!isLoading && !error && records.length > 0 && (
           <div className="space-y-6">
             {/* Quick summary stats card */}
-            <div className="rounded-2xl border border-[#dbe7f4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-primary">
@@ -205,7 +205,7 @@ export default function PatientPrescription() {
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl px-4 py-2.5 text-center min-w-[100px]">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
                     <p className="text-[10px] text-muted-foreground font-semibold">
                       عدد الروشتات
                     </p>
@@ -213,7 +213,7 @@ export default function PatientPrescription() {
                       {records.length}
                     </p>
                   </div>
-                  <div className="bg-[#F4F8FB] border border-[#e2edf7] rounded-xl px-4 py-2.5 text-center min-w-[100px]">
+                  <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
                     <p className="text-[10px] text-muted-foreground font-semibold">
                       تاريخ آخر روشتة
                     </p>

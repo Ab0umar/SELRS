@@ -255,10 +255,6 @@ export default function KfPatients() {
       />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">سجل مرضى KF</h1>
-          <p className="text-muted-foreground text-sm">البحث، الإضافة واستعراض ملفات المرضى</p>
-        </div>
         <div className="flex gap-2 self-start sm:self-auto">
           <Button variant="outline" className="gap-2" onClick={() => window.print()} disabled={isLoading || patients.length === 0}>
             <Printer className="h-4 w-4" />
@@ -271,8 +267,8 @@ export default function KfPatients() {
         </div>
       </div>
 
-      <Card className="shadow-sm border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900  hover:shadow-md transition-all duration-300">
-        <CardHeader className="pb-3 print:hidden pb-4 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+      <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-3 print:hidden pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
           <CardTitle className="text-lg">قائمة البحث</CardTitle>
           <CardDescription>ابحث باستخدام الاسم، كود المريض (KF-XXXX)، رقم الهاتف، أو الرقم القومي</CardDescription>
           <div className="relative mt-2 max-w-md">

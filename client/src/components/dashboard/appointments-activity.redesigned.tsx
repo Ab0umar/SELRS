@@ -436,14 +436,14 @@ export function AppointmentsSection({
         </div>
       </div>
 
-      <div className="flex gap-1.5 bg-slate-100 p-1 rounded-2xl w-fit mb-2">
+      <div className="flex gap-1.5 bg-muted p-1 rounded-2xl w-fit mb-2">
         <button
           type="button"
           className={cn(
             "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
             mainTab === "patients"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-900",
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
           onClick={() => setMainTab("patients")}
         >
@@ -455,8 +455,8 @@ export function AppointmentsSection({
           className={cn(
             "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
             mainTab === "operations"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-900",
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
           onClick={() => setMainTab("operations")}
         >
@@ -468,8 +468,8 @@ export function AppointmentsSection({
           className={cn(
             "relative px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
             mainTab === "bookings"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-900",
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
           onClick={() => setMainTab("bookings")}
         >
@@ -477,7 +477,7 @@ export function AppointmentsSection({
           حجز
           {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0) >
             0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white font-mono shadow-sm">
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-primary-foreground font-mono shadow-sm">
               {bookingsForDate.length +
                 (scheduleRequestsQuery.data?.length ?? 0)}
             </span>
@@ -500,8 +500,8 @@ export function AppointmentsSection({
                     className={cn(
                       "rounded-xl border px-3.5 py-1.5 text-xs font-black transition-all shadow-xs cursor-pointer",
                       active
-                        ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/10"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-350 hover:bg-slate-50",
+                        ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/10"
+                        : "border-border/60 bg-card text-foreground hover:border-primary/40 hover:bg-muted/50",
                     )}
                   >
                     {label}{" "}
@@ -512,7 +512,7 @@ export function AppointmentsSection({
                 );
               })}
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-muted-foreground">
               <Checkbox
                 checked={showExternal}
                 onCheckedChange={(checked) => setShowExternal(checked === true)}
@@ -915,7 +915,7 @@ function QueuePatientCard({
       }}
       aria-label={`فتح اختصارات المريض ${patient.fullName ?? ""}`.trim()}
       className={cn(
-        "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-slate-450 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/30",
+        "overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
         queueCardStyles[st],
         "cursor-pointer",
       )}
@@ -988,7 +988,7 @@ function QueuePatientCard({
                   size="sm"
                   title="طباعة الشيت"
                   aria-label={`طباعة شيت ${patient.fullName ?? "المريض"}`}
-                  className="h-11 w-11 shrink-0 text-slate-500 hover:text-slate-900"
+                  className="h-11 w-11 shrink-0 text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
@@ -1069,7 +1069,7 @@ function QueuePatientCard({
               type="button"
               title="طباعة روشتة"
               aria-label="طباعة روشتة"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(
@@ -1084,7 +1084,7 @@ function QueuePatientCard({
               type="button"
               title="طباعة طلب تحاليل"
               aria-label="طباعة طلب تحاليل"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-500 hover:text-error"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-error"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(
@@ -1155,7 +1155,7 @@ function TodayOperationListItemCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:border-slate-450 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] sm:p-4",
+        "rounded-2xl border border-border/60 bg-card p-3 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] sm:p-4",
         accent,
       )}
     >

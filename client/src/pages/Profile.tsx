@@ -160,8 +160,8 @@ export default function Profile({
   return (
     <div
       className={cn(
-        "text-[#10234f]",
-        embeddedInHub ? "w-full" : "min-h-screen bg-[#f7faff] pb-16",
+        "text-foreground",
+        embeddedInHub ? "w-full" : "min-h-screen bg-background pb-16",
       )}
       dir="rtl"
     >
@@ -176,32 +176,32 @@ export default function Profile({
         {!embeddedInHub && (
           <>
             {/* Header & Account Identity Capsule */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-[#dfe7f2]">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-border/60">
               <div>
-                <div className="mb-1.5 text-[10px] font-black tracking-[0.16em] text-[#c2781c]">
+                <div className="mb-1.5 text-[10px] font-black tracking-[0.16em] text-primary">
                   USER ACCOUNT & PROFILE
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-[#10265d] tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
                   الحساب والملف الشخصي
                 </h2>
-                <p className="text-xs sm:text-sm font-bold text-slate-400 mt-1">
+                <p className="text-xs sm:text-sm font-bold text-muted-foreground mt-1">
                   إدارة بيانات الدخول، الأمان وكلمة المرور، مظهر النظام، وإعدادات الاتصال بالسيرفر
                 </p>
               </div>
 
               {/* Identity Capsules */}
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
-                  <Shield className="size-3.5 text-blue-600" />
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border/60 bg-card text-xs font-bold text-foreground shadow-2xs">
+                  <Shield className="size-3.5 text-primary" />
                   <span>{ROLE_LABELS[userRole] || userRole || "مستخدم"}</span>
                 </div>
-                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border/60 bg-card text-xs font-bold text-foreground shadow-2xs">
                   <Building className="size-3.5 text-emerald-600" />
                   <span>
                     {BRANCH_LABELS[userBranch] || userBranch || "المركز الرئيسي"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe7f2] bg-white text-xs font-bold text-slate-700 shadow-2xs">
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border/60 bg-card text-xs font-bold text-foreground shadow-2xs">
                   <Clock className="size-3.5 text-amber-600" />
                   <span>وردية {userShift}</span>
                 </div>
@@ -209,22 +209,22 @@ export default function Profile({
             </div>
 
             {/* Hero Profile Overview Card */}
-            <div className="rounded-2xl border border-[#dfe7f2] bg-white p-5 sm:p-6 shadow-[0_6px_20px_rgba(42,79,154,0.05)]">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-[0_6px_20px_rgba(42,79,154,0.05)]">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex size-14 sm:size-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2a4f9a] to-[#1a3670] text-xl sm:text-2xl font-black text-white shadow-md shadow-blue-900/15">
+                  <div className="flex size-14 sm:size-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-xl sm:text-2xl font-black text-white shadow-md shadow-blue-900/15">
                     {initials}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-lg sm:text-xl font-black text-[#10265d]">
+                      <h3 className="text-lg sm:text-xl font-black text-foreground">
                         {name || username || "المستخدم"}
                       </h3>
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#2a4f9a] border border-blue-100">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
                         @{username}
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1">
+                    <p className="text-xs sm:text-sm font-semibold text-muted-foreground mt-1">
                       {email || "لا يوجد بريد إلكتروني مسجل"}
                     </p>
                   </div>
@@ -245,12 +245,12 @@ export default function Profile({
         <Tabs defaultValue="info" className="w-full space-y-4" dir="rtl">
           <div className="overflow-x-auto pb-1 scrollbar-none">
             <TabsList
-              className="inline-flex h-11 w-full min-w-max justify-start gap-1.5 rounded-xl border border-[#dfe7f2] bg-white p-1 shadow-2xs"
+              className="inline-flex h-11 w-full min-w-max justify-start gap-1.5 rounded-xl border border-border/60 bg-card p-1 shadow-2xs"
               dir="rtl"
             >
               <TabsTrigger
                 value="info"
-                className="gap-2 px-4 py-2 text-xs font-bold rounded-lg data-[state=active]:bg-[#2a4f9a] data-[state=active]:text-white data-[state=active]:shadow-sm transition sm:text-sm"
+                className="gap-2 px-4 py-2 text-xs font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm transition sm:text-sm"
               >
                 <UserCog className="h-4 w-4 shrink-0" />
                 <span>البيانات الشخصية</span>
@@ -258,7 +258,7 @@ export default function Profile({
 
               <TabsTrigger
                 value="password"
-                className="gap-2 px-4 py-2 text-xs font-bold rounded-lg data-[state=active]:bg-[#2a4f9a] data-[state=active]:text-white data-[state=active]:shadow-sm transition sm:text-sm"
+                className="gap-2 px-4 py-2 text-xs font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm transition sm:text-sm"
               >
                 <KeyRound className="h-4 w-4 shrink-0" />
                 <span>كلمة المرور والأمان</span>
@@ -266,7 +266,7 @@ export default function Profile({
 
               <TabsTrigger
                 value="preferences"
-                className="gap-2 px-4 py-2 text-xs font-bold rounded-lg data-[state=active]:bg-[#2a4f9a] data-[state=active]:text-white data-[state=active]:shadow-sm transition sm:text-sm"
+                className="gap-2 px-4 py-2 text-xs font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm transition sm:text-sm"
               >
                 <Sun className="h-4 w-4 shrink-0" />
                 <span>المظهر والسيرفر</span>
@@ -276,12 +276,12 @@ export default function Profile({
 
           {/* Tab 1: Personal Information */}
           <TabsContent value="info" className="mt-0 space-y-4">
-            <div className="rounded-2xl border border-[#dfe7f2] bg-white p-5 sm:p-7 shadow-[0_6px_20px_rgba(42,79,154,0.05)] space-y-5">
-              <div className="border-b border-[#dfe7f2] pb-3">
-                <h4 className="text-sm font-black text-[#10265d]">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-7 shadow-[0_6px_20px_rgba(42,79,154,0.05)] space-y-5">
+              <div className="border-b border-border/60 pb-3">
+                <h4 className="text-sm font-black text-foreground">
                   المعلومات الأساسية
                 </h4>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                <p className="text-xs font-semibold text-muted-foreground mt-0.5">
                   بيانات الحساب الشخصية المسجلة في قاعدة بيانات المنظومة
                 </p>
               </div>
@@ -289,52 +289,52 @@ export default function Profile({
               <div className="space-y-4 max-w-xl">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-slate-700">
+                    <Label className="text-xs font-bold text-foreground">
                       الاسم الكامل
                     </Label>
-                    <span className="text-[10px] font-bold text-slate-400">
+                    <span className="text-[10px] font-bold text-muted-foreground">
                       يُحدد بواسطة إدارة النظام
                     </span>
                   </div>
                   <div className="relative">
-                    <UserIcon className="size-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                    <UserIcon className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
                     <Input
                       value={name}
                       readOnly
-                      className="pr-9 bg-slate-50 border-[#dfe7f2] text-slate-600 rounded-xl text-xs sm:text-sm h-10"
+                      className="pr-9 bg-muted/40 border-border/60 text-muted-foreground rounded-xl text-xs sm:text-sm h-10"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">
+                  <Label className="text-xs font-bold text-foreground">
                     اسم المستخدم (تسجيل الدخول)
                   </Label>
                   <div className="relative">
-                    <span className="size-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 font-bold text-xs">
+                    <span className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 font-bold text-xs">
                       @
                     </span>
                     <Input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="اسم المستخدم..."
-                      className="pr-9 rounded-xl border-[#dfe7f2] text-xs sm:text-sm h-10 focus:border-[#2a4f9a] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">
+                  <Label className="text-xs font-bold text-foreground">
                     البريد الإلكتروني
                   </Label>
                   <div className="relative">
-                    <Mail className="size-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                    <Mail className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
                     <Input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="example@selrs.cc"
-                      className="pr-9 rounded-xl border-[#dfe7f2] text-xs sm:text-sm h-10 focus:border-[#2a4f9a] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
                     />
                   </div>
                 </div>
@@ -343,7 +343,7 @@ export default function Profile({
                   <Button
                     onClick={onSaveProfile}
                     disabled={saving}
-                    className="h-10 px-5 rounded-xl font-bold bg-[#2a4f9a] hover:bg-[#203e7a] text-white shadow-md shadow-blue-900/10 text-xs gap-1.5"
+                    className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-md shadow-blue-900/10 text-xs gap-1.5"
                   >
                     {saving ? "...جاري الحفظ" : "حفظ التعديلات"}
                   </Button>
@@ -354,61 +354,61 @@ export default function Profile({
 
           {/* Tab 2: Password & Security */}
           <TabsContent value="password" className="mt-0 space-y-4">
-            <div className="rounded-2xl border border-[#dfe7f2] bg-white p-5 sm:p-7 shadow-[0_6px_20px_rgba(42,79,154,0.05)] space-y-5">
-              <div className="border-b border-[#dfe7f2] pb-3">
-                <h4 className="text-sm font-black text-[#10265d]">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-7 shadow-[0_6px_20px_rgba(42,79,154,0.05)] space-y-5">
+              <div className="border-b border-border/60 pb-3">
+                <h4 className="text-sm font-black text-foreground">
                   تغيير كلمة المرور
                 </h4>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                <p className="text-xs font-semibold text-muted-foreground mt-0.5">
                   احرص على استخدام كلمة مرور قوية وغير مكررة لحماية حسابك
                 </p>
               </div>
 
               <div className="space-y-4 max-w-xl">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">
+                  <Label className="text-xs font-bold text-foreground">
                     كلمة المرور الحالية
                   </Label>
                   <div className="relative">
-                    <Lock className="size-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                    <Lock className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
                     <Input
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pr-9 rounded-xl border-[#dfe7f2] text-xs sm:text-sm h-10 focus:border-[#2a4f9a] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">
+                  <Label className="text-xs font-bold text-foreground">
                     كلمة المرور الجديدة
                   </Label>
                   <div className="relative">
-                    <KeyRound className="size-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                    <KeyRound className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
                     <Input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pr-9 rounded-xl border-[#dfe7f2] text-xs sm:text-sm h-10 focus:border-[#2a4f9a] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">
+                  <Label className="text-xs font-bold text-foreground">
                     تأكيد كلمة المرور الجديدة
                   </Label>
                   <div className="relative">
-                    <CheckCircle2 className="size-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                    <CheckCircle2 className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
                     <Input
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pr-9 rounded-xl border-[#dfe7f2] text-xs sm:text-sm h-10 focus:border-[#2a4f9a] focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
                     />
                   </div>
                 </div>
@@ -417,7 +417,7 @@ export default function Profile({
                   <Button
                     onClick={onChangePassword}
                     disabled={changePasswordMutation.isPending}
-                    className="h-10 px-5 rounded-xl font-bold bg-[#2a4f9a] hover:bg-[#203e7a] text-white shadow-md shadow-blue-900/10 text-xs gap-1.5"
+                    className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-md shadow-blue-900/10 text-xs gap-1.5"
                   >
                     {changePasswordMutation.isPending
                       ? "...جاري التحديث"
@@ -430,12 +430,12 @@ export default function Profile({
 
           {/* Tab 3: Appearance & Server */}
           <TabsContent value="preferences" className="mt-0 space-y-4">
-            <div className="rounded-2xl border border-[#dfe7f2] bg-white p-5 sm:p-7 shadow-[0_6px_20px_rgba(42,79,154,0.05)] space-y-6">
-              <div className="border-b border-[#dfe7f2] pb-3">
-                <h4 className="text-sm font-black text-[#10265d]">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-7 shadow-[0_6px_20px_rgba(42,79,154,0.05)] space-y-6">
+              <div className="border-b border-border/60 pb-3">
+                <h4 className="text-sm font-black text-foreground">
                   مظهر المنظومة
                 </h4>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                <p className="text-xs font-semibold text-muted-foreground mt-0.5">
                   اختر المظهر المريح لعينيك أثناء استخدام التطبيق
                 </p>
               </div>
@@ -451,8 +451,8 @@ export default function Profile({
                       className={cn(
                         "flex items-center gap-3 p-4 rounded-xl border transition-all text-right cursor-pointer",
                         isSelected
-                          ? "border-[#2a4f9a] bg-blue-50/50 shadow-sm"
-                          : "border-[#dfe7f2] bg-white hover:bg-slate-50",
+                          ? "border-primary bg-primary/10 shadow-sm"
+                          : "border-border/60 bg-card hover:bg-muted/40",
                       )}
                     >
                       <span
@@ -470,17 +470,17 @@ export default function Profile({
                         )}
                       </span>
                       <div className="flex-1">
-                        <div className="text-xs font-bold text-[#10265d]">
+                        <div className="text-xs font-bold text-foreground">
                           {option === "light" ? "المظهر الفاتح" : "المظهر الداكن"}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                        <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">
                           {option === "light"
                             ? "مناسب للإضاءة الطبيعية والنهار"
                             : "مريح للعين في الإضاءة الخافتة"}
                         </div>
                       </div>
                       {isSelected && (
-                        <Check className="size-4 text-[#2a4f9a]" />
+                        <Check className="size-4 text-primary" />
                       )}
                     </button>
                   );
@@ -488,12 +488,12 @@ export default function Profile({
               </div>
 
               {canSwitchServer() && (
-                <div className="pt-5 border-t border-[#dfe7f2] space-y-3">
+                <div className="pt-5 border-t border-border/60 space-y-3">
                   <div>
-                    <h4 className="text-sm font-black text-[#10265d]">
+                    <h4 className="text-sm font-black text-foreground">
                       السيرفر والاتصال المحلي
                     </h4>
-                    <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                    <p className="text-xs font-semibold text-muted-foreground mt-0.5">
                       إمكانية التبديل بين السيرفر المحلي والشبكة المركزية
                     </p>
                   </div>
@@ -502,9 +502,9 @@ export default function Profile({
                     <Button
                       variant="outline"
                       onClick={() => openServerSwitcher()}
-                      className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-[#dfe7f2] bg-white text-[#10265d] hover:bg-slate-50"
+                      className="h-10 px-4 rounded-xl text-xs font-bold gap-2 border-border/60 bg-card text-foreground hover:bg-muted/40"
                     >
-                      <Server className="size-4 text-[#2a4f9a]" />
+                      <Server className="size-4 text-primary" />
                       <span>تبديل السيرفر النشط</span>
                     </Button>
                   </div>

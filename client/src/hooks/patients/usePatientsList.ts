@@ -158,11 +158,7 @@ export function usePatientsList(isAuthenticated: boolean) {
     return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : "";
   };
 
-  const hasActiveDateFilters = Boolean(
-    toIsoDate(dateFrom) || toIsoDate(dateTo),
-  );
   const liveSearchTerm = normalizeSearchText(searchTerm);
-  const useClientFilterWindow = Boolean(liveSearchTerm || hasActiveDateFilters);
 
   const backendServiceType = useMemo<
     | "consultant"
@@ -208,10 +204,10 @@ export function usePatientsList(isAuthenticated: boolean) {
       serviceType: backendServiceType,
       locationType:
         locationTypeFilter === "all" ? undefined : locationTypeFilter,
-      limit: useClientFilterWindow
-        ? 500
-        : Math.min(500, Math.max(pageSize * 4, pageSize)),
-      cursor: useClientFilterWindow ? undefined : (cursor ?? undefined),
+      // Search and date filters must keep cursor pagination. Fetching a fixed
+      // 500-row client window made a valid match after that window invisible.
+      limit: Math.min(500, Math.max(pageSize * 4, pageSize)),
+      cursor: cursor ?? undefined,
     },
     {
       enabled: isAuthenticated,
@@ -264,13 +260,9 @@ export function usePatientsList(isAuthenticated: boolean) {
   const patientsFromDb = (
     Array.isArray(patientsPayload.rows) ? patientsPayload.rows : []
   ) as any[];
-  const hasMore = useClientFilterWindow
-    ? false
-    : Boolean(patientsPayload.hasMore);
-  const nextCursor = useClientFilterWindow
-    ? null
-    : (patientsPayload.nextCursor ?? null);
-  const currentPage = useClientFilterWindow ? 1 : cursorHistory.length + 1;
+  const hasMore = Boolean(patientsPayload.hasMore);
+  const nextCursor = patientsPayload.nextCursor ?? null;
+  const currentPage = cursorHistory.length + 1;
 
   const serviceCodeToLabel = useMemo(() => {
     const list = Array.isArray(serviceDirectoryQuery.data)

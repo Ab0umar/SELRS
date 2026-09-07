@@ -47,11 +47,11 @@ const InfoLine = ({
   <div
     dir={align === "left" ? "ltr" : "rtl"}
     className={cn(
-      "flex items-start gap-1.5 text-[11px] font-bold leading-5 text-[#0f2050]",
+      "flex items-start gap-1.5 text-[11px] font-bold leading-5 text-foreground",
       align === "left" ? "justify-start text-left" : "justify-start text-right",
     )}
   >
-    <Icon className="mt-0.5 size-3.5 shrink-0 text-[#1f3f82]" />
+    <Icon className="mt-0.5 size-3.5 shrink-0 text-primary" />
     <span
       dir={dir}
       className="min-w-0 [unicode-bidi:isolate]"
@@ -70,9 +70,9 @@ const InfoBlock = ({
 }) => (
   <div
     dir="rtl"
-    className="flex items-start gap-1.5 text-right text-[11px] font-bold leading-5 text-[#0f2050]"
+    className="flex items-start gap-1.5 text-right text-[11px] font-bold leading-5 text-foreground"
   >
-    <Icon className="mt-0.5 size-3.5 shrink-0 text-[#1f3f82]" />
+    <Icon className="mt-0.5 size-3.5 shrink-0 text-primary" />
     <span dir="rtl" className="min-w-0 [unicode-bidi:isolate]">
       <span>{value}</span>
     </span>
@@ -114,7 +114,7 @@ export default function PatientLogin() {
 
   return (
     <div
-      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-[#2a4f9a]/10 selection:text-[#1f3f82]"
+      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-primary/10 selection:text-primary"
       dir="rtl"
     >
       <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-gradient-to-br from-[#15296a] via-[#0f2050] to-[#0c1840] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
@@ -179,26 +179,26 @@ export default function PatientLogin() {
       </div>
 
       <div className="flex-1 overflow-y-auto bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
-        <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-slate-200" />
+        <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-muted" />
 
         <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f2050] tracking-tight m-0">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight m-0">
             دخول المريض
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-2 mb-4 sm:mb-8 leading-relaxed">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-4 sm:mb-8 leading-relaxed">
             أدخل رقم الهاتف وكود المريض للوصول إلى ملفك الطبي أو احجز كزائر
             جديد.
           </p>
 
-          <div className="grid grid-cols-2 p-1.5 bg-slate-50 rounded-xl border border-[#e6edf5] mb-4 sm:mb-6">
+          <div className="grid grid-cols-2 p-1.5 bg-muted/40 rounded-xl border border-border/60 mb-4 sm:mb-6">
             <button
               type="button"
               onClick={() => setActiveTab("login")}
               className={cn(
                 "flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-colors cursor-pointer",
                 activeTab === "login"
-                  ? "bg-white text-[#1f3f82] shadow-sm border border-[#e6edf5]"
-                  : "text-slate-500 hover:text-[#0f2050]",
+                  ? "bg-white text-primary shadow-sm border border-border/60"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <UserCheck className="size-4" />
@@ -210,8 +210,8 @@ export default function PatientLogin() {
               className={cn(
                 "flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-colors cursor-pointer",
                 activeTab === "guest"
-                  ? "bg-white text-[#1f3f82] shadow-sm border border-[#e6edf5]"
-                  : "text-slate-500 hover:text-[#0f2050]",
+                  ? "bg-white text-primary shadow-sm border border-border/60"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <UserPlus className="size-4" />
@@ -225,7 +225,7 @@ export default function PatientLogin() {
               className="space-y-3 sm:space-y-5"
             >
               <div className="space-y-1.5">
-                <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                <label className="block text-xs sm:text-sm font-bold text-foreground">
                   رقم الموبايل
                 </label>
                 <Input
@@ -234,14 +234,14 @@ export default function PatientLogin() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   dir="ltr"
-                  className="h-12 text-left font-medium tracking-wide border-[#e6edf5] bg-slate-50 focus-visible:ring-primary/10 rounded-xl"
+                  className="h-12 text-left font-medium tracking-wide border-border/60 bg-muted/40 focus-visible:ring-primary/10 rounded-xl"
                   autoComplete="tel"
                   disabled={loginMutation.isPending}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                <label className="block text-xs sm:text-sm font-bold text-foreground">
                   كود المريض
                 </label>
                 <Input
@@ -250,7 +250,7 @@ export default function PatientLogin() {
                   value={patientCode}
                   onChange={(e) => setPatientCode(e.target.value)}
                   dir="rtl"
-                  className="h-12 text-right font-medium border-[#e6edf5] bg-slate-50 focus-visible:ring-primary/10 rounded-xl"
+                  className="h-12 text-right font-medium border-border/60 bg-muted/40 focus-visible:ring-primary/10 rounded-xl"
                   disabled={loginMutation.isPending}
                 />
               </div>
@@ -258,7 +258,7 @@ export default function PatientLogin() {
               <div className="pt-2">
                 <Button
                   type="submit"
-                  className="h-12 w-full text-base font-bold bg-[#1f3f82] text-white hover:bg-[#1f3f82]/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 cursor-pointer"
+                  className="h-12 w-full text-base font-bold bg-primary text-white hover:bg-primary/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 cursor-pointer"
                   disabled={
                     phone.length < 8 || !patientCode || loginMutation.isPending
                   }
@@ -274,7 +274,7 @@ export default function PatientLogin() {
                 </Button>
               </div>
 
-              <div className="hidden sm:block rounded-xl border border-[#e6edf5] bg-slate-50 p-3.5 text-xs text-slate-500 space-y-1 leading-5">
+              <div className="hidden sm:block rounded-xl border border-border/60 bg-muted/40 p-3.5 text-xs text-muted-foreground space-y-1 leading-5">
                 <div className="flex items-center gap-1.5 font-bold text-primary mb-1">
                   <ShieldCheck className="size-4 shrink-0" />
                   <span>تنبيه أمان البيانات</span>
@@ -292,21 +292,21 @@ export default function PatientLogin() {
           ) : (
             <div className="space-y-3 sm:space-y-5">
               <div className="space-y-2 text-center py-1 sm:py-2">
-                <h3 className="text-base font-bold text-[#0f2050]">
+                <h3 className="text-base font-bold text-foreground">
                   حجز موعد كحالة جديدة
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-500 leading-5 sm:leading-6">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-5 sm:leading-6">
                   إذا لم يسبق لك زيارة المركز أو لا تملك كود مريض مسجل، يمكنك
                   طلب حجز موعد مباشرة كزائر لتسجيل ملفك الطبي الجديد.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#e6edf5] bg-slate-50 p-3 sm:p-4 space-y-2 sm:space-y-3.5">
+              <div className="rounded-xl border border-border/60 bg-muted/40 p-3 sm:p-4 space-y-2 sm:space-y-3.5">
                 <div className="flex items-start gap-2.5 text-xs leading-5">
                   <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#d39c2a]/15 text-[#d39c2a] font-bold text-[10px]">
                     ✓
                   </div>
-                  <div className="font-semibold text-slate-700">
+                  <div className="font-semibold text-foreground">
                     حجز فوري لجميع التخصصات المتاحة
                   </div>
                 </div>
@@ -314,7 +314,7 @@ export default function PatientLogin() {
                   <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#d39c2a]/15 text-[#d39c2a] font-bold text-[10px]">
                     ✓
                   </div>
-                  <div className="font-semibold text-slate-700">
+                  <div className="font-semibold text-foreground">
                     تأكيد الموعد عبر الهاتف من قبل الاستقبال
                   </div>
                 </div>
@@ -322,7 +322,7 @@ export default function PatientLogin() {
                   <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#d39c2a]/15 text-[#d39c2a] font-bold text-[10px]">
                     ✓
                   </div>
-                  <div className="font-semibold text-slate-700">
+                  <div className="font-semibold text-foreground">
                     إمكانية إنشاء ملف طبي فوري عند الحضور للمركز
                   </div>
                 </div>
@@ -330,23 +330,23 @@ export default function PatientLogin() {
 
               <div className="pt-2">
                 <Link href="/my/book-guest" className="w-full">
-                  <Button className="h-12 w-full text-base font-bold bg-[#1f3f82] text-white hover:bg-[#1f3f82]/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 gap-2 cursor-pointer">
+                  <Button className="h-12 w-full text-base font-bold bg-primary text-white hover:bg-primary/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 gap-2 cursor-pointer">
                     <CalendarPlus2 className="size-5" />
                     <span>البدء في حجز موعد كزائر</span>
                   </Button>
                 </Link>
               </div>
 
-              <p className="text-center text-xs leading-5 text-slate-500">
+              <p className="text-center text-xs leading-5 text-muted-foreground">
                 <span>هل زرت المركز مسبقاً؟ </span>
-                <span className="font-medium text-[#2a4f9a]">
+                <span className="font-medium text-primary">
                   يرجى التواصل مع الاستقبال للحصول على كود المريض الخاص بك.
                 </span>
               </p>
             </div>
           )}
 
-          <div className="mt-4 space-y-1.5 rounded-xl border border-[#e6edf5] bg-slate-50 p-3 sm:mt-5">
+          <div className="mt-4 space-y-1.5 rounded-xl border border-border/60 bg-muted/40 p-3 sm:mt-5">
             <InfoLine
               icon={Phone}
               value="0403320833 - 0403288778"
@@ -375,9 +375,9 @@ export default function PatientLogin() {
             />
             <div
               dir="rtl"
-              className="mt-2 flex items-center justify-center gap-1.5 border-t border-[#e6edf5] pt-2 text-center text-[11px] font-bold text-[#0f2050]"
+              className="mt-2 flex items-center justify-center gap-1.5 border-t border-border/60 pt-2 text-center text-[11px] font-bold text-foreground"
             >
-              <Clock3 className="size-3.5 shrink-0 text-[#1f3f82]" />
+              <Clock3 className="size-3.5 shrink-0 text-primary" />
               <p className="m-0">
                 يوميا من 10ص لـ 7م عدا الجمعه - الاطباء من 12ظ لـ 6م
               </p>
@@ -385,14 +385,14 @@ export default function PatientLogin() {
           </div>
         </div>
 
-        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-[#e6edf5] flex flex-row items-center justify-between text-[11px] sm:text-xs text-slate-400 w-full">
+        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-border/60 flex flex-row items-center justify-between text-[11px] sm:text-xs text-muted-foreground w-full">
           <Link
             href="/login"
-            className="font-bold text-[#2a4f9a] hover:underline"
+            className="font-bold text-primary hover:underline"
           >
             دخول النظام
           </Link>
-          <p className="m-0 text-slate-400/80">
+          <p className="m-0 text-muted-foreground/80">
             © {new Date().getFullYear()} مركز عيون الشروق
           </p>
         </footer>

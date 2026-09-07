@@ -172,7 +172,7 @@ export const medicalCatalogRoutes = {
     .input(
       z.object({
         query: z.string().trim().max(100).default(""),
-        limit: z.number().int().min(1).max(50).default(30),
+        limit: z.number().int().min(1).max(10_000).default(30),
         dosageForm: z.enum(egyptianDrugDosageForms).optional(),
       }),
     )

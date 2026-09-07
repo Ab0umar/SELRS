@@ -18,6 +18,11 @@ type WhatsAppTemplateParameter = {
   text: string;
 };
 
+export const KFS_BOOKING_ADDRESS = "كفر الشيخ - أمام مستشفى الرمد";
+export const KFS_BOOKING_MAP_FALLBACK = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  KFS_BOOKING_ADDRESS,
+)}`;
+
 function internationalPhone(rawPhone: string): string | null {
   const digits = rawPhone.replace(/\D/g, "");
   if (/^01\d{9}$/.test(digits)) return `2${digits}`;
@@ -42,9 +47,9 @@ function formattedBookingDate(bookingDate: Date | string): string {
   }).format(date);
 }
 
-function bookingBranch(branch: string | null | undefined): string {
+export function bookingBranch(branch: string | null | undefined): string {
   if (branch === "tanta") return "طنطا - 13 ش بطرس";
-  if (branch === "kfs") return "فرع كفر الشيخ";
+  if (branch === "kfs") return KFS_BOOKING_ADDRESS;
   return "طنطا - 13 ش بطرس";
 }
 
@@ -88,16 +93,16 @@ function bookingTime(request: BookingWhatsAppRequest): string {
   return "حسب الموعد المحدد";
 }
 
-function bookingMapLocation(branch: string | null | undefined): string {
+export function bookingMapLocation(branch: string | null | undefined): string {
   if (branch === "tanta") {
     return (
       ENV.whatsappTantaMapUrl || "https://maps.app.goo.gl/528HEEz1jpMEjH1s8"
     );
   }
   if (branch === "kfs") {
-    return ENV.whatsappKfsMapUrl || "https://maps.app.goo.gl/528HEEz1jpMEjH1s8";
+    return ENV.whatsappKfsMapUrl || KFS_BOOKING_MAP_FALLBACK;
   }
-  return ENV.whatsappKfsMapUrl || "https://maps.app.goo.gl/528HEEz1jpMEjH1s8";
+  return ENV.whatsappTantaMapUrl || "https://maps.app.goo.gl/528HEEz1jpMEjH1s8";
 }
 
 function namedTemplateParameters(

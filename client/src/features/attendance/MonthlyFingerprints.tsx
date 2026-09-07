@@ -308,7 +308,7 @@ export default function MonthlyFingerprints({
                                       </div>
                                     )}
                                     {day.other.length > 0 && (
-                                      <div className="break-words text-slate-600">
+                                      <div className="break-words text-muted-foreground">
                                         أ: {formatTimes(day.other)}
                                       </div>
                                     )}
@@ -385,12 +385,12 @@ export default function MonthlyFingerprints({
                                   </div>
                                 </div>
                                 {day.other.length > 0 && (
-                                  <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2 py-1.5">
-                                    <span className="font-semibold text-slate-600">
+                                  <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-2 py-1.5">
+                                    <span className="font-semibold text-muted-foreground">
                                       أخرى
                                     </span>
                                     <div dir="ltr">
-                                      {renderTimes(day.other, "text-slate-600")}
+                                      {renderTimes(day.other, "text-muted-foreground")}
                                     </div>
                                   </div>
                                 )}

@@ -1650,7 +1650,7 @@ export default function MedicalFilePanel({
     : "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
   const innerCls = embedded
     ? "flex min-h-[min(85vh,900px)] w-full max-h-[min(92vh,1000px)] flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm min-h-0"
-    : "flex h-[95vh] max-h-[95vh] w-full max-w-[960px] flex-col rounded-lg bg-background shadow-lg min-h-0";
+    : "flex h-[95vh] max-h-[95vh] w-full max-w-[960px] flex-col rounded-xl border border-border/60 bg-card text-foreground shadow-xl min-h-0";
 
   return (
     <div className={outerCls}>
@@ -3285,10 +3285,10 @@ export default function MedicalFilePanel({
 
                 {/* Diagnosis + Diseases */}
                 <div
-                  className="flex flex-col rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[#1f2937]"
+                  className="flex flex-col rounded-lg border border-border/60 bg-muted/30 px-3 pb-3 pt-0 text-left text-foreground"
                   dir="ltr"
                 >
-                  <p className="mb-2 !text-[13px] font-bold text-[#003d9b]">
+                  <p className="mb-2 !text-[13px] font-bold text-primary">
                     Diagnosis:
                   </p>
                   <Textarea
@@ -3300,7 +3300,7 @@ export default function MedicalFilePanel({
                       }))
                     }
                     placeholder="اكتب التشخيص يدويًا أو ابحث بالأسفل..."
-                    className="min-h-[48px] w-full rounded-md border-[#c3c6d6] bg-white px-2 py-1 !text-[12px] print:placeholder-transparent"
+                    className="min-h-[48px] w-full rounded-md border-border bg-background px-2 py-1 !text-[12px] print:placeholder-transparent"
                     rows={2}
                   />
                   <div className="relative mt-2 w-full">
@@ -3309,7 +3309,7 @@ export default function MedicalFilePanel({
                       placeholder="ابحث عن التشخيص..."
                       value={diseaseSearchText}
                       onChange={(e) => setDiseaseSearchText(e.target.value)}
-                      className="h-8 w-full rounded-md border-[#c3c6d6] bg-white pl-7 pr-2 !text-[12px]"
+                      className="h-8 w-full rounded-md border-border bg-background pl-7 pr-2 !text-[12px]"
                     />
                   </div>
                   {diseaseSearchText && (
@@ -3373,10 +3373,10 @@ export default function MedicalFilePanel({
                 </div>
                 {workflowPlanOnly && (
                   <div
-                    className="flex flex-col rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[#1f2937]"
+                    className="flex flex-col rounded-lg border border-border/60 bg-muted/30 px-3 pb-3 pt-0 text-left text-foreground"
                     dir="ltr"
                   >
-                    <p className="mb-2 !text-[13px] font-bold text-[#003d9b]">
+                    <p className="mb-2 !text-[13px] font-bold text-primary">
                       Recommendations:
                     </p>
                     <Textarea
@@ -3388,7 +3388,7 @@ export default function MedicalFilePanel({
                         }))
                       }
                       placeholder="اكتب التوصيات هنا..."
-                      className="min-h-[48px] w-full flex-1 rounded-md border-[#c3c6d6] bg-white px-2 py-1 !text-[12px] print:placeholder-transparent"
+                      className="min-h-[48px] w-full flex-1 rounded-md border-border bg-background px-2 py-1 !text-[12px] print:placeholder-transparent"
                       rows={2}
                     />
                   </div>
@@ -3518,7 +3518,7 @@ export default function MedicalFilePanel({
                                   <DropdownMenuTrigger asChild>
                                     <button
                                       type="button"
-                                      className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
+                                      className="flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] font-medium text-foreground transition-colors hover:bg-muted/60"
                                     >
                                       <span>{tab}</span>
                                       <ChevronDown className="h-3 w-3 opacity-70" />
@@ -3704,7 +3704,7 @@ export default function MedicalFilePanel({
                                   <DropdownMenuTrigger asChild>
                                     <button
                                       type="button"
-                                      className="rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] hover:bg-muted/60 transition-colors flex items-center gap-1 font-medium text-[#1e3a66]"
+                                      className="flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] font-medium text-foreground transition-colors hover:bg-muted/60"
                                     >
                                       <span>{tab}</span>
                                       <ChevronDown className="h-3 w-3 opacity-70" />

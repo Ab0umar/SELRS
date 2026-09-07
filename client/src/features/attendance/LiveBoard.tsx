@@ -127,21 +127,21 @@ export default function LiveBoard() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      
+
       {/* ── Bento Grid Puzzle ── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        
+
         {/* Left Column: Live status indicators (col-span-5) */}
         <div className="md:col-span-5 space-y-6">
-          
+
           {/* Bento Box 1: FK live channel (Mint Theme) */}
-          <div className="p-6 bg-[#ECFDF5] border border-emerald-150 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">قناة البث المباشر — FK</span>
 
                 {wsConnected ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-600/10 text-emerald-700 border border-emerald-250">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-600/10 text-emerald-700 border border-border/60">
                     نشط الآن
                   </span>
                 ) : (
@@ -163,27 +163,27 @@ export default function LiveBoard() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-white border border-emerald-100 rounded-xl">
-                  <span className="text-[9px] text-slate-400 block font-bold">إجمالي الحركات</span>
+                <div className="p-3 bg-card border border-border/60 rounded-xl">
+                  <span className="text-[9px] text-muted-foreground block font-bold">إجمالي الحركات</span>
                   <span className="font-mono font-bold text-emerald-950 text-[11px] block mt-0.5">
                     {fkStatus.data?.punchCount ?? 0} بصمة
                   </span>
                 </div>
-                <div className="p-3 bg-white border border-emerald-100 rounded-xl">
-                  <span className="text-[9px] text-slate-400 block font-bold">آخر وقت بث</span>
+                <div className="p-3 bg-card border border-border/60 rounded-xl">
+                  <span className="text-[9px] text-muted-foreground block font-bold">آخر وقت بث</span>
                   <span className="font-mono font-bold text-emerald-950 text-[11px] block mt-0.5">
                     {fkStatus.data?.lastPunch ? new Date(fkStatus.data.lastPunch).toLocaleTimeString("ar-EG") : "—"}
                   </span>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-emerald-100/50">
+              <div className="flex gap-2 pt-2 border-t border-border/60/50">
                 <Button
                   size="sm"
                   onClick={toggleMonitoring}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg gap-1.5 shadow-sm"
+                  className="h-auto gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-[10px] font-bold text-primary-foreground hover:bg-primary/90"
                 >
-                  {isMonitoring ? <Square className="w-3 h-3 text-white" /> : <Play className="w-3 h-3 text-white" />}
+                  {isMonitoring ? <Square className="w-3 h-3 text-primary-foreground" /> : <Play className="w-3 h-3 text-primary-foreground" />}
                   {isMonitoring ? "إيقاف الاستلام" : "تشغيل الاستلام"}
                 </Button>
                 <Button
@@ -191,7 +191,7 @@ export default function LiveBoard() {
                   variant="outline"
                   onClick={clearPunches}
                   disabled={punches.length === 0}
-                  className="border-emerald-250 hover:bg-emerald-100 text-emerald-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg gap-1.5"
+                  className="border-border/60 hover:bg-emerald-100 text-emerald-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-emerald-700" />
                   مسح الشاشة
@@ -201,13 +201,13 @@ export default function LiveBoard() {
           </div>
 
           {/* Bento Box 2: ZK/ADMS live channel (Sky Theme) */}
-          <div className="p-6 bg-[#F0F9FF] border border-sky-150 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] text-sky-850 font-bold uppercase tracking-wider block">قناة البث المباشر — ZK / ADMS</span>
 
                 {wsConnected ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-sky-250">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-border/60">
                     نشط الآن
                   </span>
                 ) : (
@@ -229,14 +229,14 @@ export default function LiveBoard() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-white border border-sky-100 rounded-xl">
-                  <span className="text-[9px] text-slate-400 block font-bold">إجمالي الحركات</span>
+                <div className="p-3 bg-card border border-border/60 rounded-xl">
+                  <span className="text-[9px] text-muted-foreground block font-bold">إجمالي الحركات</span>
                   <span className="font-mono font-bold text-sky-950 text-[11px] block mt-0.5">
                     {admsStatus.data?.punchCount ?? 0} بصمة
                   </span>
                 </div>
-                <div className="p-3 bg-white border border-sky-100 rounded-xl">
-                  <span className="text-[9px] text-slate-400 block font-bold">آخر وقت بث</span>
+                <div className="p-3 bg-card border border-border/60 rounded-xl">
+                  <span className="text-[9px] text-muted-foreground block font-bold">آخر وقت بث</span>
                   <span className="font-mono font-bold text-sky-950 text-[11px] block mt-0.5">
                     {admsStatus.data?.lastPunch ? new Date(admsStatus.data.lastPunch).toLocaleTimeString("ar-EG") : "—"}
                   </span>
@@ -248,16 +248,16 @@ export default function LiveBoard() {
         </div>
 
         {/* Right Column: Rolling Punches Stream console (col-span-7) */}
-        <div className="md:col-span-7 p-6 bg-white border border-slate-200 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">شاشة البصمات المستلمة</h3>
-            <div className="flex gap-1 bg-slate-50 p-0.5 border border-slate-100 rounded-lg">
+        <div className="md:col-span-7 p-6 bg-card border border-border/60 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
+          <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">شاشة البصمات المستلمة</h3>
+            <div className="flex gap-1 bg-muted p-0.5 border border-border/60 rounded-lg">
               {(["ef10k", "k40pro"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setPunchTab(t)}
                   className={`rounded-md px-3 py-1 text-[10px] font-bold transition-all ${
-                    punchTab === t ? "bg-slate-900 text-white shadow-sm" : "text-slate-550 hover:text-slate-900"
+                    punchTab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t === "ef10k" ? "بوابة EF10K" : "بوابة K40 Pro"}
@@ -269,7 +269,7 @@ export default function LiveBoard() {
           <div className="pt-2">
             {punchTab === "ef10k" && (
               punches.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-10 text-center text-slate-400 text-xs">
+                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 py-10 text-center text-muted-foreground text-xs">
                   <p>لا توجد حركات حضور مستلمة بعد</p>
                 </div>
               ) : (
@@ -277,22 +277,22 @@ export default function LiveBoard() {
                   {punches.map((punch, idx) => (
                     <div
                       key={`${punch.empCd}-${punch.timestamp.getTime()}-${idx}`}
-                      className="flex items-center justify-between p-3 rounded-2xl border border-slate-150 bg-slate-50/30 text-xs"
+                      className="flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-muted/30 text-xs"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-bold">
                           {punch.direction === "in" ? <ArrowRightFromLine className="w-4 h-4 text-emerald-600" /> : <ArrowLeftFromLine className="w-4 h-4 text-teal-600" />}
                         </div>
                         <div>
-                          <span className="font-mono font-bold text-slate-800 block">ID: {punch.empCd}</span>
-                          <span className="text-[9px] text-slate-400 block mt-0.5 font-mono">{punch.timestamp.toLocaleTimeString("ar-EG")}</span>
+                          <span className="font-mono font-bold text-foreground block">ID: {punch.empCd}</span>
+                          <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">{punch.timestamp.toLocaleTimeString("ar-EG")}</span>
                         </div>
                       </div>
                       <div className="text-left">
-                        <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[9px] font-bold">
+                        <span className="inline-flex px-2 py-0.5 rounded bg-muted text-foreground text-[9px] font-bold">
                           {punch.direction === "in" ? "دخول" : punch.direction === "out" ? "خروج" : "غير معروف"}
                         </span>
-                        <span className="text-[9px] text-slate-400 block mt-0.5 font-mono">{punch.deviceId}</span>
+                        <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">{punch.deviceId}</span>
                       </div>
                     </div>
                   ))}
@@ -303,7 +303,7 @@ export default function LiveBoard() {
             {punchTab === "k40pro" && (() => {
               const recent = admsStatus.data?.recentPunches ?? [];
               if (!recent.length) return (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-10 text-center text-slate-400 text-xs">
+                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 py-10 text-center text-muted-foreground text-xs">
                   <p>لا توجد بصمات K40 Pro مسجلة</p>
                 </div>
               );
@@ -313,11 +313,11 @@ export default function LiveBoard() {
                     {recent.map((p: any, i: number) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between p-3 rounded-2xl border border-slate-150 bg-slate-50/30 text-xs"
+                        className="flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-muted/30 text-xs"
                       >
                         <div>
-                          <span className="font-mono font-bold text-slate-800 block">ID: {p.empCd}</span>
-                          <span className="text-[9px] text-slate-400 block mt-0.5 font-mono">
+                          <span className="font-mono font-bold text-foreground block">ID: {p.empCd}</span>
+                          <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">
                             {new Date(p.punchAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}
                           </span>
                         </div>
@@ -325,7 +325,7 @@ export default function LiveBoard() {
                           <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${p.direction === "in" ? "bg-emerald-50 text-emerald-700" : "bg-teal-50 text-teal-700"}`}>
                             {p.direction === "in" ? "دخول" : "خروج"}
                           </span>
-                          <span className="text-[9px] text-slate-400 block mt-0.5 font-mono">{p.deviceId}</span>
+                          <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">{p.deviceId}</span>
                         </div>
                       </div>
                     ))}
@@ -333,9 +333,9 @@ export default function LiveBoard() {
                 );
               }
               return (
-                <div className="border border-slate-150 rounded-2xl overflow-hidden max-h-[380px] overflow-y-auto">
+                <div className="border border-border/60 rounded-2xl overflow-hidden max-h-[380px] overflow-y-auto">
                   <table className="w-full text-right text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-150 text-slate-500">
+                    <thead className="bg-muted border-b border-border/60 text-muted-foreground">
                       <tr>
                         <th className="px-4 py-2.5 font-bold">الموظف</th>
                         <th className="px-4 py-2.5 font-bold">وقت الحضور</th>
@@ -343,9 +343,9 @@ export default function LiveBoard() {
                         <th className="px-4 py-2.5 font-bold">الجهاز</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                    <tbody className="divide-y divide-border/60 text-foreground font-medium">
                       {recent.map((p: any, i: number) => (
-                        <tr key={i} className="hover:bg-slate-50/30">
+                        <tr key={i} className="hover:bg-muted/30">
                           <td className="px-4 py-2.5 font-mono">{p.empCd}</td>
                           <td className="px-4 py-2.5 font-mono">{new Date(p.punchAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}</td>
                           <td className="px-4 py-2.5 text-center">
@@ -353,7 +353,7 @@ export default function LiveBoard() {
                               {p.direction === "in" ? "دخول" : "خروج"}
                             </span>
                           </td>
-                          <td className="px-4 py-2.5 font-mono text-slate-400">{p.deviceId}</td>
+                          <td className="px-4 py-2.5 font-mono text-muted-foreground">{p.deviceId}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -375,7 +375,7 @@ export default function LiveBoard() {
         </div>
       )}
 
-      <div className="text-[10px] text-slate-400 font-semibold pr-2">
+      <div className="text-[10px] text-muted-foreground font-semibold pr-2">
         * يتم تحديث سجل البث تلقائياً كل 30 ثانية أو عبر WebSocket بشكل لحظي.
       </div>
     </div>

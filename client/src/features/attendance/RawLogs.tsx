@@ -12,6 +12,7 @@ const directionTone = {
   in: "border-success/20 bg-success/10 text-success",
   out: "border-info/20 bg-info/10 text-info",
 };
+const PAGE_SIZE = 500;
 
 export default function RawLogs({
   from,
@@ -28,8 +29,10 @@ export default function RawLogs({
     fromDate: "",
     toDate: "",
   });
+  const [offset, setOffset] = useState(0);
   useEffect(() => {
     setFilters((current) => ({ ...current, fromDate: from, toDate: to }));
+    setOffset(0);
   }, [from, to]);
 
   const rawPunchesQuery = (trpc as any).attendance.rawPunches.useQuery(
@@ -38,7 +41,8 @@ export default function RawLogs({
       fromDate: filters.fromDate || undefined,
       toDate: filters.toDate || undefined,
       department,
-      limit: 500,
+      limit: PAGE_SIZE,
+      offset,
     },
     {
       enabled: !!(filters.fromDate || filters.empNo),
@@ -50,7 +54,7 @@ export default function RawLogs({
       alert("أدخل كود موظف أو نطاق تاريخ للبحث");
       return;
     }
-    rawPunchesQuery.refetch();
+    setOffset(0);
   };
 
   const handleExport = () => {
@@ -137,7 +141,7 @@ export default function RawLogs({
           <CardTitle className="text-foreground">
             النتائج
             {rawPunchesQuery.data &&
-              ` (${punches.length} من ${rawPunchesQuery.data.total})`}
+              ` (${offset + punches.length} من ${rawPunchesQuery.data.total})`}
           </CardTitle>
           {punches.length > 0 && (
             <Button
@@ -245,6 +249,29 @@ export default function RawLogs({
               {rawPunchesQuery.isError
                 ? "تعذر تحميل السجلات."
                 : "لا توجد نتائج. استخدم الفلاتر للبحث."}
+            </div>
+          )}
+          {rawPunchesQuery.data && rawPunchesQuery.data.total > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-center gap-2" dir="rtl">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={offset === 0 || rawPunchesQuery.isFetching}
+                onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
+              >
+                السابق
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                صفحة {Math.floor(offset / PAGE_SIZE) + 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={offset + PAGE_SIZE >= rawPunchesQuery.data.total || rawPunchesQuery.isFetching}
+                onClick={() => setOffset((current) => current + PAGE_SIZE)}
+              >
+                التالي
+              </Button>
             </div>
           )}
         </CardContent>

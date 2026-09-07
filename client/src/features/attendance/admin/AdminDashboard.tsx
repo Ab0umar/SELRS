@@ -47,7 +47,7 @@ export default function AdminDashboard() {
             className={`px-4 py-2 font-medium ${
               activeTab === tab
                 ? "border-b-2 border-primary text-primary"
-                : "text-gray-600 hover:text-gray-900"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
                       {new Date(healthQuery.data.lastSyncTime).toLocaleString()}
                     </div>
                   ) : (
-                    <div className="text-gray-500 text-sm">Never</div>
+                    <div className="text-muted-foreground text-sm">Never</div>
                   )}
                 </CardContent>
               </Card>
@@ -296,11 +296,11 @@ export default function AdminDashboard() {
                       <div className="font-medium break-words">
                         {log.action}
                       </div>
-                      <div className="text-xs text-gray-600">
+                      <div className="text-xs text-muted-foreground">
                         {new Date(log.timestamp).toLocaleString()}
                       </div>
                       {log.empCd && (
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-muted-foreground">
                           Emp: {log.empCd}
                         </div>
                       )}

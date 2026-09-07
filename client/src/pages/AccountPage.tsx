@@ -26,7 +26,9 @@ export default function AccountPage() {
   const loc = location.split("?")[0];
 
   const activeTab: AccountTabKey =
-    TAB_ORDER.find((tab) => loc === TAB_META[tab].href || loc.startsWith(TAB_META[tab].href + "/")) ??
+    [...TAB_ORDER]
+      .sort((a, b) => TAB_META[b].href.length - TAB_META[a].href.length)
+      .find((tab) => loc === TAB_META[tab].href || loc.startsWith(TAB_META[tab].href + "/")) ??
     "profile";
 
   const handleTabChange = (next: string) => {

@@ -656,7 +656,7 @@ export default function AdminNotificationSettings() {
   return (
     <div className="mx-auto max-w-[1200px] space-y-4 px-1 pb-4" dir="rtl">
       <div className="border-b border-border pb-4">
-        <h1 className="text-xl font-semibold tracking-tight">
+        <h1 className="sr-only">
           إعدادات الإشعارات
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
