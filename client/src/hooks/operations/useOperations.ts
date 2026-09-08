@@ -322,7 +322,12 @@ export function useOperations() {
       pricingConfig,
     );
     const amountFromRow = Number(row.amount ?? 0);
-    const gross = amountFromRow > 0 ? amountFromRow : defaults.amount;
+    // A zero entered in the accounts table is an intentional zero, not a
+    // request to fall back to the operation's default price. New rows already
+    // receive that default when they are created.
+    const gross = Number.isFinite(amountFromRow)
+      ? Math.max(amountFromRow, 0)
+      : 0;
     const rawDiscount = Number(row.discountValue ?? 0);
     const normalizedDiscount = Number.isFinite(rawDiscount)
       ? Math.max(rawDiscount, 0)

@@ -259,10 +259,10 @@ export function OperationTotals({
                 الإجمالي العام
               </td>
               <td className="border border-border p-2">
-                {accountingTotals.centerAmount.toFixed(2)}
+                {accountingTotals.paid.toFixed(2)}
               </td>
               <td className="border border-border p-2">
-                {accountingTotals.paid.toFixed(2)}
+                {accountingTotals.centerAmount.toFixed(2)}
               </td>
               <td className="border border-border p-2">
                 {accountingTotals.remainingAmount.toFixed(2)}
@@ -341,10 +341,10 @@ export function OperationTotals({
                 </tr>
                 <tr className="bg-muted font-semibold">
                   <td className="border border-border p-2" colSpan={5}>
-                    إجمالي التعديلات
+                    إجمالي التعديلات: {accountsAdjustmentsTotal.toFixed(2)}
                   </td>
                   <td className="border border-border p-2">
-                    {accountsAdjustmentsTotal.toFixed(2)}
+                    {accountingTotals.paid.toFixed(2)}
                   </td>
                   <td className="border border-border p-2">
                     {accountingTotals.centerAmount.toFixed(2)}

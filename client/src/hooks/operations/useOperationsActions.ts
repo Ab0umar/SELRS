@@ -147,8 +147,8 @@ export function useOperationsActions(operations: OperationsState) {
           operations.accountsAdjustments.cashbox.toFixed(2),
         )}</td></tr>
         <tr style="font-weight:700;background:#f5f5f5;">
-          <td colspan="5">إجمالي (الاشعه + خارجي + الصندوق)</td>
-          <td>${toHindi(operations.accountsAdjustmentsTotal.toFixed(2))}</td>
+          <td colspan="5">إجمالي التعديلات: ${toHindi(operations.accountsAdjustmentsTotal.toFixed(2))}</td>
+          <td>${toHindi(operations.accountingTotals.paid.toFixed(2))}</td>
           <td>${toHindi(operations.accountingTotals.centerAmount.toFixed(2))}</td>
           <td>${toHindi(operations.accountsNetAfterAdjustments.toFixed(2))}</td>
         </tr>
