@@ -175,6 +175,28 @@ export default function ExaminationPatientInfoTab({
     [mysqlDoctors],
   );
 
+  const nextServiceIndex = services.findIndex(
+    (service) => !service.code.trim(),
+  );
+  const servicePickerIndex = nextServiceIndex >= 0 ? nextServiceIndex : 0;
+
+  const selectService = (index: number, value: string) => {
+    if (!value || value === "none") {
+      updateService(index, { code: "", price: 0, discount: 0, qty: "" });
+      return;
+    }
+
+    const service = sortedServices.find((item) => item.code === value);
+    if (!service) return;
+
+    updateService(index, {
+      code: value,
+      price: Number(service.price || 0),
+      discount: 0,
+      qty: services[index]?.qty || "1",
+    });
+  };
+
   return (
     <TabsContent value="patient-info" className="examination-patient-info w-full">
       <Card className="border-0 shadow-none">
@@ -417,22 +439,8 @@ export default function ExaminationPatientInfoTab({
                   الخدمة
                 </Label>
                 <SearchableCombobox
-                  value={services[0]?.code || ""}
-                  onChange={(value) => {
-                    if (value && value !== "none") {
-                      const svc = sortedServices.find((s) => s.code === value);
-                      if (svc) {
-                        updateService(0, {
-                          code: value,
-                          price: Number(svc.price || 0),
-                          discount: 0,
-                          qty: services[0]?.qty || "1",
-                        });
-                      }
-                    } else {
-                      updateService(0, { code: "", price: 0, discount: 0, qty: "" });
-                    }
-                  }}
+                  value={services[servicePickerIndex]?.code || ""}
+                  onChange={(value) => selectService(servicePickerIndex, value)}
                   options={serviceOptions}
                   placeholder="اختر الخدمة"
                   searchPlaceholder="ابحث بالاسم أو الكود..."
@@ -493,11 +501,14 @@ export default function ExaminationPatientInfoTab({
                     key={idx}
                     className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_auto] items-center gap-2 rounded-lg border border-border/60 bg-background p-1.5"
                   >
-                    <span className="h-8 min-w-0 flex items-center truncate px-1 text-xs font-semibold text-foreground">
-                      {sortedServices.find((s) => s.code === srv.code)?.name ||
-                        srv.code ||
-                        "—"}
-                    </span>
+                    <SearchableCombobox
+                      value={srv.code}
+                      onChange={(value) => selectService(idx, value)}
+                      options={serviceOptions}
+                      placeholder="اختر الخدمة"
+                      searchPlaceholder="ابحث بالاسم أو الكود..."
+                      className="h-8 min-w-0 border-border/60 px-2 text-[11px] font-semibold"
+                    />
                     <Input
                       type="number"
                       value={srv.qty || "1"}

@@ -4,6 +4,7 @@ import { Download, Printer, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import PatientPicker from "@/components/PatientPicker";
 import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +28,9 @@ function diffDaysInclusive(from: string, to: string) {
   if (ms < 0) return "";
   return String(Math.floor(ms / 86_400_000) + 1);
 }
+
+const DEFAULT_CERTIFICATE_STATEMENT =
+  "يشهد المركز بأن المريض المذكور أدناه قد خضع لإجراء عملية تصحيح الإبصار، ويتطلب فترة راحة طبية لتقليل الإجهاد البصري وحماية العين أثناء مرحلة التعافي.";
 
 export default function PostOpOffdays() {
   const { isAuthenticated, user } = useAuth();
@@ -57,6 +61,9 @@ export default function PostOpOffdays() {
   const [returnDate, setReturnDate] = useState("");
   const [duration, setDuration] = useState("");
   const [method, setMethod] = useState("");
+  const [certificateStatement, setCertificateStatement] = useState(
+    DEFAULT_CERTIFICATE_STATEMENT,
+  );
   const [vaOd, setVaOd] = useState("");
   const [vaOs, setVaOs] = useState("");
   const [doctorName, setDoctorName] = useState("");
@@ -103,6 +110,9 @@ export default function PostOpOffdays() {
       cert.operationDate ? String(cert.operationDate).split("T")[0] : "",
     );
     setMethod(cert.method || "");
+    setCertificateStatement(
+      cert.certificateStatement || DEFAULT_CERTIFICATE_STATEMENT,
+    );
     setVaOd(cert.vaOD || "");
     setVaOs(cert.vaOS || "");
     setLeaveStart(cert.leaveStart ? String(cert.leaveStart).split("T")[0] : "");
@@ -129,6 +139,7 @@ export default function PostOpOffdays() {
         patientId,
         operationDate: operationDate || undefined,
         method: method || undefined,
+        certificateStatement: certificateStatement || undefined,
         vaOD: vaOd || undefined,
         vaOS: vaOs || undefined,
         leaveStart: leaveStart || undefined,
@@ -213,13 +224,32 @@ export default function PostOpOffdays() {
             padding-top: 1.6mm !important;
             padding-bottom: 1.6mm !important;
           }
-          .offdays-paper input {
+          .offdays-paper input,
+          .offdays-paper textarea {
             height: 7mm !important;
             min-height: 0 !important;
             font-size: 15px !important;
           }
           .offdays-status-table input {
             font-size: 16px !important;
+          }
+          .offdays-status-table textarea {
+            height: 32mm !important;
+            min-height: 32mm !important;
+            overflow: visible !important;
+          }
+          .offdays-statement,
+          .offdays-status-table textarea {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            line-height: 1.35 !important;
+          }
+          .offdays-statement {
+            height: 27mm !important;
+            min-height: 27mm !important;
+            width: 100% !important;
+            max-width: none !important;
+            box-sizing: border-box !important;
           }
           .offdays-paper .h-20 {
             height: 14mm !important;
@@ -309,16 +339,11 @@ export default function PostOpOffdays() {
           <div className="flex flex-col">
             <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
               <h3 className="mb-3 text-lg font-bold text-[#00355f]">إفادة</h3>
-              <p className="text-[15px] leading-8 text-[#161d1f]">
-                يشهد المركز بأن المريض المذكور أدناه قد خضع لإجراء{" "}
-                <Input
-                  value={method}
-                  onChange={(event) => setMethod(event.target.value)}
-                  className="mx-1 inline-flex h-8 w-52 border-0 border-b border-dotted border-[#727780] bg-transparent px-2 text-center text-base font-bold shadow-none focus-visible:ring-0"
-                />{" "}
-                ، ويتطلب فترة راحة طبية لتقليل الإجهاد البصري وحماية العين أثناء
-                مرحلة التعافي.
-              </p>
+              <Textarea
+                value={certificateStatement}
+                onChange={(event) => setCertificateStatement(event.target.value)}
+                className="offdays-statement block !w-full !max-w-none min-h-28 resize-none border-[#c2c7d1] bg-white px-3 py-2 text-lg font-bold leading-6 text-[#161d1f] shadow-none [field-sizing:fixed] focus-visible:ring-[#00355f]"
+              />
             </section>
 
             <section className="hidden">
@@ -363,12 +388,12 @@ export default function PostOpOffdays() {
               <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
                 قياسات ما بعد العملية / Post-Op Status
               </h3>
-              <table className="offdays-status-table w-full border-collapse text-center">
+              <table className="offdays-status-table w-full table-fixed border-collapse text-center">
                 <thead>
                   <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
-                    <th className="border border-[#c2c7d1] px-3 py-2">Eye</th>
-                    <th className="border border-[#c2c7d1] px-3 py-2">VA</th>
-                    <th className="border border-[#c2c7d1] px-3 py-2">
+                    <th className="w-[9%] border border-[#c2c7d1] px-3 py-2">Eye</th>
+                    <th className="w-[46%] border border-[#c2c7d1] px-3 py-2">VA</th>
+                    <th className="w-[45%] border border-[#c2c7d1] px-3 py-2">
                       Method
                     </th>
                   </tr>
@@ -385,11 +410,12 @@ export default function PostOpOffdays() {
                         className="h-10 border-0 text-center text-lg font-bold"
                       />
                     </td>
-                    <td className="border border-[#c2c7d1] p-0" rowSpan={2}>
-                      <Input
+                    <td className="border border-[#c2c7d1] p-0 align-middle" rowSpan={2}>
+                      <Textarea
                         value={method}
                         onChange={(event) => setMethod(event.target.value)}
-                        className="h-20 border-0 text-center text-lg font-bold"
+                        rows={5}
+                        className="h-[120px] min-h-[120px] resize-none border-0 px-3 py-2 text-center text-lg font-bold leading-6"
                         placeholder="PRK / LASIK"
                       />
                     </td>

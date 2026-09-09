@@ -1107,6 +1107,7 @@ export const medicalOpsRoutes = {
         patientId: z.number(),
         operationDate: z.string().optional(),
         method: z.string().optional(),
+        certificateStatement: z.string().max(2000).optional(),
         vaOD: z.string().optional(),
         vaOS: z.string().optional(),
         leaveStart: z.string().optional(),

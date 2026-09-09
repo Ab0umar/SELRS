@@ -197,6 +197,13 @@
       "when": 1787610659664,
       "tag": "0039_long_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1788958936279,
+      "tag": "0040_strange_the_phantom",
+      "breakpoints": true
     }
   ]
 }

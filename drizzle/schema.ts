@@ -604,6 +604,7 @@ export const postOpOffdaysCertificates = mysqlTable(
     patientId: int("patientId").notNull(),
     operationDate: date("operationDate"),
     method: varchar("method", { length: 255 }),
+    certificateStatement: text("certificateStatement"),
     vaOD: varchar("vaOD", { length: 32 }),
     vaOS: varchar("vaOS", { length: 32 }),
     leaveStart: date("leaveStart"),
