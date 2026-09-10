@@ -431,7 +431,7 @@ export default function ExaminationForm() {
     const data = (patientStateQuery.data as any)?.data;
     if (!data) return;
     if (data.sheetSelection) setSheetSelection(data.sheetSelection);
-    if (data.visitDate && data.visitDate >= localISODate()) setVisitDate(data.visitDate);
+      if (data.visitDate && data.visitDate >= localISODate()) setVisitDate(data.visitDate);
     if (data.doctorName !== undefined) setDoctorName(data.doctorName ?? "");
     if (data.medicalChecklist) {
       setMedicalChecklist((prev) => ({ ...prev, ...data.medicalChecklist }));
@@ -811,7 +811,9 @@ export default function ExaminationForm() {
           return;
         }
         const created = await createPatientFromExamMutation.mutateAsync({
-          patientCode: patientInfo.code || undefined,
+          // A displayed next-code is not a reservation. Let the server
+          // allocate it atomically at save time for new patients.
+          patientCode: undefined,
           fullName: patientInfo.name.trim(),
           dateOfBirth: patientDetails.dateOfBirth || undefined,
           age: patientDetails.age ? Number(patientDetails.age) : undefined,

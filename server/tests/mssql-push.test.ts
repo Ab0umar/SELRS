@@ -235,7 +235,7 @@ describe.sequential("MSSQL push wiring", () => {
   });
 
   it("createPatientFromExamination existing patient pushes with existing patientCode", async () => {
-    await seedPatient({
+    const existing = await seedPatient({
       patientCode: "PUSH-EXIST-002",
       fullName: "Exam Existing Push Patient",
       phone: "01080000007",
@@ -243,6 +243,7 @@ describe.sequential("MSSQL push wiring", () => {
     const caller = appRouter.createCaller(makeCallerAs("reception"));
 
     await caller.medical.createPatientFromExamination({
+      patientId: Number(existing?.id),
       fullName: "Exam Existing Push Patient",
       phone: "01080000007",
       serviceType: "consultant",
@@ -253,6 +254,126 @@ describe.sequential("MSSQL push wiring", () => {
     expect(
       vi.mocked(mssqlPatients.insertPatientToMssql).mock.calls[0]?.[0],
     ).toBeDefined();
+  });
+
+  it("rejects an identity match without an explicit patient selection before any write", async () => {
+    const existing = await seedPatient({
+      patientCode: "MATCH-001",
+      fullName: "Matching Patient",
+      phone: "01080000019",
+    });
+    await db.updatePatient(existing.id, {
+      age: 31,
+      address: "Original address",
+    });
+    const caller = appRouter.createCaller(makeCallerAs("reception"));
+    await expect(
+      caller.medical.createPatientFromExamination({
+        fullName: "Matching Patient",
+        age: 31,
+        phone: "01080000019",
+        address: "Must not replace old data",
+        locationType: "center",
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(mssqlPatients.insertPatientToMssql).not.toHaveBeenCalled();
+    expect(mssqlPatients.createOrSyncPatientFromMssql).not.toHaveBeenCalled();
+    expect((await db.getPatientById(existing.id))?.address).toBe(
+      "Original address",
+    );
+  });
+
+  it.each(["overlapping", "after-first-save"] as const)(
+    "preserves two registrations sharing a suggested code: %s",
+    async (schedule) => {
+      // Exercise the real router and MySQL persistence; simulate only MSSQL.
+      const saved = new Map<string, { fullName: string; phone: string }>();
+      let sequence = 120;
+      let signalFirst!: () => void;
+      let releaseFirst!: () => void;
+      const firstReached = new Promise<void>((resolve) => {
+        signalFirst = resolve;
+      });
+      const firstReleased = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      vi.mocked(mssqlPatients.insertPatientToMssql).mockImplementation(
+        async (input) => {
+          const code = input.allocatePatientCode
+            ? String(++sequence)
+            : input.patientCode;
+          saved.set(code, {
+            fullName: input.fullName,
+            phone: input.phone ?? "",
+          });
+          if (input.fullName === "Reception First") {
+            signalFirst();
+            if (schedule === "overlapping") await firstReleased;
+          } else {
+            releaseFirst();
+          }
+          return { inserted: true, patientCode: code, trNo: sequence };
+        },
+      );
+      vi.mocked(mssqlPatients.createOrSyncPatientFromMssql).mockImplementation(
+        async (code) => {
+          const row = saved.get(code)!;
+          const existing = await db.getPatientByCode(code);
+          if (existing) {
+            await db.updatePatient(existing.id, row);
+            return { patientId: existing.id, created: false };
+          }
+          const created = await seedPatient({ patientCode: code, ...row });
+          return { patientId: created.id, created: true };
+        },
+      );
+      const caller = appRouter.createCaller(makeCallerAs("reception"));
+      const first = caller.medical.createPatientFromExamination({
+        patientCode: "121",
+        fullName: "Reception First",
+        phone: "01080000021",
+        locationType: "center",
+      });
+      if (schedule === "overlapping") await firstReached;
+      else await first;
+      const second = caller.medical.createPatientFromExamination({
+        patientCode: "121",
+        fullName: "Reception Second",
+        phone: "01080000022",
+        locationType: "center",
+      });
+      const results = await Promise.all([first, second]);
+      expect(results.map((r) => r.patientCode)).toEqual(["121", "122"]);
+      expect(results[0].id).not.toBe(results[1].id);
+      expect((await db.getPatientById(results[0].id))?.fullName).toBe(
+        "Reception First",
+      );
+      expect((await db.getPatientById(results[1].id))?.fullName).toBe(
+        "Reception Second",
+      );
+    },
+  );
+
+  it("ignores a stale prefilled code when registering a different new patient", async () => {
+    await seedPatient({
+      patientCode: "PUSH-STALE-001",
+      fullName: "First Reception Patient",
+      phone: "01080000017",
+    });
+    const caller = appRouter.createCaller(makeCallerAs("reception"));
+
+    await caller.medical.createPatientFromExamination({
+      // This is the code the second receptionist saw before the first save.
+      patientCode: "PUSH-STALE-001",
+      fullName: "Second Reception Patient",
+      phone: "01080000018",
+      serviceType: "consultant",
+      locationType: "center",
+    });
+
+    expect(mssqlPatients.insertPatientToMssql).toHaveBeenCalledWith(
+      expect.objectContaining({ patientCode: "", allocatePatientCode: true }),
+    );
   });
 
   it("updatePatient pushes to MSSQL with matching patientCode and updated fullName", async () => {

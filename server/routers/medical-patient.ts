@@ -797,6 +797,9 @@ export const medicalPatientRoutes = {
   createPatientFromExamination: protectedProcedure
     .input(
       z.object({
+        // A patient code shown by the UI before save is only a suggestion.
+        // Existing-patient updates must identify the record by its immutable id.
+        patientId: z.number().int().positive().optional(),
         patientCode: z.string().optional(),
         fullName: z.string(),
         dateOfBirth: z.string().optional(),
@@ -856,20 +859,36 @@ export const medicalPatientRoutes = {
         );
       try {
         // ── Step 1: resolve patientCode ────────────────────────────────────
-        let patientCode = String(input.patientCode ?? "").trim();
-        const existingPatient = patientCode
-          ? await db.getPatientByCode(patientCode)
-          : await findExistingPatientByNameAgeAndPhone(
+        let patientCode = "";
+        const requestedPatientId = Number(input.patientId ?? 0);
+        const existingPatient = requestedPatientId
+          ? await db.getPatientById(requestedPatientId)
+          : null;
+        if (!requestedPatientId) {
+          const possibleDuplicate = await findExistingPatientByNameAgeAndPhone(
               input.fullName,
               input.age,
               input.phone,
             );
+          if (possibleDuplicate) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "يوجد مريض بنفس الاسم والسن ورقم الهاتف. اختر المريض الموجود من البحث قبل الحفظ.",
+            });
+          }
+        }
+        if (requestedPatientId && !existingPatient) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Patient not found",
+          });
+        }
         if (existingPatient) {
           patientCode = String(
-            (existingPatient as any)?.patientCode ?? patientCode,
+            (existingPatient as any)?.patientCode ?? "",
           ).trim();
         }
-        const allocatePatientCode = !existingPatient;
+        const allocatePatientCode = !requestedPatientId;
         if (allocatePatientCode) patientCode = "";
         _mark("patientCode resolved");
 

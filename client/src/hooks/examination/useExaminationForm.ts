@@ -1388,7 +1388,13 @@ export function useExaminationForm(
         );
 
         const created = await createPatientFromExamMutation.mutateAsync({
-          patientCode: patientInfo.code || undefined,
+          // Do not send the prefilled code for a new patient. It may have
+          // been displayed to another receptionist too; the server allocates
+          // the final code while holding the MSSQL allocation lock.
+          patientId: patientInfo.id || undefined,
+          patientCode: patientInfo.id
+            ? patientInfo.code || undefined
+            : undefined,
           fullName: patientInfo.name.trim(),
           dateOfBirth: patientDetails.dateOfBirth || undefined,
           age: patientDetails.age ? Number(patientDetails.age) : undefined,
@@ -1429,7 +1435,10 @@ export function useExaminationForm(
       } else {
         // Existing patient: preserve the visit date of the examination being edited.
         const updated = await createPatientFromExamMutation.mutateAsync({
-          patientCode: patientInfo.code || undefined,
+          patientId: patientInfo.id || undefined,
+          patientCode: patientInfo.id
+            ? patientInfo.code || undefined
+            : undefined,
           fullName: patientInfo.name.trim(),
           dateOfBirth: patientDetails.dateOfBirth || undefined,
           age: patientDetails.age ? Number(patientDetails.age) : undefined,
