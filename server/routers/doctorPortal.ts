@@ -81,6 +81,7 @@ export const doctorPortalRouter = router({
           type: "externalDoctor",
           doctorId: doctor.id,
           username: doctor.username,
+          authVersion: doctor.authVersion,
         },
         ENV.JWT_SECRET,
         { expiresIn: DOCTOR_SESSION_TTL_S },

@@ -34,7 +34,9 @@ import { startPunchReception } from "../services/attendance/punchReception.servi
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import { autoLinkUnlinkedPentacamFiles } from "../routers/medical-pentacam";
 import mysql from "mysql2/promise";
+import jwt from "jsonwebtoken";
 import { getBuildInfo } from "./buildInfo";
+import { ENV } from "./env";
 import {
   uploadToS3,
   downloadFromS3,
@@ -57,6 +59,30 @@ type Srv100UploadRow = {
   patient_code: string | null;
   created_at: Date | string;
 };
+
+async function requireStaffApiAccess(
+  req: express.Request,
+  res: express.Response,
+): Promise<boolean> {
+  const user = await authService.authenticateRequest(req);
+  if (!user) {
+    res.status(401).json({ ok: false, error: "Authentication required" });
+    return false;
+  }
+  return true;
+}
+
+async function requireAdminApiAccess(
+  req: express.Request,
+  res: express.Response,
+): Promise<boolean> {
+  const user = await authService.authenticateRequest(req);
+  if (!user || user.role !== "admin") {
+    res.status(403).json({ ok: false, error: "Admin access required" });
+    return false;
+  }
+  return true;
+}
 
 type Srv100FolderImportOptions = {
   enabled: boolean;
@@ -937,6 +963,75 @@ async function withDb<T>(run: (conn: mysql.Connection) => Promise<T>) {
   }
 }
 
+/**
+ * srv100 uploads contain clinical images. Never serve them merely because an
+ * upload id is known: allow staff, the owning patient, or a currently-active
+ * external doctor assigned to that patient.
+ */
+async function canReadSrv100Upload(
+  req: express.Request,
+  patientId: number | null,
+): Promise<boolean> {
+  if (await authService.authenticateRequest(req)) return true;
+  if (!patientId) return false;
+
+  try {
+    const patientToken = req.header("x-patient-token");
+    if (patientToken) {
+      const payload = jwt.verify(patientToken, ENV.JWT_SECRET) as {
+        type?: string;
+        patientId?: number;
+      };
+      if (payload.type === "patient" && payload.patientId === patientId) {
+        const active = await withDb(async (conn) => {
+          const [rows] = await conn.query(
+            `SELECT 1 FROM patient_portal_sessions
+             WHERE token = ? AND patientId = ? AND expiresAt > NOW()
+             LIMIT 1`,
+            [patientToken, patientId],
+          );
+          return (rows as unknown[]).length > 0;
+        });
+        if (active) return true;
+      }
+    }
+
+    const doctorToken = req.header("x-doctor-token");
+    if (!doctorToken) return false;
+    const payload = jwt.verify(doctorToken, ENV.JWT_SECRET) as {
+      type?: string;
+      doctorId?: number;
+      authVersion?: number;
+    };
+    if (
+      payload.type !== "externalDoctor" ||
+      !payload.doctorId ||
+      typeof payload.authVersion !== "number"
+    ) return false;
+
+    return await withDb(async (conn) => {
+      const [rows] = await conn.query(
+        `SELECT 1
+         FROM external_doctors d
+         JOIN patients p ON p.id = ?
+         LEFT JOIN external_doctor_referrals r
+           ON r.external_doctor_id = d.id
+          AND r.patient_code = p.patientCode
+          AND r.is_active = 1
+         WHERE d.id = ?
+           AND d.is_active = 1
+           AND d.auth_version = ?
+           AND (r.id IS NOT NULL OR (d.doctor_code IS NOT NULL AND d.doctor_code = p.doctorCode))
+         LIMIT 1`,
+        [patientId, payload.doctorId, payload.authVersion],
+      );
+      return (rows as unknown[]).length > 0;
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function startSrv100FolderImporter() {
   const cfg = getSrv100FolderImportOptions();
   if (!cfg.enabled) {
@@ -1448,7 +1543,9 @@ async function startServer() {
         "base-uri 'self'",
         "object-src 'none'",
         "frame-ancestors 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+        // Keep development tooling separate from the production policy: the
+        // deployed SPA does not need eval(), which would weaken XSS containment.
+        `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https:`,
         "style-src 'self' 'unsafe-inline' https:",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https:",
@@ -1560,6 +1657,10 @@ async function startServer() {
   // Black Ice uploads: list recent uploaded docs for UI.
   app.get("/api/srv100/uploads", async (req, res) => {
     try {
+      if (!(await authService.authenticateRequest(req))) {
+        res.status(401).json({ ok: false, error: "Authentication required" });
+        return;
+      }
       const limitRaw = Number(req.query.limit ?? 100);
       const limit = Number.isFinite(limitRaw)
         ? Math.max(1, Math.min(1000, limitRaw))
@@ -1679,7 +1780,7 @@ async function startServer() {
       // First query: metadata only — no file_data BLOB (can be multi-MB, wasteful if s3_key exists)
       const row = await withDb(async (conn) => {
         const [result] = await conn.query(
-          `SELECT id, document_id, file_name, mime_type, s3_key, created_at
+          `SELECT id, document_id, file_name, mime_type, s3_key, patient_id, created_at
            FROM srv100_uploads
            WHERE id = ?
            LIMIT 1`,
@@ -1692,6 +1793,7 @@ async function startServer() {
               file_name: string | null;
               mime_type: string | null;
               s3_key: string | null;
+              patient_id: number | null;
               created_at: Date | string;
             }
           | undefined;
@@ -1702,7 +1804,12 @@ async function startServer() {
         return;
       }
 
-      if (row.s3_key) {
+      if (!(await canReadSrv100Upload(req, row.patient_id))) {
+        res.status(403).json({ ok: false, error: "Upload access denied" });
+        return;
+      }
+
+      if (row.s3_key && String(req.query.proxy ?? "0") !== "1") {
         // Redirect to a pre-signed S3 URL — browser fetches directly, server is not in the data path
         try {
           const signedUrl = await getPresignedUrlFromS3(row.s3_key, 3600);
@@ -1757,8 +1864,13 @@ async function startServer() {
     }
   });
 
-  app.post("/api/srv100/uploads/ocr-link/run", async (_req, res) => {
+  app.post("/api/srv100/uploads/ocr-link/run", async (req, res) => {
     try {
+      const user = await authService.authenticateRequest(req);
+      if (!user || user.role !== "admin") {
+        res.status(403).json({ ok: false, error: "Admin access required" });
+        return;
+      }
       if (srv100DbCycleBusy) {
         res.status(409).json({
           ok: false,
@@ -1900,8 +2012,9 @@ async function startServer() {
   });
 
   // Bulk link srv100_uploads to patients by filename/document_id code extraction (no OCR).
-  app.post("/api/srv100/uploads/link-by-filename", async (_req, res) => {
+  app.post("/api/srv100/uploads/link-by-filename", async (req, res) => {
     try {
+      if (!(await requireAdminApiAccess(req, res))) return;
       let linked = 0;
       let processed = 0;
       const BATCH = 2000;
@@ -1953,8 +2066,9 @@ async function startServer() {
     }
   });
 
-  app.post("/api/srv100/uploads/fix-duplicates", async (_req, res) => {
+  app.post("/api/srv100/uploads/fix-duplicates", async (req, res) => {
     try {
+      if (!(await requireAdminApiAccess(req, res))) return;
       const [r1] = await withDb(async (conn) =>
         conn.query(
           `UPDATE srv100_uploads b
@@ -2079,8 +2193,9 @@ async function startServer() {
   }
 
   // Pentacam exports: list files and serve image assets.
-  app.get("/api/pentacam/s3-debug", async (_req, res) => {
+  app.get("/api/pentacam/s3-debug", async (req, res) => {
     try {
+      if (!(await requireAdminApiAccess(req, res))) return;
       const objects = await listObjectsInS3("");
       res.status(200).json({
         count: objects.length,
@@ -2092,6 +2207,7 @@ async function startServer() {
   });
   app.get("/api/pentacam/exports", async (req, res) => {
     try {
+      if (!(await requireStaffApiAccess(req, res))) return;
       const limitRaw = Number(req.query.limit ?? 10000);
       const limit = Number.isFinite(limitRaw)
         ? Math.max(1, Math.min(100000, limitRaw))
@@ -2150,16 +2266,18 @@ async function startServer() {
       const sliced = files.slice(0, limit);
       res.status(200).json({ ok: true, count: sliced.length, files: sliced });
     } catch (error: any) {
+      console.error("[pentacam-exports] Failed to list exports", error);
       res.status(500).json({
         ok: false,
         count: 0,
         files: [],
-        error: String(error?.message ?? "Failed to list Pentacam exports"),
+        error: "Failed to list Pentacam exports",
       });
     }
   });
   app.get("/api/pentacam/exports/file/:name", async (req, res) => {
     try {
+      if (!(await requireStaffApiAccess(req, res))) return;
       let rawName = String(req.params.name ?? "").trim();
       try {
         rawName = decodeURIComponent(rawName);
@@ -2182,6 +2300,7 @@ async function startServer() {
           ? "image/webp"
           : "image/jpeg";
       res.setHeader("Content-Type", mimeType);
+      res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Content-Length", String(fileBuffer.length));
       res.setHeader("Cache-Control", "private, max-age=60");
       res.setHeader(
@@ -2190,9 +2309,10 @@ async function startServer() {
       );
       res.status(200).send(fileBuffer);
     } catch (error: any) {
+      console.error("[pentacam-exports] Failed to read image", error);
       res.status(500).json({
         ok: false,
-        error: String(error?.message ?? "Failed to read Pentacam image"),
+        error: "Failed to read Pentacam image",
       });
     }
   });
@@ -2211,20 +2331,9 @@ async function startServer() {
       fallthrough: true,
     }),
   );
-  app.use(
-    "/pentacam-exports",
-    express.static(pentacamExportsDir, { maxAge: "1h", fallthrough: true }),
-  );
-  app.use(
-    "/pentacam-failed",
-    express.static(
-      path.resolve(process.cwd(), "Pentacam", "Watcher", "_failed"),
-      {
-        maxAge: "5m",
-        fallthrough: true,
-      },
-    ),
-  );
+  // Clinical export folders deliberately have no public static route. Images
+  // are served through authenticated API handlers above, which authorize the
+  // staff member, patient, or assigned external doctor for each upload.
   // Electron auto-updater: serve installer files from desktop-electron/
   const electronUpdatesDir = path.resolve(process.cwd(), "desktop-electron");
   app.use(
@@ -2255,8 +2364,14 @@ async function startServer() {
       error: fbError,
     } = req.query as Record<string, string | undefined>;
 
-    const appOrigin =
-      process.env.FB_APP_ORIGIN || `${req.protocol}://${req.get("host")}`;
+    const configuredAppOrigin = String(process.env.FB_APP_ORIGIN ?? "").trim();
+    if (!configuredAppOrigin && process.env.NODE_ENV === "production") {
+      res.status(503).send("Facebook OAuth origin is not configured");
+      return;
+    }
+    // A Host header is attacker-controlled. It is only an acceptable fallback
+    // for local development; deployed OAuth callbacks must use a fixed origin.
+    const appOrigin = configuredAppOrigin || `${req.protocol}://${req.get("host")}`;
     const settingsUrl = `${appOrigin}/marketing/settings`;
 
     if (fbError) {

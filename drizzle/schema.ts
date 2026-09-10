@@ -2555,6 +2555,7 @@ export const externalDoctors = mysqlTable("external_doctors", {
   phone: varchar("phone", { length: 20 }),
   doctorCode: varchar("doctor_code", { length: 64 }),
   isActive: boolean("is_active").default(true).notNull(),
+  authVersion: int("auth_version").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

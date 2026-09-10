@@ -109,7 +109,12 @@ export const externalDoctorsRouter = router({
       if (fields.phone !== undefined) update.phone = fields.phone || null;
       if (fields.doctorCode !== undefined)
         update.doctorCode = fields.doctorCode || null;
-      if (fields.isActive !== undefined) update.isActive = fields.isActive;
+      if (fields.isActive !== undefined) {
+        update.isActive = fields.isActive;
+        // Invalidates tokens immediately when an external doctor is disabled
+        // or re-enabled after an access review.
+        update.authVersion = sql`${externalDoctors.authVersion} + 1`;
+      }
       if (Object.keys(update).length === 0) return { success: true };
       await db
         .update(externalDoctors)
@@ -135,7 +140,10 @@ export const externalDoctorsRouter = router({
       const passwordHash = await bcryptjs.hash(input.newPassword, 10);
       await db
         .update(externalDoctors)
-        .set({ passwordHash } as any)
+        .set({
+          passwordHash,
+          authVersion: sql`${externalDoctors.authVersion} + 1`,
+        } as any)
         .where(eq(externalDoctors.id, input.id));
       return { success: true };
     }),

@@ -83,7 +83,8 @@ export function registerWhatsAppWebhook(app: Express) {
       res.status(200).send(String(challenge ?? ""));
       return;
     }
-    console.warn("[whatsapp-webhook] Verification failed", { mode, token });
+    // The verification token is a credential; never echo it into application logs.
+    console.warn("[whatsapp-webhook] Verification failed", { mode });
     res.sendStatus(403);
   });
 

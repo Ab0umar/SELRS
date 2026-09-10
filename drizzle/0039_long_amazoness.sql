@@ -66,7 +66,7 @@ ALTER TABLE `attendance_daily` MODIFY COLUMN `shift_id` int NOT NULL;--> stateme
 ALTER TABLE `attendance_permissions` MODIFY COLUMN `perm_type` enum('in','out','mission') NOT NULL;--> statement-breakpoint
 ALTER TABLE `booking_closures` MODIFY COLUMN `bookingType` enum('consultant','specialist','pentacam','external','followup');--> statement-breakpoint
 ALTER TABLE `booking_schedule_config` MODIFY COLUMN `bookingType` enum('consultant','specialist','pentacam','external','followup') NOT NULL;--> statement-breakpoint
-ALTER TABLE `patient_portal_bookings` MODIFY COLUMN `bookingType` enum('consultant','specialist','pentacam','external','followup') NOT NULL;--> statement-breakpoint
+ALTER TABLE `patient_portal_bookings` MODIFY COLUMN `bookingType` enum('consultant','specialist','lasik','pentacam','external','followup') NOT NULL;--> statement-breakpoint
 ALTER TABLE `attendance_daily` ADD PRIMARY KEY(`emp_cd`,`work_date`,`shift_id`);--> statement-breakpoint
 ALTER TABLE `attendance_daily` ADD `overtime_in_minutes` int DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE `attendance_daily` ADD `overtime_out_minutes` int DEFAULT 0 NOT NULL;--> statement-breakpoint

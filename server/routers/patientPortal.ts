@@ -151,6 +151,19 @@ export const patientPortalRouter = router({
 
   // ── Patient-authenticated ─────────────────────────────────────────────────
 
+  logout: patientPortalProcedure.mutation(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db)
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "DB unavailable",
+      });
+    await db
+      .delete(patientPortalSessions)
+      .where(eq(patientPortalSessions.token, ctx.patientSession.token));
+    return { ok: true };
+  }),
+
   getMyProfile: patientPortalProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db)
@@ -527,6 +540,21 @@ export const patientPortalRouter = router({
   }),
 
   // ── Staff / Admin ─────────────────────────────────────────────────────────
+
+  revokePatientSessions: adminProcedure
+    .input(z.object({ patientId: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      await db
+        .delete(patientPortalSessions)
+        .where(eq(patientPortalSessions.patientId, input.patientId));
+      return { ok: true };
+    }),
 
   listBookings: receptionProcedure
     .input(

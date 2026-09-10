@@ -93,7 +93,7 @@ describe("Role-based procedure protection", () => {
   });
 
   it.each([
-    ["viewer", "patient.createPatient"],
+    ["viewer", "medical.createPatient"],
     ["viewer", "medical.saveMedicalConditionReportTemplate"],
     ["reception", "medical.saveMedicalConditionReportTemplate"],
     ["viewer", "attendance.createLeave"],
@@ -101,8 +101,8 @@ describe("Role-based procedure protection", () => {
   ])("rejects %s from %s", async (role, procedure) => {
     const caller = appRouter.createCaller(makeCallerAs(role));
     const calls: Record<string, () => Promise<unknown>> = {
-      "patient.createPatient": () =>
-        caller.patient.createPatient({
+      "medical.createPatient": () =>
+        caller.medical.createPatient({
           fullName: "Unauthorized",
           phone: "01000000000",
         }),

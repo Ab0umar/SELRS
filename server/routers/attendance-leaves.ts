@@ -723,7 +723,7 @@ export const attendanceLeavesRoutes = {
 
       if (perm && perm.approved) {
         try {
-          const dateObj = new Date(String(perm.date) + "T12:00:00");
+          const dateObj = new Date(`${fmtDate(perm.date)}T12:00:00`);
           // Recompute daily records (recomputes lateMinutes, earlyLeaveMin, etc.)
           await dailyMaterializer.recomputeRange(dateObj, dateObj, {
             empCd: perm.empCd,

@@ -4,7 +4,7 @@ import { authService } from "./auth";
 import jwt from "jsonwebtoken";
 import { ENV } from "./env";
 import { getDb } from "../db";
-import { patientPortalSessions } from "../../drizzle/schema";
+import { externalDoctors, patientPortalSessions } from "../../drizzle/schema";
 import { and, eq, gt } from "drizzle-orm";
 
 export type PatientSession = {
@@ -77,15 +77,36 @@ export async function createContext(
   try {
     const raw = opts.req.headers["x-doctor-token"] as string | undefined;
     if (raw) {
-      const payload = jwt.verify(raw, ENV.JWT_SECRET) as any;
+      const payload = jwt.verify(raw, ENV.JWT_SECRET) as {
+        type?: string;
+        doctorId?: number;
+        username?: string;
+        authVersion?: number;
+      };
       if (
-        payload?.type === "externalDoctor" &&
-        typeof payload?.doctorId === "number"
+        payload.type === "externalDoctor" &&
+        typeof payload.doctorId === "number" &&
+        typeof payload.authVersion === "number"
       ) {
-        doctorSession = {
-          doctorId: payload.doctorId,
-          username: String(payload.username ?? ""),
-        };
+        const db = await getDb();
+        if (db) {
+          const [doctor] = await db
+            .select({
+              id: externalDoctors.id,
+              username: externalDoctors.username,
+              authVersion: externalDoctors.authVersion,
+              isActive: externalDoctors.isActive,
+            })
+            .from(externalDoctors)
+            .where(eq(externalDoctors.id, payload.doctorId))
+            .limit(1);
+          if (doctor?.isActive && doctor.authVersion === payload.authVersion) {
+            doctorSession = {
+              doctorId: doctor.id,
+              username: doctor.username,
+            };
+          }
+        }
       }
     }
   } catch {
