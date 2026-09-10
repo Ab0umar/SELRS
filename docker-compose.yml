@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0-alpine
+    container_name: selrs-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_change_me
+      MYSQL_DATABASE: selrs_db
+      MYSQL_USER: selrs_user
+      MYSQL_PASSWORD: selrs_password_change_me
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - selrs-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: selrs-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      HOST: 0.0.0.0
+      DATABASE_URL: mysql://selrs_user:selrs_password_change_me@mysql:3306/selrs_db
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-at-least-32-random-characters-in-production}
+      CORS_ALLOWED_ORIGINS: http://localhost:4000,http://app:4000
+      # Optional: Configure FCM, MSSQL, device connections via env vars
+      # FCM_PROJECT_ID: your_project_id
+      # MSSQL_SERVER: your_mssql_server
+      # ATTENDANCE_DEVICE_IP: 192.168.0.10
+      # ZK_DEVICE_IP: 192.168.0.10
+    ports:
+      - "4000:4000"
+    networks:
+      - selrs-net
+    restart: unless-stopped
+    # Run migrations before starting app (uncomment if auto-migration is desired)
+    # command: sh -c "pnpm db:migrate && node dist/index.js"
+
+volumes:
+  mysql-data:
+
+networks:
+  selrs-net:
+    driver: bridge

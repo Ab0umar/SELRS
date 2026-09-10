@@ -1,0 +1,42 @@
+# Complete multi-stage build (requires successful local build)
+# For complex projects with interdependent build scripts, build locally first then use production image
+
+FROM node:22-alpine AS dependencies
+
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable pnpm && \
+    pnpm fetch
+
+FROM dependencies AS builder
+
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN NODE_ENV=production pnpm run build
+
+FROM dependencies AS prod-deps
+
+RUN pnpm install --prod --frozen-lockfile
+
+FROM node:22-alpine AS runtime
+
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy built application and prod dependencies
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./
+COPY --from=prod-deps /app/node_modules ./node_modules
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
+
+EXPOSE 4000
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+USER nodejs
+
+CMD ["node", "dist/index.js"]
