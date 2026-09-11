@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useMedicalFileLauncher } from "@/hooks/useMedicalFileLauncher";
@@ -1341,7 +1342,8 @@ export default function Dashboard() {
   });
 
   // Lightweight badge data loaded on mount.
-  const { merged } = useTodayQueuePatientsMerged(selectedDate);
+  const queue = useTodayQueuePatientsMerged(selectedDate);
+  const { merged } = queue;
   const attQ = trpc.attendance.dashboardSummary.useQuery(undefined, {
     refetchInterval: 60_000,
   });
@@ -1406,6 +1408,7 @@ export default function Dashboard() {
       dir="rtl"
     >
       <div className="w-full space-y-6">
+        <QueueLoadStatus {...queue} />
         {medicalFilePortal}
         <OperationsBookingQuickDialog
           open={bookingOpen}

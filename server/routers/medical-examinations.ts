@@ -2417,7 +2417,7 @@ export const medicalExaminationsRoutes = {
           "clinic2",
           "pentacam",
           "treated",
-        ]),
+        ]).optional(),
       }),
     )
     .query(async ({ input }) => {
@@ -2444,6 +2444,8 @@ export const medicalExaminationsRoutes = {
         const patientMap = new Map();
         for (const visit of visits) {
           const patientId = visit.patientId;
+          // Preserve per-stage membership when returning the combined snapshot.
+          const patientKey = `${visit.queueStatus}:${patientId}`;
           const row = {
             id: patientId,
             patientCode: visit.patientCode,
@@ -2470,11 +2472,11 @@ export const medicalExaminationsRoutes = {
             hasQueueCompletionData:
               Number(visit.hasQueueCompletionData ?? 0) === 1,
           };
-          if (!patientMap.has(patientId)) {
-            patientMap.set(patientId, row);
+          if (!patientMap.has(patientKey)) {
+            patientMap.set(patientKey, row);
           } else if (visit.visitType === "followup") {
             // Followup visit overrides an earlier consultation visit for the same patient.
-            patientMap.set(patientId, row);
+            patientMap.set(patientKey, row);
           }
         }
 

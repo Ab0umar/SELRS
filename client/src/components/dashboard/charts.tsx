@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import {
   Area,
   AreaChart,
@@ -19,7 +20,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
-import { cn, localISODate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Inbox } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useMemo, useId } from "react";
@@ -176,6 +177,7 @@ const queueConfig: ChartConfig = {
 };
 
 const QUEUE_COLORS: Record<string, string> = {
+  pentacam: "var(--secondary)",
   checkedIn: "hsl(38, 92%, 50%)",
   next: "hsl(215, 80%, 55%)",
   clinic: "hsl(190, 70%, 45%)",
@@ -187,68 +189,47 @@ const QUEUE_LABELS_AR: Record<string, string> = {
   next: "التالي",
   clinic1: "عيادة 1",
   clinic2: "عيادة 2",
+  pentacam: "البنتاكام",
   treated: "تم العلاج",
 };
 
 export function AppointmentDistributionChart() {
-  const todayIso = useMemo(() => localISODate(), []);
-  const checkedIn = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "checkedIn",
-  });
-  const next = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "next",
-  });
-  const clinic1 = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "clinic1",
-  });
-  const clinic2 = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "clinic2",
-  });
-  const treated = trpc.medical.getTodayPatientsByQueueStatus.useQuery({
-    date: todayIso,
-    queueStatus: "treated",
-  });
-
-  const isLoading =
-    checkedIn.isLoading ||
-    next.isLoading ||
-    clinic1.isLoading ||
-    clinic2.isLoading ||
-    treated.isLoading;
+  const queue = useTodayQueuePatientsMerged(undefined, { includeExternal: true });
+  const { byStatus, isLoading } = queue;
 
   const data = [
     {
       key: "checkedIn",
       name: QUEUE_LABELS_AR.checkedIn,
-      value: checkedIn.data?.length ?? 0,
+      value: byStatus.checkedIn.length,
     },
-    { key: "next", name: QUEUE_LABELS_AR.next, value: next.data?.length ?? 0 },
+    { key: "next", name: QUEUE_LABELS_AR.next, value: byStatus.next.length },
+    { key: "pentacam", name: QUEUE_LABELS_AR.pentacam, value: byStatus.pentacam.length },
     {
       key: "clinic1",
       name: QUEUE_LABELS_AR.clinic1,
-      value: clinic1.data?.length ?? 0,
+      value: byStatus.clinic1.length,
     },
     {
       key: "clinic2",
       name: QUEUE_LABELS_AR.clinic2,
-      value: clinic2.data?.length ?? 0,
+      value: byStatus.clinic2.length,
     },
     {
       key: "treated",
       name: QUEUE_LABELS_AR.treated,
-      value: treated.data?.length ?? 0,
+      value: byStatus.treated.length,
     },
   ].filter((d) => d.value > 0);
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
+  if (queue.isError && !queue.hasData) return <QueueLoadStatus {...queue} />;
+
   if (isLoading) {
     return (
       <div className="space-y-1">
+        <QueueLoadStatus {...queue} />
         <p className="text-sm text-muted-foreground">حالة المرضى الحالي</p>
         <Skeleton className="h-[180px] sm:h-[200px] w-full" />
       </div>
@@ -258,6 +239,7 @@ export function AppointmentDistributionChart() {
   if (total === 0) {
     return (
       <div className="space-y-1">
+        <QueueLoadStatus {...queue} />
         <p className="text-sm text-muted-foreground">حالة المرضى الحالي</p>
         <EmptyChart message="لا يوجد مرضى في المرضى اليوم" />
       </div>
@@ -266,6 +248,7 @@ export function AppointmentDistributionChart() {
 
   return (
     <div className="space-y-1">
+        <QueueLoadStatus {...queue} />
       <p className="text-sm text-muted-foreground">حالة المرضى الحالي</p>
       <ChartContainer
         config={queueConfig}
@@ -313,7 +296,8 @@ const workloadChartConfig: ChartConfig = {
 
 /** توزيع نوع الخدمة لمراجعي اليوم (من المرضى الممزوج live). */
 export function DepartmentWorkloadChart() {
-  const { merged, isLoading } = useTodayQueuePatientsMerged();
+  const queue = useTodayQueuePatientsMerged();
+  const { merged, isLoading } = queue;
 
   const data = useMemo(() => {
     const m = new Map<string, number>();
@@ -333,9 +317,12 @@ export function DepartmentWorkloadChart() {
       .sort((a, b) => b.count - a.count);
   }, [merged]);
 
+  if (queue.isError && !queue.hasData) return <QueueLoadStatus {...queue} />;
+
   if (isLoading) {
     return (
       <div className="space-y-1">
+        <QueueLoadStatus {...queue} />
         <p className="text-sm text-muted-foreground">
           مرضى اليوم حسب نوع الخدمة
         </p>
@@ -347,6 +334,7 @@ export function DepartmentWorkloadChart() {
   if (data.length === 0) {
     return (
       <div className="space-y-1">
+        <QueueLoadStatus {...queue} />
         <p className="text-sm text-muted-foreground">
           مرضى اليوم حسب نوع الخدمة
         </p>
@@ -357,6 +345,7 @@ export function DepartmentWorkloadChart() {
 
   return (
     <div className="space-y-1">
+        <QueueLoadStatus {...queue} />
       <p className="text-sm text-muted-foreground">
         مرضى اليوم حسب نوع الخدمة ({merged.length.toLocaleString("ar-EG")} في
         المرضى)

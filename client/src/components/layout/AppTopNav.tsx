@@ -89,7 +89,7 @@ type AppTopNavProps = {
 };
 
 function DashboardAppbarIndicators() {
-  const { merged } = useTodayQueuePatientsMerged();
+  const { merged, isError } = useTodayQueuePatientsMerged();
   const attQ = trpc.attendance.dashboardSummary.useQuery(undefined, {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
@@ -102,7 +102,7 @@ function DashboardAppbarIndicators() {
   const items = [
     {
       label: "مرضى اليوم",
-      value: merged.length,
+      value: isError ? "—" : merged.length,
       icon: Users,
       cls: "bg-primary/10 text-primary",
     },

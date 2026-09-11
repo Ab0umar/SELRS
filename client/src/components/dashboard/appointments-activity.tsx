@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -180,10 +181,8 @@ export function AppointmentsSection({
   const [registrationTarget, setRegistrationTarget] =
     useState<BookingRegistrationTarget | null>(null);
 
-  const { merged, isLoading, byStatus } = useTodayQueuePatientsMerged(
-    selectedDate,
-    { includeExternal: showExternal },
-  );
+  const queue = useTodayQueuePatientsMerged(selectedDate, { includeExternal: showExternal });
+  const { merged, isLoading, byStatus } = queue;
   const todayPatientIds = useMemo(
     () => merged.map((patient) => patient.id).filter(Boolean),
     [merged],
@@ -419,6 +418,7 @@ export function AppointmentsSection({
 
   return (
     <div className="space-y-4">
+      <QueueLoadStatus {...queue} />
       <TodayPatientShortcutsDialog
         open={shortcutPatient != null}
         onOpenChange={(next) => {
@@ -605,7 +605,7 @@ export function AppointmentsSection({
               </p>
             ) : filteredPatients.length === 0 ? (
               <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
-                لا يوجد مرضى في هذه الفئة
+                {queue.isError && !queue.hasData ? "بيانات المرضى غير متاحة حالياً" : "لا يوجد مرضى في هذه الفئة"}
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-2 min-[520px]:grid-cols-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">

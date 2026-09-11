@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import {
   useEffect,
   useMemo,
@@ -3824,6 +3825,7 @@ export default function WorkflowPrototypeLive() {
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900" dir="rtl">
       <main className="mx-auto max-w-[1500px] space-y-2 px-2 py-0 lg:px-3">
+        <QueueLoadStatus {...liveQueue} />
         {selectedLivePatient
           ? renderLiveWorkspace()
           : renderLivePatientPicker()}

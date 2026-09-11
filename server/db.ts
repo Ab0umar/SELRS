@@ -8241,6 +8241,10 @@ export async function getTodayVisitsByQueueStatus(
   const whereClauses: any[] = [sql`DATE(${visits.visitDate}) = ${dateIso}`];
   if (queueStatus) {
     whereClauses.push(eq(visits.queueStatus, queueStatus as any));
+  } else {
+    whereClauses.push(inArray(visits.queueStatus, [
+      "checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated",
+    ]));
   }
 
   const rows = await db
@@ -8274,7 +8278,12 @@ export async function getTodayVisitsByQueueStatus(
     .leftJoin(users, eq(visits.treatedByUserId, users.id))
     .where(and(...whereClauses))
     .orderBy(visits.id)
-    .limit(500);
+    .limit(queueStatus ? 500 : 3001);
+
+  // Never present a truncated combined snapshot as the complete queue.
+  if (!queueStatus && rows.length > 3000) {
+    throw new Error("Daily queue exceeds the supported snapshot size");
+  }
 
   return rows.map((row: any) => ({
     ...row,

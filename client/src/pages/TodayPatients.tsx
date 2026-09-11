@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -47,8 +48,8 @@ export default function TodayPatients() {
 
   const utils = trpc.useUtils();
 
-  const { merged, isLoading: queueLoading } =
-    useTodayQueuePatientsMerged(selectedDate);
+  const queue = useTodayQueuePatientsMerged(selectedDate);
+  const { merged, isLoading: queueLoading } = queue;
   const opsQuery = trpc.medical.getTodayOperationLists.useQuery(
     { date: selectedDate },
     { refetchOnWindowFocus: false },
@@ -131,6 +132,7 @@ export default function TodayPatients() {
 
       <div className="mx-auto w-full max-w-[1600px] space-y-4">
         <h1 className="sr-only">مرضى اليوم</h1>
+        <QueueLoadStatus {...queue} />
         {/* ── Quick Actions Bento Card ─────────────────────────────────── */}
         <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">

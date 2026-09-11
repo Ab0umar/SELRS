@@ -62,99 +62,71 @@ function isCenterQueuePatient(patient: TodayQueuePatient) {
   );
 }
 
+/** Derive stage lists and the existing one-row-per-patient priority from one response. */
+export function buildTodayQueueSnapshot(
+  rows: TodayQueuePatient[],
+  includeExternal = false,
+) {
+  const visible = rows.filter(
+    (row) => includeExternal || isCenterQueuePatient(row),
+  );
+  const byStatus = {
+    checkedIn: visible.filter((row) => row.queueStatus === "checkedIn"),
+    next: visible.filter((row) => row.queueStatus === "next"),
+    clinic1: visible.filter((row) => row.queueStatus === "clinic1"),
+    clinic2: visible.filter((row) => row.queueStatus === "clinic2"),
+    pentacam: visible.filter((row) => row.queueStatus === "pentacam"),
+    treated: visible.filter((row) => row.queueStatus === "treated"),
+    clinic: [] as TodayQueuePatient[],
+  };
+  byStatus.clinic = [
+    ...byStatus.clinic1,
+    ...byStatus.clinic2,
+    ...byStatus.pentacam,
+  ];
+  const unique = new Map<number, TodayQueuePatient>();
+  for (const row of [
+    ...byStatus.treated,
+    ...byStatus.clinic,
+    ...byStatus.next,
+    ...byStatus.checkedIn,
+  ]) {
+    if (typeof row.id === "number" && !unique.has(row.id))
+      unique.set(row.id, row);
+  }
+  return { merged: sortTodayQueuePatients([...unique.values()]), byStatus };
+}
+
+const EMPTY_QUEUE: TodayQueuePatient[] = [];
+
 /** Today's queue across reception, examination clinics, Pentacam, and completion. */
 export function useTodayQueuePatientsMerged(
   dateIso?: string,
   options: { includeExternal?: boolean } = {},
 ) {
   const includeExternal = options.includeExternal ?? false;
-  const todayIso = useMemo(() => dateIso ?? localISODate(), [dateIso]);
-
-  const checkedIn = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "checkedIn" },
-    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  const todayIso = dateIso ?? localISODate();
+  const query = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
+    { date: todayIso },
+    {
+      staleTime: 10000,
+      refetchInterval: 10000,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+    },
   );
-  const next = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "next" },
-    { refetchInterval: 10000, refetchOnWindowFocus: true },
+  const snapshot = useMemo(
+    () => buildTodayQueueSnapshot(query.data ?? EMPTY_QUEUE, includeExternal),
+    [query.data, includeExternal],
   );
-  const clinic1 = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "clinic1" },
-    { refetchInterval: 10000, refetchOnWindowFocus: true },
-  );
-  const clinic2 = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "clinic2" },
-    { refetchInterval: 10000, refetchOnWindowFocus: true },
-  );
-  const pentacam = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "pentacam" },
-    { refetchInterval: 10000, refetchOnWindowFocus: true },
-  );
-  const treated = trpc.medical.getTodayPatientsByQueueStatus.useQuery(
-    { date: todayIso, queueStatus: "treated" },
-    { refetchInterval: 10000, refetchOnWindowFocus: true },
-  );
-
-  const merged = useMemo(() => {
-    const map = new Map<number, TodayQueuePatient>();
-    const ordered = [
-      ...(treated.data ?? []),
-      ...(clinic1.data ?? []),
-      ...(clinic2.data ?? []),
-      ...(pentacam.data ?? []),
-      ...(next.data ?? []),
-      ...(checkedIn.data ?? []),
-    ];
-    for (const p of ordered) {
-      const row = p as TodayQueuePatient;
-      if (
-        typeof row?.id === "number" &&
-        (includeExternal || isCenterQueuePatient(row)) &&
-        !map.has(row.id)
-      ) {
-        map.set(row.id, row);
-      }
-    }
-    return sortTodayQueuePatients([...map.values()]);
-  }, [
-    checkedIn.data,
-    next.data,
-    clinic1.data,
-    clinic2.data,
-    pentacam.data,
-    treated.data,
-    includeExternal,
-  ]);
-
-  const visiblePatients = (rows: TodayQueuePatient[] | undefined) =>
-    (rows ?? []).filter(
-      (patient) => includeExternal || isCenterQueuePatient(patient),
-    );
-
-  const isLoading =
-    checkedIn.isLoading ||
-    next.isLoading ||
-    clinic1.isLoading ||
-    clinic2.isLoading ||
-    pentacam.isLoading ||
-    treated.isLoading;
-
   return {
     todayIso,
-    merged,
-    isLoading,
-    byStatus: {
-      checkedIn: visiblePatients(checkedIn.data as TodayQueuePatient[]),
-      next: visiblePatients(next.data as TodayQueuePatient[]),
-      clinic: visiblePatients([
-        ...(clinic1.data ?? []),
-        ...(clinic2.data ?? []),
-        ...(pentacam.data ?? []),
-      ] as TodayQueuePatient[]),
-      clinic1: visiblePatients(clinic1.data as TodayQueuePatient[]),
-      clinic2: visiblePatients(clinic2.data as TodayQueuePatient[]),
-      pentacam: visiblePatients(pentacam.data as TodayQueuePatient[]),
-      treated: visiblePatients(treated.data as TodayQueuePatient[]),
-    },
+    ...snapshot,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    hasData: query.data !== undefined,
+    isFetching: query.isFetching,
+    dataUpdatedAt: query.dataUpdatedAt,
+    refetch: query.refetch,
   };
 }
