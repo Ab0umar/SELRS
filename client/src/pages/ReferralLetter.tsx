@@ -440,14 +440,14 @@ export default function ReferralLetter() {
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaOD}
                     onChange={set("vaOD")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                   /
                   <Input
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaOS}
                     onChange={set("vaOS")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                 </label>
                 <label className="flex items-center gap-1">
@@ -456,14 +456,14 @@ export default function ReferralLetter() {
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaBestOD}
                     onChange={set("vaBestOD")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                   /
                   <Input
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaBestOS}
                     onChange={set("vaBestOS")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                 </label>
                 <label className="flex items-center gap-1">
@@ -472,14 +472,14 @@ export default function ReferralLetter() {
                     className={`${FIELD} w-8 text-center text-xs font-bold ${iopODNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOD}
                     onChange={set("iopOD")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                   /
                   <Input
                     className={`${FIELD} w-8 text-center text-xs font-bold ${iopOSNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOS}
                     onChange={set("iopOS")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                 </label>
               </div>
@@ -564,7 +564,7 @@ export default function ReferralLetter() {
                   rows={3}
                   value={form.slitLamp}
                   onChange={set("slitLamp")}
-                  placeholder="OD: ... OS: ..."
+                  placeholder="OD: … OS: ..."
                 />
               </div>
               <div className="p-3 bg-background rounded-lg border border-border/70">
@@ -576,7 +576,7 @@ export default function ReferralLetter() {
                   rows={3}
                   value={form.fundus}
                   onChange={set("fundus")}
-                  placeholder="OD: ... OS: ..."
+                  placeholder="OD: … OS: ..."
                 />
               </div>
             </div>
@@ -618,7 +618,7 @@ export default function ReferralLetter() {
                 rows={3}
                 value={form.reasonForReferral}
                 onChange={set("reasonForReferral")}
-                placeholder="سبب التحويل والإجراء المطلوب..."
+                placeholder="سبب التحويل والإجراء المطلوب…"
               />
             </section>
           </div>
@@ -766,7 +766,7 @@ export default function ReferralLetter() {
             disabled={saveLetterMutation.isPending}
           >
             <Save className="h-3.5 w-3.5" />{" "}
-            {saveLetterMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
+            {saveLetterMutation.isPending ? "جارٍ الحفظ…" : "حفظ"}
           </Button>
           <Button
             size="sm"

@@ -1,0 +1,23 @@
+# Vendor bundles, build artifacts, and caches — not source, dilutes graph signal
+ds-bundle/
+.codex/
+.codex-remote-attachments/
+.claude/skills/
+.claude/settings.json.graphify-bak
+.codex/hooks.json.graphify-bak
+.agents/
+.specify/
+.scratch/
+artifacts/
+android/
+desktop-electron/
+desktop/
+.page-cleanup-backup-*/
+.adminhub-design-backup-*/
+client/.workflow-demo-build/
+.impeccable/
+
+# Non-code binary/media assets with no useful graph signal
+Uploads/
+Sheets/
+icons/

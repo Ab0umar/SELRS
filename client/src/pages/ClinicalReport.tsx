@@ -322,7 +322,7 @@ export default function ClinicalReport() {
           >
             <Save className="h-4 w-4 ml-1" />
             {createReportMutation.isPending || updateReportMutation.isPending
-              ? "جارٍ الحفظ..."
+              ? "جارٍ الحفظ…"
               : "حفظ"}
           </Button>
           <Button
@@ -604,7 +604,7 @@ export default function ClinicalReport() {
                 <Textarea
                   className="text-sm mb-4 print:border-0 print:p-0 print:resize-none"
                   rows={2}
-                  placeholder="Diagnosis..."
+                  placeholder="Diagnosis…"
                   value={diagnosis}
                   onChange={(e) => setDiagnosis(e.target.value)}
                 />
@@ -616,7 +616,7 @@ export default function ClinicalReport() {
                     <Textarea
                       className="text-[11px] print:border-0 print:p-0 print:resize-none"
                       rows={4}
-                      placeholder="Recommendations..."
+                      placeholder="Recommendations…"
                       value={recommendations}
                       onChange={(e) => setRecommendations(e.target.value)}
                     />

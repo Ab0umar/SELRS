@@ -134,7 +134,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
                 onValueChange={setSelectedDoctorId}
               >
                 <SelectTrigger className="h-7 text-xs">
-                  <SelectValue placeholder="اختر طبيب..." />
+                  <SelectValue placeholder="اختر طبيب…" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableDoctors.length === 0 && (

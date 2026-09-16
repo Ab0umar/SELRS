@@ -450,7 +450,7 @@ export default function ShiftAssignments() {
                 }
               >
                 <ArrowLeftRight size={15} className="ml-1.5" />
-                {swapShiftsMutation.isPending ? "جاري التبادل..." : "تبادل"}
+                {swapShiftsMutation.isPending ? "جاري التبادل…" : "تبادل"}
               </Button>
               <Button
                 type="button"
@@ -806,7 +806,7 @@ export default function ShiftAssignments() {
                 }
               >
                 {bulkAssignMutation.isPending
-                  ? "جاري التعيين..."
+                  ? "جاري التعيين…"
                   : `تعيين ${bulk.selectedEmps.length} موظف`}
               </Button>
               <Button
@@ -1497,7 +1497,7 @@ export default function ShiftAssignments() {
                     }
                   >
                     {assignCycleMutation.isPending
-                      ? "جاري التعيين..."
+                      ? "جاري التعيين…"
                       : `تعيين ${cycleAssignForm.empCds.length || ""} موظف`}
                   </Button>
                   <Button
@@ -2126,7 +2126,7 @@ export default function ShiftAssignments() {
             >
               <ArrowLeftRight size={15} />
               {swapShiftsMutation.isPending
-                ? "جاري التبادل..."
+                ? "جاري التبادل…"
                 : "تأكيد التبادل"}
             </Button>
           </CardContent>

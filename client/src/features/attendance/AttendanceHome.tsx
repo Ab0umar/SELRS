@@ -285,7 +285,7 @@ export default function AttendanceHome() {
                     <span>مزامنة سجلات البصمة</span>
                   </span>
                   <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-mono font-bold">
-                    {syncMutation.isPending ? "جاري..." : "سحب"}
+                    {syncMutation.isPending ? "جاري…" : "سحب"}
                   </span>
                 </button>
               )}
@@ -301,7 +301,7 @@ export default function AttendanceHome() {
                     <span>تطبيق قواعد الاحتساب</span>
                   </span>
                   <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-mono font-bold">
-                    {recomputeMutation.isPending ? "جاري..." : "تطبيق"}
+                    {recomputeMutation.isPending ? "جاري…" : "تطبيق"}
                   </span>
                 </button>
               )}

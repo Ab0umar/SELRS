@@ -269,7 +269,7 @@ export default function ConsultantFollowupPage() {
             disabled={saveFollowupSheetMutation.isPending}
             className="bg-gray-700 text-white text-sm font-semibold px-4 py-1.5 rounded hover:bg-gray-600 disabled:opacity-50"
           >
-            {saveFollowupSheetMutation.isPending ? "Saving..." : "SAVE SHEET"}
+            {saveFollowupSheetMutation.isPending ? "Saving…" : "SAVE SHEET"}
           </button>
           <button
             type="button"
@@ -588,7 +588,7 @@ export default function ConsultantFollowupPage() {
                       <div className="flex-[3]">
                         <Textarea
                           rows={2}
-                          placeholder="Vigamox q2h, Pred Forte q2h..."
+                          placeholder="Vigamox q2h, Pred Forte q2h…"
                           className="text-sm w-full border-gray-200"
                         />
                       </div>

@@ -298,6 +298,34 @@
     outline-offset: 2px;
   }
 
+  /* outline-none utilities win the layer race against the base focus ring above;
+     re-add it for any element that explicitly killed the outline. */
+  .outline-none:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Kill the 300ms double-tap zoom / tap delay on interactive elements
+     (Capacitor WebView + mobile browsers). */
+  button,
+  [role="button"],
+  a[href] {
+    touch-action: manipulation;
+  }
+
+  /* Respect reduced-motion for every transition/animation, including the
+     transition-all utilities scattered through feature code. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* Slightly denser typography on desktop; mobile keeps its own scale in the mq below */
   html {
     font-size: 15px;
@@ -320,6 +348,19 @@
   pre,
   .font-mono {
     font-family: var(--font-mono);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
   }
 
   body {

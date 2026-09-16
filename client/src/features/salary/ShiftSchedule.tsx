@@ -1162,7 +1162,7 @@ export default function ShiftSchedule() {
                 className="h-11 w-full rounded-lg text-sm font-bold"
               >
                 {bulkMut.isPending || addMyShiftMut.isPending
-                  ? "جاري الإضافة..."
+                  ? "جاري الإضافة…"
                   : "إضافة الوردية"}
               </Button>
             </div>
@@ -1219,7 +1219,7 @@ export default function ShiftSchedule() {
                 className="h-11 w-full rounded-lg text-sm font-bold"
               >
                 {updateEntryMut.isPending || updateMyEntryMut.isPending
-                  ? "جاري الحفظ..."
+                  ? "جاري الحفظ…"
                   : "حفظ التعديل"}
               </Button>
             </div>
@@ -1457,7 +1457,7 @@ export default function ShiftSchedule() {
                   disabled={bulkMut.isPending}
                   className="flex-1 rounded-xl"
                 >
-                  {bulkMut.isPending ? "جاري الإضافة..." : "إضافة"}
+                  {bulkMut.isPending ? "جاري الإضافة…" : "إضافة"}
                 </Button>
                 <Button
                   size="sm"
@@ -1535,7 +1535,7 @@ export default function ShiftSchedule() {
                 disabled={addHolidayMut.isPending}
                 className="w-full rounded-xl"
               >
-                {addHolidayMut.isPending ? "جاري..." : "إضافة"}
+                {addHolidayMut.isPending ? "جاري…" : "إضافة"}
               </Button>
             </div>
           </section>
@@ -2241,7 +2241,7 @@ export default function ShiftSchedule() {
                               disabled={bulkMut.isPending}
                               className="flex-1 rounded-xl"
                             >
-                              {bulkMut.isPending ? "جاري الإضافة..." : "إضافة"}
+                              {bulkMut.isPending ? "جاري الإضافة…" : "إضافة"}
                             </Button>
                             <Button
                               size="sm"
@@ -2332,7 +2332,7 @@ export default function ShiftSchedule() {
                               disabled={addHolidayMut.isPending}
                               className="rounded-xl"
                             >
-                              {addHolidayMut.isPending ? "جاري..." : "إضافة"}
+                              {addHolidayMut.isPending ? "جاري…" : "إضافة"}
                             </Button>
                           </div>
                         </div>

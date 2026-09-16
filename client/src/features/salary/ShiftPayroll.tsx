@@ -607,7 +607,7 @@ export default function ShiftPayroll() {
 
       {/* Tables */}
       {payrollQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+        <p className="text-sm text-muted-foreground">جاري التحميل…</p>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-border bg-background px-4 py-16 text-center text-muted-foreground text-sm">
           لا يوجد طاقم شفتات أو حضور مسجل للفترة {periodLabel}.

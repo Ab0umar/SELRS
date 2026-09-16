@@ -378,13 +378,13 @@ export default function KfPatientDetail() {
         </Button>
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
           <Button asChild variant="outline" size="sm" className="gap-1.5 cursor-pointer">
-            <Link href={`/kf/sheets/consultant/${patient.kfId}?original=1`} target="_blank">
+            <Link href={`/kf/sheets/consultant/${patient.kfId}?original=1`} target="_blank" rel="noopener noreferrer">
               <ScrollText className="h-4 w-4" />
               <span>شيت استشاري KF</span>
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-1.5 cursor-pointer">
-            <Link href={`/kf/sheets/consultant/${patient.kfId}/followup?original=1`} target="_blank">
+            <Link href={`/kf/sheets/consultant/${patient.kfId}/followup?original=1`} target="_blank" rel="noopener noreferrer">
               <RefreshCw className="h-4 w-4" />
               <span>متابعة KF</span>
             </Link>
@@ -1192,7 +1192,7 @@ export default function KfPatientDetail() {
             <div className="space-y-1">
               <Label>الطبيب</Label>
               <Select value={addVisitForm.doctorName ?? ""} onValueChange={(v) => setAddVisitForm({ ...addVisitForm, doctorName: v })}>
-                <SelectTrigger><SelectValue placeholder="اختر الطبيب..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="اختر الطبيب…" /></SelectTrigger>
                 <SelectContent>
                   {KF_DOCTORS.map((dr) => <SelectItem key={dr} value={dr}>{dr}</SelectItem>)}
                 </SelectContent>
@@ -1244,7 +1244,7 @@ export default function KfPatientDetail() {
               <div className="space-y-1">
                 <Label>الطبيب الفاحص</Label>
                 <Select value={addExamForm.doctorName ?? ""} onValueChange={(v) => setAddExamForm({ ...addExamForm, doctorName: v })}>
-                  <SelectTrigger><SelectValue placeholder="اختر الطبيب..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="اختر الطبيب…" /></SelectTrigger>
                   <SelectContent>
                     {KF_DOCTORS.map((dr) => <SelectItem key={dr} value={dr}>{dr}</SelectItem>)}
                   </SelectContent>
@@ -1305,12 +1305,12 @@ export default function KfPatientDetail() {
             </div>
             <div className="space-y-1">
               <Label>نوع العملية</Label>
-              <Input placeholder="مثال: LASIK، فاكو، إلخ..." value={addOpForm.opType ?? ""} onChange={(e) => setAddOpForm({ ...addOpForm, opType: e.target.value })} />
+              <Input placeholder="مثال: LASIK، فاكو، إلخ…" value={addOpForm.opType ?? ""} onChange={(e) => setAddOpForm({ ...addOpForm, opType: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label>العين</Label>
               <Select value={addOpForm.eye ?? ""} onValueChange={(v) => setAddOpForm({ ...addOpForm, eye: v })}>
-                <SelectTrigger><SelectValue placeholder="اختر العين..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="اختر العين…" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="right">اليمنى</SelectItem>
                   <SelectItem value="left">اليسرى</SelectItem>
@@ -1321,7 +1321,7 @@ export default function KfPatientDetail() {
             <div className="space-y-1">
               <Label>الجراح</Label>
               <Select value={addOpForm.doctorName ?? ""} onValueChange={(v) => setAddOpForm({ ...addOpForm, doctorName: v })}>
-                <SelectTrigger><SelectValue placeholder="اختر الجراح..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="اختر الجراح…" /></SelectTrigger>
                 <SelectContent>
                   {KF_DOCTORS.map((dr) => <SelectItem key={dr} value={dr}>{dr}</SelectItem>)}
                 </SelectContent>

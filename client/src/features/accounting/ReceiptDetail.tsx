@@ -355,7 +355,7 @@ export default function ReceiptDetail() {
 
             {detailQuery.isLoading ? (
               <div className="py-6">
-                <LidWipeLoader label="جاري التحميل..." logo="eye" size={120} />
+                <LidWipeLoader label="جاري التحميل…" logo="eye" size={120} />
               </div>
             ) : null}
 

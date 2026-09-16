@@ -642,7 +642,7 @@ export default function ScheduleSwap() {
                       className="mt-2"
                     >
                       {tempChangeMutation.isPending
-                        ? "جاري التطبيق..."
+                        ? "جاري التطبيق…"
                         : "حفظ التغيير اليومي"}
                     </Button>
                   </div>
@@ -724,7 +724,7 @@ export default function ScheduleSwap() {
                       className="mt-2"
                     >
                       {assignShiftMutation.isPending
-                        ? "جاري التطبيق..."
+                        ? "جاري التطبيق…"
                         : "حفظ التغيير الأسبوعي"}
                     </Button>
                   </div>
@@ -796,7 +796,7 @@ export default function ScheduleSwap() {
                       className="mt-2"
                     >
                       {assignCycleMutation.isPending
-                        ? "جاري التطبيق..."
+                        ? "جاري التطبيق…"
                         : "حفظ التغيير الشهري"}
                     </Button>
                   </div>
@@ -971,7 +971,7 @@ export default function ScheduleSwap() {
             >
               <ArrowLeftRight size={15} />
               {swapMutation.isPending
-                ? "جاري التبادل..."
+                ? "جاري التبادل…"
                 : "تأكيد عملية التبادل"}
             </Button>
           </CardContent>

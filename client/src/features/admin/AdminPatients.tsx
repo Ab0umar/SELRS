@@ -188,7 +188,7 @@ export default function AdminPatients() {
                   >
                     <RefreshCw className="h-4 w-4" />
                     {syncRegistrationCatalogMutation.isPending
-                      ? "جاري..."
+                      ? "جاري…"
                       : "مزامنة"}
                   </Button>
                   <Button

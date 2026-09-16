@@ -109,7 +109,7 @@ export default function LasikServices() {
               {draft.serviceCode && (
                 <span className="text-xs text-muted-foreground block mt-1">
                   {serviceLookup.isLoading
-                    ? "جاري البحث..."
+                    ? "جاري البحث…"
                     : serviceLookup.data
                       ? `الاسم: ${serviceLookup.data.serviceName}`
                       : "غير موجود"}

@@ -283,7 +283,7 @@ export default function AccountingLedger() {
                     onChange={(e) => setNotes(e.target.value)}
                     onFocus={() => setNotesFocused(true)}
                     onBlur={() => setNotesFocused(false)}
-                    placeholder="ملاحظات..."
+                    placeholder="ملاحظات…"
                     className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                   />
                   <button
@@ -421,7 +421,7 @@ export default function AccountingLedger() {
                   setFilterNotes(e.target.value);
                   setPage(1);
                 }}
-                placeholder="بحث في البيان..."
+                placeholder="بحث في البيان…"
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
               {filterNotes ? (

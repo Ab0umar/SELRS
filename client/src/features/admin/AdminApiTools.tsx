@@ -686,7 +686,7 @@ export default function AdminApiTools() {
           </Button>
           <div className="text-sm text-muted-foreground">
             {runtimeDbInfoQuery.isFetching
-              ? "Checking..."
+              ? "Checking…"
               : runtimeDbInfoQuery.data
                 ? `Host: ${runtimeDbInfoQuery.data.host ?? "-"} | Port: ${runtimeDbInfoQuery.data.port ?? "-"} | DB: ${runtimeDbInfoQuery.data.database ?? "-"} | URL: ${runtimeDbInfoQuery.data.maskedUrl ?? "-"}`
                 : "No runtime DB info loaded yet"}
@@ -941,7 +941,7 @@ export default function AdminApiTools() {
           <div className="text-sm text-muted-foreground">
             {mssqlSyncStatusQuery.data
               ? `State: ${(mssqlSyncStatusQuery.data as any).running ? "Running" : "Idle"} | Last Sync: ${mssqlSyncStatusQuery.data.lastSuccessAt ? new Date(mssqlSyncStatusQuery.data.lastSuccessAt).toLocaleString() : "Never"} | Last Mode: ${mssqlSyncStatusQuery.data.lastMode ?? "-"} | Marker: ${mssqlSyncStatusQuery.data.lastMarker ?? "-"} | Last Changes: ${String((mssqlSyncStatusQuery.data as any).lastChangeCount ?? "-")} | Next Run: ${(mssqlSyncStatusQuery.data as any).nextRunAt ? new Date((mssqlSyncStatusQuery.data as any).nextRunAt).toLocaleString() : "-"}${(mssqlSyncStatusQuery.data as any).lastError ? ` | Last Error: ${String((mssqlSyncStatusQuery.data as any).lastError)}` : ""}`
-              : "Loading sync status..."}
+              : "Loading sync status…"}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -994,7 +994,7 @@ export default function AdminApiTools() {
           </div>
           <div className="text-sm text-muted-foreground">
             {syncMssqlPatientsMutation.isPending
-              ? "Sync running..."
+              ? "Sync running…"
               : lastSyncResult
                 ? `Fetched: ${lastSyncResult.fetched} | Inserted: ${lastSyncResult.inserted} | Updated: ${lastSyncResult.updated} | Skipped: ${lastSyncResult.skipped} | Mode: ${lastSyncResult.dryRun ? "Dry Run" : "Live"}`
                 : "No sync result yet"}

@@ -362,7 +362,7 @@ export function FollowupFormDialog({
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="ملاحظات..."
+              placeholder="ملاحظات…"
               rows={3}
             />
           </div>

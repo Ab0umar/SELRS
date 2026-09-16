@@ -124,7 +124,7 @@ export function KfAddBookingDialog({
                       setShowDropdown(true);
                     }}
                     onFocus={() => setShowDropdown(true)}
-                    placeholder="اسم المريض أو الكود..."
+                    placeholder="اسم المريض أو الكود…"
                     className="h-10 rounded-xl pr-9 text-sm"
                   />
                 </div>

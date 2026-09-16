@@ -53,7 +53,7 @@ export default function SalaryDashboard() {
               <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm">
                 <span className="text-sm font-bold text-foreground">إجمالي الرواتب الأساسية والبدلات</span>
                 <div className="text-3xl font-black text-primary font-mono">
-                  {isLoading ? "جاري التحميل..." : `${fmt(summary?.totalPay ?? 0)} ج.م`}
+                  {isLoading ? "جاري التحميل…" : `${fmt(summary?.totalPay ?? 0)} ج.م`}
                 </div>
               </div>
 
@@ -61,7 +61,7 @@ export default function SalaryDashboard() {
               <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm">
                 <span className="text-sm font-bold text-foreground">إجمالي العمولات</span>
                 <div className="text-3xl font-black text-amber-500 font-mono">
-                  {isLoading ? "جاري التحميل..." : `${fmt(summary?.totalCommissions ?? 0)} ج.م`}
+                  {isLoading ? "جاري التحميل…" : `${fmt(summary?.totalCommissions ?? 0)} ج.م`}
                 </div>
               </div>
             </div>

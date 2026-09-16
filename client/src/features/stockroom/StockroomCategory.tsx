@@ -289,7 +289,7 @@ export default function StockroomCategory() {
           <div className="flex items-center justify-between gap-2">
             <div className="relative w-full max-w-sm">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ابحث بالاسم أو الكود..." className="pr-9" />
+              <Input placeholder="ابحث بالاسم أو الكود…" className="pr-9" />
             </div>
             <div className="flex gap-2">
               <Button
@@ -518,7 +518,7 @@ export default function StockroomCategory() {
                     <Input
                       value={receiveNewName}
                       onChange={(e) => setReceiveNewName(e.target.value)}
-                      placeholder="أدخل اسم الصنف..."
+                      placeholder="أدخل اسم الصنف…"
                       className="bg-background"
                     />
                   </div>
@@ -536,7 +536,7 @@ export default function StockroomCategory() {
                     <Input
                       value={receiveNewSupplier}
                       onChange={(e) => setReceiveNewSupplier(e.target.value)}
-                      placeholder="اسم الشركة..."
+                      placeholder="اسم الشركة…"
                       className="bg-background"
                     />
                   </div>
@@ -565,7 +565,7 @@ export default function StockroomCategory() {
                     type="number"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
-                    placeholder="أدخل الكمية..."
+                    placeholder="أدخل الكمية…"
                   />
                 </div>
                 <div className="space-y-2">
@@ -574,7 +574,7 @@ export default function StockroomCategory() {
                     type="number"
                     value={unitPrice}
                     onChange={(e) => setUnitPrice(e.target.value)}
-                    placeholder="أدخل سعر الوحدة..."
+                    placeholder="أدخل سعر الوحدة…"
                   />
                 </div>
               </div>
@@ -603,7 +603,7 @@ export default function StockroomCategory() {
                   disabled={receiveMutation.isPending}
                 >
                   {receiveMutation.isPending
-                    ? "جاري الحفظ..."
+                    ? "جاري الحفظ…"
                     : "حفظ إذن الإضافة"}
                 </Button>
               </div>
@@ -652,7 +652,7 @@ export default function StockroomCategory() {
                   type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="أدخل الكمية المطلوبة للصرف..."
+                  placeholder="أدخل الكمية المطلوبة للصرف…"
                 />
               </div>
 
@@ -661,7 +661,7 @@ export default function StockroomCategory() {
                 <Input
                   value={employeeName}
                   onChange={(e) => setEmployeeName(e.target.value)}
-                  placeholder="أدخل اسم الموظف أو القسم المستلم..."
+                  placeholder="أدخل اسم الموظف أو القسم المستلم…"
                 />
               </div>
 
@@ -696,7 +696,7 @@ export default function StockroomCategory() {
                   disabled={dispenseMutation.isPending}
                 >
                   {dispenseMutation.isPending
-                    ? "جاري الحفظ..."
+                    ? "جاري الحفظ…"
                     : "تأكيد إذن الصرف"}
                 </Button>
               </div>
@@ -804,7 +804,7 @@ export default function StockroomCategory() {
               }}
               disabled={updateItemMutation.isPending}
             >
-              {updateItemMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+              {updateItemMutation.isPending ? "جاري الحفظ…" : "حفظ"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -829,7 +829,7 @@ export default function StockroomCategory() {
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
                 className="col-span-3 text-right"
-                placeholder="أدخل اسم الصنف..."
+                placeholder="أدخل اسم الصنف…"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -853,7 +853,7 @@ export default function StockroomCategory() {
                 value={newItemSupplier}
                 onChange={(e) => setNewItemSupplier(e.target.value)}
                 className="col-span-3 text-right"
-                placeholder="اسم الشركة المُورِّدة..."
+                placeholder="اسم الشركة المُورِّدة…"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -876,7 +876,7 @@ export default function StockroomCategory() {
               className="bg-primary text-white"
               disabled={createItemMutation.isPending}
             >
-              {createItemMutation.isPending ? "جاري الحفظ..." : "حفظ الصنف"}
+              {createItemMutation.isPending ? "جاري الحفظ…" : "حفظ الصنف"}
             </Button>
           </DialogFooter>
         </DialogContent>

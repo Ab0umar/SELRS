@@ -676,7 +676,7 @@ export default function SpecialistSheet() {
             disabled={saveSheetMutation.isPending}
             type="button"
           >
-            {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
+            {saveSheetMutation.isPending ? "حفظ…" : "حفظ"}
           </Button>
           <Button
             size="sm"

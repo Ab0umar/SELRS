@@ -321,7 +321,7 @@ export default function AccountingLoans() {
                       type="text"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="ملاحظات..."
+                      placeholder="ملاحظات…"
                       className="h-10 w-full rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
@@ -574,7 +574,7 @@ export default function AccountingLoans() {
                       setSearch(e.target.value);
                       setPage(1);
                     }}
-                    placeholder="بحث بالاسم أو الملاحظات..."
+                    placeholder="بحث بالاسم أو الملاحظات…"
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                   />
                   {search && (

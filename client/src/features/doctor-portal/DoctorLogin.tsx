@@ -212,7 +212,7 @@ export default function DoctorLogin() {
                 {loginMutation.isPending ? (
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="size-5 animate-spin" />
-                    <span>جارٍ التحقق...</span>
+                    <span>جارٍ التحقق…</span>
                   </div>
                 ) : (
                   "دخول إلى بوابة الأطباء"

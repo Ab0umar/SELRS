@@ -299,7 +299,7 @@ export default function PostOpOffdays() {
               disabled={createCertMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {createCertMutation.isPending ? "جارٍ الحفظ..." : "Save"}
+              {createCertMutation.isPending ? "جارٍ الحفظ…" : "Save"}
             </Button>
             <Button
               type="button"

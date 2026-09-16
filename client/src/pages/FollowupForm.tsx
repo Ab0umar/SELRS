@@ -1183,7 +1183,7 @@ export default function FollowupForm() {
                         id="notes"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder="أدخل ملاحظاتك حول المتابعة..."
+                        placeholder="أدخل ملاحظاتك حول المتابعة…"
                         className="min-h-[300px] text-sm"
                         dir="rtl"
                       />
@@ -1200,7 +1200,7 @@ export default function FollowupForm() {
                   className="bg-primary hover:bg-primary/90"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {loading ? "جاري الحفظ..." : "حفظ"}
+                  {loading ? "جاري الحفظ…" : "حفظ"}
                 </Button>
                 <Button
                   type="button"

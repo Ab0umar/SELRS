@@ -687,7 +687,7 @@ export default function EmployeesList() {
                         onChange={(e) =>
                           setEditRow({ ...editRow, jobTitle: e.target.value })
                         }
-                        placeholder="طبيب، محاسب..."
+                        placeholder="طبيب، محاسب…"
                         className="mt-1 w-full rounded-md border border-border bg-background px-1 py-1 text-xs"
                       />
                     ) : (
@@ -1045,7 +1045,7 @@ export default function EmployeesList() {
                               jobTitle: e.target.value,
                             })
                           }
-                          placeholder="طبيب، محاسب، تمريض..."
+                          placeholder="طبيب، محاسب، تمريض…"
                           className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
                         />
                       ) : (
@@ -1300,7 +1300,7 @@ export default function EmployeesList() {
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
               id="attendance-employee-search"
-              placeholder="بحث بالكود أو الاسم..."
+              placeholder="بحث بالكود أو الاسم…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1"

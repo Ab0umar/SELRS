@@ -102,7 +102,7 @@ export default function Holidays() {
               disabled={seeding}
               className="mr-auto"
             >
-              {seeding ? "جاري الإضافة..." : "إضافة إجازات مصر 2026"}
+              {seeding ? "جاري الإضافة…" : "إضافة إجازات مصر 2026"}
             </Button>
           </div>
         </CardContent>
@@ -153,7 +153,7 @@ export default function Holidays() {
                 onClick={() => addMut.mutate(form)}
                 disabled={!form.date || !form.label || addMut.isPending}
               >
-                {addMut.isPending ? "جاري الحفظ..." : "حفظ"}
+                {addMut.isPending ? "جاري الحفظ…" : "حفظ"}
               </Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>
                 إلغاء

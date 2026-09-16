@@ -211,7 +211,7 @@ export default function KfPatientForm() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض...</p>
+        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض…</p>
       </div>
     );
   }
@@ -282,7 +282,7 @@ export default function KfPatientForm() {
                     onValueChange={(val: "male" | "female") => handleChange("gender", val)}
                   >
                     <SelectTrigger id="gender">
-                      <SelectValue placeholder="اختر..." />
+                      <SelectValue placeholder="اختر…" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">ذكر</SelectItem>
@@ -382,7 +382,7 @@ export default function KfPatientForm() {
                 <Textarea
                   id="medicalHistory"
                   rows={3}
-                  placeholder="مثال: يعاني من ضغط الدم المرتفع..."
+                  placeholder="مثال: يعاني من ضغط الدم المرتفع…"
                   value={form.medicalHistory}
                   onChange={(e) => handleChange("medicalHistory", e.target.value)}
                 />

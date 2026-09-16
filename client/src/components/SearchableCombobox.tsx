@@ -38,7 +38,7 @@ export default function SearchableCombobox({
   onChange,
   options,
   placeholder = "اختر",
-  searchPlaceholder = "ابحث...",
+  searchPlaceholder = "ابحث…",
   emptyText = "لا توجد نتائج",
   className,
   disabled = false,

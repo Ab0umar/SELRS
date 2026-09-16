@@ -317,7 +317,7 @@ export default function Profile({
                     <Input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="اسم المستخدم..."
+                      placeholder="اسم المستخدم…"
                       className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
                     />
                   </div>

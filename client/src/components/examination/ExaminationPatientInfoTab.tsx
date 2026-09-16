@@ -257,7 +257,7 @@ export default function ExaminationPatientInfoTab({
                       }
                       readOnly={!canEditPatientData}
                       className="text-xs border h-8 px-2.5 font-medium bg-background rounded-lg"
-                      placeholder="اسم المريض..."
+                      placeholder="اسم المريض…"
                     />
                   </div>
                   <div className="patient-dob-field sm:col-span-4" style={fieldTwoThirds}>
@@ -363,7 +363,7 @@ export default function ExaminationPatientInfoTab({
                       }
                       readOnly={!canEditPatientData}
                       className="text-xs border h-8 px-2.5 bg-background rounded-lg"
-                      placeholder="العنوان..."
+                      placeholder="العنوان…"
                     />
                   </div>
                   <div className="patient-job-field sm:col-span-4" style={fieldTwoThirds}>
@@ -380,7 +380,7 @@ export default function ExaminationPatientInfoTab({
                       }
                       readOnly={!canEditPatientData}
                       className="text-xs border h-8 px-2.5 bg-background rounded-lg"
-                      placeholder="الوظيفة..."
+                      placeholder="الوظيفة…"
                     />
                   </div>
                   <div className="patient-gender-field sm:col-span-3" style={fieldOneThird}>
@@ -429,7 +429,7 @@ export default function ExaminationPatientInfoTab({
                   }
                   options={doctorOptions}
                   placeholder="ابحث باسم الطبيب أو الكود"
-                  searchPlaceholder="ابحث بالاسم أو الكود..."
+                  searchPlaceholder="ابحث بالاسم أو الكود…"
                   className="h-11 text-sm sm:h-9 bg-background border-ring/30 sm:text-xs"
                 />
               </div>
@@ -443,7 +443,7 @@ export default function ExaminationPatientInfoTab({
                   onChange={(value) => selectService(servicePickerIndex, value)}
                   options={serviceOptions}
                   placeholder="اختر الخدمة"
-                  searchPlaceholder="ابحث بالاسم أو الكود..."
+                  searchPlaceholder="ابحث بالاسم أو الكود…"
                   className="h-11 text-sm sm:h-9 bg-background border-ring/30 sm:text-xs"
                 />
               </div>
@@ -506,7 +506,7 @@ export default function ExaminationPatientInfoTab({
                       onChange={(value) => selectService(idx, value)}
                       options={serviceOptions}
                       placeholder="اختر الخدمة"
-                      searchPlaceholder="ابحث بالاسم أو الكود..."
+                      searchPlaceholder="ابحث بالاسم أو الكود…"
                       className="h-8 min-w-0 border-border/60 px-2 text-[11px] font-semibold"
                     />
                     <Input
@@ -582,7 +582,7 @@ export default function ExaminationPatientInfoTab({
                   value={receptionSignature}
                   onChange={(e) => setReceptionSignature(e.target.value)}
                   className="text-xs border-0 border-b border-muted rounded-none h-7 p-0 bg-transparent text-left w-32 focus-visible:ring-0"
-                  placeholder="..."
+                  placeholder="…"
                 />
               </div>
             </div>

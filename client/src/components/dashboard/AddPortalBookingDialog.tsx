@@ -233,7 +233,7 @@ export function AddPortalBookingDialog({
                           setShowDropdown(true);
                         }}
                         onFocus={() => setShowDropdown(true)}
-                        placeholder="اسم المريض أو الكود أو الموبايل..."
+                        placeholder="اسم المريض أو الكود أو الموبايل…"
                         dir="rtl"
                         className="h-10 rounded-xl pr-9 text-sm"
                       />
@@ -273,7 +273,7 @@ export function AddPortalBookingDialog({
                 <Input
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
-                  placeholder="الاسم بالكامل..."
+                  placeholder="الاسم بالكامل…"
                   dir="rtl"
                   className="h-10 rounded-xl text-sm"
                 />
@@ -333,7 +333,7 @@ export function AddPortalBookingDialog({
                 value={staffNotes}
                 onChange={(e) => setStaffNotes(e.target.value)}
                 rows={2}
-                placeholder="ملاحظات للمريض..."
+                placeholder="ملاحظات للمريض…"
                 dir="rtl"
                 className="w-full resize-none rounded-xl border border-border bg-muted/10 px-3 py-2.5 text-sm leading-6 outline-none transition-shadow focus:ring-2 focus:ring-primary/30"
               />

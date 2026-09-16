@@ -11,6 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -771,649 +777,375 @@ export default function AdminUsers() {
           </Button>
         }
       />
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm">
-        <span className="font-bold text-foreground">ملخص الحسابات</span>
-        <span className="text-muted-foreground">
-          الإجمالي: <strong className="text-foreground">{usersTotal}</strong>
-        </span>
-        <span className="text-success">
-          نشط: <strong>{usersActive}</strong>
-        </span>
-        <span className="text-muted-foreground">
-          غير نشط: <strong>{usersInactive}</strong>
-        </span>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-[var(--bento-shadow-soft)]">
+          <p className="text-xs font-medium text-muted-foreground">الإجمالي</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {usersTotal}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-success/20 bg-success/5 px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-success">
+            <span className="size-1.5 rounded-full bg-success" /> نشط
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {usersActive}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-destructive/15 bg-destructive/5 px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+            <span className="size-1.5 rounded-full bg-destructive" /> غير نشط
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {usersInactive}
+          </p>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-background lg:grid lg:min-h-[660px] lg:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-muted/20 lg:border-b-0 lg:border-l">
-          <div className="space-y-3 border-b border-border bg-background p-3">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--bento-shadow-soft)]">
+        <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="w-full lg:max-w-sm">
             <SearchBar
               value={searchTerm}
               onChange={setSearchTerm}
-              placeholder="بحث بالاسم أو اسم الدخول"
+              placeholder="بحث بالاسم أو اسم الدخول…"
             />
-            <div className="grid grid-cols-2 gap-2">
-              <Select
-                value={roleFilter}
-                onValueChange={(value) =>
-                  setRoleFilter(value as UserRole | "all")
-                }
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="الدور" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_TABS.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) =>
-                  setStatusFilter(value as "all" | "active" | "inactive")
-                }
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="الحالة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">كل الحالات</SelectItem>
-                  <SelectItem value="active">نشط</SelectItem>
-                  <SelectItem value="inactive">غير نشط</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-
-          <div className="max-h-[540px] overflow-y-auto lg:max-h-[620px]">
-            {usersQuery.isLoading ? (
-              <div className="space-y-2 p-3">
-                {[0, 1, 2, 3, 4].map((item) => (
-                  <div
-                    key={item}
-                    className="h-16 animate-pulse rounded-md bg-muted"
-                  />
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={roleFilter}
+              onValueChange={(value) => setRoleFilter(value as UserRole | "all")}
+            >
+              <SelectTrigger className="h-10 w-[150px] bg-background">
+                <SelectValue placeholder="الدور" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLE_TABS.map((role) => (
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
+                  </SelectItem>
                 ))}
-              </div>
-            ) : null}
-            {!usersQuery.isLoading && filteredUsers.length === 0 ? (
-              <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-                لا توجد حسابات مطابقة.
-              </div>
-            ) : null}
-            {filteredUsers.map((account) => {
-              const selected = selectedUser?.id === account.id;
-              return (
-                <button
-                  key={account.id}
-                  type="button"
-                  onClick={() => setSelectedUserId(account.id)}
-                  className={cn(
-                    "flex w-full items-center gap-3 border-b border-border px-3 py-3 text-right outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/30",
-                    selected
-                      ? "bg-primary/10"
-                      : "bg-background hover:bg-muted/30",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-2.5 w-2.5 shrink-0 rounded-full",
-                      account.isActive
-                        ? "bg-success"
-                        : "bg-muted-foreground/35",
-                    )}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">
-                      {account.name ?? account.username}
-                    </span>
-                    <span
-                      className="mt-0.5 block truncate text-xs text-muted-foreground"
-                      dir="ltr"
-                    >
-                      @{account.username}
-                    </span>
-                  </span>
-                  <Badge
-                    className={cn(
-                      "shrink-0 text-[10px]",
-                      roleBadgeClass(account.role),
-                    )}
-                  >
-                    {roleLabelAr(account.role)}
-                  </Badge>
-                </button>
-              );
-            })}
+              </SelectContent>
+            </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as "all" | "active" | "inactive")
+              }
+            >
+              <SelectTrigger className="h-10 w-[140px] bg-background">
+                <SelectValue placeholder="الحالة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الحالات</SelectItem>
+                <SelectItem value="active">نشط</SelectItem>
+                <SelectItem value="inactive">غير نشط</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </aside>
+        </div>
 
-        <section className="min-w-0 bg-background">
+        <div className="overflow-x-auto">
+          <Table className="min-w-[900px] text-right">
+            <TableHeader>
+              <TableRow className="border-b-border/60 hover:bg-transparent">
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  المستخدم
+                </TableHead>
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  الدور
+                </TableHead>
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  الفرع
+                </TableHead>
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  الوردية
+                </TableHead>
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  آخر دخول
+                </TableHead>
+                <TableHead className="h-11 text-center font-semibold text-muted-foreground">
+                  الحالة
+                </TableHead>
+                <TableHead className="h-11 w-14" />
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border/50">
+              {usersQuery.isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-10">
+                    <div className="space-y-2">
+                      {[0, 1, 2, 3, 4].map((item) => (
+                        <div
+                          key={item}
+                          className="h-8 animate-pulse rounded-md bg-muted"
+                        />
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {!usersQuery.isLoading && filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="py-14 text-center text-sm text-muted-foreground"
+                  >
+                    لا توجد حسابات مطابقة.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {filteredUsers.map((account) => {
+                const lastKey = toDateKey(account.lastSignedIn);
+                return (
+                  <TableRow
+                    key={account.id}
+                    onClick={() => setSelectedUserId(account.id)}
+                    className="cursor-pointer transition-colors hover:bg-primary/5"
+                  >
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {initialsFromUser(account.name, account.username)}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-foreground">
+                            {account.name ?? account.username}
+                          </span>
+                          <span
+                            className="block truncate text-xs text-muted-foreground"
+                            dir="ltr"
+                          >
+                            @{account.username}
+                          </span>
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={cn(
+                          "text-[10px] font-semibold",
+                          roleBadgeClass(account.role),
+                        )}
+                      >
+                        {roleLabelAr(account.role)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {branchLabelAr(account.branch)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {shiftLabelAr(account.shift)}
+                    </TableCell>
+                    <TableCell className="text-sm tabular-nums text-muted-foreground">
+                      {lastKey ? formatDateLabel(lastKey) : "—"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                          account.isActive
+                            ? "bg-success/10 text-success"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full",
+                            account.isActive
+                              ? "bg-success"
+                              : "bg-muted-foreground/50",
+                          )}
+                        />
+                        {account.isActive ? "نشط" : "موقوف"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 w-9 p-0"
+                        aria-label={`إدارة ${account.name ?? account.username}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedUserId(account.id);
+                        }}
+                      >
+                        <Edit2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      <Sheet
+        open={!!selectedUser}
+        onOpenChange={(open) => {
+          if (!open) setSelectedUserId(null);
+        }}
+      >
+        <SheetContent
+          side="left"
+          className="w-full overflow-y-auto p-0 sm:max-w-lg"
+        >
           {selectedUser ? (
             <>
-              <div className="flex flex-col gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+              <SheetHeader className="space-y-3 border-b border-border/60 px-6 pb-5 pt-6 text-right">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                     {initialsFromUser(selectedUser.name, selectedUser.username)}
-                  </div>
+                  </span>
                   <div className="min-w-0">
-                    <h2 className="truncate text-xl font-bold">
+                    <SheetTitle className="truncate text-lg font-bold">
                       {selectedUser.name ?? selectedUser.username}
-                    </h2>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span dir="ltr">@{selectedUser.username}</span>
-                      <span>•</span>
-                      <span>
-                        {selectedUser.isActive ? "حساب نشط" : "حساب موقوف"}
-                      </span>
-                    </div>
+                    </SheetTitle>
+                    <p
+                      className="mt-0.5 truncate text-xs text-muted-foreground"
+                      dir="ltr"
+                    >
+                      @{selectedUser.username}
+                    </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={cn(
+                      "text-[10px] font-semibold",
+                      roleBadgeClass(selectedUser.role),
+                    )}
+                  >
+                    {roleLabelAr(selectedUser.role)}
+                  </Badge>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                      selectedUser.isActive
+                        ? "bg-success/10 text-success"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        selectedUser.isActive
+                          ? "bg-success"
+                          : "bg-muted-foreground/50",
+                      )}
+                    />
+                    {selectedUser.isActive ? "حساب نشط" : "حساب موقوف"}
+                  </span>
+                </div>
+              </SheetHeader>
+
+              <div className="space-y-7 px-6 py-6">
+                <section>
+                  <h3 className="mb-3 text-sm font-bold">بيانات الحساب</h3>
+                  <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        البريد الإلكتروني
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium" dir="ltr">
+                        {selectedUser.email?.trim() || "غير محدد"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        الدور الوظيفي
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium">
+                        {roleLabelAr(selectedUser.role)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">الفرع</dt>
+                      <dd className="mt-1 text-sm font-medium">
+                        {branchLabelAr(selectedUser.branch)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">الوردية</dt>
+                      <dd className="mt-1 text-sm font-medium">
+                        {shiftLabelAr(selectedUser.shift)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        آخر دخول
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium">
+                        {toDateKey(selectedUser.lastSignedIn)
+                          ? formatDateLabel(toDateKey(selectedUser.lastSignedIn))
+                          : "لم يدخل بعد"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        تاريخ الإنشاء
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium">
+                        {toDateKey(selectedUser.createdAt)
+                          ? formatDateLabel(toDateKey(selectedUser.createdAt))
+                          : "غير محدد"}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section>
+                  <h3 className="mb-1 text-sm font-bold">الصلاحيات</h3>
+                  <p className="text-xs text-muted-foreground">
+                    تُدار من تعديل الحساب، ويمكن الرجوع إلى افتراضيات الدور.
+                  </p>
+                </section>
+
+                <section className="space-y-2 border-t border-border/60 pt-5">
+                  <h3 className="mb-1 text-sm font-bold">إجراءات</h3>
                   <Button
                     type="button"
-                    size="sm"
-                    className="gap-2"
+                    className="w-full gap-2"
                     onClick={() => handleEdit(selectedUser)}
                   >
                     <Edit2 className="h-4 w-4" /> تعديل الحساب
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
                     variant="outline"
-                    onClick={() =>
-                      requestRiskAction("toggle-active", selectedUser)
-                    }
+                    className="w-full"
+                    onClick={() => requestRiskAction("toggle-active", selectedUser)}
                   >
                     {selectedUser.isActive ? "إيقاف الحساب" : "تفعيل الحساب"}
                   </Button>
-                </div>
-              </div>
-
-              <div className="grid gap-8 px-5 py-6 sm:px-7 xl:grid-cols-[minmax(0,1fr)_280px]">
-                <div className="space-y-7">
-                  <section>
-                    <h3 className="mb-3 text-sm font-bold">بيانات الحساب</h3>
-                    <dl className="grid gap-x-8 gap-y-4 border-y border-border py-4 sm:grid-cols-2">
-                      <div>
-                        <dt className="text-xs text-muted-foreground">
-                          البريد الإلكتروني
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium" dir="ltr">
-                          {selectedUser.email?.trim() || "غير محدد"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">
-                          الدور الوظيفي
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium">
-                          {roleLabelAr(selectedUser.role)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">الفرع</dt>
-                        <dd className="mt-1 text-sm font-medium">
-                          {branchLabelAr(selectedUser.branch)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">
-                          الوردية
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium">
-                          {shiftLabelAr(selectedUser.shift)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">
-                          آخر دخول
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium">
-                          {toDateKey(selectedUser.lastSignedIn)
-                            ? formatDateLabel(
-                                toDateKey(selectedUser.lastSignedIn),
-                              )
-                            : "لم يدخل بعد"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">
-                          تاريخ الإنشاء
-                        </dt>
-                        <dd className="mt-1 text-sm font-medium">
-                          {toDateKey(selectedUser.createdAt)
-                            ? formatDateLabel(toDateKey(selectedUser.createdAt))
-                            : "غير محدد"}
-                        </dd>
-                      </div>
-                    </dl>
-                  </section>
-
-                  <section>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-sm font-bold">الصلاحيات</h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          تُدار من تعديل الحساب، ويمكن الرجوع إلى افتراضيات
-                          الدور.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => handleEdit(selectedUser)}
-                      >
-                        <Shield className="h-4 w-4" /> إدارة الصلاحيات
-                      </Button>
-                    </div>
-                  </section>
-                </div>
-
-                <aside className="border-t border-border pt-5 xl:border-t-0 xl:border-r xl:pr-6 xl:pt-0">
-                  <h3 className="text-sm font-bold">إجراءات إدارية</h3>
-                  <div className="mt-3 space-y-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-start gap-2"
-                      onClick={() =>
-                        requestRiskAction("reset-permissions", selectedUser)
-                      }
-                      disabled={setUserPermissionsMutation.isPending}
-                    >
-                      <RotateCcw className="h-4 w-4" /> استعادة صلاحيات الدور
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => requestRiskAction("delete", selectedUser)}
-                    >
-                      <Trash2 className="h-4 w-4" /> حذف الحساب
-                    </Button>
-                  </div>
-                </aside>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    onClick={() =>
+                      requestRiskAction("reset-permissions", selectedUser)
+                    }
+                    disabled={setUserPermissionsMutation.isPending}
+                  >
+                    <RotateCcw className="h-4 w-4" /> استعادة صلاحيات الدور
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => requestRiskAction("delete", selectedUser)}
+                  >
+                    <Trash2 className="h-4 w-4" /> حذف الحساب
+                  </Button>
+                </section>
               </div>
             </>
-          ) : (
-            <div className="flex min-h-[480px] items-center justify-center px-6 text-center text-sm text-muted-foreground">
-              اختر مستخدمًا لعرض بياناته.
-            </div>
-          )}
-        </section>
-      </div>
-
-      <Card className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        <CardHeader className="space-y-1 border-b border-border/70 pb-4">
-          <CardTitle className="text-base">قائمة المستخدمين</CardTitle>
-          <CardDescription>
-            {filteredUsers.length} من {usersTotal} حساب حسب البحث والفلاتر
-            الحالية.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 pt-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="w-full lg:max-w-sm">
-              <SearchBar
-                value={searchTerm}
-                onChange={setSearchTerm}
-                placeholder="بحث بالاسم أو البريد أو اسم المستخدم…"
-              />
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <Select
-                value={statusFilter}
-                onValueChange={(value) =>
-                  setStatusFilter(value as "all" | "active" | "inactive")
-                }
-              >
-                <SelectTrigger
-                  className="h-10 w-full border-muted bg-background sm:w-[160px]"
-                  dir="rtl"
-                >
-                  <SelectValue placeholder="الحالة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">كل الحالات</SelectItem>
-                  <SelectItem value="active">نشط فقط</SelectItem>
-                  <SelectItem value="inactive">غير نشط</SelectItem>
-                </SelectContent>
-              </Select>
-              <FilterBar
-                filters={ROLE_TABS}
-                selected={roleFilter}
-                onSelect={(v) => setRoleFilter(v as UserRole | "all")}
-                className="max-w-[min(100%,640px)] sm:justify-end"
-              />
-            </div>
-          </div>
-
-          {/* Mobile cards, hidden on sm+ */}
-          <div className="sm:hidden">
-            {usersQuery.isLoading && (
-              <div className="py-10 text-center text-muted-foreground">
-                جاري تحميل المستخدمين…
-              </div>
-            )}
-            {!usersQuery.isLoading && filteredUsers.length === 0 && (
-              <div className="py-10 text-center text-muted-foreground">
-                لا توجد نتائج مطابقة.
-              </div>
-            )}
-            <div className="grid grid-cols-1 gap-2">
-              {filteredUsers.map((u) => {
-                const initials = initialsFromUser(u.name, u.username);
-                const lastRaw = u.lastSignedIn as unknown;
-                const lastKey = toDateKey(lastRaw);
-                const createdKey = toDateKey(u.createdAt as unknown);
-                return (
-                  <div
-                    key={u.id}
-                    className="rounded-lg border border-border/80 bg-card p-2.5"
-                    dir="rtl"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          title="استعادة صلاحيات الدور"
-                          aria-label="استعادة صلاحيات الدور"
-                          disabled={setUserPermissionsMutation.isPending}
-                          onClick={() =>
-                            requestRiskAction("reset-permissions", u)
-                          }
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          title="تعديل"
-                          aria-label="تعديل المستخدم"
-                          onClick={() => handleEdit(u)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
-                          title="حذف"
-                          aria-label="حذف المستخدم"
-                          onClick={() => requestRiskAction("delete", u)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div className="min-w-0 text-right">
-                          <div className="truncate font-semibold leading-tight">
-                            {u.name ?? u.username}
-                          </div>
-                          <div
-                            className="mt-0.5 truncate text-[11px] text-muted-foreground tabular-nums"
-                            dir="ltr"
-                          >
-                            @{u.username}
-                          </div>
-                        </div>
-                        <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-                          aria-hidden
-                        >
-                          {initials}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "h-10 w-full max-w-[9.5rem] text-xs font-semibold",
-                          u.isActive
-                            ? "border-success/50 bg-success/10 text-success hover:bg-success/15"
-                            : "border-muted-foreground/35 bg-muted/50 text-muted-foreground hover:bg-muted",
-                        )}
-                        onClick={() => requestRiskAction("toggle-active", u)}
-                      >
-                        {u.isActive ? "نشط" : "غير نشط"}
-                      </Button>
-                    </div>
-                    <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs">
-                      <div className="text-muted-foreground">البريد</div>
-                      <div className="truncate text-right" dir="ltr">
-                        {u.email?.trim() ? u.email : "غير محدد"}
-                      </div>
-                      <div className="text-muted-foreground">الدور</div>
-                      <div className="text-right">
-                        <Badge
-                          className={cn(
-                            "font-semibold text-[10px]",
-                            roleBadgeClass(u.role),
-                          )}
-                        >
-                          {roleLabelAr(u.role)}
-                        </Badge>
-                      </div>
-                      <div className="text-muted-foreground">
-                        الفرع / الوردية
-                      </div>
-                      <div className="text-right">
-                        {branchLabelAr(u.branch)} · {shiftLabelAr(u.shift)}
-                      </div>
-                      <div className="text-muted-foreground">آخر دخول</div>
-                      <div className="text-right tabular-nums">
-                        {lastKey ? formatDateLabel(lastKey) : "غير محدد"}
-                      </div>
-                      <div className="text-muted-foreground">تاريخ الإنشاء</div>
-                      <div className="text-right tabular-nums">
-                        {createdKey ? formatDateLabel(createdKey) : "غير محدد"}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Desktop table, hidden on mobile */}
-          <div className="hidden overflow-hidden rounded-xl border border-border/80 bg-background sm:block">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[1000px] text-right">
-                <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm">
-                  <TableRow className="hover:bg-transparent border-b-primary/10">
-                    <TableHead className="text-right font-bold text-primary h-11">
-                      الاسم والمهمة
-                    </TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">
-                      البريد الإلكتروني
-                    </TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">
-                      الدور الوظيفي
-                    </TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">
-                      الحالة
-                    </TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11">
-                      آخر نشاط
-                    </TableHead>
-                    <TableHead className="text-right font-bold text-primary h-11 whitespace-nowrap">
-                      تاريخ الإنشاء
-                    </TableHead>
-                    <TableHead className="w-[140px] text-center font-bold text-primary h-11">
-                      إجراءات
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {usersQuery.isLoading && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="py-12 text-center text-muted-foreground animate-pulse"
-                      >
-                        جاري تحميل بيانات المستخدمين…
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!usersQuery.isLoading && filteredUsers.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="py-12 text-center text-muted-foreground bg-muted/20"
-                      >
-                        لا توجد نتائج مطابقة لبحثك.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {filteredUsers.map((u, idx) => {
-                    const initials = initialsFromUser(u.name, u.username);
-                    const lastRaw = u.lastSignedIn as unknown;
-                    const lastKey = toDateKey(lastRaw);
-                    const createdKey = toDateKey(u.createdAt as unknown);
-                    return (
-                      <TableRow
-                        key={u.id}
-                        className={cn(
-                          "group transition-colors hover:bg-primary/[0.03]",
-                          idx % 2 === 0 ? "bg-background" : "bg-muted/15",
-                        )}
-                      >
-                        <TableCell className="align-middle py-3">
-                          <div className="flex items-center justify-end gap-3">
-                            <div className="min-w-0 text-right">
-                              <div className="font-bold text-sm leading-tight text-foreground/90 group-hover:text-primary transition-colors">
-                                {u.name ?? u.username}
-                              </div>
-                              <div
-                                className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground tabular-nums"
-                                dir="ltr"
-                              >
-                                <span>{shiftLabelAr(u.shift)}</span>
-                                <span className="opacity-30">|</span>
-                                <span>{branchLabelAr(u.branch)}</span>
-                                <span className="opacity-30">|</span>
-                                <span className="font-medium text-foreground/60">
-                                  @{u.username}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-inner">
-                              {initials}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[200px] align-middle py-3">
-                          <span
-                            className="block truncate text-xs font-medium text-muted-foreground/80 hover:text-foreground transition-colors"
-                            dir="ltr"
-                            title={u.email ?? ""}
-                          >
-                            {u.email?.trim() ? u.email : "—"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap py-3">
-                          <Badge
-                            className={cn(
-                              "font-bold text-[10px] px-2 py-0.5 shadow-sm",
-                              roleBadgeClass(u.role),
-                            )}
-                          >
-                            {roleLabelAr(u.role)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap py-3">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "h-7 text-[10px] font-bold px-3 transition-all",
-                              u.isActive
-                                ? "border-success/30 bg-success/10 text-success hover:bg-success/15 hover:border-success/40"
-                                : "border-muted-foreground/20 bg-muted/40 text-muted-foreground hover:bg-muted/60",
-                            )}
-                            onClick={() =>
-                              requestRiskAction("toggle-active", u)
-                            }
-                          >
-                            {u.isActive ? "نشط" : "غير نشط"}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-medium text-muted-foreground tabular-nums py-3">
-                          {lastKey ? (
-                            formatDateLabel(lastKey)
-                          ) : (
-                            <span className="opacity-40 italic">
-                              لم يدخل بعد
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-medium text-muted-foreground tabular-nums py-3">
-                          {createdKey ? formatDateLabel(createdKey) : "—"}
-                        </TableCell>
-                        <TableCell className="text-center align-middle py-3">
-                          <div className="flex justify-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-lg text-foreground hover:bg-primary hover:text-primary-foreground"
-                              title="استعادة صلاحيات الدور"
-                              aria-label="استعادة صلاحيات الدور"
-                              disabled={setUserPermissionsMutation.isPending}
-                              onClick={() =>
-                                requestRiskAction("reset-permissions", u)
-                              }
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-lg text-foreground hover:bg-primary hover:text-primary-foreground"
-                              title="تعديل البيانات"
-                              aria-label="تعديل بيانات المستخدم"
-                              onClick={() => handleEdit(u)}
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-lg text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground"
-                              title="حذف الحساب"
-                              aria-label="حذف الحساب"
-                              onClick={() => requestRiskAction("delete", u)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          ) : null}
+        </SheetContent>
+      </Sheet>
 
       <Dialog
         open={isCreateOpen}

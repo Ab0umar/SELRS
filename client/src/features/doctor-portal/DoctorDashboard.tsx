@@ -236,7 +236,7 @@ export default function DoctorDashboard() {
             </h2>
             <p className="text-xs text-muted-foreground">
               {isLoading
-                ? "جارٍ التحميل..."
+                ? "جارٍ التحميل…"
                 : data
                   ? `${filtered.length} من ${data.length} مريض`
                   : ""}
@@ -259,7 +259,7 @@ export default function DoctorDashboard() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ابحث بالاسم أو جزء منه..."
+            placeholder="ابحث بالاسم أو جزء منه…"
             className="h-11 rounded-xl border-border/60 bg-card pr-10 focus-visible:ring-primary/10"
             dir="rtl"
           />

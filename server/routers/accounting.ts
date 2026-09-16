@@ -132,21 +132,21 @@ export const accountingRouter = router({
       accountingQuery("receiptDetail", () => getReceiptDetail(input)),
     ),
 
-  lasikReceipts: makeAccProcedure("/accounting")
+  lasikReceipts: makeAccProcedure(["/accounting", "/clinical-suite"])
     .input(lasikReceiptsInputSchema)
     .output(lasikReceiptsOutputSchema)
     .query(({ input }) =>
       accountingQuery("lasikReceipts", () => getLasikReceipts(input)),
     ),
 
-  lasikServices: makeAccProcedure("/accounting")
+  lasikServices: makeAccProcedure(["/accounting", "/clinical-suite"])
     .input(lasikServicesInputSchema)
     .output(lasikServicesOutputSchema)
     .query(({ input }) =>
       accountingQuery("lasikServices", () => getLasikServices(input)),
     ),
 
-  lasikRevenueSummary: makeAccProcedure("/accounting")
+  lasikRevenueSummary: makeAccProcedure(["/accounting", "/clinical-suite"])
     .input(lasikRevenueSummaryInputSchema)
     .output(lasikRevenueSummaryOutputSchema)
     .query(({ input }) =>

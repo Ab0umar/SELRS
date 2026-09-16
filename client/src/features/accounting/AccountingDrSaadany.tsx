@@ -281,7 +281,7 @@ export default function AccountingDrSaadany() {
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="البيان..."
+                  placeholder="البيان…"
                   className="h-10 rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                 />
                 {editingId ? (
@@ -385,7 +385,7 @@ export default function AccountingDrSaadany() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="بحث في البيان..."
+                  placeholder="بحث في البيان…"
                   className="w-full bg-transparent py-1.5 pe-8 ps-3 text-sm outline-none placeholder:text-muted-foreground sm:w-52"
                 />
                 {search && (

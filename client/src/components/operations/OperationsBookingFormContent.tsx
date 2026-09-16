@@ -71,7 +71,7 @@ export function OperationsBookingFormContent({
                 onChange={(event) =>
                   onChange("doctorName", event.target.value)
                 }
-                placeholder="اسم الطبيب..."
+                placeholder="اسم الطبيب…"
                 className="h-9 text-sm font-medium bg-background"
               />
             </div>
@@ -103,7 +103,7 @@ export function OperationsBookingFormContent({
               id="operation-booking-weekday"
               value={draft.weekdayLabel ?? ""}
               onChange={(event) => onChange("weekdayLabel", event.target.value)}
-              placeholder="السبت، الأحد..."
+              placeholder="السبت، الأحد…"
               className="h-9 text-sm bg-background"
             />
           </div>
@@ -125,7 +125,7 @@ export function OperationsBookingFormContent({
               onChange={(event) =>
                 onChange("operationType", event.target.value)
               }
-              placeholder="ابحث عن العملية..."
+              placeholder="ابحث عن العملية…"
               className="h-9 text-sm font-semibold bg-background border-success/30"
             />
             <datalist id="operation-booking-types">
@@ -198,7 +198,7 @@ export function OperationsBookingFormContent({
           className="h-9 text-sm px-8 font-bold bg-success hover:bg-success/80"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "جاري الحفظ..." : submitLabel}
+          {isSubmitting ? "جاري الحفظ…" : submitLabel}
         </Button>
       </div>
     </form>

@@ -141,7 +141,7 @@ export function OperationsHistoryDrawer({
             <Input
               value={historySearch}
               onChange={(e) => onHistorySearchChange(e.target.value)}
-              placeholder="ابحث باسم المريض أو تاريخ القائمة..."
+              placeholder="ابحث باسم المريض أو تاريخ القائمة…"
               className="h-10 pr-9 text-right text-sm bg-muted/30 border-border focus:bg-card rounded-xl"
               dir="rtl"
               aria-label="بحث في سجل العمليات"

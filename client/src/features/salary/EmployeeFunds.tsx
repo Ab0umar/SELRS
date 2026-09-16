@@ -202,7 +202,7 @@ export default function EmployeeFunds() {
               >
                 <WalletCards className="ml-2 size-4" />
                 {settleFund.isPending
-                  ? "جاري التصفير..."
+                  ? "جاري التصفير…"
                   : "تم الصرف وابدأ جديد"}
               </Button>
               <Button

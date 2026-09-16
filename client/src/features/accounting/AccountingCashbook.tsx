@@ -202,7 +202,7 @@ export default function AccountingCashbook() {
                     setNotes(e.target.value);
                     resetPage();
                   }}
-                  placeholder="بحث في الملاحظات والبيان..."
+                  placeholder="بحث في الملاحظات والبيان…"
                   className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
                 {notes && (

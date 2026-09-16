@@ -532,7 +532,7 @@ export default function StockroomReports() {
               onClick={handleSaveEdit}
               disabled={updateTransactionMutation.isPending}
             >
-              {updateTransactionMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+              {updateTransactionMutation.isPending ? "جاري الحفظ…" : "حفظ"}
             </Button>
           </DialogFooter>
         </DialogContent>

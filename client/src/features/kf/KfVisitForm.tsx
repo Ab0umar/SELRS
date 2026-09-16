@@ -74,7 +74,7 @@ export default function KfVisitForm() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض...</p>
+        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض…</p>
       </div>
     );
   }
@@ -166,7 +166,7 @@ export default function KfVisitForm() {
                   onValueChange={setDoctorName}
                 >
                   <SelectTrigger id="doctorName">
-                    <SelectValue placeholder="اختر الطبيب..." />
+                    <SelectValue placeholder="اختر الطبيب…" />
                   </SelectTrigger>
                   <SelectContent>
                     {KF_DOCTORS.map((dr) => (
@@ -202,7 +202,7 @@ export default function KfVisitForm() {
                 <Textarea
                   id="notes"
                   rows={4}
-                  placeholder="اكتب أي ملاحظات أو شكوى للمريض هنا..."
+                  placeholder="اكتب أي ملاحظات أو شكوى للمريض هنا…"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />

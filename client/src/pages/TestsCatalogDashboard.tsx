@@ -331,7 +331,7 @@ export default function TestsCatalogDashboard({
                   value={search}
                   onChange={setSearch}
                   placeholder={
-                    isTx ? "بحث في المرجع الخارجي..." : "بحث عن فحص..."
+                    isTx ? "بحث في المرجع الخارجي…" : "بحث عن فحص…"
                   }
                   className="flex-1"
                 />
@@ -606,7 +606,7 @@ export default function TestsCatalogDashboard({
                 <Input
                   value={form.unit}
                   onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                  placeholder="D، µm، mmHg، mg/dL..."
+                  placeholder="D، µm، mmHg، mg/dL…"
                 />
               </div>
 
@@ -652,8 +652,8 @@ export default function TestsCatalogDashboard({
                   }
                   placeholder={
                     isTx
-                      ? "ملاحظات الربط أو المصدر الخارجي..."
-                      : "وصف مختصر للفحص..."
+                      ? "ملاحظات الربط أو المصدر الخارجي…"
+                      : "وصف مختصر للفحص…"
                   }
                   className="min-h-[88px]"
                 />

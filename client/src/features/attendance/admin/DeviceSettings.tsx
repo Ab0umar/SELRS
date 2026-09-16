@@ -384,7 +384,7 @@ export default function DeviceSettings() {
                 disabled={updateSettings.isPending}
                 className="w-full text-[10px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto"
               >
-                {updateSettings.isPending ? "جاري..." : "حفظ إعدادات EF10K"}
+                {updateSettings.isPending ? "جاري…" : "حفظ إعدادات EF10K"}
               </Button>
               <Button
                 onClick={async () => {
@@ -395,7 +395,7 @@ export default function DeviceSettings() {
                 variant="outline"
                 className="w-full text-[10px] font-bold border-red-300 text-red-700 hover:bg-red-50 rounded-lg py-2 h-auto"
               >
-                {resetFkHwm.isPending ? "جاري..." : "إعادة ضبط HWM (استعادة بصمات مفقودة)"}
+                {resetFkHwm.isPending ? "جاري…" : "إعادة ضبط HWM (استعادة بصمات مفقودة)"}
               </Button>
             </div>
 
@@ -462,7 +462,7 @@ export default function DeviceSettings() {
                 disabled={updateSettings.isPending}
                 className="w-full text-[10px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto"
               >
-                {updateSettings.isPending ? "جاري..." : "حفظ إعدادات K40 Pro"}
+                {updateSettings.isPending ? "جاري…" : "حفظ إعدادات K40 Pro"}
               </Button>
               <Button
                 onClick={async () => {
@@ -473,7 +473,7 @@ export default function DeviceSettings() {
                 variant="outline"
                 className="w-full text-[10px] font-bold border-red-300 text-red-700 hover:bg-red-50 rounded-lg py-2 h-auto"
               >
-                {resetZkHwm.isPending ? "جاري..." : "إعادة ضبط HWM (استعادة بصمات مفقودة)"}
+                {resetZkHwm.isPending ? "جاري…" : "إعادة ضبط HWM (استعادة بصمات مفقودة)"}
               </Button>
             </div>
 

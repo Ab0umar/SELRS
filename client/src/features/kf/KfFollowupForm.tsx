@@ -83,7 +83,7 @@ export default function KfFollowupForm() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض...</p>
+        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض…</p>
       </div>
     );
   }
@@ -171,7 +171,7 @@ export default function KfFollowupForm() {
                 <Label htmlFor="kfOpId">مرتبطة بعملية جراحية (اختياري)</Label>
                 <Select value={kfOpId} onValueChange={setKfOpId}>
                   <SelectTrigger id="kfOpId">
-                    <SelectValue placeholder="اختر عملية..." />
+                    <SelectValue placeholder="اختر عملية…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">غير مرتبطة بعملية جراحية</SelectItem>
@@ -189,7 +189,7 @@ export default function KfFollowupForm() {
                 <Label htmlFor="kfVisitId">ربط بزيارة مجدولة (اختياري)</Label>
                 <Select value={kfVisitId} onValueChange={setKfVisitId}>
                   <SelectTrigger id="kfVisitId">
-                    <SelectValue placeholder="اختر زيارة..." />
+                    <SelectValue placeholder="اختر زيارة…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">غير مرتبطة بزيارة</SelectItem>
@@ -208,7 +208,7 @@ export default function KfFollowupForm() {
                 <Textarea
                   id="notes"
                   rows={4}
-                  placeholder="ملاحظات وتوصيات للمتابعة القادمة..."
+                  placeholder="ملاحظات وتوصيات للمتابعة القادمة…"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />

@@ -172,7 +172,7 @@ export default function DailyView({
               className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={loading}
             >
-              {loading ? "جارٍ التحميل..." : "تحميل الفترة"}
+              {loading ? "جارٍ التحميل…" : "تحميل الفترة"}
             </Button>
             <div className="space-y-1">
               <label className="block text-sm font-medium text-muted-foreground">

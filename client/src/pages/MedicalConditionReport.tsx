@@ -270,7 +270,7 @@ export default function MedicalConditionReport() {
             <div className="w-64">
               <Select value={templateId} onValueChange={applyTemplate}>
                 <SelectTrigger>
-                  <SelectValue placeholder="نموذج جاهز..." />
+                  <SelectValue placeholder="نموذج جاهز…" />
                 </SelectTrigger>
                 <SelectContent>
                   {templates.map((template) => (
@@ -306,7 +306,7 @@ export default function MedicalConditionReport() {
               disabled={saveReportMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {saveReportMutation.isPending ? "جارٍ الحفظ..." : "Save"}
+              {saveReportMutation.isPending ? "جارٍ الحفظ…" : "Save"}
             </Button>
             <Button
               type="button"
@@ -476,7 +476,7 @@ export default function MedicalConditionReport() {
                 onChange={(event) => setComplications(event.target.value)}
                 rows={4}
                 className="border-[#c2c7d1] text-[15px]"
-                placeholder="اذكر أي مضاعفات ملاحظة، إن وجدت..."
+                placeholder="اذكر أي مضاعفات ملاحظة، إن وجدت…"
               />
             </section>
 
@@ -489,7 +489,7 @@ export default function MedicalConditionReport() {
                 onChange={(event) => setFollowUpPlan(event.target.value)}
                 rows={4}
                 className="border-[#c2c7d1] text-[15px]"
-                placeholder="اذكر توصيات المتابعة والموعد القادم..."
+                placeholder="اذكر توصيات المتابعة والموعد القادم…"
               />
             </section>
 

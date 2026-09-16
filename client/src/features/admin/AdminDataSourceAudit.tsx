@@ -483,7 +483,7 @@ export default function AdminDataSourceAudit() {
           {auditQuery.isLoading && (
             <div className="flex justify-end gap-2">
               <Spinner className="h-4 w-4" />
-              <span className="text-sm">جاري التحقق...</span>
+              <span className="text-sm">جاري التحقق…</span>
             </div>
           )}
 

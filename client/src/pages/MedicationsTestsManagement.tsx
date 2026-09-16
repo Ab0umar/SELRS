@@ -598,7 +598,7 @@ export default function MedicationsTestsManagement() {
             <SearchBar
               value={medListSearch}
               onChange={setMedListSearch}
-              placeholder="بحث في الأدوية..."
+              placeholder="بحث في الأدوية…"
               className="mt-3"
             />
           </CardHeader>
@@ -724,7 +724,7 @@ export default function MedicationsTestsManagement() {
             <SearchBar
               value={testListSearch}
               onChange={setTestListSearch}
-              placeholder="بحث في الفحوصات..."
+              placeholder="بحث في الفحوصات…"
             />
           </CardHeader>
           <CardContent className="max-h-[340px] space-y-2 overflow-y-auto pt-4">

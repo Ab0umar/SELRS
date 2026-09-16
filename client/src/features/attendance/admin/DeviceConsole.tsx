@@ -238,7 +238,7 @@ export default function DeviceConsole() {
                     variant="outline"
                     className="text-xs py-1.5 h-auto font-medium hover:bg-zinc-50 border-zinc-200 active:opacity-90 transition-opacity"
                   >
-                    {requestStatus.isPending ? "Sending..." : "Query Status"}
+                    {requestStatus.isPending ? "Sending…" : "Query Status"}
                   </Button>
                   <Button
                     onClick={() => requestEmployeeData.mutate({ hex: "AABB0100" })}
@@ -246,7 +246,7 @@ export default function DeviceConsole() {
                     variant="outline"
                     className="text-xs py-1.5 h-auto font-medium hover:bg-zinc-50 border-zinc-200 active:opacity-90 transition-opacity"
                   >
-                    {requestEmployeeData.isPending ? "Sending..." : "Get Employees"}
+                    {requestEmployeeData.isPending ? "Sending…" : "Get Employees"}
                   </Button>
                 </div>
                 <div className="p-2 bg-zinc-50 rounded-md border border-zinc-100 space-y-1 text-[11px] text-zinc-500 font-mono">
@@ -281,7 +281,7 @@ export default function DeviceConsole() {
                   className="w-full text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-white rounded-md transition-opacity active:opacity-90 py-2 h-auto"
                 >
                   <Send className="w-3.5 h-3.5 mr-2" />
-                  {sendCommand.isPending ? "Sending..." : "Send Command"}
+                  {sendCommand.isPending ? "Sending…" : "Send Command"}
                 </Button>
               </form>
             </CardContent>
@@ -333,7 +333,7 @@ export default function DeviceConsole() {
                 className="w-full text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 rounded-md transition-opacity active:opacity-90 py-2 h-auto"
               >
                 <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-500 fill-amber-500" />
-                {runDiagnostics.isPending ? "Testing Connection..." : "Run Connectivity Tests"}
+                {runDiagnostics.isPending ? "Testing Connection…" : "Run Connectivity Tests"}
               </Button>
               <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-100 flex items-start gap-2.5">
                 <Info className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />

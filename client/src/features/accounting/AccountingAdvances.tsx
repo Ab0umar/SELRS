@@ -304,7 +304,7 @@ export default function AccountingAdvances() {
                       }}
                       onFocus={() => setEmpOpen(true)}
                       onBlur={() => setTimeout(() => setEmpOpen(false), 150)}
-                      placeholder="اختر أو اكتب..."
+                      placeholder="اختر أو اكتب…"
                       className="h-10 w-full rounded-lg border border-border bg-background px-3 pl-7 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                     <ChevronDown
@@ -411,7 +411,7 @@ export default function AccountingAdvances() {
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="ملاحظات..."
+                    placeholder="ملاحظات…"
                     className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                   />
                 </div>
@@ -755,7 +755,7 @@ export default function AccountingAdvances() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="بحث باسم الموظف..."
+                  placeholder="بحث باسم الموظف…"
                   className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:w-44 sm:flex-none"
                 />
                 {search ? (

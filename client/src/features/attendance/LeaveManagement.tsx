@@ -333,7 +333,7 @@ export default function LeaveManagement() {
                 }}
                 disabled={!form.empCd || createMut.isPending || updateMut.isPending}
               >
-                {(createMut.isPending || updateMut.isPending) ? "جاري الحفظ..." : "حفظ"}
+                {(createMut.isPending || updateMut.isPending) ? "جاري الحفظ…" : "حفظ"}
               </Button>
               <Button variant="outline" onClick={resetForm}>
                 إلغاء

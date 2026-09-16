@@ -279,7 +279,7 @@ export default function AccountingHomeFund() {
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="البيان..."
+                  placeholder="البيان…"
                   className="h-10 rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                 />
                 {editingId ? (
@@ -384,7 +384,7 @@ export default function AccountingHomeFund() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="بحث في البيان..."
+                  placeholder="بحث في البيان…"
                   className="w-44 min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
                 {search ? (

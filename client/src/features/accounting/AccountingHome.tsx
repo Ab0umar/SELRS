@@ -313,7 +313,7 @@ export default function AccountingHome() {
                       )}
                     />
                     {syncAccMut.isPending
-                      ? "جارٍ المزامنة..."
+                      ? "جارٍ المزامنة…"
                       : "مزامنة الخزنة"}
                   </button>
                 )}
@@ -330,7 +330,7 @@ export default function AccountingHome() {
                         pushAccMut.isPending && "animate-spin",
                       )}
                     />
-                    {pushAccMut.isPending ? "جارٍ الرفع..." : "رفع للخزنة"}
+                    {pushAccMut.isPending ? "جارٍ الرفع…" : "رفع للخزنة"}
                   </button>
                 )}
               </div>
@@ -418,7 +418,7 @@ export default function AccountingHome() {
                             onChange={(e) => setNotes(e.target.value)}
                             onFocus={() => setNotesFocused(true)}
                             onBlur={() => setNotesFocused(false)}
-                            placeholder="اسم الموظف أو البيان..."
+                            placeholder="اسم الموظف أو البيان…"
                             className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
                           />
                         ),

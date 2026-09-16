@@ -298,7 +298,7 @@ export default function AdminPentacamFailed({
             />
             <div className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
               {filesQuery.isLoading
-                ? "Loading..."
+                ? "Loading…"
                 : `${filteredGroups.length} groups / ${rows.length} files`}
             </div>
           </div>

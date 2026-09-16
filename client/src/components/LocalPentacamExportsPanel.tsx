@@ -678,7 +678,7 @@ export default function LocalPentacamExportsPanel({
             >
               <ScanSearch className="h-4 w-4" />
               {autoImportMutation.isPending
-                ? "Auto-linking..."
+                ? "Auto-linking…"
                 : `Auto-wire ALL (${items.length})`}
             </Button>
             <Button
@@ -691,7 +691,7 @@ export default function LocalPentacamExportsPanel({
             >
               <ScanSearch className="h-4 w-4" />
               {autoImportMutation.isPending
-                ? "Auto-linking..."
+                ? "Auto-linking…"
                 : `Auto-wire filtered (${filteredItems.length})`}
             </Button>
             <Button
@@ -702,7 +702,7 @@ export default function LocalPentacamExportsPanel({
               className="bg-foreground text-primary-foreground hover:bg-muted/80"
             >
               {importMutation.isPending
-                ? "Saving..."
+                ? "Saving…"
                 : `Save Selected (${selectedNames.length})`}
             </Button>
             <Button
@@ -823,7 +823,7 @@ export default function LocalPentacamExportsPanel({
                         )}
                       >
                         {manualSearchLoadingByFile[entry.fileName]
-                          ? "Searching..."
+                          ? "Searching…"
                           : "Search"}
                       </Button>
                     </div>
@@ -866,7 +866,7 @@ export default function LocalPentacamExportsPanel({
                   onClick={loadMismatchedLinks}
                   disabled={mismatchLoading}
                 >
-                  {mismatchLoading ? "Scanning..." : "Scan mismatches"}
+                  {mismatchLoading ? "Scanning…" : "Scan mismatches"}
                 </Button>
                 <Button
                   type="button"
@@ -876,7 +876,7 @@ export default function LocalPentacamExportsPanel({
                   disabled={unlinkMismatchedMutation.isPending}
                 >
                   {unlinkMismatchedMutation.isPending
-                    ? "Unlinking..."
+                    ? "Unlinking…"
                     : "Unlink obvious"}
                 </Button>
               </div>

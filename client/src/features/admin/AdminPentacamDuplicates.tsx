@@ -181,7 +181,7 @@ export default function AdminPentacamDuplicates() {
       </div>
 
       {dupsQuery.isLoading && (
-        <p className="text-xs text-muted-foreground">جاري البحث...</p>
+        <p className="text-xs text-muted-foreground">جاري البحث…</p>
       )}
       {!dupsQuery.isLoading && groups.length === 0 && (
         <p className="text-xs text-muted-foreground">لا توجد مكررات</p>

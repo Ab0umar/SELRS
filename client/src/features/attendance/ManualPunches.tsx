@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Fingerprint, LogIn, LogOut, Trash2 } from "lucide-react";
+import { Plus, Fingerprint, LogIn, LogOut, Trash2, PenLine, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 type Direction = "in" | "out" | "unknown";
 
 interface PunchForm {
+  id: string;
   empCd: string;
   date: string;
   time: string;
@@ -24,6 +25,7 @@ const toLocalIsoDate = (date: Date) =>
 const today = toLocalIsoDate(new Date());
 const PAGE_SIZE = 200;
 const emptyForm = (): PunchForm => ({
+  id: Math.random().toString(36).slice(2),
   empCd: "",
   date: today,
   time: "08:00",
@@ -31,12 +33,15 @@ const emptyForm = (): PunchForm => ({
   note: "",
 });
 
+type TabKey = "record" | "report";
+
 export default function ManualPunches() {
   const isMobile = useIsMobile();
+  const [tab, setTab] = useState<TabKey>("record");
   const [filter, setFilter] = useState({ empCd: "", from: today, to: today });
   const [offset, setOffset] = useState(0);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<PunchForm>(emptyForm());
+  const [rows, setRows] = useState<PunchForm[]>([emptyForm()]);
+  const [submitting, setSubmitting] = useState(false);
 
   const punchesQuery = trpc.attendance.rawPunches.useQuery({
     empCd: filter.empCd || undefined,
@@ -52,23 +57,25 @@ export default function ManualPunches() {
     (empsQuery.data?.employees ?? []) as any;
 
   const onDone = () => {
-    setShowForm(false);
-    setForm(emptyForm());
+    setRows([emptyForm()]);
     punchesQuery.refetch();
   };
+
+  const updateRow = (id: string, patch: Partial<PunchForm>) =>
+    setRows((current) =>
+      current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    );
+  const removeRow = (id: string) =>
+    setRows((current) =>
+      current.length === 1 ? current : current.filter((row) => row.id !== id),
+    );
 
   const updateFilter = (next: Partial<typeof filter>) => {
     setOffset(0);
     setFilter((current) => ({ ...current, ...next }));
   };
 
-  const addMut = (trpc as any).attendance.addManualPunch.useMutation({
-    onSuccess: () => {
-      onDone();
-      toast.success("تم تسجيل البصمة اليدوية");
-    },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
-  });
+  const addMut = (trpc as any).attendance.addManualPunch.useMutation();
 
   const deleteMut = (trpc as any).attendance.deleteManualPunch.useMutation({
     onSuccess: () => {
@@ -78,14 +85,47 @@ export default function ManualPunches() {
     onError: (e: any) => toast.error("خطأ: " + e.message),
   });
 
-  const handleSubmit = () => {
-    addMut.mutate({
-      empCd: form.empCd,
-      date: form.date,
-      time: form.time,
-      direction: form.direction,
-      note: form.note || undefined,
-    });
+  const handleSubmit = async () => {
+    const valid = rows.filter((row) => row.empCd && row.date && row.time);
+    if (valid.length === 0) return;
+    setSubmitting(true);
+    try {
+      let successCount = 0;
+      const successfulRowIds = new Set<string>();
+      for (const row of valid) {
+        try {
+          await addMut.mutateAsync({
+            empCd: row.empCd,
+            date: row.date,
+            time: row.time,
+            direction: row.direction,
+            note: row.note || undefined,
+          });
+          successCount += 1;
+          successfulRowIds.add(row.id);
+        } catch (e: any) {
+          toast.error(`${empName(row.empCd)}: ${e.message}`);
+        }
+      }
+      if (successCount > 0) {
+        setRows((current) => {
+          const remaining = current.filter(
+            (row) => !successfulRowIds.has(row.id),
+          );
+          return remaining.length > 0 ? remaining : [emptyForm()];
+        });
+        punchesQuery.refetch();
+        toast.success(
+          successCount < valid.length
+            ? `تم تسجيل ${successCount} من ${valid.length} بصمة — راجع الصفوف المتبقية`
+            : valid.length > 1
+              ? `تم تسجيل ${successCount} بصمة`
+            : "تم تسجيل البصمة اليدوية",
+        );
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const directionLabel = (d: string) =>
@@ -104,10 +144,147 @@ export default function ManualPunches() {
     new Date(iso).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("ar-EG");
+  const validRowCount = rows.filter(
+    (row) => row.empCd && row.date && row.time,
+  ).length;
 
   return (
     <div className="space-y-4" dir="rtl">
-      <Card className="mb-4">
+      <div role="tablist" aria-label="البصمات اليدوية" className="flex gap-1 overflow-x-auto border-b border-border">
+        {(
+          [
+            { key: "record" as const, label: "تسجيل بصمات", icon: PenLine },
+            { key: "report" as const, label: "سجل البصمات", icon: ClipboardList },
+          ]
+        ).map((t) => {
+          const Icon = t.icon;
+          const isActive = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              id={`manual-punches-tab-${t.key}`}
+              role="tab"
+              onClick={() => setTab(t.key)}
+              aria-selected={isActive}
+              aria-controls={`manual-punches-panel-${t.key}`}
+              className={`-mb-px inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                isActive
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "record" && (
+        <Card
+          id="manual-punches-panel-record"
+          role="tabpanel"
+          aria-labelledby="manual-punches-tab-record"
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>تسجيل بصمات يدوية</CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setRows((current) => [...current, emptyForm()])}
+              >
+                <Plus size={14} className="ml-1" /> إضافة صف
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {rows.map((row, index) => (
+              <div
+                key={row.id}
+                className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-muted/40 p-3 md:grid-cols-[1.4fr_1fr_0.8fr_0.9fr_1.4fr_auto] md:items-end"
+              >
+                <div>
+                  <label htmlFor={`manual-punch-emp-${row.id}`} className="block text-xs font-medium text-muted-foreground mb-1">الموظف</label>
+                  <select id={`manual-punch-emp-${row.id}`} value={row.empCd} onChange={(e) => updateRow(row.id, { empCd: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" required>
+                    <option value="">اختر الموظف</option>
+                    {employees.map((emp) => (
+                      <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">التاريخ</label>
+                  <DateInput value={row.date} onChange={(e) => updateRow(row.id, { date: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label htmlFor={`manual-punch-time-${row.id}`} className="block text-xs font-medium text-muted-foreground mb-1">الوقت</label>
+                  <input id={`manual-punch-time-${row.id}`} type="time" value={row.time} onChange={(e) => updateRow(row.id, { time: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">الاتجاه</label>
+                  <div className="flex overflow-hidden rounded-md border border-border">
+                    {(["in", "out"] as const).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => updateRow(row.id, { direction: d })}
+                        aria-pressed={row.direction === d}
+                        className={`flex-1 py-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.97] ${
+                          row.direction === d
+                            ? "bg-secondary text-secondary-foreground"
+                            : "bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {d === "in" ? "دخول" : "خروج"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor={`manual-punch-note-${row.id}`} className="block text-xs font-medium text-muted-foreground mb-1">ملاحظة</label>
+                  <input id={`manual-punch-note-${row.id}`} type="text" value={row.note} onChange={(e) => updateRow(row.id, { note: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="اختياري" />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeRow(row.id)}
+                    disabled={rows.length === 1}
+                    className="h-10 w-10 p-0 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                    aria-label={`حذف الصف ${index + 1}`}
+                  >
+                    <Trash2 size={15} />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button onClick={handleSubmit} disabled={validRowCount === 0 || submitting}>
+                {submitting ? "جاري الحفظ…" : validRowCount > 1 ? `حفظ ${validRowCount} بصمات` : "حفظ"}
+              </Button>
+              <Button variant="outline" onClick={onDone}>إلغاء</Button>
+            </div>
+            <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-primary">
+              <p className="mb-2 font-bold">طريقة الاستخدام</p>
+              <div className="space-y-1.5">
+                <p>• <strong>بصمة ناقصة:</strong> الموظف نسي تسجيل الدخول أو الخروج</p>
+                <p>• <strong>تصحيح الوقت:</strong> النظام سجّل وقتاً خاطئاً</p>
+                <p>• <strong>عدة صفوف:</strong> اضغط &quot;إضافة صف&quot; لتسجيل أكثر من بصمة في نفس المرة</p>
+              </div>
+              <p className="mt-3 text-xs text-primary/80">
+                كل بصمة يتم تسجيلها في سجل التتبع مع اسم المستخدم والوقت.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {tab === "report" && (
+      <>
+      <Card>
         <CardContent className="pt-4">
           <div className="grid gap-3 md:grid-cols-4 md:items-end">
             <div>
@@ -129,73 +306,16 @@ export default function ManualPunches() {
             </div>
             <div className="flex gap-2 md:justify-end">
               <Button onClick={() => { setOffset(0); punchesQuery.refetch(); }} variant="outline" className="min-h-11 px-4">بحث</Button>
-              <Button onClick={() => { setForm(emptyForm()); setShowForm(true); }} className="min-h-11 gap-2 px-4">
-                <Plus size={16} /> تسجيل بصمة
-              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {showForm && (
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>تسجيل بصمة يدوية</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label htmlFor="manual-punch-form-employee" className="block text-sm font-medium mb-1">الموظف</label>
-                <select id="manual-punch-form-employee" value={form.empCd} onChange={(e) => setForm({ ...form, empCd: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" required>
-                  <option value="">اختر الموظف</option>
-                  {employees.map((emp) => (
-                    <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="manual-punch-form-direction" className="block text-sm font-medium mb-1">الاتجاه</label>
-                <div className="flex overflow-hidden rounded-md border border-border">
-                  {(["in", "out"] as const).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setForm({ ...form, direction: d })}
-                      className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                        form.direction === d
-                          ? "bg-secondary text-secondary-foreground"
-                          : "bg-background text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-                      {d === "in" ? "دخول" : "خروج"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label htmlFor="manual-punch-form-date" className="block text-sm font-medium mb-1">التاريخ</label>
-                <DateInput id="manual-punch-form-date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label htmlFor="manual-punch-form-time" className="block text-sm font-medium mb-1">الوقت</label>
-                <input id="manual-punch-form-time" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="manual-punch-form-note" className="block text-sm font-medium mb-1">ملاحظة</label>
-                <input id="manual-punch-form-note" type="text" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="اختياري" />
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={handleSubmit} disabled={!form.empCd || addMut.isPending}>
-                {addMut.isPending ? "جاري الحفظ..." : "حفظ"}
-              </Button>
-              <Button variant="outline" onClick={onDone}>إلغاء</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
+      <Card
+        id="manual-punches-panel-report"
+        role="tabpanel"
+        aria-labelledby="manual-punches-tab-report"
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Fingerprint className="w-5 h-5" />سجل البصمات اليدوية</CardTitle>
         </CardHeader>
@@ -298,6 +418,8 @@ export default function ManualPunches() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }

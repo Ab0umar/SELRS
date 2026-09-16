@@ -691,7 +691,7 @@ export default function KfWorkflow() {
             <KfPatientPicker
               initialKfPatientId={kfPatientId || undefined}
               onSelect={handlePatientSelect}
-              placeholder="ابحث واختر المريض..."
+              placeholder="ابحث واختر المريض…"
             />
           </div>
 
@@ -1449,7 +1449,7 @@ export default function KfWorkflow() {
 
                   {images.map((img, i) => (
                     <div key={i} className="relative h-14 w-14 rounded-xl overflow-hidden border border-border group">
-                      <img src={img.preview} className="h-full w-full object-cover" />
+                      <img src={img.preview} alt="" aria-hidden loading="lazy" className="h-full w-full object-cover" />
                       <button
                         onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                         className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1566,7 +1566,7 @@ export default function KfWorkflow() {
                   <div className="space-y-1">
                     <Label className="text-xs">اسم الدواء</Label>
                     <Input
-                      placeholder="اسم الدواء..."
+                      placeholder="اسم الدواء…"
                       value={newMed.medicationName}
                       onChange={(e) => setNewMed({ ...newMed, medicationName: e.target.value })}
                       className="h-10 rounded-xl"
@@ -1575,7 +1575,7 @@ export default function KfWorkflow() {
                   <div className="space-y-1">
                     <Label className="text-xs">الجرعة (Dosage)</Label>
                     <Input
-                      placeholder="مثال: قرص، ملعقة..."
+                      placeholder="مثال: قرص، ملعقة…"
                       value={newMed.dosage}
                       onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })}
                       className="h-10 rounded-xl"
@@ -1584,7 +1584,7 @@ export default function KfWorkflow() {
                   <div className="space-y-1">
                     <Label className="text-xs">التكرار (Frequency)</Label>
                     <Input
-                      placeholder="مثال: 3 مرات يومياً..."
+                      placeholder="مثال: 3 مرات يومياً…"
                       value={newMed.frequency}
                       onChange={(e) => setNewMed({ ...newMed, frequency: e.target.value })}
                       className="h-10 rounded-xl"
@@ -1593,7 +1593,7 @@ export default function KfWorkflow() {
                   <div className="space-y-1">
                     <Label className="text-xs">المدة (Duration)</Label>
                     <Input
-                      placeholder="مثال: 5 أيام..."
+                      placeholder="مثال: 5 أيام…"
                       value={newMed.duration}
                       onChange={(e) => setNewMed({ ...newMed, duration: e.target.value })}
                       className="h-10 rounded-xl"
@@ -1612,7 +1612,7 @@ export default function KfWorkflow() {
                     rows={2}
                     value={prescriptionNotes}
                     onChange={(e) => setPrescriptionNotes(e.target.value)}
-                    placeholder="تعليمات إضافية للمريض..."
+                    placeholder="تعليمات إضافية للمريض…"
                     className="rounded-xl"
                   />
                 </div>
@@ -1665,7 +1665,7 @@ export default function KfWorkflow() {
                     <Label className="text-xs font-semibold">اختر الفحص من القائمة للتحميل</Label>
                     <Select onValueChange={handleAddTest}>
                       <SelectTrigger className="h-10 rounded-xl bg-background border border-border">
-                        <SelectValue placeholder="بحث واختيار فحص..." />
+                        <SelectValue placeholder="بحث واختيار فحص…" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
                         {allTestsQuery.data?.map((test: any) => (
@@ -1690,7 +1690,7 @@ export default function KfWorkflow() {
                           </div>
                           <div className="w-full sm:w-80">
                             <Input
-                              placeholder="ملاحظات أو توجيهات لهذا الفحص..."
+                              placeholder="ملاحظات أو توجيهات لهذا الفحص…"
                               value={test.notes}
                               onChange={(e) => {
                                 const next = [...selectedTests];
@@ -1719,7 +1719,7 @@ export default function KfWorkflow() {
                     rows={2}
                     value={testRequestNotes}
                     onChange={(e) => setTestRequestNotes(e.target.value)}
-                    placeholder="مثال: يرجى إحضار النتائج للاستشارة القادمة..."
+                    placeholder="مثال: يرجى إحضار النتائج للاستشارة القادمة…"
                     className="rounded-xl"
                   />
                 </div>

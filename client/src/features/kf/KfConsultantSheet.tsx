@@ -653,13 +653,13 @@ export default function KfConsultantSheet() {
               <h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">CLINICAL EXAMINATION / الفحص الإكلينيكي</h3>
             </div>
             <div className="grid grid-cols-2 divide-x divide-gray-200">
-              <div className="p-3"><p className="text-[10px] text-gray-500 mb-1.5 font-medium">Fundus Exam (OD/OS)</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} placeholder="Enter findings..." dir="ltr" /></div>
+              <div className="p-3"><p className="text-[10px] text-gray-500 mb-1.5 font-medium">Fundus Exam (OD/OS)</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} placeholder="Enter findings…" dir="ltr" /></div>
               <div className="p-3"><p className="text-[10px] text-gray-500 mb-1.5 font-medium">Tear Film / BUT / Schirmer</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.drOD} onChange={e => setFormData(p => ({ ...p, drOD: e.target.value }))} placeholder="BUT: .. sec / Schirmer: .. mm" dir="ltr" /></div>
             </div>
           </div>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="border-l-4 border-[#003D9B] bg-[#EEF4FF] pl-3 py-1"><h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">Lid Margin</h3></div>
-            <div className="p-3"><Textarea className="text-[11px] resize-none border-gray-200 w-full" style={{ minHeight: 100 }} value={formData.drOS} onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))} placeholder="Lid margin status..." dir="ltr" /></div>
+            <div className="p-3"><Textarea className="text-[11px] resize-none border-gray-200 w-full" style={{ minHeight: 100 }} value={formData.drOS} onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))} placeholder="Lid margin status…" dir="ltr" /></div>
           </div>
         </div>
 
@@ -682,7 +682,7 @@ export default function KfConsultantSheet() {
 
         {/* Notes & Final Diagnosis */}
         <div className="mb-5 grid grid-cols-2 gap-4">
-          <div><p className="text-[11px] font-semibold text-gray-800 mb-1.5">Notes & Comments / ملاحظات</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.comments} onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))} placeholder="Notes..." dir="ltr" /></div>
+          <div><p className="text-[11px] font-semibold text-gray-800 mb-1.5">Notes & Comments / ملاحظات</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.comments} onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))} placeholder="Notes…" dir="ltr" /></div>
           <div><p className="text-[11px] font-bold text-red-600 mb-1.5">FINAL DIAGNOSIS / التشخيص النهائي</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.final} onChange={e => setFormData(p => ({ ...p, final: e.target.value }))} placeholder="PRIMARY DIAGNOSIS HERE" dir="ltr" /></div>
         </div>
 

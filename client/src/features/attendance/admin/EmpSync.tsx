@@ -84,7 +84,7 @@ export default function EmpSync() {
             ) : (
               <UserCheck className="h-4 w-4" />
             )}
-            {mut.isPending ? "جاري مزامنة الأسماء..." : "تزامن الموظفين من الجهاز"}
+            {mut.isPending ? "جاري مزامنة الأسماء…" : "تزامن الموظفين من الجهاز"}
           </Button>
 
           {result && (

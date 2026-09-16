@@ -479,7 +479,7 @@ export function AppointmentsSection({
               onClick={() => void confirmDeletePatient()}
             >
               {deleteFromMssql.isPending || deletePatientWithAllData.isPending
-                ? "جاري الحذف..."
+                ? "جاري الحذف…"
                 : "حذف نهائي"}
             </Button>
           </DialogFooter>

@@ -1301,7 +1301,7 @@ export default function WritePrescription({
                     <Input
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
-                      placeholder="اكتب التشخيص هنا..."
+                      placeholder="اكتب التشخيص هنا…"
                       disabled={editingForbidden}
                       className="h-9 border-border/60 bg-muted/30 text-right font-medium"
                       dir="rtl"

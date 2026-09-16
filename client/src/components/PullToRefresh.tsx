@@ -138,7 +138,7 @@ export function PullToRefresh({
               <ArrowDown className="h-3.5 w-3.5 text-primary" />
             )}
             {isRefreshing
-              ? "جاري التحديث..."
+              ? "جاري التحديث…"
               : pullDistance >= REFRESH_THRESHOLD
                 ? "اترك للتحديث"
                 : "اسحب للتحديث"}

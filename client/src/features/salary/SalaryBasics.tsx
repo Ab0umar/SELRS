@@ -1303,7 +1303,7 @@ export default function SalaryBasics() {
               <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
               <input
                 type="text"
-                placeholder="بحث بالاسم أو الكود..."
+                placeholder="بحث بالاسم أو الكود…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-10 w-56 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"

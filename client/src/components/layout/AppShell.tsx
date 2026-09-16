@@ -360,7 +360,7 @@ export function AppShell({
               >
                 {changeUsernameMutation.isPending ||
                 updateProfileMutation.isPending
-                  ? "جاري الحفظ..."
+                  ? "جاري الحفظ…"
                   : "حفظ"}
               </Button>
             </div>
@@ -460,7 +460,7 @@ export function AppShell({
                 onClick={() => void handleChangePassword()}
                 disabled={changePasswordMutation.isPending}
               >
-                {changePasswordMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
+                {changePasswordMutation.isPending ? "جارٍ الحفظ…" : "حفظ"}
               </Button>
             </div>
           </div>

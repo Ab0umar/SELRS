@@ -674,7 +674,7 @@ export default function PatientGuestBook() {
                 <Textarea
                   rows={3}
                   value={notes}
-                  placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ الاستقبال بها..."
+                  placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ الاستقبال بها…"
                   onChange={(e) => setNotes(e.target.value)}
                   className="resize-none rounded-xl border-border/60 focus-visible:ring-primary/10 text-xs"
                 />
@@ -703,7 +703,7 @@ export default function PatientGuestBook() {
                   disabled={createGuestBooking.isPending}
                 >
                   {createGuestBooking.isPending
-                    ? "جاري الإرسال..."
+                    ? "جاري الإرسال…"
                     : "تأكيد وإرسال طلب الحجز"}
                 </Button>
               </div>

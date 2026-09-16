@@ -491,7 +491,7 @@ export default function PrePostOpReport() {
               <Save className="mr-2 h-4 w-4" />
               {createSurgeryMutation.isPending ||
               updateSurgeryMutation.isPending
-                ? "جارٍ الحفظ..."
+                ? "جارٍ الحفظ…"
                 : "Save"}
             </Button>
             <Button

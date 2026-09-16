@@ -594,7 +594,7 @@ function PatientHubPanel() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="اسم المريض أو رقم الملف..."
+                placeholder="اسم المريض أو رقم الملف…"
                 className="w-full rounded-md border border-border bg-background py-2 pr-9 pl-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 dir="rtl"
               />
@@ -1463,7 +1463,7 @@ export default function Dashboard() {
                     />
                     <span className="hidden sm:inline">
                       {syncMssqlMutation.isPending
-                        ? "جارِ المزامنة..."
+                        ? "جارِ المزامنة…"
                         : "مزامنة MSSQL"}
                     </span>
                   </Button>

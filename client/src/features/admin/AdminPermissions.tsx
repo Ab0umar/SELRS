@@ -271,17 +271,13 @@ export default function AdminPermissions() {
         }
       />
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-border bg-background lg:grid lg:min-h-[680px] lg:grid-cols-[230px_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-muted/25 p-3 lg:border-b-0 lg:border-l">
-          <div className="mb-2 px-2 py-2">
-            <div className="text-xs font-semibold text-muted-foreground">
-              الأدوار
-            </div>
-            <div className="mt-1 text-sm text-foreground">
-              اختر دورًا للمراجعة
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-1">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--bento-shadow-soft)]">
+        <div className="border-b border-border/60 px-4 pt-4 sm:px-6">
+          <div
+            role="tablist"
+            aria-label="الأدوار الوظيفية"
+            className="flex gap-1 overflow-x-auto"
+          >
             {ROLE_UI_ORDER.map((role) => {
               const selected = selectedRole === role;
               const count = PAGE_PERMISSIONS.filter(
@@ -292,21 +288,23 @@ export default function AdminPermissions() {
                 <button
                   key={role}
                   type="button"
+                  role="tab"
+                  aria-selected={selected}
                   onClick={() => setSelectedRole(role)}
                   className={cn(
-                    "flex min-h-11 items-center justify-between rounded-md px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/30",
+                    "-mb-px inline-flex shrink-0 items-center gap-2 rounded-t-lg border-b-2 px-4 py-2.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                     selected
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-background",
+                      ? "border-primary font-bold text-primary"
+                      : "border-transparent font-medium text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <span>{ROLE_LABELS_AR[role]}</span>
                   <span
                     className={cn(
-                      "text-xs tabular-nums",
+                      "min-w-6 rounded-full px-1.5 py-0.5 text-center text-[11px] tabular-nums",
                       selected
-                        ? "text-primary-foreground/75"
-                        : "text-muted-foreground",
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground",
                     )}
                   >
                     {count}
@@ -315,39 +313,36 @@ export default function AdminPermissions() {
               );
             })}
           </div>
-        </aside>
+        </div>
 
         <section className="min-w-0">
-          <div className="sticky top-0 z-20 border-b border-border bg-background px-4 py-4 sm:px-6">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold">
-                    {ROLE_LABELS_AR[selectedRole]}
-                  </h2>
-                  <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-                    {activeCount} من {PAGE_PERMISSIONS.length} صفحة
-                  </span>
-                  {hasUnsavedChanges ? (
-                    <span className="rounded-md bg-warning/15 px-2 py-1 text-xs font-semibold text-warning">
-                      غير محفوظ
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  التعديل الكامل يشمل عمليات الإنشاء والتعديل والحذف المتاحة في
-                  الصفحة.
-                </p>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-[minmax(240px,360px)_200px]">
-                <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="بحث باسم الصفحة أو المسار"
-                />
-                <select
-                  value={selectedSection}
-                  onChange={(event) =>
+          <div className="flex flex-col gap-3 px-5 py-4 sm:px-7 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-lg font-bold">
+                {ROLE_LABELS_AR[selectedRole]}
+              </h2>
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                {activeCount} من {PAGE_PERMISSIONS.length} صفحة
+              </span>
+              {hasUnsavedChanges ? (
+                <span className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-semibold text-warning">
+                  غير محفوظ
+                </span>
+              ) : null}
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                التعديل الكامل يشمل الإنشاء والتعديل والحذف.
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="بحث باسم الصفحة أو المسار"
+                className="w-full sm:w-64"
+              />
+              <select
+                value={selectedSection}
+                onChange={(event) =>
                     setSelectedSection(event.target.value as SectionFilter)
                   }
                   className="h-10 rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/25"
@@ -358,39 +353,40 @@ export default function AdminPermissions() {
                     </option>
                   ))}
                 </select>
-              </div>
             </div>
           </div>
 
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border/50">
             {groupedPermissions.map(([group, groupPermissions]) => (
-              <section key={group} className="px-4 py-5 sm:px-6">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-bold text-foreground">{group}</h3>
-                  <span className="text-xs text-muted-foreground">
+              <section key={group} className="px-5 py-6 sm:px-7">
+                <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                  <h3 className="text-xs font-bold tracking-wide text-muted-foreground">
+                    {group}
+                  </h3>
+                  <span className="text-xs text-muted-foreground/70">
                     {groupPermissions.length} صفحة
                   </span>
                 </div>
-                <div className="divide-y divide-border rounded-md border border-border">
+                <div className="divide-y divide-border/50 rounded-xl border border-border/60">
                   {groupPermissions.map((permission) => {
                     const level = getLevel(rolePerms, permission.id);
                     return (
                       <div
                         key={permission.id}
-                        className="grid gap-3 px-3 py-3 hover:bg-muted/20 sm:grid-cols-[minmax(200px,1fr)_330px] sm:items-center sm:px-4"
+                        className="grid gap-3 px-4 py-3 transition-colors hover:bg-muted/30 sm:grid-cols-[minmax(200px,1fr)_330px] sm:items-center sm:px-5"
                       >
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-foreground">
+                          <div className="text-sm font-medium text-foreground">
                             {permission.label}
                           </div>
                           <div
-                            className="mt-0.5 truncate text-xs text-muted-foreground"
+                            className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground/70"
                             dir="ltr"
                           >
                             {permission.id}
                           </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-1 rounded-md bg-muted/50 p-1">
+                        <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted/60 p-1">
                           {ACCESS_LEVELS.map((nextLevel) => (
                             <PermissionLevelButton
                               key={nextLevel}
@@ -416,8 +412,21 @@ export default function AdminPermissions() {
             ) : null}
           </div>
 
-          <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border bg-background px-4 py-3 sm:px-6">
-            <span className="text-xs text-muted-foreground">
+          <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border/60 bg-card/95 px-5 py-3 backdrop-blur sm:px-7">
+            <span
+              className={cn(
+                "flex items-center gap-1.5 text-xs",
+                hasUnsavedChanges
+                  ? "font-semibold text-warning"
+                  : "text-muted-foreground",
+              )}
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  hasUnsavedChanges ? "bg-warning" : "bg-success",
+                )}
+              />
               {hasUnsavedChanges
                 ? "لديك تغييرات لم تُحفظ بعد"
                 : "كل التغييرات محفوظة"}
@@ -437,277 +446,4 @@ export default function AdminPermissions() {
     </div>
   );
 
-  return (
-    <div
-      className="mx-auto w-full max-w-[1440px] space-y-5 pb-10 text-right"
-      dir="rtl"
-    >
-      <PageHeader
-        title="الصلاحيات"
-        subtitle="إدارة صلاحيات الوصول للأدوار المختلفة في النظام"
-        icon={<Shield className="h-5 w-5 text-primary" />}
-        action={
-          <Button
-            type="button"
-            className="selrs-gradient-btn text-primary-foreground h-9 px-6 font-bold shadow-sm"
-            onClick={() => void saveMutation.mutateAsync(permissions)}
-            disabled={
-              saveMutation.isPending ||
-              permissionsQuery.isLoading ||
-              !hasUnsavedChanges
-            }
-          >
-            {saveMutation.isPending ? "جاري الحفظ…" : "حفظ التعديلات"}
-          </Button>
-        }
-      />
-
-      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <CardHeader className="space-y-1 border-b border-border/60 bg-muted/5 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-black">
-                  مصفوفة الوصول: {ROLE_LABELS_AR[selectedRole]}
-                </CardTitle>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-bold h-5 bg-background"
-                >
-                  {
-                    SECTION_FILTER_OPTIONS.find(
-                      (o) => o.value === selectedSection,
-                    )?.label
-                  }
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                حدد مستوى الوصول لكل صفحة (قراءة فقط أو تعديل كامل).
-              </CardDescription>
-            </div>
-            <div
-              className={cn(
-                "w-fit rounded-lg border px-3 py-1 text-[11px] font-bold shadow-sm",
-                hasUnsavedChanges
-                  ? "border-warning/50 bg-warning/10 text-warning/90 animate-pulse"
-                  : "border-border/60 bg-muted/40 text-muted-foreground",
-              )}
-            >
-              {hasUnsavedChanges
-                ? "توجد تغييرات غير محفوظة"
-                : "البيانات محفوظة ومزامنة"}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-8 pt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <aside className="lg:col-span-3 rounded-2xl border border-border/70 bg-muted/20 p-3">
-              <div className="mb-3 px-2 text-xs font-black text-muted-foreground">
-                الدور الوظيفي
-              </div>
-              <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-                {ROLE_UI_ORDER.map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => setSelectedRole(role)}
-                    className={cn(
-                      "flex items-center justify-between rounded-xl border px-3 py-2.5 text-right text-sm font-bold transition-colors",
-                      selectedRole === role
-                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                        : "border-border/60 bg-background hover:border-primary/30 hover:bg-primary/5",
-                    )}
-                  >
-                    <span>{ROLE_LABELS_AR[role]}</span>
-                    <span className="text-[10px] opacity-70">
-                      {
-                        (permissions[role] ?? []).filter(
-                          (p) => p.endsWith(":rw") || !p.includes(":"),
-                        ).length
-                      }
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </aside>
-            <div className="lg:col-span-9 space-y-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* Role selector */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">
-                    القسم
-                  </span>
-                </div>
-
-                {/* Section tabs */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">
-                    نطاق مراجعة الصفحات
-                  </span>
-                  <FilterBar
-                    filters={SECTION_FILTER_OPTIONS}
-                    selected={selectedSection}
-                    onSelect={(v) => setSelectedSection(v as SectionFilter)}
-                    className="max-w-full"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <SearchBar
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder="ابحث باسم الصفحة أو المسار..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="space-y-3 sm:hidden">
-              {visiblePermissions.map((perm) => {
-                const level = getLevel(rolePerms, perm.id);
-                return (
-                  <div
-                    key={perm.id}
-                    className="rounded-lg border border-border/80 bg-card px-3 py-3"
-                    dir="rtl"
-                  >
-                    <div className="mb-3 space-y-1">
-                      <div className="font-medium leading-snug">
-                        {perm.label}
-                      </div>
-                      <div className="text-xs leading-relaxed text-muted-foreground">
-                        {getAccessLevelCopy(level).detail}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {ACCESS_LEVELS.map((nextLevel) => (
-                        <PermissionLevelButton
-                          key={nextLevel}
-                          level={nextLevel}
-                          selected={level === nextLevel}
-                          onClick={() => handleChangeLevel(perm.id, nextLevel)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Desktop table */}
-            <div className="lg:col-span-12 hidden overflow-hidden rounded-xl border border-border/80 bg-background sm:block">
-              <Table dir="rtl" className="min-w-[760px] text-right text-sm">
-                <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm shadow-sm">
-                  <TableRow className="hover:bg-transparent border-b-primary/10 h-12">
-                    <TableHead className="min-w-[200px] px-6 font-bold text-primary">
-                      الصفحة والموديول
-                    </TableHead>
-                    <TableHead className="w-32 px-2 text-center font-bold text-primary">
-                      لا وصول
-                    </TableHead>
-                    <TableHead className="w-32 px-2 text-center font-bold text-primary">
-                      عرض فقط
-                    </TableHead>
-                    {writeAccessColumns.map((column) => (
-                      <TableHead
-                        key={column}
-                        className="w-40 px-2 py-3 text-center font-bold text-primary"
-                      >
-                        {column}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visiblePermissions.map((perm, idx) => {
-                    const level = getLevel(rolePerms, perm.id);
-
-                    return (
-                      <TableRow
-                        key={perm.id}
-                        className={cn(
-                          "group transition-colors hover:bg-primary/[0.03]",
-                          idx % 2 === 0 ? "bg-background" : "bg-muted/10",
-                        )}
-                      >
-                        <TableCell className="max-w-[360px] px-6 py-4 align-middle font-bold leading-snug">
-                          <div className="space-y-1">
-                            <div className="text-sm group-hover:text-primary transition-colors">
-                              {perm.label}
-                            </div>
-                            <div className="text-[10px] font-medium leading-relaxed text-muted-foreground/70">
-                              {getAccessLevelCopy(level).detail}
-                            </div>
-                          </div>
-                        </TableCell>
-                        {ACCESS_LEVELS.map((nextLevel) => (
-                          <TableCell
-                            key={nextLevel}
-                            className="px-2 py-2 text-center align-middle"
-                          >
-                            <PermissionLevelButton
-                              level={nextLevel}
-                              selected={level === nextLevel}
-                              compact
-                              onClick={() =>
-                                handleChangeLevel(perm.id, nextLevel)
-                              }
-                            />
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/70 pt-6">
-            <div className="flex items-center gap-3">
-              <Shield className="h-8 w-8 text-primary/20" />
-              <p className="text-[11px] leading-relaxed text-muted-foreground max-w-xl">
-                تعديل كامل يعادل صلاحية (Read & Write) ويشمل جميع إجراءات
-                الكتابة والحذف المتاحة في الموديول. التغييرات لا تصبح فعالة إلا
-                بعد الضغط على زر الحفظ أعلاه.
-              </p>
-            </div>
-            {confirmReset ? (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  aria-label="تأكيد"
-                  className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                  onClick={() => {
-                    setPermissions(serverPermissions);
-                    setConfirmReset(false);
-                  }}
-                >
-                  تأكيد
-                </button>
-                <button
-                  type="button"
-                  aria-label="إلغاء"
-                  className="rounded bg-muted text-muted-foreground hover:bg-border"
-                  onClick={() => setConfirmReset(false)}
-                >
-                  إلغاء
-                </button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 px-6 font-bold text-xs border-dashed"
-                onClick={() => setConfirmReset(true)}
-                disabled={!hasUnsavedChanges}
-              >
-                تجاهل التعديلات
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 }

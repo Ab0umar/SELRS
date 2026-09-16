@@ -305,7 +305,7 @@ export default function ReceiptsInquiry() {
               {draft.patientCode && (
                 <span className="text-xs text-muted-foreground block mt-1">
                   {patientLookup.isLoading
-                    ? "جاري البحث..."
+                    ? "جاري البحث…"
                     : patientLookup.data
                       ? `الاسم: ${patientLookup.data.patientName}`
                       : "غير موجود"}
@@ -330,7 +330,7 @@ export default function ReceiptsInquiry() {
               {draft.doctorCode && (
                 <span className="text-xs text-muted-foreground block mt-1">
                   {doctorLookup.isLoading
-                    ? "جاري البحث..."
+                    ? "جاري البحث…"
                     : doctorLookup.data
                       ? `الاسم: ${doctorLookup.data.doctorName}`
                       : "غير موجود"}

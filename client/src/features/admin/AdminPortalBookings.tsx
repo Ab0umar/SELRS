@@ -298,7 +298,7 @@ function BookingCard({
                   onChange={(e) => setStaffNotes(e.target.value)}
                   rows={3}
                   className="min-h-24 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-6 text-foreground outline-none transition-shadow focus:ring-2 focus:ring-primary/30"
-                  placeholder="ملاحظات تُعرض للمريض..."
+                  placeholder="ملاحظات تُعرض للمريض…"
                 />
               </div>
 
@@ -358,7 +358,7 @@ function BookingCard({
                   disabled={updateBooking.isPending}
                   className="min-w-24 rounded-xl bg-primary text-white hover:bg-primary/90"
                 >
-                  {updateBooking.isPending ? "جاري الحفظ..." : "حفظ"}
+                  {updateBooking.isPending ? "جاري الحفظ…" : "حفظ"}
                 </Button>
                 <Button
                   size="sm"
@@ -657,7 +657,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                     setShowDropdown(true);
                   }}
                   onFocus={() => setShowDropdown(true)}
-                  placeholder="اسم المريض أو الكود أو الموبايل..."
+                  placeholder="اسم المريض أو الكود أو الموبايل…"
                   className="h-10 rounded-xl border-border bg-white pr-9 text-sm"
                 />
               </div>
@@ -779,7 +779,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
             value={staffNotes}
             onChange={(e) => setStaffNotes(e.target.value)}
             rows={2}
-            placeholder="تُعرض للمريض في البوابة..."
+            placeholder="تُعرض للمريض في البوابة…"
             className="w-full resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm leading-6 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
@@ -802,7 +802,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           }
           className="rounded-xl"
         >
-          {create.isPending ? "جاري الحفظ..." : "حفظ الحجز"}
+          {create.isPending ? "جاري الحفظ…" : "حفظ الحجز"}
         </Button>
         <Button
           size="sm"
@@ -899,7 +899,7 @@ function ClosuresPanel() {
               <input
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                placeholder="وصف فترة الإغلاق..."
+                placeholder="وصف فترة الإغلاق…"
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>

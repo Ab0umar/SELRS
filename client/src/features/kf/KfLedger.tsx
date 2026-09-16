@@ -114,7 +114,7 @@ export default function KfLedger() {
           <div className="flex flex-col gap-1.5">
             <label htmlFor="notes" className="text-xs font-medium">البيان</label>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="وصف القيد..."
+              <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="وصف القيد…"
                 className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
               <Button onClick={() => void handleSave()} disabled={busy || (!income && !expense)} className="shrink-0 gap-1.5">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -130,7 +130,7 @@ export default function KfLedger() {
         <div className="flex flex-wrap items-center gap-2 p-3 border-b border-border">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input type="text" placeholder="بحث في البيان..." value={filterNotes} onChange={(e) => { setFilterNotes(e.target.value); setPage(1); }}
+            <input type="text" placeholder="بحث في البيان…" value={filterNotes} onChange={(e) => { setFilterNotes(e.target.value); setPage(1); }}
               className="h-8 w-full rounded-md border border-border bg-background pr-8 pl-3 text-sm outline-none focus:border-ring" />
           </div>
           {filterNotes && (

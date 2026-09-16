@@ -241,7 +241,7 @@ export default function Permissions() {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={handleSubmit} disabled={!form.empCd || isPending}>
-                {isPending ? "جاري الحفظ..." : editId !== null ? "حفظ التعديل" : "حفظ"}
+                {isPending ? "جاري الحفظ…" : editId !== null ? "حفظ التعديل" : "حفظ"}
               </Button>
               <Button variant="outline" onClick={onDone}>إلغاء</Button>
             </div>

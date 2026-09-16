@@ -543,13 +543,13 @@ export default function ComponentsShowcase() {
                               { value: "remix", label: "Remix" },
                             ].find((fw) => fw.value === selectedFramework)
                               ?.label
-                          : "Select framework..."}
+                          : "Select framework…"}
                         <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0">
                       <Command>
-                        <CommandInput placeholder="Search frameworks..." />
+                        <CommandInput placeholder="Search frameworks…" />
                         <CommandList>
                           <CommandEmpty>No framework found</CommandEmpty>
                           <CommandGroup>
@@ -969,7 +969,7 @@ export default function ComponentsShowcase() {
                           <Label htmlFor="dialog-input">Input</Label>
                           <Input
                             id="dialog-input"
-                            placeholder="Type something..."
+                            placeholder="Type something…"
                             value={dialogInput}
                             onChange={(e) => setDialogInput(e.target.value)}
                             onKeyDown={handleDialogKeyDown}
@@ -1310,7 +1310,7 @@ export default function ComponentsShowcase() {
                           setTimeout(resolve, 2000),
                         );
                         sonnerToast.promise(promise, {
-                          loading: "Processing...",
+                          loading: "Processing…",
                           success: "Processing complete!",
                           error: "Processing failed",
                         });
@@ -1345,7 +1345,7 @@ export default function ComponentsShowcase() {
                     messages={chatMessages}
                     onSendMessage={handleChatSend}
                     isLoading={isChatLoading}
-                    placeholder="Try sending a message..."
+                    placeholder="Try sending a message…"
                     height="500px"
                     emptyStateMessage="How can I help you today?"
                     suggestedPrompts={[

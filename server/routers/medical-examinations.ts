@@ -69,19 +69,31 @@ export const medicalExaminationsRoutes = {
   }),
 
   getOperations: protectedProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .input(
+      z
+        .object({ limit: z.number().int().min(1).max(1000).default(500) })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getAllAppointments(undefined, input?.limit ?? 500);
     }),
 
   getAllOperations: protectedProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .input(
+      z
+        .object({ limit: z.number().int().min(1).max(1000).default(500) })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getAllAppointments(undefined, input?.limit ?? 500);
     }),
 
   getAppointments: protectedProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .input(
+      z
+        .object({ limit: z.number().int().min(1).max(1000).default(500) })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getAllAppointments(undefined, input?.limit ?? 500);
     }),
@@ -506,6 +518,7 @@ export const medicalExaminationsRoutes = {
           "surgery_center",
           "pentacam_center",
           "pentacam_external",
+          "clinical",
         ]),
         appendMode: z.boolean().optional(),
         followupItems: z.array(
@@ -677,13 +690,21 @@ export const medicalExaminationsRoutes = {
     }),
 
   getAllFollowupItems: protectedProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(1000).default(500) }).optional())
+    .input(
+      z
+        .object({ limit: z.number().int().min(1).max(1000).default(500) })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getAllFollowupItems(input?.limit ?? 500);
     }),
 
   getAllExaminations: protectedProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(500).default(250) }).optional())
+    .input(
+      z
+        .object({ limit: z.number().int().min(1).max(500).default(250) })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getAllExaminations(input?.limit ?? 250);
     }),
@@ -728,6 +749,7 @@ export const medicalExaminationsRoutes = {
           "surgery_center",
           "pentacam_center",
           "pentacam_external",
+          "clinical",
         ]),
       }),
     )
@@ -829,6 +851,7 @@ export const medicalExaminationsRoutes = {
         "bcvaOS",
       ]) as any;
       const pentacam = pickFirstWithValues(pentacamRows as any[], [
+        "pachymetryOD",
         "k1OD",
         "k2OD",
         "axisOD",
@@ -837,6 +860,7 @@ export const medicalExaminationsRoutes = {
         "residualOD",
         "tttOD",
         "ablationOD",
+        "pachymetryOS",
         "k1OS",
         "k2OS",
         "axisOS",
@@ -997,6 +1021,10 @@ export const medicalExaminationsRoutes = {
                 pentacam?.thinnestPointOD ??
                 base?.examData?.pentacam?.od?.thinnest ??
                 "",
+              pachymetry:
+                pentacam?.pachymetryOD ??
+                base?.examData?.pentacam?.od?.pachymetry ??
+                "",
               apex:
                 pentacam?.apexOD ?? base?.examData?.pentacam?.od?.apex ?? "",
               residual:
@@ -1020,6 +1048,10 @@ export const medicalExaminationsRoutes = {
               thinnest:
                 pentacam?.thinnestPointOS ??
                 base?.examData?.pentacam?.os?.thinnest ??
+                "",
+              pachymetry:
+                pentacam?.pachymetryOS ??
+                base?.examData?.pentacam?.os?.pachymetry ??
                 "",
               apex:
                 pentacam?.apexOS ?? base?.examData?.pentacam?.os?.apex ?? "",
@@ -1066,6 +1098,7 @@ export const medicalExaminationsRoutes = {
           "surgery_center",
           "pentacam_center",
           "pentacam_external",
+          "clinical",
         ]),
         content: z.string(),
       }),
@@ -2313,7 +2346,9 @@ export const medicalExaminationsRoutes = {
     .input(z.object({ visitId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const role = String(ctx.user.role ?? "").toLowerCase();
-      const canUpdateQueue = ["reception", "accountant", "admin"].includes(role);
+      const canUpdateQueue = ["reception", "accountant", "admin"].includes(
+        role,
+      );
       if (!canUpdateQueue) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -2410,14 +2445,16 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         date: z.string().optional(),
-        queueStatus: z.enum([
-          "checkedIn",
-          "next",
-          "clinic1",
-          "clinic2",
-          "pentacam",
-          "treated",
-        ]).optional(),
+        queueStatus: z
+          .enum([
+            "checkedIn",
+            "next",
+            "clinic1",
+            "clinic2",
+            "pentacam",
+            "treated",
+          ])
+          .optional(),
       }),
     )
     .query(async ({ input }) => {

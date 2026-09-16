@@ -288,7 +288,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض...</p>
+        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض…</p>
       </div>
     );
   }
@@ -358,7 +358,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
               <Label htmlFor="doctorName">اسم الطبيب الفاحص</Label>
               <Select value={doctorName} onValueChange={setDoctorName}>
                 <SelectTrigger id="doctorName">
-                  <SelectValue placeholder="اختر الطبيب..." />
+                  <SelectValue placeholder="اختر الطبيب…" />
                 </SelectTrigger>
                 <SelectContent>
                   {KF_DOCTORS.map((dr) => (
@@ -865,7 +865,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
               <Textarea
                 id="diagnosis"
                 rows={3}
-                placeholder="التشخيص الطبي لحالة العين والقرنية والشبكية..."
+                placeholder="التشخيص الطبي لحالة العين والقرنية والشبكية…"
                 value={diagnosis}
                 onChange={(e) => setDiagnosis(e.target.value)}
               />
@@ -876,7 +876,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
               <Textarea
                 id="plan"
                 rows={3}
-                placeholder="الخطة الطبية المقررة، النظارة الطبية، الأدوية، أو حجز عملية جراحية..."
+                placeholder="الخطة الطبية المقررة، النظارة الطبية، الأدوية، أو حجز عملية جراحية…"
                 value={plan}
                 onChange={(e) => setPlan(e.target.value)}
               />
@@ -887,7 +887,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
               <Textarea
                 id="notes"
                 rows={2}
-                placeholder="أي تفاصيل أو ملاحظات سريرية أخرى..."
+                placeholder="أي تفاصيل أو ملاحظات سريرية أخرى…"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -959,7 +959,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                   }
                 >
                   <SelectTrigger className="w-56">
-                    <SelectValue placeholder="اختر التحليل / الأشعة..." />
+                    <SelectValue placeholder="اختر التحليل / الأشعة…" />
                   </SelectTrigger>
                   <SelectContent>
                     {testsCatalog.map((t: any) => (
@@ -1042,7 +1042,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                   }}
                 >
                   <SelectTrigger className="sm:col-span-2">
-                    <SelectValue placeholder="اختر دواء..." />
+                    <SelectValue placeholder="اختر دواء…" />
                   </SelectTrigger>
                   <SelectContent>
                     {medicationsCatalog.map((m: any) => (

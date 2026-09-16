@@ -180,7 +180,7 @@ export default function EgyptianDrugReferencePage({
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="ابحث بالاسم أو المادة الفعالة أو الشركة..."
+              placeholder="ابحث بالاسم أو المادة الفعالة أو الشركة…"
               className="h-9 pr-9 text-xs sm:text-sm"
               autoFocus
             />

@@ -415,7 +415,7 @@ export function MedicalFilePanel({
                   id="medical-history"
                   value={medicalHistory}
                   onChange={(e) => setMedicalHistory(e.target.value)}
-                  placeholder="اكتب التاريخ المرضي هنا..."
+                  placeholder="اكتب التاريخ المرضي هنا…"
                   className="mt-1 text-sm"
                   rows={6}
                   aria-label="التاريخ المرضي للمريض"
@@ -1055,7 +1055,7 @@ export function MedicalFilePanel({
                     aria-hidden
                   />
                   <Input
-                    placeholder="ابحث عن الفحوصات..."
+                    placeholder="ابحث عن الفحوصات…"
                     value={testSearch}
                     onChange={(e) => setTestSearch(e.target.value)}
                     className="pr-9 text-sm h-9"
@@ -1099,7 +1099,7 @@ export function MedicalFilePanel({
                     id="diagnosis-field"
                     value={diagnosis}
                     onChange={(e) => setDiagnosis(e.target.value)}
-                    placeholder="أدخل تفاصيل التشخيص..."
+                    placeholder="أدخل تفاصيل التشخيص…"
                     className="text-sm min-h-[140px]"
                     rows={6}
                     aria-label="تفاصيل التشخيص الطبي"
@@ -1141,7 +1141,7 @@ export function MedicalFilePanel({
                       aria-hidden
                     />
                     <Input
-                      placeholder="ابحث عن الأمراض..."
+                      placeholder="ابحث عن الأمراض…"
                       value={diseaseSearch}
                       onChange={(e) => setDiseaseSearch(e.target.value)}
                       className="pr-9 text-sm h-9"
@@ -1180,7 +1180,7 @@ export function MedicalFilePanel({
                       id="recommendations-field"
                       value={recommendations}
                       onChange={(e) => setRecommendations(e.target.value)}
-                      placeholder="أدخل التوصيات والملاحظات..."
+                      placeholder="أدخل التوصيات والملاحظات…"
                       className="text-sm min-h-[100px]"
                       rows={4}
                       aria-label="التوصيات الطبية"
@@ -1231,7 +1231,7 @@ export function MedicalFilePanel({
                     aria-hidden
                   />
                   <Input
-                    placeholder="ابحث عن الأدوية..."
+                    placeholder="ابحث عن الأدوية…"
                     value={medSearch}
                     onChange={(e) => setMedSearch(e.target.value)}
                     className="pr-9 text-sm h-9"

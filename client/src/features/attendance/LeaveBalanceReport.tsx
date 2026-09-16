@@ -273,7 +273,7 @@ export default function LeaveBalanceReport({
                 disabled={!form.empCd || setBalanceMut.isPending}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {setBalanceMut.isPending ? "جاري الحفظ..." : "حفظ"}
+                {setBalanceMut.isPending ? "جاري الحفظ…" : "حفظ"}
               </Button>
               <Button
                 variant="outline"
