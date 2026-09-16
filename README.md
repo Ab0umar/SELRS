@@ -1,6 +1,6 @@
 # SELRS
 
-SELRS (Saadany Eye Laser & Refractive Surgery) is a full-stack TypeScript medical center platform with a React 19/Vite frontend and a Node/Express + tRPC backend serving 8 distinct modules.
+SELRS (Shorouk-Eyes For Lasik & Refractive Surgery) is a full-stack TypeScript medical center platform with a React 19/Vite frontend and a Node/Express + tRPC backend serving 8 distinct modules.
 
 Read first:
 
