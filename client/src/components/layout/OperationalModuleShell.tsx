@@ -21,7 +21,12 @@ interface OperationalModuleShellProps {
   title: string;
   description: string;
   navigation: OperationalNavigationItem[];
+  /** Fixed / global metrics — LEFT */
   metrics?: OperationalMetric[];
+  /** Center slot (e.g. tab actions like refresh) */
+  metricsCenter?: ReactNode;
+  /** Tab-specific metrics — RIGHT */
+  endMetrics?: OperationalMetric[];
   mark?: ReactNode;
   fullWidth?: boolean;
   moduleName?: string;
@@ -32,24 +37,64 @@ function isItemActive(pathname: string, activeFor: string[]) {
     path === "/attendance" ||
     path === "/salary" ||
     path === "/kf" ||
-    path === "/stockroom"
+    path === "/stockroom" ||
+    path === "/accounting"
       ? pathname === path
       : pathname === path || pathname.startsWith(`${path}/`),
   );
 }
 
+function MetricChip({
+  metric,
+  tone = "default",
+}: {
+  metric: OperationalMetric;
+  tone?: "default" | "fixed";
+}) {
+  const Icon = metric.icon;
+  return (
+    <div
+      className={cn(
+        "inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-sm shadow-sm",
+        tone === "fixed"
+          ? "border-primary/20 bg-primary/5"
+          : "border-border/70 bg-card",
+      )}
+      dir="rtl"
+    >
+      <Icon
+        className={cn(
+          "h-4 w-4 shrink-0",
+          tone === "fixed" ? "text-primary" : "text-muted-foreground",
+        )}
+      />
+      <span className="text-[11px] font-semibold text-muted-foreground">
+        {metric.label}
+      </span>
+      <span className="text-sm font-black tabular-nums tracking-tight text-foreground">
+        {metric.value}
+      </span>
+    </div>
+  );
+}
+
 /**
- * Shared frame for back-office modules. Pages own their data and workflows;
- * this component owns only the repeated visual hierarchy and navigation.
+ * Shared frame for back-office modules.
+ * Metrics row: LEFT = fixed metrics, CENTER = metricsCenter, RIGHT = endMetrics.
+ * Structure unchanged — visual refine only.
  */
 export default function OperationalModuleShell({
   children,
   navigation,
   metrics = [],
+  metricsCenter = null,
+  endMetrics = [],
   fullWidth = false,
   moduleName,
 }: OperationalModuleShellProps) {
   const [location] = useLocation();
+  const showMetrics =
+    metrics.length > 0 || endMetrics.length > 0 || metricsCenter != null;
 
   return (
     <div
@@ -57,34 +102,47 @@ export default function OperationalModuleShell({
       data-operational-module={moduleName}
       dir="rtl"
     >
-      <div className={cn("mx-auto flex flex-col gap-5", !fullWidth && "max-w-[1600px]")}>
-        {metrics.length ? (
-          <div className="print:hidden">
+      <div
+        className={cn(
+          "mx-auto flex flex-col gap-3",
+          !fullWidth && "max-w-[1600px]",
+        )}
+      >
+        {showMetrics ? (
+          <div
+            className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-border/60 bg-card/80 p-2.5 shadow-sm print:hidden backdrop-blur-sm"
+            dir="ltr"
+          >
             <div
-              className={cn(
-                "grid w-full grid-cols-1 gap-2",
-                metrics.length > 2
-                  ? "sm:grid-cols-3 md:min-w-[520px]"
-                  : "sm:grid-cols-2 md:min-w-[350px]",
-              )}
+              className="flex flex-wrap items-center justify-start gap-2"
+              dir="rtl"
             >
-              {metrics.map((metric) => {
-                const Icon = metric.icon;
-                return (
-                  <div key={metric.label} className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-                      <Icon className="h-3.5 w-3.5" />
-                      {metric.label}
-                    </div>
-                    <div className="mt-1 truncate text-sm font-black tabular-nums text-foreground">{metric.value}</div>
-                  </div>
-                );
-              })}
+              {metrics.map((metric) => (
+                <MetricChip
+                  key={`L-${metric.label}`}
+                  metric={metric}
+                  tone="fixed"
+                />
+              ))}
+            </div>
+            <div
+              className="flex flex-wrap items-center justify-center gap-2"
+              dir="rtl"
+            >
+              {metricsCenter}
+            </div>
+            <div
+              className="flex flex-wrap items-center justify-end gap-2"
+              dir="rtl"
+            >
+              {endMetrics.map((metric) => (
+                <MetricChip key={`R-${metric.label}`} metric={metric} />
+              ))}
             </div>
           </div>
         ) : null}
 
-        <nav className="flex items-center gap-2 overflow-x-auto whitespace-nowrap rounded-2xl border border-border/60 bg-card p-2 print:hidden scrollbar-none">
+        <nav className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap rounded-2xl border border-border/60 bg-card p-1.5 shadow-sm print:hidden scrollbar-none">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = isItemActive(location, item.activeFor);
@@ -94,20 +152,22 @@ export default function OperationalModuleShell({
                 href={item.href}
                 title={item.label}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors",
+                  "inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-bold transition-colors",
                   active
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon className="h-4 w-4" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <main className="min-w-0 flex-1 rounded-2xl border border-border/60 bg-card p-4 sm:p-6">{children}</main>
+        <main className="min-w-0 flex-1 rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+          {children}
+        </main>
       </div>
     </div>
   );

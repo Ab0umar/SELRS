@@ -103,7 +103,7 @@ export default function EmpSync() {
 
               {/* Synced employees grid sample */}
               {(result.employees?.length ?? 0) > 0 && (
-                <div className="rounded-xl border border-border/60 overflow-hidden shadow-sm bg-card">
+                <div className="rounded-xl border border-border/60 overflow-hidden shadow-xs bg-card">
                   <div className="bg-muted/40 px-3 py-2 text-[10px] font-bold text-muted-foreground border-b border-border/60">
                     قائمة بأسماء الموظفين المزامنين
                   </div>

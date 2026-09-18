@@ -558,7 +558,7 @@ export default function EmployeeDetail() {
                   {(permListQuery.data as any[]).map((p: any) => (
                     <div
                       key={p.id}
-                      className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                      className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-xs text-muted-foreground">
@@ -853,7 +853,7 @@ export default function EmployeeDetail() {
                             onClick={() => toggleWeeklyDay(index)}
                             className={`rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${
                               active
-                                ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                                ? "bg-primary border-primary text-primary-foreground shadow-xs"
                                 : "bg-background border-border text-muted-foreground hover:bg-muted"
                             }`}
                           >
@@ -1045,7 +1045,7 @@ export default function EmployeeDetail() {
                 return (
                   <div
                     key={r.id}
-                    className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                    className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -1268,7 +1268,7 @@ export default function EmployeeDetail() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, fromDate: e.target.value })
                   }
-                  className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+                  className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none h-11 w-[11rem] shrink-0"
                 />
               </div>
               <div className="space-y-1">
@@ -1280,7 +1280,7 @@ export default function EmployeeDetail() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, toDate: e.target.value })
                   }
-                  className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+                  className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none h-11 w-[11rem] shrink-0"
                 />
               </div>
               <Button
@@ -1309,7 +1309,7 @@ export default function EmployeeDetail() {
               {dailyQuery.data.map((r: any) => (
                 <div
                   key={r.workDate}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs text-muted-foreground">

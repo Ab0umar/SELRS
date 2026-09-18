@@ -278,58 +278,51 @@ export default function ReceiptDetail() {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
-        <Card className="border-border/80 shadow-sm">
-          <CardHeader className="gap-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-xl tracking-tight">
-                  تفاصيل الإيصال
-                </CardTitle>
-                <CardDescription className="mt-1 text-sm">
-                  الرأس وبنود الخدمة (PAPAT_SRV) للإيصال المختار.
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setLocation("/accounting/receipts")}
-                  aria-label="العودة إلى الإيصالات"
-                >
-                  <ArrowLeft className="ml-2 h-4 w-4" aria-hidden />
-                  الإيصالات
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void detailQuery.refetch()}
-                  disabled={!input || detailQuery.isFetching}
-                  aria-label="تحديث تفاصيل الإيصال"
-                >
-                  <RefreshCw
-                    className={
-                      detailQuery.isFetching ? "animate-spin ml-2" : "ml-2"
-                    }
-                    aria-hidden
-                  />
-                  تحديث
-                </Button>
-                <Button
-                  type="button"
-                  onClick={printReceipt}
-                  disabled={
-                    detailQuery.isLoading || !header || lines.length === 0
+      <div className="space-y-3 sm:space-y-3.5" dir="rtl">
+        <Card className="border-border/60 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 pb-0 sm:p-4 sm:pb-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/accounting/receipts")}
+              aria-label="العودة إلى الإيصالات"
+            >
+              <ArrowLeft className="ml-1.5 h-3.5 w-3.5" aria-hidden />
+              الإيصالات
+            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void detailQuery.refetch()}
+                disabled={!input || detailQuery.isFetching}
+                aria-label="تحديث تفاصيل الإيصال"
+              >
+                <RefreshCw
+                  className={
+                    detailQuery.isFetching ? "animate-spin ml-1.5 h-3.5 w-3.5" : "ml-1.5 h-3.5 w-3.5"
                   }
-                  aria-label="طباعة الإيصال"
-                >
-                  <Printer className="ml-2 h-4 w-4" aria-hidden />
-                  طباعة
-                </Button>
-              </div>
+                  aria-hidden
+                />
+                تحديث
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={printReceipt}
+                disabled={
+                  detailQuery.isLoading || !header || lines.length === 0
+                }
+                aria-label="طباعة الإيصال"
+              >
+                <Printer className="ml-1.5 h-3.5 w-3.5" aria-hidden />
+                طباعة
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <CardContent className="p-3 sm:p-4">
             {!input ? (
               <div className="rounded-lg border border-error/30 bg-error/5 p-4 text-sm text-error">
                 بارامترات مسار الإيصال غير صالحة.

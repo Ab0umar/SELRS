@@ -51,7 +51,7 @@ export type DailyRevenueSqlInput = DateRangeInput &
 
 export type ServiceRevenueSqlInput = DateRangeInput &
   DoctorInput &
-  ServiceInput;
+  ServiceInput & { shiftCode?: string };
 
 export type ReceiptsInquirySqlInput = OptionalDateRangeInput &
   PatientInput &
@@ -351,6 +351,7 @@ export function buildServiceRevenueSql(
     ...sectionWhere(input.sectionCode, params),
     ...doctorWhere(input.doctorCodes ?? input.doctorCode, params),
     ...serviceWhere(input.serviceCodes, params),
+    ...shiftWhere(input.shiftCode, params),
     "ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')",
     "ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')",
   ];

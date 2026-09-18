@@ -289,7 +289,7 @@ export default function ScheduleSwap() {
                 return (
                   <div
                     key={r.id}
-                    className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                    className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -559,7 +559,7 @@ export default function ScheduleSwap() {
                       onClick={() => setChangeType(type)}
                       className={`flex-1 rounded-md py-1.5 text-center text-xs font-semibold transition-all ${
                         changeType === type
-                          ? "bg-background text-foreground shadow-sm"
+                          ? "bg-background text-foreground shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -707,7 +707,7 @@ export default function ScheduleSwap() {
                               onClick={() => toggleWeeklyDay(index)}
                               className={`rounded-full px-4 py-2 text-xs font-semibold border transition-all ${
                                 active
-                                  ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                                  ? "bg-primary border-primary text-primary-foreground shadow-xs"
                                   : "bg-background border-border text-muted-foreground hover:bg-muted"
                               }`}
                             >

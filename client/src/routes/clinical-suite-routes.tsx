@@ -7,8 +7,12 @@ const ClinicalSuiteShell = lazy(
   () => import("../features/clinical-suite/ClinicalSuiteShell"),
 );
 
-const PrintableMedicalReport = lazy(
-  () => import("../components/reports/PrintableMedicalReport"),
+const ClinicalReportsPage = lazy(
+  () => import("../pages/ClinicalReportsPage"),
+);
+
+const ClinicalDecisionSupportPage = lazy(
+  () => import("../pages/ClinicalDecisionSupportPage"),
 );
 
 export const ClinicalSuiteRoutes = (
@@ -22,10 +26,26 @@ export const ClinicalSuiteRoutes = (
       )}
     />
     <Route
+      path={ROUTES.clinicalDecisionSupport}
+      component={() => (
+        <ProtectedRoute>
+          <ClinicalDecisionSupportPage />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.medicalReport}
       component={() => (
         <ProtectedRoute>
-          <PrintableMedicalReport />
+          <ClinicalReportsPage defaultTab="medical-report" />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path={ROUTES.medicalReportId}
+      component={() => (
+        <ProtectedRoute>
+          <ClinicalReportsPage defaultTab="medical-report" />
         </ProtectedRoute>
       )}
     />

@@ -156,7 +156,7 @@ export default function AbsentReport({
       )}
 
       {!absentQ.isLoading && (
-        <section className="rounded-xl border border-border bg-background">
+        <section className="rounded-xl border border-border/60 bg-background shadow-sm">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
               أيام الغياب — {periodLabel}

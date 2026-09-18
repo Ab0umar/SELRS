@@ -961,7 +961,7 @@ export default function ShiftSchedule() {
               onClick={() => setStaffFilter(value)}
               className={`min-h-10 shrink-0 rounded-full px-5 text-sm font-bold transition-colors ${
                 staffFilter === value
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-xs"
                   : "border border-border bg-card text-muted-foreground"
               }`}
             >
@@ -1062,7 +1062,7 @@ export default function ShiftSchedule() {
                       )}
                     </span>
                     {isSelected && canAdd && (
-                      <span className="absolute -left-0.5 -top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-secondary text-secondary-foreground shadow-sm">
+                      <span className="absolute -left-0.5 -top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-secondary text-secondary-foreground shadow-xs">
                         <Plus size={12} strokeWidth={3} aria-hidden />
                       </span>
                     )}
@@ -1447,7 +1447,7 @@ export default function ShiftSchedule() {
                       anchorDate: e.target.value,
                     }))
                   }
-                  className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
                 />
               )}
               <div className="flex gap-2">
@@ -1507,7 +1507,7 @@ export default function ShiftSchedule() {
                 onChange={(e) =>
                   setHolidayForm((f) => ({ ...f, date: e.target.value }))
                 }
-                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
               />
               <input
                 type="text"
@@ -1574,7 +1574,7 @@ export default function ShiftSchedule() {
                 <DateInput
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
+                  className="h-11 w-[11rem] shrink-0 h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
                   inputClassName="w-[118px] min-w-0 px-2 text-center"
                   aria-label="تاريخ بداية الروستر"
                 />
@@ -1584,7 +1584,7 @@ export default function ShiftSchedule() {
                 <DateInput
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
+                  className="h-11 w-[11rem] shrink-0 h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
                   inputClassName="w-[118px] min-w-0 px-2 text-center"
                   aria-label="تاريخ نهاية الروستر"
                 />
@@ -1637,12 +1637,12 @@ export default function ShiftSchedule() {
         </header>
 
         {!isManager && myStaffId === null && !myStaffIdQ.isLoading && (
-          <div className="rounded-2xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm font-semibold text-warning">
+          <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm font-semibold text-warning">
             حسابك غير مرتبط بسجل وردية، تواصل مع المدير لربط الحساب.
           </div>
         )}
         {!isManager && myStaffId !== null && (
-          <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-semibold text-foreground">
+          <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-semibold text-foreground">
             يمكنك تعديل وردياتك فقط. باقي الجدول للقراءة والمتابعة.
           </div>
         )}
@@ -1851,7 +1851,7 @@ export default function ShiftSchedule() {
                                             <button
                                               type="button"
                                               onClick={() => openShiftEditor(entry)}
-                                              className="roster-edit-shift absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-opacity"
+                                              className="roster-edit-shift absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xs transition-opacity"
                                               title="تعديل وقت الوردية"
                                               aria-label="تعديل وقت الوردية"
                                             >
@@ -1869,7 +1869,7 @@ export default function ShiftSchedule() {
                                               disabled={
                                                 deleteEntryMut.isPending
                                               }
-                                              className="roster-delete-shift absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground shadow-sm transition-opacity"
+                                              className="roster-delete-shift absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground shadow-xs transition-opacity"
                                               title="حذف"
                                             >
                                               ×
@@ -2231,7 +2231,7 @@ export default function ShiftSchedule() {
                                   anchorDate: e.target.value,
                                 }))
                               }
-                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
                             />
                           )}
                           <div className="flex gap-2">
@@ -2301,7 +2301,7 @@ export default function ShiftSchedule() {
                                   date: e.target.value,
                                 }))
                               }
-                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
                             />
                             <input
                               type="text"

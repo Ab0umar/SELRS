@@ -216,7 +216,7 @@ export default function Reports({
           {rows.map((row: any, i: number) => (
             <div
               key={i}
-              className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+              className="rounded-2xl border border-border bg-background p-3 shadow-xs"
             >
               <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
                 <span className="text-sm font-semibold text-foreground">

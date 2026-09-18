@@ -575,7 +575,7 @@ export default function SalaryPenalties() {
               }}
               className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                 tab === key
-                  ? "bg-background shadow-sm text-foreground"
+                  ? "bg-background shadow-xs text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -588,13 +588,13 @@ export default function SalaryPenalties() {
             <DateInput
               value={fromDate}
               onChange={(e) => { setFromDate(e.target.value); resetForm(); }}
-              className="w-[132px] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
+              className="h-11 w-[11rem] shrink-0 w-[132px] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
             <span className="text-sm text-muted-foreground">—</span>
             <DateInput
               value={toDate}
               onChange={(e) => { setToDate(e.target.value); resetForm(); }}
-              className="w-[132px] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
+              className="h-11 w-[11rem] shrink-0 w-[132px] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
             {(tab === "penalties" || tab === "advances") && (
               <>
@@ -679,7 +679,7 @@ export default function SalaryPenalties() {
                 <DateInput
                   value={form.penaltyDate}
                   onChange={(e) => setForm({ ...form, penaltyDate: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="h-11 w-[11rem] rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shrink-0"
                 />
               </div>
             )}

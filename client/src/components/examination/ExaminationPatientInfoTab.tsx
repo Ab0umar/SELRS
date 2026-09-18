@@ -120,6 +120,18 @@ export default function ExaminationPatientInfoTab({
   const fieldHalf: CSSProperties = isMobile
     ? { flex: "1 1 calc(50% - 0.225rem)", minWidth: 0 }
     : {};
+  // Name/DOB/age row: the DOB DateInput (calendar icon + dd/mm/yyyy text)
+  // needs a guaranteed minimum width or it overflows its Tailwind grid
+  // column and gets visually clipped by the sibling age field painted on
+  // top of it. A minmax() grid template reserves that width unconditionally
+  // instead of relying on a percentage share of the row.
+  const identityRowStyle: CSSProperties = isMobile
+    ? fieldRowStyle
+    : {
+        display: "grid",
+        gridTemplateColumns: "minmax(0,1fr) minmax(9.75rem,auto) 4.5rem",
+        gap: "0.625rem",
+      };
 
   const mysqlServices = useMemo(
     () => (servicesCatalogQuery?.data ?? []) as any[],
@@ -240,10 +252,10 @@ export default function ExaminationPatientInfoTab({
               <div className="patient-details-fields space-y-3">
                 {/* Row 1: الاسم - تاريخ الميلاد - السن */}
                 <div
-                  className="patient-identity-grid grid grid-cols-1 sm:grid-cols-12 gap-2.5"
-                  style={fieldRowStyle}
+                  className="patient-identity-grid grid grid-cols-1 gap-2.5"
+                  style={identityRowStyle}
                 >
-                  <div className="patient-name-field sm:col-span-6" style={fieldFull}>
+                  <div className="patient-name-field min-w-0" style={fieldFull}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       الاسم بالكامل
                     </Label>
@@ -260,7 +272,7 @@ export default function ExaminationPatientInfoTab({
                       placeholder="اسم المريض…"
                     />
                   </div>
-                  <div className="patient-dob-field sm:col-span-4" style={fieldTwoThirds}>
+                  <div className="patient-dob-field min-w-0" style={fieldTwoThirds}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       تاريخ الميلاد
                     </Label>
@@ -280,10 +292,11 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-xs border h-8 px-2 bg-background rounded-lg"
+                      className="h-8 w-full min-w-0 text-xs"
+                      inputClassName="min-w-0 flex-1"
                     />
                   </div>
-                  <div className="patient-age-field sm:col-span-2" style={fieldOneThird}>
+                  <div className="patient-age-field min-w-0" style={fieldOneThird}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       السن
                     </Label>
@@ -296,7 +309,7 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-xs border h-8 px-2 text-center font-bold bg-background rounded-lg"
+                      className="text-xs border h-8 px-2 font-bold bg-background rounded-lg"
                     />
                   </div>
                 </div>

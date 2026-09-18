@@ -34,16 +34,76 @@ describe("Clinical Calculators - Refractive & IOP", () => {
     expect(pta).toBe(29.6);
   });
 
-  it("correctly flags safe refractive candidates", () => {
+  it("does not declare candidacy from RSB and PTA without complete screening", () => {
     const result = evaluateRefractiveSafety({
+      procedure: "LASIK",
       cctUm: 550,
       flapUm: 100,
       sphereD: 3.5,
       opticalZoneMm: 6.0,
     });
-    expect(result.riskLevel).toBe("safe");
+    expect(result.riskLevel).toBe("insufficient_data");
     expect(result.residualBedUm).toBeGreaterThanOrEqual(300);
     expect(result.ptaPercent).toBeLessThan(40);
+    expect(result.recommendation).not.toContain("Candidate");
+  });
+
+  it("reports within planning thresholds only after screening and source measurements are complete", () => {
+    const result = evaluateRefractiveSafety({
+      procedure: "LASIK",
+      cctUm: 550,
+      flapUm: 100,
+      sphereD: 3.5,
+      opticalZoneMm: 6,
+      screening: {
+        ageYears: 30,
+        refractionStable: true,
+        tomographyReviewedNormal: true,
+        ocularSurfaceControlled: true,
+        measurementsAvailable: true,
+      },
+    });
+
+    expect(result.riskLevel).toBe("within_thresholds");
+    expect(result.recommendation).not.toMatch(/candidate|candidacy/i);
+  });
+
+  it("does not clear an incomplete-data status when source measurements are missing", () => {
+    const result = evaluateRefractiveSafety({
+      procedure: "LASIK",
+      cctUm: 550,
+      flapUm: 100,
+      sphereD: 3.5,
+      opticalZoneMm: 6,
+      screening: {
+        ageYears: 30,
+        refractionStable: true,
+        tomographyReviewedNormal: true,
+        ocularSurfaceControlled: true,
+        measurementsAvailable: false,
+      },
+    });
+
+    expect(result.riskLevel).toBe("insufficient_data");
+  });
+
+  it("flags LASIK corneal thickness below 480 µm as a caution hint, not an exclusion", () => {
+    const result = evaluateRefractiveSafety({
+      procedure: "LASIK",
+      cctUm: 470,
+      flapUm: 90,
+      sphereD: 1,
+      opticalZoneMm: 6,
+      screening: {
+        ageYears: 30,
+        refractionStable: true,
+        tomographyReviewedNormal: true,
+        ocularSurfaceControlled: true,
+      },
+    });
+
+    expect(result.riskLevel).toBe("caution");
+    expect(result.recommendation).toContain("480 µm");
   });
 
   it("correctly flags borderline candidates with caution", () => {
@@ -56,7 +116,7 @@ describe("Clinical Calculators - Refractive & IOP", () => {
     expect(result.riskLevel).toBe("caution");
   });
 
-  it("correctly flags high risk candidates when RSB < 270 or PTA >= 43", () => {
+  it("flags high risk without automatically prescribing an alternative procedure", () => {
     const result = evaluateRefractiveSafety({
       cctUm: 470,
       flapUm: 120,
@@ -64,7 +124,68 @@ describe("Clinical Calculators - Refractive & IOP", () => {
       opticalZoneMm: 6.5,
     });
     expect(result.riskLevel).toBe("high_risk");
-    expect(result.recommendation).toContain("Phakic ICL");
+    expect(result.recommendation).not.toContain("Phakic ICL");
+  });
+
+  it("treats a LASIK residual stromal bed from 250 to 299 µm as below optimal, not an automatic contraindication", () => {
+    const result = evaluateRefractiveSafety({
+      procedure: "LASIK",
+      cctUm: 500,
+      flapUm: 120,
+      sphereD: 10,
+      opticalZoneMm: 6,
+      screening: {
+        ageYears: 30,
+        refractionStable: true,
+        tomographyReviewedNormal: true,
+        ocularSurfaceControlled: true,
+      },
+    });
+
+    expect(result.residualBedUm).toBe(260);
+    expect(result.riskLevel).toBe("caution");
+    expect(result.recommendation).toContain("300 µm optimal target");
+  });
+
+  it("does not apply the LASIK PTA rule to PRK", () => {
+    const result = evaluateRefractiveSafety({
+      procedure: "PRK",
+      cctUm: 510,
+      flapUm: 0,
+      sphereD: 4,
+      opticalZoneMm: 6.5,
+      screening: {
+        ageYears: 30,
+        refractionStable: true,
+        tomographyReviewedNormal: true,
+        ocularSurfaceControlled: true,
+      },
+    });
+
+    expect(result.ptaPercent).toBeNull();
+    expect(result.recommendation).toContain("PRK");
+  });
+
+  it("computes an approximate SMILE/KLEx lenticule estimate for FS with an editable-estimate caveat", () => {
+    const result = evaluateRefractiveSafety({
+      procedure: "FS",
+      cctUm: 530,
+      flapUm: 100,
+      sphereD: 4,
+      opticalZoneMm: 6.5,
+      screening: {
+        ageYears: 30,
+        refractionStable: true,
+        tomographyReviewedNormal: true,
+        ocularSurfaceControlled: true,
+      },
+    });
+
+    expect(result.ablationDepthUm).not.toBeNull();
+    expect(result.residualBedUm).not.toBeNull();
+    expect(result.ptaPercent).not.toBeNull();
+    expect(result.recommendation).toContain("SMILE/KLEx");
+    expect(result.recommendation).toContain("VisuMax");
   });
 
   it("adjusts IOP accurately using corneal pachymetry Dresdner formula", () => {

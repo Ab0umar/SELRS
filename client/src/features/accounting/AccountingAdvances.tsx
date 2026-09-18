@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
 import { AccountingPage } from "./AccountingPagePrimitives";
+import { useAccountingTabMetrics } from "./accountingTabMetrics";
 
 const PAGE_SIZE = 50;
 
@@ -165,87 +166,25 @@ export default function AccountingAdvances() {
   const totalRepaid = allEmployees.reduce((s, r) => s + r.totalRepaid, 0);
   const { rows = [], total = 0 } = ledgerQ.data ?? {};
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const tabMetricItems = [
+    { label: "إجمالي السلف", value: fmt(totalAdvance), icon: TrendingUp },
+    { label: "إجمالي السداد", value: fmt(totalRepaid), icon: TrendingDown },
+    { label: "المتبقي", value: fmt(totalAdvance - totalRepaid), icon: Wallet },
+  ];
+  useAccountingTabMetrics(tabMetricItems);
+
   const employees = employeesQ.data ?? [];
 
   return (
-    <AccountingPage
-      eyebrow="Employee Advances"
-      title="سلف الموظفين"
-      description="إضافة السلف والسداد ومراجعة الأرصدة المتبقية لكل موظف."
-    >
-      <div className="space-y-4 lg:space-y-5" dir="rtl">
-        <section className="rounded-[24px] border border-border bg-background p-4 shadow-sm lg:p-5">
-          <div className="flex flex-col gap-5">
-            <div className="min-w-0 flex-1">
-              <div className="grid gap-3 sm:grid-cols-3">
-                {(
-                  [
-                    {
-                      label: "إجمالي السلف",
-                      val: totalAdvance,
-                      cls: "text-warning",
-                      bg: "bg-warning/10",
-                      icon: TrendingDown,
-                    },
-                    {
-                      label: "إجمالي السداد",
-                      val: totalRepaid,
-                      cls: "text-success",
-                      bg: "bg-success/10",
-                      icon: TrendingUp,
-                    },
-                    {
-                      label: "المتبقي",
-                      val: totalAdvance - totalRepaid,
-                      cls:
-                        totalAdvance - totalRepaid > 0
-                          ? "text-destructive"
-                          : "text-primary",
-                      bg:
-                        totalAdvance - totalRepaid > 0
-                          ? "bg-destructive/10"
-                          : "bg-primary/5",
-                      icon: Wallet,
-                    },
-                  ] as const
-                ).map((m) => {
-                  const Icon = m.icon;
-                  return (
-                    <div
-                      key={m.label}
-                      className={cn(
-                        "flex items-center gap-3 rounded-2xl border border-border px-4 py-3",
-                        m.bg,
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background",
-                          m.cls,
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-medium text-muted-foreground">
-                          {m.label}
-                        </div>
-                        <div
-                          className={cn(
-                            "mt-0.5 text-lg font-bold tabular-nums leading-none",
-                            m.cls,
-                          )}
-                        >
-                          {reportsQ.isLoading ? "..." : fmt(m.val)}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+    <AccountingPage>
+      <div className="space-y-2 sm:space-y-2.5" dir="rtl">
+        <div className="flex flex-wrap items-center gap-2">
+          
+        </div>
 
-            <div ref={formRef} className="min-w-0 border-t border-border pt-5">
+        <section className="rounded-xl border border-border/60 bg-card p-3 sm:p-4">
+          <div className="flex flex-col gap-2">
+            <div ref={formRef} className="min-w-0">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {editingId ? "تعديل قيد" : "إضافة سلفة"}
@@ -261,26 +200,51 @@ export default function AccountingAdvances() {
                 )}
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="advances-date"
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    التاريخ
-                  </label>
-                  <DateInput
-                    id="advances-date"
-                    value={txDate}
-                    onChange={(e) => setTxDate(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-                  />
-                </div>
-
-                <div className="relative flex flex-col gap-1.5 sm:col-span-1">
+              <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+              {/* layout-refined-add-filter */}
+              <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                <label htmlFor="advances-advance" className="text-base font-bold text-warning">
+                  سلفة
+                </label>
+                <input
+                  id="advances-advance"
+                  type="number"
+                  min="0"
+                  value={advance}
+                  onChange={(e) => setAdvance(e.target.value)}
+                  placeholder="0"
+                  className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-warning outline-none placeholder:text-muted-foreground focus:border-warning focus:ring-2 focus:ring-warning/20"
+                />
+              </div>
+              <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                <label htmlFor="advances-repayment" className="text-base font-bold text-success">
+                  سداد
+                </label>
+                <input
+                  id="advances-repayment"
+                  type="number"
+                  min="0"
+                  value={repayment}
+                  onChange={(e) => setRepayment(e.target.value)}
+                  placeholder="0"
+                  className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-success outline-none placeholder:text-muted-foreground focus:border-success/60 focus:ring-2 focus:ring-success/20"
+                />
+              </div>
+              <div className="flex w-[11.5rem] shrink-0 flex-col gap-1">
+                <label htmlFor="advances-date" className="text-base font-bold text-foreground">
+                  التاريخ
+                </label>
+                <DateInput
+                  id="advances-date"
+                  value={txDate}
+                  onChange={(e) => setTxDate(e.target.value)}
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </div>
+              <div className="relative flex min-w-[9rem] max-w-[14rem] flex-col gap-1">
                   <label
                     htmlFor="advances-employee"
-                    className="text-xs font-medium text-muted-foreground"
+                    className="text-base font-bold text-foreground"
                   >
                     الموظف{" "}
                     <span aria-hidden="true" className="text-destructive">
@@ -305,7 +269,7 @@ export default function AccountingAdvances() {
                       onFocus={() => setEmpOpen(true)}
                       onBlur={() => setTimeout(() => setEmpOpen(false), 150)}
                       placeholder="اختر أو اكتب…"
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 pl-7 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      className="h-11 w-full rounded-lg border border-border bg-background px-3 pl-7 text-lg text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                     <ChevronDown
                       className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
@@ -329,7 +293,7 @@ export default function AccountingAdvances() {
                                 setEmpOpen(false);
                               }}
                               className={cn(
-                                "flex w-full items-center px-3 py-2 text-sm text-right hover:bg-muted",
+                                "flex w-full items-center px-2 py-1.5 text-sm text-right hover:bg-muted",
                                 employee === e.name &&
                                   "bg-primary text-primary-foreground",
                               )}
@@ -341,18 +305,17 @@ export default function AccountingAdvances() {
                     )}
                   </div>
                 </div>
-
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-xs font-medium text-muted-foreground">
+              <div className="flex min-w-[10rem] max-w-[16rem] flex-col gap-1">
+                  <label className="text-base font-bold text-foreground">
                     ربط بموظف الرواتب{" "}
-                    <span className="text-[10px] font-normal">
+                    <span className="text-xs font-normal text-muted-foreground">
                       (اختياري — لاستيراد السلفة في الرواتب)
                     </span>
                   </label>
                   <select
                     value={empCd ?? ""}
                     onChange={(e) => setEmpCd(e.target.value || null)}
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-lg text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
                   >
                     <option value="">-- غير مرتبط --</option>
                     {attEmps.map((e: any) => (
@@ -362,62 +325,22 @@ export default function AccountingAdvances() {
                     ))}
                   </select>
                 </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="advances-advance"
-                    className="text-xs font-medium text-warning"
-                  >
-                    سلفة
-                  </label>
-                  <input
-                    id="advances-advance"
-                    type="number"
-                    min="0"
-                    value={advance}
-                    onChange={(e) => setAdvance(e.target.value)}
-                    placeholder="0"
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-warning outline-none placeholder:text-muted-foreground transition-colors focus:border-warning focus:ring-2 focus:ring-warning/20"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="advances-repayment"
-                    className="text-xs font-medium text-success"
-                  >
-                    سداد
-                  </label>
-                  <input
-                    id="advances-repayment"
-                    type="number"
-                    min="0"
-                    value={repayment}
-                    onChange={(e) => setRepayment(e.target.value)}
-                    placeholder="0"
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-success outline-none placeholder:text-muted-foreground transition-colors focus:border-success/60 focus:ring-2 focus:ring-success/20"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label
-                    htmlFor="advances-notes"
-                    className="text-xs font-medium text-muted-foreground"
-                  >
-                    ملاحظات
-                  </label>
-                  <input
-                    id="advances-notes"
-                    type="text"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="ملاحظات…"
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-                  />
-                </div>
+              <div className="flex min-w-[12rem] max-w-sm flex-1 flex-col gap-1">
+                <label htmlFor="advances-notes" className="text-base font-bold text-foreground">
+                  ملاحظات
+                </label>
+                <input
+                  id="advances-notes"
+                  type="text"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="ملاحظات…"
+                  className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
               </div>
+            </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/40 pt-2">
                 {editingId ? (
                   <>
                     {delConfirm ? (
@@ -494,8 +417,8 @@ export default function AccountingAdvances() {
 
         {/* ── السلف النشطة ──────────────────────────────────────────────── */}
         {allEmployees.length > 0 && (
-          <section className="rounded-[24px] border border-border bg-background shadow-sm overflow-hidden">
-            <div className="border-b border-border px-4 py-3 flex items-center justify-between">
+          <section className="rounded-xl border border-border bg-background shadow-xs overflow-hidden">
+            <div className="border-b border-border px-2.5 py-1.5 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-foreground">
                   السلف النشطة
@@ -509,7 +432,7 @@ export default function AccountingAdvances() {
               </span>
             </div>
             {/* Mobile: card list */}
-            <div className="grid gap-2 px-4 py-3 sm:hidden">
+            <div className="grid gap-2 px-2.5 py-1.5 sm:hidden">
               {allEmployees.map((r) => (
                 <div
                   key={r.employee}
@@ -537,7 +460,7 @@ export default function AccountingAdvances() {
                     }
                   }}
                   className={cn(
-                    "rounded-2xl border border-border bg-background p-3 shadow-sm transition-colors",
+                    "rounded-xl border border-border bg-background p-3 shadow-xs transition-colors",
                     employee === r.employee && "ring-1 ring-warning/40 bg-warning/5",
                     r.remaining <= 0 && "opacity-60",
                   )}
@@ -558,13 +481,13 @@ export default function AccountingAdvances() {
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl bg-warning/10 px-3 py-2">
+                    <div className="rounded-xl bg-warning/10 px-2 py-1.5">
                       <div className="text-[10px] text-warning">إجمالي السلف</div>
                       <div className="mt-1 font-semibold tabular-nums text-warning">
                         {fmt(r.totalAdvance)}
                       </div>
                     </div>
-                    <div className="rounded-xl bg-success/10 px-3 py-2">
+                    <div className="rounded-xl bg-success/10 px-2 py-1.5">
                       <div className="text-[10px] text-success">إجمالي السداد</div>
                       <div className="mt-1 font-semibold tabular-nums text-success">
                         {fmt(r.totalRepaid)}
@@ -573,7 +496,7 @@ export default function AccountingAdvances() {
                   </div>
                 </div>
               ))}
-              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold">
+              <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold">
                 <div className="flex items-center justify-between">
                   <span>الإجمالي</span>
                   <span
@@ -694,14 +617,14 @@ export default function AccountingAdvances() {
           </section>
         )}
 
-        <section className="rounded-[24px] border border-border bg-background shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-border px-4 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-5">
+        <section className="rounded-xl border border-border bg-background shadow-xs">
+          <div className="flex flex-col gap-2 border-b border-border px-4 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-5">
             <button
               type="button"
               onClick={() => setTableOpen((v) => !v)}
               aria-label={tableOpen ? "إخفاء الجدول" : "عرض الجدول"}
               aria-expanded={tableOpen}
-              className="flex items-center gap-3 text-right transition-opacity hover:opacity-80 focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="flex items-center gap-2 text-right transition-opacity hover:opacity-80 focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               <div
                 className={cn(
@@ -756,7 +679,7 @@ export default function AccountingAdvances() {
                     setPage(1);
                   }}
                   placeholder="بحث باسم الموظف…"
-                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:w-44 sm:flex-none"
+                  className="shrink-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:w-44 sm:flex-none"
                 />
                 {search ? (
                   <button
@@ -780,7 +703,7 @@ export default function AccountingAdvances() {
 
           {tableOpen && (
             <>
-              <div className="grid gap-3 px-4 py-3 sm:hidden">
+              <div className="grid gap-2 px-2.5 py-1.5 sm:hidden">
                 {ledgerQ.isLoading && (
                   <div className="py-6 text-center text-sm text-muted-foreground">
                     جاري التحميل...
@@ -801,11 +724,11 @@ export default function AccountingAdvances() {
                       if (e.key === "Enter" || e.key === " ") selectRow(row);
                     }}
                     className={cn(
-                      "rounded-2xl border border-border bg-background p-4 shadow-sm transition-colors hover:bg-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "rounded-xl border border-border bg-background p-4 shadow-xs transition-colors hover:bg-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       editingId === row.id && "ring-1 ring-warning/30",
                     )}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="text-[11px] text-muted-foreground">
                           {fmtDate(row.txDate)}
@@ -832,7 +755,7 @@ export default function AccountingAdvances() {
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-xl bg-warning/10 px-3 py-2">
+                      <div className="rounded-xl bg-warning/10 px-2 py-1.5">
                         <div className="text-[10px] text-warning">سلفة</div>
                         <div
                           className={cn(
@@ -845,7 +768,7 @@ export default function AccountingAdvances() {
                           {row.advance ? fmt(row.advance) : "—"}
                         </div>
                       </div>
-                      <div className="rounded-xl bg-success/10 px-3 py-2">
+                      <div className="rounded-xl bg-success/10 px-2 py-1.5">
                         <div className="text-[10px] text-success">سداد</div>
                         <div
                           className={cn(
@@ -902,7 +825,7 @@ export default function AccountingAdvances() {
                       </th>
                       <th
                         scope="col"
-                        className="hidden w-[18%] px-4 py-3 text-left font-semibold tabular-nums text-destructive sm:table-cell"
+                        className="hidden w-[18%] px-2.5 py-1.5 text-left font-semibold tabular-nums text-destructive sm:table-cell"
                       >
                         المتبقي
                       </th>
@@ -980,7 +903,7 @@ export default function AccountingAdvances() {
                         </td>
                         <td
                           className={cn(
-                            "hidden px-4 py-3 text-left tabular-nums text-xs sm:table-cell",
+                            "hidden px-2.5 py-1.5 text-left tabular-nums text-xs sm:table-cell",
                             (row.runningTotal ?? 0) > 0
                               ? "text-destructive"
                               : "text-success",
@@ -997,7 +920,7 @@ export default function AccountingAdvances() {
           )}
 
           {tableOpen && totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-border px-4 py-3">
+            <div className="flex items-center justify-between border-t border-border px-2.5 py-1.5">
               <span className="text-xs text-muted-foreground">
                 {total.toLocaleString("ar-EG")} حركة · صفحة{" "}
                 {page.toLocaleString("ar-EG")} من{" "}

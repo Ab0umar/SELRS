@@ -14,7 +14,7 @@ import type {
   ReceiptHeader,
   ReceiptsInquiryInput,
 } from "@shared/accounting/contracts";
-import { CircleAlert, RefreshCw, Search, ReceiptText } from "lucide-react";
+import { CircleAlert, RefreshCw, Search, ReceiptText, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import reportStyles from "./AccountingOpReport.module.css";
@@ -158,7 +158,7 @@ function trTyLabel(value: number) {
 }
 
 const selectLikeClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex h-10 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function ReceiptsInquiry() {
   const [, setLocation] = useLocation();
@@ -244,21 +244,14 @@ export default function ReceiptsInquiry() {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
-        <Card className="border-border/80 shadow-sm">
-          <CardHeader className="gap-3">
-            <CardTitle className="text-xl tracking-tight">
-              استعلام الإيصالات
-            </CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              طبّق الفلاتر ثم اضغط «تطبيق». يتم تحديث الرابط وتشغيل الاستعلام
-              تلقائيًا.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            <label
+      <div className="space-y-2 sm:space-y-2.5" dir="rtl">
+        <Card className="w-fit max-w-full border-border/60 shadow-xs">
+          <CardContent className="w-fit max-w-full space-y-2 p-2.5 sm:p-3">
+            {/* layout-refined-add-filter */}
+            <div className="accounting-add-filter flex w-fit max-w-full flex-wrap items-end gap-2" data-add-filter="1" dir="rtl">
+<label
               htmlFor="receipt-from-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>من تاريخ</span>
               <DateInput
@@ -267,11 +260,11 @@ export default function ReceiptsInquiry() {
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
                 }
-              />
+               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
             </label>
             <label
               htmlFor="receipt-to-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>إلى تاريخ</span>
               <DateInput
@@ -280,16 +273,16 @@ export default function ReceiptsInquiry() {
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))
                 }
-              />
+               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
             </label>
             {dateError && (
-              <p className="text-[11px] text-destructive md:col-span-2">
+              <p className="text-sm text-destructive md:col-span-2">
                 {dateError}
               </p>
             )}
             <label
               htmlFor="receipt-patient-code"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>كود المريض</span>
               <Input
@@ -314,7 +307,7 @@ export default function ReceiptsInquiry() {
             </label>
             <label
               htmlFor="receipt-doctor-code"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>كود الطبيب</span>
               <Input
@@ -338,99 +331,16 @@ export default function ReceiptsInquiry() {
               )}
             </label>
 
-            <label
-              htmlFor="receipt-section-code"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>كود القسم</span>
-              <Input
-                id="receipt-section-code"
-                type="number"
-                min={1}
-                value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
-                onChange={(e) =>
-                  setDraft((p) => ({
-                    ...p,
-                    sectionCode:
-                      optionalNumber(e.target.value) ?? DEFAULT_SECTION_CODE,
-                  }))
-                }
-              />
-            </label>
-            <label
-              htmlFor="receipt-tr-no"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>رقم الإيصال</span>
-              <Input
-                id="receipt-tr-no"
-                value={draft.trNo ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({
-                    ...p,
-                    trNo: e.target.value ? e.target.value : undefined,
-                  }))
-                }
-              />
-            </label>
-            <label
-              htmlFor="receipt-tr-ty"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>نوع الإيصال</span>
-              <select
-                id="receipt-tr-ty"
-                className={selectLikeClass}
-                value={draft.trTy ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setDraft((p) => ({
-                    ...p,
-                    trTy: v === "" ? undefined : Number(v),
-                  }));
-                }}
-              >
-                <option value="">الكل</option>
-                <option value="1">{trTyLabel(1)}</option>
-                <option value="5">{trTyLabel(5)}</option>
-                <option value="6">{trTyLabel(6)}</option>
-                <option value="8">{trTyLabel(8)}</option>
-              </select>
-            </label>
-            <div className="flex flex-wrap items-end gap-2 xl:col-span-2">
-              <Button
-                type="button"
-                onClick={() => void applyFilters()}
-                aria-label="تطبيق الفلاتر"
-              >
-                <Search className="ml-2 h-4 w-4" aria-hidden />
-                تطبيق
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void resetFilters()}
-                aria-label="إعادة ضبط الفلاتر"
-              >
-                إعادة ضبط
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void receiptsQuery.refetch()}
-                disabled={receiptsQuery.isFetching}
-                aria-label="تحديث بيانات الإيصالات"
-              >
-                <RefreshCw
-                  className={
-                    receiptsQuery.isFetching
-                      ? "ml-2 h-4 w-4 animate-spin"
-                      : "ml-2 h-4 w-4"
-                  }
-                  aria-hidden
-                />
-                تحديث
-              </Button>
+                                                
+            <Button type="button" size="icon" className="h-11 w-11" onClick={applyFilters} aria-label="تطبيق">
+              <Search className="h-4 w-4" aria-hidden />
+            </Button>
+            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={resetFilters} aria-label="إعادة ضبط">
+              <RotateCcw className="h-4 w-4" aria-hidden />
+            </Button>
+            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => void receiptsQuery.refetch()} aria-label="تحديث">
+              <RefreshCw className="h-4 w-4" aria-hidden />
+            </Button>
             </div>
           </CardContent>
         </Card>
@@ -449,7 +359,7 @@ export default function ReceiptsInquiry() {
             ) : null}
 
             {receiptsQuery.isError ? (
-              <div className="flex items-start gap-3 rounded-lg border border-error/30 bg-error/5 p-4 text-error">
+              <div className="flex items-start gap-2 rounded-lg border border-error/30 bg-error/5 p-4 text-error">
                 <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
                 <div>
                   <p className="font-semibold">
@@ -476,14 +386,14 @@ export default function ReceiptsInquiry() {
               </div>
             ) : null}
 
-            <div className="grid gap-3 sm:hidden">
+            <div className="grid gap-2 sm:hidden">
               {receiptsQuery.isLoading
                 ? Array.from({ length: 4 }).map((_, i) => (
                     <div
                       key={i}
-                      className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                      className="rounded-xl border border-border bg-background p-4 shadow-xs"
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-between gap-2">
                         <Skeleton className="h-4 w-24" />
                         <Skeleton className="h-6 w-20 rounded-full" />
                       </div>
@@ -514,11 +424,11 @@ export default function ReceiptsInquiry() {
                           receiptDetailUrl(row.sectionCode, row.trTy, row.trNo),
                         )
                       }
-                      className="rounded-2xl border border-border bg-background p-4 text-right shadow-sm transition-colors hover:bg-primary/50"
+                      className="rounded-xl border border-border bg-background p-4 text-right shadow-xs transition-colors hover:bg-primary/50"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-[11px] text-muted-foreground">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="shrink-0">
+                          <div className="text-sm text-muted-foreground">
                             {formatDateAr(row.transactionDate)}
                           </div>
                           <div className="mt-1 text-sm font-semibold text-foreground">
@@ -531,7 +441,7 @@ export default function ReceiptsInquiry() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-muted px-3 py-2">
+                        <div className="rounded-xl bg-muted px-2 py-1.5">
                           <div className="text-[10px] text-muted-foreground">
                             النوع
                           </div>
@@ -539,7 +449,7 @@ export default function ReceiptsInquiry() {
                             {trTyLabel(row.trTy)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-muted px-3 py-2">
+                        <div className="rounded-xl bg-muted px-2 py-1.5">
                           <div className="text-[10px] text-muted-foreground">
                             الإجمالي
                           </div>
@@ -547,7 +457,7 @@ export default function ReceiptsInquiry() {
                             {formatMoneyAr(row.total)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                        <div className="rounded-xl bg-destructive/10 px-2 py-1.5">
                           <div className="text-[10px] text-destructive">
                             الخصم
                           </div>
@@ -555,7 +465,7 @@ export default function ReceiptsInquiry() {
                             {formatMoneyAr(row.discount)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                        <div className="rounded-xl bg-success/10 px-2 py-1.5">
                           <div className="text-[10px] text-success">
                             المدفوع
                           </div>
@@ -659,7 +569,7 @@ export default function ReceiptsInquiry() {
             {!receiptsQuery.isLoading &&
               !receiptsQuery.isError &&
               rows.length >= 500 && (
-                <div className="px-4 py-2 text-[11px] text-warning bg-warning/10 border-t border-border/30 mt-2">
+                <div className="px-4 py-2 text-sm text-warning bg-warning/10 border-t border-border/30 mt-2">
                   قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
                 </div>
               )}

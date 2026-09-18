@@ -724,12 +724,12 @@ export default function CurrentSalaryData() {
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-2 gap-2">
             <h2 className="text-lg font-bold text-foreground">المركز</h2>
-            <div className="flex bg-muted rounded-2xl p-1 w-fit border border-border/60">
+            <div className="flex bg-muted rounded-xl p-1 w-fit border border-border/60">
               <button
                 onClick={() => setCenterTab("shifts")}
                 className={`px-4 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
                   centerTab === "shifts"
-                    ? "bg-background text-primary shadow-sm"
+                    ? "bg-background text-primary shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -739,7 +739,7 @@ export default function CurrentSalaryData() {
                 onClick={() => setCenterTab("salaries")}
                 className={`px-4 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
                   centerTab === "salaries"
-                    ? "bg-background text-primary shadow-sm"
+                    ? "bg-background text-primary shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -790,7 +790,7 @@ export default function CurrentSalaryData() {
 
       {/* Summary Section */}
       <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-md border border-border/60 bg-card p-4 shadow-sm">
+        <div className="rounded-md border border-border/60 bg-card p-4 shadow-xs">
           <div className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
             إجمالي موظفي الرواتب
           </div>
@@ -798,7 +798,7 @@ export default function CurrentSalaryData() {
             {basics.length}
           </div>
         </div>
-        <div className="rounded-md border border-border/60 bg-card p-4 shadow-sm">
+        <div className="rounded-md border border-border/60 bg-card p-4 shadow-xs">
           <div className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
             إجمالي كادر الشفتات
           </div>

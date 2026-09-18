@@ -530,7 +530,7 @@ export default function ShiftManagement() {
                     <h4 className="text-sm font-black text-foreground">{s.name}</h4>
                     <span className="text-[10px] text-muted-foreground font-mono block mt-0.5">رمز الوردية: #{s.id}</span>
                   </div>
-                  <div className="flex flex-col gap-1.5 items-end">
+                  <div className="flex flex-col gap-1 items-end">
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
                       s.isFlexible
                         ? "bg-primary/10 text-primary border-primary/20"

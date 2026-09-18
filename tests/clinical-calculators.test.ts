@@ -34,16 +34,18 @@ describe("Clinical Calculators - Refractive & IOP", () => {
     expect(pta).toBe(29.6);
   });
 
-  it("correctly flags safe refractive candidates", () => {
+  it("does not declare candidacy from RSB and PTA without complete screening", () => {
     const result = evaluateRefractiveSafety({
+      procedure: "LASIK",
       cctUm: 550,
       flapUm: 100,
       sphereD: 3.5,
       opticalZoneMm: 6.0,
     });
-    expect(result.riskLevel).toBe("safe");
+    expect(result.riskLevel).toBe("insufficient_data");
     expect(result.residualBedUm).toBeGreaterThanOrEqual(300);
     expect(result.ptaPercent).toBeLessThan(40);
+    expect(result.recommendation).not.toContain("Candidate");
   });
 
   it("correctly flags borderline candidates with caution", () => {
@@ -59,7 +61,7 @@ describe("Clinical Calculators - Refractive & IOP", () => {
     expect(result.riskLevel).toBe("caution");
   });
 
-  it("correctly flags high risk candidates when RSB < 270 or PTA >= 43", () => {
+  it("flags high risk without automatically prescribing an alternative procedure", () => {
     const result = evaluateRefractiveSafety({
       cctUm: 470,
       flapUm: 120,
@@ -67,7 +69,7 @@ describe("Clinical Calculators - Refractive & IOP", () => {
       opticalZoneMm: 6.5,
     });
     expect(result.riskLevel).toBe("high_risk");
-    expect(result.recommendation).toContain("Phakic ICL");
+    expect(result.recommendation).not.toContain("Phakic ICL");
   });
 
   it("adjusts IOP accurately using corneal pachymetry Dresdner formula", () => {

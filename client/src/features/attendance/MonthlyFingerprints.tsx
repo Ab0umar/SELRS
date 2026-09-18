@@ -327,7 +327,7 @@ export default function MonthlyFingerprints({
                     {sectionEmployees.map((employee) => (
                       <article
                         key={employee.empCd}
-                        className="overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+                        className="overflow-hidden rounded-2xl border border-border bg-background shadow-xs"
                       >
                         <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/40 px-3 py-3">
                           <div className="min-w-0">

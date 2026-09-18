@@ -203,7 +203,7 @@ export default function ManualPunches() {
             {rows.map((row, index) => (
               <div
                 key={row.id}
-                className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-muted/40 p-3 md:grid-cols-[1.4fr_1fr_0.8fr_0.9fr_1.4fr_auto] md:items-end"
+                className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl"
               >
                 <div>
                   <label htmlFor={`manual-punch-emp-${row.id}`} className="block text-xs font-medium text-muted-foreground mb-1">الموظف</label>
@@ -216,7 +216,7 @@ export default function ManualPunches() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">التاريخ</label>
-                  <DateInput value={row.date} onChange={(e) => updateRow(row.id, { date: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  <DateInput value={row.date} onChange={(e) => updateRow(row.id, { date: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
                 </div>
                 <div>
                   <label htmlFor={`manual-punch-time-${row.id}`} className="block text-xs font-medium text-muted-foreground mb-1">الوقت</label>
@@ -286,14 +286,14 @@ export default function ManualPunches() {
       <>
       <Card>
         <CardContent className="pt-4">
-          <div className="grid gap-3 md:grid-cols-4 md:items-end">
+          <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
             <div>
               <label htmlFor="manual-punch-from" className="mb-1 block text-sm font-medium">من</label>
-              <DateInput id="manual-punch-from" value={filter.from} onChange={(e) => updateFilter({ from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <DateInput id="manual-punch-from" value={filter.from} onChange={(e) => updateFilter({ from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
             </div>
             <div>
               <label htmlFor="manual-punch-to" className="mb-1 block text-sm font-medium">إلى</label>
-              <DateInput id="manual-punch-to" value={filter.to} onChange={(e) => updateFilter({ to: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <DateInput id="manual-punch-to" value={filter.to} onChange={(e) => updateFilter({ to: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
             </div>
             <div>
               <label htmlFor="manual-punch-employee" className="mb-1 block text-sm font-medium">الموظف</label>
@@ -329,7 +329,7 @@ export default function ManualPunches() {
           ) : isMobile ? (
             <div className="space-y-2" dir="rtl">
               {(punchesQuery.data.punches as any[]).map((p: any) => (
-                <div key={p.id} className="rounded-2xl border border-border bg-background p-3 shadow-sm">
+                <div key={p.id} className="rounded-2xl border border-border bg-background p-3 shadow-xs">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="text-sm font-semibold">{empName(p.empCd)}</div>

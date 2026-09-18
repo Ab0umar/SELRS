@@ -234,7 +234,7 @@ export default function EmployeeFunds() {
         </div>
 
         <TabsContent value="operations" className="mt-4 space-y-4" dir="rtl">
-          <div className="grid overflow-hidden rounded-lg border border-border sm:grid-cols-3">
+          <div className="grid overflow-hidden rounded-xl border border-border/60 shadow-sm sm:grid-cols-3">
             <div className="p-4">
               <p className="text-xs text-muted-foreground">إجمالي الإيرادات</p>
               <p className="mt-1 text-lg font-black">
@@ -261,7 +261,7 @@ export default function EmployeeFunds() {
 
           <div
             dir="rtl"
-            className="grid overflow-hidden rounded-lg border border-border lg:grid-cols-[320px_minmax(0,1fr)]"
+            className="grid overflow-hidden rounded-xl border border-border/60 shadow-sm lg:grid-cols-[320px_minmax(0,1fr)]"
           >
             <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-l">
               <div className="border-b border-border p-3">
@@ -402,7 +402,7 @@ export default function EmployeeFunds() {
         </TabsContent>
 
         <TabsContent value="eid" className="mt-4 space-y-4" dir="rtl">
-          <div className="grid gap-4 rounded-lg border border-border p-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="grid gap-4 rounded-xl border border-border/60 shadow-sm p-5 lg:grid-cols-[minmax(0,1fr)_280px]">
             <div>
               <h2 className="text-base font-black">إضافة عيدية لكل الموظفين</h2>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -473,7 +473,7 @@ export default function EmployeeFunds() {
               </p>
             </aside>
           </div>
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-hidden rounded-xl border border-border/60 shadow-sm">
             <div className="border-b border-border px-4 py-3 text-sm font-black">
               سجل العيديات
             </div>

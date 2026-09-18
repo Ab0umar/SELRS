@@ -383,7 +383,7 @@ function TempSwapPanel({
                     setDateFrom(e.target.value);
                     if (dateTo < e.target.value) setDateTo(e.target.value);
                   }}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
                 />
               </div>
 
@@ -611,7 +611,7 @@ export default function EmployeesList() {
             return (
               <div
                 key={emp.empCd}
-                className={`rounded-2xl border border-border bg-background p-3 shadow-sm ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : ""}`}
+                className={`rounded-2xl border border-border bg-background p-3 shadow-xs ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : ""}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -835,7 +835,7 @@ export default function EmployeesList() {
                       <DateInput
                         value={terminationDate}
                         onChange={(e) => setTerminationDate(e.target.value)}
-                        className="min-w-0 flex-1"
+                        className="min-w-0 flex-1 h-11 w-[11rem] shrink-0"
                       />
                       <Button
                         size="sm"
@@ -1111,7 +1111,7 @@ export default function EmployeesList() {
                           <DateInput
                             value={terminationDate}
                             onChange={(e) => setTerminationDate(e.target.value)}
-                            className="h-8 min-w-32 text-xs"
+                            className="h-8 min-w-32 text-xs h-11 w-[11rem] shrink-0"
                           />
                           <Button
                             size="sm"

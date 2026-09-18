@@ -303,6 +303,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     group: "العيادات",
   },
   {
+    id: "/clinical-decision-support",
+    label: "القرار الإكلينيكي (Clinical Decision Support)",
+    group: "العيادات",
+  },
+  {
     id: "/medical-report",
     label: "التقرير الطبي للطباعة (Printable Medical Report)",
     group: "العيادات",

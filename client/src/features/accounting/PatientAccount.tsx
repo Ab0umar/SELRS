@@ -138,25 +138,20 @@ export default function PatientAccount() {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
+      <div className="space-y-3 sm:space-y-3.5" dir="rtl">
         {detailCode ? (
-          <Button variant="outline" type="button" onClick={onBack}>
-            <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+          <Button variant="outline" size="sm" type="button" onClick={onBack}>
+            <ArrowLeft className="ml-1.5 h-3.5 w-3.5 rotate-180" />
             العودة للبحث
           </Button>
         ) : null}
 
-        <Card className="border-border shadow-sm">
-          <CardHeader className="gap-1">
-            <CardTitle className="text-xl tracking-tight">حساب مريض</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              أدخل كود المريض والفترة ثم اضغط بحث.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <Card className="border-border/60 shadow-xs">
+          <span className="sr-only">حساب مريض</span>
+          <CardContent className="grid gap-3 p-3 sm:p-4 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
             <label
               htmlFor="patient-code"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>كود المريض</span>
               <Input
@@ -170,7 +165,7 @@ export default function PatientAccount() {
             </label>
             <label
               htmlFor="patient-from-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>من تاريخ</span>
               <DateInput
@@ -183,7 +178,7 @@ export default function PatientAccount() {
             </label>
             <label
               htmlFor="patient-to-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>إلى تاريخ</span>
               <DateInput
@@ -201,7 +196,7 @@ export default function PatientAccount() {
             )}
             <label
               htmlFor="patient-section-code"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>كود القسم</span>
               <Input

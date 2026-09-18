@@ -320,7 +320,7 @@ export default function LeaveBalanceReport({
                 return (
                   <div
                     key={row.empCd}
-                    className={`rounded-2xl border p-3 shadow-sm ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                    className={`rounded-2xl border p-3 shadow-xs ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div>

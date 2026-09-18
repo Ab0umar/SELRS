@@ -59,112 +59,178 @@
 }
 
 @layer components {
+  /* Accounting module unified system (uni-brand matching Attendance & Salary with increased readable font sizes) */
+  [data-operational-module="accounting"] {
+    font-size: 0.925rem;
+    color: var(--foreground);
+  }
+
+  [data-operational-module="accounting"] table {
+    font-size: 0.875rem;
+    border-color: var(--border);
+  }
+
+  [data-operational-module="accounting"] th {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--muted-foreground);
+    letter-spacing: 0.01em;
+  }
+
+  [data-operational-module="accounting"] td {
+    font-size: 0.875rem;
+    padding-block: 0.55rem;
+    border-color: color-mix(in oklch, var(--border) 60%, transparent);
+  }
+
+  [data-operational-module="accounting"] input,
+  [data-operational-module="accounting"] select,
+  [data-operational-module="accounting"] textarea,
+  [data-operational-module="accounting"] button[role="combobox"] {
+    font-size: 0.925rem;
+    border-radius: 0.65rem;
+    border-color: var(--border);
+  }
+
+  [data-operational-module="accounting"] label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+
+  [data-operational-module="accounting"] section,
+  [data-operational-module="accounting"] [data-slot="card"] {
+    border-color: var(--border);
+    border-radius: 0.875rem;
+    background-color: var(--card);
+    box-shadow: 0 1px 3px oklch(0.28 0.04 257 / 0.04);
+  }
+
+  [data-operational-module="accounting"] tbody tr {
+    transition: background-color 150ms ease;
+  }
+
+  [data-operational-module="accounting"] tbody tr:hover {
+    background-color: color-mix(in oklch, var(--primary) 4%, transparent);
+  }
+
   .accounting-page {
-    color: rgb(30 41 59);
+    color: var(--foreground);
   }
 
-  .accounting-page__header {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    border: 1px solid rgb(226 232 240);
-    border-radius: 1.5rem;
-    background: linear-gradient(180deg, rgb(255 255 255), rgb(248 250 252));
-    padding: 1rem;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+
+
+  /* Date fields must never clip dd/MM/yyyy + calendar button */
+  [data-operational-module="accounting"] [data-slot="popover-trigger"],
+  [data-operational-module="accounting"] button:has(svg.lucide-calendar),
+  [data-operational-module="accounting"] .tabular-nums {
+    overflow: visible;
   }
 
-  @media (min-width: 768px) {
-    .accounting-page__header {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-    }
+  [data-operational-module="accounting"] div:has(> input[inputmode="numeric"][dir="ltr"]) {
+    min-width: 10.5rem;
+    max-width: 100%;
+    overflow: visible !important;
   }
 
-  .accounting-page__eyebrow {
-    margin-bottom: 0.35rem;
-    color: rgb(148 163 184);
-    font-size: 0.625rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+
+  /* add-filter layout: date fields never clip */
+  [data-operational-module="accounting"] label:has(input[inputmode="numeric"]) {
+    min-width: 10.5rem;
   }
 
-  .accounting-page__title {
-    color: rgb(15 23 42);
-    font-size: 1.125rem;
-    font-weight: 900;
-    line-height: 1.2;
+
+  /* DateInput: never let neighbors overlap the calendar button */
+  [data-operational-module="accounting"] .accounting-page [data-date-input],
+  [data-operational-module="accounting"] .accounting-page span:has(> button svg.lucide-calendar),
+  [data-operational-module="accounting"] .accounting-page div.inline-flex:has(button svg.lucide-calendar) {
+    flex-shrink: 0 !important;
+    min-width: 11rem;
+    max-width: 100%;
+    position: relative;
+    z-index: 1;
   }
 
-  .accounting-page__description {
-    margin-top: 0.35rem;
-    max-width: 48rem;
-    color: rgb(100 116 139);
-    font-size: 0.75rem;
-    font-weight: 500;
-    line-height: 1.75;
+  /* salary unified UI (mirrors accounting polish) */
+  [data-operational-module="salary"] label.flex.flex-col {
+    gap: 0.25rem;
+  }
+  [data-operational-module="salary"] .flex.w-fit.max-w-full.flex-wrap.items-end {
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+  [data-operational-module="salary"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  [data-operational-module="salary"] textarea,
+  [data-operational-module="salary"] [data-slot="input"],
+  [data-operational-module="salary"] button[data-slot="select-trigger"] {
+    min-height: 2.75rem;
+  }
+  [data-operational-module="salary"] div.inline-flex:has(button svg.lucide-calendar) {
+    flex-shrink: 0 !important;
+    min-width: 11rem;
+    max-width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  [data-operational-module="salary"] main {
+    gap: 0.85rem;
   }
 
-  .accounting-page__actions {
-    display: flex;
-    flex-wrap: wrap;
+  /* attendance unified UI (mirrors accounting polish) */
+  [data-operational-module="attendance"] label.flex.flex-col {
+    gap: 0.25rem;
+  }
+  [data-operational-module="attendance"] .flex.w-fit.max-w-full.flex-wrap.items-end {
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+  [data-operational-module="attendance"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  [data-operational-module="attendance"] textarea,
+  [data-operational-module="attendance"] [data-slot="input"],
+  [data-operational-module="attendance"] button[data-slot="select-trigger"] {
+    min-height: 2.75rem;
+  }
+  [data-operational-module="attendance"] div.inline-flex:has(button svg.lucide-calendar) {
+    flex-shrink: 0 !important;
+    min-width: 11rem;
+    max-width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  [data-operational-module="attendance"] main {
+    gap: 0.85rem;
+  }
+
+  /* accounting unified input spacing */
+  [data-operational-module="accounting"] .accounting-page label.flex.flex-col,
+  [data-operational-module="accounting"] .accounting-add-filter > label,
+  [data-operational-module="accounting"] .accounting-add-filter > div.flex.flex-col {
+    gap: 0.25rem; /* gap-1 */
+  }
+  [data-operational-module="accounting"] .accounting-add-filter,
+  [data-operational-module="accounting"] .accounting-page [dir="rtl"].flex.flex-wrap.items-end {
+    gap: 0.5rem; /* gap-2 */
+    align-items: flex-end;
+  }
+  [data-operational-module="accounting"] .accounting-page input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  [data-operational-module="accounting"] .accounting-page textarea,
+  [data-operational-module="accounting"] .accounting-page [data-slot="input"],
+  [data-operational-module="accounting"] .accounting-page button[data-slot="select-trigger"] {
+    min-height: 2.75rem; /* h-11 */
+  }
+  [data-operational-module="accounting"] .accounting-page .flex.w-fit.max-w-full.flex-wrap.items-end {
     gap: 0.5rem;
   }
 
+  [data-operational-module="accounting"] main .accounting-page {
+    gap: 0.85rem;
+  }
+
   .accounting-panel {
-    border: 1px solid rgb(226 232 240);
-    border-radius: 1.5rem;
-    background-color: rgb(255 255 255);
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
-  }
-
-  [data-accounting-module] section,
-  [data-accounting-module] [data-slot="card"] {
-    border-color: rgb(226 232 240);
-    border-radius: 1.5rem;
-    background-color: rgb(255 255 255);
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
-  }
-
-  [data-accounting-module] [class*="rounded-[24px]"],
-  [data-accounting-module] [class*="rounded-[28px]"] {
-    border-radius: 1.5rem;
-  }
-
-  [data-accounting-module] thead tr,
-  [data-accounting-module] tr[class*="bg-muted"] {
-    background-color: rgb(248 250 252);
-  }
-
-  [data-accounting-module] [class*="bg-muted"] {
-    background-color: rgb(248 250 252);
-  }
-
-  [data-accounting-module] [class*="text-muted-foreground"] {
-    color: rgb(100 116 139);
-  }
-
-  [data-accounting-module] input,
-  [data-accounting-module] select,
-  [data-accounting-module] textarea,
-  [data-accounting-module] button[role="combobox"] {
-    border-radius: 1rem;
-  }
-
-  [data-accounting-module] table {
-    border-color: rgb(226 232 240);
-  }
-
-  [data-accounting-module] tbody tr {
-    transition:
-      background-color 150ms ease,
-      color 150ms ease;
-  }
-
-  [data-accounting-module] tbody tr:hover {
-    background-color: rgb(248 250 252);
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    background-color: var(--card);
+    box-shadow: 0 1px 3px oklch(0.28 0.04 257 / 0.04);
   }
 }
 
@@ -1134,6 +1200,14 @@ img {
     margin: 0;
   }
 
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
   html,
   body {
     margin: 0 !important;
@@ -1142,6 +1216,9 @@ img {
     height: auto !important;
     overflow: visible !important;
     background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   /* Force sheet contents to fit on A4 page cleanly without scrollbars */

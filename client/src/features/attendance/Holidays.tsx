@@ -115,7 +115,7 @@ export default function Holidays() {
             <CardTitle>إضافة عطلة رسمية</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
               <div>
                 <label className="block text-sm font-medium mb-1">
                   التاريخ
@@ -123,7 +123,7 @@ export default function Holidays() {
                 <DateInput
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md h-11 w-[11rem] shrink-0"
                 />
               </div>
               <div className="md:col-span-2">
@@ -189,7 +189,7 @@ export default function Holidays() {
                 return (
                   <div
                     key={h.date}
-                    className={`rounded-2xl border p-3 shadow-sm ${isEditing ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                    className={`rounded-2xl border p-3 shadow-xs ${isEditing ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
                   >
                     <div className="font-mono text-xs text-muted-foreground">
                       {h.date}

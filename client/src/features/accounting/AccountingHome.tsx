@@ -292,9 +292,9 @@ export default function AccountingHome() {
   );
   return (
     <>
-      <div dir="rtl" className="space-y-5">
+      <div dir="rtl" className="space-y-3 sm:space-y-3.5">
         <section
-          className="rounded-lg border border-border bg-background p-4 lg:p-5"
+          className="rounded-xl border border-border/60 bg-card p-3 sm:p-4"
           dir="rtl"
         >
           <div className="flex flex-col gap-2.5">
@@ -356,11 +356,11 @@ export default function AccountingHome() {
               )}
               <div className="flex flex-col gap-4 lg:flex-row-reverse lg:items-start">
                 <div className="flex-1 rounded-lg border border-border bg-background p-3">
-                  <h3 className="mb-2 flex items-center gap-1.5 text-sm font-black text-foreground">
-                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="mb-2 flex items-center gap-1.5 text-lg font-black text-foreground">
+                    <Wallet className="h-4 w-4 text-muted-foreground " />
                     قيد خزنة
                   </h3>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1 ">
                   {(
                     [
                       {
@@ -371,7 +371,7 @@ export default function AccountingHome() {
                             id="qk-cb-date"
                             value={txDate}
                             onChange={(e) => setTxDate(e.target.value)}
-                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 w-full min-w-[10.5rem]"
                           />
                         ),
                       },
@@ -428,7 +428,7 @@ export default function AccountingHome() {
                     <div key={row.label} className="flex items-center gap-3">
                       <label
                         htmlFor={row.id}
-                        className="w-16 shrink-0 text-xs font-medium text-muted-foreground"
+                        className="w-16 shrink-0 text-xs font-large text-muted-foreground"
                       >
                         {row.label}
                       </label>
@@ -486,7 +486,7 @@ export default function AccountingHome() {
                     <Scissors className="h-4 w-4 text-muted-foreground" />
                     خدمة
                   </h3>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   {/* Patient + Doctor (shared) */}
                   <div className="flex items-center gap-3">
                     <label
@@ -569,7 +569,7 @@ export default function AccountingHome() {
                       id="qk-svc-date"
                       value={serviceDate}
                       onChange={(e) => setServiceDate(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 w-full min-w-[10.5rem]"
                     />
                   </div>
                   {/* Service lines */}
@@ -747,15 +747,10 @@ export default function AccountingHome() {
 
         {activityEverVisible && (
           <section className="w-full overflow-hidden rounded-2xl border border-border/60 bg-card">
-            <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-              <div>
-                <h2 className="text-sm font-black text-foreground">
-                  {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
-                </h2>
-                <p className="mt-1 text-xs font-medium text-muted-foreground">
-                  إيصالات ودفعيات القسم 15{isToday ? "" : ` — ${viewDate}`}.
-                </p>
-              </div>
+            <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+              <h2 className="text-sm font-bold text-foreground">
+                {isToday ? "حركات اليوم" : `حركات ${viewDate}`}
+              </h2>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {activityQuery.isFetching && !activityQuery.isLoading ? (
                   <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />

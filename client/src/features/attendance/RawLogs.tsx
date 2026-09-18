@@ -167,7 +167,7 @@ export default function RawLogs({
               {punches.map((punch: any, idx: number) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>

@@ -190,7 +190,7 @@ export default function DeviceSettings() {
                 size="sm"
                 onClick={() => connectDevice.mutateAsync().then(() => statusQuery.refetch())}
                 disabled={connectDevice.isPending}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-xs"
               >
                 اتصال
               </Button>
@@ -282,7 +282,7 @@ export default function DeviceSettings() {
                 size="sm"
                 onClick={() => connectZK40.mutateAsync().then(() => zk40Status.refetch())}
                 disabled={connectZK40.isPending || !k40.ip}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-xs"
               >
                 اتصال
               </Button>
@@ -304,7 +304,7 @@ export default function DeviceSettings() {
                   } catch {}
                 }}
                 disabled={syncZK40.isPending || !k40.ip}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg shadow-xs"
               >
                 تزامن يدوي
               </Button>

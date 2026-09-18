@@ -20,22 +20,26 @@ describe("buildClinicalPlanFromSheetEntry", () => {
     });
 
     expect(buildClinicalPlanFromSheetEntry(payload)).toEqual({
-      procedure: "FS",
+      procedure: "PRK",
       eyes: {
         od: {
           cct: 487,
-          flap: 100,
+          flap: 0,
           sphere: 4.5,
           cylinder: 1.25,
           opticalZone: 6.5,
         },
         os: {
           cct: 503,
-          flap: 100,
+          flap: 0,
           sphere: 2,
           cylinder: 0.75,
           opticalZone: 6.5,
         },
+      },
+      sourceAvailability: {
+        od: { cct: true, refraction: true },
+        os: { cct: true, refraction: true },
       },
     });
   });

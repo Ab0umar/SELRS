@@ -577,13 +577,13 @@ export default function ShiftPayroll() {
           <DateInput
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="h-11 w-[11rem] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
           <span className="text-sm text-muted-foreground">—</span>
           <DateInput
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="h-11 w-[11rem] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
           <Button
             variant="outline"

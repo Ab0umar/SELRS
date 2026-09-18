@@ -37,48 +37,81 @@ function formatFundusFinding(value: unknown) {
     .join(", ");
 }
 
-export default function ClinicalReport() {
+export type ClinicalReportProps = {
+  params?: { id?: string };
+  patientId?: number;
+  onSelectPatient?: (id: number | undefined) => void;
+  hideHeaderSearch?: boolean;
+  hidePrintButton?: boolean;
+};
+
+export default function ClinicalReport({
+  params: routeParams,
+  patientId: propPatientId,
+  onSelectPatient,
+  hideHeaderSearch = false,
+  hidePrintButton = false,
+}: ClinicalReportProps = {}) {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/sheets/clinical-report/:id");
   const [, hubParams] = useRoute("/patient-hub/clinical-report/:id");
   const [, plainParams] = useRoute("/clinical-report/:id");
-  const initialPatientId =
-    Number(params?.id ?? hubParams?.id ?? plainParams?.id ?? 0) || undefined;
+  const routePatientId =
+    Number(params?.id ?? hubParams?.id ?? plainParams?.id ?? routeParams?.id ?? 0) || undefined;
+  const queryParamId =
+    typeof window !== "undefined"
+      ? Number(new URLSearchParams(window.location.search).get("patientId")) ||
+        Number(new URLSearchParams(window.location.search).get("id")) ||
+        undefined
+      : undefined;
+
+  const [activePatientId, setActivePatientId] = useState<number | undefined>(
+    propPatientId ?? routePatientId ?? queryParamId,
+  );
+
+  useEffect(() => {
+    if (hideHeaderSearch || onSelectPatient) {
+      setActivePatientId(propPatientId);
+    } else if (propPatientId !== undefined) {
+      setActivePatientId(propPatientId);
+    }
+  }, [propPatientId, hideHeaderSearch, onSelectPatient]);
+
   const requestedVisitDate =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("visitDate") || ""
       : "";
 
   const patientQuery = trpc.patient.getPatient.useQuery(
-    initialPatientId ?? null,
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    activePatientId ?? null,
+    { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
   );
   const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    { patientId: activePatientId ?? 0 },
+    { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
   );
   const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    { patientId: activePatientId ?? 0 },
+    { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
   );
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
-    initialPatientId ?? null,
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    activePatientId ?? null,
+    { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
   );
   const glassesRecordsQuery = trpc.medical.getGlassesRecordsByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    { patientId: activePatientId ?? 0 },
+    { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
   );
   const autorefractometryQuery =
     trpc.medical.getAutorefractometryByPatient.useQuery(
-      { patientId: initialPatientId ?? 0 },
-      { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+      { patientId: activePatientId ?? 0 },
+      { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
     );
   const medicalHistoryQuery = trpc.medical.getMedicalHistoryByPatient.useQuery(
-    { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    { patientId: activePatientId ?? 0 },
+    { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
   );
 
   const patient = patientQuery.data as any;
@@ -157,12 +190,24 @@ export default function ClinicalReport() {
     "لا يوجد";
 
   useEffect(() => {
+    if (!activePatientId) {
+      setPatientName("");
+      setPatientCode("");
+      setPatientDob("");
+      setPatientGender("");
+      setSelectedVisitId(undefined);
+      setDiagnosis("");
+      setRecommendations("");
+      setFollowUpDate("");
+      setExistingReportId(undefined);
+      return;
+    }
     if (!patient) return;
     setPatientName(patient.fullName || "");
     setPatientCode(patient.patientCode || "");
     setPatientDob(getPatientSheetDateOfBirth(patient));
     setPatientGender(patient.gender || "");
-  }, [patient]);
+  }, [activePatientId, patient]);
 
   useEffect(() => {
     if (!selectedVisitId && visits.length > 0) {
@@ -201,7 +246,7 @@ export default function ClinicalReport() {
   const updateReportMutation = trpc.medical.updateDoctorReport.useMutation();
 
   const handleSave = async () => {
-    if (!initialPatientId || !selectedVisitId) {
+    if (!activePatientId || !selectedVisitId) {
       toast.error("اختر زيارة أولاً");
       return;
     }
@@ -220,7 +265,7 @@ export default function ClinicalReport() {
       } else {
         await createReportMutation.mutateAsync({
           visitId: selectedVisitId,
-          patientId: initialPatientId,
+          patientId: activePatientId,
           diagnosis,
           recommendations,
           followUpDate: followUpDate || undefined,
@@ -277,25 +322,31 @@ export default function ClinicalReport() {
       `}</style>
 
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => goBack()}
-          type="button"
-        >
-          رجوع
-        </Button>
+        {!hideHeaderSearch ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => goBack()}
+            type="button"
+          >
+            رجوع
+          </Button>
+        ) : (
+          <div />
+        )}
         <div className="flex items-center gap-2">
-          <div className="w-72" dir="rtl">
-            <PatientPicker
-              initialPatientId={initialPatientId}
-              onSelect={(selected) => {
-                if (selected?.id) {
-                  setLocation(`/clinical-report/${selected.id}`);
-                }
-              }}
-            />
-          </div>
+          {!hideHeaderSearch && (
+            <div className="w-72" dir="rtl">
+              <PatientPicker
+                initialPatientId={activePatientId}
+                onSelect={(selected) => {
+                  const newId = selected?.id ? Number(selected.id) : undefined;
+                  setActivePatientId(newId);
+                  onSelectPatient?.(newId);
+                }}
+              />
+            </div>
+          )}
           {visits.length > 0 ? (
             <select
               className="rounded border border-border/60 bg-card px-2 py-1.5 text-xs"
@@ -325,14 +376,16 @@ export default function ClinicalReport() {
               ? "جارٍ الحفظ…"
               : "حفظ"}
           </Button>
-          <Button
-            size="sm"
-            className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground hover:opacity-90"
-            onClick={handlePrint}
-            type="button"
-          >
-            <Printer className="h-4 w-4 ml-1" /> طباعة / تصدير PDF
-          </Button>
+          {!hidePrintButton && (
+            <Button
+              size="sm"
+              className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground hover:opacity-90"
+              onClick={handlePrint}
+              type="button"
+            >
+              <Printer className="h-4 w-4 ml-1" /> طباعة / تصدير PDF
+            </Button>
+          )}
         </div>
       </header>
 
@@ -359,7 +412,7 @@ export default function ClinicalReport() {
             </div>
           </div>
 
-          {!initialPatientId ? (
+          {!activePatientId ? (
             <div className="p-8 text-center text-muted-foreground">
               اختر مريضاً لعرض التقرير
             </div>

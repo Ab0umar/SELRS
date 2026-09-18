@@ -10,11 +10,17 @@ import {
   TrendingUp,
   Wallet,
   X,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmt, fmtDate } from "./accountingFormat";
-import { AccountingPage } from "./AccountingPagePrimitives";
+import { AccountingPage } from "./AccountingPagePrimitives"
+import {
+  useAccountingTabMetrics,
+  useAccountingTabCenter,
+} from "./accountingTabMetrics";
 
 const PAGE_SIZE = 50;
 
@@ -65,103 +71,72 @@ export default function AccountingCashbook() {
     onError: () => toast.error("تعذر حذف القيد"),
   });
 
+  const recalcMut = trpc.accounting.recalcAccLedgerBalances.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.accounting.accLedger.invalidate(),
+        utils.accounting.accLedgerSummary.invalidate(),
+      ]);
+      toast.success("تم تحديث الأرصدة");
+    },
+    onError: () => toast.error("تعذر تحديث الأرصدة"),
+  });
+
   const summary = summaryQ.data;
+  const tabMetricItems = [
+    {
+      label: "إجمالي الإيراد",
+      value: summaryQ.isLoading ? "…" : fmt(summary?.totalIncome),
+      icon: TrendingUp,
+    },
+    {
+      label: "إجمالي المصروف",
+      value: summaryQ.isLoading ? "…" : fmt(summary?.totalExpense),
+      icon: TrendingDown,
+    },
+    {
+      label: "رصيد الخزنة",
+      value: summaryQ.isLoading ? "…" : fmt(summary?.currentBalance),
+      icon: Wallet,
+    },
+  ];
+  useAccountingTabMetrics(tabMetricItems);
+  const tabCenter = useMemo(
+    () => (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-9 gap-1.5 rounded-xl px-3.5 text-xs font-bold"
+        disabled={recalcMut.isPending}
+        onClick={() => recalcMut.mutate()}
+      >
+        {recalcMut.isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <RefreshCw className="h-3.5 w-3.5" />
+        )}
+        تحديث الرصيد
+      </Button>
+    ),
+    [recalcMut.isPending],
+  );
+  useAccountingTabCenter(tabCenter);
+
+
   const { rows = [], total = 0 } = ledgerQ.data ?? {};
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const resetPage = () => setPage(1);
 
   return (
-    <AccountingPage
-      eyebrow="Cashbook"
-      title="حركة الخزنة"
-      description="متابعة رصيد الخزنة وحركات الإيراد والمصروف حسب السنة والنوع."
-    >
-      <div className="space-y-4 lg:space-y-5" dir="rtl">
-        <section className="rounded-[24px] border border-border bg-background p-4 lg:p-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {(
-              [
-                {
-                  label: "إجمالي الإيراد",
-                  val: summary?.totalIncome,
-                  icon: TrendingUp,
-                  cls: "text-success",
-                  bg: "bg-success/10",
-                },
-                {
-                  label: "إجمالي المصروف",
-                  val: summary?.totalExpense,
-                  icon: TrendingDown,
-                  cls: "text-destructive",
-                  bg: "bg-destructive/10",
-                },
-                {
-                  label: "رصيد الخزنة",
-                  val: summary?.currentBalance,
-                  icon: Wallet,
-                  cls:
-                    (summary?.currentBalance ?? 0) >= 0
-                      ? "text-primary"
-                      : "text-destructive",
-                  bg:
-                    (summary?.currentBalance ?? 0) >= 0
-                      ? "bg-primary/5"
-                      : "bg-destructive/10",
-                },
-              ] as const
-            ).map((m) => {
-              const Icon = m.icon;
-              return (
-                <div
-                  key={m.label}
-                  className={cn(
-                    "flex items-center gap-3 rounded-2xl border border-border px-4 py-3",
-                    m.bg,
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background",
-                      m.cls,
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-medium text-muted-foreground">
-                      {m.label}
-                    </div>
-                    <div
-                      className={cn(
-                        "mt-0.5 text-lg font-bold tabular-nums leading-none",
-                        m.cls,
-                      )}
-                    >
-                      {summaryQ.isLoading ? "..." : fmt(m.val)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="rounded-[24px] border border-border bg-background p-4 lg:p-5">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-foreground">
-                  حركات الخزنة
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  حرّك بين القيود حسب التاريخ والبيان ونوع الحركة.
-                </p>
-              </div>
-              <div className="rounded-full bg-primary text-primary-foreground">
-                {total.toLocaleString("ar-EG")} حركة
-              </div>
-            </div>
+    <AccountingPage>
+      <div className="space-y-3 sm:space-y-3.5" dir="rtl">
+        <div className="flex flex-wrap items-center justify-end gap-2 print:hidden"><span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
+            {total.toLocaleString("ar-EG")} حركة
+          </span></div>
+<section className="rounded-xl border border-border/60 bg-card p-3 sm:p-4">
+          <div className="flex flex-col gap-3">
 
             <div className="flex flex-wrap items-center gap-2">
               <fieldset className="flex overflow-hidden rounded-lg border border-border bg-background">

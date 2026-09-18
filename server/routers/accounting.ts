@@ -87,6 +87,13 @@ async function accountingQuery<T>(
   }
 }
 
+const accImportRowSchema = z.object({
+  txDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  inAmount: z.number().min(0).default(0),
+  outAmount: z.number().min(0).default(0),
+  notes: z.string().max(500).default(""),
+});
+
 export const accountingRouter = router({
   dashboardSummary: makeAccProcedure("/accounting")
     .input(dashboardSummaryInputSchema)
@@ -536,21 +543,24 @@ export const accountingRouter = router({
           message: "DB unavailable",
         });
       const where = buildDateWhere(input.dateFrom, input.dateTo);
-      const [periodRes, allRes] = await Promise.all([
+      // Vault/general balance = net of all movements through end of period (or now)
+      const asOf = input.dateTo
+        ? ` WHERE txDate <= '${input.dateTo.replace(/'/g, "")}'`
+        : "";
+      const [periodRes, balRes] = await Promise.all([
         db.execute(
           sql.raw(
             `SELECT COALESCE(SUM(income),0) AS totalIncome, COALESCE(SUM(expense),0) AS totalExpense, COUNT(*) AS txCount FROM accLedger${where}`,
           ),
         ),
-        // total = running cumulative (الاجمالي), auto-calculated by MySQL after sync
         db.execute(
           sql.raw(
-            `SELECT COALESCE(total, 0) AS currentBalance FROM accLedger ORDER BY txDate DESC, accessId DESC LIMIT 1`,
+            `SELECT COALESCE(SUM(COALESCE(income,0) - COALESCE(expense,0)), 0) AS currentBalance FROM accLedger${asOf}`,
           ),
         ),
       ]);
       const p = (periodRes as any)[0]?.[0] ?? {};
-      const b = (allRes as any)[0]?.[0] ?? {};
+      const b = (balRes as any)[0]?.[0] ?? {};
       return {
         totalIncome: Number(p.totalIncome ?? 0),
         totalExpense: Number(p.totalExpense ?? 0),
@@ -589,13 +599,38 @@ export const accountingRouter = router({
       }
       const dir = input.sortDir.toUpperCase();
       const offset = (input.page - 1) * input.pageSize;
+      // Running total over FULL ledger (same order as recalcLedgerTotals), then filter/paginate.
+      let outerParts: string[] = [];
+      if (input.dateFrom)
+        outerParts.push(
+          `t.txDate >= '${input.dateFrom.replace(/'/g, "")}'`,
+        );
+      if (input.dateTo)
+        outerParts.push(`t.txDate <= '${input.dateTo.replace(/'/g, "")}'`);
+      if (input.type === "income") outerParts.push("t.income > 0");
+      if (input.type === "expense") outerParts.push("t.expense > 0");
+      if (input.notes?.trim()) {
+        const q = input.notes.trim().replace(/'/g, "");
+        outerParts.push(`t.notes LIKE '%${q}%'`);
+      }
+      const outerWhereSql = outerParts.length
+        ? ` WHERE ${outerParts.join(" AND ")}`
+        : "";
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
           sql.raw(
-            `SELECT id, accessId, txDate, income, expense, notes,
-            COALESCE(income, 0) - COALESCE(expense, 0) AS balance,
-            SUM(COALESCE(income, 0) - COALESCE(expense, 0)) OVER (ORDER BY txDate ASC, accessId ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total
-           FROM accLedger${where} ORDER BY txDate ${dir}, accessId ${dir} LIMIT ${input.pageSize} OFFSET ${offset}`,
+            `SELECT t.id, t.accessId, t.txDate, t.income, t.expense, t.notes, t.balance, t.total
+             FROM (
+               SELECT id, accessId, txDate, income, expense, notes,
+                 COALESCE(income, 0) - COALESCE(expense, 0) AS balance,
+                 SUM(COALESCE(income, 0) - COALESCE(expense, 0)) OVER (
+                   ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC
+                   ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                 ) AS total
+               FROM accLedger
+             ) t${outerWhereSql}
+             ORDER BY t.txDate ${dir}, COALESCE(t.accessId, 999999999) ${dir}, t.id ${dir}
+             LIMIT ${input.pageSize} OFFSET ${offset}`,
           ),
         ),
         db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accLedger${where}`)),
@@ -1126,6 +1161,18 @@ export const accountingRouter = router({
 
   // ── Ledger write mutations ────────────────────────────────────────────────
 
+  recalcAccLedgerBalances: makeAccWriteProcedure("/accounting/ledger")
+    .mutation(async () => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      await recalcLedgerTotals(db);
+      return { ok: true as const };
+    }),
+
   addAccEntry: makeAccWriteProcedure("/accounting/cashbook")
     .input(
       z.object({
@@ -1405,6 +1452,32 @@ export const accountingRouter = router({
         ),
       )) as any;
       return { id: res.insertId };
+    }),
+
+  // ── Excel bulk import (instapay / home fund) ──────────────────────────────
+
+  importAccHome: makeAccWriteProcedure("/accounting/home-fund")
+    .input(z.object({ rows: z.array(accImportRowSchema).min(1).max(2000) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      return bulkImportAccEntity(db, "accHome", input.rows);
+    }),
+
+  importAccInstapay: makeAccWriteProcedure("/accounting/instapay")
+    .input(z.object({ rows: z.array(accImportRowSchema).min(1).max(2000) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      return bulkImportAccEntity(db, "accInstapay", input.rows);
     }),
 
   // ── Loans write mutations ─────────────────────────────────────────────────
@@ -1800,21 +1873,118 @@ async function deleteMirrorRow(db: any, table: string, id: number) {
     .catch(() => {});
 }
 
+// Reference token (e.g. IPN4550b160c910f) embedded in imported notes; used to
+// skip rows that were already imported from a previous Excel upload.
+const ACC_IMPORT_REF_RE = /(IPN[0-9a-f]{10,17}|[0-9a-f]{13})\b/i;
+
+async function bulkImportAccEntity(
+  db: any,
+  table: "accHome" | "accInstapay",
+  rows: { txDate: string; inAmount: number; outAmount: number; notes: string }[],
+): Promise<{ inserted: number; skipped: number }> {
+  const sq = (v: string | number | null) =>
+    v === null || v === undefined
+      ? "NULL"
+      : `'${String(v).replace(/'/g, "''")}'`;
+
+  const [existingRows] = (await db.execute(
+    sql.raw(`SELECT txDate, inAmount, outAmount, notes FROM ${table}`),
+  )) as any;
+
+  const existingRefs = new Set<string>();
+  const existingKeys = new Set<string>();
+  for (const r of (existingRows as any[]) ?? []) {
+    const notes = String(r.notes ?? "");
+    const ref = notes.match(ACC_IMPORT_REF_RE)?.[1];
+    if (ref) existingRefs.add(ref.toLowerCase());
+    existingKeys.add(
+      `${String(r.txDate).slice(0, 10)}|${Number(r.inAmount) || 0}|${Number(r.outAmount) || 0}|${notes.trim()}`,
+    );
+  }
+
+  const seen = new Set<string>();
+  const clean: {
+    txDate: string;
+    inAmount: number;
+    outAmount: number;
+    notes: string;
+  }[] = [];
+  let skipped = 0;
+
+  for (const row of rows) {
+    const inAmount =
+      Math.round(Math.max(0, Number(row.inAmount) || 0) * 100) / 100;
+    const outAmount =
+      Math.round(Math.max(0, Number(row.outAmount) || 0) * 100) / 100;
+    const txDate = String(row.txDate).slice(0, 10);
+    const notes = String(row.notes ?? "").trim().slice(0, 500);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(txDate) || (inAmount === 0 && outAmount === 0)) {
+      skipped++;
+      continue;
+    }
+    const ref = notes.match(ACC_IMPORT_REF_RE)?.[1]?.toLowerCase();
+    if (ref && existingRefs.has(ref)) {
+      skipped++;
+      continue;
+    }
+    const key = `${txDate}|${inAmount}|${outAmount}|${notes}`;
+    if (seen.has(key) || (!ref && existingKeys.has(key))) {
+      skipped++;
+      continue;
+    }
+    seen.add(key);
+    clean.push({ txDate, inAmount, outAmount, notes });
+  }
+
+  if (clean.length === 0) return { inserted: 0, skipped };
+
+  clean.sort((a, b) => (a.txDate < b.txDate ? -1 : a.txDate > b.txDate ? 1 : 0));
+
+  const [lastRes] = (await db.execute(
+    sql.raw(
+      `SELECT COALESCE(total, 0) AS t FROM ${table} WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`,
+    ),
+  )) as any;
+  let running = Number((lastRes as any[])?.[0]?.t ?? 0);
+
+  let inserted = 0;
+  const BATCH = 200;
+  for (let i = 0; i < clean.length; i += BATCH) {
+    const values = clean.slice(i, i + BATCH).map((r) => {
+      const balance = Math.round((r.inAmount - r.outAmount) * 100) / 100;
+      running = Math.round((running + balance) * 100) / 100;
+      inserted++;
+      return `(${sq(r.txDate)}, ${sq(r.inAmount || null)}, ${sq(r.outAmount || null)}, ${sq(balance)}, ${sq(running)}, ${sq(r.notes || null)})`;
+    });
+    await db.execute(
+      sql.raw(
+        `INSERT INTO ${table} (txDate, inAmount, outAmount, balance, total, notes) VALUES ${values.join(", ")}`,
+      ),
+    );
+  }
+  return { inserted, skipped };
+}
+
 async function recalcLedgerTotals(db: any) {
-  // Recompute total only for UI-added rows (no accessId); accdb rows keep their synced total
+  // Keep balance = row delta, total = full running cumulative for every row.
+  await db.execute(
+    sql.raw(`
+    UPDATE accLedger
+    SET balance = COALESCE(income, 0) - COALESCE(expense, 0)
+  `),
+  );
   await db.execute(
     sql.raw(`
     UPDATE accLedger l
     JOIN (
       SELECT id,
-        SUM(COALESCE(balance, 0)) OVER (
+        SUM(COALESCE(income, 0) - COALESCE(expense, 0)) OVER (
           ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC
           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
         ) AS running_total
       FROM accLedger
     ) sub ON l.id = sub.id
     SET l.total = sub.running_total
-    WHERE l.accessId IS NULL
   `),
   );
 }

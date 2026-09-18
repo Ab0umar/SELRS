@@ -217,7 +217,7 @@ export default function DailyView({
               {filtered.map((record: any, idx: number) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div>

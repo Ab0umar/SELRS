@@ -745,9 +745,10 @@ export default function AdminUsers() {
   const usersActive = users.filter((u) => u.isActive).length;
   const usersInactive = usersTotal - usersActive;
   const selectedUser =
-    filteredUsers.find((candidate) => candidate.id === selectedUserId) ??
-    filteredUsers[0] ??
-    null;
+    selectedUserId == null
+      ? null
+      : (filteredUsers.find((candidate) => candidate.id === selectedUserId) ??
+        null);
   const pendingRiskCopy = pendingRiskAction
     ? getUserRiskActionCopy({
         action: pendingRiskAction.action,

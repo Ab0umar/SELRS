@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
 import { AccountingPage } from "./AccountingPagePrimitives";
+import { useAccountingTabMetrics } from "./accountingTabMetrics";
 
 const PAGE_SIZE = 50;
 
@@ -139,6 +140,13 @@ export default function AccountingLoans() {
   const totalRemaining = totalLoan - totalPaid;
   const { rows = [], total = 0 } = ledgerQ.data ?? {};
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const tabMetricItems = [
+    { label: "إجمالي القرض", value: fmt(totalLoan), icon: TrendingDown },
+    { label: "إجمالي السداد", value: fmt(totalPaid), icon: TrendingUp },
+    { label: "المتبقي", value: fmt(totalRemaining), icon: Wallet },
+  ];
+  useAccountingTabMetrics(tabMetricItems);
+
   const addBusy = addMut.isPending;
   const addErr = addMut.error?.message;
 
@@ -153,130 +161,20 @@ export default function AccountingLoans() {
   }
 
   return (
-    <AccountingPage
-      eyebrow="Loans"
-      title="القروض والسداد"
-      description="تسجيل القروض وحركات السداد مع متابعة المتبقي لكل شخص."
-    >
-        <div className="space-y-5" dir="rtl">
-          <section className="overflow-hidden rounded-[24px] border border-border bg-background">
-            <div className="p-4 lg:p-5">
-              <div className="grid gap-3 sm:grid-cols-3">
-                {(
-                  [
-                    {
-                      label: "إجمالي القروض",
-                      val: totalLoan,
-                      cls: "text-card-foreground",
-                      icon: TrendingDown,
-                      bg: "bg-primary/5",
-                    },
-                    {
-                      label: "إجمالي السداد",
-                      val: totalPaid,
-                      cls: "text-success",
-                      icon: TrendingUp,
-                      bg: "bg-success/10",
-                    },
-                    {
-                      label: "المتبقي",
-                      val: totalRemaining,
-                      cls:
-                        totalRemaining > 0
-                          ? "text-destructive"
-                          : "text-primary",
-                      icon: Wallet,
-                      bg:
-                        totalRemaining > 0
-                          ? "bg-destructive/10"
-                          : "bg-primary/5",
-                    },
-                  ] as const
-                ).map((m) => {
-                  const Icon = m.icon;
-                  return (
-                    <div
-                      key={m.label}
-                      className={cn(
-                        "flex items-center gap-3 rounded-2xl border border-border px-4 py-3",
-                        m.bg,
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background",
-                          m.cls,
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-medium text-muted-foreground">
-                          {m.label}
-                        </div>
-                        <div
-                          className={cn(
-                            "mt-0.5 text-lg font-bold tabular-nums leading-none",
-                            m.cls,
-                          )}
-                        >
-                          {reportsQ.isLoading ? "..." : fmt(m.val)}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+    <AccountingPage>
+      <div className="space-y-3 sm:space-y-3.5" dir="rtl">
+        <div className="flex flex-wrap items-center gap-2">
+          
+        </div>
 
-            <div
-              ref={addFormRef}
-              className="border-t border-border px-4 pb-4 pt-3 lg:px-5"
-              dir="rtl"
-            >
+        <section className="rounded-xl border border-border/60 bg-card p-3 sm:p-4">
+          <div ref={addFormRef} dir="rtl">
               <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 إضافة قرض
               </div>
-              <div className="grid gap-3">
-                <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)]">
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="loan-date"
-                      className="text-xs text-muted-foreground"
-                    >
-                      التاريخ
-                    </label>
-                    <DateInput
-                      id="loan-date"
-                      value={txDate}
-                      onChange={(e) => setTxDate(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-border bg-muted text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="loan-name"
-                      className="text-xs text-muted-foreground"
-                    >
-                      الاسم
-                    </label>
-                    <input
-                      id="loan-name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="اسم المقترض"
-                      className="h-10 w-full rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="loan-amount"
-                      className="text-xs text-primary"
-                    >
+              <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+                  <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                    <label htmlFor="loan-amount" className="text-base font-bold text-primary">
                       المبلغ
                     </label>
                     <input
@@ -286,14 +184,11 @@ export default function AccountingLoans() {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-primary placeholder:text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-primary placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="loan-repayment"
-                      className="text-xs text-success"
-                    >
+                  <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                    <label htmlFor="loan-repayment" className="text-base font-bold text-success">
                       السداد
                     </label>
                     <input
@@ -303,35 +198,40 @@ export default function AccountingLoans() {
                       value={repayment}
                       onChange={(e) => setRepayment(e.target.value)}
                       placeholder="0"
-                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-success placeholder:text-muted-foreground outline-none transition-colors focus:border-success/60 focus:ring-2 focus:ring-success/20"
+                      className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-success placeholder:text-muted-foreground outline-none focus:border-success focus:ring-2 focus:ring-success/30"
                     />
                   </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="loan-notes"
-                      className="text-xs text-muted-foreground"
-                    >
-                      ملاحظات
+                  <div className="flex w-[11.5rem] shrink-0 flex-col gap-1">
+                    <label htmlFor="loan-date" className="text-base font-bold text-foreground">
+                      التاريخ
                     </label>
-                    <input
-                      id="loan-notes"
-                      type="text"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="ملاحظات…"
-                      className="h-10 w-full rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                    <DateInput
+                      id="loan-date"
+                      value={txDate}
+                      onChange={(e) => setTxDate(e.target.value)}
+                      className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
-                  <button
+                  <div className="flex min-w-[10rem] max-w-xs flex-1 flex-col gap-1">
+                    <label htmlFor="loan-name" className="text-base font-bold text-foreground">
+                      الاسم
+                    </label>
+                    <div className="flex gap-1.5">
+                      <input
+                        id="loan-name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="اسم المقترض"
+                        className="h-11 shrink-0 flex-1 rounded-lg border border-border bg-background px-2 text-lg text-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      />
+                      <button
                     type="button"
                     aria-label="إضافة قرض"
                     disabled={addBusy || !txDate || !name.trim()}
                     onClick={() => void handleAddLoan()}
                     className={cn(
-                      "inline-flex h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-semibold text-card-foreground transition-colors sm:w-[160px]",
+                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-card-foreground transition-colors font-medium",
                       entrySaved
                         ? "bg-success/100"
                         : "bg-primary hover:bg-primary/90 disabled:opacity-40",
@@ -351,14 +251,9 @@ export default function AccountingLoans() {
                       </>
                     )}
                   </button>
+                    </div>
+                  </div>
                 </div>
-
-                {addErr && (
-                  <p className="rounded-lg bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
-                    {addErr}
-                  </p>
-                )}
-              </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-border bg-muted px-4 py-2 lg:px-5">

@@ -19,6 +19,11 @@ import {
 import { trpc } from "@/lib/trpc";
 import OperationalModuleShell from "@/components/layout/OperationalModuleShell";
 import { formatMoneyAr, formatCountAr } from "./accountingFormat";
+import {
+  AccountingTabMetricsProvider,
+  useAccountingTabMetricsState,
+  useAccountingTabCenterState,
+} from "./accountingTabMetrics";
 
 interface AccountingShellProps {
   children: ReactNode;
@@ -117,7 +122,7 @@ const topbarNavItems = [
   },
 ];
 
-export default function AccountingShell({ children }: AccountingShellProps) {
+function AccountingShellInner({ children }: AccountingShellProps) {
   const { canAccess } = usePermissions();
 
   const now = new Date();
@@ -173,6 +178,8 @@ export default function AccountingShell({ children }: AccountingShellProps) {
   ];
 
   const visibleNavItems = topbarNavItems.filter((item) => canAccess(item.href));
+  const tabMetrics = useAccountingTabMetricsState();
+  const tabCenter = useAccountingTabCenterState();
 
   return (
     <OperationalModuleShell
@@ -181,9 +188,19 @@ export default function AccountingShell({ children }: AccountingShellProps) {
       description="قيود اليومية، الخزنة، السلف، القروض، والتقارير المالية"
       mark="ACC"
       metrics={shellMetrics}
+      metricsCenter={tabCenter}
+      endMetrics={tabMetrics}
       navigation={visibleNavItems}
     >
       {children}
     </OperationalModuleShell>
+  );
+}
+
+export default function AccountingShell({ children }: AccountingShellProps) {
+  return (
+    <AccountingTabMetricsProvider>
+      <AccountingShellInner>{children}</AccountingShellInner>
+    </AccountingTabMetricsProvider>
   );
 }

@@ -53,7 +53,7 @@ function DeductionsControl() {
   const enabled = enabledQ.data ?? true;
 
   return (
-    <Card className="border-border/60 bg-card/30 shadow-sm">
+    <Card className="border-border/60 bg-card/30 shadow-xs">
       <CardContent className="flex items-center justify-between gap-4 py-5">
         <div className="flex items-start gap-3">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
@@ -128,7 +128,7 @@ function GlobalRates() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-sm">
+    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-xs">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5 text-primary" />
@@ -147,7 +147,7 @@ function GlobalRates() {
           {TIERS.map(({ key, label }) => (
             <div
               key={key}
-              className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3 bg-muted/10"
+              className="flex flex-col gap-1 rounded-lg border border-border/40 p-3 bg-muted/10"
             >
               <span className="text-[10px] font-semibold text-muted-foreground">
                 {label}
@@ -433,7 +433,7 @@ function EmployeeSettingsGrid() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-sm overflow-hidden">
+    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-xs overflow-hidden">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
@@ -488,7 +488,7 @@ function EmployeeSettingsGrid() {
                     }}
                     className={`min-h-8 rounded px-4 text-xs font-semibold ${
                       centerTab === tab
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "bg-background text-foreground shadow-xs"
                         : "text-muted-foreground"
                     }`}
                   >
@@ -775,7 +775,7 @@ function EmployeeSettingsGrid() {
                             aria-checked={attendanceEnabled}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${attendanceEnabled ? "translate-x-3.5" : "translate-x-0"}`}
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${attendanceEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
                           </button>
                         </div>
@@ -794,7 +794,7 @@ function EmployeeSettingsGrid() {
                             aria-checked={examEnabled}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${examEnabled ? "translate-x-3.5" : "translate-x-0"}`}
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${examEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
                           </button>
                         </div>
@@ -813,7 +813,7 @@ function EmployeeSettingsGrid() {
                             aria-checked={pentacamEnabled}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${pentacamEnabled ? "translate-x-3.5" : "translate-x-0"}`}
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${pentacamEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
                           </button>
                         </div>
@@ -832,7 +832,7 @@ function EmployeeSettingsGrid() {
                             aria-checked={day10Enabled}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${day10Enabled ? "translate-x-3.5" : "translate-x-0"}`}
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${day10Enabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
                           </button>
                         </div>
@@ -852,7 +852,7 @@ function EmployeeSettingsGrid() {
                             aria-checked={overtimeEnabled}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm ring-0 transition-transform ${overtimeEnabled ? "translate-x-3.5" : "translate-x-0"}`}
+                              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${overtimeEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
                           </button>
                         </div>
@@ -953,7 +953,7 @@ function LateTiersCard() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-sm">
+    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-xs">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
