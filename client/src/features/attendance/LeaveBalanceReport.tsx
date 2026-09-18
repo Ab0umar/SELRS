@@ -273,7 +273,7 @@ export default function LeaveBalanceReport({
                 disabled={!form.empCd || setBalanceMut.isPending}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {setBalanceMut.isPending ? "جاري الحفظ..." : "حفظ"}
+                {setBalanceMut.isPending ? "جاري الحفظ…" : "حفظ"}
               </Button>
               <Button
                 variant="outline"
@@ -320,7 +320,7 @@ export default function LeaveBalanceReport({
                 return (
                   <div
                     key={row.empCd}
-                    className={`rounded-2xl border p-3 shadow-sm ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                    className={`rounded-2xl border p-3 shadow-xs ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div>

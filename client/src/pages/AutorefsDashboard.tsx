@@ -237,7 +237,7 @@ export default function AutorefsDashboard() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="بحث بالاسم أو الكود أو الطبيب..."
+            placeholder="بحث بالاسم أو الكود أو الطبيب…"
           />
         </div>
         <div className="flex flex-col gap-2 lg:items-end">

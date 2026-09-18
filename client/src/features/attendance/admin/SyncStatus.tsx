@@ -148,7 +148,7 @@ export default function SyncStatus() {
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}
-              {busy ? "جاري السحب..." : "سحب البصمات"}
+              {busy ? "جاري السحب…" : "سحب البصمات"}
             </Button>
             <Button
               variant="outline"
@@ -167,7 +167,7 @@ export default function SyncStatus() {
               ) : (
                 <FileDown className="h-3.5 w-3.5" />
               )}
-              {exportMut.isPending ? "جاري..." : "تصدير CSV"}
+              {exportMut.isPending ? "جاري…" : "تصدير CSV"}
             </Button>
           </div>
 

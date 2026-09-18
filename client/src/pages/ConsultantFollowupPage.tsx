@@ -393,7 +393,7 @@ export default function ConsultantFollowupPage() {
             onClick={handleSaveFollowup}
             disabled={saveFollowupSheetMutation.isPending}
           >
-            {saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+            {saveFollowupSheetMutation.isPending ? "جاري الحفظ…" : "حفظ"}
           </Button>
           <Button
             type="button"

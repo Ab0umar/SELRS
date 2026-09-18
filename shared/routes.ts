@@ -25,6 +25,10 @@ export const ROUTES = {
   attendanceShiftSchedule: "/attendance/shift-schedule",
 
   // Medical / patient
+  clinicalSuite: "/clinical-suite",
+  clinicalDecisionSupport: "/clinical-decision-support",
+  medicalReport: "/medical-report",
+  medicalReportId: "/medical-report/:id",
   examination: "/examination",
   examCatalog: "/examinations/catalog",
   patients: "/patients",

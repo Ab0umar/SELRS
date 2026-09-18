@@ -344,7 +344,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="بحث باسم المريض، التاريخ، الشكوى..."
+            placeholder="بحث باسم المريض، التاريخ، الشكوى…"
           />
         </div>
         <FilterBar

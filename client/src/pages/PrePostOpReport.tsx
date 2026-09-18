@@ -168,17 +168,49 @@ function VaSummary({
   );
 }
 
-export default function PrePostOpReport() {
+export type PrePostOpReportProps = {
+  params?: { id?: string };
+  patientId?: number;
+  onSelectPatient?: (id: number | undefined) => void;
+  hideHeaderSearch?: boolean;
+  hidePrintButton?: boolean;
+};
+
+export default function PrePostOpReport({
+  params: routeParams,
+  patientId: propPatientId,
+  onSelectPatient,
+  hideHeaderSearch = false,
+  hidePrintButton = false,
+}: PrePostOpReportProps = {}) {
   const { isAuthenticated } = useAuth();
   const [, params] = useRoute("/pre-post-op-report/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const routePatientId = params?.id
+    ? Number(params.id)
+    : routeParams?.id
+      ? Number(routeParams.id)
+      : undefined;
+  const queryParamId =
+    typeof window !== "undefined"
+      ? Number(new URLSearchParams(window.location.search).get("patientId")) ||
+        Number(new URLSearchParams(window.location.search).get("id")) ||
+        undefined
+      : undefined;
   const requestedVisitDate =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("visitDate") || ""
       : "";
   const [patientId, setPatientId] = useState<number | undefined>(
-    initialPatientId,
+    propPatientId ?? routePatientId ?? queryParamId,
   );
+
+  useEffect(() => {
+    if (hideHeaderSearch || onSelectPatient) {
+      setPatientId(propPatientId);
+    } else if (propPatientId !== undefined) {
+      setPatientId(propPatientId);
+    }
+  }, [propPatientId, hideHeaderSearch, onSelectPatient]);
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId),
@@ -225,17 +257,34 @@ export default function PrePostOpReport() {
   const [patientCode, setPatientCode] = useState("");
 
   useEffect(() => {
-    if (initialPatientId) setPatientId(initialPatientId);
-  }, [initialPatientId]);
-
-  useEffect(() => {
+    if (!patientId) {
+      setPatientName("");
+      setPatientDob("");
+      setPatientCode("");
+      setOperationDate("");
+      setProcedure("");
+      setPreOd(emptyEye);
+      setPreOs(emptyEye);
+      setResidualOd(emptyEye);
+      setResidualOs(emptyEye);
+      setUcvaOd("");
+      setUcvaOs("");
+      setBcvaOd("");
+      setBcvaOs("");
+      setPostVaOd("");
+      setPostVaOs("");
+      setNotes("");
+      setSurgeon("");
+      setSelectedSurgeryId(undefined);
+      return;
+    }
     if (!patient) return;
     setPatientName(patient.fullName || "");
     setPatientDob(
       patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
     );
     setPatientCode(patient.patientCode || "");
-  }, [patient]);
+  }, [patientId, patient]);
 
   useEffect(() => {
     if (!selectedSurgeryId && surgeries.length > 0) {
@@ -456,14 +505,18 @@ export default function PrePostOpReport() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-72">
-              <PatientPicker
-                initialPatientId={patientId}
-                onSelect={(selected) => {
-                  if (selected?.id) setPatientId(Number(selected.id));
-                }}
-              />
-            </div>
+            {!hideHeaderSearch && (
+              <div className="w-72">
+                <PatientPicker
+                  initialPatientId={patientId}
+                  onSelect={(selected) => {
+                    const newId = selected?.id ? Number(selected.id) : undefined;
+                    setPatientId(newId);
+                    onSelectPatient?.(newId);
+                  }}
+                />
+              </div>
+            )}
             {surgeries.length > 0 ? (
               <select
                 className="h-9 rounded border border-[#c2c7d1] bg-white px-2 text-xs"
@@ -491,26 +544,30 @@ export default function PrePostOpReport() {
               <Save className="mr-2 h-4 w-4" />
               {createSurgeryMutation.isPending ||
               updateSurgeryMutation.isPending
-                ? "جارٍ الحفظ..."
+                ? "جارٍ الحفظ…"
                 : "Save"}
             </Button>
-            <Button
-              type="button"
-              className="bg-[#00355f] text-white"
-              onClick={() => window.print()}
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-[#c2c7d1]"
-              onClick={() => window.print()}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              PDF
-            </Button>
+            {!hidePrintButton && (
+              <>
+                <Button
+                  type="button"
+                  className="bg-[#00355f] text-white"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#c2c7d1]"
+                  onClick={() => window.print()}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>

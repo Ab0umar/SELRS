@@ -51,7 +51,6 @@ const StockroomShell = lazy(
 const ComponentShowcase = lazy(() => import("../pages/ComponentShowcase"));
 const Styleguide = lazy(() => import("../pages/dev/Styleguide"));
 const ComponentsGallery = lazy(() => import("../pages/dev/ComponentsGallery"));
-const Prototypes = lazy(() => import("../pages/dev/Prototypes"));
 const WorkflowPrototypeLive = lazy(
   () => import("../pages/WorkflowPrototypeLive"),
 );
@@ -288,14 +287,6 @@ export const MiscRoutes = (
       component={() => (
         <ProtectedRoute requiredRoles={["admin"]}>
           <ComponentsGallery />
-        </ProtectedRoute>
-      )}
-    />
-    <Route
-      path={ROUTES.prototypes}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <Prototypes />
         </ProtectedRoute>
       )}
     />

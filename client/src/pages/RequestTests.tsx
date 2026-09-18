@@ -1135,7 +1135,7 @@ export default function RequestTests({
                     <Input
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
-                      placeholder="اكتب التشخيص هنا..."
+                      placeholder="اكتب التشخيص هنا…"
                       disabled={editingForbidden}
                       className="h-9 border-border/60 bg-muted/30 text-right font-medium"
                       dir="rtl"
@@ -1426,7 +1426,7 @@ export default function RequestTests({
                     value={generalNotes}
                     readOnly={editingForbidden}
                     onChange={(e) => setGeneralNotes(e.target.value)}
-                    placeholder="ملاحظات إضافية..."
+                    placeholder="ملاحظات إضافية…"
                     className="min-h-28 border-border/60 bg-muted/30 text-right text-sm"
                   />
                 </CardContent>
@@ -1515,7 +1515,7 @@ export default function RequestTests({
                           onChange={(e) =>
                             handleUpdateTestNotes(test.id, e.target.value)
                           }
-                          placeholder="ملاحظات خاصة بهذا الفحص..."
+                          placeholder="ملاحظات خاصة بهذا الفحص…"
                           className="min-h-12 text-sm text-right"
                         />
                       </div>

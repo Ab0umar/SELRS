@@ -469,7 +469,7 @@ export default function PatientHubShell() {
               <>
                 <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <span className="truncate font-semibold leading-tight text-foreground">
-                    {patientQuery.data?.fullName ?? "جاري التحميل..."}
+                    {patientQuery.data?.fullName ?? "جاري التحميل…"}
                   </span>
                   {age != null && (
                     <span className="shrink-0 text-xs text-muted-foreground">

@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import { useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -82,7 +83,8 @@ export default function WorkflowHub() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  const { merged, isLoading: todayLoading } = useTodayQueuePatientsMerged();
+  const queue = useTodayQueuePatientsMerged();
+  const { merged, isLoading: todayLoading } = queue;
   const visitsQuery = trpc.medical.getVisits.useQuery(undefined, {
     refetchOnWindowFocus: false,
   });
@@ -192,6 +194,7 @@ export default function WorkflowHub() {
   return (
     <div className="min-h-screen bg-muted/40" dir="rtl">
       <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
+        <QueueLoadStatus {...queue} />
         <PageHeader
           title="مركز سير العمل"
           description="الوصول السريع لجميع أقسام سير العمل"

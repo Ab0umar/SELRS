@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,13 +13,18 @@ import {
   Trash2,
   Search,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import AccEntryDrawer, { type AccEntryRow } from "./AccEntryDrawer";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
-import { AccountingPage } from "./AccountingPagePrimitives";
+import { AccountingPage } from "./AccountingPagePrimitives"
+import {
+  useAccountingTabMetrics,
+  useAccountingTabCenter,
+} from "./accountingTabMetrics";
 
 const PAGE_SIZE = 50;
 
@@ -60,6 +65,17 @@ export default function AccountingLedger() {
     onError: () => toast.error("تعذر حذف القيد"),
   });
 
+  const recalcMut = trpc.accounting.recalcAccLedgerBalances.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.accounting.accLedger.invalidate(),
+        utils.accounting.accLedgerSummary.invalidate(),
+      ]);
+      toast.success("تم تحديث الأرصدة");
+    },
+    onError: () => toast.error("تعذر تحديث الأرصدة"),
+  });
+
   const dateFrom = year !== "الكل" ? `${year}-01-01` : undefined;
   const dateTo = year !== "الكل" ? `${year}-12-31` : undefined;
 
@@ -82,6 +98,47 @@ export default function AccountingLedger() {
   const { rows = [], total = 0 } = ledgerQ.data ?? {};
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const s = summaryQ.data;
+  const tabMetricItems = [
+    {
+      label: "إجمالي الإيراد",
+      value: summaryQ.isLoading ? "…" : fmt(s?.totalIncome),
+      icon: TrendingUp,
+    },
+    {
+      label: "إجمالي المصروف",
+      value: summaryQ.isLoading ? "…" : fmt(s?.totalExpense),
+      icon: TrendingDown,
+    },
+    {
+      label: "رصيد الخزنة",
+      value: summaryQ.isLoading ? "…" : fmt(s?.currentBalance),
+      icon: Wallet,
+    },
+  ];
+  useAccountingTabMetrics(tabMetricItems);
+  const tabCenter = useMemo(
+    () => (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-9 gap-1.5 rounded-xl px-3.5 text-xs font-bold"
+        disabled={recalcMut.isPending}
+        onClick={() => recalcMut.mutate()}
+      >
+        {recalcMut.isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <RefreshCw className="h-3.5 w-3.5" />
+        )}
+        تحديث الرصيد
+      </Button>
+    ),
+    [recalcMut.isPending],
+  );
+  useAccountingTabCenter(tabCenter);
+
+
   const cats = categoriesQ.data ?? [];
   const busy = addMut.isPending;
   const addErr = addMut.error?.message;
@@ -132,150 +189,74 @@ export default function AccountingLedger() {
   }
 
   return (
-    <AccountingPage
-      eyebrow="Cash Ledger"
-      title="قيود اليومية"
-      description="تسجيل ومراجعة حركات الوارد والمنصرف مع فلاتر السنة والبحث."
-    >
-      <div className="space-y-4 lg:space-y-5" dir="rtl">
-        <section className="variant-inline-rail rounded-[24px] border border-border bg-background p-2.5 lg:p-4">
-          <div className="grid grid-cols-3 gap-2 lg:gap-3">
-            {(
-              [
-                {
-                  label: "إجمالي الإيراد",
-                  val: s?.totalIncome,
-                  cls: "text-success",
-                  bg: "bg-success/10",
-                  icon: TrendingUp,
-                },
-                {
-                  label: "إجمالي المصروف",
-                  val: s?.totalExpense,
-                  cls: "text-destructive",
-                  bg: "bg-destructive/10",
-                  icon: TrendingDown,
-                },
-                {
-                  label: "رصيد الخزنة",
-                  val: s?.currentBalance,
-                  cls:
-                    (s?.currentBalance ?? 0) >= 0
-                      ? "text-primary"
-                      : "text-destructive",
-                  bg:
-                    (s?.currentBalance ?? 0) >= 0
-                      ? "bg-primary/5"
-                      : "bg-destructive/10",
-                  icon: Wallet,
-                },
-              ] as const
-            ).map((m) => {
-              const Icon = m.icon;
-              return (
-                <div
-                  key={m.label}
-                  className={cn(
-                    "summary-item flex min-w-0 items-center gap-2 rounded-2xl border px-2 py-2 lg:gap-3 lg:px-4 lg:py-3",
-                    m.bg,
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background lg:h-10 lg:w-10",
-                      m.cls,
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-[10px] font-medium text-muted-foreground lg:text-xs">
-                      {m.label}
-                    </div>
-                    <div
-                      className={cn(
-                        "mt-0.5 truncate text-sm font-bold tabular-nums leading-none lg:text-lg",
-                        m.cls,
-                      )}
-                    >
-                      {summaryQ.isLoading ? "..." : fmt(m.val)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
+    <AccountingPage>
+      <div className="space-y-3 sm:space-y-3.5" dir="rtl">
         <section
-          className="rounded-lg border border-border bg-background p-4 lg:p-5"
+          className="w-fit max-w-full rounded-xl border border-border/60 bg-card p-2.5 sm:p-3"
           dir="rtl"
         >
-          <fieldset className="flex flex-col gap-4">
-            <legend className="text-sm font-semibold text-foreground">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-base font-bold text-foreground">
               إضافة قيد جديد
             </legend>
 
-            <div className="grid gap-3">
-              <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)]">
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="txDate"
-                    className="text-xs font-medium text-foreground"
-                  >
-                    التاريخ
-                  </label>
-                  <DateInput
-                    id="txDate"
-                    value={txDate}
-                    onChange={(e) => setTxDate(e.target.value)}
-                    className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="income"
-                    className="text-xs font-medium text-success"
-                  >
-                    إيراد
-                  </label>
-                  <input
-                    id="income"
-                    type="number"
-                    min="0"
-                    value={income}
-                    onChange={(e) => setIncome(e.target.value)}
-                    placeholder="0"
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-success placeholder:text-muted-foreground outline-none focus:border-success focus:ring-2 focus:ring-success/30"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="expense"
-                    className="text-xs font-medium text-destructive"
-                  >
-                    مصروف
-                  </label>
-                  <input
-                    id="expense"
-                    type="number"
-                    min="0"
-                    value={expense}
-                    onChange={(e) => setExpense(e.target.value)}
-                    placeholder="0"
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-destructive placeholder:text-muted-foreground outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/30"
-                  />
-                </div>
+            <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+              <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                <label
+                  htmlFor="income"
+                  className="text-base font-bold text-success"
+                >
+                  إيراد
+                </label>
+                <input
+                  id="income"
+                  type="number"
+                  min="0"
+                  value={income}
+                  onChange={(e) => setIncome(e.target.value)}
+                  placeholder="0"
+                  className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-success placeholder:text-muted-foreground outline-none focus:border-success focus:ring-2 focus:ring-success/30"
+                />
               </div>
-
-              <div className="flex flex-col gap-1.5">
+              <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                <label
+                  htmlFor="expense"
+                  className="text-base font-bold text-destructive"
+                >
+                  مصروف
+                </label>
+                <input
+                  id="expense"
+                  type="number"
+                  min="0"
+                  value={expense}
+                  onChange={(e) => setExpense(e.target.value)}
+                  placeholder="0"
+                  className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-destructive placeholder:text-muted-foreground outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/30"
+                />
+              </div>
+              <div className="flex w-[11.5rem] shrink-0 flex-col gap-1">
+                <label
+                  htmlFor="txDate"
+                  className="text-base font-bold text-foreground"
+                >
+                  التاريخ
+                </label>
+                <DateInput
+                  id="txDate"
+                  value={txDate}
+                  onChange={(e) => setTxDate(e.target.value)}
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </div>
+              <div className="flex min-w-[12rem] max-w-sm flex-1 flex-col gap-1">
                 <label
                   htmlFor="notes"
-                  className="text-xs font-medium text-foreground"
+                  className="text-base font-bold text-foreground"
                 >
                   البيان
                 </label>
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex gap-1.5">
                   <input
                     id="notes"
                     type="text"
@@ -283,8 +264,8 @@ export default function AccountingLedger() {
                     onChange={(e) => setNotes(e.target.value)}
                     onFocus={() => setNotesFocused(true)}
                     onBlur={() => setNotesFocused(false)}
-                    placeholder="ملاحظات..."
-                    className="h-10 flex-1 rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                    placeholder="ملاحظات…"
+                    className="h-11 shrink-0 flex-1 rounded-lg border border-border bg-background px-2 text-lg text-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                   />
                   <button
                     type="button"
@@ -292,7 +273,7 @@ export default function AccountingLedger() {
                     onClick={() => void handleSave()}
                     aria-label={entrySaved ? "تم الحفظ" : "إضافة قيد"}
                     className={cn(
-                      "flex h-11 w-full flex-shrink-0 items-center justify-center rounded-lg text-card-foreground transition-colors font-medium sm:w-11 sm:min-h-11 sm:min-w-11",
+                      "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-card-foreground transition-colors font-medium",
                       entrySaved
                         ? "bg-success hover:bg-success/80"
                         : "bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed",
@@ -303,7 +284,7 @@ export default function AccountingLedger() {
                     ) : entrySaved ? (
                       <Check className="h-5 w-5" />
                     ) : (
-                      <span className="text-lg font-bold">+</span>
+                      <span className="text-xl font-bold">+</span>
                     )}
                   </button>
                 </div>
@@ -421,7 +402,7 @@ export default function AccountingLedger() {
                   setFilterNotes(e.target.value);
                   setPage(1);
                 }}
-                placeholder="بحث في البيان..."
+                placeholder="بحث في البيان…"
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
               {filterNotes ? (

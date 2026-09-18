@@ -120,6 +120,18 @@ export default function ExaminationPatientInfoTab({
   const fieldHalf: CSSProperties = isMobile
     ? { flex: "1 1 calc(50% - 0.225rem)", minWidth: 0 }
     : {};
+  // Name/DOB/age row: the DOB DateInput (calendar icon + dd/mm/yyyy text)
+  // needs a guaranteed minimum width or it overflows its Tailwind grid
+  // column and gets visually clipped by the sibling age field painted on
+  // top of it. A minmax() grid template reserves that width unconditionally
+  // instead of relying on a percentage share of the row.
+  const identityRowStyle: CSSProperties = isMobile
+    ? fieldRowStyle
+    : {
+        display: "grid",
+        gridTemplateColumns: "minmax(0,1fr) minmax(9.75rem,auto) 4.5rem",
+        gap: "0.625rem",
+      };
 
   const mysqlServices = useMemo(
     () => (servicesCatalogQuery?.data ?? []) as any[],
@@ -240,10 +252,10 @@ export default function ExaminationPatientInfoTab({
               <div className="patient-details-fields space-y-3">
                 {/* Row 1: الاسم - تاريخ الميلاد - السن */}
                 <div
-                  className="patient-identity-grid grid grid-cols-1 sm:grid-cols-12 gap-2.5"
-                  style={fieldRowStyle}
+                  className="patient-identity-grid grid grid-cols-1 gap-2.5"
+                  style={identityRowStyle}
                 >
-                  <div className="patient-name-field sm:col-span-6" style={fieldFull}>
+                  <div className="patient-name-field min-w-0" style={fieldFull}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       الاسم بالكامل
                     </Label>
@@ -257,10 +269,10 @@ export default function ExaminationPatientInfoTab({
                       }
                       readOnly={!canEditPatientData}
                       className="text-xs border h-8 px-2.5 font-medium bg-background rounded-lg"
-                      placeholder="اسم المريض..."
+                      placeholder="اسم المريض…"
                     />
                   </div>
-                  <div className="patient-dob-field sm:col-span-4" style={fieldTwoThirds}>
+                  <div className="patient-dob-field min-w-0" style={fieldTwoThirds}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       تاريخ الميلاد
                     </Label>
@@ -280,10 +292,11 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-xs border h-8 px-2 bg-background rounded-lg"
+                      className="h-8 w-full min-w-0 text-xs"
+                      inputClassName="min-w-0 flex-1"
                     />
                   </div>
-                  <div className="patient-age-field sm:col-span-2" style={fieldOneThird}>
+                  <div className="patient-age-field min-w-0" style={fieldOneThird}>
                     <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
                       السن
                     </Label>
@@ -296,7 +309,7 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-xs border h-8 px-2 text-center font-bold bg-background rounded-lg"
+                      className="text-xs border h-8 px-2 font-bold bg-background rounded-lg"
                     />
                   </div>
                 </div>
@@ -363,7 +376,7 @@ export default function ExaminationPatientInfoTab({
                       }
                       readOnly={!canEditPatientData}
                       className="text-xs border h-8 px-2.5 bg-background rounded-lg"
-                      placeholder="العنوان..."
+                      placeholder="العنوان…"
                     />
                   </div>
                   <div className="patient-job-field sm:col-span-4" style={fieldTwoThirds}>
@@ -380,7 +393,7 @@ export default function ExaminationPatientInfoTab({
                       }
                       readOnly={!canEditPatientData}
                       className="text-xs border h-8 px-2.5 bg-background rounded-lg"
-                      placeholder="الوظيفة..."
+                      placeholder="الوظيفة…"
                     />
                   </div>
                   <div className="patient-gender-field sm:col-span-3" style={fieldOneThird}>
@@ -429,7 +442,7 @@ export default function ExaminationPatientInfoTab({
                   }
                   options={doctorOptions}
                   placeholder="ابحث باسم الطبيب أو الكود"
-                  searchPlaceholder="ابحث بالاسم أو الكود..."
+                  searchPlaceholder="ابحث بالاسم أو الكود…"
                   className="h-11 text-sm sm:h-9 bg-background border-ring/30 sm:text-xs"
                 />
               </div>
@@ -443,7 +456,7 @@ export default function ExaminationPatientInfoTab({
                   onChange={(value) => selectService(servicePickerIndex, value)}
                   options={serviceOptions}
                   placeholder="اختر الخدمة"
-                  searchPlaceholder="ابحث بالاسم أو الكود..."
+                  searchPlaceholder="ابحث بالاسم أو الكود…"
                   className="h-11 text-sm sm:h-9 bg-background border-ring/30 sm:text-xs"
                 />
               </div>
@@ -506,7 +519,7 @@ export default function ExaminationPatientInfoTab({
                       onChange={(value) => selectService(idx, value)}
                       options={serviceOptions}
                       placeholder="اختر الخدمة"
-                      searchPlaceholder="ابحث بالاسم أو الكود..."
+                      searchPlaceholder="ابحث بالاسم أو الكود…"
                       className="h-8 min-w-0 border-border/60 px-2 text-[11px] font-semibold"
                     />
                     <Input
@@ -582,7 +595,7 @@ export default function ExaminationPatientInfoTab({
                   value={receptionSignature}
                   onChange={(e) => setReceptionSignature(e.target.value)}
                   className="text-xs border-0 border-b border-muted rounded-none h-7 p-0 bg-transparent text-left w-32 focus-visible:ring-0"
-                  placeholder="..."
+                  placeholder="…"
                 />
               </div>
             </div>

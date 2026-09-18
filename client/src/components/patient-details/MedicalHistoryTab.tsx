@@ -172,7 +172,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                     className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-7 px-3 rounded-lg gap-1 text-[11px] shadow-2xs"
                   >
                     <Save className="h-3 w-3" />
-                    {saveMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
+                    {saveMutation.isPending ? "جاري الحفظ…" : "حفظ التعديلات"}
                   </Button>
                 )}
               </div>
@@ -264,7 +264,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 <Input
                   value={previousSurgeries}
                   onChange={(e) => setPreviousSurgeries(e.target.value)}
-                  placeholder="مثال: مياه بيضاء، ليزك سابق..."
+                  placeholder="مثال: مياه بيضاء، ليزك سابق…"
                   className="h-8 text-xs rounded-lg"
                 />
               </div>
@@ -275,7 +275,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 <Input
                   value={medications}
                   onChange={(e) => setMedications(e.target.value)}
-                  placeholder="مثال: أتروبين، قطرات ضغط العين..."
+                  placeholder="مثال: أتروبين، قطرات ضغط العين…"
                   className="h-8 text-xs rounded-lg"
                 />
               </div>
@@ -286,7 +286,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 <Input
                   value={familyHistory}
                   onChange={(e) => setFamilyHistory(e.target.value)}
-                  placeholder="مثال: جلوكوما، قرنية مخروطية..."
+                  placeholder="مثال: جلوكوما، قرنية مخروطية…"
                   className="h-8 text-xs rounded-lg"
                 />
               </div>

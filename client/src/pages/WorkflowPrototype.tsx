@@ -475,7 +475,7 @@ export default function WorkflowPrototype() {
             <div className="grid gap-5 p-3 lg:grid-cols-2 lg:p-4">
               <label className="lg:col-span-2">
                 <span className="mb-1.5 flex items-center gap-2 text-xs font-bold"><Microscope className="h-4 w-4 text-primary" />التشخيص النهائي</span>
-                <Textarea value={visit.diagnosis} onChange={(event) => update("diagnosis", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="اكتب التشخيص النهائي..." className="min-h-20 rounded disabled:opacity-100" />
+                <Textarea value={visit.diagnosis} onChange={(event) => update("diagnosis", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="اكتب التشخيص النهائي…" className="min-h-20 rounded disabled:opacity-100" />
               </label>
               <div className="border-t border-border pt-3">
                 <h3 className="mb-3 flex items-center gap-2 text-xs font-bold"><ScanLine className="h-4 w-4 text-primary" />الأشعات المطلوبة</h3>
@@ -487,7 +487,7 @@ export default function WorkflowPrototype() {
               </div>
               <label>
                 <span className="mb-1.5 block text-xs font-bold">العلاج والخطة</span>
-                <Textarea value={visit.treatment} onChange={(event) => update("treatment", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="الأدوية، الجرعات، والتعليمات..." className="min-h-28 rounded disabled:opacity-100" />
+                <Textarea value={visit.treatment} onChange={(event) => update("treatment", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="الأدوية، الجرعات، والتعليمات…" className="min-h-28 rounded disabled:opacity-100" />
               </label>
               <label>
                 <span className="mb-1.5 block text-xs font-bold">المتابعة القادمة</span>

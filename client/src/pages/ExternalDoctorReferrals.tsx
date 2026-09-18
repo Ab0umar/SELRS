@@ -69,7 +69,7 @@ function CreateReferralForm({ onDone }: { onDone: () => void }) {
             create.mutate({ externalDoctorId: Number(doctorId), patientCode })
           }
         >
-          {create.isPending ? "Adding..." : "Add"}
+          {create.isPending ? "Adding…" : "Add"}
         </Button>
         <Button size="sm" variant="ghost" onClick={onDone}>
           Cancel

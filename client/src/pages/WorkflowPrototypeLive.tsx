@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import {
   useEffect,
   useMemo,
@@ -463,7 +464,7 @@ function CatalogSearchSelect({
       </div>
       {searchText ? (
         isLoading ? (
-          <p className="text-xs text-muted-foreground">Loading...</p>
+          <p className="text-xs text-muted-foreground">Loading…</p>
         ) : isError ? (
           <p className="text-xs text-destructive">{errorText}</p>
         ) : (
@@ -2559,7 +2560,7 @@ export default function WorkflowPrototypeLive() {
         </label>
       </div>
       {liveQueue.isLoading ? (
-        <p className="mt-1 text-[10px] text-slate-500">Loading...</p>
+        <p className="mt-1 text-[10px] text-slate-500">Loading…</p>
       ) : livePatients.length === 0 ? (
         <p className="mt-1 text-[10px] text-slate-500">No visits found.</p>
       ) : null}
@@ -3474,7 +3475,7 @@ export default function WorkflowPrototypeLive() {
             <div className="space-y-2 print:hidden" dir="rtl">
               <CatalogSearchSelect
                 label="Diagnosis"
-                placeholder="ابحث عن التشخيص..."
+                placeholder="ابحث عن التشخيص…"
                 searchText={diseaseSearchText}
                 onSearchTextChange={setDiseaseSearchText}
                 items={diseaseItems}
@@ -3493,7 +3494,7 @@ export default function WorkflowPrototypeLive() {
                   })
                 }
                 className="min-h-20"
-                placeholder="اكتب التشخيص..."
+                placeholder="اكتب التشخيص…"
               />
             </div>
             <p className="hidden text-sm print:block" dir="rtl">
@@ -3519,7 +3520,7 @@ export default function WorkflowPrototypeLive() {
                 )}
                 <CatalogSearchSelect
                   label="Tests & Rays"
-                  placeholder="ابحث عن التحاليل والأشعة..."
+                  placeholder="ابحث عن التحاليل والأشعة…"
                   searchText={testSearchText}
                   onSearchTextChange={setTestSearchText}
                   items={testItems}
@@ -3547,7 +3548,7 @@ export default function WorkflowPrototypeLive() {
               )}
               <CatalogSearchSelect
                 label="Prescription"
-                placeholder="ابحث عن الأدوية..."
+                placeholder="ابحث عن الأدوية…"
                 searchText={medicationSearchText}
                 onSearchTextChange={setMedicationSearchText}
                 items={medicationItems}
@@ -3579,7 +3580,7 @@ export default function WorkflowPrototypeLive() {
             }
             className="mt-2 min-h-20 print:hidden"
             dir="rtl"
-            placeholder="اكتب القرار النهائي..."
+            placeholder="اكتب القرار النهائي…"
           />
           <p className="mt-2 hidden text-sm print:block" dir="rtl">
             {data.consultant.finalDecision || finalDecisionSummary || "—"}
@@ -3666,7 +3667,7 @@ export default function WorkflowPrototypeLive() {
           </div>
           <CatalogSearchSelect
             label="Tests & Rays"
-            placeholder="Search tests and rays..."
+            placeholder="Search tests and rays…"
             searchText={testSearchText}
             onSearchTextChange={setTestSearchText}
             items={testItems}
@@ -3704,7 +3705,7 @@ export default function WorkflowPrototypeLive() {
           </div>
           <CatalogSearchSelect
             label="Prescription"
-            placeholder="Search medications..."
+            placeholder="Search medications…"
             searchText={medicationSearchText}
             onSearchTextChange={setMedicationSearchText}
             items={medicationItems}
@@ -3824,6 +3825,7 @@ export default function WorkflowPrototypeLive() {
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900" dir="rtl">
       <main className="mx-auto max-w-[1500px] space-y-2 px-2 py-0 lg:px-3">
+        <QueueLoadStatus {...liveQueue} />
         {selectedLivePatient
           ? renderLiveWorkspace()
           : renderLivePatientPicker()}

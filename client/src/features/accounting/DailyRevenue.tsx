@@ -14,7 +14,7 @@ import type {
   DailyRevenueInput,
   DailyRevenueOutput,
 } from "@shared/accounting/contracts";
-import { CircleAlert, Printer, RefreshCw, Search } from "lucide-react";
+import { CircleAlert, Printer, RefreshCw, Search, Banknote, ReceiptText, Wallet } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { exportElementToPdf, preferPdfOverBrowserPrint } from "@/lib/nativePdf";
 import { useLocation, useSearch } from "wouter";
 import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
+import { useAccountingTabMetrics } from "./accountingTabMetrics";
 import reportStyles from "./AccountingOpReport.module.css";
 import { DateInput } from "@/components/ui/date-input";
 
@@ -154,6 +155,13 @@ export default function DailyRevenue() {
     totalPaid: 0,
     netAfterDiscount: 0,
   };
+  const tabMetricItems = [
+    { label: "الإجمالي", value: formatMoneyAr(totals.totalGross ?? 0), icon: Banknote },
+    { label: "المدفوع", value: formatMoneyAr(totals.totalPaid ?? 0), icon: ReceiptText },
+    { label: "الصافي", value: formatMoneyAr(totals.netAfterDiscount ?? 0), icon: Wallet },
+  ];
+  useAccountingTabMetrics(tabMetricItems);
+
 
   const applyFilters = () => {
     if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
@@ -202,142 +210,106 @@ export default function DailyRevenue() {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
-        <Card className={`${reportStyles.noPrint} border-border shadow-sm`}>
-          <CardHeader className="gap-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-xl tracking-tight">
-                  الإيراد اليومي
-                </CardTitle>
-                <CardDescription className="mt-1 text-sm">
-                  تصفية إجمالي الإيصالات اليومية وإيرادات الخدمات.
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void dailyRevenueQuery.refetch()}
-                  disabled={dailyRevenueQuery.isFetching}
-                  aria-label="تحديث بيانات الإيراد اليومي"
-                >
-                  <RefreshCw
-                    className={
-                      dailyRevenueQuery.isFetching ? "animate-spin" : ""
-                    }
-                    aria-hidden
-                  />
-                  تحديث
-                </Button>
-                <Button
-                  type="button"
-                  onClick={printReport}
-                  disabled={dailyRevenueQuery.isLoading || rows.length === 0}
-                  aria-label="طباعة تقرير الإيراد اليومي"
-                >
-                  <Printer className="ml-2 h-4 w-4" aria-hidden />
-                  طباعة
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            <label
-              htmlFor="daily-from-date"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>من تاريخ</span>
-              <DateInput
-                id="daily-from-date"
-                value={draft.fromDate}
-                onChange={(event) => {
-                  setDraft((prev) => ({
-                    ...prev,
-                    fromDate: event.target.value,
-                  }));
-                  setDateError("");
-                }}
-              />
-            </label>
-            <label
-              htmlFor="daily-to-date"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>إلى تاريخ</span>
-              <DateInput
-                id="daily-to-date"
-                value={draft.toDate}
-                onChange={(event) => {
-                  setDraft((prev) => ({ ...prev, toDate: event.target.value }));
-                  setDateError("");
-                }}
-              />
-            </label>
-            {dateError && (
-              <p className="col-span-full text-sm text-destructive">
-                {dateError}
-              </p>
-            )}
-            <label
-              htmlFor="daily-section-code"
-              className="space-y-1.5 text-sm font-medium"
-            >
-              <span>كود القسم</span>
-              <Input
-                id="daily-section-code"
-                type="number"
-                min={1}
-                value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
-                onChange={(event) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    sectionCode: Number(
-                      event.target.value || DEFAULT_SECTION_CODE,
-                    ),
-                  }))
-                }
-              />
-            </label>
-            <div className="space-y-1.5 text-sm font-medium">
-              <label htmlFor="daily-shift-code">الوردية</label>
-              <Select
-                value={draft.shiftCode ?? "all"}
-                onValueChange={(val) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    shiftCode: val === "all" ? undefined : val,
-                  }))
-                }
-                dir="rtl"
+      <div className="space-y-2 sm:space-y-2.5" dir="rtl">
+        <Card className={`${reportStyles.noPrint} w-fit max-w-full border-border/60 shadow-xs`}>
+          <CardContent className="w-fit max-w-full space-y-2 p-2.5 sm:p-3">
+            <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+              <label
+                htmlFor="daily-from-date"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
               >
-                <SelectTrigger id="daily-shift-code" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="1">الأولى</SelectItem>
-                  <SelectItem value="2">الثانية</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end gap-2">
+                <span>من تاريخ</span>
+                <DateInput
+                  id="daily-from-date"
+                  value={draft.fromDate}
+                  onChange={(event) => {
+                    setDraft((prev) => ({
+                      ...prev,
+                      fromDate: event.target.value,
+                    }));
+                    setDateError("");
+                  }}
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
+              <label
+                htmlFor="daily-to-date"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+              >
+                <span>إلى تاريخ</span>
+                <DateInput
+                  id="daily-to-date"
+                  value={draft.toDate}
+                  onChange={(event) => {
+                    setDraft((prev) => ({ ...prev, toDate: event.target.value }));
+                    setDateError("");
+                  }}
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
+              {dateError && (
+                <p className="text-sm text-destructive">{dateError}</p>
+              )}
+              <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                <label htmlFor="daily-shift-code" className="text-base font-bold text-foreground">
+                  الوردية
+                </label>
+                <Select
+                  value={draft.shiftCode ?? "all"}
+                  onValueChange={(val) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      shiftCode: val === "all" ? undefined : val,
+                    }))
+                  }
+                  dir="rtl"
+                >
+                  <SelectTrigger id="daily-shift-code" className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="all">الكل</SelectItem>
+                    <SelectItem value="1">صباحي</SelectItem>
+                    <SelectItem value="2">مسائي</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
                 type="button"
-                className="flex-1"
+                className="h-11 px-4 text-base font-bold"
                 onClick={applyFilters}
-                aria-label="تطبيق الفلاتر"
+                aria-label="تطبيق"
               >
-                <Search className="ml-2 h-4 w-4" aria-hidden />
+                <Search className="ml-1.5 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={resetFilters}
-                aria-label="إعادة ضبط الفلاتر"
+                size="icon"
+                className="h-11 w-11"
+                onClick={() => void dailyRevenueQuery.refetch()}
+                disabled={dailyRevenueQuery.isFetching}
+                aria-label="تحديث"
               >
-                إعادة ضبط
+                <RefreshCw
+                  className={
+                    dailyRevenueQuery.isFetching
+                      ? "h-4 w-4 animate-spin"
+                      : "h-4 w-4"
+                  }
+                  aria-hidden
+                />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                className="h-11 w-11"
+                onClick={printReport}
+                disabled={dailyRevenueQuery.isLoading || rows.length === 0}
+                aria-label="طباعة"
+              >
+                <Printer className="h-4 w-4" aria-hidden />
               </Button>
             </div>
           </CardContent>
@@ -345,7 +317,7 @@ export default function DailyRevenue() {
 
         {dailyRevenueQuery.isError ? (
           <Card className="border-error/30 bg-error/5">
-            <CardContent className="flex items-start gap-3 py-5">
+            <CardContent className="flex items-start gap-2 py-5">
               <div className="rounded-lg bg-error/10 p-2 text-error">
                 <CircleAlert className="h-5 w-5" aria-hidden />
               </div>
@@ -361,25 +333,22 @@ export default function DailyRevenue() {
           </Card>
         ) : null}
 
-        <Card ref={printScopeRef} className={`${reportStyles.printScope} border-border shadow-sm`}>
-          <CardHeader>
-            <CardTitle className="text-base">البيانات اليومية</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card ref={printScopeRef} className={`${reportStyles.printScope} border-border/60 shadow-xs`}>
+          <CardContent className="p-3 sm:p-4">
             <div className={reportStyles.reportMeta} role="note">
               <span className="font-semibold">الفترة:</span> من{" "}
               {formatDateAr(filters.fromDate)} إلى{" "}
               {formatDateAr(filters.toDate)}
             </div>
 
-            <div className="grid gap-3 sm:hidden">
+            <div className="grid gap-2 sm:hidden">
               {dailyRevenueQuery.isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
                     <div
                       key={i}
-                      className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                      className="rounded-xl border border-border bg-background p-4 shadow-xs"
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-between gap-2">
                         <Skeleton className="h-4 w-24" />
                         <Skeleton className="h-6 w-20 rounded-full" />
                       </div>
@@ -411,11 +380,11 @@ export default function DailyRevenue() {
                   {rows.map((row) => (
                     <div
                       key={row.date}
-                      className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                      className="rounded-xl border border-border bg-background p-4 shadow-xs"
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="text-[11px] text-muted-foreground">
+                          <div className="text-sm text-muted-foreground">
                             {formatDateAr(row.date)}
                           </div>
                           <div className="mt-1 text-sm font-semibold text-foreground">
@@ -428,7 +397,7 @@ export default function DailyRevenue() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-muted px-3 py-2">
+                        <div className="rounded-xl bg-muted px-2 py-1.5">
                           <div className="text-[10px] text-muted-foreground">
                             الإجمالي
                           </div>
@@ -436,7 +405,7 @@ export default function DailyRevenue() {
                             {formatMoneyAr(row.totalGross)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-muted px-3 py-2">
+                        <div className="rounded-xl bg-muted px-2 py-1.5">
                           <div className="text-[10px] text-muted-foreground">
                             الخصم
                           </div>
@@ -444,13 +413,13 @@ export default function DailyRevenue() {
                             {formatMoneyAr(row.totalDiscount)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                        <div className="rounded-xl bg-success/10 px-2 py-1.5">
                           <div className="text-[10px] text-success">نقدي</div>
                           <div className="mt-1 font-semibold tabular-nums text-success">
                             {formatMoneyAr(row.totalCash)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-success/10 px-3 py-2">
+                        <div className="rounded-xl bg-success/10 px-2 py-1.5">
                           <div className="text-[10px] text-success">
                             المدفوع
                           </div>
@@ -458,7 +427,7 @@ export default function DailyRevenue() {
                             {formatMoneyAr(row.totalPaid)}
                           </div>
                         </div>
-                        <div className="col-span-2 rounded-xl bg-primary/5 px-3 py-2">
+                        <div className="col-span-2 rounded-xl bg-primary/5 px-2 py-1.5">
                           <div className="text-[10px] text-primary">الصافي</div>
                           <div className="mt-1 text-lg font-bold tabular-nums text-primary">
                             {formatMoneyAr(row.netAfterDiscount)}
@@ -468,12 +437,12 @@ export default function DailyRevenue() {
                     </div>
                   ))}
 
-                  <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
                     <div className="text-xs font-semibold text-primary">
                       الإجمالي العام
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-xl bg-background px-3 py-2">
+                      <div className="rounded-xl bg-background px-2 py-1.5">
                         <div className="text-[10px] text-muted-foreground">
                           الإيصالات
                         </div>
@@ -481,7 +450,7 @@ export default function DailyRevenue() {
                           {formatCountAr(totals.totalReceipts)}
                         </div>
                       </div>
-                      <div className="rounded-xl bg-background px-3 py-2">
+                      <div className="rounded-xl bg-background px-2 py-1.5">
                         <div className="text-[10px] text-muted-foreground">
                           الإجمالي
                         </div>
@@ -489,7 +458,7 @@ export default function DailyRevenue() {
                           {formatMoneyAr(totals.totalGross)}
                         </div>
                       </div>
-                      <div className="rounded-xl bg-background px-3 py-2">
+                      <div className="rounded-xl bg-background px-2 py-1.5">
                         <div className="text-[10px] text-muted-foreground">
                           الخصم
                         </div>
@@ -497,7 +466,7 @@ export default function DailyRevenue() {
                           {formatMoneyAr(totals.totalDiscount)}
                         </div>
                       </div>
-                      <div className="rounded-xl bg-background px-3 py-2">
+                      <div className="rounded-xl bg-background px-2 py-1.5">
                         <div className="text-[10px] text-muted-foreground">
                           نقدي
                         </div>
@@ -505,7 +474,7 @@ export default function DailyRevenue() {
                           {formatMoneyAr(totals.totalCash)}
                         </div>
                       </div>
-                      <div className="rounded-xl bg-background px-3 py-2">
+                      <div className="rounded-xl bg-background px-2 py-1.5">
                         <div className="text-[10px] text-muted-foreground">
                           المدفوع
                         </div>
@@ -513,7 +482,7 @@ export default function DailyRevenue() {
                           {formatMoneyAr(totals.totalPaid)}
                         </div>
                       </div>
-                      <div className="rounded-xl bg-background px-3 py-2">
+                      <div className="rounded-xl bg-background px-2 py-1.5">
                         <div className="text-[10px] text-muted-foreground">
                           الصافي
                         </div>

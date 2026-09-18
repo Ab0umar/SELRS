@@ -984,7 +984,7 @@ export default function MedicalReports() {
                   <Input
                     value={diseaseSearch}
                     onChange={(e) => setDiseaseSearch(e.target.value)}
-                    placeholder="ابحث عن تشخيص..."
+                    placeholder="ابحث عن تشخيص…"
                     className="mt-2 text-right"
                     dir="rtl"
                   />
@@ -1207,7 +1207,7 @@ export default function MedicalReports() {
                 <SearchBar
                   value={overviewSearch}
                   onChange={setOverviewSearch}
-                  placeholder="بحث بالاسم أو عنوان التقرير..."
+                  placeholder="بحث بالاسم أو عنوان التقرير…"
                 />
               </div>
               <FilterBar

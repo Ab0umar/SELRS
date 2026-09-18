@@ -333,9 +333,9 @@ function WebPushNotificationBridge() {
     pushInitializedRef.current = true;
 
     const setupWebPush = async () => {
-      console.log("[Push] setupWebPush starting...");
+      console.log("[Push] setupWebPush starting…");
       try {
-        console.log("[Push] Calling getWebPushSubscription...");
+        console.log("[Push] Calling getWebPushSubscription…");
         const subscription = await getWebPushSubscription();
         console.log(
           "[Push] getWebPushSubscription completed, subscription:",
@@ -343,7 +343,7 @@ function WebPushNotificationBridge() {
         );
 
         if (!subscription) {
-          console.log("[Push] No subscription, registering...");
+          console.log("[Push] No subscription, registering…");
           const success = await registerWebPush();
           console.log("[Push] registerWebPush result:", success);
 
@@ -352,7 +352,7 @@ function WebPushNotificationBridge() {
             console.log("[Push] New subscription obtained:", !!newSubscription);
 
             if (newSubscription) {
-              console.log("[Push] Registering with server...");
+              console.log("[Push] Registering with server…");
               await registerPushTokenMutation.mutateAsync({
                 token: JSON.stringify(newSubscription),
                 platform: "web",
@@ -379,7 +379,7 @@ function WebPushNotificationBridge() {
           return;
         }
 
-        console.log("[Push] Re-registering with server...");
+        console.log("[Push] Re-registering with server…");
         await registerPushTokenMutation.mutateAsync({
           token: currentToken,
           platform: "web",

@@ -2,9 +2,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,17 +75,15 @@ function MetricCard({
   tone?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/40 p-4">
-      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        {label}
-      </div>
-      <div
-        className={`mt-2 text-2xl font-black tabular-nums ${tone ?? "text-foreground"}`}
-      >
+    <div
+      className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 shadow-2xs"
+      title={hint}
+    >
+      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <span className="text-xs font-semibold text-muted-foreground">{label}:</span>
+      <span className={`text-sm font-black tabular-nums ${tone ?? "text-foreground"}`}>
         {value}
-      </div>
-      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
+      </span>
     </div>
   );
 }
@@ -122,36 +117,28 @@ export default function LasikCost() {
   };
 
   return (
-    <div className="space-y-5" dir="rtl">
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-xl font-black tracking-tight text-foreground">
-                تكلفة عملية الليزك
-              </CardTitle>
-              <CardDescription className="mt-1 text-sm">
-                حساب أوتوماتيك من إيرادات MSSQL، مصروفات الخزنة، وقيمة الاستوك
-                الحالي.
-              </CardDescription>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void summaryQuery.refetch()}
-              disabled={summaryQuery.isFetching || hasDateError}
-            >
-              <RefreshCw
-                className={
-                  summaryQuery.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"
-                }
-              />
-              تحديث
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
+    <div className="space-y-2 sm:space-y-2.5" dir="rtl">
+      <Card className="w-fit max-w-full border-border/60 shadow-xs">
+        <div className="flex items-center justify-end p-2 pb-0 sm:p-2.5 sm:pb-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void summaryQuery.refetch()}
+            disabled={summaryQuery.isFetching || hasDateError}
+          >
+            <RefreshCw
+              className={
+                summaryQuery.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"
+              }
+            />
+            تحديث
+          </Button>
+        </div>
+        <CardContent className="w-fit max-w-full space-y-2 p-2.5 sm:p-3">
+            {/* layout-refined-add-filter */}
+            <div className="accounting-add-filter flex w-fit max-w-full flex-wrap items-end gap-2" data-add-filter="1" dir="rtl">
+<div className="flex flex-wrap gap-2">
             {PERIOD_OPTIONS.map((option) => (
               <button
                 key={option.key}
@@ -181,8 +168,8 @@ export default function LasikCost() {
             </button>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="space-y-1.5 text-sm font-bold text-foreground">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="w-fit max-w-full space-y-1 text-xs font-medium font-bold text-foreground">
               <span>من تاريخ</span>
               <DateInput
                 value={range.fromDate}
@@ -193,9 +180,9 @@ export default function LasikCost() {
                     fromDate: event.target.value,
                   }));
                 }}
-              />
+               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
             </label>
-            <label className="space-y-1.5 text-sm font-bold text-foreground">
+            <label className="w-fit max-w-full space-y-1 text-xs font-medium font-bold text-foreground">
               <span>إلى تاريخ</span>
               <DateInput
                 value={range.toDate}
@@ -203,36 +190,37 @@ export default function LasikCost() {
                   setPeriod("custom");
                   setRange((prev) => ({ ...prev, toDate: event.target.value }));
                 }}
-              />
+               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
             </label>
           </div>
 
           {hasDateError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-sm font-bold text-red-700">
               تاريخ البداية بعد تاريخ النهاية.
             </div>
           ) : null}
-        </CardContent>
+            </div>
+          </CardContent>
       </Card>
 
       {summaryQuery.isLoading ? (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="h-28 rounded-2xl" />
+            <Skeleton key={index} className="h-28 rounded-xl" />
           ))}
         </div>
       ) : summaryQuery.isError ? (
-        <Card className="border-red-200 bg-red-50 shadow-sm">
-          <CardContent className="flex items-center gap-3 p-4 text-sm font-bold text-red-700">
+        <Card className="border-red-200 bg-red-50 shadow-xs">
+          <CardContent className="flex items-center gap-2 p-4 text-sm font-bold text-red-700">
             <AlertTriangle className="h-5 w-5" />
             فشل تحميل تقرير تكلفة الليزك.
           </CardContent>
         </Card>
       ) : summary ? (
-        <Tabs defaultValue="cost" className="space-y-4" dir="rtl">
+        <Tabs defaultValue="cost" className="space-y-2" dir="rtl">
           {summary.fromDate !== range.fromDate ? (
-            <Card className="border-warning/40 bg-warning/10 shadow-sm">
-              <CardContent className="flex items-start gap-3 p-4 text-sm font-bold text-warning">
+            <Card className="border-warning/40 bg-warning/10 shadow-xs">
+              <CardContent className="flex items-start gap-2 p-4 text-sm font-bold text-warning">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                 <div>
                   بدأ الحساب فعليًا من {formatDateAr(summary.fromDate)} لأن
@@ -244,8 +232,8 @@ export default function LasikCost() {
           ) : null}
 
           {summary.stock.unpricedItemCount > 0 ? (
-            <Card className="border-amber-300 bg-amber-50 shadow-sm">
-              <CardContent className="flex items-start gap-3 p-4 text-sm font-bold text-amber-900">
+            <Card className="border-amber-300 bg-amber-50 shadow-xs">
+              <CardContent className="flex items-start gap-2 p-4 text-sm font-bold text-amber-900">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                 <div>
                   التكلفة الحالية مؤقتة ومرتفعة لأن هناك{" "}
@@ -262,8 +250,8 @@ export default function LasikCost() {
             <TabsTrigger value="profit">الربحية</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="cost" className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <TabsContent value="cost" className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
               <MetricCard
                 label="تكلفة العملية الواحدة"
                 value={`${formatMoneyAr(summary.cost.costPerOperation)} ج.م`}
@@ -297,8 +285,8 @@ export default function LasikCost() {
             </div>
           </TabsContent>
 
-          <TabsContent value="profit" className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <TabsContent value="profit" className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
               <MetricCard
                 label="إيراد نشاط الليزك المحصل"
                 value={`${formatMoneyAr(summary.revenue.totalPaid)} ج.م`}
@@ -338,60 +326,51 @@ export default function LasikCost() {
             </div>
           </TabsContent>
 
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-black">
-                تفاصيل الحساب
-              </CardTitle>
-              <CardDescription>
-                الفترة من {formatDateAr(summary.fromDate)} إلى{" "}
-                {formatDateAr(summary.toDate)}
-              </CardDescription>
-            </CardHeader>
+          <Card className="border-border/60 shadow-xs">
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
                   <tr className="border-b border-border/60 bg-muted/40 text-right text-xs font-bold text-muted-foreground">
-                    <th className="px-4 py-3">البند</th>
-                    <th className="px-4 py-3">القيمة</th>
-                    <th className="px-4 py-3">ملاحظة</th>
+                    <th className="px-2.5 py-1.5">البند</th>
+                    <th className="px-2.5 py-1.5">القيمة</th>
+                    <th className="px-2.5 py-1.5">ملاحظة</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-b border-border/60">
-                    <td className="px-4 py-3 font-bold">
+                    <td className="px-2.5 py-1.5 font-bold">
                       إجمالي MSSQL قبل الخصم
                     </td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="px-2.5 py-1.5 tabular-nums">
                       {formatMoneyAr(summary.revenue.totalGross)} ج.م
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">قسم الليزك ١٥</td>
+                    <td className="px-2.5 py-1.5 text-muted-foreground">قسم الليزك ١٥</td>
                   </tr>
                   <tr className="border-b border-border/60">
-                    <td className="px-4 py-3 font-bold">خصومات MSSQL</td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="px-2.5 py-1.5 font-bold">خصومات MSSQL</td>
+                    <td className="px-2.5 py-1.5 tabular-nums">
                       {formatMoneyAr(summary.revenue.totalDiscount)} ج.م
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-2.5 py-1.5 text-muted-foreground">
                       مستبعدة من الصافي
                     </td>
                   </tr>
                   <tr className="border-b border-border/60">
-                    <td className="px-4 py-3 font-bold">مصروفات مستبعدة</td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="px-2.5 py-1.5 font-bold">مصروفات مستبعدة</td>
+                    <td className="px-2.5 py-1.5 tabular-nums">
                       {formatMoneyAr(summary.expenses.excludedExpense)} ج.م
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-2.5 py-1.5 text-muted-foreground">
                       السلف، البيت، انستاباي، السعدني، العيادة، الدكتورة، أبو
                       عمر، أبو يوسف، والبنات حسب ملاحظات الخزنة والتصنيفات
                     </td>
                   </tr>
                   <tr className="border-b border-border/60">
-                    <td className="px-4 py-3 font-bold">أصناف بلا سعر مخزن</td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="px-2.5 py-1.5 font-bold">أصناف بلا سعر مخزن</td>
+                    <td className="px-2.5 py-1.5 tabular-nums">
                       {formatCountAr(summary.stock.unpricedItemCount)}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-2.5 py-1.5 text-muted-foreground">
                       لا تدخل في قيمة الاستوك حتى يتم تسجيل سعر إدخال لها
                     </td>
                   </tr>

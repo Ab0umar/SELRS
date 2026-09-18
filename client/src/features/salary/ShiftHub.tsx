@@ -12,14 +12,14 @@ export default function ShiftHub() {
         <button
           type="button"
           onClick={() => navigate("/salary/shift-staff")}
-          className={`rounded-lg px-4 py-2 text-sm font-bold ${!payroll ? "bg-background text-primary shadow-sm" : "text-muted-foreground"}`}
+          className={`rounded-lg px-4 py-2 text-sm font-bold ${!payroll ? "bg-background text-primary shadow-xs" : "text-muted-foreground"}`}
         >
           طاقم الشفتات
         </button>
         <button
           type="button"
           onClick={() => navigate("/salary/shift-payroll")}
-          className={`rounded-lg px-4 py-2 text-sm font-bold ${payroll ? "bg-background text-primary shadow-sm" : "text-muted-foreground"}`}
+          className={`rounded-lg px-4 py-2 text-sm font-bold ${payroll ? "bg-background text-primary shadow-xs" : "text-muted-foreground"}`}
         >
           كشف الشفتات
         </button>

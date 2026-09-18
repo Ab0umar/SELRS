@@ -9,15 +9,17 @@
  *   1. GET  /webhook/whatsapp — handshake. Echoes hub.challenge back if
  *      hub.verify_token matches our configured token.
  *   2. POST /webhook/whatsapp — Meta pushes message/status JSON here on every
- *      update. We verify the X-Hub-Signature-256 HMAC (when WHATSAPP_APP_SECRET
- *      is set), store inbound messages, and always ack 200 quickly — Meta
- *      disables the webhook after repeated non-2xx/slow responses, so we
- *      never let downstream failures block the response.
+ *      update. We require WHATSAPP_APP_SECRET and verify the
+ *      X-Hub-Signature-256 HMAC and commit inbound messages before ack 200.
+ *      Storage failures return 503 so delivery can be retried. Automatic replies
+ *      run after acknowledgment and remain best-effort.
  */
 
 import type { Express, Request, Response } from "express";
 import express from "express";
 import crypto from "crypto";
+import { sql } from "drizzle-orm";
+import type { MySql2Database } from "drizzle-orm/mysql2";
 import { ENV } from "./env";
 import { getDb } from "../db";
 import { whatsappInboundMessages } from "../../drizzle/schema";
@@ -34,8 +36,10 @@ interface WhatsAppMessage {
 }
 
 function verifySignature(rawBody: Buffer, signatureHeader: unknown): boolean {
-  if (!ENV.whatsappAppSecret) return true; // no secret configured — skip check
+  if (!ENV.whatsappAppSecret) return false;
   const signature = typeof signatureHeader === "string" ? signatureHeader : "";
+  // Validate ASCII hex before timingSafeEqual, including its byte-length invariant.
+  if (!/^sha256=[a-f0-9]{64}$/.test(signature)) return false;
   const expected =
     "sha256=" +
     crypto
@@ -89,62 +93,107 @@ export function registerWhatsAppWebhook(app: Express) {
   });
 
   app.post("/webhook/whatsapp", async (req: Request, res: Response) => {
+    if (!ENV.whatsappAppSecret) {
+      console.error("[whatsapp-webhook] WHATSAPP_APP_SECRET is not configured");
+      res.sendStatus(503);
+      return;
+    }
     const rawBody: Buffer | undefined = (req as any).rawBody;
-    if (rawBody && !verifySignature(rawBody, req.header("X-Hub-Signature-256"))) {
+    if (
+      !Buffer.isBuffer(rawBody) ||
+      !verifySignature(rawBody, req.header("X-Hub-Signature-256"))
+    ) {
       console.warn("[whatsapp-webhook] Signature verification failed");
       res.sendStatus(401);
       return;
     }
 
-    // Ack immediately — Meta expects a fast 2xx and will retry/disable the
-    // webhook on timeouts or errors, so DB work must never block the response.
-    res.sendStatus(200);
-
+    let newMessages: WhatsAppMessage[];
     try {
       const messages = extractMessages(req.body);
-      if (messages.length === 0) return;
-
-      const db = await getDb();
-      if (!db) {
-        console.error("[whatsapp-webhook] Database not available, dropping", messages.length, "message(s)");
+      if (messages.length === 0) {
+        res.sendStatus(200);
+        return;
+      }
+      // A stable ID is required for safe redelivery; NULL bypasses the unique index.
+      if (
+        messages.some(
+          (msg) =>
+            !msg ||
+            typeof msg.id !== "string" ||
+            !msg.id.trim() ||
+            msg.id.length > 128,
+        )
+      ) {
+        res.sendStatus(400);
         return;
       }
 
-      for (const msg of messages) {
-        const insertResult = await db
-          .insert(whatsappInboundMessages)
-          .values({
-            waMessageId: msg.id ?? null,
-            fromPhone: msg.from ?? null,
-            messageType: msg.type ?? null,
-            body: msg.text?.body ?? null,
-            rawPayload: JSON.stringify(msg),
-          })
-          .onDuplicateKeyUpdate({ set: { waMessageId: whatsappInboundMessages.waMessageId } });
+      const db = await getDb();
+      if (!db) {
+        console.error(
+          "[whatsapp-webhook] Database not available, retry required for",
+          messages.length,
+          "message(s)",
+        );
+        res.sendStatus(503);
+        return;
+      }
 
-        const resultHeader = (insertResult as any)?.[0];
-        const insertedNewMessage =
-          Number(resultHeader?.affectedRows ?? 0) === 1 &&
-          Number(resultHeader?.insertId ?? 0) > 0;
+      // Commit the whole delivery before acknowledgment or any outbound side effect.
+      newMessages = await db.transaction(
+        async (tx: Pick<MySql2Database, "insert">) => {
+          const insertedMessages: WhatsAppMessage[] = [];
+          for (const msg of messages) {
+            const insertResult = await tx
+              .insert(whatsappInboundMessages)
+              .values({
+                waMessageId: msg.id ?? null,
+                fromPhone: msg.from ?? null,
+                messageType: msg.type ?? null,
+                body: msg.text?.body ?? null,
+                rawPayload: JSON.stringify(msg),
+              })
+              .onDuplicateKeyUpdate({
+                set: { waMessageId: sql`${whatsappInboundMessages.waMessageId}` },
+              });
 
-        if (insertedNewMessage && msg.from) {
-          try {
-            await sendWhatsAppReply({
-              recipientPhone: msg.from,
-              message: buildWhatsAppInboundAutoReply(),
-              replyToMessageId: msg.id,
-            });
-          } catch (replyError) {
-            console.error(
-              "[whatsapp-webhook] Failed to send automatic reply:",
-              replyError,
-            );
+            const resultHeader = insertResult[0];
+            const insertedNewMessage =
+              Number(resultHeader?.affectedRows ?? 0) === 1 &&
+              Number(resultHeader?.insertId ?? 0) > 0;
+
+            if (insertedNewMessage) insertedMessages.push(msg);
           }
+          return insertedMessages;
+        },
+      );
+      res.sendStatus(200);
+    } catch (err) {
+      console.error(
+        "[whatsapp-webhook] Failed to persist delivery; retry required:",
+        err,
+      );
+      res.sendStatus(503);
+      return;
+    }
+
+    // Reply failures must not turn a committed delivery into a failed acknowledgment.
+    for (const msg of newMessages) {
+      if (msg.from) {
+        try {
+          await sendWhatsAppReply({
+            recipientPhone: msg.from,
+            message: buildWhatsAppInboundAutoReply(),
+            replyToMessageId: msg.id,
+          });
+        } catch (replyError) {
+          console.error(
+            "[whatsapp-webhook] Failed to send automatic reply:",
+            replyError,
+          );
         }
       }
-      console.log(`[whatsapp-webhook] Stored ${messages.length} inbound message(s)`);
-    } catch (err) {
-      console.error("[whatsapp-webhook] Failed to process payload:", err);
     }
   });
 }

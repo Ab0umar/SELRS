@@ -266,7 +266,7 @@ export default function PatientLogin() {
                   {loginMutation.isPending ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="size-5 animate-spin" />
-                      <span>جاري التحقق...</span>
+                      <span>جاري التحقق…</span>
                     </div>
                   ) : (
                     "دخول إلى بوابة المرضى"

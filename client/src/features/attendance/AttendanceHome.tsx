@@ -182,7 +182,7 @@ export default function AttendanceHome() {
 
             <div className="space-y-4">
               {/* Morning Shift Timeline */}
-              <div className="p-5 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-3xl space-y-4 shadow-xs">
                 <div className="flex justify-between items-center text-xs">
                   <div>
                     <span className="text-[10px] text-muted-foreground block font-mono">10:00 ص - 04:00 م</span>
@@ -207,7 +207,7 @@ export default function AttendanceHome() {
               </div>
 
               {/* Evening Shift Timeline */}
-              <div className="p-5 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-3xl space-y-4 shadow-xs">
                 <div className="flex justify-between items-center text-xs">
                   <div>
                     <span className="text-[10px] text-muted-foreground block font-mono">01:00 م - 07:00 م</span>
@@ -238,7 +238,7 @@ export default function AttendanceHome() {
             <div className="grid grid-cols-3 gap-6">
 
               {/* Lateness Gauge */}
-              <div className="p-5 bg-card border border-border/60 rounded-3xl text-center space-y-3 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-3xl text-center space-y-3 shadow-xs">
                 <div className="w-14 h-14 rounded-full border-4 border-amber-100 border-t-amber-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-foreground">
                   {data?.lateToday ?? 0}
                 </div>
@@ -246,7 +246,7 @@ export default function AttendanceHome() {
               </div>
 
               {/* Missing Checkouts */}
-              <div className="p-5 bg-card border border-border/60 rounded-3xl text-center space-y-3 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-3xl text-center space-y-3 shadow-xs">
                 <div className="w-14 h-14 rounded-full border-4 border-rose-100 border-t-rose-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-foreground">
                   {data?.missingCheckoutYesterday ?? 0}
                 </div>
@@ -254,7 +254,7 @@ export default function AttendanceHome() {
               </div>
 
               {/* Active Inside */}
-              <div className="p-5 bg-card border border-border/60 rounded-3xl text-center space-y-3 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-3xl text-center space-y-3 shadow-xs">
                 <div className="w-14 h-14 rounded-full border-4 border-sky-100 border-t-sky-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-foreground">
                   {data?.insideNow ?? 0}
                 </div>
@@ -285,7 +285,7 @@ export default function AttendanceHome() {
                     <span>مزامنة سجلات البصمة</span>
                   </span>
                   <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-mono font-bold">
-                    {syncMutation.isPending ? "جاري..." : "سحب"}
+                    {syncMutation.isPending ? "جاري…" : "سحب"}
                   </span>
                 </button>
               )}
@@ -301,7 +301,7 @@ export default function AttendanceHome() {
                     <span>تطبيق قواعد الاحتساب</span>
                   </span>
                   <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-mono font-bold">
-                    {recomputeMutation.isPending ? "جاري..." : "تطبيق"}
+                    {recomputeMutation.isPending ? "جاري…" : "تطبيق"}
                   </span>
                 </button>
               )}
@@ -358,7 +358,7 @@ export default function AttendanceHome() {
       {(syncMsg || recomputeMsg) && (
         <div className="grid gap-4 md:grid-cols-2 pt-2">
           {syncMsg && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs text-foreground shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-start gap-2.5 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs text-foreground shadow-xs animate-in fade-in duration-300">
               <Zap className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-foreground">المزامنة:</span> {syncMsg}
@@ -366,7 +366,7 @@ export default function AttendanceHome() {
             </div>
           )}
           {recomputeMsg && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs text-foreground shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-start gap-2.5 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs text-foreground shadow-xs animate-in fade-in duration-300">
               <RefreshCw className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5 animate-spin" />
               <div>
                 <span className="font-bold text-foreground">احتساب القواعد:</span> {recomputeMsg}

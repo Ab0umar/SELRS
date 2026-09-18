@@ -323,7 +323,7 @@ export default function MedicationsCatalogPage({
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="بحث عن دواء..."
+            placeholder="بحث عن دواء…"
             className="md:flex-1 md:max-w-md md:order-1"
           />
         </div>

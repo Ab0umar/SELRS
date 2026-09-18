@@ -32,17 +32,49 @@ function CertLabel({ children }: { children: string }) {
   );
 }
 
-export default function MedicalConditionReport() {
+export type MedicalConditionReportProps = {
+  params?: { id?: string };
+  patientId?: number;
+  onSelectPatient?: (id: number | undefined) => void;
+  hideHeaderSearch?: boolean;
+  hidePrintButton?: boolean;
+};
+
+export default function MedicalConditionReport({
+  params: routeParams,
+  patientId: propPatientId,
+  onSelectPatient,
+  hideHeaderSearch = false,
+  hidePrintButton = false,
+}: MedicalConditionReportProps = {}) {
   const { isAuthenticated, user } = useAuth();
   const [, params] = useRoute("/medical-condition-report/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const routePatientId = params?.id
+    ? Number(params.id)
+    : routeParams?.id
+      ? Number(routeParams.id)
+      : undefined;
+  const queryParamId =
+    typeof window !== "undefined"
+      ? Number(new URLSearchParams(window.location.search).get("patientId")) ||
+        Number(new URLSearchParams(window.location.search).get("id")) ||
+        undefined
+      : undefined;
   const requestedVisitDate =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("visitDate") || ""
       : "";
   const [patientId, setPatientId] = useState<number | undefined>(
-    initialPatientId,
+    propPatientId ?? routePatientId ?? queryParamId,
   );
+
+  useEffect(() => {
+    if (hideHeaderSearch || onSelectPatient) {
+      setPatientId(propPatientId);
+    } else if (propPatientId !== undefined) {
+      setPatientId(propPatientId);
+    }
+  }, [propPatientId, hideHeaderSearch, onSelectPatient]);
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId),
@@ -90,22 +122,32 @@ export default function MedicalConditionReport() {
   };
 
   useEffect(() => {
-    if (initialPatientId) setPatientId(initialPatientId);
-  }, [initialPatientId]);
-
-  useEffect(() => {
     const fullName = String(user?.name ?? "").trim();
     if (fullName && !doctorName) setDoctorName(fullName);
   }, [doctorName, user?.name]);
 
   useEffect(() => {
+    if (!patientId) {
+      setPatientName("");
+      setPatientCode("");
+      setPatientDob("");
+      setCondition("");
+      setOperationType("");
+      setOperationDate("");
+      setVaOd("");
+      setVaOs("");
+      setComplications("");
+      setFollowUpPlan("");
+      setExistingReportId(undefined);
+      return;
+    }
     if (!patient) return;
     setPatientName(patient.fullName || "");
     setPatientCode(patient.patientCode || "");
     setPatientDob(
       patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
     );
-  }, [patient]);
+  }, [patientId, patient]);
 
   useEffect(() => {
     const report = requestedVisitDate
@@ -259,7 +301,7 @@ export default function MedicalConditionReport() {
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div>
-            <h1 className="text-lg font-extrabold text-[#00355f]">
+            <h1 className="text-lg font-extrabold text-[#00355f] ">
               Medical Condition Report
             </h1>
             <p className="text-xs font-semibold text-[#727780]">
@@ -270,7 +312,7 @@ export default function MedicalConditionReport() {
             <div className="w-64">
               <Select value={templateId} onValueChange={applyTemplate}>
                 <SelectTrigger>
-                  <SelectValue placeholder="نموذج جاهز..." />
+                  <SelectValue placeholder="نموذج جاهز…" />
                 </SelectTrigger>
                 <SelectContent>
                   {templates.map((template) => (
@@ -290,14 +332,18 @@ export default function MedicalConditionReport() {
             >
               <Settings2 className="h-4 w-4" />
             </Button>
-            <div className="w-72">
-              <PatientPicker
-                initialPatientId={patientId}
-                onSelect={(selected) => {
-                  if (selected?.id) setPatientId(Number(selected.id));
-                }}
-              />
-            </div>
+            {!hideHeaderSearch && (
+              <div className="w-72">
+                <PatientPicker
+                  initialPatientId={patientId}
+                  onSelect={(selected) => {
+                    const newId = selected?.id ? Number(selected.id) : undefined;
+                    setPatientId(newId);
+                    onSelectPatient?.(newId);
+                  }}
+                />
+              </div>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -306,32 +352,36 @@ export default function MedicalConditionReport() {
               disabled={saveReportMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {saveReportMutation.isPending ? "جارٍ الحفظ..." : "Save"}
+              {saveReportMutation.isPending ? "جارٍ الحفظ…" : "Save"}
             </Button>
-            <Button
-              type="button"
-              className="bg-[#00355f] text-white"
-              onClick={() => window.print()}
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-[#c2c7d1]"
-              onClick={() => window.print()}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              PDF
-            </Button>
+            {!hidePrintButton && (
+              <>
+                <Button
+                  type="button"
+                  className="bg-[#00355f] text-white"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#c2c7d1]"
+                  onClick={() => window.print()}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      <div className="mcr-print-shell flex justify-center p-8" dir="rtl">
-        <ClinicalReportFrame
-          title="Medical Condition Report | تقرير حالة طبية"
+      <div className="mcr-print-shell flex justify-center p-8" dir="rtl" >
+        <ClinicalReportFrame 
+          title="Medical Condition Report | تقرير حالة طبية" 
           generatedDate={reportDate}
           patient={{
             name: patientName,
@@ -349,7 +399,7 @@ export default function MedicalConditionReport() {
                 تقرير طبي
               </h3>
               <p className="text-[15px] leading-8 text-[#161d1f]">
-                تشهد العيادة بأن المريض المذكور أدناه يعاني من الحالة الطبية
+                يشهد المركز بأن المريض المذكور أدناه يعاني من الحالة الطبية
                 التالية:{" "}
                 <Input
                   value={condition}
@@ -433,13 +483,13 @@ export default function MedicalConditionReport() {
                 <table className="w-full border-collapse text-center">
                   <thead>
                     <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
-                      <th className="border border-[#c2c7d1] px-3 py-2">Eye</th>
-                      <th className="border border-[#c2c7d1] px-3 py-2">VA</th>
+                      <th className="border border-[#c2c7d1] px-3 py-2 text-center">Eye</th>
+                      <th className="border border-[#c2c7d1] px-3 py-2 text-center">VA</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
+                      <td className="border border-[#c2c7d1] px-3 py-2 text-center font-bold">
                         OD
                       </td>
                       <td className="border border-[#c2c7d1] p-0">
@@ -451,7 +501,7 @@ export default function MedicalConditionReport() {
                       </td>
                     </tr>
                     <tr>
-                      <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
+                      <td className="border border-[#c2c7d1] px-3 py-2 text-center font-bold">
                         OS
                       </td>
                       <td className="border border-[#c2c7d1] p-0">
@@ -476,7 +526,7 @@ export default function MedicalConditionReport() {
                 onChange={(event) => setComplications(event.target.value)}
                 rows={4}
                 className="border-[#c2c7d1] text-[15px]"
-                placeholder="اذكر أي مضاعفات ملاحظة، إن وجدت..."
+                placeholder="اذكر أي مضاعفات ملاحظة، إن وجدت…"
               />
             </section>
 
@@ -489,7 +539,7 @@ export default function MedicalConditionReport() {
                 onChange={(event) => setFollowUpPlan(event.target.value)}
                 rows={4}
                 className="border-[#c2c7d1] text-[15px]"
-                placeholder="اذكر توصيات المتابعة والموعد القادم..."
+                placeholder="اذكر توصيات المتابعة والموعد القادم…"
               />
             </section>
 

@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { fmt, fmtDate, todayIso } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
 import { AccountingPage } from "./AccountingPagePrimitives";
+import { useAccountingTabMetrics } from "./accountingTabMetrics";
+import { AccEntityImportDialog } from "./AccEntityImportDialog";
 
 const PAGE_SIZE = 50;
 
@@ -135,79 +137,21 @@ export default function AccountingInstapay() {
   const instapay = reportsQ.data?.instapay;
   const { rows = [], total = 0 } = ledgerQ.data ?? {};
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const net = instapay?.net ?? 0;
 
-  return (
-    <AccountingPage
-      eyebrow="Instapay"
-      title="حركات انستاباي"
-      description="متابعة إيرادات ومصروفات انستاباي مع رصيد مستقل وسجل حركات واضح."
-    >
-      <div className="space-y-4 lg:space-y-5" dir="rtl">
-        <section className="overflow-hidden rounded-[24px] border border-border bg-background">
-          {/* Metrics */}
-          <div className="p-4 lg:p-5">
-            <div className="grid gap-3 sm:grid-cols-3">
-              {(
-                [
-                  {
-                    label: "منه (إيراد)",
-                    val: instapay?.totalIn,
-                    cls: "text-success",
-                    icon: TrendingUp,
-                  },
-                  {
-                    label: "معاه (مصروف)",
-                    val: instapay?.totalOut,
-                    cls: "text-destructive",
-                    icon: TrendingDown,
-                  },
-                  {
-                    label: "الرصيد",
-                    val: net,
-                    cls: net >= 0 ? "text-primary" : "text-destructive",
-                    icon: Wallet,
-                  },
-                ] as const
-              ).map((m) => {
-                const Icon = m.icon;
-                return (
-                  <div
-                    key={m.label}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-muted px-4 py-3"
-                  >
-                    <div
-                      className={cn(
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background",
-                        m.cls,
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[11px] font-medium text-muted-foreground">
-                        {m.label}
-                      </div>
-                      <div
-                        className={cn(
-                          "mt-0.5 text-lg font-bold tabular-nums leading-none",
-                          m.cls,
-                        )}
-                      >
-                        {reportsQ.isLoading ? "..." : fmt(m.val)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+  const tabMetricItems = [
+    { label: "منه (إيراد)", value: fmt(instapay?.totalIn), icon: TrendingUp },
+    { label: "معاه (مصروف)", value: fmt(instapay?.totalOut), icon: TrendingDown },
+    { label: "الرصيد", value: fmt(net), icon: Wallet },
+  ];
+  useAccountingTabMetrics(tabMetricItems);
 
-          {/* Inline form */}
-          <div
-            ref={formRef}
-            className="border-t border-border px-4 pb-4 pt-3 lg:px-5"
-          >
+  return (
+    <AccountingPage>
+      <div className="space-y-3 sm:space-y-3.5" dir="rtl">
+        <section className="w-fit max-w-full rounded-xl border border-border/60 bg-card p-2.5 sm:p-3">
+          <div ref={formRef}>
             <div className="mb-2 flex items-center justify-between">
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {editingId ? "تعديل قيد" : "إضافة حركة"}
@@ -222,24 +166,9 @@ export default function AccountingInstapay() {
                 </button>
               )}
             </div>
-            <div className="grid gap-3">
-              <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)]">
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="instapay-date"
-                    className="text-xs text-muted-foreground"
-                  >
-                    التاريخ
-                  </label>
-                  <DateInput
-                    id="instapay-date"
-                    value={txDate}
-                    onChange={(e) => setTxDate(e.target.value)}
-                    className="h-10 rounded-lg border border-border bg-muted text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="instapay-in" className="text-xs text-success">
+            <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+                <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                  <label htmlFor="instapay-in" className="text-base font-bold text-success">
                     منه (إيراد)
                   </label>
                   <input
@@ -249,14 +178,11 @@ export default function AccountingInstapay() {
                     value={inAmount}
                     onChange={(e) => setInAmount(e.target.value)}
                     placeholder="0"
-                    className="h-10 rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-success placeholder:text-muted-foreground outline-none focus:border-success/60 focus:ring-2 focus:ring-success/20"
+                    className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-success placeholder:text-muted-foreground outline-none focus:border-success focus:ring-2 focus:ring-success/30"
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="instapay-out"
-                    className="text-xs text-destructive"
-                  >
+                <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                  <label htmlFor="instapay-out" className="text-base font-bold text-destructive">
                     معاه (مصروف)
                   </label>
                   <input
@@ -266,95 +192,51 @@ export default function AccountingInstapay() {
                     value={outAmount}
                     onChange={(e) => setOutAmount(e.target.value)}
                     placeholder="0"
-                    className="h-10 rounded-lg border border-border bg-muted px-3 text-sm tabular-nums text-destructive placeholder:text-muted-foreground outline-none focus:border-destructive/40 focus:ring-2 focus:ring-destructive/20"
+                    className="h-11 w-full rounded-lg border border-border bg-background px-2 text-lg tabular-nums text-destructive placeholder:text-muted-foreground outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/30"
                   />
                 </div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                <label htmlFor="instapay-notes" className="sr-only">
-                  البيان
-                </label>
-                <input
-                  id="instapay-notes"
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="البيان..."
-                  className="h-10 rounded-lg border border-border bg-muted text-muted-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                />
-                {editingId ? (
-                  <div className="flex gap-1.5 sm:justify-end">
-                    {delConfirm ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleDelete}
-                          disabled={busy}
-                          className="flex h-10 items-center gap-1 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-40"
-                        >
-                          {busy ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            "تأكيد"
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDelConfirm(false)}
-                          className="flex h-10 items-center rounded-lg border border-border px-4 text-sm text-muted-foreground hover:bg-muted"
-                        >
-                          إلغاء
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        aria-label="حذف القيد"
-                        onClick={() => setDelConfirm(true)}
-                        disabled={busy}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-destructive/70 hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
+                <div className="flex w-[11.5rem] shrink-0 flex-col gap-1">
+                  <label htmlFor="instapay-date" className="text-base font-bold text-foreground">
+                    التاريخ
+                  </label>
+                  <DateInput
+                    id="instapay-date"
+                    value={txDate}
+                    onChange={(e) => setTxDate(e.target.value)}
+                    className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  />
+                </div>
+                <div className="flex min-w-[12rem] max-w-sm flex-1 flex-col gap-1">
+                  <label htmlFor="instapay-notes" className="text-base font-bold text-foreground">
+                    البيان
+                  </label>
+                  <div className="flex gap-1.5">
+                    <input
+                      id="instapay-notes"
+                      type="text"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="البيان…"
+                      className="h-11 shrink-0 flex-1 rounded-lg border border-border bg-background px-2 text-lg text-foreground placeholder:text-muted-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                    />
                     <button
                       type="button"
-                      onClick={handleSubmit}
                       disabled={busy || !txDate}
-                      className="flex h-10 items-center gap-1.5 rounded-lg bg-secondary px-4 text-sm font-semibold text-card-foreground hover:bg-secondary/90 disabled:opacity-40"
+                      onClick={() => void handleSubmit()}
+                      className={cn(
+                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-card-foreground transition-colors font-medium",
+                        "bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed",
+                      )}
                     >
                       {busy ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        "تحديث"
+                        <span className="text-xl font-bold">+</span>
                       )}
                     </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label="إضافة حركة"
-                    disabled={busy || !txDate}
-                    onClick={handleSubmit}
-                    className={cn(
-                      "flex h-10 w-full items-center justify-center rounded-lg text-card-foreground transition-colors sm:w-auto sm:px-4",
-                      saved
-                        ? "bg-success/100"
-                        : "bg-secondary hover:bg-secondary/90 disabled:opacity-40",
-                    )}
-                  >
-                    {busy ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : saved ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <span className="text-sm font-bold">+</span>
-                    )}
-                    <span className="mr-1 text-sm font-semibold">إضافة</span>
-                  </button>
-                )}
+                </div>
               </div>
-            </div>
           </div>
         </section>
 
@@ -370,6 +252,7 @@ export default function AccountingInstapay() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <AccEntityImportDialog entity="insta" onDone={invalidate} />
               <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-muted px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
                 <Search
                   className="h-4 w-4 shrink-0 text-muted-foreground"
@@ -386,7 +269,7 @@ export default function AccountingInstapay() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="بحث في البيان..."
+                  placeholder="بحث في البيان…"
                   className="w-44 min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
                 {search ? (

@@ -68,7 +68,8 @@ describe("color token regressions", () => {
     expect(source).not.toContain("text-primary-foreground=checked]");
     expect(source).not.toContain("border-primary=checked]");
     expect(source).not.toMatch(
-      /bg-primary[^\n]*text-primary-foreground[^\n]*hover:bg-primary\/10/,
+      // Do not combine classes from separate string literals (e.g. ternary branches).
+      /bg-primary[^"'`\n]*text-primary-foreground[^"'`\n]*hover:bg-primary\/10/,
     );
     expect(source).not.toContain(
       "bg-destructive/10 text-destructive-foreground",

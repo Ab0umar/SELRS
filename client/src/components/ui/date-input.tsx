@@ -144,7 +144,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
       >
         <div
           className={cn(
-            "inline-flex items-center gap-1 rounded-md border border-input bg-transparent",
+            "inline-flex h-11 w-auto min-w-[11rem] shrink-0 items-center gap-0.5 overflow-hidden rounded-lg border border-input bg-background",
             "focus-within:ring-1 focus-within:ring-ring",
             isDisabled && "opacity-50",
             className,
@@ -166,7 +166,6 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             placeholder={placeholder || "يوم/شهر/سنة"}
             // Keep the default wide enough for the full date. Dense layouts
             // can opt into a smaller input through inputClassName.
-            size={11}
             value={text}
             onChange={(e) => setText(formatTyped(e.target.value))}
             onBlur={() => {
@@ -180,7 +179,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
               }
             }}
             className={cn(
-              "w-auto min-w-28 border-0 shadow-none focus-visible:ring-0 tabular-nums",
+              "min-w-0 flex-1 border-0 px-2 shadow-none focus-visible:ring-0 tabular-nums text-base",
               inputClassName,
             )}
           />
@@ -190,7 +189,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
               variant="ghost"
               size="icon"
               disabled={isDisabled}
-              className="h-8 w-8 shrink-0 print:hidden"
+              className="h-9 w-9 shrink-0 print:hidden"
               tabIndex={-1}
             >
               <CalendarIcon className="h-4 w-4 opacity-60" />

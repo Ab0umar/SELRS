@@ -87,7 +87,7 @@ export default function KfOperationForm() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض...</p>
+        <p className="text-muted-foreground text-sm">جاري تحميل بيانات المريض…</p>
       </div>
     );
   }
@@ -165,7 +165,7 @@ export default function KfOperationForm() {
                   }}
                 >
                   <SelectTrigger id="eye" className={errors.eye ? "border-destructive" : ""}>
-                    <SelectValue placeholder="اختر العين..." />
+                    <SelectValue placeholder="اختر العين…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="right">العين اليمنى (OD)</SelectItem>
@@ -249,7 +249,7 @@ export default function KfOperationForm() {
                 <Textarea
                   id="notes"
                   rows={4}
-                  placeholder="ملاحظات حول التحضير للعملية، قياسات العدسات، التوصيات الطبية..."
+                  placeholder="ملاحظات حول التحضير للعملية، قياسات العدسات، التوصيات الطبية…"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />

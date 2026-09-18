@@ -361,7 +361,7 @@ export default function PatientBook() {
               <Textarea
                 rows={4}
                 value={notes}
-                placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ العيادة بها..."
+                placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ العيادة بها…"
                 onChange={(e) => setNotes(e.target.value)}
                 className="resize-none rounded-xl border-border/60 focus-visible:ring-primary/10"
               />
@@ -432,7 +432,7 @@ export default function PatientBook() {
                 disabled={!branch || !selectedDate || createBooking.isPending}
               >
                 {createBooking.isPending
-                  ? "جاري إرسال الحجز..."
+                  ? "جاري إرسال الحجز…"
                   : "تأكيد وإرسال طلب الحجز"}
               </Button>
             </div>

@@ -197,13 +197,13 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
           ))}
           <input
             className="mr-auto rounded-lg border border-border/60 px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary"
-            placeholder="بحث..."
+            placeholder="بحث…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
         <div className="space-y-2">
-          {isLoading && <div className="py-6 text-center text-sm text-muted-foreground">جاري التحميل...</div>}
+          {isLoading && <div className="py-6 text-center text-sm text-muted-foreground">جاري التحميل…</div>}
           {!isLoading && filteredItems.length === 0 && (
             <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border/60 rounded-lg">
               {allItems.length === 0 ? "لا توجد متابعات مسجلة" : "لا توجد متابعات مطابقة"}
@@ -330,7 +330,7 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
             <div className="relative flex-1 lg:w-72">
               <input
                 className="w-full rounded-lg border border-border/60 py-2 pl-4 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary"
-                placeholder="بحث باسم المريض أو الكود أو الملاحظات..."
+                placeholder="بحث باسم المريض أو الكود أو الملاحظات…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -348,7 +348,7 @@ export default function Followups(props: Partial<FollowupsProps> & object = {}) 
       {/* Cards list */}
       <div className="space-y-4">
         {isLoading && (
-          <div className="py-12 text-center text-muted-foreground">جاري التحميل...</div>
+          <div className="py-12 text-center text-muted-foreground">جاري التحميل…</div>
         )}
         {!isLoading && filteredItems.length === 0 && (
           <div className="rounded-xl border border-dashed border-border/60 py-16 text-center text-muted-foreground">

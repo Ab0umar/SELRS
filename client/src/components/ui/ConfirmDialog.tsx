@@ -53,7 +53,7 @@ export function ConfirmDialog({
             disabled={isPending}
             variant={isDestructive ? "destructive" : "default"}
           >
-            {isPending ? "جاري..." : confirmLabel}
+            {isPending ? "جاري…" : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

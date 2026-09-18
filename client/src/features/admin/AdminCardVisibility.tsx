@@ -198,7 +198,7 @@ export default function AdminCardVisibility() {
             className="selrs-gradient-btn text-primary-foreground h-9 px-6 font-bold shadow-sm"
           >
             {updateCardVisibilityMutation.isPending
-              ? "جاري الحفظ..."
+              ? "جاري الحفظ…"
               : "حفظ الإعدادات"}
           </Button>
         }

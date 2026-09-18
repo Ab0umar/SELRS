@@ -164,7 +164,7 @@ export function ImportDialog({
             onClick={onApply}
             disabled={applyImportPending || importPreviewRows.length === 0}
           >
-            {applyImportPending ? "Applying..." : "Apply Valid Rows"}
+            {applyImportPending ? "Applying…" : "Apply Valid Rows"}
           </Button>
         </div>
       </DialogContent>

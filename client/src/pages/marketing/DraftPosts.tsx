@@ -342,6 +342,7 @@ export default function DraftPosts() {
                   <img
                     src={d.fileUrl}
                     alt={d.originalName}
+                    loading="lazy"
                     className="aspect-square w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors flex items-end">

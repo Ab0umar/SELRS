@@ -317,7 +317,7 @@ export default function MyAttendanceProfile({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* Form 1: Permission Request */}
-          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-xs hover:scale-[1.01] transition-transform duration-200">
             <h3 className="text-xs font-black text-foreground uppercase tracking-wider border-b border-border/40 pb-2 flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-sky-600" />
               طلب إذن نوبة
@@ -343,7 +343,7 @@ export default function MyAttendanceProfile({
                 <DateInput
                   value={permForm.date}
                   onChange={(e) => setPermForm({ ...permForm, date: e.target.value })}
-                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary focus:bg-card transition-all"
+                  className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary focus:bg-card transition-all h-11 w-[11rem] shrink-0"
                 />
               </div>
 
@@ -392,7 +392,7 @@ export default function MyAttendanceProfile({
           </div>
 
           {/* Form 2: Leave Request */}
-          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-xs hover:scale-[1.01] transition-transform duration-200">
             <h3 className="text-xs font-black text-foreground uppercase tracking-wider border-b border-border/40 pb-2 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-600" />
               طلب إجازة جديدة
@@ -424,7 +424,7 @@ export default function MyAttendanceProfile({
                         dateTo: prev.dateTo < from ? from : prev.dateTo,
                       }));
                     }}
-                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary"
+                    className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none focus:border-primary h-11 w-[11rem] shrink-0"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -480,7 +480,7 @@ export default function MyAttendanceProfile({
           </div>
 
           {/* Form 3: Shift Swap/Change Request */}
-          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-sm hover:scale-[1.01] transition-transform duration-200">
+          <div className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-xs hover:scale-[1.01] transition-transform duration-200">
             <h3 className="text-xs font-black text-foreground uppercase tracking-wider border-b border-border/40 pb-2 flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
               تغيير / تبديل الوردية
@@ -526,7 +526,7 @@ export default function MyAttendanceProfile({
                       value={shiftRequestForm.dateTo}
                       min={shiftRequestForm.dateFrom}
                       onChange={(e) => setShiftRequestForm({ ...shiftRequestForm, dateTo: e.target.value })}
-                      className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none"
+                      className="rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 outline-none h-11 w-[11rem] shrink-0"
                     />
                   </div>
                 )}
@@ -563,7 +563,7 @@ export default function MyAttendanceProfile({
                           onClick={() => toggleWeeklyDay(index)}
                           className={`rounded-full px-2.5 py-1 text-[9px] font-bold border transition-all ${
                             active
-                              ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                              ? "bg-primary border-primary text-primary-foreground shadow-xs"
                               : "bg-card border-border/60 text-muted-foreground hover:bg-muted/40"
                           }`}
                         >

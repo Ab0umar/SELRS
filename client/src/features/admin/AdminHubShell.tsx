@@ -471,7 +471,7 @@ export default function AdminHubShell({
                 <Search className="size-4 text-muted-foreground absolute right-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="بحث سريع في البطاقات والأدوات..."
+                  placeholder="بحث سريع في البطاقات والأدوات…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-xl border border-border/60 bg-card py-2 pl-3 pr-9 text-xs font-bold text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -535,7 +535,7 @@ export default function AdminHubShell({
                 }}
                 aria-label="الانتقال السريع لصفحة أخرى"
               >
-                <option value="">الانتقال السريع لصفحة أخرى...</option>
+                <option value="">الانتقال السريع لصفحة أخرى…</option>
                 {accessibleModules.map((item) => (
                   <option key={item.href} value={item.href}>
                     {item.label}

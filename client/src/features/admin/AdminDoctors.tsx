@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  Fragment,
 } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -44,6 +43,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -54,7 +59,6 @@ import {
   MoreVertical,
   Plus,
   RefreshCw,
-  Settings,
   Stethoscope,
   Trash2,
   XCircle,
@@ -434,7 +438,7 @@ export default function AdminDoctors() {
         </label>
         <Input
           id={`${idPrefix}-name`}
-          placeholder="الاسم الكامل..."
+          placeholder="الاسم الكامل…"
           value={draft.name}
           onChange={(e) =>
             setDraft((prev) => ({ ...prev, name: e.target.value }))
@@ -527,7 +531,7 @@ export default function AdminDoctors() {
               />
               <span className="text-[11px] font-bold uppercase tracking-tight">
                 {syncRegistrationCatalogMutation.isPending
-                  ? "جاري..."
+                  ? "جاري…"
                   : "مزامنة السجل"}
               </span>
             </Button>
@@ -544,239 +548,307 @@ export default function AdminDoctors() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border bg-muted/15 px-4 py-3 text-xs">
-        <span className="font-black text-foreground">ملخص السجل</span>
-        <span className="text-muted-foreground">
-          الإجمالي{" "}
-          <strong className="mr-1 text-foreground">{doctorsTotal}</strong>
-        </span>
-        <span className="flex items-center gap-1.5 text-muted-foreground">
-          <span className="size-2 rounded-full bg-success" />
-          نشط <strong className="text-foreground">{doctorsActive}</strong>
-        </span>
-        <span className="flex items-center gap-1.5 text-muted-foreground">
-          <span className="size-2 rounded-full bg-destructive" />
-          معطّل <strong className="text-foreground">{doctorsInactive}</strong>
-        </span>
-      </div>
-
-      <div className="border-b border-border pb-4">
-        <div className="space-y-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
-            <div className="w-full lg:max-w-md">
-              <SearchBar
-                value={searchTerm}
-                onChange={setSearchTerm}
-                placeholder="بحث عن طبيب أو كود..."
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                className="h-9 px-5 font-bold text-xs"
-                onClick={() => void saveDoctors()}
-                disabled={updateDoctorsMutation.isPending}
-              >
-                حفظ التغييرات
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  e.currentTarget.value = "";
-                  if (!file) return;
-                  await importDoctorsCsv(file);
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 text-xs border-border/60"
-                disabled={isImporting}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                استيراد CSV
-              </Button>
-              {confirmClearAll ? (
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label="تأكيد"
-                    className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                    onClick={() => {
-                      setDoctors([]);
-                      setConfirmClearAll(false);
-                    }}
-                  >
-                    تأكيد
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="إلغاء"
-                    className="rounded bg-muted text-muted-foreground hover:bg-border"
-                    onClick={() => setConfirmClearAll(false)}
-                  >
-                    إلغاء
-                  </button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 px-3 border-dashed text-destructive-foreground bg-destructive text-destructive-foreground text-[11px] font-bold"
-                  disabled={doctors.length === 0}
-                  onClick={() => setConfirmClearAll(true)}
-                >
-                  مسح الكل
-                </Button>
-              )}
-            </div>
-          </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-[var(--bento-shadow-soft)]">
+          <p className="text-xs font-medium text-muted-foreground">الإجمالي</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {doctorsTotal}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-success/20 bg-success/5 px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-success">
+            <span className="size-1.5 rounded-full bg-success" /> نشط
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {doctorsActive}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-destructive/15 bg-destructive/5 px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+            <span className="size-1.5 rounded-full bg-destructive" /> معطّل
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {doctorsInactive}
+          </p>
         </div>
       </div>
 
-      <div className="grid min-h-[600px] overflow-hidden rounded-lg border border-border bg-background lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-l">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div>
-              <h2 className="text-sm font-black">دليل الأطباء</h2>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">
-                {filteredDoctors.length} نتيجة
-              </p>
-            </div>
-            <Stethoscope className="size-4 text-primary" />
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--bento-shadow-soft)]">
+        <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="w-full lg:max-w-sm">
+            <SearchBar
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="بحث عن طبيب أو كود…"
+            />
           </div>
-          <div className="max-h-[540px] overflow-y-auto p-2">
-            {filteredDoctors.map((doctor) => {
-              const active = selectedDoctor?.id === doctor.id;
-              return (
-                <button
-                  key={doctor.id}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2 text-xs"
+              onClick={() => void saveDoctors()}
+              disabled={updateDoctorsMutation.isPending}
+            >
+              {updateDoctorsMutation.isPending ? "جاري الحفظ…" : "حفظ التغييرات"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.currentTarget.value = "";
+                if (!file) return;
+                await importDoctorsCsv(file);
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 text-xs"
+              disabled={isImporting}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              استيراد CSV
+            </Button>
+            {confirmClearAll ? (
+              <div className="flex items-center gap-1">
+                <Button
                   type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    setDoctors([]);
+                    setConfirmClearAll(false);
+                  }}
+                >
+                  تأكيد المسح
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setConfirmClearAll(false)}
+                >
+                  إلغاء
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 text-destructive hover:bg-destructive/10"
+                disabled={doctors.length === 0}
+                onClick={() => setConfirmClearAll(true)}
+              >
+                مسح الكل
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table className="min-w-[860px] text-right" dir="rtl">
+            <TableHeader>
+              <TableRow className="border-b-border/60 hover:bg-transparent">
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  الطبيب
+                </TableHead>
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  الكود
+                </TableHead>
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  النوع
+                </TableHead>
+                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                  المقر
+                </TableHead>
+                <TableHead className="h-11 text-center font-semibold text-muted-foreground">
+                  الحالة
+                </TableHead>
+                <TableHead className="h-11 w-14" />
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border/50">
+              {doctorsQuery.isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-16 text-center">
+                    <div className="mx-auto max-w-sm space-y-2">
+                      {[0, 1, 2, 3].map((row) => (
+                        <div
+                          key={row}
+                          className="h-8 animate-pulse rounded-md bg-muted"
+                        />
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {!doctorsQuery.isLoading && filteredDoctors.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
+                    لا توجد نتائج مطابقة لبحثك.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {filteredDoctors.map((doctor) => (
+                <TableRow
+                  key={doctor.id}
                   onClick={() => setSelectedDoctorId(doctor.id)}
                   className={cn(
-                    "mb-1 flex w-full items-center gap-3 rounded-md px-3 py-3 text-right transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-background",
+                    "cursor-pointer transition-colors hover:bg-primary/5",
+                    !doctor.isActive && "opacity-60",
                   )}
                 >
-                  <Avatar className="size-9 shrink-0 border border-current/15">
-                    <AvatarFallback
+                  <TableCell className="py-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-9 shrink-0 border border-border/60">
+                        <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                          {doctorArabicInitials(doctor.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="block truncate text-sm font-semibold text-foreground">
+                        {doctor.name}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">
+                    {doctor.code}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
                       className={cn(
-                        "text-xs font-black",
-                        active
-                          ? "bg-primary-foreground/15 text-primary-foreground"
-                          : "bg-primary/10 text-primary",
+                        "border-0 text-[10px] font-bold",
+                        doctorTypeBadgeClass(doctor.doctorType),
                       )}
                     >
-                      {doctorArabicInitials(doctor.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-black">
-                      {doctor.name}
-                    </span>
+                      {doctorTypeLabel(doctor.doctorType)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {locationLabel(doctor.locationType)}
+                  </TableCell>
+                  <TableCell className="text-center">
                     <span
                       className={cn(
-                        "mt-0.5 block text-[10px]",
-                        active
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground",
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                        doctor.isActive
+                          ? "bg-success/10 text-success"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
-                      {doctor.code} · {doctorTypeLabel(doctor.doctorType)}
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          doctor.isActive
+                            ? "bg-success"
+                            : "bg-muted-foreground/50",
+                        )}
+                      />
+                      {doctor.isActive ? "نشط" : "معطّل"}
                     </span>
-                  </span>
-                  <span
-                    className={cn(
-                      "size-2 rounded-full",
-                      doctor.isActive ? "bg-success" : "bg-muted-foreground/40",
-                    )}
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      aria-label={`تعديل ${doctor.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedDoctorId(doctor.id);
+                      }}
+                    >
+                      <Edit2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
-        <section className="min-w-0">
+      <Sheet
+        open={!!selectedDoctor}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDoctorId(null);
+        }}
+      >
+        <SheetContent
+          side="left"
+          className="w-full overflow-y-auto p-0 sm:max-w-lg"
+        >
           {selectedDoctor ? (
-            <div>
-              <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+            <>
+              <SheetHeader className="space-y-3 border-b border-border/60 px-6 pb-5 pt-6 text-right">
                 <div className="flex items-center gap-3">
-                  <Avatar className="size-12 border border-border">
-                    <AvatarFallback className="bg-primary/10 font-black text-primary">
+                  <Avatar className="size-12 border border-border/60">
+                    <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
                       {doctorArabicInitials(selectedDoctor.name)}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h2 className="text-lg font-black">
+                  <div className="min-w-0">
+                    <SheetTitle className="truncate text-lg font-bold">
                       {selectedDoctor.name}
-                    </h2>
-                    <div className="mt-1 flex items-center gap-2">
-                      <Badge
-                        className={cn(
-                          "rounded text-[10px]",
-                          doctorTypeBadgeClass(selectedDoctor.doctorType),
-                        )}
-                      >
-                        {doctorTypeLabel(selectedDoctor.doctorType)}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {locationLabel(selectedDoctor.locationType)}
-                      </span>
-                    </div>
+                    </SheetTitle>
+                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                      {selectedDoctor.code}
+                    </p>
                   </div>
                 </div>
-                <label className="flex items-center gap-2 text-xs font-bold">
-                  <Checkbox
-                    checked={selectedDoctor.isActive}
-                    onCheckedChange={(checked) =>
-                      updateDoctor(selectedDoctor.id, {
-                        isActive: Boolean(checked),
-                      })
-                    }
-                  />
-                  {selectedDoctor.isActive ? "الحساب نشط" : "الحساب معطّل"}
-                </label>
-              </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={cn(
+                      "border-0 text-[10px] font-bold",
+                      doctorTypeBadgeClass(selectedDoctor.doctorType),
+                    )}
+                  >
+                    {doctorTypeLabel(selectedDoctor.doctorType)}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {locationLabel(selectedDoctor.locationType)}
+                  </span>
+                </div>
+              </SheetHeader>
 
-              <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_240px]">
-                <div>
-                  <h3 className="mb-4 text-sm font-black">بيانات الطبيب</h3>
+              <div className="space-y-6 px-6 py-6">
+                <section className="space-y-4">
+                  <h3 className="text-sm font-bold">بيانات الطبيب</h3>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sheet-doctor-name">اسم الطبيب</Label>
+                    <Input
+                      id="sheet-doctor-name"
+                      value={selectedDoctor.name}
+                      onChange={(event) =>
+                        updateDoctor(selectedDoctor.id, {
+                          name: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sheet-doctor-code">الكود</Label>
+                    <Input
+                      id="sheet-doctor-code"
+                      dir="ltr"
+                      className="font-mono"
+                      value={selectedDoctor.code}
+                      onChange={(event) =>
+                        updateDoctor(selectedDoctor.id, {
+                          code: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="selected-doctor-name">اسم الطبيب</Label>
-                      <Input
-                        id="selected-doctor-name"
-                        value={selectedDoctor.name}
-                        onChange={(event) =>
-                          updateDoctor(selectedDoctor.id, {
-                            name: event.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="selected-doctor-code">الكود</Label>
-                      <Input
-                        id="selected-doctor-code"
-                        dir="ltr"
-                        className="font-mono"
-                        value={selectedDoctor.code}
-                        onChange={(event) =>
-                          updateDoctor(selectedDoctor.id, {
-                            code: event.target.value,
-                          })
-                        }
-                      />
-                    </div>
                     <div className="space-y-1.5">
                       <Label>النوع</Label>
                       <Select
@@ -817,27 +889,36 @@ export default function AdminDoctors() {
                       </Select>
                     </div>
                   </div>
-                  <div className="mt-5 flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => void saveDoctors()}
-                      disabled={updateDoctorsMutation.isPending}
-                    >
-                      {updateDoctorsMutation.isPending
-                        ? "جاري الحفظ"
-                        : "حفظ التغييرات"}
-                    </Button>
-                  </div>
-                </div>
+                  <label className="flex items-center gap-2 pt-1 text-sm font-medium">
+                    <Checkbox
+                      checked={selectedDoctor.isActive}
+                      onCheckedChange={(checked) =>
+                        updateDoctor(selectedDoctor.id, {
+                          isActive: Boolean(checked),
+                        })
+                      }
+                    />
+                    {selectedDoctor.isActive ? "الحساب نشط" : "الحساب معطّل"}
+                  </label>
+                </section>
 
-                <aside className="border-t border-border pt-5 xl:border-t-0 xl:border-r xl:pr-5 xl:pt-0">
-                  <h3 className="text-sm font-black">إجراءات الحساب</h3>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    الحذف يزيل الطبيب من الدليل بعد حفظ التغييرات.
+                <section className="space-y-3 border-t border-border/60 pt-5">
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => void saveDoctors()}
+                    disabled={updateDoctorsMutation.isPending}
+                  >
+                    {updateDoctorsMutation.isPending
+                      ? "جاري الحفظ…"
+                      : "حفظ التغييرات"}
+                  </Button>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    الحفظ يزامن كامل الدليل — الحذف يُطبق بعد الحفظ.
                   </p>
                   {delConfirmDoctor === selectedDoctor.id ? (
-                    <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3">
-                      <p className="text-xs font-bold text-destructive">
+                    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                      <p className="text-sm font-bold text-destructive">
                         حذف {selectedDoctor.name}؟
                       </p>
                       <div className="mt-3 flex gap-2">
@@ -866,365 +947,19 @@ export default function AdminDoctors() {
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
-                      className="mt-4 w-full gap-2 text-destructive"
+                      className="w-full gap-2 text-destructive hover:bg-destructive/10"
                       onClick={() => setDelConfirmDoctor(selectedDoctor.id)}
                     >
                       <Trash2 className="size-4" />
                       حذف الطبيب
                     </Button>
                   )}
-                </aside>
+                </section>
               </div>
-            </div>
-          ) : (
-            <div className="flex min-h-[500px] items-center justify-center text-sm text-muted-foreground">
-              لا يوجد طبيب مطابق للبحث.
-            </div>
-          )}
-        </section>
-      </div>
-
-      <Card className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-none">
-        <CardContent className="p-0">
-          <div className="overflow-hidden">
-            <Table className="min-w-[900px] text-right" dir="rtl">
-              <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm shadow-sm">
-                <TableRow className="hover:bg-transparent border-b-primary/10 h-12">
-                  <TableHead className="text-right font-bold text-primary">
-                    الطبيب والتخصص
-                  </TableHead>
-                  <TableHead className="text-right font-bold text-primary">
-                    الكود
-                  </TableHead>
-                  <TableHead className="text-right font-bold text-primary">
-                    النوع
-                  </TableHead>
-                  <TableHead className="text-right font-bold text-primary">
-                    المقر
-                  </TableHead>
-                  <TableHead className="text-right font-bold text-primary">
-                    الحالة
-                  </TableHead>
-                  <TableHead className="w-[120px] text-center font-bold text-primary">
-                    إجراءات
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {doctorsQuery.isLoading && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-20 text-center text-muted-foreground animate-pulse"
-                    >
-                      جاري تحميل بيانات الأطباء…
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!doctorsQuery.isLoading && filteredDoctors.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-20 text-center text-muted-foreground bg-muted/20"
-                    >
-                      لا توجد نتائج مطابقة لبحثك.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {filteredDoctors.map((doctor, idx) => {
-                  const initials = doctorArabicInitials(doctor.name);
-                  return (
-                    <Fragment key={doctor.id}>
-                      <TableRow
-                        className={cn(
-                          "group transition-colors hover:bg-primary/[0.03]",
-                          idx % 2 === 0 ? "bg-background" : "bg-muted/10",
-                          !doctor.isActive &&
-                            "opacity-60 bg-muted/5 grayscale-[0.3]",
-                        )}
-                      >
-                        <TableCell className="align-middle py-3">
-                          <div className="flex items-center justify-end gap-3">
-                            <div className="min-w-0 text-right">
-                              <div className="font-bold text-sm leading-tight text-foreground/90 group-hover:text-primary transition-colors">
-                                {doctor.name}
-                              </div>
-                              <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground font-medium">
-                                <span>
-                                  {doctorTypeLabel(doctor.doctorType)}
-                                </span>
-                              </div>
-                            </div>
-                            <Avatar className="h-9 w-9 shrink-0 border border-border/60 bg-primary text-primary-foreground shadow-inner">
-                              <AvatarFallback className="bg-primary text-primary-foreground">
-                                {initials}
-                              </AvatarFallback>
-                            </Avatar>
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-mono font-medium text-muted-foreground tabular-nums py-3">
-                          {doctor.code}
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap py-3">
-                          <Badge
-                            className={cn(
-                              "font-bold text-[10px] px-2 py-0.5 shadow-none border-0",
-                              doctorTypeBadgeClass(doctor.doctorType),
-                            )}
-                          >
-                            {doctorTypeLabel(doctor.doctorType)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap text-[11px] font-semibold text-muted-foreground py-3">
-                          {locationLabel(doctor.locationType)}
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap py-3">
-                          <div className="flex items-center justify-end gap-2">
-                            <span
-                              className={cn(
-                                "text-[10px] font-bold",
-                                doctor.isActive
-                                  ? "text-success"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {doctor.isActive ? "نشط" : "معطل"}
-                            </span>
-                            <Checkbox
-                              className="h-3.5 w-3.5"
-                              checked={doctor.isActive}
-                              onCheckedChange={(checked) =>
-                                setDoctors((prev) =>
-                                  prev.map((d) =>
-                                    d.id === doctor.id
-                                      ? { ...d, isActive: Boolean(checked) }
-                                      : d,
-                                  ),
-                                )
-                              }
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center align-middle py-3">
-                          <div className="flex justify-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-lg text-foreground hover:bg-primary hover:text-primary-foreground"
-                              aria-label="تعديل بيانات الطبيب"
-                              onClick={() =>
-                                setExpandedId((id) =>
-                                  id === doctor.id ? null : doctor.id,
-                                )
-                              }
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            {delConfirmDoctor === doctor.id ? (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  aria-label="تأكيد الحذف"
-                                  className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                                  onClick={() => {
-                                    removeDoctor(doctor.id);
-                                    setDelConfirmDoctor(null);
-                                  }}
-                                >
-                                  تأكيد
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label="إلغاء الحذف"
-                                  className="rounded bg-muted text-muted-foreground hover:bg-border"
-                                  onClick={() => setDelConfirmDoctor(null)}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                aria-label="حذف الطبيب"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                                onClick={() => setDelConfirmDoctor(doctor.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      {expandedId === doctor.id && (
-                        <TableRow
-                          key={`${doctor.id}-edit`}
-                          className="bg-primary/[0.02] border-b shadow-inner"
-                        >
-                          <TableCell colSpan={6} className="py-4 px-12">
-                            <div className="rounded-xl border border-primary/20 bg-background p-5 shadow-lg space-y-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Settings className="h-4 w-4 text-primary" />
-                                <span className="text-xs font-bold text-primary">
-                                  تعديل بيانات الطبيب
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 items-end">
-                                <div className="space-y-1.5">
-                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">
-                                    الكود
-                                  </span>
-                                  <Input
-                                    value={doctor.code}
-                                    dir="ltr"
-                                    className="h-9 text-xs font-mono bg-muted/20"
-                                    onChange={(e) =>
-                                      setDoctors((prev) =>
-                                        prev.map((d) =>
-                                          d.id === doctor.id
-                                            ? { ...d, code: e.target.value }
-                                            : d,
-                                        ),
-                                      )
-                                    }
-                                  />
-                                </div>
-                                <div className="space-y-1.5 sm:col-span-1">
-                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">
-                                    الاسم
-                                  </span>
-                                  <Input
-                                    value={doctor.name}
-                                    className="h-9 text-sm font-medium"
-                                    onChange={(e) =>
-                                      setDoctors((prev) =>
-                                        prev.map((d) =>
-                                          d.id === doctor.id
-                                            ? { ...d, name: e.target.value }
-                                            : d,
-                                        ),
-                                      )
-                                    }
-                                  />
-                                </div>
-                                <div className="space-y-1.5">
-                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">
-                                    المقر
-                                  </span>
-                                  <Select
-                                    value={doctor.locationType}
-                                    onValueChange={(value) =>
-                                      setDoctors((prev) =>
-                                        prev.map((d) =>
-                                          d.id === doctor.id
-                                            ? {
-                                                ...d,
-                                                locationType: value as
-                                                  "center" | "external",
-                                              }
-                                            : d,
-                                        ),
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className="h-9 bg-background text-xs border-primary/10">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem
-                                        value="center"
-                                        className="text-xs"
-                                      >
-                                        المركز
-                                      </SelectItem>
-                                      <SelectItem
-                                        value="external"
-                                        className="text-xs"
-                                      >
-                                        خارجي
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">
-                                    النوع
-                                  </span>
-                                  <Select
-                                    value={doctor.doctorType}
-                                    onValueChange={(value) =>
-                                      setDoctors((prev) =>
-                                        prev.map((d) =>
-                                          d.id === doctor.id
-                                            ? {
-                                                ...d,
-                                                doctorType: value as
-                                                  | "consultant"
-                                                  | "specialist"
-                                                  | "external",
-                                              }
-                                            : d,
-                                        ),
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className="h-9 bg-background text-xs border-primary/10">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem
-                                        value="consultant"
-                                        className="text-xs"
-                                      >
-                                        استشاري
-                                      </SelectItem>
-                                      <SelectItem
-                                        value="specialist"
-                                        className="text-xs"
-                                      >
-                                        أخصائي
-                                      </SelectItem>
-                                      <SelectItem
-                                        value="external"
-                                        className="text-xs"
-                                      >
-                                        طبيب خارجي
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-                              <div className="flex justify-end gap-2 pt-2 border-t border-dashed mt-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-[11px] font-bold text-muted-foreground"
-                                  onClick={() => setExpandedId(null)}
-                                >
-                                  إلغاء
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-8 text-[11px] font-bold bg-primary text-primary-foreground shadow-sm"
-                                  onClick={() => setExpandedId(null)}
-                                >
-                                  تم التعديل محلياً
-                                </Button>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
       <Dialog
         open={addOpen}
         onOpenChange={(open) => {

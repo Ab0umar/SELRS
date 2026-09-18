@@ -746,7 +746,7 @@ export default function MedicalFilePanel({
       console.log(
         "Exam created with ID:",
         selectedExaminationId,
-        "Now saving all data...",
+        "Now saving all data…",
       );
       setShouldSaveAfterCreate(false);
 
@@ -1134,7 +1134,7 @@ export default function MedicalFilePanel({
     onSuccess: async (examData: any) => {
       console.log("Examination created successfully:", examData);
       setTimeout(async () => {
-        console.log("Refetching examinations...");
+        console.log("Refetching examinations…");
         const result = await examinationsQuery.refetch();
         console.log("Refetch result:", result.data);
         const newExams = result.data || [];
@@ -1212,7 +1212,7 @@ export default function MedicalFilePanel({
       // Refetch visits and examinations to load the newly created data
       if (visitId) {
         console.log(
-          "Refetching visits and examinations after visit creation...",
+          "Refetching visits and examinations after visit creation…",
         );
         // Invalidate and refetch to ensure all panels see the new data
         await Promise.all([
@@ -1362,7 +1362,7 @@ export default function MedicalFilePanel({
     const selectedExam = examinations.find((e: any) => e.id === examIdToSave);
 
     if (examinationsQuery.isLoading) {
-      toast.error("جاري تحميل الفحوصات...");
+      toast.error("جاري تحميل الفحوصات…");
       return;
     }
 
@@ -1667,7 +1667,7 @@ export default function MedicalFilePanel({
             <div className="flex items-center justify-between border-b border-border/50 px-4 py-3 flex-shrink-0">
               <h2 className="text-sm font-semibold truncate">
                 {patientQuery.isLoading
-                  ? "جاري التحميل..."
+                  ? "جاري التحميل…"
                   : (patient?.fullName ?? "بدون اسم")}
               </h2>
               {embedded ? (
@@ -3217,14 +3217,14 @@ export default function MedicalFilePanel({
                           medicalHistory: e.target.value,
                         }))
                       }
-                      placeholder="اكتب الشكوى و الاعراض هنا..."
+                      placeholder="اكتب الشكوى و الاعراض هنا…"
                       className="order-3 min-h-[120px] text-sm"
                       rows={5}
                     />
                     <div className="relative order-1 mb-2 ml-auto w-full md:w-80">
                       <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
-                        placeholder="ابحث عن الأعراض..."
+                        placeholder="ابحث عن الأعراض…"
                         value={symptomSearchText}
                         onChange={(e) => setSymptomSearchText(e.target.value)}
                         className="h-10 pr-8 text-xs"
@@ -3299,14 +3299,14 @@ export default function MedicalFilePanel({
                         diagnosis: e.target.value,
                       }))
                     }
-                    placeholder="اكتب التشخيص يدويًا أو ابحث بالأسفل..."
+                    placeholder="اكتب التشخيص يدويًا أو ابحث بالأسفل…"
                     className="min-h-[48px] w-full rounded-md border-border bg-background px-2 py-1 !text-[12px] print:placeholder-transparent"
                     rows={2}
                   />
                   <div className="relative mt-2 w-full">
                     <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="ابحث عن التشخيص..."
+                      placeholder="ابحث عن التشخيص…"
                       value={diseaseSearchText}
                       onChange={(e) => setDiseaseSearchText(e.target.value)}
                       className="h-8 w-full rounded-md border-border bg-background pl-7 pr-2 !text-[12px]"
@@ -3387,7 +3387,7 @@ export default function MedicalFilePanel({
                           recommendations: e.target.value,
                         }))
                       }
-                      placeholder="اكتب التوصيات هنا..."
+                      placeholder="اكتب التوصيات هنا…"
                       className="min-h-[48px] w-full flex-1 rounded-md border-border bg-background px-2 py-1 !text-[12px] print:placeholder-transparent"
                       rows={2}
                     />
@@ -3417,7 +3417,7 @@ export default function MedicalFilePanel({
                     <div className="relative order-2 mb-2 ml-auto w-full md:w-80">
                       <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
-                        placeholder="ابحث عن الفحوصات..."
+                        placeholder="ابحث عن الفحوصات…"
                         value={testSearchText}
                         onChange={(e) => setTestSearchText(e.target.value)}
                         className="h-10 pr-8 text-xs"
@@ -3579,7 +3579,7 @@ export default function MedicalFilePanel({
                     <div className="relative order-2 mb-2 ml-auto w-full md:w-80">
                       <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
-                        placeholder="ابحث عن الأدوية..."
+                        placeholder="ابحث عن الأدوية…"
                         value={medicationSearchText}
                         onChange={(e) =>
                           setMedicationSearchText(e.target.value)
@@ -3761,7 +3761,7 @@ export default function MedicalFilePanel({
                         recommendations: e.target.value,
                       }))
                     }
-                    placeholder="أدخل التوصيات..."
+                    placeholder="أدخل التوصيات…"
                     className="text-sm"
                     rows={3}
                   />
@@ -3797,7 +3797,7 @@ export default function MedicalFilePanel({
               disabled={isSaving}
             >
               <Save className="h-3.5 w-3.5" />
-              {isSaving ? "جاري الحفظ..." : "حفظ"}
+              {isSaving ? "جاري الحفظ…" : "حفظ"}
             </Button>
           ) : (
             <span className="text-[10px] text-muted-foreground">

@@ -378,7 +378,7 @@ export default function LasikFollowupPage() {
             onClick={handleSaveFollowup}
             disabled={saveFollowupSheetMutation.isPending}
           >
-            {saveFollowupSheetMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+            {saveFollowupSheetMutation.isPending ? "جاري الحفظ…" : "حفظ"}
           </Button>
           <Button
             type="button"

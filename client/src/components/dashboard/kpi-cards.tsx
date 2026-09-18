@@ -24,7 +24,7 @@ type Kpi = {
 };
 
 export function KpiCards({ selectedDate }: { selectedDate: string }) {
-  const { merged, isLoading: todayQueueLoading } =
+  const { merged, isLoading: todayQueueLoading, isError } =
     useTodayQueuePatientsMerged(selectedDate);
   const operationsQuery = trpc.medical.getTodayOperationLists.useQuery(
     { date: selectedDate },
@@ -47,7 +47,7 @@ export function KpiCards({ selectedDate }: { selectedDate: string }) {
   const kpis: Kpi[] = [
     {
       title: "إجمالي المرضى",
-      value: todayQueueLoading ? "—" : todayTotal.toLocaleString("ar-EG"),
+      value: todayQueueLoading || isError ? "—" : todayTotal.toLocaleString("ar-EG"),
       icon: "users",
       iconComponent: Users,
       description: "حسب تاريخ مرضى اليوم المحدد",
@@ -55,17 +55,17 @@ export function KpiCards({ selectedDate }: { selectedDate: string }) {
     },
     {
       title: "مرضى اليوم",
-      value: todayQueueLoading ? "—" : todayTotal.toLocaleString("ar-EG"),
+      value: todayQueueLoading || isError ? "—" : todayTotal.toLocaleString("ar-EG"),
       icon: "calendar",
       iconComponent: Calendar,
-      description: todayQueueLoading
+      description: isError ? "تعذر تحديث البيانات" : todayQueueLoading
         ? "..."
         : `تم علاج ${treatedToday.toLocaleString("ar-EG")}`,
       loading: todayQueueLoading,
     },
     {
       title: "في الانتظار",
-      value: todayQueueLoading ? "—" : inProgressToday.toLocaleString("ar-EG"),
+      value: todayQueueLoading || isError ? "—" : inProgressToday.toLocaleString("ar-EG"),
       icon: "heart",
       iconComponent: Heart,
       description: "قيد الإجراء (غير معالج)",

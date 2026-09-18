@@ -24,6 +24,7 @@ import { KfRoutes } from "./routes/kf-routes";
 import { AccountingRoutes } from "./routes/accounting-routes";
 import { AdminRoutes } from "./routes/admin-routes";
 import { MedicalRoutes } from "./routes/medical-routes";
+import { ClinicalSuiteRoutes } from "./routes/clinical-suite-routes";
 import { MarketingRoutes } from "./routes/marketing-routes";
 import { MiscRoutes } from "./routes/misc-routes";
 import { DashboardRouteGate } from "./routes/guards";
@@ -162,6 +163,7 @@ const Router = memo(function Router() {
       {KfRoutes}
       {AccountingRoutes}
       {MedicalRoutes}
+      {ClinicalSuiteRoutes}
       {AdminRoutes}
       {MarketingRoutes}
       {MiscRoutes}
@@ -487,7 +489,7 @@ function App() {
       }
 
       if (anchor.hasAttribute("download")) {
-        toast.info("Download starting...");
+        toast.info("Download starting…");
       }
     };
 

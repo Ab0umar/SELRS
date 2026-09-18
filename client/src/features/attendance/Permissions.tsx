@@ -136,14 +136,14 @@ export default function Permissions() {
     <div className="space-y-4" dir="rtl">
       <Card className="mb-4">
         <CardContent className="pt-4">
-          <div className="grid gap-3 md:grid-cols-5 md:items-end">
+          <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
             <div>
               <label htmlFor="attendance-perm-from" className="mb-1 block text-sm font-medium">من</label>
-              <DateInput id="attendance-perm-from" value={filter.from} onChange={(e) => setFilter({ ...filter, from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <DateInput id="attendance-perm-from" value={filter.from} onChange={(e) => setFilter({ ...filter, from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
             </div>
             <div>
               <label htmlFor="attendance-perm-to" className="mb-1 block text-sm font-medium">إلى</label>
-              <DateInput id="attendance-perm-to" value={filter.to} onChange={(e) => setFilter({ ...filter, to: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <DateInput id="attendance-perm-to" value={filter.to} onChange={(e) => setFilter({ ...filter, to: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
             </div>
             <div>
               <label htmlFor="attendance-perm-employee" className="mb-1 block text-sm font-medium">الموظف</label>
@@ -200,7 +200,7 @@ export default function Permissions() {
               </div>
               <div>
                 <label htmlFor="attendance-perm-form-date" className="block text-sm font-medium mb-1">التاريخ</label>
-                <DateInput id="attendance-perm-form-date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                <DateInput id="attendance-perm-form-date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
               </div>
               <div>
                 <label htmlFor="attendance-perm-form-type" className="block text-sm font-medium mb-1">النوع</label>
@@ -241,7 +241,7 @@ export default function Permissions() {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={handleSubmit} disabled={!form.empCd || isPending}>
-                {isPending ? "جاري الحفظ..." : editId !== null ? "حفظ التعديل" : "حفظ"}
+                {isPending ? "جاري الحفظ…" : editId !== null ? "حفظ التعديل" : "حفظ"}
               </Button>
               <Button variant="outline" onClick={onDone}>إلغاء</Button>
             </div>
@@ -265,7 +265,7 @@ export default function Permissions() {
               {(permsQuery.data as any[]).map((p: any) => (
                 <div
                   key={p.id}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>

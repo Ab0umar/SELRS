@@ -2189,13 +2189,13 @@ export default function LasikExamSheet({
                   onChange={(e) =>
                     setConsultantExamField("complains", e.target.value)
                   }
-                  placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل..."
+                  placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
                 />
                 <div className="relative mt-2 print:hidden">
                   <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none"
-                    placeholder="ابحث عن الأعراض..."
+                    placeholder="ابحث عن الأعراض…"
                     value={complainsSearchText}
                     onChange={(e) => setComplainsSearchText(e.target.value)}
                     onFocus={() => setComplainsSearchOpen(true)}
@@ -3410,7 +3410,7 @@ export default function LasikExamSheet({
               disabled={saveSheetMutation.isPending}
               type="button"
             >
-              {saveSheetMutation.isPending ? "حفظ..." : "حفظ"}
+              {saveSheetMutation.isPending ? "حفظ…" : "حفظ"}
             </Button>
             <Button
               size="sm"
@@ -3443,7 +3443,7 @@ export default function LasikExamSheet({
               disabled={saveSheetMutation.isPending}
               type="button"
             >
-              {saveSheetMutation.isPending ? "حفظ..." : "حفظ الملف"}
+              {saveSheetMutation.isPending ? "حفظ…" : "حفظ الملف"}
             </Button>
           </div>
         ) : null}
@@ -3458,7 +3458,7 @@ export default function LasikExamSheet({
               disabled={saveSheetMutation.isPending}
               type="button"
             >
-              {saveSheetMutation.isPending ? "حفظ..." : "حفظ الفحص"}
+              {saveSheetMutation.isPending ? "حفظ…" : "حفظ الفحص"}
             </Button>
             <Button
               type="button"
@@ -3479,7 +3479,7 @@ export default function LasikExamSheet({
             >
               <Trash2 className="h-4 w-4" />
               {deleteVisitSheetMutation.isPending
-                ? "جاري المسح..."
+                ? "جاري المسح…"
                 : "مسح الزيارة"}
             </Button>
           </div>

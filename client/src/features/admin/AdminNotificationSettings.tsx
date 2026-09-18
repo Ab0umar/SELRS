@@ -371,7 +371,7 @@ function UserMultiPicker({
   return (
     <div className="space-y-2">
       <Input
-        placeholder="ابحث..."
+        placeholder="ابحث…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="h-8 text-sm"
@@ -507,7 +507,7 @@ function UserSinglePicker({
   return (
     <div className="space-y-2">
       <Input
-        placeholder="ابحث..."
+        placeholder="ابحث…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="h-8 text-sm"
@@ -951,7 +951,7 @@ export default function AdminNotificationSettings() {
           onClick={handleSave}
           disabled={!isDirty || updateMutation.isPending}
         >
-          {updateMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+          {updateMutation.isPending ? "جاري الحفظ…" : "حفظ"}
         </Button>
         {isDirty && (
           <Button

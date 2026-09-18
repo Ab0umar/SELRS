@@ -896,7 +896,7 @@ export default function CommissionPools() {
                       </Button>
                     </div>
                     {autoPoolsQ.isLoading ? (
-                      <div className="text-sm text-muted-foreground">جاري التحميل...</div>
+                      <div className="text-sm text-muted-foreground">جاري التحميل…</div>
                     ) : (
                       <div className="space-y-3">
                         <div className="hidden lg:block overflow-x-auto" dir="rtl">
@@ -1041,7 +1041,7 @@ export default function CommissionPools() {
                       </Button>
                     </div>
                     {autoPoolsQ.isLoading ? (
-                      <div className="text-sm text-muted-foreground">جاري التحميل...</div>
+                      <div className="text-sm text-muted-foreground">جاري التحميل…</div>
                     ) : (
                       <div className="space-y-3">
                         <div className="hidden lg:block overflow-x-auto" dir="rtl">
@@ -1696,14 +1696,14 @@ export default function CommissionPools() {
                 }
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 rows={3}
-                placeholder="أي ملاحظات إضافية..."
+                placeholder="أي ملاحظات إضافية…"
               />
             </div>
 
             {/* Save Button */}
             <div className="flex gap-2">
               <Button type="submit" disabled={saveMut.isPending}>
-                {saveMut.isPending ? "جاري الحفظ..." : "حفظ"}
+                {saveMut.isPending ? "جاري الحفظ…" : "حفظ"}
               </Button>
             </div>
           </form>

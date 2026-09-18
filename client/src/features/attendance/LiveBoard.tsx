@@ -257,7 +257,7 @@ export default function LiveBoard() {
                   key={t}
                   onClick={() => setPunchTab(t)}
                   className={`rounded-md px-3 py-1 text-[10px] font-bold transition-all ${
-                    punchTab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    punchTab === t ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t === "ef10k" ? "بوابة EF10K" : "بوابة K40 Pro"}
@@ -368,7 +368,7 @@ export default function LiveBoard() {
 
       {deviceStatus?.connectionError && (
         <div className="pt-2">
-          <Alert variant="destructive" className="border-rose-200 bg-rose-50 text-rose-800 rounded-2xl shadow-sm">
+          <Alert variant="destructive" className="border-rose-200 bg-rose-50 text-rose-800 rounded-2xl shadow-xs">
             <AlertCircle className="h-4 w-4 text-rose-600" />
             <AlertDescription className="text-xs font-bold">{deviceStatus.connectionError}</AlertDescription>
           </Alert>

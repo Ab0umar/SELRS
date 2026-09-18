@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -787,8 +788,8 @@ export function TodayBottleneckBoard({
     else setInternalSelectedDate(ymd);
   };
 
-  const { merged, isLoading, byStatus } =
-    useTodayQueuePatientsMerged(selectedDate);
+  const queue = useTodayQueuePatientsMerged(selectedDate);
+  const { merged, isLoading, byStatus } = queue;
   const utils = trpc.useUtils();
 
   const markVisitTreated = trpc.medical.updateVisitQueueStatus.useMutation({
@@ -1003,6 +1004,7 @@ export function TodayBottleneckBoard({
 
   return (
     <div className="flex h-full min-h-0 flex-col" dir="rtl">
+        <QueueLoadStatus {...queue} />
       {/* Page header */}
       <div className="shrink-0 border-b border-border/70 bg-background px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">

@@ -249,7 +249,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                     disabled={pushState === "requesting"}
                     className="h-8 rounded-lg text-xs shrink-0 cursor-pointer"
                   >
-                    {pushState === "requesting" ? "جاري..." : "تفعيل"}
+                    {pushState === "requesting" ? "جاري…" : "تفعيل"}
                   </Button>
                 )}
               </div>

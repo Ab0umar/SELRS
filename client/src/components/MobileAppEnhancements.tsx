@@ -172,7 +172,7 @@ function NativeApkUpdateCheck({
               )
                 .then((status) => {
                   if (status === "downloading") {
-                    toast.success("جاري تنزيل التحديث...", {
+                    toast.success("جاري تنزيل التحديث…", {
                       description: "سيبدأ التثبيت تلقائيًا عند اكتمال التنزيل",
                     });
                   } else if (status === "needs_permission") {

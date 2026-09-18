@@ -1041,7 +1041,7 @@ export default function AdminServices({
               disabled={syncCatalogMutation.isPending}
             >
               {syncCatalogMutation.isPending
-                ? "جاري..."
+                ? "جاري…"
                 : "مزامنة الخدمات والأسعار"}
             </Button>
             <Button

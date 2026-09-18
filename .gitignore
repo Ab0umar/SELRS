@@ -131,6 +131,7 @@ tmp_*.txt
 !/capacitor.config.ts
 !/drizzle.config.ts
 !/playwright.config.ts
+!/vitest.backend.config.ts
 !/vite.config.ts
 !/ecosystem.config.js
 !/ecosystem.config.cjs
@@ -219,3 +220,8 @@ strip.py
 strip_plan.py
 update_consultant.py
 view.py
+
+# Local editor/tool settings and generated output
+.cursor/
+.playwright-cli/
+graphify-out/

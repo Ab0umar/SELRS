@@ -181,7 +181,7 @@ export default function PrescriptionsList() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="بحث بالاسم أو الدواء أو الملاحظات..."
+            placeholder="بحث بالاسم أو الدواء أو الملاحظات…"
           />
         </div>
         <FilterBar

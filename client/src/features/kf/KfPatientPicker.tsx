@@ -25,7 +25,7 @@ type KfPatientPickerProps = {
 };
 
 export default function KfPatientPicker({
-  placeholder = "ابحث في مرضى KF بالاسم أو كود KF أو الموبايل...",
+  placeholder = "ابحث في مرضى KF بالاسم أو كود KF أو الموبايل…",
   initialKfPatientId,
   onSelect,
   fireOnInitialPatientLoad = true,

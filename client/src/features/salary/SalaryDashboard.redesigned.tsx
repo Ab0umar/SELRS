@@ -50,18 +50,18 @@ export default function SalaryDashboard() {
 
             <div className="space-y-4">
               {/* Basic salaries total */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-xs">
                 <span className="text-sm font-bold text-foreground">إجمالي الرواتب الأساسية والبدلات</span>
                 <div className="text-3xl font-black text-primary font-mono">
-                  {isLoading ? "جاري التحميل..." : `${fmt(summary?.totalPay ?? 0)} ج.م`}
+                  {isLoading ? "جاري التحميل…" : `${fmt(summary?.totalPay ?? 0)} ج.م`}
                 </div>
               </div>
 
               {/* Commissions total */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-xs">
                 <span className="text-sm font-bold text-foreground">إجمالي العمولات</span>
                 <div className="text-3xl font-black text-amber-500 font-mono">
-                  {isLoading ? "جاري التحميل..." : `${fmt(summary?.totalCommissions ?? 0)} ج.م`}
+                  {isLoading ? "جاري التحميل…" : `${fmt(summary?.totalCommissions ?? 0)} ج.م`}
                 </div>
               </div>
             </div>
@@ -73,7 +73,7 @@ export default function SalaryDashboard() {
             <div className="grid grid-cols-3 gap-6">
 
               {/* Lateness Gauge -> Total Penalties */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-xs">
                 <div className="w-14 h-14 rounded-full border-4 border-rose-500/20 border-t-rose-500 flex items-center justify-center font-bold text-xs mx-auto font-mono text-foreground">
                   {isLoading ? "—" : summary?.totalPenalties ? `${Math.round(summary.totalPenalties)}` : "0"}
                 </div>
@@ -81,7 +81,7 @@ export default function SalaryDashboard() {
               </div>
 
               {/* Missing Checkouts -> Active Staff Count */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-xs">
                 <div className="w-14 h-14 rounded-full border-4 border-sky-500/20 border-t-sky-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-foreground">
                   {isLoading ? "—" : summary?.staffCount ?? "0"}
                 </div>
@@ -89,7 +89,7 @@ export default function SalaryDashboard() {
               </div>
 
               {/* Active Inside -> Net Total Pay */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-sm">
+              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-xs">
                 <div className="w-14 h-14 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 flex items-center justify-center font-bold text-xs mx-auto font-mono text-foreground">
                   {isLoading ? "—" : summary?.totalPay ? `${Math.round(summary.totalPay / 1000)}k` : "0k"}
                 </div>

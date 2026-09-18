@@ -6,7 +6,7 @@ interface PatientDetailsNavBarProps {
   patientId?: number;
   isAdmin: boolean;
   goBack: () => void;
-  /** داخل مسار مركز المريض — الروابط تُعاد إلى `/patient-hub/...` */
+  /** داخل مسار مركز المريض — الروابط تُعاد إلى `/patient-hub/…` */
   inPatientHub?: boolean;
   /** مركز المريض: لا حذف مريض */
   readOnlyPatientHub?: boolean;

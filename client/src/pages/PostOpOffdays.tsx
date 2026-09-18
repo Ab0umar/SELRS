@@ -32,17 +32,49 @@ function diffDaysInclusive(from: string, to: string) {
 const DEFAULT_CERTIFICATE_STATEMENT =
   "يشهد المركز بأن المريض المذكور أدناه قد خضع لإجراء عملية تصحيح الإبصار، ويتطلب فترة راحة طبية لتقليل الإجهاد البصري وحماية العين أثناء مرحلة التعافي.";
 
-export default function PostOpOffdays() {
+export type PostOpOffdaysProps = {
+  params?: { id?: string };
+  patientId?: number;
+  onSelectPatient?: (id: number | undefined) => void;
+  hideHeaderSearch?: boolean;
+  hidePrintButton?: boolean;
+};
+
+export default function PostOpOffdays({
+  params: routeParams,
+  patientId: propPatientId,
+  onSelectPatient,
+  hideHeaderSearch = false,
+  hidePrintButton = false,
+}: PostOpOffdaysProps = {}) {
   const { isAuthenticated, user } = useAuth();
   const [, params] = useRoute("/post-op-offdays/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const routePatientId = params?.id
+    ? Number(params.id)
+    : routeParams?.id
+      ? Number(routeParams.id)
+      : undefined;
+  const queryParamId =
+    typeof window !== "undefined"
+      ? Number(new URLSearchParams(window.location.search).get("patientId")) ||
+        Number(new URLSearchParams(window.location.search).get("id")) ||
+        undefined
+      : undefined;
   const requestedVisitDate =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("visitDate") || ""
       : "";
   const [patientId, setPatientId] = useState<number | undefined>(
-    initialPatientId,
+    propPatientId ?? routePatientId ?? queryParamId,
   );
+
+  useEffect(() => {
+    if (hideHeaderSearch || onSelectPatient) {
+      setPatientId(propPatientId);
+    } else if (propPatientId !== undefined) {
+      setPatientId(propPatientId);
+    }
+  }, [propPatientId, hideHeaderSearch, onSelectPatient]);
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId),
@@ -72,10 +104,6 @@ export default function PostOpOffdays() {
   const [patientDob, setPatientDob] = useState("");
 
   useEffect(() => {
-    if (initialPatientId) setPatientId(initialPatientId);
-  }, [initialPatientId]);
-
-  useEffect(() => {
     const days = diffDaysInclusive(leaveStart, returnDate);
     if (days) setDuration(days);
   }, [leaveStart, returnDate]);
@@ -86,13 +114,27 @@ export default function PostOpOffdays() {
   }, [doctorName, user?.name]);
 
   useEffect(() => {
+    if (!patientId) {
+      setPatientName("");
+      setPatientCode("");
+      setPatientDob("");
+      setOperationDate("");
+      setLeaveStart("");
+      setReturnDate("");
+      setDuration("");
+      setMethod("");
+      setVaOd("");
+      setVaOs("");
+      setExistingCertId(undefined);
+      return;
+    }
     if (!patient) return;
     setPatientName(patient.fullName || "");
     setPatientCode(patient.patientCode || "");
     setPatientDob(
       patient.dateOfBirth ? String(patient.dateOfBirth).split("T")[0] : "",
     );
-  }, [patient]);
+  }, [patientId, patient]);
 
   useEffect(() => {
     const cert = requestedVisitDate
@@ -283,14 +325,18 @@ export default function PostOpOffdays() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-72">
-              <PatientPicker
-                initialPatientId={patientId}
-                onSelect={(selected) => {
-                  if (selected?.id) setPatientId(Number(selected.id));
-                }}
-              />
-            </div>
+            {!hideHeaderSearch && (
+              <div className="w-72">
+                <PatientPicker
+                  initialPatientId={patientId}
+                  onSelect={(selected) => {
+                    const newId = selected?.id ? Number(selected.id) : undefined;
+                    setPatientId(newId);
+                    onSelectPatient?.(newId);
+                  }}
+                />
+              </div>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -299,25 +345,29 @@ export default function PostOpOffdays() {
               disabled={createCertMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {createCertMutation.isPending ? "جارٍ الحفظ..." : "Save"}
+              {createCertMutation.isPending ? "جارٍ الحفظ…" : "Save"}
             </Button>
-            <Button
-              type="button"
-              className="bg-[#00355f] text-white"
-              onClick={() => window.print()}
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-[#c2c7d1]"
-              onClick={() => window.print()}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              PDF
-            </Button>
+            {!hidePrintButton && (
+              <>
+                <Button
+                  type="button"
+                  className="bg-[#00355f] text-white"
+                  onClick={() => window.print()}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#c2c7d1]"
+                  onClick={() => window.print()}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>

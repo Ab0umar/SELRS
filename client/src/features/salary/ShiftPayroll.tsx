@@ -577,13 +577,13 @@ export default function ShiftPayroll() {
           <DateInput
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="h-11 w-[11rem] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
           <span className="text-sm text-muted-foreground">—</span>
           <DateInput
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="h-11 w-[11rem] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
           <Button
             variant="outline"
@@ -607,7 +607,7 @@ export default function ShiftPayroll() {
 
       {/* Tables */}
       {payrollQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+        <p className="text-sm text-muted-foreground">جاري التحميل…</p>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-border bg-background px-4 py-16 text-center text-muted-foreground text-sm">
           لا يوجد طاقم شفتات أو حضور مسجل للفترة {periodLabel}.

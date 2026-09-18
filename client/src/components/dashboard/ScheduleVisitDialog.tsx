@@ -190,7 +190,7 @@ export function ScheduleVisitDialog({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="h-9 text-sm font-medium"
-                    placeholder="اسم المريض الرباعي..."
+                    placeholder="اسم المريض الرباعي…"
                   />
                 </div>
                 <div>

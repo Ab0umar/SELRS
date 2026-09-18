@@ -703,7 +703,7 @@ export const MedicalRoutes = (
       path={ROUTES.sheetsReferralId}
       component={() => (
         <ProtectedRoute>
-          <ReferralLetter />
+          <ClinicalReportsPage defaultTab="referral" />
         </ProtectedRoute>
       )}
     />
@@ -719,7 +719,7 @@ export const MedicalRoutes = (
       path={ROUTES.clinicalReportId}
       component={() => (
         <ProtectedRoute>
-          <ClinicalReport />
+          <ClinicalReportsPage defaultTab="clinical" />
         </ProtectedRoute>
       )}
     />
@@ -735,7 +735,7 @@ export const MedicalRoutes = (
       path={ROUTES.prePostOpReportId}
       component={() => (
         <ProtectedRoute>
-          <PrePostOpReport />
+          <ClinicalReportsPage defaultTab="pre-post-op" />
         </ProtectedRoute>
       )}
     />
@@ -751,7 +751,7 @@ export const MedicalRoutes = (
       path={ROUTES.postOpOffdaysId}
       component={() => (
         <ProtectedRoute>
-          <PostOpOffdays />
+          <ClinicalReportsPage defaultTab="offdays" />
         </ProtectedRoute>
       )}
     />
@@ -783,7 +783,7 @@ export const MedicalRoutes = (
       path={ROUTES.medicalConditionReportId}
       component={() => (
         <ProtectedRoute>
-          <MedicalConditionReport />
+          <ClinicalReportsPage defaultTab="condition" />
         </ProtectedRoute>
       )}
     />

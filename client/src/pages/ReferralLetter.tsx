@@ -113,21 +113,49 @@ function formatFundusFinding(value: unknown) {
     .join(", ");
 }
 
-export default function ReferralLetter() {
+export type ReferralLetterProps = {
+  params?: { id?: string };
+  patientId?: number;
+  onSelectPatient?: (id: number | undefined) => void;
+  hideHeaderSearch?: boolean;
+  hidePrintButton?: boolean;
+};
+
+export default function ReferralLetter({
+  params: routeParams,
+  patientId: propPatientId,
+  onSelectPatient,
+  hideHeaderSearch = false,
+  hidePrintButton = false,
+}: ReferralLetterProps = {}) {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/sheets/referral/:id");
-  const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const routePatientId = params?.id
+    ? Number(params.id)
+    : routeParams?.id
+      ? Number(routeParams.id)
+      : undefined;
+  const queryParamId =
+    typeof window !== "undefined"
+      ? Number(new URLSearchParams(window.location.search).get("patientId")) ||
+        Number(new URLSearchParams(window.location.search).get("id")) ||
+        undefined
+      : undefined;
   const [patientId, setPatientId] = useState<number | undefined>(
-    initialPatientId,
+    propPatientId ?? routePatientId ?? queryParamId,
   );
-  const [existingLetterId, setExistingLetterId] = useState<
-    number | undefined
-  >();
   const [form, setForm] = useState<FormData>(initialForm);
+  const [existingLetterId, setExistingLetterId] = useState<number | undefined>();
 
   useEffect(() => {
-    if (initialPatientId) setPatientId(initialPatientId);
-  }, [initialPatientId]);
+    if (hideHeaderSearch || onSelectPatient) {
+      setPatientId(propPatientId);
+    } else if (propPatientId !== undefined) {
+      setPatientId(propPatientId);
+    } else if (routePatientId) {
+      setPatientId(routePatientId);
+    }
+  }, [propPatientId, routePatientId, hideHeaderSearch, onSelectPatient]);
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId),
@@ -159,29 +187,31 @@ export default function ReferralLetter() {
   const letters = (lettersQuery.data as any[] | undefined) ?? [];
 
   useEffect(() => {
+    if (!patientId) {
+      setForm(initialForm);
+      setExistingLetterId(undefined);
+      return;
+    }
     if (!patient) return;
     setForm((p) => ({
       ...p,
-      patientName: p.patientName || patient.fullName || "",
-      patientId: p.patientId || patient.patientCode || "",
-      patientAge:
-        p.patientAge ||
-        (patient.dateOfBirth
-          ? String(
-              new Date().getFullYear() -
-                new Date(patient.dateOfBirth).getFullYear(),
-            )
-          : ""),
+      patientName: patient.fullName || "",
+      patientId: patient.patientCode || "",
+      patientAge: patient.dateOfBirth
+        ? String(
+            new Date().getFullYear() -
+              new Date(patient.dateOfBirth).getFullYear(),
+          )
+        : "",
       patientGender:
-        p.patientGender ||
-        (patient.gender === "male"
+        patient.gender === "male"
           ? "ذكر"
           : patient.gender === "female"
             ? "أنثى"
-            : ""),
-      contact: p.contact || patient.phone || "",
+            : "",
+      contact: patient.phone || "",
     }));
-  }, [patient]);
+  }, [patientId, patient]);
 
   useEffect(() => {
     if (glassesRecords.length === 0) return;
@@ -440,14 +470,14 @@ export default function ReferralLetter() {
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaOD}
                     onChange={set("vaOD")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                   /
                   <Input
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaOS}
                     onChange={set("vaOS")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                 </label>
                 <label className="flex items-center gap-1">
@@ -456,14 +486,14 @@ export default function ReferralLetter() {
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaBestOD}
                     onChange={set("vaBestOD")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                   /
                   <Input
                     className={`${FIELD} w-8 text-center text-xs font-bold`}
                     value={form.vaBestOS}
                     onChange={set("vaBestOS")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                 </label>
                 <label className="flex items-center gap-1">
@@ -472,14 +502,14 @@ export default function ReferralLetter() {
                     className={`${FIELD} w-8 text-center text-xs font-bold ${iopODNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOD}
                     onChange={set("iopOD")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                   /
                   <Input
                     className={`${FIELD} w-8 text-center text-xs font-bold ${iopOSNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOS}
                     onChange={set("iopOS")}
-                    placeholder="..."
+                    placeholder="…"
                   />
                 </label>
               </div>
@@ -564,7 +594,7 @@ export default function ReferralLetter() {
                   rows={3}
                   value={form.slitLamp}
                   onChange={set("slitLamp")}
-                  placeholder="OD: ... OS: ..."
+                  placeholder="OD: … OS: ..."
                 />
               </div>
               <div className="p-3 bg-background rounded-lg border border-border/70">
@@ -576,7 +606,7 @@ export default function ReferralLetter() {
                   rows={3}
                   value={form.fundus}
                   onChange={set("fundus")}
-                  placeholder="OD: ... OS: ..."
+                  placeholder="OD: … OS: ..."
                 />
               </div>
             </div>
@@ -618,7 +648,7 @@ export default function ReferralLetter() {
                 rows={3}
                 value={form.reasonForReferral}
                 onChange={set("reasonForReferral")}
-                placeholder="سبب التحويل والإجراء المطلوب..."
+                placeholder="سبب التحويل والإجراء المطلوب…"
               />
             </section>
           </div>
@@ -724,7 +754,9 @@ export default function ReferralLetter() {
           .print\\:hidden { display: none !important; }
           .hidden.print\\:block { display: block !important; }
           .print-container {
-              box-shadow: none !important; background-color: var(--card) !important;
+              box-shadow: none !important;
+              background-color: #ffffff !important;
+              color: #000000 !important;
               margin: 0 !important;
               width: 100% !important;
               min-height: 297mm !important;
@@ -738,26 +770,32 @@ export default function ReferralLetter() {
         style={{ fontFamily: "Inter, sans-serif" }}
       >
         <div className="flex items-center gap-4">
-          <button
-            type="button"
-            className="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-bold flex items-center gap-1"
-            onClick={() => setLocation(-1 as any)}
-          >
-            <ArrowRight className="h-4 w-4" /> رجوع
-          </button>
+          {!hideHeaderSearch && (
+            <button
+              type="button"
+              className="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-bold flex items-center gap-1"
+              onClick={() => setLocation(-1 as any)}
+            >
+              <ArrowRight className="h-4 w-4" /> رجوع
+            </button>
+          )}
           <span className="text-base font-bold text-primary">
             خطاب إحالة / Referral Letter
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-64 print:hidden">
-            <PatientPicker
-              initialPatientId={patientId}
-              onSelect={(selected) => {
-                if (selected?.id) setPatientId(Number(selected.id));
-              }}
-            />
-          </div>
+          {!hideHeaderSearch && (
+            <div className="w-64 print:hidden">
+              <PatientPicker
+                initialPatientId={patientId}
+                onSelect={(selected) => {
+                  const newId = selected?.id ? Number(selected.id) : undefined;
+                  setPatientId(newId);
+                  onSelectPatient?.(newId);
+                }}
+              />
+            </div>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -766,23 +804,27 @@ export default function ReferralLetter() {
             disabled={saveLetterMutation.isPending}
           >
             <Save className="h-3.5 w-3.5" />{" "}
-            {saveLetterMutation.isPending ? "جارٍ الحفظ..." : "حفظ"}
+            {saveLetterMutation.isPending ? "جارٍ الحفظ…" : "حفظ"}
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5"
-            onClick={handlePrint}
-          >
-            <Printer className="h-3.5 w-3.5" /> طباعة
-          </Button>
-          <Button
-            size="sm"
-            className="bg-primary hover:opacity-90 text-white font-bold gap-1.5"
-            onClick={handleDownloadPDF}
-          >
-            <Download className="h-3.5 w-3.5" /> Print PDF
-          </Button>
+          {!hidePrintButton && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-primary text-primary font-bold hover:bg-primary/10 gap-1.5"
+                onClick={handlePrint}
+              >
+                <Printer className="h-3.5 w-3.5" /> طباعة
+              </Button>
+              <Button
+                size="sm"
+                className="bg-primary hover:opacity-90 text-white font-bold gap-1.5"
+                onClick={handleDownloadPDF}
+              >
+                <Download className="h-3.5 w-3.5" /> Print PDF
+              </Button>
+            </>
+          )}
         </div>
       </header>
 

@@ -138,7 +138,7 @@ export default function ReportsHub() {
               setReportDates((current) => ({ ...current, from: event.target.value }))
             }
             aria-label="من تاريخ التقرير"
-            className="h-10 w-40 rounded-lg border-border/60 bg-card px-2 text-center text-sm"
+            className="h-10 w-40 rounded-lg border-border/60 bg-card px-2 text-center text-sm h-11 w-[11rem] shrink-0"
           />
           <DateInput
             value={reportDates.to}
@@ -147,7 +147,7 @@ export default function ReportsHub() {
               setReportDates((current) => ({ ...current, to: event.target.value }))
             }
             aria-label="إلى تاريخ التقرير"
-            className="h-10 w-40 rounded-lg border-border/60 bg-card px-2 text-center text-sm"
+            className="h-10 w-40 rounded-lg border-border/60 bg-card px-2 text-center text-sm h-11 w-[11rem] shrink-0"
           />
           <select
             value={department ?? ""}

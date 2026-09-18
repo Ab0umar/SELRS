@@ -215,7 +215,7 @@ export default function PrescriptionsDashboard() {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="بحث بالاسم أو الكود أو الطبيب أو الدواء..."
+            placeholder="بحث بالاسم أو الكود أو الطبيب أو الدواء…"
           />
         </div>
         <div className="flex flex-col gap-2 lg:items-end">

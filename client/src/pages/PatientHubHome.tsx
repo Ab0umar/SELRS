@@ -119,7 +119,7 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث بالاسم أو الكود أو الرقم..."
+            placeholder="ابحث بالاسم أو الكود أو الرقم…"
             className="h-12 w-full rounded-xl border border-border bg-background pe-12 ps-4 text-base text-foreground placeholder:text-muted-foreground/50 transition-[border-color,box-shadow] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             dir="rtl"
             autoComplete="off"

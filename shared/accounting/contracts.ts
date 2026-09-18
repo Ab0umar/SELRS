@@ -122,6 +122,7 @@ export const serviceRevenueInputSchema = z.object({
   fromDate: isoDateStringSchema,
   toDate: isoDateStringSchema,
   sectionCode: z.number().int().optional(),
+  shiftCode: codeStringSchema.optional(),
   doctorCodes: z.array(codeStringSchema).optional(),
   serviceCodes: z.array(codeStringSchema).optional(),
 });

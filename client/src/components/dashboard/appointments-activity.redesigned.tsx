@@ -1,3 +1,4 @@
+import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -166,10 +167,8 @@ export function AppointmentsSection({
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("confirmed");
   const [showExternal, setShowExternal] = useState(true);
 
-  const { merged, isLoading, byStatus } = useTodayQueuePatientsMerged(
-    selectedDate,
-    { includeExternal: showExternal },
-  );
+  const queue = useTodayQueuePatientsMerged(selectedDate, { includeExternal: showExternal });
+  const { merged, isLoading, byStatus } = queue;
 
   // ── Portal bookings for the selected date ───────────────────────────────
   const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
@@ -368,6 +367,7 @@ export function AppointmentsSection({
 
   return (
     <div className="space-y-4">
+      <QueueLoadStatus {...queue} />
       <TodayPatientShortcutsDialog
         open={shortcutPatient != null}
         onOpenChange={(next) => {

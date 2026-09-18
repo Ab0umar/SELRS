@@ -154,10 +154,10 @@ export default function DoctorAccount() {
               أدخل كود الطبيب والفترة ثم اضغط بحث.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <CardContent className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
             <label
               htmlFor="doctor-code"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>كود الطبيب</span>
               <Input
@@ -170,7 +170,7 @@ export default function DoctorAccount() {
             </label>
             <label
               htmlFor="doctor-from-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>من تاريخ</span>
               <DateInput
@@ -183,7 +183,7 @@ export default function DoctorAccount() {
             </label>
             <label
               htmlFor="doctor-to-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>إلى تاريخ</span>
               <DateInput
@@ -201,7 +201,7 @@ export default function DoctorAccount() {
             )}
             <label
               htmlFor="doctor-service-code"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>كود الخدمة</span>
               <Input
@@ -213,35 +213,15 @@ export default function DoctorAccount() {
                 }
               />
             </label>
-            <label
-              htmlFor="doctor-section-code"
-              className="space-y-1.5 text-sm font-medium"
+            <Button
+              type="button"
+              size="icon"
+              className="h-11 w-11"
+              onClick={() => void runSearch()}
+              aria-label="بحث"
             >
-              <span>كود القسم</span>
-              <Input
-                id="doctor-section-code"
-                type="number"
-                min={1}
-                value={draft.sectionCode}
-                onChange={(e) =>
-                  setDraft((p) => ({
-                    ...p,
-                    sectionCode: Number(e.target.value || DEFAULT_SECTION_CODE),
-                  }))
-                }
-              />
-            </label>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                className="w-full"
-                onClick={() => void runSearch()}
-                aria-label="بحث عن طبيب"
-              >
-                <Search className="ml-2 h-4 w-4" aria-hidden />
-                بحث
-              </Button>
-            </div>
+              <Search className="h-4 w-4" aria-hidden />
+            </Button>
           </CardContent>
         </Card>
 
@@ -344,7 +324,7 @@ export default function DoctorAccount() {
                             className="rounded-2xl border border-border bg-background p-4 shadow-sm"
                           >
                             <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
+                              <div className="shrink-0">
                                 <div className="text-[11px] text-muted-foreground">
                                   الخدمة
                                 </div>

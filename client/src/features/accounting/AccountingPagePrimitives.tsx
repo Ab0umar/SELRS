@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 type AccountingPageProps = {
   eyebrow?: string;
-  title: string;
+  title?: string;
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
@@ -11,25 +11,17 @@ type AccountingPageProps = {
 };
 
 export function AccountingPage({
-  eyebrow = "Accounting Desk",
-  title,
-  description,
   actions,
   children,
   className,
 }: AccountingPageProps) {
   return (
-    <div className={cn("accounting-page space-y-5", className)} dir="rtl">
-      <div className="accounting-page__header">
-        <div className="min-w-0">
-          <div className="accounting-page__eyebrow">{eyebrow}</div>
-          <h2 className="accounting-page__title">{title}</h2>
-          {description ? (
-            <p className="accounting-page__description">{description}</p>
-          ) : null}
+    <div className={cn("accounting-page space-y-3.5", className)} dir="rtl">
+      {actions ? (
+        <div className="flex flex-wrap items-center justify-start gap-2 print:hidden">
+          {actions}
         </div>
-        {actions ? <div className="accounting-page__actions">{actions}</div> : null}
-      </div>
+      ) : null}
       {children}
     </div>
   );

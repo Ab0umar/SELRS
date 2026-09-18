@@ -48,7 +48,7 @@ async function loginAsAdmin(request: any) {
       break;
     }
   }
-  expect(ok, `login should return 200 (tried: ${candidates.join(", ")})`).toBe(
+  expect(ok, "login should return 200 for the configured E2E account").toBe(
     true,
   );
 

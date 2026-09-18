@@ -26,11 +26,12 @@ type PatientPickerProps = {
   locationType?: "center" | "external";
   wrapperClassName?: string;
   allowPatient?: (patient: PatientOption) => boolean;
+  locale?: "ar" | "en";
 };
 
 export default function PatientPicker({
   label = "اختر المريض",
-  placeholder = "ابحث بالاسم أو الكود أو الموبايل...",
+  placeholder = "ابحث بالاسم أو الكود أو الموبايل…",
   initialPatientId,
   onSelect,
   fireOnInitialPatientLoad = true,
@@ -39,6 +40,7 @@ export default function PatientPicker({
   locationType,
   wrapperClassName,
   allowPatient,
+  locale = "ar",
 }: PatientPickerProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -100,13 +102,17 @@ export default function PatientPicker({
     return value;
   };
 
+  const isEnglish = locale === "en";
+
   return (
-    <div className="space-y-2">
+    <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
       <label className="block text-sm font-medium hidden">{label}</label>
       <div
         className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}
       >
-        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-muted-foreground">
+        <div
+          className={`pointer-events-none absolute inset-y-0 flex items-center gap-2 text-muted-foreground ${isEnglish ? "left-3" : "right-3"}`}
+        >
           <Search className="h-4 w-4" />
         </div>
         <Input
@@ -125,8 +131,8 @@ export default function PatientPicker({
             setTimeout(() => setOpen(false), 150);
           }}
           placeholder={placeholder}
-          className="h-11 rounded-2xl border-border bg-background pr-10 text-right shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25"
-          dir="rtl"
+          className={`h-11 rounded-2xl border-border bg-background shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25 ${isEnglish ? "pl-10 text-left" : "pr-10 text-right"}`}
+          dir={isEnglish ? "ltr" : "rtl"}
           readOnly={readOnly}
         />
       </div>
@@ -134,19 +140,19 @@ export default function PatientPicker({
         <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
           {searchQuery.isLoading && (
             <div className="px-3 py-2 text-sm text-muted-foreground">
-              جاري البحث...
+              {isEnglish ? "Searching..." : "جاري البحث..."}
             </div>
           )}
           {!searchQuery.isLoading && filteredResults.length === 0 && (
             <div className="px-3 py-2 text-sm text-muted-foreground">
-              لا توجد نتائج
+              {isEnglish ? "No results found" : "لا توجد نتائج"}
             </div>
           )}
           {filteredResults.map((patient) => (
             <button
               key={patient.id}
               type="button"
-              className="w-full px-3 py-3 text-right transition-colors hover:bg-accent"
+              className={`w-full px-3 py-3 transition-colors hover:bg-accent ${isEnglish ? "text-left" : "text-right"}`}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 if (allowPatient && !allowPatient(patient)) return;
@@ -161,7 +167,9 @@ export default function PatientPicker({
                   <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
                     <UserRound className="h-3.5 w-3.5" />
                   </span>
-                  <span className="font-medium">{patient.fullName}</span>
+                  <span dir="auto" className="font-medium">
+                    {patient.fullName}
+                  </span>
                 </div>
                 <span className="text-xs text-muted-foreground" dir="ltr">
                   {patient.patientCode ?? "—"}
@@ -178,8 +186,10 @@ export default function PatientPicker({
       )}
       {selected && (
         <div className="hidden rounded-2xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-          المريض المحدد:{" "}
-          <span className="font-medium">{selected.fullName}</span>
+          {isEnglish ? "Selected patient:" : "المريض المحدد:"}{" "}
+          <span dir="auto" className="font-medium">
+            {selected.fullName}
+          </span>
         </div>
       )}
     </div>

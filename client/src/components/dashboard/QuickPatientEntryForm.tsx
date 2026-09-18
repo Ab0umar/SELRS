@@ -307,7 +307,7 @@ export function QuickPatientEntryForm({
         className="w-full h-10 text-lg"
         size="lg"
       >
-        {createExamMutation.isPending ? "جاري الحفظ..." : "حفظ الفحص"}
+        {createExamMutation.isPending ? "جاري الحفظ…" : "حفظ الفحص"}
       </Button>
     </div>
   );

@@ -1070,7 +1070,7 @@ export default function ShiftStaff() {
       )}
 
       {staffQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+        <p className="text-sm text-muted-foreground">جاري التحميل…</p>
       ) : (
         <div className="space-y-6">
           {renderTable(doctors, "الأطباء")}

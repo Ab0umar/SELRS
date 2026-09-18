@@ -59,7 +59,7 @@ export function C4Loader(props: LoaderProps) {
 }
 
 export function LoadingOverlay({
-  label = "جاري التحميل...",
+  label = "جاري التحميل…",
   variant = "b4",
 }: {
   label?: string;

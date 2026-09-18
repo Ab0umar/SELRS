@@ -384,7 +384,7 @@ export function makeKfWriteProcedure(pagePath: string) {
 }
 
 // Accounting per-page factory (admin bypass)
-export function makeAccProcedure(pagePath: string) {
+export function makeAccProcedure(pagePath: string | string[]) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -399,12 +399,15 @@ export function makeAccProcedure(pagePath: string) {
         ctx.user.id,
         ctx.user.role ?? undefined,
       );
+      const allowedPaths = Array.isArray(pagePath) ? pagePath : [pagePath];
       const ok = permissions.some((p) => {
         const clean = String(p ?? "")
           .trim()
           .replace(/:r[w]?$/, "")
           .trim();
-        return permMatchesPath(clean, pagePath);
+        return allowedPaths.some((allowedPath) =>
+          permMatchesPath(clean, allowedPath),
+        );
       });
       if (!ok)
         throw new TRPCError({

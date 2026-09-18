@@ -415,7 +415,7 @@ export default function AdminWhatsAppInbox() {
           <Textarea
             value={replyMessage}
             onChange={(event) => setReplyMessage(event.target.value)}
-            placeholder="اكتب الرد..."
+            placeholder="اكتب الرد…"
             maxLength={4096}
             rows={5}
             autoFocus

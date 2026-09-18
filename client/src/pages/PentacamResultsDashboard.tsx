@@ -22,8 +22,51 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  SearchX,
 } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
+import { Skeleton } from "@/components/ui/skeleton";
+import PentacamFilesPanel from "@/components/PentacamFilesPanel";
+
+const dashboardColumnCount = (activeFilter: string) =>
+  activeFilter === "all" ? 7 : 9;
+
+function DashboardSkeletonRows({ columns }: { columns: number }) {
+  return (
+    <>
+      {[0, 1, 2, 3, 4].map((rowIdx) => (
+        <tr key={`skeleton-${rowIdx}`} className="border-b last:border-0">
+          {Array.from({ length: columns }).map((_, colIdx) => (
+            <td key={colIdx} className="p-2.5">
+              <Skeleton
+                className={`h-4 ${colIdx === 0 ? "w-36" : "w-16"}`}
+              />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+function DashboardEmptyRow({ columns }: { columns: number }) {
+  return (
+    <tr>
+      <td colSpan={columns} className="p-10 text-center">
+        <SearchX
+          className="mx-auto h-8 w-8 text-muted-foreground/40"
+          aria-hidden
+        />
+        <p className="mt-2 text-sm font-medium text-muted-foreground">
+          لا توجد نتائج مطابقة
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground/70">
+          جرّب تعديل البحث أو الفلاتر
+        </p>
+      </td>
+    </tr>
+  );
+}
 
 const filterTabs = [
   { value: "all", label: "الكل" },
@@ -557,6 +600,12 @@ export default function PentacamResultsDashboard({
           </div>
         ) : null}
 
+        {embeddedPatientId != null && embeddedPatientId > 0 ? (
+          <div className="mb-4">
+            <PentacamFilesPanel patientId={embeddedPatientId} compact />
+          </div>
+        ) : null}
+
         {/* Tab Selector */}
         <div className="mb-4 flex border-b border-border">
           <button
@@ -601,7 +650,7 @@ export default function PentacamResultsDashboard({
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder="ابحث بكود المريض أو الاسم أو الطبيب..."
+                  placeholder="ابحث بكود المريض أو الاسم أو الطبيب…"
                   className="w-full lg:max-w-2xl"
                   disabled={patientHubReadOnly}
                 />
@@ -821,27 +870,17 @@ export default function PentacamResultsDashboard({
                   </thead>
                   <tbody>
                     {listQuery.isLoading ? (
-                      <tr>
-                        <td
-                          colSpan={activeFilter === "all" ? 7 : 9}
-                          className="p-8 text-center text-muted-foreground"
-                        >
-                          ...جارٍ التحميل
-                        </td>
-                      </tr>
+                      <DashboardSkeletonRows
+                        columns={dashboardColumnCount(activeFilter)}
+                      />
                     ) : (
                       (() => {
                         if (activeFilter === "all") {
                           if (groupedPatientRows.length === 0) {
                             return (
-                              <tr>
-                                <td
-                                  colSpan={7}
-                                  className="p-8 text-center text-muted-foreground"
-                                >
-                                  لا توجد نتائج مطابقة.
-                                </td>
-                              </tr>
+                              <DashboardEmptyRow
+                                columns={dashboardColumnCount(activeFilter)}
+                              />
                             );
                           }
 
@@ -926,14 +965,9 @@ export default function PentacamResultsDashboard({
 
                         if (dashboardRows.length === 0) {
                           return (
-                            <tr>
-                              <td
-                                colSpan={9}
-                                className="p-8 text-center text-muted-foreground"
-                              >
-                                لا توجد نتائج مطابقة.
-                              </td>
-                            </tr>
+                            <DashboardEmptyRow
+                              columns={dashboardColumnCount(activeFilter)}
+                            />
                           );
                         }
 
@@ -1089,8 +1123,10 @@ export default function PentacamResultsDashboard({
               </h3>
 
               {listQuery.isLoading ? (
-                <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-                  ...جارٍ تحميل التنبيهات
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {[0, 1, 2, 3].map((idx) => (
+                    <Skeleton key={idx} className="h-36 rounded-lg" />
+                  ))}
                 </div>
               ) : alertRows.length === 0 ? (
                 <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">

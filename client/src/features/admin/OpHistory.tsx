@@ -152,7 +152,7 @@ export default function OpHistory() {
                   <Input
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="بحث بالاسم أو كود المريض..."
+                    placeholder="بحث بالاسم أو كود المريض…"
                     className="h-9 pr-9 text-xs sm:text-sm"
                   />
                 </div>

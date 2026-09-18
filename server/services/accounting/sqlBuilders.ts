@@ -51,7 +51,7 @@ export type DailyRevenueSqlInput = DateRangeInput &
 
 export type ServiceRevenueSqlInput = DateRangeInput &
   DoctorInput &
-  ServiceInput;
+  ServiceInput & { shiftCode?: string };
 
 export type ReceiptsInquirySqlInput = OptionalDateRangeInput &
   PatientInput &
@@ -351,6 +351,7 @@ export function buildServiceRevenueSql(
     ...sectionWhere(input.sectionCode, params),
     ...doctorWhere(input.doctorCodes ?? input.doctorCode, params),
     ...serviceWhere(input.serviceCodes, params),
+    ...shiftWhere(input.shiftCode, params),
     "ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')",
     "ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')",
   ];
@@ -541,6 +542,7 @@ SELECT ${top}
   s.CA_VL AS companyValue,
   s.ENTRYDATE AS entryDate,
   s.SRV_BY1 AS doctorCode,
+  d.PHNM_AR AS doctorName,
   s.CUR_SRV_BY AS currentDoctorCode,
   h.TR_DT AS receiptDate
 FROM PAPAT_SRV s
@@ -550,6 +552,8 @@ JOIN PAJRNRCVH h
  AND h.TR_NO = s.TR_NO
 LEFT JOIN SRVCMF c
   ON c.SRV_CD = s.SRV_CD
+LEFT JOIN MDTEAM d
+  ON d.CODE = s.SRV_BY1
 ${andWhere(where)}
 ORDER BY h.TR_DT DESC, s.TR_NO DESC, s.SRV_CD`.trim();
 

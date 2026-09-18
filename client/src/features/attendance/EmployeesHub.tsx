@@ -132,7 +132,7 @@ export default function EmployeesHub() {
       </div>
 
       {/* ── 2. Bento Panel Console Container ── */}
-      <div className="rounded-2xl border border-border/60 bg-card p-6">
+      <div className="rounded-xl border border-border/60 bg-card p-6">
 
         <div
           id={`attendance-employees-panel-${tab}`}

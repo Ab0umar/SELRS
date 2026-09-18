@@ -45,7 +45,7 @@ function DoctorCodeSelect({
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger>
-        <SelectValue placeholder="Map to internal doctor..." />
+        <SelectValue placeholder="Map to internal doctor…" />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="__none__">— None —</SelectItem>
@@ -171,7 +171,7 @@ function CreateDoctorForm({ onDone }: { onDone: () => void }) {
             })
           }
         >
-          {create.isPending ? "Creating..." : "Create"}
+          {create.isPending ? "Creating…" : "Create"}
         </Button>
         <Button size="sm" variant="ghost" onClick={onDone}>
           Cancel

@@ -2240,7 +2240,7 @@ export default function PayrollReport() {
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="البحث باسم الموظف..."
+              placeholder="البحث باسم الموظف…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="min-h-10 w-full rounded-md border border-border bg-background pr-9 pl-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"

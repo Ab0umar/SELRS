@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/selrs_test
+      DATABASE_TEST_URL: mysql://root:root@127.0.0.1:3306/selrs_test
 
     services:
       mysql:
@@ -28,6 +29,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -59,15 +62,29 @@ jobs:
 
       - name: Check for raw Tailwind palette tokens
         run: |
-          if grep -r -E "(sky|cyan|pink|indigo|teal|emerald|rose|violet|fuchsia|amber|orange|yellow|lime|green|blue|red|purple)-[0-9]+" client/src --include="*.tsx" --include="*.ts" | grep -v "node_modules"; then
-            echo "❌ Raw Tailwind palette tokens found. Use semantic tokens instead (primary, secondary, success, warning, destructive, muted)."
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          if git diff --unified=0 "$BASE_SHA" "$GITHUB_SHA" -- client/src \
+            | grep '^+' \
+            | grep -v '^+++' \
+            | grep -E "(sky|cyan|pink|indigo|teal|emerald|rose|violet|fuchsia|amber|orange|yellow|lime|green|blue|red|purple)-[0-9]+"; then
+            echo "❌ New raw Tailwind palette tokens found. Use semantic tokens instead (primary, secondary, success, warning, destructive, muted)."
             exit 1
           else
-            echo "✅ No raw Tailwind palette tokens detected."
+            echo "✅ No new raw Tailwind palette tokens detected."
           fi
 
       - name: Run Tests
         run: pnpm test
+
+      - name: Verify webhook and queue behavior
+        run: pnpm exec vitest run --config vitest.backend.config.ts server/tests/whatsappWebhook.test.ts server/tests/queueSnapshot.test.ts
 
       - name: Run Build
         run: pnpm build

@@ -13,7 +13,7 @@ import type {
   ReceiptHeader,
   ReceiptsInquiryInput,
 } from "@shared/accounting/contracts";
-import { CircleAlert, RefreshCw, Search } from "lucide-react";
+import { CircleAlert, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import {
@@ -198,8 +198,8 @@ export default function AccountingPatientsInquiry() {
               إلى تفاصيل الإيصال.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="space-y-1.5 text-sm font-medium">
+          <CardContent className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+            <label className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground">
               <span>من تاريخ</span>
               <DateInput
                 value={draft.fromDate ?? ""}
@@ -208,7 +208,7 @@ export default function AccountingPatientsInquiry() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground">
               <span>إلى تاريخ</span>
               <DateInput
                 value={draft.toDate ?? ""}
@@ -222,21 +222,7 @@ export default function AccountingPatientsInquiry() {
                 {dateError}
               </p>
             )}
-            <label className="space-y-1.5 text-sm font-medium">
-              <span>كود القسم</span>
-              <Input
-                type="number"
-                value={draft.sectionCode ?? DEFAULT_SECTION_CODE}
-                onChange={(e) =>
-                  setDraft((p) => ({
-                    ...p,
-                    sectionCode:
-                      optionalNumber(e.target.value) ?? DEFAULT_SECTION_CODE,
-                  }))
-                }
-              />
-            </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground">
               <span>كود المريض</span>
               <Input
                 value={draft.patientCode ?? ""}
@@ -248,7 +234,7 @@ export default function AccountingPatientsInquiry() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
+            <label className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground">
               <span>كود الطبيب</span>
               <Input
                 value={draft.doctorCode ?? ""}
@@ -260,63 +246,15 @@ export default function AccountingPatientsInquiry() {
                 }
               />
             </label>
-            <label className="space-y-1.5 text-sm font-medium">
-              <span>رقم الإيصال</span>
-              <Input
-                value={draft.trNo ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, trNo: e.target.value || undefined }))
-                }
-              />
-            </label>
-            <label className="space-y-1.5 text-sm font-medium">
-              <span>نوع الإيصال</span>
-              <Input
-                type="number"
-                value={draft.trTy ?? ""}
-                placeholder="1, 5, 6, 8"
-                onChange={(e) =>
-                  setDraft((p) => ({
-                    ...p,
-                    trTy: optionalNumber(e.target.value),
-                  }))
-                }
-              />
-            </label>
-            <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
-              <Button
-                type="button"
-                className="flex-1 sm:flex-none"
-                onClick={applyFilters}
-                aria-label="تطبيق الفلاتر"
-              >
-                <Search className="ml-2 h-4 w-4" aria-hidden />
-                تطبيق
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={resetFilters}
-                aria-label="إعادة ضبط الفلاتر"
-              >
-                إعادة ضبط
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void q.refetch()}
-                disabled={q.isFetching}
-                aria-label="تحديث البيانات"
-              >
-                <RefreshCw
-                  className={
-                    q.isFetching ? "ml-2 h-4 w-4 animate-spin" : "ml-2 h-4 w-4"
-                  }
-                  aria-hidden
-                />
-                تحديث
-              </Button>
-            </div>
+            <Button type="button" size="icon" className="h-11 w-11" onClick={applyFilters} aria-label="تطبيق">
+              <Search className="h-4 w-4" aria-hidden />
+            </Button>
+            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={resetFilters} aria-label="إعادة ضبط">
+              <RotateCcw className="h-4 w-4" aria-hidden />
+            </Button>
+            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => void q.refetch()} disabled={q.isFetching} aria-label="تحديث">
+              <RefreshCw className={q.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden />
+            </Button>
           </CardContent>
         </Card>
 
@@ -374,7 +312,7 @@ export default function AccountingPatientsInquiry() {
                         className="rounded-2xl border border-border bg-background p-4 text-right shadow-sm transition-colors hover:bg-primary/50"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
+                          <div className="shrink-0">
                             <div className="text-[11px] text-muted-foreground">
                               {formatDateAr(row.transactionDate)}
                             </div>

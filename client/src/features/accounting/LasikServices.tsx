@@ -59,17 +59,14 @@ export default function LasikServices() {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl tracking-tight">
-              خدمات الليزك
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            <label
+      <div className="space-y-2 sm:space-y-2.5" dir="rtl">
+        <Card className="w-fit max-w-full border-border/60 shadow-xs">
+          <CardContent className="w-fit max-w-full space-y-2 p-2.5 sm:p-3">
+            {/* layout-refined-add-filter */}
+            <div className="accounting-add-filter flex w-fit max-w-full flex-wrap items-end gap-2" data-add-filter="1" dir="rtl">
+<label
               htmlFor="lasik-svc-from-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>من تاريخ</span>
               <DateInput
@@ -78,11 +75,11 @@ export default function LasikServices() {
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
                 }
-              />
+               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
             </label>
             <label
               htmlFor="lasik-svc-to-date"
-              className="space-y-1.5 text-sm font-medium"
+              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
             >
               <span>إلى تاريخ</span>
               <DateInput
@@ -91,7 +88,7 @@ export default function LasikServices() {
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))
                 }
-              />
+               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
             </label>
             <label htmlFor="lasik-svc-service-code" className="space-y-1">
               <span className="block text-sm font-medium">كود الخدمة</span>
@@ -109,7 +106,7 @@ export default function LasikServices() {
               {draft.serviceCode && (
                 <span className="text-xs text-muted-foreground block mt-1">
                   {serviceLookup.isLoading
-                    ? "جاري البحث..."
+                    ? "جاري البحث…"
                     : serviceLookup.data
                       ? `الاسم: ${serviceLookup.data.serviceName}`
                       : "غير موجود"}
@@ -122,23 +119,24 @@ export default function LasikServices() {
             >
               <Search className="ml-2" aria-hidden /> بحث
             </Button>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent>
-            <div className="grid gap-3 sm:hidden">
+            <div className="grid gap-2 sm:hidden">
               {servicesQuery.isLoading ? (
                 <Skeleton className="h-40 w-full" />
               ) : (
                 rows.map((row) => (
                   <div
                     key={row.serviceCode}
-                    className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                    className="rounded-xl border border-border bg-background p-4 shadow-xs"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[11px] text-muted-foreground">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="shrink-0">
+                        <div className="text-sm text-muted-foreground">
                           كود الخدمة
                         </div>
                         <div className="mt-1 text-sm font-semibold text-foreground">
@@ -152,7 +150,7 @@ export default function LasikServices() {
                     <div className="mt-3 text-sm font-medium text-foreground">
                       {row.serviceName}
                     </div>
-                    <div className="mt-4 rounded-xl bg-muted px-3 py-2">
+                    <div className="mt-4 rounded-xl bg-muted px-2 py-1.5">
                       <div className="text-[10px] text-muted-foreground">
                         الإجمالي
                       </div>

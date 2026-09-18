@@ -123,7 +123,7 @@ export default function LeaveManagement() {
     <div className="space-y-4" dir="rtl">
       <Card className="mb-4">
         <CardContent className="pt-4">
-          <div className="grid gap-3 md:grid-cols-4 md:items-end">
+          <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
             <div>
               <label
                 htmlFor="attendance-leave-from"
@@ -135,7 +135,7 @@ export default function LeaveManagement() {
                 id="attendance-leave-from"
                 value={filter.from}
                 onChange={(e) => setFilter({ ...filter, from: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
               />
             </div>
             <div>
@@ -149,7 +149,7 @@ export default function LeaveManagement() {
                 id="attendance-leave-to"
                 value={filter.to}
                 onChange={(e) => setFilter({ ...filter, to: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
               />
             </div>
             <div>
@@ -259,7 +259,7 @@ export default function LeaveManagement() {
                   onChange={(e) =>
                     setForm({ ...form, dateFrom: e.target.value })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
                 />
               </div>
               <div>
@@ -273,7 +273,7 @@ export default function LeaveManagement() {
                   id="attendance-leave-form-to"
                   value={form.dateTo}
                   onChange={(e) => setForm({ ...form, dateTo: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
                 />
               </div>
               <div className="md:col-span-2">
@@ -333,7 +333,7 @@ export default function LeaveManagement() {
                 }}
                 disabled={!form.empCd || createMut.isPending || updateMut.isPending}
               >
-                {(createMut.isPending || updateMut.isPending) ? "جاري الحفظ..." : "حفظ"}
+                {(createMut.isPending || updateMut.isPending) ? "جاري الحفظ…" : "حفظ"}
               </Button>
               <Button variant="outline" onClick={resetForm}>
                 إلغاء
@@ -366,7 +366,7 @@ export default function LeaveManagement() {
               {leaves.map((l: any) => (
                 <div
                   key={l.id}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>

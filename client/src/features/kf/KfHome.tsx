@@ -268,7 +268,7 @@ export default function KfHome() {
                 <Label className="text-sm font-semibold text-foreground">النوع</Label>
                 <Select value={form.gender} onValueChange={(v: "male" | "female") => handleChange("gender", v)}>
                   <SelectTrigger className="h-12 bg-muted/40 border-border/60">
-                    <SelectValue placeholder="اختر..." />
+                    <SelectValue placeholder="اختر…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="male">ذكر</SelectItem>
@@ -305,7 +305,7 @@ export default function KfHome() {
                 <Label className="text-sm font-semibold text-foreground">الطبيب</Label>
                 <Select value={form.doctorName} onValueChange={(v) => handleChange("doctorName", v)}>
                   <SelectTrigger className="h-12 bg-muted/40 border-border/60">
-                    <SelectValue placeholder="تحديد الطبيب..." />
+                    <SelectValue placeholder="تحديد الطبيب…" />
                   </SelectTrigger>
                   <SelectContent>
                     {KF_DOCTORS.map((dr) => (
@@ -320,7 +320,7 @@ export default function KfHome() {
                 <Textarea
                   id="kh-history"
                   rows={2}
-                  placeholder="سجل أي ملاحظات هامة هنا..."
+                  placeholder="سجل أي ملاحظات هامة هنا…"
                   value={form.medicalHistory}
                   onChange={(e) => handleChange("medicalHistory", e.target.value)}
                   className="bg-muted/40 border-border/60 resize-none text-base"
@@ -335,7 +335,7 @@ export default function KfHome() {
                 className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-base"
               >
                 <Save className="h-5 w-5 ml-2.5" />
-                {createMutation.isPending ? "جاري الحفظ..." : "حفظ المريض"}
+                {createMutation.isPending ? "جاري الحفظ…" : "حفظ المريض"}
               </Button>
               <Link href={ROUTES.kfPatientsNew} className="text-sm text-primary hover:text-primary font-bold flex items-center gap-1.5">
                 فتح الملف الشامل
@@ -383,7 +383,7 @@ export default function KfHome() {
               <div className="space-y-2 flex-1">
                 <Label className="text-sm font-semibold text-foreground">البيان \ الملاحظات</Label>
                 <Input
-                  placeholder="بيان القيد..."
+                  placeholder="بيان القيد…"
                   value={ledgerForm.notes}
                   onChange={(e) => setLedgerForm(prev => ({...prev, notes: e.target.value}))}
                   className="h-11 bg-white border-border/60"

@@ -203,7 +203,7 @@ export default function MedicalReference() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="اسم المريض أو رقم الملف..."
+              placeholder="اسم المريض أو رقم الملف…"
               className="h-9 pr-9 text-xs sm:text-sm bg-background"
             />
           </div>

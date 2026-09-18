@@ -180,7 +180,7 @@ export default function PatientDetails() {
                 initialPatientId={patientId}
                 onSelect={handleSelectPatient}
                 label=""
-                placeholder="بحث عن مريض..."
+                placeholder="بحث عن مريض…"
               />
             </div>
             {reportPath && (

@@ -2,6 +2,7 @@ import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
+import PentacamFilesPanel from "@/components/PentacamFilesPanel";
 import {
   ArrowRight,
   CalendarDays,
@@ -117,7 +118,7 @@ function RefractionReportTable({
         </span>
         {metrics.length > 0 && (
           <div
-            className="flex flex-1 items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-[11px] font-bold uppercase tracking-wide text-primary"
+            className="flex flex-1 items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-xs font-bold uppercase tracking-wide text-primary"
             dir="ltr"
           >
             {metrics.includes("ucva") && (
@@ -145,7 +146,7 @@ function RefractionReportTable({
         className="overflow-hidden rounded border border-border/60"
         dir="ltr"
       >
-        <table className="w-full table-fixed border-collapse text-center text-[11px]">
+        <table className="w-full table-fixed border-collapse text-center text-sm">
           <thead>
             <tr className="border-b border-border/60 bg-muted/40 text-primary">
               <th className="w-[18%] border-e border-border/60 px-3 py-2">
@@ -258,7 +259,7 @@ function PentacamReportTable({
         className="overflow-x-auto rounded border border-border/60"
         dir="ltr"
       >
-        <table className="w-full min-w-[850px] table-fixed border-collapse text-center text-[10px] print:min-w-0 print:text-[7px]">
+        <table className="w-full min-w-[850px] table-fixed border-collapse text-center text-xs print:min-w-0 print:text-[7px]">
           <thead>
             <tr className="border-b border-border/60 bg-muted/40 text-primary">
               <th className="w-[11%] border-e border-border/60 px-2 py-2">
@@ -318,7 +319,7 @@ function SectionHeading({ id, label }: { id: string; label: string }) {
     <div className="mb-4 flex items-center gap-3 border-b border-border/60 pb-2">
       <h2
         id={`sum-${id}`}
-        className="scroll-mt-20 shrink-0 text-base font-bold text-primary"
+        className="scroll-mt-20 shrink-0 text-lg font-bold text-primary"
       >
         {label}
       </h2>
@@ -338,13 +339,13 @@ function DataTable({
       className="patient-summary-data-table overflow-x-auto rounded-xl border border-border/60 shadow-2xs bg-card my-1"
       dir="ltr"
     >
-      <table className="w-full border-collapse text-center text-xs" dir="ltr">
+      <table className="w-full border-collapse text-center text-sm" dir="ltr">
         <thead>
           <tr className="border-b border-border/60 bg-muted/40 font-bold text-primary">
             {headers.map((h, idx) => (
               <th
                 key={`${h}-${idx}`}
-                className="border-x border-border/60 px-3 py-2.5 text-center text-[11px] font-bold tracking-wide first:border-l-0 last:border-r-0 whitespace-nowrap"
+                className="border-x border-border/60 px-3 py-2.5 text-center text-xs font-bold tracking-wide first:border-l-0 last:border-r-0 whitespace-nowrap"
               >
                 {h}
               </th>
@@ -356,7 +357,7 @@ function DataTable({
             <tr>
               <td
                 colSpan={headers.length}
-                className="px-3 py-6 text-center text-xs text-muted-foreground font-medium italic"
+                className="px-3 py-6 text-center text-sm text-muted-foreground font-medium italic"
               >
                 لا توجد بيانات محفوظة في الجدول
               </td>
@@ -374,16 +375,12 @@ function DataTable({
                   return (
                     <td
                       key={j}
-                      className="px-3 py-2 font-mono text-xs text-foreground text-center whitespace-nowrap align-middle border-x border-border/60 first:border-l-0 last:border-r-0"
+                      className="px-3 py-2 font-mono text-sm text-foreground text-center whitespace-nowrap align-middle border-x border-border/60 first:border-l-0 last:border-r-0"
                       dir="ltr"
                     >
-                      {isEyeOD ? (
-                        <span className="inline-block rounded bg-blue-100 text-blue-800 font-bold px-2 py-0.5 text-[10px]">
-                          OD
-                        </span>
-                      ) : isEyeOS ? (
-                        <span className="inline-block rounded bg-blue-100 text-blue-800 font-bold px-2 py-0.5 text-[10px]">
-                          OS
+                      {isEyeOD || isEyeOS ? (
+                        <span className="inline-block rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                          {isEyeOD ? "OD" : "OS"}
                         </span>
                       ) : (
                         val || "—"
@@ -1044,6 +1041,29 @@ export default function PatientSummary() {
     ],
   );
 
+  const [activeSection, setActiveSection] = useState<string>(
+    tocSections[0]?.id ?? "",
+  );
+
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root || tocSections.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting)
+            setActiveSection(entry.target.id.replace("sum-", ""));
+        }
+      },
+      { root, rootMargin: "0px 0px -75% 0px", threshold: 0 },
+    );
+    for (const section of tocSections) {
+      const el = document.getElementById(`sum-${section.id}`);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [tocSections]);
+
   return (
     <div
       className="patient-summary-page flex h-full min-h-0 flex-col bg-muted/10"
@@ -1214,26 +1234,43 @@ export default function PatientSummary() {
             <p className="text-sm font-semibold">محتويات التقرير</p>
           </div>
           <nav className="space-y-0.5 p-2" aria-label="محتويات التقرير الملخص">
-            {tocSections.map((section, index) => (
-              <a
-                key={section.id}
-                href={`#sum-${section.id}`}
-                className="flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <span
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted font-mono text-[10px]"
-                  dir="ltr"
+            {tocSections.map((section, index) => {
+              const isActive = activeSection === section.id;
+              return (
+                <a
+                  key={section.id}
+                  href={`#sum-${section.id}`}
+                  aria-current={isActive ? "true" : undefined}
+                  className={cn(
+                    "flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    isActive
+                      ? "bg-primary/10 font-medium text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
                 >
-                  {index + 1}
-                </span>
-                {section.label}
-              </a>
-            ))}
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded font-mono text-[10px]",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted",
+                    )}
+                    dir="ltr"
+                  >
+                    {index + 1}
+                  </span>
+                  {section.label}
+                </a>
+              );
+            })}
           </nav>
         </aside>
 
-        <main ref={contentRef} className="flex-1 overflow-y-auto">
-          <article className="patient-summary-print-root mx-auto w-full max-w-5xl space-y-8 bg-background px-4 py-6 pb-16 sm:px-6 lg:my-5 lg:border lg:border-border lg:px-8 print:space-y-5">
+        <main
+          ref={contentRef}
+          className="flex-1 scroll-smooth overflow-y-auto"
+        >
+          <article className="patient-summary-print-root mx-auto w-full space-y-8 bg-background px-4 py-6 pb-16 sm:px-6 lg:my-5 lg:border lg:border-border lg:px-8 print:space-y-5">
             <div className="hidden border-b-2 border-primary pb-3 print:flex print:items-end print:justify-between">
               <div>
                 <h1 className="text-xl font-black text-primary">
@@ -1292,7 +1329,7 @@ export default function PatientSummary() {
 
             {
               <section id="sum-symptoms" className="scroll-mt-4">
-                <SectionHeading id="symptoms" label="Symptoms" />
+                <SectionHeading id="symptoms" label="الأعراض" />
                 <DataTable
                   headers={["تاريخ الزيارة", "الأعراض المسجلة"]}
                   rows={symptomRows}
@@ -1331,7 +1368,7 @@ export default function PatientSummary() {
             {/* القياسات */}
             {
               <section id="sum-examinations" className="scroll-mt-4">
-                <SectionHeading id="examinations" label="Autoref / IOP" />
+                <SectionHeading id="examinations" label="الأوتوريف وضغط العين" />
                 <div className="space-y-5">
                   {parsedExamSources.map((source, index) => (
                     <RefractionReportTable
@@ -1349,7 +1386,7 @@ export default function PatientSummary() {
 
             {
               <section id="sum-after" className="scroll-mt-4">
-                <SectionHeading id="after" label="After" />
+                <SectionHeading id="after" label="بعد الضبط" />
                 <div className="space-y-5">
                   {parsedExamSources
                     .filter((source) => source.after?.od || source.after?.os)
@@ -1369,7 +1406,7 @@ export default function PatientSummary() {
             {/* النظارة */}
             {
               <section id="sum-glasses" className="scroll-mt-4">
-                <SectionHeading id="glasses" label="Clinical Refraction" />
+                <SectionHeading id="glasses" label="قياس النظر (Refraction)" />
                 <div className="space-y-5">
                   {glassesRows.map((row, index) => (
                     <RefractionReportTable
@@ -1417,6 +1454,9 @@ export default function PatientSummary() {
                       os={entry.os}
                     />
                   ))}
+                  {patientId ? (
+                    <PentacamFilesPanel patientId={patientId} compact />
+                  ) : null}
                 </div>
               </section>
             )}
@@ -1424,7 +1464,7 @@ export default function PatientSummary() {
             {/* الأشعات والتحاليل */}
             {
               <section id="sum-tests" className="scroll-mt-4">
-                <SectionHeading id="tests" label="Diagnostic Tests" />
+                <SectionHeading id="tests" label="الأشعات والتحاليل" />
                 <DataTable
                   headers={["التاريخ", "الفحص", "النتيجة", "الحالة"]}
                   rows={diagnosticTestRows}
@@ -1435,7 +1475,7 @@ export default function PatientSummary() {
             {/* الروشتة والعلاج */}
             {
               <section id="sum-prescriptions" className="scroll-mt-4">
-                <SectionHeading id="prescriptions" label="Treatment Plan" />
+                <SectionHeading id="prescriptions" label="الروشتة والعلاج" />
                 {treatmentPlanRows.length > 0 && (
                   <DataTable
                     headers={[

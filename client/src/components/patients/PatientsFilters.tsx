@@ -63,7 +63,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
           <div className="relative w-full sm:w-[340px] md:w-[520px]">
             <Search className="absolute right-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="ابحث بالاسم أو الكود أو الموبايل أو الدكتور أو الخدمة..."
+              placeholder="ابحث بالاسم أو الكود أو الموبايل أو الدكتور أو الخدمة…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => {

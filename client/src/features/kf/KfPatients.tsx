@@ -143,7 +143,7 @@ function AddPatientDialog({ open, onClose, onCreated }: { open: boolean; onClose
               <div className="space-y-1">
                 <Label htmlFor="dp-gender">النوع</Label>
                 <Select value={form.gender} onValueChange={(v) => set("gender", v)}>
-                  <SelectTrigger id="dp-gender"><SelectValue placeholder="اختر..." /></SelectTrigger>
+                  <SelectTrigger id="dp-gender"><SelectValue placeholder="اختر…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="male">ذكر</SelectItem>
                     <SelectItem value="female">أنثى</SelectItem>
@@ -186,11 +186,11 @@ function AddPatientDialog({ open, onClose, onCreated }: { open: boolean; onClose
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="dp-mhx">التاريخ المرضي</Label>
-                <Textarea id="dp-mhx" rows={2} placeholder="مثال: ضغط دم، سكر..." value={form.medicalHistory} onChange={(e) => set("medicalHistory", e.target.value)} />
+                <Textarea id="dp-mhx" rows={2} placeholder="مثال: ضغط دم، سكر…" value={form.medicalHistory} onChange={(e) => set("medicalHistory", e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="dp-allergy">الحساسية</Label>
-                <Textarea id="dp-allergy" rows={2} placeholder="مثال: بنسلين..." value={form.allergies} onChange={(e) => set("allergies", e.target.value)} />
+                <Textarea id="dp-allergy" rows={2} placeholder="مثال: بنسلين…" value={form.allergies} onChange={(e) => set("allergies", e.target.value)} />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label htmlFor="dp-notes">ملاحظات</Label>
@@ -275,7 +275,7 @@ export default function KfPatients() {
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="ابحث هنا..."
+              placeholder="ابحث هنا…"
               className="pr-10"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}

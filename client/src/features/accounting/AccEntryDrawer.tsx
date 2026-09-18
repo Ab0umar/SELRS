@@ -232,7 +232,7 @@ export default function AccEntryDrawer({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="البيان أو اسم الموظف..."
+              placeholder="البيان أو اسم الموظف…"
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 resize-none"
             />
             {/* Category quick-fill */}

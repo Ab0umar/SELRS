@@ -12,6 +12,7 @@ import {
   Repeat,
   Search,
   Settings,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,6 +94,11 @@ export default function GlobalCommandPalette() {
       { label: "الزيارات", path: "/visits", icon: CalendarDays },
       { label: "المتابعات", path: "/followups", icon: Repeat },
       { label: "الفحوصات", path: "/examination", icon: Eye },
+      {
+        label: "المجموعة الإكلينيكية والتشغيلية",
+        path: "/clinical-suite",
+        icon: Sparkles,
+      },
       { label: "الروشتات", path: "/prescriptions", icon: Pill },
       { label: "المرجع الطبي", path: "/medical-reference", icon: Filter },
       ...(!isAdmin
@@ -139,7 +145,7 @@ export default function GlobalCommandPalette() {
       filter={commandFilter}
     >
       <CommandInput
-        placeholder="Search patients, codes, phones, Pentacam files..."
+        placeholder="Search patients, codes, phones, Pentacam files…"
         value={query}
         onValueChange={setQuery}
         autoFocus
@@ -202,7 +208,7 @@ export default function GlobalCommandPalette() {
           <CommandGroup heading="Status">
             <CommandItem value="searching" disabled>
               <Search className="h-4 w-4" />
-              <span>Searching...</span>
+              <span>Searching…</span>
             </CommandItem>
           </CommandGroup>
         ) : null}
