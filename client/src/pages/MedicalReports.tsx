@@ -370,20 +370,6 @@ export default function MedicalReports() {
   }, [routePatientId]);
 
   useEffect(() => {
-    const raw = localStorage.getItem("user_state_medical_reports");
-    if (!raw) return;
-    try {
-      const data = JSON.parse(raw);
-      if (Array.isArray(data.expandedDiseaseGroups))
-        setExpandedDiseaseGroups(data.expandedDiseaseGroups);
-      if (typeof data.diseaseSearch === "string")
-        setDiseaseSearch(data.diseaseSearch);
-    } catch {
-      // ignore bad cache
-    }
-  }, []);
-
-  useEffect(() => {
     const data = (userStateQuery.data as any)?.data;
     if (!data) return;
     if (didHydrateUserStateRef.current) return;
@@ -400,7 +386,6 @@ export default function MedicalReports() {
       expandedDiseaseGroups,
       diseaseSearch,
     };
-    localStorage.setItem("user_state_medical_reports", JSON.stringify(payload));
     if (userStateTimerRef.current) clearTimeout(userStateTimerRef.current);
     userStateTimerRef.current = setTimeout(() => {
       saveUserStateMutation.mutate({ page: "medical_reports", data: payload });

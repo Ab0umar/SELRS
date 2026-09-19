@@ -15,9 +15,9 @@ import {
 } from "../../../drizzle/schema";
 import { desc, inArray, sql, and, eq } from "drizzle-orm";
 
-const DEVICE_IP   = process.env.ZK4370_IP   ?? "196.202.50.91";
+const DEVICE_IP = process.env.ZK4370_IP ?? "196.202.50.91";
 const DEVICE_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
-const DEVICE_ID   = `zk_${DEVICE_IP}`;
+const DEVICE_ID = `zk_${DEVICE_IP}`;
 
 const BATCH_SIZE = 500;
 
@@ -46,7 +46,12 @@ export interface ZK4370PushResult {
 // ---------------------------------------------------------------------------
 
 export class ZK4370SyncService {
-  static async pull(userId?: number, ip?: string, port?: number, commKey = 0): Promise<ZK4370SyncResult> {
+  static async pull(
+    userId?: number,
+    ip?: string,
+    port?: number,
+    commKey = 0,
+  ): Promise<ZK4370SyncResult> {
     const deviceIp = ip ?? DEVICE_IP;
     const devicePort = port ?? DEVICE_PORT;
     const startedAt = new Date();
@@ -69,16 +74,22 @@ export class ZK4370SyncService {
       const lastRun = await db
         .select({ hwm: attendanceSyncRuns.highWaterMark })
         .from(attendanceSyncRuns)
-        .where(and(
-          inArray(attendanceSyncRuns.status, ["ok", "partial"] as any),
-          eq(attendanceSyncRuns.deviceId as any, deviceId),
-        ))
+        .where(
+          and(
+            inArray(attendanceSyncRuns.status, ["ok", "partial"] as any),
+            eq(attendanceSyncRuns.deviceId as any, deviceId),
+          ),
+        )
         .orderBy(desc(attendanceSyncRuns.startedAt))
         .limit(1);
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
       console.log(`[ZK4370] Last HWM: ${lastHwm?.toISOString() ?? "none"}`);
 
-      const zkPunches = await ZK4370LogPuller.pullLogs(deviceIp, devicePort, commKey);
+      const zkPunches = await ZK4370LogPuller.pullLogs(
+        deviceIp,
+        devicePort,
+        commKey,
+      );
       // Normalise to the shape the rest of pull() expects
       const allPunches = zkPunches.map((r) => ({
         enrollNo: r.enrollNo,
@@ -92,7 +103,9 @@ export class ZK4370SyncService {
         : allPunches;
 
       result.recordsSeen = newPunches.length;
-      console.log(`[ZK4370] Device: ${allPunches.length} total, ${newPunches.length} new`);
+      console.log(
+        `[ZK4370] Device: ${allPunches.length} total, ${newPunches.length} new`,
+      );
 
       if (newPunches.length === 0) {
         result.success = true;
@@ -109,14 +122,20 @@ export class ZK4370SyncService {
       for (let i = 0; i < newPunches.length; i += BATCH_SIZE) {
         const batch = newPunches.slice(i, i + BATCH_SIZE);
         const rows = batch.map((r) => ({
-          empCd:       r.enrollNo,
-          punchAt:     r.timestamp,
-          direction:   (r.inOutMode === 1 ? "in" : r.inOutMode === 0 ? "out" : "unknown") as "in" | "out" | "unknown",
-          deviceId:    deviceId,
-          source:      "tcp" as const,
+          empCd: r.enrollNo,
+          punchAt: r.timestamp,
+          direction: (r.inOutMode === 1
+            ? "in"
+            : r.inOutMode === 0
+              ? "out"
+              : "unknown") as "in" | "out" | "unknown",
+          deviceId: deviceId,
+          source: "tcp" as const,
           sourceRowId: `${r.enrollNo}_${r.timestamp.getTime()}`,
-          sourceHash:  sha1(`${r.enrollNo}|${r.timestamp.toISOString()}|${r.inOutMode}`),
-          importedAt:  new Date(),
+          sourceHash: sha1(
+            `${r.enrollNo}|${r.timestamp.toISOString()}|${r.inOutMode}`,
+          ),
+          importedAt: new Date(),
         }));
 
         const inserted = await db
@@ -135,7 +154,7 @@ export class ZK4370SyncService {
       }
 
       result.recordsInserted = totalInserted;
-      result.recordsSkipped  = newPunches.length - totalInserted;
+      result.recordsSkipped = newPunches.length - totalInserted;
       result.maxPunchAt = newPunches.reduce<Date | null>(
         (mx, r) => (!mx || r.timestamp > mx ? r.timestamp : mx),
         null,
@@ -146,7 +165,15 @@ export class ZK4370SyncService {
         const now = new Date();
         await db
           .insert(attendanceEmployees)
-          .values(empCds.map((empCd) => ({ empCd, fullName: empCd, active: true, createdAt: now, updatedAt: now })))
+          .values(
+            empCds.map((empCd) => ({
+              empCd,
+              fullName: empCd,
+              active: true,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          )
           .onDuplicateKeyUpdate({ set: { updatedAt: now } });
       }
 
@@ -163,11 +190,12 @@ export class ZK4370SyncService {
       result.success = true;
       result.completedAt = new Date();
       result.durationMs = result.completedAt.getTime() - startedAt.getTime();
-      console.log(`[ZK4370] Pull done: ${result.recordsInserted} inserted, ${result.recordsSkipped} skipped`);
+      console.log(
+        `[ZK4370] Pull done: ${result.recordsInserted} inserted, ${result.recordsSkipped} skipped`,
+      );
 
       await recordSyncRun(db, result, userId, deviceId);
       return result;
-
     } catch (error) {
       result.error = error instanceof Error ? error.message : String(error);
       result.completedAt = new Date();
@@ -175,8 +203,11 @@ export class ZK4370SyncService {
       console.error(`[ZK4370] Pull failed: ${result.error}`);
       try {
         const db = await getDb();
-        if (db) await recordSyncRun(db, result, userId, `zk_${ip ?? DEVICE_IP}`);
-      } catch { /* ignore */ }
+        if (db)
+          await recordSyncRun(db, result, userId, `zk_${ip ?? DEVICE_IP}`);
+      } catch {
+        /* ignore */
+      }
       return result;
     }
   }
@@ -189,14 +220,23 @@ export class ZK4370SyncService {
     const deviceIp = ip ?? DEVICE_IP;
     const devicePort = port ?? DEVICE_PORT;
     const start = Date.now();
-    const result: ZK4370PushResult = { success: false, pushed: 0, failed: 0, errors: [], durationMs: 0 };
+    const result: ZK4370PushResult = {
+      success: false,
+      pushed: 0,
+      failed: 0,
+      errors: [],
+      durationMs: 0,
+    };
 
     try {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       const employees = await db
-        .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName })
+        .select({
+          empCd: attendanceEmployees.empCd,
+          fullName: attendanceEmployees.fullName,
+        })
         .from(attendanceEmployees)
         .where(sql`active = 1`);
 
@@ -210,7 +250,9 @@ export class ZK4370SyncService {
             result.pushed++;
           } catch (err) {
             result.failed++;
-            result.errors.push(`${e.empCd}: ${err instanceof Error ? err.message : String(err)}`);
+            result.errors.push(
+              `${e.empCd}: ${err instanceof Error ? err.message : String(err)}`,
+            );
           }
         }
       } finally {
@@ -219,11 +261,14 @@ export class ZK4370SyncService {
 
       result.success = result.failed === 0;
       result.durationMs = Date.now() - start;
-      console.log(`[ZK4370] Push done: ${result.pushed} pushed, ${result.failed} failed`);
+      console.log(
+        `[ZK4370] Push done: ${result.pushed} pushed, ${result.failed} failed`,
+      );
       return result;
-
     } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
+      result.errors.push(
+        error instanceof Error ? error.message : String(error),
+      );
       result.durationMs = Date.now() - start;
       return result;
     }
@@ -233,14 +278,25 @@ export class ZK4370SyncService {
   // Status
   // ---------------------------------------------------------------------------
 
-  static async testConnection(ip?: string, port?: number, commKey = 0): Promise<{ ok: boolean; userCount?: number; error?: string }> {
+  static async testConnection(
+    ip?: string,
+    port?: number,
+    commKey = 0,
+  ): Promise<{ ok: boolean; userCount?: number; error?: string }> {
     const deviceIp = ip ?? DEVICE_IP;
     const devicePort = port ?? DEVICE_PORT;
     try {
-      const users = await ZK4370LogPuller.pullUsers(deviceIp, devicePort, commKey);
+      const users = await ZK4370LogPuller.pullUsers(
+        deviceIp,
+        devicePort,
+        commKey,
+      );
       return { ok: true, userCount: users.length };
     } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
@@ -256,7 +312,7 @@ export class ZK4370SyncService {
 // ---------------------------------------------------------------------------
 
 function sha1(s: string): string {
-  return crypto.createHash("sha1").update(s).digest("hex");
+  return crypto.createHash("sha256").update(s).digest("hex");
 }
 
 function empCdToUid(empCd: string): number {
@@ -266,21 +322,26 @@ function empCdToUid(empCd: string): number {
   return (hash % 65534) + 1;
 }
 
-async function recordSyncRun(db: any, result: ZK4370SyncResult, userId?: number, deviceId?: string): Promise<void> {
+async function recordSyncRun(
+  db: any,
+  result: ZK4370SyncResult,
+  userId?: number,
+  deviceId?: string,
+): Promise<void> {
   try {
     await db.insert(attendanceSyncRuns).values({
-      startedAt:       result.startedAt,
-      finishedAt:      result.completedAt,
-      source:          "tcp",
-      trigger:         "manual",
-      triggeredBy:     userId,
-      rowsSeen:        result.recordsSeen,
-      rowsInserted:    result.recordsInserted,
-      rowsSkipped:     result.recordsSkipped,
+      startedAt: result.startedAt,
+      finishedAt: result.completedAt,
+      source: "tcp",
+      trigger: "manual",
+      triggeredBy: userId,
+      rowsSeen: result.recordsSeen,
+      rowsInserted: result.recordsInserted,
+      rowsSkipped: result.recordsSkipped,
       rowsQuarantined: 0,
-      status:          result.success ? "ok" : "failed",
-      error:           result.error,
-      highWaterMark:   result.maxPunchAt ?? result.completedAt,
+      status: result.success ? "ok" : "failed",
+      error: result.error,
+      highWaterMark: result.maxPunchAt ?? result.completedAt,
       deviceId,
     } as any);
   } catch (err) {

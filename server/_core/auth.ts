@@ -21,6 +21,13 @@ const loginIpRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many login attempts, try again later" },
 });
+const authStatusRateLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many authentication requests, try again later" },
+});
 
 type LoginRateLimitEntry = {
   count: number;
@@ -39,7 +46,11 @@ function loginRateLimitKey(req: Request, username: string) {
   return `${req.ip ?? req.socket.remoteAddress ?? "unknown"}:${username}`;
 }
 
-async function trackLoginAttempt(req: Request, res: Response, next: NextFunction) {
+async function trackLoginAttempt(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const now = Date.now();
   pruneExpiredLoginRateLimits(now);
   const rawUsername =
@@ -135,13 +146,24 @@ class LocalAuthService {
       : 86400; // Default 24h in seconds
     const jti = randomUUID();
     const token = jwt.sign(
-      { userId, username, role, branch, authVersion: options.authVersion ?? 1, jti },
+      {
+        userId,
+        username,
+        role,
+        branch,
+        authVersion: options.authVersion ?? 1,
+        jti,
+      },
       ENV.JWT_SECRET,
       {
-      expiresIn,
+        expiresIn,
       },
     );
-    await db.createAuthSession(jti, userId, new Date(Date.now() + (options.expiresInMs ?? 86400000)));
+    await db.createAuthSession(
+      jti,
+      userId,
+      new Date(Date.now() + (options.expiresInMs ?? 86400000)),
+    );
     return token;
   }
 
@@ -157,7 +179,11 @@ class LocalAuthService {
 
     try {
       const payload = jwt.verify(cookieValue, ENV.JWT_SECRET) as SessionPayload;
-      if (payload.jti && !(await db.isAuthSessionActive(payload.jti, payload.userId))) return null;
+      if (
+        payload.jti &&
+        !(await db.isAuthSessionActive(payload.jti, payload.userId))
+      )
+        return null;
       return payload;
     } catch (error) {
       return null;
@@ -214,10 +240,14 @@ export async function revokeSessionFromRequest(req: Request) {
   const cookies = parseCookieHeader(req.headers.cookie || "");
   const authHeader = req.headers.authorization;
   const bearerToken =
-    typeof authHeader === "string" && authHeader.toLowerCase().startsWith("bearer ")
+    typeof authHeader === "string" &&
+    authHeader.toLowerCase().startsWith("bearer ")
       ? authHeader.slice(7).trim()
       : undefined;
-  const token = cookies[AUTH_COOKIE_NAME] || cookies[LEGACY_AUTH_COOKIE_NAME] || bearerToken;
+  const token =
+    cookies[AUTH_COOKIE_NAME] ||
+    cookies[LEGACY_AUTH_COOKIE_NAME] ||
+    bearerToken;
   if (!token) return;
   const payload = authService.verifyToken(token) as SessionPayload | null;
   if (payload?.jti) await db.revokeAuthSession(payload.jti);
@@ -265,7 +295,10 @@ export function registerAuthRoutes(app: Express) {
           return;
         }
 
-        const rateLimitKey = loginRateLimitKey(req, user.username.trim().toLowerCase());
+        const rateLimitKey = loginRateLimitKey(
+          req,
+          user.username.trim().toLowerCase(),
+        );
         loginRateLimit.delete(rateLimitKey);
         await db.clearLoginRateLimit(rateLimitKey);
 
@@ -330,66 +363,74 @@ export function registerAuthRoutes(app: Express) {
   );
 
   // Logout route
-  app.post("/api/auth/logout", async (req: Request, res: Response) => {
-    await revokeSessionFromRequest(req);
-    const user = await authService.authenticateRequest(req);
-    if (user) await db.bumpUserAuthVersion(user.id);
-    const forwardedProtoHeader = req.headers["x-forwarded-proto"];
-    const forwardedProto = Array.isArray(forwardedProtoHeader)
-      ? forwardedProtoHeader[0]
-      : forwardedProtoHeader;
-    const isHttps =
-      req.secure ||
-      String(forwardedProto || "")
-        .toLowerCase()
-        .includes("https");
+  app.post(
+    "/api/auth/logout",
+    authStatusRateLimiter,
+    async (req: Request, res: Response) => {
+      await revokeSessionFromRequest(req);
+      const user = await authService.authenticateRequest(req);
+      if (user) await db.bumpUserAuthVersion(user.id);
+      const forwardedProtoHeader = req.headers["x-forwarded-proto"];
+      const forwardedProto = Array.isArray(forwardedProtoHeader)
+        ? forwardedProtoHeader[0]
+        : forwardedProtoHeader;
+      const isHttps =
+        req.secure ||
+        String(forwardedProto || "")
+          .toLowerCase()
+          .includes("https");
 
-    const clearVariants = [
-      {
-        path: "/",
-        httpOnly: true as const,
-        sameSite: "lax" as const,
-        secure: isHttps,
-      },
-      {
-        path: "/",
-        httpOnly: true as const,
-        sameSite: "none" as const,
-        secure: true,
-      },
-      { path: "/", httpOnly: true as const, secure: isHttps },
-      { path: "/", httpOnly: true as const, secure: false },
-      { path: "/" },
-    ];
+      const clearVariants = [
+        {
+          path: "/",
+          httpOnly: true as const,
+          sameSite: "lax" as const,
+          secure: isHttps,
+        },
+        {
+          path: "/",
+          httpOnly: true as const,
+          sameSite: "none" as const,
+          secure: true,
+        },
+        { path: "/", httpOnly: true as const, secure: isHttps },
+        { path: "/", httpOnly: true as const, secure: false },
+        { path: "/" },
+      ];
 
-    for (const options of clearVariants) {
-      res.clearCookie(AUTH_COOKIE_NAME, options);
-      res.clearCookie(LEGACY_AUTH_COOKIE_NAME, options);
-    }
-    res.json({ success: true });
-  });
+      for (const options of clearVariants) {
+        res.clearCookie(AUTH_COOKIE_NAME, options);
+        res.clearCookie(LEGACY_AUTH_COOKIE_NAME, options);
+      }
+      res.json({ success: true });
+    },
+  );
 
   // Check auth status
-  app.get("/api/auth/me", async (req: Request, res: Response) => {
-    try {
-      const user = await authService.authenticateRequest(req);
-      if (!user) {
+  app.get(
+    "/api/auth/me",
+    authStatusRateLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        const user = await authService.authenticateRequest(req);
+        if (!user) {
+          res.status(401).json({ error: "Not authenticated" });
+          return;
+        }
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            branch: user.branch,
+            mustChangePassword: await db.isPasswordChangeRequired(user.id),
+          },
+        });
+      } catch (error) {
         res.status(401).json({ error: "Not authenticated" });
-        return;
       }
-      res.json({
-        success: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          role: user.role,
-          branch: user.branch,
-          mustChangePassword: await db.isPasswordChangeRequired(user.id),
-        },
-      });
-    } catch (error) {
-      res.status(401).json({ error: "Not authenticated" });
-    }
-  });
+    },
+  );
 }

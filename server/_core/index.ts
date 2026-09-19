@@ -132,6 +132,7 @@ const srv100FixDuplicatesRateLimiter = createApiRateLimiter(3, 5 * 60_000);
 const healthDiagnosticsRateLimiter = createApiRateLimiter(30, 60_000);
 const pentacamS3DebugRateLimiter = createApiRateLimiter(10, 60_000);
 const pentacamExportListRateLimiter = createApiRateLimiter(30, 60_000);
+const pentacamExportFileRateLimiter = createApiRateLimiter(60, 60_000);
 const DEFAULT_ALLOWED_CORS_ORIGINS = [
   "https://selrs.cc",
   // Capacitor's production WebView may use either localhost scheme.
@@ -1025,7 +1026,8 @@ async function canReadSrv100Upload(
       payload.type !== "externalDoctor" ||
       !payload.doctorId ||
       typeof payload.authVersion !== "number"
-    ) return false;
+    )
+      return false;
 
     return await withDb(async (conn) => {
       const [rows] = await conn.query(
@@ -1571,9 +1573,15 @@ async function startServer() {
         "frame-src 'self' https:",
       ].join("; "),
     );
-    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=()",
+    );
     if (process.env.NODE_ENV === "production" && req.secure) {
-      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+      res.setHeader(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains",
+      );
     }
     next();
   });
@@ -1585,6 +1593,8 @@ async function startServer() {
       (isAllowedCorsOrigin(origin, allowedCorsOrigins) ||
         isSameRequestOrigin(req, origin))
     ) {
+      // lgtm[js/cors-misconfiguration-for-credentials] Origin is emitted only
+      // after exact allow-list or same-origin validation above.
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Vary", "Origin");
       res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -1673,42 +1683,45 @@ async function startServer() {
   });
 
   // Black Ice uploads: list recent uploaded docs for UI.
-  app.get("/api/srv100/uploads", srv100UploadListRateLimiter, async (req, res) => {
-    try {
-      if (!(await authService.authenticateRequest(req))) {
-        res.status(401).json({ ok: false, error: "Authentication required" });
-        return;
-      }
-      const limitRaw = Number(req.query.limit ?? 100);
-      const limit = Number.isFinite(limitRaw)
-        ? Math.max(1, Math.min(1000, limitRaw))
-        : 100;
-      const search = String(req.query.search ?? "").trim();
-      const patientIdRaw = Number(req.query.patientId ?? 0);
-      const patientId =
-        Number.isFinite(patientIdRaw) && patientIdRaw > 0
-          ? Math.trunc(patientIdRaw)
-          : 0;
+  app.get(
+    "/api/srv100/uploads",
+    srv100UploadListRateLimiter,
+    async (req, res) => {
+      try {
+        if (!(await authService.authenticateRequest(req))) {
+          res.status(401).json({ ok: false, error: "Authentication required" });
+          return;
+        }
+        const limitRaw = Number(req.query.limit ?? 100);
+        const limit = Number.isFinite(limitRaw)
+          ? Math.max(1, Math.min(1000, limitRaw))
+          : 100;
+        const search = String(req.query.search ?? "").trim();
+        const patientIdRaw = Number(req.get("x-patient-id") ?? 0);
+        const patientId =
+          Number.isFinite(patientIdRaw) && patientIdRaw > 0
+            ? Math.trunc(patientIdRaw)
+            : 0;
 
-      const rows = await withDb(async (conn) => {
-        if (patientId > 0) {
-          const [result] = await conn.query(
-            `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
+        const rows = await withDb(async (conn) => {
+          if (patientId > 0) {
+            const [result] = await conn.query(
+              `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
              FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
              WHERE b.patient_id = ?
              ORDER BY b.id DESC
              LIMIT ?`,
-            [patientId, limit],
-          );
-          return result as Srv100UploadRow[];
-        }
+              [patientId, limit],
+            );
+            return result as Srv100UploadRow[];
+          }
 
-        if (search) {
-          const isNumericSearch = /^\d+$/.test(search);
-          const [result] = await conn.query(
-            `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
+          if (search) {
+            const isNumericSearch = /^\d+$/.test(search);
+            const [result] = await conn.query(
+              `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
              FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
@@ -1717,74 +1730,75 @@ async function startServer() {
              ${isNumericSearch ? "OR b.id = ? OR b.patient_id = ?" : ""}
              ORDER BY b.id DESC
              LIMIT ?`,
-            isNumericSearch
-              ? [
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  Number(search),
-                  Number(search),
-                  limit,
-                ]
-              : [
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  `%${search}%`,
-                  limit,
-                ],
-          );
-          return result as Srv100UploadRow[];
-        }
+              isNumericSearch
+                ? [
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    Number(search),
+                    Number(search),
+                    limit,
+                  ]
+                : [
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    `%${search}%`,
+                    limit,
+                  ],
+            );
+            return result as Srv100UploadRow[];
+          }
 
-        const [result] = await conn.query(
-          `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
+          const [result] = await conn.query(
+            `SELECT b.id, b.document_id, b.file_name, b.mime_type, b.ocr_text, b.plain_text, b.source_printer,
                   b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
            FROM srv100_uploads b
            LEFT JOIN patients p ON p.id = b.patient_id
            ORDER BY b.id DESC
            LIMIT ?`,
-          [limit],
-        );
-        return result as Srv100UploadRow[];
-      });
+            [limit],
+          );
+          return result as Srv100UploadRow[];
+        });
 
-      res.status(200).json({
-        ok: true,
-        count: rows.length,
-        rows: rows.map((row) => ({
-          ocrIdCandidates: Array.from(
-            new Set(String(row.ocr_text ?? "").match(/\b\d{4,12}\b/g) ?? []),
-          ).slice(0, 10),
-          id: row.id,
-          documentId: row.document_id,
-          fileName: row.file_name,
-          mimeType: row.mime_type,
-          hasOcr: Boolean((row.ocr_text ?? "").trim()),
-          hasText: Boolean((row.plain_text ?? "").trim()),
-          sourcePrinter: row.source_printer,
-          patientId: row.patient_id,
-          patientName: row.patient_name,
-          patientCode: row.patient_code,
-          createdAt: new Date(row.created_at).toISOString(),
-          viewUrl: `/api/srv100/uploads/${row.id}`,
-          downloadUrl: `/api/srv100/uploads/${row.id}?download=1`,
-        })),
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        ok: false,
-        count: 0,
-        rows: [],
-        error: String(error?.message ?? "Failed to list uploads"),
-      });
-    }
-  });
+        res.status(200).json({
+          ok: true,
+          count: rows.length,
+          rows: rows.map((row) => ({
+            ocrIdCandidates: Array.from(
+              new Set(String(row.ocr_text ?? "").match(/\b\d{4,12}\b/g) ?? []),
+            ).slice(0, 10),
+            id: row.id,
+            documentId: row.document_id,
+            fileName: row.file_name,
+            mimeType: row.mime_type,
+            hasOcr: Boolean((row.ocr_text ?? "").trim()),
+            hasText: Boolean((row.plain_text ?? "").trim()),
+            sourcePrinter: row.source_printer,
+            patientId: row.patient_id,
+            patientName: row.patient_name,
+            patientCode: row.patient_code,
+            createdAt: new Date(row.created_at).toISOString(),
+            viewUrl: `/api/srv100/uploads/${row.id}`,
+            downloadUrl: `/api/srv100/uploads/${row.id}?download=1`,
+          })),
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          ok: false,
+          count: 0,
+          rows: [],
+          error: String(error?.message ?? "Failed to list uploads"),
+        });
+      }
+    },
+  );
 
   // Black Ice uploads: stream a single file for inline view or download.
   app.get("/api/srv100/uploads/:id", async (req, res) => {
@@ -1882,189 +1896,137 @@ async function startServer() {
     }
   });
 
-  app.post("/api/srv100/uploads/ocr-link/run", srv100OcrLinkRateLimiter, async (req, res) => {
-    try {
-      const user = await authService.authenticateRequest(req);
-      if (!user || user.role !== "admin") {
-        res.status(403).json({ ok: false, error: "Admin access required" });
-        return;
-      }
-      if (srv100DbCycleBusy) {
-        res.status(409).json({
-          ok: false,
-          error: "Black Ice worker is busy, retry shortly",
-        });
-        return;
-      }
-      srv100DbCycleBusy = true;
-      const cfg = getSrv100OcrLinkOptions();
-      const importCfg = getSrv100FolderImportOptions();
-      if (!cfg.enabled) {
-        srv100DbCycleBusy = false;
-        res
-          .status(400)
-          .json({ ok: false, error: "SRV100_OCR_ENABLED is false" });
-        return;
-      }
-      let linked = 0;
-      let processed = 0;
-      await withDb(async (conn) => {
-        const [rows] = await conn.query(
-          `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
+  app.post(
+    "/api/srv100/uploads/ocr-link/run",
+    srv100OcrLinkRateLimiter,
+    async (req, res) => {
+      try {
+        const user = await authService.authenticateRequest(req);
+        if (!user || user.role !== "admin") {
+          res.status(403).json({ ok: false, error: "Admin access required" });
+          return;
+        }
+        if (srv100DbCycleBusy) {
+          res.status(409).json({
+            ok: false,
+            error: "Black Ice worker is busy, retry shortly",
+          });
+          return;
+        }
+        srv100DbCycleBusy = true;
+        const cfg = getSrv100OcrLinkOptions();
+        const importCfg = getSrv100FolderImportOptions();
+        if (!cfg.enabled) {
+          srv100DbCycleBusy = false;
+          res
+            .status(400)
+            .json({ ok: false, error: "SRV100_OCR_ENABLED is false" });
+          return;
+        }
+        let linked = 0;
+        let processed = 0;
+        await withDb(async (conn) => {
+          const [rows] = await conn.query(
+            `SELECT id, document_id, file_name, file_data, s3_key, ocr_text, plain_text
            FROM srv100_uploads
            WHERE patient_id IS NULL
            ORDER BY id DESC
            LIMIT ?`,
-          [cfg.batchSize],
-        );
-        const uploads = rows as Array<{
-          id: number;
-          document_id: string;
-          file_name: string | null;
-          file_data: Buffer | null;
-          s3_key: string | null;
-          ocr_text: string | null;
-          plain_text: string | null;
-        }>;
-
-        for (const row of uploads) {
-          let imageData: Buffer | null = null;
-          if (row.s3_key) {
-            try {
-              imageData = await downloadFromS3(row.s3_key);
-            } catch (error: any) {
-              console.warn(
-                `[srv100-ocr-manual] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
-              );
-              if (row.file_data && row.file_data.length > 0) {
-                imageData = row.file_data;
-              }
-            }
-          } else if (row.file_data && row.file_data.length > 0) {
-            imageData = row.file_data;
-          }
-
-          processed += 1;
-          let ocrText = String(row.ocr_text ?? "").trim();
-          if (imageData && imageData.length > 0 && !ocrText) {
-            imageData = Buffer.isBuffer(imageData)
-              ? imageData
-              : Buffer.from(imageData as any);
-            if (looksCorruptedBinaryImage(imageData) && row.file_name) {
-              const diskFallback = await loadImageFromImportFolders(
-                row.file_name,
-              );
-              if (diskFallback) imageData = diskFallback;
-            }
-            try {
-              ocrText = await runOcrFromBuffer(
-                imageData,
-                row.file_name || `${row.id}.jpg`,
-                cfg,
-              );
-              if (ocrText) {
-                await conn.query(
-                  "UPDATE srv100_uploads SET ocr_text = ? WHERE id = ?",
-                  [ocrText, row.id],
-                );
-              }
-            } catch (error: any) {
-              console.warn(
-                `[srv100-ocr-manual] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
-              );
-            }
-          }
-          const labeledOcrCandidates =
-            extractLabeledIdCandidatesFromText(ocrText);
-          const ocrCandidates =
-            labeledOcrCandidates.length > 0
-              ? labeledOcrCandidates
-              : extractIdCandidatesFromText(ocrText);
-          const candidates = Array.from(
-            new Set([
-              ...labeledOcrCandidates,
-              ...extractIdCandidatesFromText(row.document_id),
-              ...extractIdCandidatesFromText(row.file_name ?? ""),
-              ...ocrCandidates,
-              ...extractIdCandidatesFromText(row.plain_text ?? ""),
-            ]),
+            [cfg.batchSize],
           );
-          if (candidates.length === 0) continue;
-
-          const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
-          if (renameCode && row.file_name) {
-            const renamedFile = await prefixProcessedFileWithCode(
-              importCfg.processedDir,
-              row.file_name,
-              renameCode,
-            );
-            if (renamedFile && renamedFile !== row.file_name) {
-              await conn.query(
-                "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
-                [
-                  renamedFile,
-                  path.parse(renamedFile).name.slice(0, 255),
-                  row.id,
-                ],
-              );
-            }
-          }
-
-          const patientId = await resolvePatientByIds(conn, candidates);
-          if (!patientId) continue;
-          await conn.query(
-            "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
-            [patientId, row.id],
-          );
-          linked += 1;
-        }
-      });
-      res.status(200).json({ ok: true, processed, linked });
-    } catch (error: any) {
-      res
-        .status(500)
-        .json({ ok: false, error: String(error?.message ?? error) });
-    } finally {
-      srv100DbCycleBusy = false;
-    }
-  });
-
-  // Bulk link srv100_uploads to patients by filename/document_id code extraction (no OCR).
-  app.post("/api/srv100/uploads/link-by-filename", srv100LinkByFilenameRateLimiter, async (req, res) => {
-    try {
-      if (!(await requireAdminApiAccess(req, res))) return;
-      let linked = 0;
-      let processed = 0;
-      const BATCH = 2000;
-      let offset = 0;
-      while (true) {
-        const rows = await withDb(async (conn) => {
-          const [result] = await conn.query(
-            `SELECT id, document_id, file_name
-             FROM srv100_uploads
-             WHERE patient_id IS NULL
-             ORDER BY id ASC
-             LIMIT ? OFFSET ?`,
-            [BATCH, offset],
-          );
-          return result as Array<{
+          const uploads = rows as Array<{
             id: number;
             document_id: string;
             file_name: string | null;
+            file_data: Buffer | null;
+            s3_key: string | null;
+            ocr_text: string | null;
+            plain_text: string | null;
           }>;
-        });
-        if (!rows || rows.length === 0) break;
-        offset += rows.length;
-        await withDb(async (conn) => {
-          for (const row of rows) {
+
+          for (const row of uploads) {
+            let imageData: Buffer | null = null;
+            if (row.s3_key) {
+              try {
+                imageData = await downloadFromS3(row.s3_key);
+              } catch (error: any) {
+                console.warn(
+                  `[srv100-ocr-manual] Failed to download from S3: ${row.s3_key}, trying DB fallback`,
+                );
+                if (row.file_data && row.file_data.length > 0) {
+                  imageData = row.file_data;
+                }
+              }
+            } else if (row.file_data && row.file_data.length > 0) {
+              imageData = row.file_data;
+            }
+
             processed += 1;
+            let ocrText = String(row.ocr_text ?? "").trim();
+            if (imageData && imageData.length > 0 && !ocrText) {
+              imageData = Buffer.isBuffer(imageData)
+                ? imageData
+                : Buffer.from(imageData as any);
+              if (looksCorruptedBinaryImage(imageData) && row.file_name) {
+                const diskFallback = await loadImageFromImportFolders(
+                  row.file_name,
+                );
+                if (diskFallback) imageData = diskFallback;
+              }
+              try {
+                ocrText = await runOcrFromBuffer(
+                  imageData,
+                  row.file_name || `${row.id}.jpg`,
+                  cfg,
+                );
+                if (ocrText) {
+                  await conn.query(
+                    "UPDATE srv100_uploads SET ocr_text = ? WHERE id = ?",
+                    [ocrText, row.id],
+                  );
+                }
+              } catch (error: any) {
+                console.warn(
+                  `[srv100-ocr-manual] OCR failed for upload ${row.id}, will try filename matching: ${String(error?.message ?? error)}`,
+                );
+              }
+            }
+            const labeledOcrCandidates =
+              extractLabeledIdCandidatesFromText(ocrText);
+            const ocrCandidates =
+              labeledOcrCandidates.length > 0
+                ? labeledOcrCandidates
+                : extractIdCandidatesFromText(ocrText);
             const candidates = Array.from(
               new Set([
+                ...labeledOcrCandidates,
                 ...extractIdCandidatesFromText(row.document_id),
                 ...extractIdCandidatesFromText(row.file_name ?? ""),
+                ...ocrCandidates,
+                ...extractIdCandidatesFromText(row.plain_text ?? ""),
               ]),
             );
             if (candidates.length === 0) continue;
+
+            const renameCode = normalizeIdCode(labeledOcrCandidates[0] ?? "");
+            if (renameCode && row.file_name) {
+              const renamedFile = await prefixProcessedFileWithCode(
+                importCfg.processedDir,
+                row.file_name,
+                renameCode,
+              );
+              if (renamedFile && renamedFile !== row.file_name) {
+                await conn.query(
+                  "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
+                  [
+                    renamedFile,
+                    path.parse(renamedFile).name.slice(0, 255),
+                    row.id,
+                  ],
+                );
+              }
+            }
+
             const patientId = await resolvePatientByIds(conn, candidates);
             if (!patientId) continue;
             await conn.query(
@@ -2074,74 +2036,142 @@ async function startServer() {
             linked += 1;
           }
         });
-        if (rows.length < BATCH) break;
+        res.status(200).json({ ok: true, processed, linked });
+      } catch (error: any) {
+        res
+          .status(500)
+          .json({ ok: false, error: String(error?.message ?? error) });
+      } finally {
+        srv100DbCycleBusy = false;
       }
-      res.status(200).json({ ok: true, processed, linked });
-    } catch (error: any) {
-      res
-        .status(500)
-        .json({ ok: false, error: String(error?.message ?? error) });
-    }
-  });
+    },
+  );
 
-  app.post("/api/srv100/uploads/fix-duplicates", srv100FixDuplicatesRateLimiter, async (req, res) => {
-    try {
-      if (!(await requireAdminApiAccess(req, res))) return;
-      const [r1] = await withDb(async (conn) =>
-        conn.query(
-          `UPDATE srv100_uploads b
+  // Bulk link srv100_uploads to patients by filename/document_id code extraction (no OCR).
+  app.post(
+    "/api/srv100/uploads/link-by-filename",
+    srv100LinkByFilenameRateLimiter,
+    async (req, res) => {
+      try {
+        if (!(await requireAdminApiAccess(req, res))) return;
+        let linked = 0;
+        let processed = 0;
+        const BATCH = 2000;
+        let offset = 0;
+        while (true) {
+          const rows = await withDb(async (conn) => {
+            const [result] = await conn.query(
+              `SELECT id, document_id, file_name
+             FROM srv100_uploads
+             WHERE patient_id IS NULL
+             ORDER BY id ASC
+             LIMIT ? OFFSET ?`,
+              [BATCH, offset],
+            );
+            return result as Array<{
+              id: number;
+              document_id: string;
+              file_name: string | null;
+            }>;
+          });
+          if (!rows || rows.length === 0) break;
+          offset += rows.length;
+          await withDb(async (conn) => {
+            for (const row of rows) {
+              processed += 1;
+              const candidates = Array.from(
+                new Set([
+                  ...extractIdCandidatesFromText(row.document_id),
+                  ...extractIdCandidatesFromText(row.file_name ?? ""),
+                ]),
+              );
+              if (candidates.length === 0) continue;
+              const patientId = await resolvePatientByIds(conn, candidates);
+              if (!patientId) continue;
+              await conn.query(
+                "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+                [patientId, row.id],
+              );
+              linked += 1;
+            }
+          });
+          if (rows.length < BATCH) break;
+        }
+        res.status(200).json({ ok: true, processed, linked });
+      } catch (error: any) {
+        res
+          .status(500)
+          .json({ ok: false, error: String(error?.message ?? error) });
+      }
+    },
+  );
+
+  app.post(
+    "/api/srv100/uploads/fix-duplicates",
+    srv100FixDuplicatesRateLimiter,
+    async (req, res) => {
+      try {
+        if (!(await requireAdminApiAccess(req, res))) return;
+        const [r1] = await withDb(async (conn) =>
+          conn.query(
+            `UPDATE srv100_uploads b
          INNER JOIN patients p ON p.patientCode = REGEXP_SUBSTR(b.file_name, '^[0-9]+')
          SET b.patient_id = p.id
          WHERE b.patient_id IS NULL`,
-        ),
-      );
-      const [r2] = await withDb(async (conn) =>
-        conn.query(
-          `UPDATE srv100_uploads u1
+          ),
+        );
+        const [r2] = await withDb(async (conn) =>
+          conn.query(
+            `UPDATE srv100_uploads u1
          INNER JOIN srv100_uploads u2 ON u1.file_name = u2.file_name
          SET u1.patient_id = u2.patient_id
          WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL`,
-        ),
-      );
-      res.status(200).json({
-        ok: true,
-        linkedByCode: Number((r1 as any)?.affectedRows ?? 0),
-        linkedByDuplicate: Number((r2 as any)?.affectedRows ?? 0),
-      });
-    } catch (error: any) {
-      res
-        .status(500)
-        .json({ ok: false, error: String(error?.message ?? error) });
-    }
-  });
+          ),
+        );
+        res.status(200).json({
+          ok: true,
+          linkedByCode: Number((r1 as any)?.affectedRows ?? 0),
+          linkedByDuplicate: Number((r2 as any)?.affectedRows ?? 0),
+        });
+      } catch (error: any) {
+        res
+          .status(500)
+          .json({ ok: false, error: String(error?.message ?? error) });
+      }
+    },
+  );
 
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ ok: true });
   });
 
-  app.get("/healthz/diagnostics", healthDiagnosticsRateLimiter, async (req, res) => {
-    const user = await authService.authenticateRequest(req);
-    if (!user) {
-      res.status(401).json({ error: "Not authenticated" });
-      return;
-    }
-    if (user.role !== "admin") {
-      res.status(403).json({ error: "Admin access required" });
-      return;
-    }
-    const build = await getBuildInfo().catch(() => ({
-      version: "unknown",
-      buildTime: "unknown",
-      commit: "unknown",
-    }));
-    res.status(200).json({
-      ok: true,
-      version: build.version,
-      buildTime: build.buildTime,
-      commit: build.commit,
-      nodeEnv: process.env.NODE_ENV ?? "development",
-    });
-  });
+  app.get(
+    "/healthz/diagnostics",
+    healthDiagnosticsRateLimiter,
+    async (req, res) => {
+      const user = await authService.authenticateRequest(req);
+      if (!user) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+      if (user.role !== "admin") {
+        res.status(403).json({ error: "Admin access required" });
+        return;
+      }
+      const build = await getBuildInfo().catch(() => ({
+        version: "unknown",
+        buildTime: "unknown",
+        commit: "unknown",
+      }));
+      res.status(200).json({
+        ok: true,
+        version: build.version,
+        buildTime: build.buildTime,
+        commit: build.commit,
+        nodeEnv: process.env.NODE_ENV ?? "development",
+      });
+    },
+  );
 
   app.get("/version", async (_req, res) => {
     const build = await getBuildInfo().catch(() => ({
@@ -2211,137 +2241,153 @@ async function startServer() {
   }
 
   // Pentacam exports: list files and serve image assets.
-  app.get("/api/pentacam/s3-debug", pentacamS3DebugRateLimiter, async (req, res) => {
-    try {
-      if (!(await requireAdminApiAccess(req, res))) return;
-      const objects = await listObjectsInS3("");
-      res.status(200).json({
-        count: objects.length,
-        keys: objects.slice(0, 200).map((o) => o.key),
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: String(err?.message ?? err) });
-    }
-  });
-  app.get("/api/pentacam/exports", pentacamExportListRateLimiter, async (req, res) => {
-    try {
-      if (!(await requireStaffApiAccess(req, res))) return;
-      const limitRaw = Number(req.query.limit ?? 10000);
-      const limit = Number.isFinite(limitRaw)
-        ? Math.max(1, Math.min(100000, limitRaw))
-        : 10000;
-      const files: Array<{
-        name: string;
-        size: number;
-        mtime: string;
-        url: string;
-      }> = [];
-      const seen = new Set<string>();
-
-      // Source 1: pentacamResults notes (legacy, may be empty)
-      const recentRows = await db.getRecentPentacamLocalResults(limit);
-      for (const row of recentRows) {
-        const notes = String((row as any)?.notes ?? "");
-        if (!notes) continue;
-        let parsed: any = null;
-        try {
-          parsed = JSON.parse(notes);
-        } catch {
-          continue;
-        }
-        const name = String(
-          parsed?.originalFileName ?? parsed?.sourceFileName ?? "",
-        ).trim();
-        if (!name) continue;
-        const normalized = name.toLowerCase();
-        if (seen.has(normalized)) continue;
-        seen.add(normalized);
-        files.push({
-          name,
-          size: 0,
-          mtime: String((row as any)?.createdAt ?? new Date().toISOString()),
-          url: `/api/pentacam/exports/file/${encodeURIComponent(name)}`,
-        });
-      }
-
-      // Source 2: all srv100_uploads (linked + unlinked)
-      const srv100Rows = await db.getAllSrv100Uploads(limit);
-      for (const row of srv100Rows) {
-        const name = path.basename(String(row.file_name ?? "").trim());
-        if (!name) continue;
-        const normalized = name.toLowerCase();
-        if (seen.has(normalized)) continue;
-        seen.add(normalized);
-        files.push({
-          name,
-          size: 0,
-          mtime: String(row.created_at ?? new Date().toISOString()),
-          url: `/api/srv100/uploads/${row.id}`,
-        });
-      }
-
-      files.sort((a, b) => Date.parse(b.mtime) - Date.parse(a.mtime));
-      const sliced = files.slice(0, limit);
-      res.status(200).json({ ok: true, count: sliced.length, files: sliced });
-    } catch (error: any) {
-      console.error("[pentacam-exports] Failed to list exports", error);
-      res.status(500).json({
-        ok: false,
-        count: 0,
-        files: [],
-        error: "Failed to list Pentacam exports",
-      });
-    }
-  });
-  app.get("/api/pentacam/exports/file/:name", async (req, res) => {
-    try {
-      let rawName = String(req.params.name ?? "").trim();
+  app.get(
+    "/api/pentacam/s3-debug",
+    pentacamS3DebugRateLimiter,
+    async (req, res) => {
       try {
-        rawName = decodeURIComponent(rawName);
-      } catch {
-        /* keep as-is */
+        if (!(await requireAdminApiAccess(req, res))) return;
+        const objects = await listObjectsInS3("");
+        res.status(200).json({
+          count: objects.length,
+          keys: objects.slice(0, 200).map((o) => o.key),
+        });
+      } catch (err: any) {
+        res.status(500).json({ error: String(err?.message ?? err) });
       }
-      if (!rawName) {
-        res.status(400).json({ ok: false, error: "Invalid file name" });
-        return;
+    },
+  );
+  app.get(
+    "/api/pentacam/exports",
+    pentacamExportListRateLimiter,
+    async (req, res) => {
+      try {
+        if (!(await requireStaffApiAccess(req, res))) return;
+        const limitRaw = Number(req.query.limit ?? 10000);
+        const limit = Number.isFinite(limitRaw)
+          ? Math.max(1, Math.min(100000, limitRaw))
+          : 10000;
+        const files: Array<{
+          name: string;
+          size: number;
+          mtime: string;
+          url: string;
+        }> = [];
+        const seen = new Set<string>();
+
+        // Source 1: pentacamResults notes (legacy, may be empty)
+        const recentRows = await db.getRecentPentacamLocalResults(limit);
+        for (const row of recentRows) {
+          const notes = String((row as any)?.notes ?? "");
+          if (!notes) continue;
+          let parsed: any = null;
+          try {
+            parsed = JSON.parse(notes);
+          } catch {
+            continue;
+          }
+          const name = String(
+            parsed?.originalFileName ?? parsed?.sourceFileName ?? "",
+          ).trim();
+          if (!name) continue;
+          const normalized = name.toLowerCase();
+          if (seen.has(normalized)) continue;
+          seen.add(normalized);
+          files.push({
+            name,
+            size: 0,
+            mtime: String((row as any)?.createdAt ?? new Date().toISOString()),
+            url: `/api/pentacam/exports/file/${encodeURIComponent(name)}`,
+          });
+        }
+
+        // Source 2: all srv100_uploads (linked + unlinked)
+        const srv100Rows = await db.getAllSrv100Uploads(limit);
+        for (const row of srv100Rows) {
+          const name = path.basename(String(row.file_name ?? "").trim());
+          if (!name) continue;
+          const normalized = name.toLowerCase();
+          if (seen.has(normalized)) continue;
+          seen.add(normalized);
+          files.push({
+            name,
+            size: 0,
+            mtime: String(row.created_at ?? new Date().toISOString()),
+            url: `/api/srv100/uploads/${row.id}`,
+          });
+        }
+
+        files.sort((a, b) => Date.parse(b.mtime) - Date.parse(a.mtime));
+        const sliced = files.slice(0, limit);
+        res.status(200).json({ ok: true, count: sliced.length, files: sliced });
+      } catch (error: any) {
+        console.error("[pentacam-exports] Failed to list exports", error);
+        res.status(500).json({
+          ok: false,
+          count: 0,
+          files: [],
+          error: "Failed to list Pentacam exports",
+        });
       }
-      const patientKey = rawName.match(/^pentacam\/patients\/(\d+)\//i);
-      if (patientKey) {
-        if (!(await canReadSrv100Upload(req, Number(patientKey[1])))) {
-          res.status(403).json({ ok: false, error: "Pentacam access denied" });
+    },
+  );
+  app.get(
+    "/api/pentacam/exports/file/:name",
+    pentacamExportFileRateLimiter,
+    async (req, res) => {
+      try {
+        let rawName = String(req.params.name ?? "").trim();
+        try {
+          rawName = decodeURIComponent(rawName);
+        } catch {
+          /* keep as-is */
+        }
+        if (!rawName) {
+          res.status(400).json({ ok: false, error: "Invalid file name" });
           return;
         }
-      } else if (!(await requireStaffApiAccess(req, res))) {
-        return;
+        const patientKey = rawName.match(/^pentacam\/patients\/(\d+)\//i);
+        if (patientKey) {
+          if (!(await canReadSrv100Upload(req, Number(patientKey[1])))) {
+            res
+              .status(403)
+              .json({ ok: false, error: "Pentacam access denied" });
+            return;
+          }
+        } else if (!(await requireStaffApiAccess(req, res))) {
+          return;
+        }
+        const fileBuffer = await readPentacamObjectBuffer(rawName);
+        if (!fileBuffer || fileBuffer.length === 0) {
+          res
+            .status(404)
+            .json({ ok: false, error: "Pentacam image not found" });
+          return;
+        }
+        const name = path.posix.basename(rawName.replace(/\\/g, "/"));
+        const mimeType = name.toLowerCase().endsWith(".png")
+          ? "image/png"
+          : name.toLowerCase().endsWith(".webp")
+            ? "image/webp"
+            : "image/jpeg";
+        res.setHeader("Content-Type", mimeType);
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("Content-Length", String(fileBuffer.length));
+        res.setHeader("Cache-Control", "private, max-age=60");
+        res.setHeader(
+          "Content-Disposition",
+          `inline; filename="${name.replace(/"/g, "")}"`,
+        );
+        res.status(200).send(fileBuffer);
+      } catch (error: any) {
+        console.error("[pentacam-exports] Failed to read image", error);
+        res.status(500).json({
+          ok: false,
+          error: "Failed to read Pentacam image",
+        });
       }
-      const fileBuffer = await readPentacamObjectBuffer(rawName);
-      if (!fileBuffer || fileBuffer.length === 0) {
-        res.status(404).json({ ok: false, error: "Pentacam image not found" });
-        return;
-      }
-      const name = path.posix.basename(rawName.replace(/\\/g, "/"));
-      const mimeType = name.toLowerCase().endsWith(".png")
-        ? "image/png"
-        : name.toLowerCase().endsWith(".webp")
-          ? "image/webp"
-          : "image/jpeg";
-      res.setHeader("Content-Type", mimeType);
-      res.setHeader("X-Content-Type-Options", "nosniff");
-      res.setHeader("Content-Length", String(fileBuffer.length));
-      res.setHeader("Cache-Control", "private, max-age=60");
-      res.setHeader(
-        "Content-Disposition",
-        `inline; filename="${name.replace(/"/g, "")}"`,
-      );
-      res.status(200).send(fileBuffer);
-    } catch (error: any) {
-      console.error("[pentacam-exports] Failed to read image", error);
-      res.status(500).json({
-        ok: false,
-        error: "Failed to read Pentacam image",
-      });
-    }
-  });
+    },
+  );
   const marketingImageDir = path.resolve(
     process.env.MARKETING_IMAGE_DIR ||
       path.join(process.cwd(), "uploads", "marketing"),
@@ -2397,7 +2443,8 @@ async function startServer() {
     }
     // A Host header is attacker-controlled. It is only an acceptable fallback
     // for local development; deployed OAuth callbacks must use a fixed origin.
-    const appOrigin = configuredAppOrigin || `${req.protocol}://${req.get("host")}`;
+    const appOrigin =
+      configuredAppOrigin || `${req.protocol}://${req.get("host")}`;
     const settingsUrl = `${appOrigin}/marketing/settings`;
 
     if (fbError) {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 const baseURL = process.env.BASE_URL || "http://127.0.0.1:4000";
@@ -83,7 +84,7 @@ function extractRows(payload: any): any[] {
 }
 
 async function createE2EPatient(request: any, tag: string) {
-  const suffix = `${tag}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const suffix = `${tag}-${Date.now()}-${randomUUID().slice(0, 8)}`;
   const patientCode = `E2E-${suffix}`;
   const fullName = `E2E ${suffix}`;
   const created = await trpcMutation(request, "medical.createPatient", {

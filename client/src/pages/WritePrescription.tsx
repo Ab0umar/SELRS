@@ -94,7 +94,6 @@ export default function WritePrescription({
     hubPrescriptionParams ??
     kfPrescriptionParams;
   const isKfRoute = location.startsWith("/kf/prescription");
-  const draftScope = isKfRoute ? "kf-prescription" : "prescription";
   const isAdmin = user?.role === "admin";
   const canDeletePrescriptions = ["admin", "manager"].includes(
     user?.role || "",
@@ -174,17 +173,7 @@ export default function WritePrescription({
   );
   const { mutate: savePatientPageState } =
     trpc.medical.savePatientPageState.useMutation({
-      onSuccess: () => {
-        const key = patientId
-          ? `selrs:patient-draft:${draftScope}:${patientId}`
-          : `selrs:patient-draft:${draftScope}:temp`;
-        try {
-          window.localStorage.removeItem(key);
-          window.sessionStorage.removeItem(key);
-        } catch (e) {
-          // Ignore storage failures.
-        }
-      },
+      onSuccess: () => undefined,
     });
   const templateOverridesQuery =
     trpc.medical.getReadyTemplateOverrides.useQuery(
@@ -212,8 +201,6 @@ export default function WritePrescription({
   const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const localDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastAppliedDraftRef = useRef<string | null>(null);
   const hydratedPatientStateRef = useRef<number | null>(null);
   const importInputId = "ready-prescriptions-import";
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -222,57 +209,6 @@ export default function WritePrescription({
   const [importPath, setImportPath] = useState(
     "E:\\selrs.cc\\روشتات\\ready_prescriptions_multish1eet_import_with_dosages.xlsx",
   );
-
-  const readDraft = (keys: string[]) => {
-    for (const key of keys) {
-      try {
-        const raw = window.localStorage.getItem(key);
-        if (raw) {
-          if ((window as any).__selrsDraftDebug) {
-            console.warn("[draft] read localStorage", key);
-          }
-          return raw;
-        }
-      } catch {
-        // Ignore localStorage failures.
-      }
-      try {
-        const raw = window.sessionStorage.getItem(key);
-        if (raw) {
-          if ((window as any).__selrsDraftDebug) {
-            console.warn("[draft] read sessionStorage", key);
-          }
-          return raw;
-        }
-      } catch {
-        // Ignore sessionStorage failures.
-      }
-    }
-    return null;
-  };
-
-  const writeDraft = (key: string, draft: { updatedAt: string; data: any }) => {
-    const raw = JSON.stringify(draft);
-    try {
-      window.localStorage.setItem(key, raw);
-      if ((window as any).__selrsDraftDebug) {
-        console.warn("[draft] wrote localStorage", key);
-      }
-      return true;
-    } catch {
-      // Ignore localStorage failures.
-    }
-    try {
-      window.sessionStorage.setItem(key, raw);
-      if ((window as any).__selrsDraftDebug) {
-        console.warn("[draft] wrote sessionStorage", key);
-      }
-      return true;
-    } catch {
-      // Ignore sessionStorage failures.
-    }
-    return false;
-  };
 
   const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -375,8 +311,7 @@ export default function WritePrescription({
       setGeneralNotes(data.generalNotes ?? "");
     if (data.medicationSearch !== undefined)
       setMedicationSearch(data.medicationSearch ?? "");
-    if (data.diagnosis !== undefined)
-      setDiagnosis(data.diagnosis ?? "");
+    if (data.diagnosis !== undefined) setDiagnosis(data.diagnosis ?? "");
     if (Array.isArray(data.prescriptionItems))
       setPrescriptionItems(data.prescriptionItems);
     hydratedPatientStateRef.current = patientId;
@@ -411,80 +346,6 @@ export default function WritePrescription({
     diagnosis,
     savePatientPageState,
     isKfRoute,
-  ]);
-
-  useEffect(() => {
-    if (editingForbidden) return;
-    if (localDraftTimerRef.current) clearTimeout(localDraftTimerRef.current);
-    const payload = {
-      prescriptionDate,
-      generalNotes,
-      medicationSearch,
-      prescriptionItems,
-      diagnosis,
-    };
-    localDraftTimerRef.current = setTimeout(() => {
-      const key = patientId
-        ? `selrs:patient-draft:${draftScope}:${patientId}`
-        : `selrs:patient-draft:${draftScope}:temp`;
-      const draft = {
-        updatedAt: new Date().toISOString(),
-        data: payload,
-      };
-      writeDraft(key, draft);
-    }, 400);
-    return () => {
-      if (localDraftTimerRef.current) clearTimeout(localDraftTimerRef.current);
-    };
-  }, [
-    patientId,
-    editingForbidden,
-    prescriptionDate,
-    generalNotes,
-    medicationSearch,
-    prescriptionItems,
-    diagnosis,
-    draftScope,
-  ]);
-
-  useEffect(() => {
-    if (editingForbidden) return;
-    const persistNow = () => {
-      const payload = {
-        prescriptionDate,
-        generalNotes,
-        medicationSearch,
-        prescriptionItems,
-        diagnosis,
-      };
-      const draft = {
-        updatedAt: new Date().toISOString(),
-        data: payload,
-      };
-      const key = patientId
-        ? `selrs:patient-draft:${draftScope}:${patientId}`
-        : `selrs:patient-draft:${draftScope}:temp`;
-      writeDraft(key, draft);
-    };
-    const handleVisibility = () => {
-      if (document.hidden) persistNow();
-    };
-    window.addEventListener("beforeunload", persistNow);
-    window.addEventListener("pagehide", persistNow);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.removeEventListener("beforeunload", persistNow);
-      window.removeEventListener("pagehide", persistNow);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [
-    patientId,
-    editingForbidden,
-    prescriptionDate,
-    generalNotes,
-    medicationSearch,
-    prescriptionItems,
-    diagnosis,
   ]);
 
   if (!isAuthenticated) return null;
@@ -1269,7 +1130,9 @@ export default function WritePrescription({
                 </div>
                 <div className="grid grid-cols-1 gap-2 mt-2">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-muted-foreground">التشخيص (Diagnosis)</label>
+                    <label className="text-xs font-bold text-muted-foreground">
+                      التشخيص (Diagnosis)
+                    </label>
                     <Input
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
@@ -1695,18 +1558,18 @@ export default function WritePrescription({
               dir="ltr"
             >
               <div className="prescription-paper-header">
-                <div
-                  className="prescription-patient-grid"
-                  dir="rtl"
-                >
+                <div className="prescription-patient-grid" dir="rtl">
                   <div className="prescription-patient-field">
                     <span className="prescription-patient-label">الاسم:</span>
-                    <span className="prescription-patient-value">{patientName || "غير محدد"}</span>
+                    <span className="prescription-patient-value">
+                      {patientName || "غير محدد"}
+                    </span>
                   </div>
                   <div className="prescription-patient-field">
                     <span className="prescription-patient-label">الكود:</span>
                     <span className="prescription-patient-value" dir="ltr">
-                      {patientCode || (patientId != null ? String(patientId) : "")}
+                      {patientCode ||
+                        (patientId != null ? String(patientId) : "")}
                     </span>
                   </div>
                   <div className="prescription-patient-field">
@@ -1717,7 +1580,9 @@ export default function WritePrescription({
                   </div>
                   <div className="prescription-patient-diagnosis">
                     <span className="prescription-patient-label">التشخيص:</span>
-                    <span className="prescription-patient-value font-bold mr-1">{diagnosis || "غير محدد"}</span>
+                    <span className="prescription-patient-value font-bold mr-1">
+                      {diagnosis || "غير محدد"}
+                    </span>
                   </div>
                 </div>
               </div>
