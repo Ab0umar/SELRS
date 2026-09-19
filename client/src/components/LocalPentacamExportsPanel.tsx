@@ -37,6 +37,15 @@ function buildPentacamAssetUrl(item: LocalExportItem) {
   return getApiUrl(item.url);
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function openPentacamPdfView(items: LocalExportItem[], title: string) {
   if (typeof window === "undefined" || items.length === 0) return false;
 
@@ -46,13 +55,11 @@ function openPentacamPdfView(items: LocalExportItem[], title: string) {
   const imageMarkup = items
     .map((item) => {
       const assetUrl = buildPentacamAssetUrl(item);
-      const safeName = String(item.name ?? "")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      const safeName = escapeHtml(String(item.name ?? ""));
       return `
         <section class="page">
           <div class="label">${safeName}</div>
-          <img src="${assetUrl}" alt="${safeName}" width="512" height="512" />
+          <img src="${escapeHtml(assetUrl)}" alt="${safeName}" width="512" height="512" />
         </section>
       `;
     })
@@ -63,7 +70,7 @@ function openPentacamPdfView(items: LocalExportItem[], title: string) {
     <html dir="ltr">
       <head>
         <meta charset="utf-8" />
-        <title>${title}</title>
+        <title>${escapeHtml(title)}</title>
         <style>
           /* print fidelity: external export window, no access to parent CSS tokens */
           body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }

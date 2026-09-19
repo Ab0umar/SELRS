@@ -619,7 +619,6 @@ export const PatientsTable = memo(function PatientsTable({
                               month: "2-digit",
                               day: "2-digit",
                             })
-                            .replace(/\//g, "/")
                         : "-"}
                     </TableCell>
                     <TableCell className="text-center break-words">

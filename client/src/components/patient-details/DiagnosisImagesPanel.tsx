@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, Eye, ImagePlus, Loader2, RotateCcw, RotateCw, Upload, X } from "lucide-react";
+import {
+  Camera,
+  Eye,
+  ImagePlus,
+  Loader2,
+  RotateCcw,
+  RotateCw,
+  Upload,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +32,11 @@ type PendingImage = {
   name: string;
   mimeType: string;
 };
+
+const safePreviewUrl = (url: string) =>
+  /^data:image\/(?:jpeg|png|webp|gif|bmp);base64,[A-Za-z0-9+/=]+$/.test(url)
+    ? url
+    : undefined;
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -63,9 +77,14 @@ async function editImageToFile(
   ctx.rotate((options.rotation * Math.PI) / 180);
 
   const normalizedRotation = ((options.rotation % 180) + 180) % 180;
-  const rotatedWidth = normalizedRotation === 90 ? source.naturalHeight : source.naturalWidth;
-  const rotatedHeight = normalizedRotation === 90 ? source.naturalWidth : source.naturalHeight;
-  const baseScale = Math.min(outputSize / rotatedWidth, outputSize / rotatedHeight);
+  const rotatedWidth =
+    normalizedRotation === 90 ? source.naturalHeight : source.naturalWidth;
+  const rotatedHeight =
+    normalizedRotation === 90 ? source.naturalWidth : source.naturalHeight;
+  const baseScale = Math.min(
+    outputSize / rotatedWidth,
+    outputSize / rotatedHeight,
+  );
   const scale = baseScale * options.zoom;
   const drawWidth = source.naturalWidth * scale;
   const drawHeight = source.naturalHeight * scale;
@@ -81,7 +100,10 @@ async function editImageToFile(
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (result) => (result ? resolve(result) : reject(new Error("Cannot export edited image."))),
+      (result) =>
+        result
+          ? resolve(result)
+          : reject(new Error("Cannot export edited image.")),
       "image/jpeg",
       0.9,
     );
@@ -101,12 +123,6 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
   const [zoom, setZoom] = useState(1);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
-
-  useEffect(() => {
-    return () => {
-      if (pendingImage?.url) URL.revokeObjectURL(pendingImage.url);
-    };
-  }, [pendingImage?.url]);
 
   const uploadsQuery = trpc.medical.getPatientDiagnosisUploads.useQuery(
     { patientId },
@@ -138,7 +154,6 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
   };
 
   const closeEditor = () => {
-    if (pendingImage?.url) URL.revokeObjectURL(pendingImage.url);
     setPendingImage(null);
     resetEditor();
   };
@@ -162,18 +177,19 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!/^image\/(?:jpeg|png|webp|gif|bmp)$/i.test(file.type)) {
       setUploadError("يرجى اختيار صورة فقط.");
       return;
     }
     closeEditor();
+    const base64 = await toBase64(file);
     setPendingImage({
       file,
-      url: URL.createObjectURL(file),
+      url: `data:${file.type};base64,${base64}`,
       name: file.name || "diagnosis-image.jpg",
       mimeType: file.type || "image/jpeg",
     });
@@ -190,7 +206,9 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
       });
       await uploadFile(editedFile);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "فشل تعديل الصورة.");
+      setUploadError(
+        error instanceof Error ? error.message : "فشل تعديل الصورة.",
+      );
     }
   };
 
@@ -223,7 +241,11 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
             disabled={uploading}
             onClick={() => cameraInputRef.current?.click()}
           >
-            {uploading ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+            {uploading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Camera className="size-4" />
+            )}
             كاميرا
           </Button>
           <Button
@@ -234,7 +256,11 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
           >
-            {uploading ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+            {uploading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <ImagePlus className="size-4" />
+            )}
             معرض الصور
           </Button>
         </div>
@@ -283,7 +309,10 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
         </div>
       )}
 
-      <Dialog open={Boolean(pendingImage)} onOpenChange={(open) => !open && closeEditor()}>
+      <Dialog
+        open={Boolean(pendingImage)}
+        onOpenChange={(open) => !open && closeEditor()}
+      >
         <DialogContent dir="rtl" className="sm:max-w-lg">
           <DialogHeader className="text-right">
             <DialogTitle>تعديل الصورة</DialogTitle>
@@ -296,7 +325,7 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
             <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-lg border border-border bg-black">
               {pendingImage && (
                 <img
-                  src={pendingImage.url}
+                  src={safePreviewUrl(pendingImage.url)}
                   alt="معاينة الصورة"
                   className="h-full w-full object-contain transition-transform"
                   style={previewStyle}
@@ -306,11 +335,21 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant="outline" className="gap-2" onClick={() => setRotation((v) => v - 90)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => setRotation((v) => v - 90)}
+              >
                 <RotateCcw className="size-4" />
                 تدوير يسار
               </Button>
-              <Button type="button" variant="outline" className="gap-2" onClick={() => setRotation((v) => v + 90)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => setRotation((v) => v + 90)}
+              >
                 <RotateCw className="size-4" />
                 تدوير يمين
               </Button>
@@ -319,26 +358,65 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label className="text-xs">تكبير / تصغير</Label>
-                <input type="range" min="0.25" max="4" step="0.05" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="w-full" />
+                <input
+                  type="range"
+                  min="0.25"
+                  max="4"
+                  step="0.05"
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full"
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">تحريك أفقي</Label>
-                <input type="range" min="-100" max="100" step="1" value={offsetX} onChange={(e) => setOffsetX(Number(e.target.value))} className="w-full" />
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  step="1"
+                  value={offsetX}
+                  onChange={(e) => setOffsetX(Number(e.target.value))}
+                  className="w-full"
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">تحريك رأسي</Label>
-                <input type="range" min="-100" max="100" step="1" value={offsetY} onChange={(e) => setOffsetY(Number(e.target.value))} className="w-full" />
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  step="1"
+                  value={offsetY}
+                  onChange={(e) => setOffsetY(Number(e.target.value))}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
 
           <DialogFooter className="gap-2 sm:justify-between">
-            <Button type="button" variant="ghost" className="gap-2" onClick={closeEditor} disabled={uploading}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="gap-2"
+              onClick={closeEditor}
+              disabled={uploading}
+            >
               <X className="size-4" />
               إلغاء
             </Button>
-            <Button type="button" className="gap-2" onClick={() => void handleEditedUpload()} disabled={uploading}>
-              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+            <Button
+              type="button"
+              className="gap-2"
+              onClick={() => void handleEditedUpload()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
               حفظ الصورة
             </Button>
           </DialogFooter>

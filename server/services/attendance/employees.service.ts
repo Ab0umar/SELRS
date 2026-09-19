@@ -19,7 +19,7 @@ export class EmployeesService {
     if (!db) throw new Error("Database not available");
 
     const sourceHash = crypto
-      .createHash("sha1")
+      .createHash("sha256")
       .update(JSON.stringify(emp))
       .digest("hex");
     const now = new Date();

@@ -1,9 +1,17 @@
 import express, { type Express } from "express";
+import { rateLimit } from "express-rate-limit";
 import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+
+const viteHtmlRateLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
 
 export async function setupVite(app: Express, server: Server) {
   const host = process.env.HOST || "127.0.0.1";
@@ -26,7 +34,7 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
-  app.use(async (req, res, next) => {
+  app.use(viteHtmlRateLimiter, async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
@@ -84,7 +92,7 @@ export function serveStatic(app: Express) {
   );
 
   // fall through to index.html if the file doesn't exist
-  app.use((_req, res) => {
+  app.use(viteHtmlRateLimiter, (_req, res) => {
     res.setHeader(
       "Cache-Control",
       "no-store, no-cache, must-revalidate, proxy-revalidate",

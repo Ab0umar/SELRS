@@ -1,15 +1,12 @@
 import { getLoginUrl } from "@/const";
 import {
   NATIVE_USER_SNAPSHOT_KEY,
-  hydrateDurableValue,
   removeDurableValue,
-  saveDurableValue,
 } from "@/lib/nativeStorage";
 import { clearAllPatientCaches } from "@/lib/patientCacheCleanup";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
-import { Capacitor } from "@capacitor/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 
 type UseAuthOptions = {
@@ -17,45 +14,14 @@ type UseAuthOptions = {
   redirectPath?: string;
 };
 
-const readStoredUserSnapshot = () => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw =
-      window.localStorage.getItem("user") ??
-      window.sessionStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-export const persistSessionUser = (
-  user: unknown,
-  options?: { nativePersistent?: boolean },
-) => {
+export const persistSessionUser = (_user: unknown) => {
   if (typeof window === "undefined") return;
-  const usePersistentStorage =
-    options?.nativePersistent ??
-    (Capacitor.isNativePlatform() ||
-      window.localStorage.getItem("remember_me") !== "0");
-  const preferredStorage = usePersistentStorage
-    ? window.localStorage
-    : window.sessionStorage;
-
-  if (!user) {
-    window.localStorage.removeItem("user");
-    window.localStorage.removeItem("manus-runtime-user-info");
-    window.sessionStorage.removeItem("user");
-    void removeDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user");
-    return;
-  }
-
-  const serializedUser = JSON.stringify(user);
+  // User/session data must remain in memory and the authenticated HTTP cookie.
+  // Remove snapshots written by older versions instead of persisting them again.
   window.localStorage.removeItem("user");
+  window.localStorage.removeItem("manus-runtime-user-info");
   window.sessionStorage.removeItem("user");
-  window.localStorage.setItem("manus-runtime-user-info", serializedUser);
-  preferredStorage.setItem("user", serializedUser);
-  void saveDurableValue(NATIVE_USER_SNAPSHOT_KEY, serializedUser, "user");
+  void removeDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user");
 };
 
 export function useAuth(options?: UseAuthOptions) {
@@ -71,15 +37,6 @@ export function useAuth(options?: UseAuthOptions) {
     window.sessionStorage.removeItem("token");
     await removeDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user");
   }, []);
-  const getPreferredStorage = useCallback(() => {
-    if (typeof window === "undefined") return null;
-    if (Capacitor.isNativePlatform()) return window.localStorage;
-    return window.localStorage.getItem("remember_me") === "0"
-      ? window.sessionStorage
-      : window.localStorage;
-  }, []);
-  const [storedUser, setStoredUser] = useState(() => readStoredUserSnapshot());
-
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
@@ -107,7 +64,6 @@ export function useAuth(options?: UseAuthOptions) {
       } finally {
         clearAllPatientCaches();
         await clearStoredSession();
-        setStoredUser(null);
         utils.auth.me.setData(undefined, null);
         await utils.auth.me.invalidate();
         if (redirectToLogin && typeof window !== "undefined") {
@@ -122,10 +78,12 @@ export function useAuth(options?: UseAuthOptions) {
 
   const state = useMemo(
     () => ({
-      user: meQuery.data ?? storedUser ?? null,
+      // The server intentionally omits password fields; consumers use the
+      // existing public user shape and never receive a password value.
+      user: (meQuery.data ?? null) as any,
       loading: meQuery.isLoading || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data ?? storedUser),
+      isAuthenticated: Boolean(meQuery.data),
     }),
     [
       meQuery.data,
@@ -133,33 +91,13 @@ export function useAuth(options?: UseAuthOptions) {
       meQuery.isLoading,
       logoutMutation.error,
       logoutMutation.isPending,
-      storedUser,
     ],
   );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (meQuery.data) {
-      const preferredStorage = getPreferredStorage();
-      persistSessionUser(meQuery.data, {
-        nativePersistent: preferredStorage === window.localStorage,
-      });
-      setStoredUser(meQuery.data);
-    }
-  }, [getPreferredStorage, meQuery.data]);
-
-  useEffect(() => {
-    if (storedUser || meQuery.data) return;
-    void hydrateDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user").then((raw) => {
-      if (!raw) return;
-      if (meQuery.data) return;
-      try {
-        setStoredUser(JSON.parse(raw));
-      } catch {
-        // Ignore invalid durable user snapshots.
-      }
-    });
-  }, [meQuery.data, storedUser]);
+    if (meQuery.data) persistSessionUser(meQuery.data);
+  }, [meQuery.data]);
 
   useEffect(() => {
     if (!(meQuery.error instanceof TRPCClientError)) return;
@@ -169,7 +107,6 @@ export function useAuth(options?: UseAuthOptions) {
     )
       return;
     void clearStoredSession();
-    setStoredUser(null);
   }, [clearStoredSession, meQuery.error]);
 
   useEffect(() => {

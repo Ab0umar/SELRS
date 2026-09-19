@@ -4,3 +4,14 @@ allowBuilds:
 onlyBuiltDependencies:
   - electron
   - electron-winstaller
+overrides:
+  '@xmldom/xmldom': 0.8.15
+  'brace-expansion@^1': 1.1.18
+  'brace-expansion@^2': 2.1.4
+  form-data: 4.0.6
+  ip-address: 10.3.1
+  js-yaml: 4.3.2
+  lodash: 4.18.0
+  picomatch: 4.0.4
+  tar: 7.5.21
+  tmp: 0.2.7

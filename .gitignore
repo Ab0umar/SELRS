@@ -118,6 +118,7 @@ backups/
 /selrs/
 
 # Temp/debug dumps
+scripts/accounting/_tmp/
 tmp_*.jpg
 tmp_*.txt
 *.bak
@@ -228,3 +229,10 @@ vendor/
 output/
 docs/
 artifacts/
+
+# Local agent runtime state, attachment copies, and plugin caches
+.codex/agents/
+.codex/plugins/cache/
+.codex-remote-attachments/
+.impeccable/live/
+docs/graphify-out/
