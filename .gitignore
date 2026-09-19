@@ -224,3 +224,7 @@ view.py
 .cursor/
 .playwright-cli/
 graphify-out/
+vendor/
+output/
+docs/
+artifacts/
