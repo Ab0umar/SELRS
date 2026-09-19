@@ -4,3 +4,5 @@ allowBuilds:
 onlyBuiltDependencies:
   - electron
   - electron-winstaller
+overrides:
+  js-yaml: 4.3.2
