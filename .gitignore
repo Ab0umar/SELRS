@@ -224,3 +224,10 @@ view.py
 .cursor/
 .playwright-cli/
 graphify-out/
+
+# Local agent runtime state, attachment copies, and plugin caches
+.codex/agents/
+.codex/plugins/cache/
+.codex-remote-attachments/
+.impeccable/live/
+docs/graphify-out/
