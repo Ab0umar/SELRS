@@ -78,7 +78,9 @@ export function useAuth(options?: UseAuthOptions) {
 
   const state = useMemo(
     () => ({
-      user: meQuery.data ?? null,
+      // The server intentionally omits password fields; consumers use the
+      // existing public user shape and never receive a password value.
+      user: (meQuery.data ?? null) as any,
       loading: meQuery.isLoading || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
       isAuthenticated: Boolean(meQuery.data),

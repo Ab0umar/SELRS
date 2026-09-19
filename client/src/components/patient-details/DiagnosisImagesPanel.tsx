@@ -34,7 +34,9 @@ type PendingImage = {
 };
 
 const safePreviewUrl = (url: string) =>
-  url.startsWith("blob:") ? url : undefined;
+  /^data:image\/(?:jpeg|png|webp|gif|bmp);base64,[A-Za-z0-9+/=]+$/.test(url)
+    ? url
+    : undefined;
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -122,12 +124,6 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
 
-  useEffect(() => {
-    return () => {
-      if (pendingImage?.url) URL.revokeObjectURL(pendingImage.url);
-    };
-  }, [pendingImage?.url]);
-
   const uploadsQuery = trpc.medical.getPatientDiagnosisUploads.useQuery(
     { patientId },
     { enabled: Boolean(patientId) },
@@ -158,7 +154,6 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
   };
 
   const closeEditor = () => {
-    if (pendingImage?.url) URL.revokeObjectURL(pendingImage.url);
     setPendingImage(null);
     resetEditor();
   };
@@ -182,18 +177,19 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!/^image\/(?:jpeg|png|webp|gif|bmp)$/i.test(file.type)) {
       setUploadError("يرجى اختيار صورة فقط.");
       return;
     }
     closeEditor();
+    const base64 = await toBase64(file);
     setPendingImage({
       file,
-      url: URL.createObjectURL(file),
+      url: `data:${file.type};base64,${base64}`,
       name: file.name || "diagnosis-image.jpg",
       mimeType: file.type || "image/jpeg",
     });

@@ -1588,14 +1588,20 @@ async function startServer() {
   app.use((req, res, next) => {
     const origin =
       typeof req.headers.origin === "string" ? req.headers.origin : undefined;
-    if (
-      origin &&
-      (isAllowedCorsOrigin(origin, allowedCorsOrigins) ||
-        isSameRequestOrigin(req, origin))
-    ) {
-      // lgtm[js/cors-misconfiguration-for-credentials] Origin is emitted only
-      // after exact allow-list or same-origin validation above.
-      res.setHeader("Access-Control-Allow-Origin", origin);
+    const credentialedOrigin =
+      origin === "https://selrs.cc"
+        ? "https://selrs.cc"
+        : origin === "http://localhost"
+          ? "http://localhost"
+          : origin === "https://localhost"
+            ? "https://localhost"
+            : origin === "capacitor://localhost"
+              ? "capacitor://localhost"
+              : origin === "ionic://localhost"
+                ? "ionic://localhost"
+                : undefined;
+    if (credentialedOrigin) {
+      res.setHeader("Access-Control-Allow-Origin", credentialedOrigin);
       res.setHeader("Vary", "Origin");
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader(
