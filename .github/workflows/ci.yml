@@ -1,4 +1,4 @@
-name: SRV100_Acc CI
+name: Selrs.cc CI
 
 on:
   push:
