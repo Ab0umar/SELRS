@@ -26,6 +26,13 @@ export class MarketingImageConfigError extends Error {
   }
 }
 
+export class MarketingImageProviderError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MarketingImageProviderError";
+  }
+}
+
 // ─── Local disk storage ───────────────────────────────────────────────────────
 
 function getLocalImageDir(): string {
@@ -34,7 +41,10 @@ function getLocalImageDir(): string {
   );
 }
 
-async function saveImageLocally(buffer: Buffer, postId: number): Promise<string> {
+async function saveImageLocally(
+  buffer: Buffer,
+  postId: number,
+): Promise<string> {
   const dir = getLocalImageDir();
   await fs.mkdir(dir, { recursive: true });
   const filename = `${postId}-${Date.now()}.png`;
@@ -58,45 +68,86 @@ async function generateWithFal(
   postId: number,
   referenceImagePaths: string[],
 ): Promise<string> {
-  if (referenceImagePaths.length === 0) {
-    throw new Error("No reference images for fal.ai generation");
-  }
+  const availableReferencePaths =
+    await existingReferencePaths(referenceImagePaths);
+  const hasReference = availableReferencePaths.length > 0;
+  const reference = hasReference
+    ? await falReferenceImage(availableReferencePaths)
+    : null;
+  const body = hasReference
+    ? {
+        image_url: reference,
+        prompt: `Create a brand-new professional medical marketing photograph for an Arabic ophthalmology center. The image must show: ${prompt}. Generate completely new content — do NOT reproduce text, logos, or specific elements from the reference image. Match ONLY its visual style: color palette, lighting quality, composition style, and overall aesthetic feel.`,
+        image_size: "square_hd",
+        num_inference_steps: 28,
+        guidance_scale: 2.5,
+      }
+    : {
+        prompt: `Professional, photorealistic medical marketing image for an Arabic ophthalmology center. ${prompt}. No text, no Arabic writing, no logo, no watermark.`,
+        image_size: "square_hd",
+      };
 
-  // Pick a random reference brand design each time for style variety
-  const refPath = referenceImagePaths[Math.floor(Math.random() * referenceImagePaths.length)]!;
-  const refBuffer = await fs.readFile(refPath);
-  const ext = path.extname(refPath).toLowerCase();
-  const mime = ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
-  const refBase64 = `data:${mime};base64,${refBuffer.toString("base64")}`;
-
-  const body = {
-    image_url: refBase64,
-    prompt: `Create a brand-new professional medical marketing photograph for an Arabic ophthalmology center. The image must show: ${prompt}. Generate completely new content — do NOT reproduce text, logos, or specific elements from the reference image. Match ONLY its visual style: color palette, lighting quality, composition style, and overall aesthetic feel.`,
-    image_size: "square_hd",
-    num_inference_steps: 28,
-    guidance_scale: 2.5,
-  };
-
-  const res = await fetch("https://fal.run/fal-ai/flux-pro/v1/redux", {
-    method: "POST",
-    headers: {
-      "Authorization": `Key ${ENV.falApiKey}`,
-      "Content-Type": "application/json",
+  const res = await fetch(
+    hasReference
+      ? "https://fal.run/fal-ai/flux-pro/v1/redux"
+      : "https://fal.run/fal-ai/flux-pro/v1.1",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${ENV.falApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+  );
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
+    if (res.status === 401 || res.status === 403) {
+      throw new MarketingImageProviderError(
+        "تعذر استخدام fal.ai: مفتاح FAL_API_KEY غير صالح أو تم إلغاؤه. أنشئ مفتاحًا جديدًا من fal.ai ثم حدّثه على الخادم.",
+      );
+    }
     throw new Error(`fal.ai error ${res.status}: ${text}`);
   }
 
-  const data = await res.json() as any;
-  const imageUrl: string | undefined = data?.images?.[0]?.url ?? data?.image?.url;
-  if (!imageUrl) throw new Error(`fal.ai returned no image URL: ${JSON.stringify(data)}`);
+  const data = (await res.json()) as any;
+  const imageUrl: string | undefined =
+    data?.images?.[0]?.url ?? data?.image?.url;
+  if (!imageUrl)
+    throw new Error(`fal.ai returned no image URL: ${JSON.stringify(data)}`);
 
   const buffer = await downloadToBuffer(imageUrl);
   return saveImageLocally(buffer, postId);
+}
+
+async function existingReferencePaths(paths: string[]): Promise<string[]> {
+  const availability = await Promise.all(
+    paths.map(async (filePath) => {
+      try {
+        await fs.access(filePath);
+        return filePath;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return availability.filter(
+    (filePath): filePath is string => filePath !== null,
+  );
+}
+
+async function falReferenceImage(
+  referenceImagePaths: string[],
+): Promise<string> {
+  const refPath =
+    referenceImagePaths[
+      Math.floor(Math.random() * referenceImagePaths.length)
+    ]!;
+  const refBuffer = await fs.readFile(refPath);
+  const ext = path.extname(refPath).toLowerCase();
+  const mime = ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+  return `data:${mime};base64,${refBuffer.toString("base64")}`;
 }
 
 // ─── OpenAI gpt-image-1 ───────────────────────────────────────────────────────
@@ -114,7 +165,8 @@ async function generateWithOpenAI(
         referenceImagePaths.slice(0, 16).map(async (fp) => {
           const buf = await fs.readFile(fp);
           const ext = path.extname(fp).toLowerCase().replace(".", "") || "png";
-          const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+          const mime =
+            ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
           return OpenAI.toFile(buf, path.basename(fp), { type: mime });
         }),
       );
@@ -143,7 +195,10 @@ async function generateWithOpenAI(
         return saveImageLocally(await downloadToBuffer(item.url), postId);
       }
     } catch (err) {
-      console.warn("[marketing] OpenAI brand-reference edit failed, falling back to text-only:", String(err));
+      console.warn(
+        "[marketing] OpenAI brand-reference edit failed, falling back to text-only:",
+        String(err),
+      );
     }
   }
 
@@ -157,8 +212,13 @@ async function generateWithOpenAI(
 
   const item = response.data?.[0];
   if (!item) throw new Error("gpt-image-1 returned no image data");
-  if ((item as any).b64_json) return saveImageLocally(Buffer.from((item as any).b64_json, "base64"), postId);
-  if (item.url) return saveImageLocally(await downloadToBuffer(item.url), postId);
+  if ((item as any).b64_json)
+    return saveImageLocally(
+      Buffer.from((item as any).b64_json, "base64"),
+      postId,
+    );
+  if (item.url)
+    return saveImageLocally(await downloadToBuffer(item.url), postId);
   throw new Error("gpt-image-1 returned no image data");
 }
 
@@ -169,12 +229,23 @@ export async function generateMarketingImage(
   postId: number,
   referenceImagePaths: string[] = [],
 ): Promise<string> {
+  const availableReferencePaths =
+    await existingReferencePaths(referenceImagePaths);
+
   // Priority 1: fal.ai FLUX Redux — best brand-style consistency
-  if (ENV.falApiKey && referenceImagePaths.length > 0) {
+  if (ENV.falApiKey) {
     try {
-      return await generateWithFal(imagePrompt, postId, referenceImagePaths);
+      return await generateWithFal(
+        imagePrompt,
+        postId,
+        availableReferencePaths,
+      );
     } catch (err) {
-      console.warn("[marketing] fal.ai failed, falling back to next option:", String(err));
+      if (err instanceof MarketingImageProviderError) throw err;
+      console.warn(
+        "[marketing] fal.ai failed, falling back to next option:",
+        String(err),
+      );
     }
   }
 
@@ -187,7 +258,7 @@ export async function generateMarketingImage(
 
   // Priority 3: OpenAI gpt-image-1
   if (ENV.openaiApiKey) {
-    return generateWithOpenAI(imagePrompt, postId, referenceImagePaths);
+    return generateWithOpenAI(imagePrompt, postId, availableReferencePaths);
   }
 
   throw new MarketingImageConfigError();

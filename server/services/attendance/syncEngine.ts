@@ -341,9 +341,12 @@ export async function resetFkSyncHistory(): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  // FK devices return their entire on-device history. Keep the reset bounded
+  // so the next pull starts at the attendance system's 2026 baseline.
+  const fkResetStart = new Date(2026, 0, 1, 0, 0, 0, 0);
   await db
     .update(attendanceSyncRuns)
-    .set({ highWaterMark: null })
+    .set({ highWaterMark: fkResetStart })
     .where(eq((attendanceSyncRuns as any).deviceId, "fk_ef10k"));
 }
 

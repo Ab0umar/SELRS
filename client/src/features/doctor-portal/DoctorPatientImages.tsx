@@ -83,6 +83,21 @@ function v(value: unknown) {
   return String(value);
 }
 
+async function openDoctorScan(url: string, download = false) {
+  const token = window.localStorage.getItem("doctor_portal_token");
+  const response = await fetch(download ? `${url}?download=1` : url, {
+    headers: token ? { "x-doctor-token": token } : {},
+  });
+  if (!response.ok) throw new Error("تعذر فتح الملف. تأكد من صلاحية الوصول.");
+  const blobUrl = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  if (download) link.download = "pentacam-scan";
+  else link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+}
 function EyeCard({
   side,
   sph,
@@ -644,35 +659,12 @@ export default function DoctorPatientImages() {
                             </div>
 
                             <div className="flex items-center gap-2 pt-2 border-t border-border/40">
-                              <a
-                                href={scan.viewUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1"
-                              >
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full h-9 text-xs rounded-xl gap-1.5 border-border/60 hover:bg-muted/40 cursor-pointer"
-                                >
-                                  <Eye className="size-3.5" />
-                                  <span>عرض الملف</span>
-                                </Button>
-                              </a>
-                              <a
-                                href={`${scan.viewUrl}?download=1`}
-                                download
-                                className="flex-1"
-                              >
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="w-full h-9 text-xs rounded-xl gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90 cursor-pointer"
-                                >
-                                  <Download className="size-3.5" />
-                                  <span>تنزيل</span>
-                                </Button>
-                              </a>
+                              <Button variant="outline" size="sm" onClick={() => void openDoctorScan(scan.viewUrl).catch((error) => alert(error.message))} className="flex-1 h-9 text-xs rounded-xl gap-1.5 border-border/60 hover:bg-muted/40 cursor-pointer">
+                                <Eye className="size-3.5" /><span>عرض الملف</span>
+                              </Button>
+                              <Button variant="secondary" size="sm" onClick={() => void openDoctorScan(scan.viewUrl, true).catch((error) => alert(error.message))} className="flex-1 h-9 text-xs rounded-xl gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90 cursor-pointer">
+                                <Download className="size-3.5" /><span>تنزيل</span>
+                              </Button>
                             </div>
                           </div>
                         );

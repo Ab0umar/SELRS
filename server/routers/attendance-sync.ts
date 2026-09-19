@@ -840,7 +840,10 @@ export const attendanceSyncRoutes = {
           details: { triggeredBy: ctx.user.id },
           status: "success",
         });
-        return { success: true, message: "FK HWM cleared. Next sync re-imports all device records." };
+        return {
+          success: true,
+          message: "FK sync reset to 2026-01-01. The next sync imports records from 2026 onward only.",
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         AuditLogService.log({ action: "fk_sync_history_reset", details: { error }, status: "error" });

@@ -20,6 +20,8 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
 import { ENV } from "../_core/env";
+import { listObjectsInS3 } from "../_core/s3";
+import { buildPentacamPatientPrefix } from "./_medical/pentacam-helpers";
 
 const DOCTOR_SESSION_TTL_S = 30 * 24 * 60 * 60; // 30 days
 
@@ -335,13 +337,25 @@ export const doctorPortalRouter = router({
           ? rows[0]
           : rows
         : [];
-      const images = raw.map((row: any) => ({
+      const uploadedImages = raw.map((row: any) => ({
         id: Number(row.id),
         fileName: String(row.file_name ?? ""),
         mimeType: String(row.mime_type ?? "application/octet-stream"),
         createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
         viewUrl: `/api/srv100/uploads/${row.id}`,
       }));
+
+      const pentacamImages = await listObjectsInS3(buildPentacamPatientPrefix(patient.id))
+        .then((objects) => objects
+          .filter((object) => /\.(jpg|jpeg|png|webp)$/i.test(object.key))
+          .map((object) => ({
+            id: `pentacam:${object.key}`,
+            fileName: object.key.split("/").pop() || object.key,
+            mimeType: object.key.toLowerCase().endsWith(".png") ? "image/png" : object.key.toLowerCase().endsWith(".webp") ? "image/webp" : "image/jpeg",
+            createdAt: object.lastModified?.toISOString() ?? "",
+            viewUrl: `/api/pentacam/exports/file/${encodeURIComponent(object.key)}`,
+          })))
+        .catch(() => []);
 
       // Fetch refractions and prescriptions
       const refractions = await getGlassesRecordsByPatient(patient.id);
@@ -353,7 +367,7 @@ export const doctorPortalRouter = router({
         patientCode: input.patientCode,
         patientName: patient.fullName,
         patient,
-        images,
+        images: [...pentacamImages, ...uploadedImages],
         refractions,
         prescriptions,
       };

@@ -98,7 +98,15 @@ export default function DailyView({
     } catch (error) {
       console.error(`Failed to load ${dates.from} to ${dates.to}:`, error);
     }
-    allRecords = responses;
+    allRecords = [...responses].sort((a, b) => {
+      const dateCompare = String(a.workDate).localeCompare(String(b.workDate));
+      if (dateCompare !== 0) return dateCompare;
+      const employeeCompare = String(a.empCd).localeCompare(String(b.empCd), undefined, {
+        numeric: true,
+      });
+      if (employeeCompare !== 0) return employeeCompare;
+      return Number(a.shiftId ?? 0) - Number(b.shiftId ?? 0);
+    });
 
     setRecords(allRecords);
     setLoading(false);

@@ -2277,7 +2277,6 @@ async function startServer() {
   });
   app.get("/api/pentacam/exports/file/:name", async (req, res) => {
     try {
-      if (!(await requireStaffApiAccess(req, res))) return;
       let rawName = String(req.params.name ?? "").trim();
       try {
         rawName = decodeURIComponent(rawName);
@@ -2286,6 +2285,15 @@ async function startServer() {
       }
       if (!rawName) {
         res.status(400).json({ ok: false, error: "Invalid file name" });
+        return;
+      }
+      const patientKey = rawName.match(/^pentacam\/patients\/(\d+)\//i);
+      if (patientKey) {
+        if (!(await canReadSrv100Upload(req, Number(patientKey[1])))) {
+          res.status(403).json({ ok: false, error: "Pentacam access denied" });
+          return;
+        }
+      } else if (!(await requireStaffApiAccess(req, res))) {
         return;
       }
       const fileBuffer = await readPentacamObjectBuffer(rawName);

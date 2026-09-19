@@ -472,7 +472,11 @@ export const attendanceRouter = router({
           ),
         )
         .where(and(...conditions))
-        .orderBy(attendanceDaily.empCd);
+        .orderBy(
+          attendanceDaily.workDate,
+          attendanceDaily.empCd,
+          attendanceDaily.shiftId,
+        );
 
       const permissionConditions: any[] = [
         input.date

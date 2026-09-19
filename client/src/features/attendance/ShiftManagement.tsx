@@ -19,8 +19,8 @@ import { toast } from "sonner";
 
 interface ShiftForm {
   name: string;
-  branch: "operations" | "center";
-  deviceId: string;
+  branch: "operations" | "center" | "both";
+  deviceId: "fk" | "zk" | "both";
   startTime: string;
   endTime: string;
   graceLateMin: number;
@@ -46,7 +46,7 @@ interface ShiftForm {
 const BLANK: ShiftForm = {
   name: "",
   branch: "center",
-  deviceId: "",
+  deviceId: "fk",
   startTime: "08:00",
   endTime: "17:00",
   graceLateMin: 15,
@@ -68,6 +68,33 @@ const BLANK: ShiftForm = {
   shiftSize: "auto",
   autoSmallThresholdMin: 270,
 };
+
+function normalizeShiftDevice(value: unknown): ShiftForm["deviceId"] {
+  const deviceId = String(value ?? "").toLowerCase();
+  if (deviceId === "both") return "both";
+  if (
+    deviceId === "zk" ||
+    deviceId === "zkteco" ||
+    deviceId.startsWith("zk_")
+  ) {
+    return "zk";
+  }
+  return "fk";
+}
+
+function branchLabel(branch: unknown): string {
+  if (branch === "operations") return "العمليات";
+  if (branch === "both") return "الاتنين";
+  return "المركز";
+}
+
+function deviceLabel(deviceId: unknown): string {
+  return normalizeShiftDevice(deviceId) === "fk"
+    ? "جهاز FK"
+    : normalizeShiftDevice(deviceId) === "zk"
+      ? "جهاز ZK"
+      : "الاتنين";
+}
 
 export default function ShiftManagement() {
   const [showForm, setShowForm] = useState(false);
@@ -119,7 +146,7 @@ export default function ShiftManagement() {
     setForm({
       name: s.name,
       branch: s.branch ?? "center",
-      deviceId: s.deviceId ?? "",
+      deviceId: normalizeShiftDevice(s.deviceId),
       startTime: s.startTime,
       endTime: s.endTime,
       graceLateMin: s.graceLateMin,
@@ -149,7 +176,6 @@ export default function ShiftManagement() {
 
   return (
     <div className="space-y-6" dir="rtl">
-
       {/* Action Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/40">
         <Button
@@ -166,7 +192,11 @@ export default function ShiftManagement() {
 
       {/* Drawer slide-over for Shift editing */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex justify-end print:hidden animate-in fade-in duration-200" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex justify-end print:hidden animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+        >
           {/* Backdrop overlay */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity cursor-pointer"
@@ -178,11 +208,12 @@ export default function ShiftManagement() {
           {/* Drawer container */}
           <div className="pointer-events-none fixed inset-y-0 left-0 flex max-w-full pl-10 sm:pl-16">
             <div className="pointer-events-auto w-screen max-w-md transform bg-card shadow-2xl transition-transform duration-300 ease-in-out border-r border-border flex flex-col h-full animate-in slide-in-from-left">
-
               {/* Header */}
               <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between bg-muted/10">
                 <h3 className="text-sm font-bold text-foreground">
-                  {editingId ? `تعديل الوردية: ${form.name}` : "تعريف وردية جديدة"}
+                  {editingId
+                    ? `تعديل الوردية: ${form.name}`
+                    : "تعريف وردية جديدة"}
                 </h3>
                 <button
                   type="button"
@@ -197,18 +228,26 @@ export default function ShiftManagement() {
               </div>
 
               {/* Scrollable Form Body */}
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-
+              <form
+                onSubmit={handleSubmit}
+                className="flex-1 overflow-y-auto p-6 space-y-6"
+              >
                 {/* Basic Info */}
                 <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-primary border-b border-border pb-1">البيانات الأساسية</h4>
+                  <h4 className="text-xs font-bold text-primary border-b border-border pb-1">
+                    البيانات الأساسية
+                  </h4>
 
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-foreground">اسم الوردية</label>
+                    <label className="block text-xs font-semibold text-foreground">
+                      اسم الوردية
+                    </label>
                     <input
                       type="text"
                       value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value })
+                      }
                       placeholder="مثال: الوردية الصباحية (مركز)"
                       className={inputClass}
                       required
@@ -217,37 +256,56 @@ export default function ShiftManagement() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-foreground">الفرع</label>
+                      <label className="block text-xs font-semibold text-foreground">
+                        الفرع
+                      </label>
                       <select
                         value={form.branch}
-                        onChange={(e) => setForm({ ...form, branch: e.target.value as ShiftForm["branch"] })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            branch: e.target.value as ShiftForm["branch"],
+                          })
+                        }
                         className={inputClass}
                         required
                       >
-                        <option value="operations">العمليات</option>
                         <option value="center">المركز</option>
+                        <option value="operations">العمليات</option>
+                        <option value="both">الاتنين</option>
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-foreground">معرّف جهاز البصمة</label>
-                      <input
-                        type="text"
+                      <label className="block text-xs font-semibold text-foreground">
+                        جهاز البصمة
+                      </label>
+                      <select
                         value={form.deviceId}
-                        onChange={(e) => setForm({ ...form, deviceId: e.target.value })}
-                        placeholder="مثل zk_192.168.1.10"
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            deviceId: e.target.value as ShiftForm["deviceId"],
+                          })
+                        }
                         className={inputClass}
-                        required
-                        dir="ltr"
-                      />
+                      >
+                        <option value="fk">جهاز FK</option>
+                        <option value="zk">جهاز ZK</option>
+                        <option value="both">الاتنين</option>
+                      </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-foreground">نوع الشفت للأجر</label>
+                      <label className="block text-xs font-semibold text-foreground">
+                        نوع الشفت للأجر
+                      </label>
                       <select
                         value={form.shiftSize}
-                        onChange={(e) => setForm({ ...form, shiftSize: e.target.value as any })}
+                        onChange={(e) =>
+                          setForm({ ...form, shiftSize: e.target.value as any })
+                        }
                         className={inputClass}
                       >
                         <option value="auto">تلقائي (حسب المدة)</option>
@@ -257,12 +315,19 @@ export default function ShiftManagement() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-foreground">الاستراحة (دقيقة)</label>
+                      <label className="block text-xs font-semibold text-foreground">
+                        الاستراحة (دقيقة)
+                      </label>
                       <input
                         type="number"
                         value={form.breakMinutes}
                         min={0}
-                        onChange={(e) => setForm({ ...form, breakMinutes: parseInt(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            breakMinutes: parseInt(e.target.value) || 0,
+                          })
+                        }
                         className={inputClass}
                       />
                     </div>
@@ -270,16 +335,25 @@ export default function ShiftManagement() {
 
                   {form.shiftSize === "auto" && (
                     <div className="space-y-2 animate-in fade-in duration-200">
-                      <label className="block text-xs font-semibold text-foreground">حد الشفت القصير (دقيقة)</label>
+                      <label className="block text-xs font-semibold text-foreground">
+                        حد الشفت القصير (دقيقة)
+                      </label>
                       <input
                         type="number"
                         value={form.autoSmallThresholdMin}
                         min={0}
-                        onChange={(e) => setForm({ ...form, autoSmallThresholdMin: parseInt(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            autoSmallThresholdMin:
+                              parseInt(e.target.value) || 0,
+                          })
+                        }
                         className={inputClass}
                       />
                       <span className="text-[10px] text-muted-foreground block">
-                        أي شفت تقل مدته عن هذا الحد يُحتسب تلقائياً كشفت صغير (الافتراضي 270 دقيقة = 4.5 ساعة).
+                        أي شفت تقل مدته عن هذا الحد يُحتسب تلقائياً كشفت صغير
+                        (الافتراضي 270 دقيقة = 4.5 ساعة).
                       </span>
                     </div>
                   )}
@@ -290,12 +364,19 @@ export default function ShiftManagement() {
                       <input
                         type="checkbox"
                         checked={form.isFlexible}
-                        onChange={(e) => setForm({ ...form, isFlexible: e.target.checked })}
+                        onChange={(e) =>
+                          setForm({ ...form, isFlexible: e.target.checked })
+                        }
                         className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
                       />
                       <div className="text-xs">
-                        <span className="font-bold text-foreground block">تفعيل الوردية المرنة</span>
-                        <span className="text-[10px] text-muted-foreground">تحديد نافذة زمنية مرنة للحضور والانصراف بدلاً من أوقات ثابتة</span>
+                        <span className="font-bold text-foreground block">
+                          تفعيل الوردية المرنة
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          تحديد نافذة زمنية مرنة للحضور والانصراف بدلاً من أوقات
+                          ثابتة
+                        </span>
                       </div>
                     </label>
 
@@ -303,12 +384,19 @@ export default function ShiftManagement() {
                       <input
                         type="checkbox"
                         checked={form.requirePunch}
-                        onChange={(e) => setForm({ ...form, requirePunch: e.target.checked })}
+                        onChange={(e) =>
+                          setForm({ ...form, requirePunch: e.target.checked })
+                        }
                         className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
                       />
                       <div className="text-xs">
-                        <span className="font-bold text-foreground block">إلزامية البصمة</span>
-                        <span className="text-[10px] text-muted-foreground">يعتبر غائباً تلقائياً في حال عدم تسجيل بصمة حضور وانصراف</span>
+                        <span className="font-bold text-foreground block">
+                          إلزامية البصمة
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          يعتبر غائباً تلقائياً في حال عدم تسجيل بصمة حضور
+                          وانصراف
+                        </span>
                       </div>
                     </label>
                   </div>
@@ -316,29 +404,41 @@ export default function ShiftManagement() {
 
                 {/* Clock Configuration */}
                 <div className="space-y-4 pt-2">
-                  <h4 className="text-xs font-bold text-primary border-b border-border pb-1">مواعيد التوقيت وقواعد التأخير</h4>
+                  <h4 className="text-xs font-bold text-primary border-b border-border pb-1">
+                    مواعيد التوقيت وقواعد التأخير
+                  </h4>
 
                   {form.isFlexible ? (
                     <div className="space-y-4 animate-in fade-in duration-300">
                       <div className="p-3 bg-muted/20 border border-border/60 rounded-xl space-y-3">
-                        <span className="text-[11px] font-bold text-foreground block">نافذة حضور الموظفين</span>
+                        <span className="text-[11px] font-bold text-foreground block">
+                          نافذة حضور الموظفين
+                        </span>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
-                            <label className="block text-[10px] text-muted-foreground">أبكر حضور</label>
+                            <label className="block text-[10px] text-muted-foreground">
+                              أبكر حضور
+                            </label>
                             <input
                               type="time"
                               value={form.flexInFrom}
-                              onChange={(e) => setForm({ ...form, flexInFrom: e.target.value })}
+                              onChange={(e) =>
+                                setForm({ ...form, flexInFrom: e.target.value })
+                              }
                               className={inputClass}
                               required
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="block text-[10px] text-muted-foreground">آخر موعد دخول</label>
+                            <label className="block text-[10px] text-muted-foreground">
+                              آخر موعد دخول
+                            </label>
                             <input
                               type="time"
                               value={form.flexInTo}
-                              onChange={(e) => setForm({ ...form, flexInTo: e.target.value })}
+                              onChange={(e) =>
+                                setForm({ ...form, flexInTo: e.target.value })
+                              }
                               className={inputClass}
                               required
                             />
@@ -347,24 +447,37 @@ export default function ShiftManagement() {
                       </div>
 
                       <div className="p-3 bg-muted/20 border border-border/60 rounded-xl space-y-3">
-                        <span className="text-[11px] font-bold text-foreground block">نافذة انصراف الموظفين</span>
+                        <span className="text-[11px] font-bold text-foreground block">
+                          نافذة انصراف الموظفين
+                        </span>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
-                            <label className="block text-[10px] text-muted-foreground">أبكر انصراف مسموح</label>
+                            <label className="block text-[10px] text-muted-foreground">
+                              أبكر انصراف مسموح
+                            </label>
                             <input
                               type="time"
                               value={form.flexOutFrom}
-                              onChange={(e) => setForm({ ...form, flexOutFrom: e.target.value })}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  flexOutFrom: e.target.value,
+                                })
+                              }
                               className={inputClass}
                               required
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="block text-[10px] text-muted-foreground">أقصى موعد خروج</label>
+                            <label className="block text-[10px] text-muted-foreground">
+                              أقصى موعد خروج
+                            </label>
                             <input
                               type="time"
                               value={form.flexOutTo}
-                              onChange={(e) => setForm({ ...form, flexOutTo: e.target.value })}
+                              onChange={(e) =>
+                                setForm({ ...form, flexOutTo: e.target.value })
+                              }
                               className={inputClass}
                               required
                             />
@@ -376,21 +489,29 @@ export default function ShiftManagement() {
                     <div className="space-y-4 animate-in fade-in duration-300">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="block text-xs font-semibold text-foreground">وقت الحضور الفعلي</label>
+                          <label className="block text-xs font-semibold text-foreground">
+                            وقت الحضور الفعلي
+                          </label>
                           <input
                             type="time"
                             value={form.startTime}
-                            onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, startTime: e.target.value })
+                            }
                             className={inputClass}
                             required
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="block text-xs font-semibold text-foreground">وقت الانصراف الفعلي</label>
+                          <label className="block text-xs font-semibold text-foreground">
+                            وقت الانصراف الفعلي
+                          </label>
                           <input
                             type="time"
                             value={form.endTime}
-                            onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, endTime: e.target.value })
+                            }
                             className={inputClass}
                             required
                           />
@@ -399,22 +520,36 @@ export default function ShiftManagement() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="block text-xs font-semibold text-foreground">سماح التأخير (دقيقة)</label>
+                          <label className="block text-xs font-semibold text-foreground">
+                            سماح التأخير (دقيقة)
+                          </label>
                           <input
                             type="number"
                             value={form.graceLateMin}
                             min={0}
-                            onChange={(e) => setForm({ ...form, graceLateMin: parseInt(e.target.value) || 0 })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                graceLateMin: parseInt(e.target.value) || 0,
+                              })
+                            }
                             className={inputClass}
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="block text-xs font-semibold text-foreground">سماح الخروج المبكر (دقيقة)</label>
+                          <label className="block text-xs font-semibold text-foreground">
+                            سماح الخروج المبكر (دقيقة)
+                          </label>
                           <input
                             type="number"
                             value={form.graceEarlyMin}
                             min={0}
-                            onChange={(e) => setForm({ ...form, graceEarlyMin: parseInt(e.target.value) || 0 })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                graceEarlyMin: parseInt(e.target.value) || 0,
+                              })
+                            }
                             className={inputClass}
                           />
                         </div>
@@ -425,62 +560,98 @@ export default function ShiftManagement() {
                   {/* Overtime settings */}
                   <div className="p-3 bg-muted/20 border border-border/60 rounded-xl space-y-3">
                     <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={form.allowOTIn}
-                        onChange={(e) => setForm({ ...form, allowOTIn: e.target.checked, allowOT: e.target.checked || form.allowOTOut })}
-                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
-                      />
-                      <span className="text-xs font-bold text-foreground">احتساب إضافي الحضور</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={form.allowOTOut}
-                        onChange={(e) => setForm({ ...form, allowOTOut: e.target.checked, allowOT: form.allowOTIn || e.target.checked })}
-                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
-                      />
-                      <span className="text-xs font-bold text-foreground">احتساب إضافي الانصراف</span>
-                    </label>
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.allowOTIn}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              allowOTIn: e.target.checked,
+                              allowOT: e.target.checked || form.allowOTOut,
+                            })
+                          }
+                          className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+                        />
+                        <span className="text-xs font-bold text-foreground">
+                          احتساب إضافي الحضور
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.allowOTOut}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              allowOTOut: e.target.checked,
+                              allowOT: form.allowOTIn || e.target.checked,
+                            })
+                          }
+                          className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+                        />
+                        <span className="text-xs font-bold text-foreground">
+                          احتساب إضافي الانصراف
+                        </span>
+                      </label>
                     </div>
 
                     {(form.allowOTIn || form.allowOTOut) && (
                       <div className="grid gap-3 pt-2 animate-in fade-in duration-200 sm:grid-cols-3">
                         <div className="space-y-1">
-                          <label className="block text-[10px] text-muted-foreground">الحد الأدنى لإضافي الحضور</label>
+                          <label className="block text-[10px] text-muted-foreground">
+                            الحد الأدنى لإضافي الحضور
+                          </label>
                           <input
                             type="number"
                             value={form.otMinInMinutes}
                             min={0}
-                            onChange={(e) => setForm({ ...form, otMinInMinutes: parseInt(e.target.value) || 0 })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                otMinInMinutes: parseInt(e.target.value) || 0,
+                              })
+                            }
                             className={inputClass}
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="block text-[10px] text-muted-foreground">الحد الأدنى لإضافي الانصراف</label>
+                          <label className="block text-[10px] text-muted-foreground">
+                            الحد الأدنى لإضافي الانصراف
+                          </label>
                           <input
                             type="number"
                             value={form.otMinOutMinutes}
                             min={0}
-                            onChange={(e) => setForm({ ...form, otMinOutMinutes: parseInt(e.target.value) || 0 })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                otMinOutMinutes: parseInt(e.target.value) || 0,
+                              })
+                            }
                             className={inputClass}
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="block text-[10px] text-muted-foreground">الحد الأقصى لإجمالي الاثنين</label>
+                          <label className="block text-[10px] text-muted-foreground">
+                            الحد الأقصى لإجمالي الاثنين
+                          </label>
                           <input
                             type="number"
                             value={form.otMaxMinutes}
                             min={0}
-                            onChange={(e) => setForm({ ...form, otMaxMinutes: parseInt(e.target.value) || 0 })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                otMaxMinutes: parseInt(e.target.value) || 0,
+                              })
+                            }
                             className={inputClass}
                           />
                         </div>
                       </div>
                     )}
                   </div>
-
                 </div>
 
                 {/* Footer Button Actions */}
@@ -514,7 +685,9 @@ export default function ShiftManagement() {
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="h-4.5 w-4.5 text-muted-foreground" />
-          <h3 className="text-sm font-bold text-foreground">قائمة الورديات النشطة بالمركز</h3>
+          <h3 className="text-sm font-bold text-foreground">
+            قائمة الورديات النشطة
+          </h3>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -527,22 +700,30 @@ export default function ShiftManagement() {
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2 border-b border-border/40 pb-2.5">
                   <div>
-                    <h4 className="text-sm font-black text-foreground">{s.name}</h4>
-                    <span className="text-[10px] text-muted-foreground font-mono block mt-0.5">رمز الوردية: #{s.id}</span>
+                    <h4 className="text-sm font-black text-foreground">
+                      {s.name}
+                    </h4>
+                    <span className="text-[10px] text-muted-foreground font-mono block mt-0.5">
+                      رمز الوردية: #{s.id}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1 items-end">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                      s.isFlexible
-                        ? "bg-primary/10 text-primary border-primary/20"
-                        : "bg-primary/10 text-primary border-primary/20"
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                        s.isFlexible
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "bg-primary/10 text-primary border-primary/20"
+                      }`}
+                    >
                       {s.isFlexible ? "مرنة" : "ثابتة"}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                      (s.requirePunch ?? true)
-                        ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                        (s.requirePunch ?? true)
+                          ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      }`}
+                    >
                       {(s.requirePunch ?? true) ? "يجب البصمة" : "حضور تلقائي"}
                     </span>
                   </div>
@@ -553,41 +734,56 @@ export default function ShiftManagement() {
                   {/* Clock time */}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                    <span className="font-semibold text-foreground/80">نافذة الدوام:</span>
+                    <span className="font-semibold text-foreground/80">
+                      نافذة الدوام:
+                    </span>
                     <span className="font-bold text-foreground font-mono">
-                      {s.isFlexible ? `${s.flexInFrom} - ${s.flexInTo} ← ${s.flexOutFrom} - ${s.flexOutTo}` : `${s.startTime} إلى ${s.endTime}`}
+                      {s.isFlexible
+                        ? `${s.flexInFrom} - ${s.flexInTo} ← ${s.flexOutFrom} - ${s.flexOutTo}`
+                        : `${s.startTime} إلى ${s.endTime}`}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Settings2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                    <span className="font-semibold text-foreground/80">الفرع والجهاز:</span>
+                    <span className="font-semibold text-foreground/80">
+                      الفرع والجهاز:
+                    </span>
                     <span className="font-bold text-foreground">
-                      {s.branch === "operations" ? "العمليات" : s.branch === "center" ? "المركز" : "غير محدد"}
-                      {s.deviceId ? ` · ${s.deviceId}` : ""}
+                      {branchLabel(s.branch)} · {deviceLabel(s.deviceId)}
                     </span>
                   </div>
 
                   {/* Break time */}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Coffee className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                    <span className="font-semibold text-foreground/80">مدة الاستراحة:</span>
-                    <span className="font-bold text-foreground font-mono">{s.breakMinutes} دقيقة</span>
+                    <span className="font-semibold text-foreground/80">
+                      مدة الاستراحة:
+                    </span>
+                    <span className="font-bold text-foreground font-mono">
+                      {s.breakMinutes} دقيقة
+                    </span>
                   </div>
 
                   {/* Grace rules (only for fixed) */}
                   {!s.isFlexible && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Hourglass className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                      <span className="font-semibold text-foreground/80">سماح التأخير:</span>
-                      <span className="font-bold text-foreground font-mono">{s.graceLateMin} د / {s.graceEarlyMin} د</span>
+                      <span className="font-semibold text-foreground/80">
+                        سماح التأخير:
+                      </span>
+                      <span className="font-bold text-foreground font-mono">
+                        {s.graceLateMin} د / {s.graceEarlyMin} د
+                      </span>
                     </div>
                   )}
 
                   {/* Overtime rules */}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                    <span className="font-semibold text-foreground/80">الوقت الإضافي:</span>
+                    <span className="font-semibold text-foreground/80">
+                      الوقت الإضافي:
+                    </span>
                     <span className="font-bold text-foreground font-mono">
                       {s.allowOTIn || s.allowOTOut
                         ? `${s.allowOTIn ? `حضور من ${s.otMinInMinutes}د` : ""}${s.allowOTIn && s.allowOTOut ? " + " : ""}${s.allowOTOut ? `انصراف من ${s.otMinOutMinutes}د` : ""} (الإجمالي: ${s.otMaxMinutes > 0 ? `${s.otMaxMinutes}د` : "بلا حد"})`
@@ -598,9 +794,15 @@ export default function ShiftManagement() {
                   {/* Cost Size class */}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calculator className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                    <span className="font-semibold text-foreground/80">تصنيف شفت الأجر:</span>
+                    <span className="font-semibold text-foreground/80">
+                      تصنيف شفت الأجر:
+                    </span>
                     <span className="font-bold text-foreground">
-                      {s.shiftSize === "auto" ? `تلقائي (حد القصير: ${s.autoSmallThresholdMin} دقيقة)` : s.shiftSize === "big" ? "شفت كامل دائماً" : "نصف شفت دائماً"}
+                      {s.shiftSize === "auto"
+                        ? `تلقائي (حد القصير: ${s.autoSmallThresholdMin} دقيقة)`
+                        : s.shiftSize === "big"
+                          ? "شفت كامل دائماً"
+                          : "نصف شفت دائماً"}
                     </span>
                   </div>
                 </div>
@@ -621,7 +823,6 @@ export default function ShiftManagement() {
           ))}
         </div>
       </section>
-
     </div>
   );
 }

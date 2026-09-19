@@ -7,7 +7,7 @@
 export interface Shift {
   id: number;
   name: string;
-  branch?: "operations" | "center" | null;
+  branch?: "operations" | "center" | "both" | null;
   deviceId?: string | null;
   startTime: string; // HH:mm (or multiple times for split shifts, comma-separated)
   endTime: string;
@@ -64,12 +64,7 @@ export interface DayResult {
   overtimeOutMinutes: number;
   overtimeMinutes: number;
   status:
-    | "present"
-    | "absent"
-    | "leave"
-    | "holiday"
-    | "partial"
-    | "missing_checkout";
+    "present" | "absent" | "leave" | "holiday" | "partial" | "missing_checkout";
   insideNow: boolean;
   computedAt: Date;
 }
@@ -149,13 +144,19 @@ export function resolveShifts(
   if (matchingAssignments.length > 0) {
     // Keep the latest assignment in each branch. Legacy shifts without a branch
     // remain mutually exclusive, while operations + center may run in one day.
-    const latestByBranch = new Map<string, (typeof matchingAssignments)[number]>();
+    const latestByBranch = new Map<
+      string,
+      (typeof matchingAssignments)[number]
+    >();
     for (const asn of matchingAssignments) {
       const shift = shiftsById.get(asn.shiftId);
       if (!shift) continue;
       const branchKey = shift.branch ?? "__unassigned";
       const current = latestByBranch.get(branchKey);
-      if (!current || asn.effectiveFrom.getTime() > current.effectiveFrom.getTime()) {
+      if (
+        !current ||
+        asn.effectiveFrom.getTime() > current.effectiveFrom.getTime()
+      ) {
         latestByBranch.set(branchKey, asn);
       }
     }
@@ -187,15 +188,26 @@ export function resolveShift(
   defaultShiftId: number | null,
   shiftsById: Map<number, Shift>,
 ): Shift | null {
-  const shifts = resolveShifts(empCd, date, assignments, defaultShiftId, shiftsById);
+  const shifts = resolveShifts(
+    empCd,
+    date,
+    assignments,
+    defaultShiftId,
+    shiftsById,
+  );
   return shifts[0] ?? null;
 }
 
 /**
- * Pair punches chronologically
- * Returns first IN and last OUT, collapsing sub-30s intervals
+ * Pair punches by the shift's arrival/departure halves, not by a device's
+ * InOutMode flag. FK and ZK devices may emit that flag inverted or unchanged
+ * for every scan.
  */
-export function pairPunches(punches: RawPunchRecord[]): {
+export function pairPunches(
+  punches: RawPunchRecord[],
+  shift?: Shift | null,
+  workDate?: Date,
+): {
   firstIn: Date | null;
   lastOut: Date | null;
 } {
@@ -221,7 +233,27 @@ export function pairPunches(punches: RawPunchRecord[]): {
     }
   }
 
-  // First and last — need at least 2 distinct punches to have a lastOut
+  if (shift && workDate) {
+    const startHm = parseTime(shift.startTime);
+    const endHm = parseTime(shift.endTime);
+    if (startHm && endHm) {
+      const shiftStart = buildDateTime(workDate, startHm);
+      let shiftEnd = buildDateTime(workDate, endHm);
+      if (shift.crossesMidnight && shiftEnd <= shiftStart) {
+        shiftEnd = new Date(shiftEnd.getTime() + 24 * 60 * 60 * 1000);
+      }
+      const midpoint = (shiftStart.getTime() + shiftEnd.getTime()) / 2;
+      return {
+        firstIn: collapsed.find((punchAt) => punchAt.getTime() <= midpoint) ?? null,
+        lastOut:
+          [...collapsed]
+            .reverse()
+            .find((punchAt) => punchAt.getTime() >= midpoint) ?? null,
+      };
+    }
+  }
+
+  // No assigned shift: retain chronological behaviour for manual review.
   return {
     firstIn: collapsed[0] ?? null,
     lastOut: collapsed.length > 1 ? collapsed[collapsed.length - 1] : null,
@@ -266,7 +298,7 @@ export function computeDay(ctx: DayContext): DayResult {
   if (!ctx.shift) {
     if (ctx.punches.length > 0) {
       result.status = "partial";
-      const paired = pairPunches(ctx.punches);
+      const paired = pairPunches(ctx.punches, ctx.shift, ctx.workDate);
       result.firstIn = paired.firstIn;
       result.lastOut = paired.lastOut;
       if (paired.firstIn && !paired.lastOut) {
@@ -278,7 +310,7 @@ export function computeDay(ctx: DayContext): DayResult {
   }
 
   // Pair punches
-  const paired = pairPunches(ctx.punches);
+  const paired = pairPunches(ctx.punches, ctx.shift, ctx.workDate);
   result.firstIn = paired.firstIn;
   result.lastOut = paired.lastOut;
 
@@ -333,8 +365,12 @@ export function computeDay(ctx: DayContext): DayResult {
 
   if (ctx.shift.isFlexible) {
     // Flexible shift: lateness counted only after flexInTo; early-leave before flexOutFrom
-    const flexInToHm = ctx.shift.flexInTo ? parseTime(ctx.shift.flexInTo) : null;
-    const flexOutFromHm = ctx.shift.flexOutFrom ? parseTime(ctx.shift.flexOutFrom) : null;
+    const flexInToHm = ctx.shift.flexInTo
+      ? parseTime(ctx.shift.flexInTo)
+      : null;
+    const flexOutFromHm = ctx.shift.flexOutFrom
+      ? parseTime(ctx.shift.flexOutFrom)
+      : null;
 
     if (flexInToHm) {
       const inDeadline = buildDateTime(ctx.workDate, flexInToHm).getTime();
@@ -545,11 +581,7 @@ export function partitionPunchesForShifts(
     groups.set(s.id, []);
   }
 
-  if (shifts.length <= 1) {
-    const shiftId = shifts[0]?.id ?? 0;
-    groups.set(shiftId, [...punches]);
-    return groups;
-  }
+  if (shifts.length === 0) return groups;
 
   // Calculate midpoints for each shift. Device match takes priority because
   // overlapping center shifts cannot be identified reliably by time alone.
@@ -571,8 +603,11 @@ export function partitionPunchesForShifts(
   for (const p of punches) {
     const time = p.punchAt.getTime();
     const deviceCandidates = p.deviceId
-      ? shifts.filter((shift) => shift.deviceId === p.deviceId)
+      ? shifts.filter((shift) => shiftMatchesDevice(shift.deviceId, p.deviceId))
       : [];
+    // A punch from a known device belongs only to a shift that allows it.
+    // Manual punches have no device ID and continue to use the time fallback.
+    if (p.deviceId && deviceCandidates.length === 0) continue;
     const candidates = deviceCandidates.length > 0 ? deviceCandidates : shifts;
     let closestShiftId = candidates[0].id;
     let minDistance = Infinity;
@@ -597,4 +632,27 @@ export function partitionPunchesForShifts(
   }
 
   return groups;
+}
+
+function shiftMatchesDevice(
+  shiftDeviceId: string | null | undefined,
+  punchDeviceId: string,
+): boolean {
+  if (!shiftDeviceId) return true;
+
+  const configured = shiftDeviceId.toLowerCase();
+  const actual = punchDeviceId.toLowerCase();
+  if (configured === "both") {
+    return (
+      actual === "fk" ||
+      actual.startsWith("fk_") ||
+      actual === "zkteco" ||
+      actual === "zk" ||
+      actual.startsWith("zk_")
+    );
+  }
+  if (configured === "fk") return actual === "fk" || actual.startsWith("fk_");
+  if (configured === "zk")
+    return actual === "zkteco" || actual === "zk" || actual.startsWith("zk_");
+  return configured === actual;
 }

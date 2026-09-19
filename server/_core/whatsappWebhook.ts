@@ -25,6 +25,10 @@ import { getDb } from "../db";
 import { whatsappInboundMessages } from "../../drizzle/schema";
 import { sendWhatsAppReply } from "../services/whatsappReply.service";
 import { buildWhatsAppInboundAutoReply } from "../services/whatsappInboundAutoReply.service";
+import {
+  marketingPreferenceFromInbound,
+  recordMarketingPreference,
+} from "../services/whatsappMarketing.service";
 
 interface WhatsAppMessage {
   id: string;
@@ -32,6 +36,7 @@ interface WhatsAppMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
+  interactive?: { button_reply?: { id?: string; title?: string } };
   [key: string]: unknown;
 }
 
@@ -151,11 +156,16 @@ export function registerWhatsAppWebhook(app: Express) {
                 waMessageId: msg.id ?? null,
                 fromPhone: msg.from ?? null,
                 messageType: msg.type ?? null,
-                body: msg.text?.body ?? null,
+                body:
+                  msg.text?.body ??
+                  msg.interactive?.button_reply?.title ??
+                  null,
                 rawPayload: JSON.stringify(msg),
               })
               .onDuplicateKeyUpdate({
-                set: { waMessageId: sql`${whatsappInboundMessages.waMessageId}` },
+                set: {
+                  waMessageId: sql`${whatsappInboundMessages.waMessageId}`,
+                },
               });
 
             const resultHeader = insertResult[0];
@@ -182,6 +192,22 @@ export function registerWhatsAppWebhook(app: Express) {
     for (const msg of newMessages) {
       if (msg.from) {
         try {
+          const preference = marketingPreferenceFromInbound({
+            text: msg.text?.body ?? msg.interactive?.button_reply?.title,
+            buttonId: msg.interactive?.button_reply?.id,
+          });
+          if (preference) {
+            await recordMarketingPreference(msg.from, preference);
+            await sendWhatsAppReply({
+              recipientPhone: msg.from,
+              message:
+                preference === "subscribed"
+                  ? "تم اشتراكك في عروض المركز. يمكنك إيقافها في أي وقت بكتابة إلغاء."
+                  : "تم إيقاف رسائل العروض. لن تصلك عروض أخرى من المركز.",
+              replyToMessageId: msg.id,
+            });
+            continue;
+          }
           await sendWhatsAppReply({
             recipientPhone: msg.from,
             message: buildWhatsAppInboundAutoReply(),

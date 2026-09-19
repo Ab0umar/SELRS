@@ -201,15 +201,13 @@ export default function AdminWhatsAppInbox() {
                 <MessageCircle className="h-5 w-5" aria-hidden />
               </div>
               <div>
-                <h1 className="sr-only">
-                  رسائل واتساب الواردة
-                </h1>
+                <h1 className="sr-only">رسائل واتساب الواردة</h1>
                 <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
                   الرسائل المستلمة عبر Webhook واتساب
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="gap-1.5 px-2.5 py-1">
                 تحديث تلقائي كل ١٠ ثوانٍ
               </Badge>
@@ -248,7 +246,7 @@ export default function AdminWhatsAppInbox() {
               value={String(pageSize)}
               onValueChange={handlePageSizeChange}
             >
-              <SelectTrigger className="h-10 w-40">
+              <SelectTrigger className="h-10 w-full min-w-[120px] sm:w-40">
                 <SelectValue placeholder="عدد النتائج" />
               </SelectTrigger>
               <SelectContent>
@@ -296,64 +294,116 @@ export default function AdminWhatsAppInbox() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table dir="rtl" className="min-w-[900px]">
-                <TableHeader className="bg-muted/50">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-right">الهاتف</TableHead>
-                    <TableHead className="text-right">النوع</TableHead>
-                    <TableHead className="min-w-72 text-right">
-                      نص الرسالة
-                    </TableHead>
-                    <TableHead className="text-right">وقت الاستلام</TableHead>
-                    <TableHead className="w-24 text-right">إجراء</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((msg: any, index: number) => (
-                    <TableRow
-                      key={msg.id}
-                      className={index % 2 === 1 ? "bg-muted/20" : undefined}
-                    >
-                      <TableCell dir="ltr" className="font-mono tabular-nums">
-                        {msg.fromPhone || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="font-normal">
-                          {msg.messageType || "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-pre-wrap">
-                        {msg.body || "—"}
-                      </TableCell>
-                      <TableCell className="tabular-nums text-muted-foreground">
-                        {formatDateTime(msg.receivedAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={!msg.fromPhone}
-                          onClick={() => {
-                            setReplyTarget({
-                              fromPhone: msg.fromPhone,
-                              waMessageId: msg.waMessageId || null,
-                              body: msg.body || null,
-                            });
-                            setReplyMessage("");
-                          }}
-                          className="gap-1.5"
+            <>
+              <div className="divide-y divide-border lg:hidden">
+                {rows.map((msg: any, index: number) => (
+                  <article
+                    key={msg.id}
+                    className={`space-y-3 px-4 py-4 ${
+                      index % 2 === 1 ? "bg-muted/20" : "bg-card"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p
+                          dir="ltr"
+                          className="font-mono text-sm font-semibold tabular-nums text-foreground"
                         >
-                          <Reply className="h-4 w-4" aria-hidden />
-                          رد
-                        </Button>
-                      </TableCell>
+                          {msg.fromPhone || "رقم غير معروف"}
+                        </p>
+                        <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                          {formatDateTime(msg.receivedAt)}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="shrink-0 font-normal"
+                      >
+                        {msg.messageType || "—"}
+                      </Badge>
+                    </div>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
+                      {msg.body || "لا يوجد نص للرسالة"}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 w-full gap-1.5"
+                      disabled={!msg.fromPhone}
+                      onClick={() => {
+                        setReplyTarget({
+                          fromPhone: msg.fromPhone,
+                          waMessageId: msg.waMessageId || null,
+                          body: msg.body || null,
+                        });
+                        setReplyMessage("");
+                      }}
+                    >
+                      <Reply className="h-4 w-4" aria-hidden />
+                      رد على الرسالة
+                    </Button>
+                  </article>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto lg:block">
+                <Table dir="rtl" className="min-w-[900px]">
+                  <TableHeader className="bg-muted/50">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-right">الهاتف</TableHead>
+                      <TableHead className="text-right">النوع</TableHead>
+                      <TableHead className="min-w-72 text-right">
+                        نص الرسالة
+                      </TableHead>
+                      <TableHead className="text-right">وقت الاستلام</TableHead>
+                      <TableHead className="w-24 text-right">إجراء</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((msg: any, index: number) => (
+                      <TableRow
+                        key={msg.id}
+                        className={index % 2 === 1 ? "bg-muted/20" : undefined}
+                      >
+                        <TableCell dir="ltr" className="font-mono tabular-nums">
+                          {msg.fromPhone || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="font-normal">
+                            {msg.messageType || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-pre-wrap">
+                          {msg.body || "—"}
+                        </TableCell>
+                        <TableCell className="tabular-nums text-muted-foreground">
+                          {formatDateTime(msg.receivedAt)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={!msg.fromPhone}
+                            onClick={() => {
+                              setReplyTarget({
+                                fromPhone: msg.fromPhone,
+                                waMessageId: msg.waMessageId || null,
+                                body: msg.body || null,
+                              });
+                              setReplyMessage("");
+                            }}
+                            className="gap-1.5"
+                          >
+                            <Reply className="h-4 w-4" aria-hidden />
+                            رد
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
 
           <div className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-3">

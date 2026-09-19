@@ -203,7 +203,7 @@ export const attendanceShifts = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     name: varchar("name", { length: 64 }).notNull(),
-    branch: mysqlEnum("branch", ["operations", "center"]),
+    branch: mysqlEnum("branch", ["operations", "center", "both"]),
     deviceId: varchar("device_id", { length: 64 }),
     startTime: varchar("start_time", { length: 8 }).notNull(),
     endTime: varchar("end_time", { length: 8 }).notNull(),
@@ -2848,6 +2848,76 @@ export type WhatsappInboundMessage =
   typeof whatsappInboundMessages.$inferSelect;
 export type InsertWhatsappInboundMessage =
   typeof whatsappInboundMessages.$inferInsert;
+
+/** WhatsApp marketing is deliberately isolated from Facebook/Instagram posts. */
+export const whatsappMarketingSubscriptions = mysqlTable(
+  "whatsapp_marketing_subscriptions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    phone: varchar("phone", { length: 32 }).notNull(),
+    patientId: int("patient_id"),
+    status: mysqlEnum("status", ["pending", "subscribed", "unsubscribed"])
+      .default("pending")
+      .notNull(),
+    source: varchar("source", { length: 64 }).notNull(),
+    respondedAt: timestamp("responded_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    phoneUnique: uniqueIndex("uq_whatsapp_marketing_subscription_phone").on(
+      table.phone,
+    ),
+    statusIdx: index("idx_whatsapp_marketing_subscription_status").on(
+      table.status,
+    ),
+  }),
+);
+
+export const whatsappMarketingCampaigns = mysqlTable(
+  "whatsapp_marketing_campaigns",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    kind: mysqlEnum("kind", ["opt_in", "promotion"]).notNull(),
+    templateName: varchar("template_name", { length: 255 }).notNull(),
+    status: mysqlEnum("status", ["draft", "sending", "sent", "failed"])
+      .default("draft")
+      .notNull(),
+    createdBy: int("created_by").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    sentAt: timestamp("sent_at"),
+  },
+  (table) => ({
+    createdAtIdx: index("idx_whatsapp_marketing_campaign_created").on(
+      table.createdAt,
+    ),
+  }),
+);
+
+export const whatsappMarketingDeliveries = mysqlTable(
+  "whatsapp_marketing_deliveries",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    campaignId: int("campaign_id").notNull(),
+    patientId: int("patient_id"),
+    recipientPhone: varchar("recipient_phone", { length: 32 }).notNull(),
+    status: mysqlEnum("status", ["accepted", "failed"])
+      .default("accepted")
+      .notNull(),
+    metaMessageId: varchar("meta_message_id", { length: 128 }),
+    errorMessage: text("error_message"),
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    campaignIdx: index("idx_whatsapp_marketing_delivery_campaign").on(
+      table.campaignId,
+    ),
+    recipientIdx: index("idx_whatsapp_marketing_delivery_recipient").on(
+      table.recipientPhone,
+    ),
+  }),
+);
 
 export const marketingReferenceDesigns = mysqlTable(
   "marketing_reference_designs",

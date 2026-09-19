@@ -388,14 +388,14 @@ export default function DeviceSettings() {
               </Button>
               <Button
                 onClick={async () => {
-                  if (!confirm("مسح HWM للمزامنة؟ ستُعاد استيراد جميع البصمات في المزامنة القادمة.")) return;
+                  if (!confirm("إعادة ضبط مزامنة FK؟ ستُسحب البصمات من 1 يناير 2026 فقط.")) return;
                   await resetFkHwm.mutateAsync();
                 }}
                 disabled={resetFkHwm.isPending}
                 variant="outline"
                 className="w-full text-[10px] font-bold border-red-300 text-red-700 hover:bg-red-50 rounded-lg py-2 h-auto"
               >
-                {resetFkHwm.isPending ? "جاري…" : "إعادة ضبط HWM (استعادة بصمات مفقودة)"}
+                {resetFkHwm.isPending ? "جاري…" : "إعادة ضبط FK من 1 يناير 2026"}
               </Button>
             </div>
 

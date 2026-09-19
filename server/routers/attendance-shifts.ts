@@ -104,8 +104,8 @@ export const attendanceShiftsRoutes = {
     .input(
       z.object({
         name: z.string().min(1).max(64),
-        branch: z.enum(["operations", "center"]),
-        deviceId: z.string().trim().min(1).max(64),
+        branch: z.enum(["operations", "center", "both"]),
+        deviceId: z.enum(["fk", "zk", "both"]),
         startTime: z.string().regex(/^\d{2}:\d{2}$/),
         endTime: z.string().regex(/^\d{2}:\d{2}$/),
         crossesMidnight: z.boolean().optional(),
@@ -208,8 +208,8 @@ export const attendanceShiftsRoutes = {
       z.object({
         id: z.number(),
         name: z.string().min(1).max(64).optional(),
-        branch: z.enum(["operations", "center"]).optional(),
-        deviceId: z.string().trim().min(1).max(64).optional(),
+        branch: z.enum(["operations", "center", "both"]).optional(),
+        deviceId: z.enum(["fk", "zk", "both"]).optional(),
         startTime: z
           .string()
           .regex(/^\d{2}:\d{2}$/)

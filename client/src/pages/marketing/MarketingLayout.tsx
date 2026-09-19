@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Settings,
   Share2,
+  MessageCircle,
 } from "lucide-react";
 
 interface MarketingLayoutProps {
@@ -40,6 +41,13 @@ const navItems = [
     label: "مكتبة العلامة التجارية",
     description: "تصاميم مرجعية وهوية بصرية",
     icon: BookImage,
+    exact: false,
+  },
+  {
+    href: "/marketing/whatsapp",
+    label: "حملات واتساب",
+    description: "اشتراك المرضى وإرسال العروض",
+    icon: MessageCircle,
     exact: false,
   },
   {
@@ -78,7 +86,7 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
             أتمتة التسويق
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            إدارة منشورات Facebook للمركز الطبي تلقائياً
+            إدارة منشورات وحملات المركز الطبية
           </p>
         </div>
       </div>

@@ -215,8 +215,14 @@ describe("multiple branch shifts", () => {
   it("maps four punches to the shift device before using time", () => {
     const groups = partitionPunchesForShifts(
       [
-        { ...punch("2026-06-10T09:00:00", "in"), deviceId: "operations-device" },
-        { ...punch("2026-06-10T15:00:00", "out"), deviceId: "operations-device" },
+        {
+          ...punch("2026-06-10T09:00:00", "in"),
+          deviceId: "operations-device",
+        },
+        {
+          ...punch("2026-06-10T15:00:00", "out"),
+          deviceId: "operations-device",
+        },
         { ...punch("2026-06-10T15:10:00", "in"), deviceId: "center-device" },
         { ...punch("2026-06-10T19:00:00", "out"), deviceId: "center-device" },
       ],
@@ -224,8 +230,37 @@ describe("multiple branch shifts", () => {
       d("2026-06-10T00:00:00"),
     );
 
-    expect(groups.get(operations.id)?.map((item) => item.direction)).toEqual(["in", "out"]);
-    expect(groups.get(center.id)?.map((item) => item.direction)).toEqual(["in", "out"]);
+    expect(groups.get(operations.id)?.map((item) => item.direction)).toEqual([
+      "in",
+      "out",
+    ]);
+    expect(groups.get(center.id)?.map((item) => item.direction)).toEqual([
+      "in",
+      "out",
+    ]);
+  });
+
+  it("accepts FK and ZK punches for a both-devices shift", () => {
+    const shared = makeShift({
+      id: 30,
+      name: "Shared",
+      branch: "both",
+      deviceId: "both",
+    });
+    const groups = partitionPunchesForShifts(
+      [
+        { ...punch("2026-06-10T08:00:00", "in"), deviceId: "fk_ef10k" },
+        { ...punch("2026-06-10T16:00:00", "out"), deviceId: "zkTeco" },
+        { ...punch("2026-06-10T17:00:00", "out"), deviceId: "other" },
+      ],
+      [shared],
+      d("2026-06-10T00:00:00"),
+    );
+
+    expect(groups.get(shared.id)?.map((item) => item.deviceId)).toEqual([
+      "fk_ef10k",
+      "zkTeco",
+    ]);
   });
 
   it("applies a full-day mission independently to both assigned shifts", () => {
@@ -295,6 +330,37 @@ describe("pairPunches", () => {
       punch("2026-06-10T08:00:30"),
     ]);
     expect(result.lastOut).toBeNull();
+  });
+
+  it("7 — two arrival punches do not fabricate a check-out", () => {
+    const result = pairPunches([
+      punch("2026-06-10T08:00:00", "in"),
+      punch("2026-06-10T09:00:00", "in"),
+    ], SHIFT_1, d("2026-06-10T00:00:00"));
+    expect(result.firstIn).toEqual(d("2026-06-10T08:00:00"));
+    expect(result.lastOut).toBeNull();
+  });
+
+  it("8 — departure punches do not fabricate a check-in", () => {
+    const result = pairPunches([
+      punch("2026-06-10T13:00:00", "out"),
+      punch("2026-06-10T16:00:00", "out"),
+    ], SHIFT_1, d("2026-06-10T00:00:00"));
+    expect(result).toEqual({
+      firstIn: null,
+      lastOut: d("2026-06-10T16:00:00"),
+    });
+  });
+
+  it("9 — inverted device direction does not reverse the attendance day", () => {
+    const result = pairPunches([
+      punch("2026-06-10T08:00:00", "out"),
+      punch("2026-06-10T16:00:00", "in"),
+    ], SHIFT_1, d("2026-06-10T00:00:00"));
+    expect(result).toEqual({
+      firstIn: d("2026-06-10T08:00:00"),
+      lastOut: d("2026-06-10T16:00:00"),
+    });
   });
 });
 
@@ -458,9 +524,7 @@ describe("computeDay", () => {
   });
 
   it("11 — holiday with no punches: status=holiday, all minutes zero", () => {
-    const result = computeDay(
-      baseCtx({ isHoliday: true, punches: [] }),
-    );
+    const result = computeDay(baseCtx({ isHoliday: true, punches: [] }));
     expect(result.status).toBe("holiday");
     expect(result.workedMinutes).toBeNull();
     expect(result.lateMinutes).toBe(0);

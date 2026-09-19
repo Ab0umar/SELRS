@@ -179,6 +179,7 @@ export const ROUTES = {
   marketingDrafts: "/marketing/drafts",
   marketingHistory: "/marketing/history",
   marketingSettings: "/marketing/settings",
+  marketingWhatsApp: "/marketing/whatsapp",
   medicalReports: "/medical-reports",
   medicalReference: "/medical-reference",
   medicalReportsId: "/medical-reports/:id",

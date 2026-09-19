@@ -589,6 +589,11 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     label: "إعدادات التسويق",
     group: "التسويق",
   },
+  {
+    id: "/marketing/whatsapp",
+    label: "حملات واتساب",
+    group: "التسويق",
+  },
 
   { id: "/admin-hub", label: "مركز الإدارة (الرئيسية)", group: "مركز الإدارة" },
   {

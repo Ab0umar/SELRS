@@ -2,6 +2,7 @@ import { z } from "zod";
 import { desc, eq, count as drizzleCount, and, gte } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { nanoid } from "nanoid";
 import { randomBytes } from "node:crypto";
 import { router, adminProcedure } from "../_core/procedures";
@@ -25,6 +26,10 @@ import {
   type StyleAttributes,
 } from "../services/marketing/brandStyleAnalyzer.service";
 import { ENV } from "../_core/env";
+import {
+  marketingSummary,
+  sendMarketingBatch,
+} from "../services/whatsappMarketing.service";
 
 async function addLog(
   postId: number | null,
@@ -52,7 +57,67 @@ function getReferenceDesignDir(): string {
   );
 }
 
+function resolveReferenceDesignPath(filePath: string): string {
+  const configuredDir = getReferenceDesignDir();
+  const currentProjectDir = path.join(
+    process.cwd(),
+    "uploads",
+    "marketing",
+    "reference-designs",
+  );
+  const candidates = [
+    filePath,
+    path.join(configuredDir, path.basename(filePath)),
+  ];
+
+  if (path.resolve(configuredDir) !== path.resolve(currentProjectDir)) {
+    candidates.push(path.join(currentProjectDir, path.basename(filePath)));
+  }
+
+  return candidates.find(existsSync) ?? filePath;
+}
+
 export const marketingRouter = router({
+  // ─── WhatsApp campaigns ───────────────────────────────────
+
+  whatsappSummary: adminProcedure.query(() => marketingSummary()),
+
+  sendWhatsAppOptInBatch: adminProcedure
+    .input(
+      z.object({
+        name: z.string().trim().min(3).max(255),
+        limit: z.number().int().min(1).max(1000).default(25),
+        testPhone: z.string().trim().min(8).max(32).optional(),
+      }),
+    )
+    .mutation(({ input, ctx }) =>
+      sendMarketingBatch({
+        kind: "opt_in",
+        name: input.name,
+        limit: input.limit,
+        testPhone: input.testPhone,
+        createdBy: ctx.user.id,
+      }),
+    ),
+
+  sendWhatsAppPromotionBatch: adminProcedure
+    .input(
+      z.object({
+        name: z.string().trim().min(3).max(255),
+        limit: z.number().int().min(1).max(1000).default(25),
+        testPhone: z.string().trim().min(8).max(32).optional(),
+      }),
+    )
+    .mutation(({ input, ctx }) =>
+      sendMarketingBatch({
+        kind: "promotion",
+        name: input.name,
+        limit: input.limit,
+        testPhone: input.testPhone,
+        createdBy: ctx.user.id,
+      }),
+    ),
+
   // ─── Posts ────────────────────────────────────────────────
 
   listPosts: adminProcedure
@@ -304,7 +369,12 @@ export const marketingRouter = router({
         );
       } catch (err) {
         const detail = String(err);
-        await addLog(null, "generate_post", "error", `Content generation failed: ${detail}`);
+        await addLog(
+          null,
+          "generate_post",
+          "error",
+          `Content generation failed: ${detail}`,
+        );
         throw new Error(`فشل توليد المحتوى: ${detail}`);
       }
 
@@ -370,10 +440,18 @@ export const marketingRouter = router({
       const refDesigns = await db
         .select({ filePath: marketingReferenceDesigns.filePath })
         .from(marketingReferenceDesigns);
-      const refPaths = refDesigns.map((r: { filePath: string }) => r.filePath).filter(Boolean);
+      const refPaths = refDesigns
+        .map((r: { filePath: string }) =>
+          resolveReferenceDesignPath(r.filePath),
+        )
+        .filter(Boolean);
 
       try {
-        const imageUrl = await generateMarketingImage(prompt, input.postId, refPaths);
+        const imageUrl = await generateMarketingImage(
+          prompt,
+          input.postId,
+          refPaths,
+        );
         await db
           .update(marketingPosts)
           .set({ imageUrl })

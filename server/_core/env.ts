@@ -62,6 +62,8 @@ const envSchema = z.object({
   WHATSAPP_CANCELLATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_OPERATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_OPERATION_CANCELLATION_TEMPLATE: z.string().optional().default(""),
+  WHATSAPP_MARKETING_OPT_IN_TEMPLATE: z.string().optional().default(""),
+  WHATSAPP_MARKETING_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_TEMPLATE_LANGUAGE: z.string().optional().default("ar"),
   WHATSAPP_SUPPORT_NUMBER: z.string().optional().default("01285800309"),
   WHATSAPP_TANTA_MAP_URL: z.string().optional().default(""),
@@ -136,6 +138,8 @@ export const ENV = {
   whatsappOperationTemplate: parsed.WHATSAPP_OPERATION_TEMPLATE,
   whatsappOperationCancellationTemplate:
     parsed.WHATSAPP_OPERATION_CANCELLATION_TEMPLATE,
+  whatsappMarketingOptInTemplate: parsed.WHATSAPP_MARKETING_OPT_IN_TEMPLATE,
+  whatsappMarketingTemplate: parsed.WHATSAPP_MARKETING_TEMPLATE,
   whatsappTemplateLanguage: parsed.WHATSAPP_TEMPLATE_LANGUAGE,
   whatsappSupportNumber: parsed.WHATSAPP_SUPPORT_NUMBER,
   whatsappTantaMapUrl: parsed.WHATSAPP_TANTA_MAP_URL,

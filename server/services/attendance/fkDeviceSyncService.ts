@@ -3,7 +3,11 @@
  * Syncs punch data from FK device to MySQL via FKOldLogPuller.exe
  */
 
-import { FKAttendLogPuller, FKPunch, FKDeviceConfig } from "./fkAttendLogPuller";
+import {
+  FKAttendLogPuller,
+  FKPunch,
+  FKDeviceConfig,
+} from "./fkAttendLogPuller";
 import { DeviceSettingsService } from "./deviceSettings.service";
 import { DailyMaterializer } from "./dailyMaterializer";
 import { getDb } from "../../db";
@@ -12,7 +16,7 @@ import {
   attendanceSyncRuns,
   attendanceEmployees,
 } from "../../../drizzle/schema";
-import { sql, eq, desc, inArray, and, gte, lte } from "drizzle-orm";
+import { sql, eq, desc, inArray, and } from "drizzle-orm";
 import crypto from "crypto";
 
 const BATCH_SIZE = 500;
@@ -56,10 +60,12 @@ export class FKDeviceSyncService {
       const lastRun = await db
         .select({ hwm: attendanceSyncRuns.highWaterMark })
         .from(attendanceSyncRuns)
-        .where(and(
-          inArray(attendanceSyncRuns.status, ["ok", "partial"] as any),
-          eq(attendanceSyncRuns.deviceId as any, "fk_ef10k"),
-        ))
+        .where(
+          and(
+            inArray(attendanceSyncRuns.status, ["ok", "partial"] as any),
+            eq(attendanceSyncRuns.deviceId as any, "fk_ef10k"),
+          ),
+        )
         .orderBy(desc(attendanceSyncRuns.startedAt))
         .limit(1);
       const lastHwm: Date | null = lastRun[0]?.hwm ?? null;
@@ -77,7 +83,8 @@ export class FKDeviceSyncService {
         password: settings.commPassword ?? 0,
         ...deviceConfig,
       };
-      const allPunches = await this.pullLogsWithProtocolFallback(resolvedConfig);
+      const allPunches =
+        await this.pullLogsWithProtocolFallback(resolvedConfig);
       // Filter to new punches only (after last HWM)
       const fkPunches = lastHwm
         ? allPunches.filter((p) => p.timestamp > lastHwm)
@@ -103,26 +110,16 @@ export class FKDeviceSyncService {
       const affected = new Set<string>();
       let totalInserted = 0;
 
-      // The device's own InOutMode flag is unreliable on this hardware (every
-      // punch often reports the same mode) — infer in/out instead by
-      // alternating chronologically per employee per day, continuing from
-      // however many punches that employee already has that day. This is
-      // cosmetic only (rulesEngine derives firstIn/lastOut from timestamps,
-      // not this field) but keeps the raw-logs/live-board direction badges
-      // meaningful.
-      const directionByRowId = await this.inferDirections(db, fkPunches);
-
       for (let i = 0; i < fkPunches.length; i += BATCH_SIZE) {
         const batch = fkPunches.slice(i, i + BATCH_SIZE);
         const rows = batch.map((punch) => ({
           empCd: String(punch.enrollNo),
           punchAt: punch.timestamp,
-          direction: (directionByRowId.get(
-            `${punch.enrollNo}_${punch.timestamp.getTime()}`,
-          ) ?? (punch.inOutMode === 1 ? "in" : "out")) as
-            | "in"
-            | "out"
-            | "unknown",
+          direction: (punch.inOutMode === 1
+            ? "in"
+            : punch.inOutMode === 0
+              ? "out"
+              : "unknown") as "in" | "out" | "unknown",
           deviceId: "fk_ef10k",
           source: "tcp" as const,
           sourceRowId: `${punch.enrollNo}_${punch.timestamp.getTime()}`,
@@ -253,74 +250,6 @@ export class FKDeviceSyncService {
   }
 
   /**
-   * Infer in/out direction per punch by alternating chronologically within
-   * each employee's day, continuing the parity from punches already stored
-   * for that employee/day. Keyed by `${enrollNo}_${timestamp.getTime()}`
-   * (matches the sourceRowId built for each row below).
-   */
-  private static async inferDirections(
-    db: any,
-    punches: FKPunch[],
-  ): Promise<Map<string, "in" | "out">> {
-    const directionByRowId = new Map<string, "in" | "out">();
-    if (punches.length === 0) return directionByRowId;
-
-    const dateKey = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-    const groups = new Map<string, FKPunch[]>();
-    for (const p of punches) {
-      const key = `${p.enrollNo}|${dateKey(p.timestamp)}`;
-      const group = groups.get(key);
-      if (group) group.push(p);
-      else groups.set(key, [p]);
-    }
-
-    const empCds = [...new Set(punches.map((p) => String(p.enrollNo)))];
-    const timestamps = punches.map((p) => p.timestamp.getTime());
-    const rangeStart = new Date(Math.min(...timestamps));
-    rangeStart.setHours(0, 0, 0, 0);
-    const rangeEnd = new Date(Math.max(...timestamps));
-    rangeEnd.setHours(23, 59, 59, 999);
-
-    const existingRows = await db
-      .select({
-        empCd: attendancePunches.empCd,
-        punchAt: attendancePunches.punchAt,
-      })
-      .from(attendancePunches)
-      .where(
-        and(
-          inArray(attendancePunches.empCd, empCds),
-          gte(attendancePunches.punchAt, rangeStart),
-          lte(attendancePunches.punchAt, rangeEnd),
-        ),
-      );
-
-    const existingCounts = new Map<string, number>();
-    for (const row of existingRows as any[]) {
-      const key = `${row.empCd}|${dateKey(new Date(row.punchAt))}`;
-      existingCounts.set(key, (existingCounts.get(key) ?? 0) + 1);
-    }
-
-    for (const [key, group] of groups) {
-      const sorted = [...group].sort(
-        (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-      );
-      const startCount = existingCounts.get(key) ?? 0;
-      sorted.forEach((p, idx) => {
-        const rowId = `${p.enrollNo}_${p.timestamp.getTime()}`;
-        directionByRowId.set(
-          rowId,
-          (startCount + idx) % 2 === 0 ? "in" : "out",
-        );
-      });
-    }
-
-    return directionByRowId;
-  }
-
-  /**
    * Record sync run in database
    */
   private static async recordSyncRun(
@@ -374,7 +303,9 @@ export class FKDeviceSyncService {
         protocol: altProtocol,
       });
 
-      console.log(`[FKSync] Retry succeeded — persisting fkProtocol=${altProtocol}`);
+      console.log(
+        `[FKSync] Retry succeeded — persisting fkProtocol=${altProtocol}`,
+      );
       await DeviceSettingsService.updateSettings({
         deviceId: 1,
         fkProtocol: altProtocol as 0 | 1,
