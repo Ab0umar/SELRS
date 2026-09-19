@@ -152,7 +152,6 @@ tmp_*.txt
 /*.png
 
 # Build assets in public (generated)
-client/public/assets/
 
 # Secrets and certs
 origin_cert.txt

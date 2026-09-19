@@ -184,5 +184,5 @@
     "vite-plugin-manus-runtime": "^0.0.57",
     "vitest": "^4.1.11"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@12.4.2"
 }
