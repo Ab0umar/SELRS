@@ -89,7 +89,7 @@ export function registerWhatsAppWebhook(app: Express) {
       ENV.whatsappWebhookVerifyToken &&
       token === ENV.whatsappWebhookVerifyToken
     ) {
-      res.status(200).send(String(challenge ?? ""));
+      res.status(200).type("text/plain").send(String(challenge ?? ""));
       return;
     }
     // The verification token is a credential; never echo it into application logs.

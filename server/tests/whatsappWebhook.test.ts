@@ -125,6 +125,7 @@ describe("WhatsApp webhook authentication", () => {
     const query = "?hub.mode=subscribe&hub.challenge=123&hub.verify_token=";
     const accepted = await fetch(`${url}${query}test-verify-token`);
     expect(accepted.status).toBe(200);
+    expect(accepted.headers.get("content-type")).toContain("text/plain");
     expect(await accepted.text()).toBe("123");
     const rejected = await fetch(`${url}${query}wrong-token`);
     expect(rejected.status).toBe(403);

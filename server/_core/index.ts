@@ -116,8 +116,11 @@ type OcrTsvRow = {
 
 const IMPORTABLE_IMAGE_EXT = /\.(jpg|jpeg|png|webp|bmp|tif|tiff)$/i;
 let srv100DbCycleBusy = false;
+type ApiRateLimitEntry = { count: number; resetAt: number };
+const apiRateLimits = new Map<string, ApiRateLimitEntry>();
 const DEFAULT_ALLOWED_CORS_ORIGINS = [
   "https://selrs.cc",
+  // Capacitor's production WebView may use either localhost scheme.
   "http://localhost",
   "https://localhost",
   "capacitor://localhost",
@@ -142,12 +145,50 @@ function isAllowedCorsOrigin(
   try {
     const parsed = new URL(origin);
     return (
+      process.env.NODE_ENV !== "production" &&
       (parsed.protocol === "http:" || parsed.protocol === "https:") &&
       parsed.hostname === "localhost"
     );
   } catch {
     return false;
   }
+}
+
+function enforceApiRateLimit(
+  req: express.Request,
+  res: express.Response,
+  scope: string,
+  maxRequests: number,
+  windowMs: number,
+): boolean {
+  const now = Date.now();
+  if (apiRateLimits.size > 1_000) {
+    for (const [storedKey, storedEntry] of apiRateLimits) {
+      if (storedEntry.resetAt <= now) apiRateLimits.delete(storedKey);
+    }
+  }
+  const key = `${scope}:${req.ip ?? req.socket.remoteAddress ?? "unknown"}`;
+  const existing = apiRateLimits.get(key);
+  const entry =
+    existing && existing.resetAt > now
+      ? existing
+      : { count: 0, resetAt: now + windowMs };
+
+  entry.count += 1;
+  apiRateLimits.set(key, entry);
+  const retryAfterSeconds = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+  res.setHeader("RateLimit-Limit", String(maxRequests));
+  res.setHeader("RateLimit-Remaining", String(Math.max(0, maxRequests - entry.count)));
+  res.setHeader("RateLimit-Reset", String(Math.ceil(entry.resetAt / 1000)));
+
+  if (entry.count <= maxRequests) return true;
+
+  res.setHeader("Retry-After", String(retryAfterSeconds));
+  res.status(429).json({
+    ok: false,
+    error: "Too many requests. Please retry later.",
+  });
+  return false;
 }
 
 function isSameRequestOrigin(
@@ -1661,6 +1702,9 @@ async function startServer() {
         res.status(401).json({ ok: false, error: "Authentication required" });
         return;
       }
+      if (!enforceApiRateLimit(req, res, "srv100-upload-list", 60, 60_000)) {
+        return;
+      }
       const limitRaw = Number(req.query.limit ?? 100);
       const limit = Number.isFinite(limitRaw)
         ? Math.max(1, Math.min(1000, limitRaw))
@@ -1871,6 +1915,9 @@ async function startServer() {
         res.status(403).json({ ok: false, error: "Admin access required" });
         return;
       }
+      if (!enforceApiRateLimit(req, res, "srv100-ocr-link", 3, 5 * 60_000)) {
+        return;
+      }
       if (srv100DbCycleBusy) {
         res.status(409).json({
           ok: false,
@@ -2015,6 +2062,9 @@ async function startServer() {
   app.post("/api/srv100/uploads/link-by-filename", async (req, res) => {
     try {
       if (!(await requireAdminApiAccess(req, res))) return;
+      if (!enforceApiRateLimit(req, res, "srv100-link-by-filename", 3, 5 * 60_000)) {
+        return;
+      }
       let linked = 0;
       let processed = 0;
       const BATCH = 2000;
@@ -2069,6 +2119,9 @@ async function startServer() {
   app.post("/api/srv100/uploads/fix-duplicates", async (req, res) => {
     try {
       if (!(await requireAdminApiAccess(req, res))) return;
+      if (!enforceApiRateLimit(req, res, "srv100-fix-duplicates", 3, 5 * 60_000)) {
+        return;
+      }
       const [r1] = await withDb(async (conn) =>
         conn.query(
           `UPDATE srv100_uploads b
@@ -2109,6 +2162,9 @@ async function startServer() {
     }
     if (user.role !== "admin") {
       res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    if (!enforceApiRateLimit(req, res, "health-diagnostics", 30, 60_000)) {
       return;
     }
     const build = await getBuildInfo().catch(() => ({
@@ -2196,6 +2252,9 @@ async function startServer() {
   app.get("/api/pentacam/s3-debug", async (req, res) => {
     try {
       if (!(await requireAdminApiAccess(req, res))) return;
+      if (!enforceApiRateLimit(req, res, "pentacam-s3-debug", 10, 60_000)) {
+        return;
+      }
       const objects = await listObjectsInS3("");
       res.status(200).json({
         count: objects.length,
@@ -2208,6 +2267,9 @@ async function startServer() {
   app.get("/api/pentacam/exports", async (req, res) => {
     try {
       if (!(await requireStaffApiAccess(req, res))) return;
+      if (!enforceApiRateLimit(req, res, "pentacam-export-list", 30, 60_000)) {
+        return;
+      }
       const limitRaw = Number(req.query.limit ?? 10000);
       const limit = Number.isFinite(limitRaw)
         ? Math.max(1, Math.min(100000, limitRaw))

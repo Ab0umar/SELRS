@@ -247,20 +247,6 @@ export default function WritePrescription({
       } catch {
         // Ignore sessionStorage failures.
       }
-      try {
-        const name = window.name || "";
-        if (name.startsWith("selrs:")) {
-          const parsed = JSON.parse(name.slice(6)) as Record<string, string>;
-          if (parsed && parsed[key]) {
-            if ((window as any).__selrsDraftDebug) {
-              console.warn("[draft] read window.name", key);
-            }
-            return parsed[key];
-          }
-        }
-      } catch {
-        // Ignore window.name failures.
-      }
     }
     return null;
   };
@@ -284,20 +270,6 @@ export default function WritePrescription({
       return true;
     } catch {
       // Ignore sessionStorage failures.
-    }
-    try {
-      const name = window.name || "";
-      const parsed = name.startsWith("selrs:")
-        ? (JSON.parse(name.slice(6)) as Record<string, string>)
-        : {};
-      parsed[key] = raw;
-      window.name = `selrs:${JSON.stringify(parsed).slice(0, 150000)}`;
-      if ((window as any).__selrsDraftDebug) {
-        console.warn("[draft] wrote window.name", key);
-      }
-      return true;
-    } catch {
-      // Ignore window.name failures.
     }
     return false;
   };
