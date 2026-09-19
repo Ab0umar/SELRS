@@ -17,6 +17,7 @@
 
 import type { Express, Request, Response } from "express";
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import crypto from "crypto";
 import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -29,6 +30,14 @@ import {
   marketingPreferenceFromInbound,
   recordMarketingPreference,
 } from "../services/whatsappMarketing.service";
+
+const whatsappWebhookRateLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 600,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many webhook requests" },
+});
 
 interface WhatsAppMessage {
   id: string;
@@ -97,7 +106,10 @@ export function registerWhatsAppWebhook(app: Express) {
     res.sendStatus(403);
   });
 
-  app.post("/webhook/whatsapp", async (req: Request, res: Response) => {
+  app.post(
+    "/webhook/whatsapp",
+    whatsappWebhookRateLimiter,
+    async (req: Request, res: Response) => {
     if (!ENV.whatsappAppSecret) {
       console.error("[whatsapp-webhook] WHATSAPP_APP_SECRET is not configured");
       res.sendStatus(503);
@@ -221,5 +233,6 @@ export function registerWhatsAppWebhook(app: Express) {
         }
       }
     }
-  });
+    },
+  );
 }

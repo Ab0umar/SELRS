@@ -1,4 +1,5 @@
 import type { Express, NextFunction, Request, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 import * as db from "../db";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -13,6 +14,13 @@ export const LEGACY_AUTH_COOKIE_NAME = "authToken";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
+const loginIpRateLimiter = rateLimit({
+  windowMs: LOGIN_RATE_LIMIT_WINDOW_MS,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many login attempts, try again later" },
+});
 
 type LoginRateLimitEntry = {
   count: number;
@@ -31,7 +39,7 @@ function loginRateLimitKey(req: Request, username: string) {
   return `${req.ip ?? req.socket.remoteAddress ?? "unknown"}:${username}`;
 }
 
-async function loginRateLimiter(req: Request, res: Response, next: NextFunction) {
+async function trackLoginAttempt(req: Request, res: Response, next: NextFunction) {
   const now = Date.now();
   pruneExpiredLoginRateLimits(now);
   const rawUsername =
@@ -222,7 +230,8 @@ export function registerAuthRoutes(app: Express) {
   // Login route
   app.post(
     "/api/auth/login",
-    loginRateLimiter,
+    loginIpRateLimiter,
+    trackLoginAttempt,
     async (req: Request, res: Response) => {
       try {
         const { username, password, rememberMe } = req.body;
