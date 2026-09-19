@@ -118,6 +118,7 @@ backups/
 /selrs/
 
 # Temp/debug dumps
+scripts/accounting/_tmp/
 tmp_*.jpg
 tmp_*.txt
 *.bak
