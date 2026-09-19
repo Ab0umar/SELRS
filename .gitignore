@@ -225,6 +225,10 @@ view.py
 .cursor/
 .playwright-cli/
 graphify-out/
+vendor/
+output/
+docs/
+artifacts/
 
 # Local agent runtime state, attachment copies, and plugin caches
 .codex/agents/
