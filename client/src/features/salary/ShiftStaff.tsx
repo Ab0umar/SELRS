@@ -52,11 +52,17 @@ function calculatedFourHourShiftRate(ratePerShift: number, mainShiftHours: strin
   return Math.round((ratePerShift / mainMinutes) * 240 * 100) / 100;
 }
 
-function buildDayShifts(sc: any[]): Map<number, Set<string>> {
-  const map = new Map<number, Set<string>>();
+type CycleTime = { startTime: string; endTime: string };
+
+function buildDayShifts(sc: any[]): Map<number, CycleTime[]> {
+  const map = new Map<number, CycleTime[]>();
   for (const c of sc) {
-    if (!map.has(c.dayOfWeek)) map.set(c.dayOfWeek, new Set());
-    map.get(c.dayOfWeek)!.add(c.shiftName);
+    const legacyTimes = String(c.shiftName ?? "").match(/^(\d{2}:\d{2})-(\d{2}:\d{2})$/);
+    const times = {
+      startTime: String(c.startTime ?? legacyTimes?.[1] ?? "09:00").slice(0, 5),
+      endTime: String(c.endTime ?? legacyTimes?.[2] ?? "15:00").slice(0, 5),
+    };
+    map.set(c.dayOfWeek, [...(map.get(c.dayOfWeek) ?? []), times]);
   }
   return map;
 }
@@ -71,10 +77,7 @@ function CycleEditor({
   onSaved: () => void;
 }) {
   const staffCycles = cycles.filter((c: any) => c.staffId === staffId);
-  const shiftDefsQ = (trpc as any).attendance.listShifts.useQuery();
-  const shiftDefs: { name: string }[] = shiftDefsQ.data ?? [];
-
-  const [dayShifts, setDayShifts] = useState<Map<number, Set<string>>>(() =>
+  const [dayShifts, setDayShifts] = useState<Map<number, CycleTime[]>>(() =>
     buildDayShifts(staffCycles),
   );
 
@@ -105,15 +108,18 @@ function CycleEditor({
   });
 
   function save() {
-    const cycle: { dayOfWeek: number; shiftName: string }[] = [];
-    for (const [dow, shifts] of dayShifts) {
-      for (const sh of shifts) cycle.push({ dayOfWeek: dow, shiftName: sh });
+    const cycle = Array.from(dayShifts).flatMap(([dayOfWeek, shifts]) =>
+      shifts.map((times) => ({ dayOfWeek, ...times })),
+    );
+    if (cycle.some(({ startTime, endTime }) => endTime <= startTime)) {
+      toast.error("وقت الانتهاء يجب أن يكون بعد وقت البداية");
+      return;
     }
     saveMut.mutate({ staffId, cycle });
   }
 
   const totalAssignments = Array.from(dayShifts.values()).reduce(
-    (s, set) => s + set.size,
+    (total, shifts) => total + shifts.length,
     0,
   );
 
@@ -122,7 +128,7 @@ function CycleEditor({
       <div>
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs font-semibold text-muted-foreground">
-            توزيع الورديات
+            توزيع أوقات العمل
           </p>
           <div className="flex gap-1 flex-wrap justify-end">
             <button
@@ -138,30 +144,34 @@ function CycleEditor({
         <div className="grid w-full grid-cols-7 gap-1.5">
           {DAYS_AR.map((name, dow) => {
             const isFri = dow === 5;
-            const shifts = dayShifts.get(dow) ?? new Set<string>();
-            const hasAny = shifts.size > 0;
-            const availableToAdd = shiftDefs.filter(
-              (sd) => !shifts.has(sd.name),
-            );
+            const shifts = dayShifts.get(dow) ?? [];
+            const hasAny = shifts.length > 0;
 
-            function removeShift(shiftName: string) {
+            function removeShift(index: number) {
               setDayShifts((prev) => {
                 const next = new Map(prev);
-                const set = new Set(next.get(dow) ?? []);
-                set.delete(shiftName);
-                if (set.size === 0) next.delete(dow);
-                else next.set(dow, set);
+                const nextShifts = [...(next.get(dow) ?? [])];
+                nextShifts.splice(index, 1);
+                if (nextShifts.length) next.set(dow, nextShifts);
+                else next.delete(dow);
                 return next;
               });
             }
 
-            function addShift(shiftName: string) {
-              if (!shiftName) return;
+            function updateShift(index: number, update: Partial<CycleTime>) {
               setDayShifts((prev) => {
                 const next = new Map(prev);
-                const set = new Set(next.get(dow) ?? []);
-                set.add(shiftName);
-                next.set(dow, set);
+                const nextShifts = [...(next.get(dow) ?? [])];
+                nextShifts[index] = { ...nextShifts[index], ...update };
+                next.set(dow, nextShifts);
+                return next;
+              });
+            }
+
+            function addShift() {
+              setDayShifts((prev) => {
+                const next = new Map(prev);
+                next.set(dow, [...(next.get(dow) ?? []), { startTime: "09:00", endTime: "15:00" }]);
                 return next;
               });
             }
@@ -183,37 +193,15 @@ function CycleEditor({
                 {!isFri && (
                   <>
                     <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
-                      {[...shifts].map((sh) => (
-                        <span
-                          key={sh}
-                          className="flex items-center justify-between gap-1 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
-                        >
-                          <span className="truncate">{sh}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeShift(sh)}
-                            className="shrink-0 text-primary/70 hover:text-destructive"
-                            title="إزالة"
-                          >
-                            <X size={10} />
-                          </button>
-                        </span>
+                      {shifts.map((shift, index) => (
+                        <div key={index} className="flex flex-col gap-1 rounded bg-primary/10 p-1.5 text-[10px] text-primary">
+                          <input aria-label="من" type="time" value={shift.startTime} onChange={(e) => updateShift(index, { startTime: e.target.value })} className="w-full rounded border border-primary/25 bg-background px-1 py-1 text-[11px] text-foreground" />
+                          <input aria-label="إلى" type="time" value={shift.endTime} onChange={(e) => updateShift(index, { endTime: e.target.value })} className="w-full rounded border border-primary/25 bg-background px-1 py-1 text-[11px] text-foreground" />
+                          <button type="button" onClick={() => removeShift(index)} className="flex items-center justify-center gap-1 text-[9px] text-destructive hover:underline"><X size={10} /> إزالة</button>
+                        </div>
                       ))}
                     </div>
-                    {availableToAdd.length > 0 && (
-                      <select
-                        value=""
-                        onChange={(e) => addShift(e.target.value)}
-                        className="w-full rounded border border-input bg-background px-1 py-0.5 text-[10px]"
-                      >
-                        <option value="">+ إضافة وردية</option>
-                        {availableToAdd.map((sd) => (
-                          <option key={sd.name} value={sd.name}>
-                            {sd.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                    <button type="button" onClick={addShift} className="rounded border border-dashed border-primary/40 px-1 py-1 text-[10px] font-medium text-primary hover:bg-primary/10">+ إضافة شفت</button>
                   </>
                 )}
               </div>
@@ -223,14 +211,13 @@ function CycleEditor({
 
         {totalAssignments > 0 && (
           <p className="mt-1.5 text-[10px] text-muted-foreground">
-            {totalAssignments} وردية على {dayShifts.size} أيام
+            {totalAssignments} شفتات محددة بالوقت على {dayShifts.size} أيام
           </p>
         )}
       </div>
 
       <p className="text-[10px] text-muted-foreground/80">
-        اختياري — اتركه فارغًا إذا يتم إضافة الطبيب في الروستر وإدخال المرتب
-        يدويًا في الشفتات.
+        اختياري — حدّد أوقات العمل الأسبوعية، ثم تظهر بنفس الوقت عند توليد الروستر.
       </p>
 
       <div className="flex gap-2 pt-1">

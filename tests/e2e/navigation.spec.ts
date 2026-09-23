@@ -95,14 +95,14 @@ test.describe("navigation reliability", () => {
     }
     await expect(page).toHaveURL(/\/dashboard/);
 
-    const signoutByText = page.getByRole("button", {
-      name: /تسجيل الخروج|طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬/,
-    });
-    if (await signoutByText.count()) {
-      await signoutByText.first().click();
-    } else {
-      await page.locator("button:has(.lucide-log-out)").first().click();
+    const signoutByText = page.getByRole("menuitem", { name: /خروج|Sign Out/ });
+    if (!(await signoutByText.count())) {
+      await page
+        .locator("button")
+        .filter({ has: page.locator('[data-slot="avatar"]') })
+        .click();
     }
+    await page.getByRole("menuitem", { name: /خروج|Sign Out/ }).click();
     await expect(page).toHaveURL(/\/login|\/$/);
     await context.close();
   });

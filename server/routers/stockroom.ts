@@ -154,6 +154,10 @@ export const stockroomRouter = router({
       }));
     }),
 
+  getInventory: makeStockroomProcedure("/stockroom")
+    .input(z.object({ category: z.string().optional() }))
+    .query(async ({ input }) => db.getStockInventoryReport(input)),
+
   createItem: makeStockroomWriteProcedure("/stockroom")
     .input(
       z.object({
@@ -351,10 +355,20 @@ export const stockroomRouter = router({
     }),
 
   getReports: makeStockroomProcedure("/stockroom/reports")
-    .input(z.object({ limit: z.number().optional() }))
+    .input(
+      z.object({
+        limit: z.number().optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+        category: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
-      const transactions = await db.getStockTransactions(input.limit);
-      const inventory = await db.getStockItems();
-      return { transactions, inventory };
+      const [transactions, inventory, inventoryReport] = await Promise.all([
+        db.getStockTransactions(input.limit),
+        db.getStockItems(),
+        db.getStockInventoryReport(input),
+      ]);
+      return { transactions, inventory, inventoryReport };
     }),
 });

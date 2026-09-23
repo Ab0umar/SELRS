@@ -93,6 +93,7 @@ export const ROUTES = {
   accountingDoctorDetail: "/accounting/doctor/:doctorCode",
   accountingDoctorCode: "/accounting/doctor/:doctorCode",
   accountingCashbook: "/accounting/cashbook",
+  accountingExpenses: "/accounting/expenses",
   accountingLedger: "/accounting/ledger",
   accountingAdvances: "/accounting/advances",
   accountingLoans: "/accounting/loans",

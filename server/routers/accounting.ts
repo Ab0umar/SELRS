@@ -619,9 +619,9 @@ export const accountingRouter = router({
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
           sql.raw(
-            `SELECT t.id, t.accessId, t.txDate, t.income, t.expense, t.notes, t.balance, t.total
+            `SELECT t.id, t.accessId, t.txDate, t.income, t.expense, t.notes, t.remarks, t.balance, t.total
              FROM (
-               SELECT id, accessId, txDate, income, expense, notes,
+               SELECT id, accessId, txDate, income, expense, notes, remarks,
                  COALESCE(income, 0) - COALESCE(expense, 0) AS balance,
                  SUM(COALESCE(income, 0) - COALESCE(expense, 0)) OVER (
                    ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC
@@ -644,9 +644,44 @@ export const accountingRouter = router({
         balance: r.balance != null ? Number(r.balance) : null,
         total: r.total != null ? Number(r.total) : null,
         notes: r.notes != null ? String(r.notes) : null,
+        remarks: r.remarks != null ? String(r.remarks) : null,
       }));
       const total = Number((countRes as any)[0]?.[0]?.n ?? 0);
       return { rows, total, page: input.page, pageSize: input.pageSize };
+    }),
+
+  // Full ordered recordset for the Access-style ledger form navigation controls.
+  accLedgerNavigator: makeAccProcedure("/accounting/ledger").query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    const [result] = (await db.execute(sql.raw(
+      `SELECT id, txDate, income, expense, notes, remarks, balance, total
+       FROM accLedger ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC`,
+    ))) as any;
+    return (result as any[]).map((row) => ({
+      id: Number(row.id), txDate: String(row.txDate ?? "").slice(0, 10),
+      income: Number(row.income ?? 0), expense: Number(row.expense ?? 0),
+      notes: String(row.notes ?? ""), remarks: String(row.remarks ?? ""), balance: Number(row.balance ?? 0), total: Number(row.total ?? 0),
+    }));
+  }),
+
+  accExpenses: makeAccProcedure("/accounting/expenses")
+    .input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional(), category: z.enum(["all", "instapay", "home", "abu-omar", "dr-saadany", "rent", "salaries", "supplies", "device-maintenance", "advances", "insurance", "taxes"]).default("all"), page: z.number().int().min(1).default(1), pageSize: z.number().int().min(1).max(200).default(50) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const base = buildDateWhere(input.dateFrom, input.dateTo);
+      const where = base ? `${base} AND COALESCE(expense, 0) > 0` : " WHERE COALESCE(expense, 0) > 0";
+      const [ledger, employees, attendance] = await Promise.all([
+        db.execute(sql.raw(`SELECT id, accessId, txDate, expense, notes FROM accLedger${where} ORDER BY txDate DESC, id DESC`)),
+        db.execute(sql.raw("SELECT name FROM accEmployees WHERE name IS NOT NULL AND TRIM(name) <> ''")),
+        db.execute(sql.raw("SELECT full_name AS name FROM attendance_employees WHERE full_name IS NOT NULL AND TRIM(full_name) <> ''")),
+      ]);
+      const employeeNames = [...((employees as any)[0] ?? []), ...((attendance as any)[0] ?? [])].map((row: any) => normalizeExpenseStatement(String(row.name ?? ""))).filter((name: string) => name.length >= 4);
+      const rows = ((ledger as any)[0] ?? []).map((row: any) => ({ id: Number(row.id), accessId: Number(row.accessId), txDate: String(row.txDate ?? ""), expense: Number(row.expense ?? 0), notes: row.notes == null ? null : String(row.notes), category: classifyExpense(String(row.notes ?? ""), employeeNames) }));
+      const matching = input.category === "all" ? rows : rows.filter((row: any) => row.category === input.category);
+      const total = matching.length, totalExpense = matching.reduce((sum: number, row: any) => sum + row.expense, 0), offset = (input.page - 1) * input.pageSize;
+      return { rows: matching.slice(offset, offset + input.pageSize), total, totalExpense, page: input.page, pageSize: input.pageSize };
     }),
 
   // ── Advances (السلفه) ─────────────────────────────────────────────────────
@@ -1173,6 +1208,35 @@ export const accountingRouter = router({
       return { ok: true as const };
     }),
 
+  syncAccMirrors: makeAccWriteProcedure("/accounting/cashbook")
+    .input(z.object({ entity: z.enum(["سلف", "البيت", "insta", "غرابه"]).optional() }))
+    .mutation(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+    // Inspect every cashbook movement: a linkedTable value can point to a row
+    // that was later removed from its sub-ledger (for example, after restoring
+    // or clearing the InstaPay table). The equivalence check below makes this
+    // idempotent while allowing the auto button to repair those broken links.
+    const [rows] = (await db.execute(sql.raw("SELECT id, txDate, income, expense, notes FROM accLedger WHERE COALESCE(income,0) > 0 OR COALESCE(expense,0) > 0 ORDER BY txDate, id"))) as any;
+    let inserted = 0, linked = 0, skipped = 0;
+    for (const row of rows as any[]) {
+      const entity = await resolveMirrorEntity(db, String(row.notes ?? ""));
+      if (!entity || !ENTITY_TABLE[entity]) { skipped++; continue; }
+      if (input.entity && entity !== input.entity) { skipped++; continue; }
+      const amount = Number(row.income ?? 0) > 0 && Number(row.expense ?? 0) === 0 ? Number(row.income) : Number(row.expense ?? 0);
+      const isOut = Number(row.expense ?? 0) > 0;
+      const table = ENTITY_TABLE[entity];
+      const existingId = await findEquivalentMirror(db, table, String(row.txDate).slice(0, 10), String(row.notes ?? ""), amount, isOut);
+      if (existingId) { await db.execute(sql.raw(`UPDATE accLedger SET linkedTable='${table}', linkedId=${existingId} WHERE id=${Number(row.id)}`)); linked++; continue; }
+      const mirror = await resolveMirror(db, String(row.notes ?? ""), Number(row.income ?? 0), Number(row.expense ?? 0), String(row.txDate).slice(0, 10), entity);
+      if (!mirror) { skipped++; continue; }
+      const [result] = (await db.execute(sql.raw(mirror.insertSql))) as any;
+      await db.execute(sql.raw(`UPDATE accLedger SET linkedTable='${mirror.table}', linkedId=${Number(result.insertId)} WHERE id=${Number(row.id)}`));
+      inserted++;
+    }
+    return { inserted, linked, skipped };
+  }),
+
   addAccEntry: makeAccWriteProcedure("/accounting/cashbook")
     .input(
       z.object({
@@ -1180,6 +1244,7 @@ export const accountingRouter = router({
         income: z.number().min(0).default(0),
         expense: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
+        remarks: z.string().max(500).default(""),
       }),
     )
     .mutation(async ({ input }) => {
@@ -1197,7 +1262,7 @@ export const accountingRouter = router({
 
       const [res] = (await db.execute(
         sql.raw(
-          `INSERT INTO accLedger (txDate, income, expense, balance, notes) VALUES (${sq(input.txDate)}, ${sq(input.income)}, ${sq(input.expense)}, ${sq(balance)}, ${sq(input.notes || null)})`,
+          `INSERT INTO accLedger (txDate, income, expense, balance, notes, remarks) VALUES (${sq(input.txDate)}, ${sq(input.income)}, ${sq(input.expense)}, ${sq(balance)}, ${sq(input.notes || null)}, ${sq(input.remarks || null)})`,
         ),
       )) as any;
       const ledgerId: number = res.insertId;
@@ -1208,6 +1273,7 @@ export const accountingRouter = router({
         input.notes,
         input.income,
         input.expense,
+        input.txDate,
       );
       if (mirror) {
         const [mRes] = (await db.execute(sql.raw(mirror.insertSql))) as any;
@@ -1229,6 +1295,7 @@ export const accountingRouter = router({
         income: z.number().min(0).default(0),
         expense: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
+        remarks: z.string().max(500).default(""),
       }),
     )
     .mutation(async ({ input }) => {
@@ -1254,7 +1321,7 @@ export const accountingRouter = router({
 
       await db.execute(
         sql.raw(
-          `UPDATE accLedger SET txDate=${sq(input.txDate)}, income=${sq(input.income)}, expense=${sq(input.expense)}, balance=${sq(balance)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
+          `UPDATE accLedger SET txDate=${sq(input.txDate)}, income=${sq(input.income)}, expense=${sq(input.expense)}, balance=${sq(balance)}, notes=${sq(input.notes || null)}, remarks=${sq(input.remarks || null)} WHERE id=${input.id}`,
         ),
       );
 
@@ -1267,6 +1334,7 @@ export const accountingRouter = router({
         input.notes,
         input.income,
         input.expense,
+        input.txDate,
       );
       if (mirror) {
         const [mRes] = (await db.execute(sql.raw(mirror.insertSql))) as any;
@@ -1793,27 +1861,14 @@ async function resolveMirror(
   notes: string,
   income: number,
   expense: number,
+  txDate: string,
+  resolvedEntity?: keyof typeof ENTITY_TABLE | null,
 ): Promise<{ table: string; insertSql: string } | null> {
   if (!notes?.trim()) return null;
   const sq = (v: string | number | null) =>
     v === null ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
 
-  const [catRows] = (await db.execute(
-    sql.raw(
-      `SELECT name, entity FROM accCategories WHERE name IS NOT NULL ORDER BY LENGTH(name) DESC`,
-    ),
-  )) as any;
-
-  let matchedEntity: string | null = null;
-  const notesTrimmed = notes.trim();
-  for (const cat of catRows as any[]) {
-    const name: string = String(cat.name ?? "").trim();
-    if (!name) continue;
-    if (notesTrimmed.startsWith(name) || notesTrimmed.includes(name)) {
-      matchedEntity = String(cat.entity ?? "");
-      break;
-    }
-  }
+  const matchedEntity = resolvedEntity ?? await resolveMirrorEntity(db, notes);
   if (!matchedEntity || !ENTITY_TABLE[matchedEntity]) return null;
 
   const table = ENTITY_TABLE[matchedEntity];
@@ -1824,7 +1879,7 @@ async function resolveMirror(
 
   let insertSql = "";
   const notesVal = sq(notes || null);
-  const today = new Date().toISOString().split("T")[0];
+  const date = txDate;
 
   if (table === "accAdvances") {
     const advance = isOut ? sq(mirrorAmount) : sq(null); // expense = سلفة خارجة
@@ -1838,7 +1893,7 @@ async function resolveMirror(
       Number((lastRes as any[])[0]?.t ?? 0) +
       (isOut ? mirrorAmount : 0) -
       (isOut ? 0 : mirrorAmount);
-    insertSql = `INSERT INTO accAdvances (txDate, advance, repayment, notes, total) VALUES (${sq(today)}, ${advance}, ${repayment}, ${notesVal}, ${sq(runningTotal)})`;
+    insertSql = `INSERT INTO accAdvances (txDate, advance, repayment, notes, total) VALUES (${sq(date)}, ${advance}, ${repayment}, ${notesVal}, ${sq(runningTotal)})`;
   } else if (table === "accHome" || table === "accInstapay") {
     const inAmt = isOut ? 0 : mirrorAmount;
     const outAmt = isOut ? mirrorAmount : 0;
@@ -1849,7 +1904,7 @@ async function resolveMirror(
       ),
     )) as any;
     const runningT = Number((lastT as any[])[0]?.t ?? 0) + bal;
-    insertSql = `INSERT INTO ${table} (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(today)}, ${sq(inAmt || null)}, ${sq(outAmt || null)}, ${sq(bal)}, ${sq(runningT)}, ${notesVal})`;
+    insertSql = `INSERT INTO ${table} (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(date)}, ${sq(inAmt || null)}, ${sq(outAmt || null)}, ${sq(bal)}, ${sq(runningT)}, ${notesVal})`;
   } else if (table === "accSaadany") {
     const withdrawals = isOut ? mirrorAmount : 0;
     const repayment = isOut ? 0 : mirrorAmount;
@@ -1860,7 +1915,7 @@ async function resolveMirror(
     )) as any;
     const saadTotal =
       Number((lastSaad as any[])[0]?.t ?? 0) + withdrawals - repayment;
-    insertSql = `INSERT INTO accSaadany (txDate, withdrawals, repayment, total, notes) VALUES (${sq(today)}, ${sq(withdrawals ? -withdrawals : null)}, ${sq(repayment || null)}, ${sq(saadTotal)}, ${notesVal})`;
+    insertSql = `INSERT INTO accSaadany (txDate, withdrawals, repayment, total, notes) VALUES (${sq(date)}, ${sq(withdrawals ? -withdrawals : null)}, ${sq(repayment || null)}, ${sq(saadTotal)}, ${notesVal})`;
   }
   return insertSql ? { table, insertSql } : null;
 }
@@ -1989,6 +2044,54 @@ async function recalcLedgerTotals(db: any) {
   );
 }
 
+type ExpenseCategory = "instapay" | "home" | "abu-omar" | "dr-saadany" | "rent" | "salaries" | "supplies" | "device-maintenance" | "advances" | "insurance" | "taxes" | "other";
+function normalizeExpenseStatement(value: string): string {
+  return value.normalize("NFKC").toLowerCase().replace(/[\u064B-\u065F\u0670]/g, "").replace(/[إأآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+async function resolveMirrorEntity(db: any, notes: string): Promise<keyof typeof ENTITY_TABLE | null> {
+  const automatic = autoMirrorEntity(notes);
+  if (automatic) return automatic;
+  const [catRows] = (await db.execute(sql.raw("SELECT name, entity FROM accCategories WHERE name IS NOT NULL ORDER BY LENGTH(name) DESC"))) as any;
+  const notesTrimmed = notes.trim();
+  for (const cat of catRows as any[]) {
+    const name = String(cat.name ?? "").trim(), entity = String(cat.entity ?? "") as keyof typeof ENTITY_TABLE;
+    if (name && notesTrimmed.includes(name) && ENTITY_TABLE[entity]) return entity;
+  }
+  return null;
+}
+
+async function findEquivalentMirror(db: any, table: string, txDate: string, notes: string, amount: number, isOut: boolean): Promise<number | null> {
+  const safeNotes = notes.replace(/'/g, "''"), safeDate = txDate.replace(/'/g, "''"), safeAmount = Number(amount);
+  const amountWhere = table === "accAdvances" ? (isOut ? `advance=${safeAmount}` : `repayment=${safeAmount}`) : table === "accSaadany" ? (isOut ? `withdrawals=-${safeAmount}` : `repayment=${safeAmount}`) : (isOut ? `outAmount=${safeAmount}` : `inAmount=${safeAmount}`);
+  const [rows] = (await db.execute(sql.raw(`SELECT id FROM ${table} WHERE DATE(txDate)='${safeDate}' AND COALESCE(notes,'')='${safeNotes}' AND ${amountWhere} ORDER BY id LIMIT 1`))) as any;
+  return (rows as any[])[0]?.id ? Number((rows as any[])[0].id) : null;
+}
+
+function autoMirrorEntity(notes: string): keyof typeof ENTITY_TABLE | null {
+  const text = normalizeExpenseStatement(notes);
+  const has = (value: string) => text.includes(normalizeExpenseStatement(value));
+  if (has("انستا") || text.includes("insta")) return "insta";
+  if (["د السعدني", "دالسعدني", "البنات", "ابو يوسف", "الدكتوره", "هشام"].some(has)) return "غرابه";
+  if (["مصطفي السعدني", "مصطفى السعدني", "السعدني", "سعدني", "ابو عمر"].some(has)) return "سلف";
+  if (has("بيت") || has("نقدا")) return "البيت";
+  return null;
+}
+function classifyExpense(notes: string, employeeNames: string[]): ExpenseCategory {
+  const text = normalizeExpenseStatement(notes), has = (value: string) => text.includes(normalizeExpenseStatement(value));
+  if (has("انستا") || text.includes("insta")) return "instapay";
+  if (["د السعدني", "دالسعدني", "البنات", "ابو يوسف", "الدكتوره", "هشام"].some(has)) return "dr-saadany";
+  if (["مصطفي السعدني", "مصطفى السعدني", "السعدني", "سعدني", "ابو عمر"].some(has)) return "abu-omar";
+  if (has("بيت") || has("نقدا")) return "home";
+  if (has("ايجار")) return "rent";
+  if (["مرتب", "نسبه", "نسبة", "عيديه", "عيدية", "رمضان"].some(has)) return "salaries";
+  if (["سلف", "سلفه", "سلفة"].some(has) || employeeNames.some((name) => text.includes(name))) return "advances";
+  if (["تامين", "تأمين"].some(has)) return "insurance";
+  if (["ضريب", "ضرايب"].some(has)) return "taxes";
+  if (["صيان", "صيانه", "تصليح", "اصلاح", "إصلاح"].some(has) && ["ليزك", "اوتوريف", "ايرباف", "اير بف", "بنتاكام", "بنتا كام", "يونت", "فاكو", "جهاز", "طابعه", "طابعة", "سيرفر", "كرسي"].some(has)) return "device-maintenance";
+  if (["مستلزم", "جاون", "جوان", "جوانتي", "جونتي", "اوفر", "شاش", "سرنج", "محلول", "قطر", "عدس", "تعقيم", "رول", "كارتل", "كانيولا", "مشرط", "ليد", "عمليات"].some(has)) return "supplies";
+  return "other";
+}
 function buildDateWhere(dateFrom?: string, dateTo?: string): string {
   const parts: string[] = [];
   if (dateFrom) parts.push(`txDate >= '${dateFrom.replace(/'/g, "")}'`);

@@ -12,11 +12,14 @@ import {
   X,
   RefreshCw,
   Loader2,
+  Pencil,
+  Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmt, fmtDate } from "./accountingFormat";
 import { AccountingPage } from "./AccountingPagePrimitives"
+import AccEntryDrawer, { type AccEntryRow } from "./AccEntryDrawer";
 import {
   useAccountingTabMetrics,
   useAccountingTabCenter,
@@ -32,11 +35,13 @@ export default function AccountingCashbook() {
   const utils = trpc.useUtils();
 
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
+  const [editing, setEditing] = useState<AccEntryRow | null>(null);
   const [year, setYear] = useState<Year>("الكل");
   const [type, setType] = useState<TxType>("all");
   const [notes, setNotes] = useState("");
   const [page, setPage] = useState(1);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [syncTarget, setSyncTarget] = useState<"all" | "insta" | "البيت" | "غرابه" | "سلف">("all");
 
   const dateFrom = year !== "الكل" ? `${year}-01-01` : undefined;
   const dateTo = year !== "الكل" ? `${year}-12-31` : undefined;
@@ -81,6 +86,13 @@ export default function AccountingCashbook() {
     },
     onError: () => toast.error("تعذر تحديث الأرصدة"),
   });
+  const syncMirrorsMut = trpc.accounting.syncAccMirrors.useMutation({
+    onSuccess: async (result) => {
+      await Promise.all([utils.accounting.accLedger.invalidate(), utils.accounting.accLedgerSummary.invalidate()]);
+      toast.success(`تم ترحيل ${result.inserted} وربط ${result.linked} قيد`);
+    },
+    onError: () => toast.error("تعذر ترحيل القيود تلقائياً"),
+  });
 
   const summary = summaryQ.data;
   const tabMetricItems = [
@@ -103,6 +115,7 @@ export default function AccountingCashbook() {
   useAccountingTabMetrics(tabMetricItems);
   const tabCenter = useMemo(
     () => (
+      <div className="flex items-center gap-2">
       <Button
         type="button"
         variant="outline"
@@ -118,8 +131,16 @@ export default function AccountingCashbook() {
         )}
         تحديث الرصيد
       </Button>
+      <select value={syncTarget} onChange={(event) => setSyncTarget(event.target.value as typeof syncTarget)} className="h-9 rounded-xl border border-border bg-background px-2 text-xs font-bold">
+        <option value="all">الكل</option><option value="insta">انستاباي</option><option value="البيت">البيت</option><option value="غرابه">د. السعدني</option><option value="سلف">السلف</option>
+      </select>
+      <Button type="button" variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl px-3.5 text-xs font-bold" disabled={syncMirrorsMut.isPending} onClick={() => syncMirrorsMut.mutate(syncTarget === "all" ? {} : { entity: syncTarget })}>
+        {syncMirrorsMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+        ترحيل تلقائي
+      </Button>
+      </div>
     ),
-    [recalcMut.isPending],
+    [recalcMut.isPending, syncMirrorsMut.isPending, syncTarget],
   );
   useAccountingTabCenter(tabCenter);
 
@@ -132,6 +153,7 @@ export default function AccountingCashbook() {
   return (
     <AccountingPage>
       <div className="space-y-3 sm:space-y-3.5" dir="rtl">
+        <AccEntryDrawer open={editing !== null} mode="edit" initial={editing ?? undefined} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); utils.accounting.accLedger.invalidate(); utils.accounting.accLedgerSummary.invalidate(); }} />
         <div className="flex flex-wrap items-center justify-end gap-2 print:hidden"><span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
             {total.toLocaleString("ar-EG")} حركة
           </span></div>
@@ -345,15 +367,20 @@ export default function AccountingCashbook() {
                         {fmt(row.total)}
                       </span>
                     </div>
+                    <div className="flex items-center gap-1">
+                    <button type="button" aria-label="تعديل القيد" className="inline-flex h-9 w-9 items-center justify-center rounded bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground" onClick={() => setEditing(row)}>
+                      <Pencil className="h-4 w-4" />
+                    </button>
                     <button
                       type="button"
                       aria-label="حذف القيد"
                       disabled={deleteMut.isPending}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground disabled:opacity-40"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       onClick={() => setDelConfirm(row.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
+                    </div>
                   </div>
 
                   {delConfirm === row.id ? (
@@ -391,7 +418,7 @@ export default function AccountingCashbook() {
                   <th
                     scope="col"
                     aria-sort={sortDir === "desc" ? "descending" : "ascending"}
-                    className="px-2 py-2 text-right font-medium sm:w-auto sm:px-4 sm:py-2.5"
+                    className="w-[10%] px-2 py-2 text-right font-medium sm:px-4 sm:py-2.5"
                   >
                     <button
                       type="button"
@@ -413,42 +440,43 @@ export default function AccountingCashbook() {
                   </th>
                   <th
                     scope="col"
-                    className="px-2 py-2 text-right font-medium sm:px-4 sm:py-2.5"
+                    className="w-[28%] px-2 py-2 text-right font-medium sm:px-4 sm:py-2.5"
                   >
                     البيان
                   </th>
+                  <th scope="col" className="hidden w-[15%] px-2 py-2 text-right font-medium lg:table-cell lg:px-4 lg:py-2.5">ملاحظات</th>
                   <th
                     scope="col"
-                    className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-success sm:px-4 sm:py-2.5"
+                    className="w-[10%] px-2 py-2 text-left font-medium tabular-nums text-success sm:px-4 sm:py-2.5"
                   >
                     إيراد
                   </th>
                   <th
                     scope="col"
-                    className="w-[18%] px-2 py-2 text-left font-medium tabular-nums text-destructive sm:px-4 sm:py-2.5"
+                    className="w-[10%] px-2 py-2 text-left font-medium tabular-nums text-destructive sm:px-4 sm:py-2.5"
                   >
                     مصروف
                   </th>
                   <th
                     scope="col"
-                    className="hidden w-[18%] px-4 py-2.5 text-left font-medium tabular-nums sm:table-cell"
+                    className="hidden w-[11%] px-4 py-2.5 text-left font-medium tabular-nums sm:table-cell"
                   >
                     الرصيد
                   </th>
                   <th
                     scope="col"
-                    className="hidden w-[18%] px-4 py-2.5 text-left font-medium tabular-nums sm:table-cell"
+                    className="hidden w-[11%] px-4 py-2.5 text-left font-medium tabular-nums sm:table-cell"
                   >
                     الإجمالي
                   </th>
-                  <th scope="col" className="w-8 px-2" />
+                  <th scope="col" className="w-24 px-2" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {ledgerQ.isLoading && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-8 text-center text-sm text-muted-foreground"
                     >
                       جاري التحميل...
@@ -458,7 +486,7 @@ export default function AccountingCashbook() {
                 {!ledgerQ.isLoading && rows.length === 0 && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-8 text-center text-sm text-muted-foreground"
                     >
                       لا توجد حركات
@@ -473,9 +501,10 @@ export default function AccountingCashbook() {
                     <td className="whitespace-nowrap px-2 py-2 text-[11px] text-muted-foreground sm:px-4 sm:py-2.5 sm:text-xs">
                       {fmtDate(row.txDate)}
                     </td>
-                    <td className="truncate px-2 py-2 text-sm text-foreground sm:px-4 sm:py-2.5">
+                    <td className="whitespace-normal break-words px-2 py-2 text-sm leading-6 text-foreground sm:px-4 sm:py-2.5">
                       {row.notes ?? "—"}
                     </td>
+                    <td className="hidden whitespace-normal break-words px-2 py-2 text-sm leading-6 text-muted-foreground lg:table-cell lg:px-4 lg:py-2.5">{row.remarks ?? "—"}</td>
                     <td
                       className={cn(
                         "px-2 py-2 text-left tabular-nums text-sm sm:px-4 sm:py-2.5",
@@ -509,7 +538,7 @@ export default function AccountingCashbook() {
                     <td className="hidden px-4 py-2.5 text-left tabular-nums text-xs text-foreground sm:table-cell">
                       {fmt(row.total)}
                     </td>
-                    <td className="w-12 px-2 py-2 text-center">
+                    <td className="w-24 px-2 py-2 text-center">
                       {delConfirm === row.id ? (
                         <div className="flex items-center gap-1">
                           <button
@@ -533,15 +562,7 @@ export default function AccountingCashbook() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          aria-label="حذف القيد"
-                          disabled={deleteMut.isPending}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground hover:opacity-100"
-                          onClick={() => setDelConfirm(row.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1"><button type="button" aria-label="تعديل القيد" className="inline-flex h-9 w-9 items-center justify-center rounded bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground" onClick={() => setEditing(row)}><Pencil className="h-3.5 w-3.5" /></button><button type="button" aria-label="حذف القيد" disabled={deleteMut.isPending} className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50" onClick={() => setDelConfirm(row.id)}><Trash2 className="h-3.5 w-3.5" /></button></div>
                       )}
                     </td>
                   </tr>

@@ -56,8 +56,8 @@
 
 .clinical-report-content {
   color: var(--report-ink);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .clinical-report-content h2,
@@ -72,10 +72,13 @@
 .clinical-report-content input,
 .clinical-report-content textarea,
 .clinical-report-content select {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 @media print {
+  /* Physical letterhead ~5cm on clinic stationery — print-only (screen unchanged). */
+  /* Large @page top margins are often ignored by Chrome print Margins=None.
+     Letterhead clearance is padding-top on the sheet (below). */
   @page {
     size: A4 portrait;
     margin: 0;
@@ -83,21 +86,146 @@
 
   .medical-report-brand {
     min-height: 0 !important;
+    height: auto !important;
     background: #fff !important;
+    overflow: visible !important;
   }
 
   .medical-report-page {
-    width: 210mm !important;
-    min-height: 297mm !important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
     margin: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    background: #fff !important;
+    overflow: visible !important;
   }
 
+  /* Avoid breaks only on compact blocks - never lock the whole sheet */
   .medical-report-brand table,
-  .medical-report-brand section {
+  .medical-report-brand .report-block {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+
+  /* Shared print sheet path for ClinicalReportFrame + comprehensive ClinicalReport */
+  main.clinical-report-frame {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  main.clinical-report-frame > div,
+  main.clinical-report-frame .report-sheet-body {
+    position: static !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    margin: 0 !important;
+    /* ~5cm letterhead; tighter sides/bottom to keep one page */
+    padding: 50mm 15mm 4mm 15mm !important;
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    zoom: 1 !important;
+    transform: none !important;
+  }
+
+  /* Medical report tab sheet — same ~5cm letterhead clearance */
+  .printable-report-sheet {
+    padding: 50mm 15mm 8mm 15mm !important;
+    font-size: 12pt !important;
+    line-height: 1.3 !important;
+  }
+  .printable-report-sheet table th,
+  .printable-report-sheet table td {
+    padding: 3px 5px !important;
+    font-size: 12pt !important;
+  }
+  .printable-report-sheet input,
+  .printable-report-sheet textarea,
+  .printable-report-sheet select,
+  .printable-report-sheet p,
+  .printable-report-sheet label {
+    font-size: 12pt !important;
+  }
+  main.clinical-report-frame .report-sheet-body table th,
+  main.clinical-report-frame .report-sheet-body table td,
+  main.clinical-report-frame .report-sheet-body input,
+  main.clinical-report-frame .report-sheet-body textarea,
+  main.clinical-report-frame .report-sheet-body select,
+  main.clinical-report-frame .report-sheet-body p {
+    font-size: 12px !important;
+  }
+
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
 }
+
+/* Featured patient-name row (InfoRow featured) — white on dark for screen + print.
+   Beats global print reset * { color:#000 !important } in web.css without weakening it. */
+.printable-report-sheet .medical-report-featured-row,
+.printable-report-sheet .medical-report-featured-row *,
+.printable-report-sheet .medical-report-featured-row input,
+.printable-report-sheet .medical-report-featured-row span,
+.printable-report-sheet .medical-report-featured-row label,
+.printable-report-sheet .medical-report-featured-row div {
+  background-color: #075985 !important;
+  color: #ffffff !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.dark .printable-report-sheet .medical-report-featured-row,
+.dark .printable-report-sheet .medical-report-featured-row *,
+.dark .printable-report-sheet .medical-report-featured-row input,
+.dark .printable-report-sheet .medical-report-featured-row [class*="text-"] {
+  background-color: #075985 !important;
+  color: #ffffff !important;
+}
+
+@media print {
+  .printable-report-sheet .medical-report-featured-row,
+  .printable-report-sheet .medical-report-featured-row *,
+  .printable-report-sheet .medical-report-featured-row input,
+  .printable-report-sheet .medical-report-featured-row span,
+  .printable-report-sheet .medical-report-featured-row label,
+  .printable-report-sheet .medical-report-featured-row div,
+  .printable-report-sheet .bg-sky-800,
+  .printable-report-sheet .bg-sky-800 * {
+    background-color: #075985 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .dark .printable-report-sheet .medical-report-featured-row,
+  .dark .printable-report-sheet .medical-report-featured-row *,
+  .dark .printable-report-sheet .medical-report-featured-row input,
+  .dark .printable-report-sheet .medical-report-featured-row [class*="text-"] {
+    background-color: #075985 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+

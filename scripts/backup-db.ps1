@@ -4,9 +4,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Get-DatabaseUrl {
+function Get-DATABASE_URL {
   if ($env:DATABASE_URL) { return $env:DATABASE_URL }
-  $envFile = Join-Path (Get-Location) ".env"
+  $envFile = Join-Path (Split-Path -Parent $PSScriptRoot) ".env"
   if (!(Test-Path $envFile)) { return $null }
   $line = Get-Content $envFile | Where-Object { $_ -match "^\s*DATABASE_URL\s*=" } | Select-Object -First 1
   if (!$line) { return $null }
@@ -27,7 +27,7 @@ function Find-MySqlDump {
   return $null
 }
 
-$dbUrl = Get-DatabaseUrl
+$dbUrl = Get-DATABASE_URL
 if (!$dbUrl) { throw "DATABASE_URL not found in env or .env" }
 $uri = [System.Uri]$dbUrl
 $userInfo = $uri.UserInfo.Split(":", 2)
@@ -39,7 +39,7 @@ $db = $uri.AbsolutePath.TrimStart("/")
 
 if (!$OutFile) {
   $ts = Get-Date -Format "yyyyMMdd_HHmmss"
-  $backupDir = Join-Path (Get-Location) "backups"
+  $backupDir = "E:\MySQL\Backups"
   if (!(Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir | Out-Null }
   $OutFile = Join-Path $backupDir "selrs_db_$ts.sql"
 }
@@ -47,9 +47,31 @@ if (!$OutFile) {
 $mysqldump = Find-MySqlDump
 if (!$mysqldump) { throw "mysqldump not found. Install MySQL client or add it to PATH." }
 
-$env:MYSQL_PWD = $pass
-& $mysqldump --host=$dbHost --port=$port --user=$user --single-transaction --quick --routines --no-tablespaces --ignore-table=$db.srv100_uploads --databases $db --result-file="$OutFile"
-if ($LASTEXITCODE -ne 0) { throw "mysqldump failed with code $LASTEXITCODE" }
+$previousMysqlPassword = $env:MYSQL_PWD
+try {
+  $env:MYSQL_PWD = $pass
+  & $mysqldump `
+    --host=$dbHost `
+    --port=$port `
+    --user=$user `
+    --single-transaction `
+    --quick `
+    --routines `
+    --triggers `
+    --events `
+    --no-tablespaces `
+    --default-character-set=utf8mb4 `
+    --ignore-table=$db.srv100_uploads `
+    --databases $db `
+    --result-file="$OutFile"
+  if ($LASTEXITCODE -ne 0) { throw "mysqldump failed with code $LASTEXITCODE" }
+} finally {
+  if ($null -eq $previousMysqlPassword) {
+    Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
+  } else {
+    $env:MYSQL_PWD = $previousMysqlPassword
+  }
+}
 
 Write-Host "Backup created: $OutFile"
 

@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import {
-  FileText,
-  Download,
-  Filter,
-  RefreshCw,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { FileText, Download, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { DateInput } from "@/components/ui/date-input";
 
 function getStatusClass(status: string) {
   switch (status) {
@@ -48,9 +42,18 @@ function getStatusClass(status: string) {
 
 export default function StockroomReports() {
   const [activeTab, setActiveTab] = useState("summary");
-  const reportsQuery = trpc.stockroom.getReports.useQuery({});
+  const [dateFrom, setDateFrom] = useState(() =>
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .slice(0, 10),
+  );
+  const [dateTo, setDateTo] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const reportsQuery = trpc.stockroom.getReports.useQuery({ dateFrom, dateTo });
 
   const inventorySummary = reportsQuery.data?.inventory || [];
+  const inventoryReport = reportsQuery.data?.inventoryReport || [];
   const transactions = reportsQuery.data?.transactions || [];
 
   const additionsLog = transactions.filter((t: any) => t.type === "add");
@@ -120,13 +123,6 @@ export default function StockroomReports() {
                 )}
               />
             </Button>
-            <Button
-              variant="outline"
-              className="text-primary border-primary/20 hover:bg-primary/10"
-            >
-              <Filter className="me-2 h-4 w-4" />
-              تصفية
-            </Button>
             <Button variant="default" className="bg-primary text-white">
               <Download className="me-2 h-4 w-4" />
               تصدير (Excel)
@@ -134,6 +130,23 @@ export default function StockroomReports() {
           </div>
         }
       />
+
+      <div className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-card p-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label>من تاريخ</Label>
+          <DateInput
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>إلى تاريخ</Label>
+          <DateInput
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+      </div>
 
       <Tabs
         value={activeTab}
@@ -153,6 +166,18 @@ export default function StockroomReports() {
             onClick={() => setActiveTab("summary")}
           >
             جرد المخزون
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer",
+              activeTab === "inventory-balance"
+                ? "bg-background text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => setActiveTab("inventory-balance")}
+          >
+            تقرير الجرد بالفترة
           </button>
           <button
             type="button"
@@ -242,6 +267,71 @@ export default function StockroomReports() {
                         </TableCell>
                       </TableRow>
                     ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="inventory-balance" className="space-y-4">
+          <div className="rounded-lg border border-border/60 bg-card">
+            <Table>
+              <TableHeader className="bg-primary/5">
+                <TableRow>
+                  <TableHead className="text-right">الكود</TableHead>
+                  <TableHead className="text-right">اسم الصنف</TableHead>
+                  <TableHead className="text-right">التصنيف</TableHead>
+                  <TableHead className="text-right">الرصيد الافتتاحي</TableHead>
+                  <TableHead className="text-right">إجمالي الاستلام</TableHead>
+                  <TableHead className="text-right">إجمالي الصرف</TableHead>
+                  <TableHead className="text-right">الرصيد الحالي</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reportsQuery.isPending
+                  ? Array.from({ length: 5 }, (_, index) => (
+                      <TableRow key={index}>
+                        {Array.from({ length: 7 }, (_, cellIndex) => (
+                          <TableCell key={cellIndex}>
+                            <Skeleton className="h-4 w-20" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  : inventoryReport.map((row) => (
+                      <TableRow key={`${row.id}-${row.name}`}>
+                        <TableCell className="font-mono text-xs text-muted-foreground text-right">
+                          {row.id ?? "-"}
+                        </TableCell>
+                        <TableCell className="font-medium text-right">
+                          {row.name || "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {row.category || "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {row.openingBalance}
+                        </TableCell>
+                        <TableCell className="text-success text-right">
+                          {row.receipts}
+                        </TableCell>
+                        <TableCell className="text-warning text-right">
+                          {row.issues}
+                        </TableCell>
+                        <TableCell className="font-bold text-right">
+                          {row.closingBalance}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                {!reportsQuery.isPending && inventoryReport.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="py-8 text-center text-muted-foreground"
+                    >
+                      لا توجد أصناف ضمن فترة الجرد المحددة.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

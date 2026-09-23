@@ -84,6 +84,7 @@ import {
   visitScheduleRequests,
   InsertVisitScheduleRequest,
   stockItems,
+  stockInventory,
   stockTransactions,
   InsertStockItem,
   InsertStockTransaction,
@@ -763,7 +764,9 @@ export async function updateUserLastSignedIn(userId: number) {
 export async function bumpUserAuthVersion(userId: number) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot revoke user sessions: database not available");
+    console.warn(
+      "[Database] Cannot revoke user sessions: database not available",
+    );
     return;
   }
 
@@ -5047,7 +5050,11 @@ export async function getAllDoctorReports(limit = 250) {
     .limit(cap);
 }
 
-export async function createAuthSession(id: string, userId: number, expiresAt: Date) {
+export async function createAuthSession(
+  id: string,
+  userId: number,
+  expiresAt: Date,
+) {
   const database = await getDb();
   if (!database) return;
   await database.insert(authSessions).values({ id, userId, expiresAt });
@@ -5059,7 +5066,14 @@ export async function isAuthSessionActive(id: string, userId: number) {
   const [session] = await database
     .select({ id: authSessions.id })
     .from(authSessions)
-    .where(and(eq(authSessions.id, id), eq(authSessions.userId, userId), isNull(authSessions.revokedAt), gt(authSessions.expiresAt, new Date())))
+    .where(
+      and(
+        eq(authSessions.id, id),
+        eq(authSessions.userId, userId),
+        isNull(authSessions.revokedAt),
+        gt(authSessions.expiresAt, new Date()),
+      ),
+    )
     .limit(1);
   return Boolean(session);
 }
@@ -5073,7 +5087,11 @@ export async function revokeAuthSession(id: string) {
     .where(and(eq(authSessions.id, id), isNull(authSessions.revokedAt)));
 }
 
-export async function consumeLoginRateLimit(key: string, now: Date, windowMs: number) {
+export async function consumeLoginRateLimit(
+  key: string,
+  now: Date,
+  windowMs: number,
+) {
   const database = await getDb();
   if (!database) return null;
   const [existing] = await database
@@ -5081,10 +5099,12 @@ export async function consumeLoginRateLimit(key: string, now: Date, windowMs: nu
     .from(loginRateLimits)
     .where(eq(loginRateLimits.key, key))
     .limit(1);
-  const resetAt = existing && existing.resetAt > now
-    ? existing.resetAt
-    : new Date(now.getTime() + windowMs);
-  const attempts = existing && existing.resetAt > now ? existing.attempts + 1 : 1;
+  const resetAt =
+    existing && existing.resetAt > now
+      ? existing.resetAt
+      : new Date(now.getTime() + windowMs);
+  const attempts =
+    existing && existing.resetAt > now ? existing.attempts + 1 : 1;
   await database
     .insert(loginRateLimits)
     .values({ key, attempts, resetAt })
@@ -7809,9 +7829,7 @@ async function syncOperationsFromFollowups(): Promise<{
  * serviceCodeOpTypeMap (built from the op-history "ربط أكواد الخدمات" admin
  * tool). Returns null when the patient has no service code, or the code
  * isn't mapped yet — callers should leave their field for manual entry. */
-export async function getSuggestedOperationTypeForPatient(
-  patientId: number,
-) {
+export async function getSuggestedOperationTypeForPatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   // patients.serviceCode only ever holds the patient's CURRENT/latest
@@ -8092,7 +8110,8 @@ export async function getPatientOperationsByType(input: {
       ),
     );
   }
-  const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+  const whereClause =
+    conditions.length > 1 ? and(...conditions) : conditions[0];
 
   const rows = await db
     .select({
@@ -8109,7 +8128,10 @@ export async function getPatientOperationsByType(input: {
     })
     .from(patientOperations)
     .innerJoin(patients, eq(patientOperations.patientId, patients.id))
-    .leftJoin(doctorsLookup, eq(patientOperations.doctorCode, doctorsLookup.code))
+    .leftJoin(
+      doctorsLookup,
+      eq(patientOperations.doctorCode, doctorsLookup.code),
+    )
     .where(whereClause)
     .orderBy(desc(patientOperations.operationDate));
 
@@ -8242,9 +8264,16 @@ export async function getTodayVisitsByQueueStatus(
   if (queueStatus) {
     whereClauses.push(eq(visits.queueStatus, queueStatus as any));
   } else {
-    whereClauses.push(inArray(visits.queueStatus, [
-      "checkedIn", "next", "clinic1", "clinic2", "pentacam", "treated",
-    ]));
+    whereClauses.push(
+      inArray(visits.queueStatus, [
+        "checkedIn",
+        "next",
+        "clinic1",
+        "clinic2",
+        "pentacam",
+        "treated",
+      ]),
+    );
   }
 
   const rows = await db
@@ -8919,6 +8948,108 @@ export async function getStockItems(category?: string) {
     query = query.where(eq(stockItems.category, category)) as any;
   }
   return await query.orderBy(asc(stockItems.name));
+}
+
+/** Returns the externally maintained opening/receipts/issues stock balance. */
+export async function getStockInventory(category?: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  let query = db.select().from(stockInventory);
+  if (category) {
+    query = query.where(eq(stockInventory.category, category)) as any;
+  }
+  return await query.orderBy(
+    asc(stockInventory.category),
+    asc(stockInventory.name),
+  );
+}
+
+/**
+ * Calculates a live inventory report from the opening-balance table and stock
+ * movements. Every received, dispensed, edited, or deleted movement appears
+ * immediately, without a manual inventory update.
+ */
+export async function getStockInventoryReport(
+  input: {
+    dateFrom?: string;
+    dateTo?: string;
+    category?: string;
+  } = {},
+) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const [openingRows, items, movements] = await Promise.all([
+    getStockInventory(),
+    getStockItems(input.category),
+    db.select().from(stockTransactions),
+  ]);
+  const openingBalanceByItemId = new Map<number, number>();
+  for (const opening of openingRows) {
+    if (opening.id != null) {
+      openingBalanceByItemId.set(
+        opening.id,
+        Number(opening.openingBalance) || 0,
+      );
+    }
+  }
+
+  // stock_items is the source of truth for item ID, name, and category.
+  // stock_inventory supplies only the opening balance for the matching ID.
+  const rows = new Map<
+    number,
+    {
+      id: number;
+      name: string;
+      category: string | null;
+      openingBalance: number;
+      receipts: number;
+      issues: number;
+    }
+  >();
+
+  for (const item of items) {
+    rows.set(item.id, {
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      openingBalance: openingBalanceByItemId.get(item.id) ?? 0,
+      receipts: 0,
+      issues: 0,
+    });
+  }
+
+  for (const movement of movements) {
+    const row = rows.get(movement.itemId);
+    if (!row) continue;
+    const movementDate = movement.transactionDate || movement.createdAt;
+    const date =
+      movementDate instanceof Date
+        ? movementDate.toISOString().slice(0, 10)
+        : String(movementDate).slice(0, 10);
+    const quantity = Number(movement.quantity) || 0;
+    const beforePeriod = input.dateFrom && date < input.dateFrom;
+    const afterPeriod = input.dateTo && date > input.dateTo;
+    if (beforePeriod) {
+      row.openingBalance += movement.type === "add" ? quantity : -quantity;
+    } else if (!afterPeriod) {
+      if (movement.type === "add") row.receipts += quantity;
+      else row.issues += quantity;
+    }
+  }
+
+  return [...rows.values()]
+    .map((row) => ({
+      ...row,
+      closingBalance: row.openingBalance + row.receipts - row.issues,
+    }))
+    .sort((a, b) =>
+      `${a.category || ""}${a.name}`.localeCompare(
+        `${b.category || ""}${b.name}`,
+        "ar",
+      ),
+    );
 }
 
 export async function getStockItemByCode(itemCode: string) {

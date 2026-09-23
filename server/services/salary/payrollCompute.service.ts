@@ -3,6 +3,7 @@ import {
   attendanceEmployees,
   attendanceMonthlyReport,
   attendanceDaily,
+  attendancePunches,
   attendanceOvertimeDays,
   attendanceShifts,
   attendanceLeaves,
@@ -45,6 +46,7 @@ import {
   calculateOvertimeDayPay,
   type OvertimeDayPay,
 } from "./overtimePay";
+import { getSinglePunchDayKeys } from "./singlePunchDays";
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -385,6 +387,7 @@ export class PayrollComputeService {
       mcExcludeRows,
       sickLeaveRows,
       overtimeDayRows,
+      rawPunchRows,
     ] = await Promise.all([
       db
         .select()
@@ -526,6 +529,27 @@ export class PayrollComputeService {
             lte(attendanceOvertimeDays.workDate, lastDay as any),
           ),
         ),
+      employeeCodes.length
+        ? db
+            .select({
+              empCd: attendancePunches.empCd,
+              punchAt: attendancePunches.punchAt,
+            })
+            .from(attendancePunches)
+            .where(
+              and(
+                inArray(attendancePunches.empCd, employeeCodes),
+                gte(
+                  attendancePunches.punchAt,
+                  new Date(`${firstDay}T00:00:00`),
+                ),
+                lte(
+                  attendancePunches.punchAt,
+                  new Date(`${lastDay}T23:59:59.999`),
+                ),
+              ),
+            )
+        : Promise.resolve([]),
     ]);
 
     const overtimeEnabledDays = new Map(
@@ -568,6 +592,7 @@ export class PayrollComputeService {
         return `${r.empCd}|${ds}`;
       }),
     );
+    const singlePunchDaySet = getSinglePunchDayKeys(rawPunchRows as any[]);
 
     // Set of "empCd|YYYY-MM-DD" for approved sick leave days within this month
     const sickDatesSet = new Set<string>();
@@ -734,14 +759,10 @@ export class PayrollComputeService {
         earlyMins = 0,
         missingCoDays = 0;
       rawAbsent = empDailyRows.filter((d: any) => d.status === "absent").length;
-      missingCoDays = empDailyRows.filter((d: any) => {
-        if (d.status !== "missing_checkout") return false;
-        const ds =
-          d.workDate instanceof Date
-            ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
-            : String(d.workDate).slice(0, 10);
-        return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
-      }).length;
+      missingCoDays = [...singlePunchDaySet].filter(
+        (key) =>
+          key.startsWith(`${emp.empCd}|`) && !mcExcludeSet.has(key),
+      ).length;
       lateMins = empDailyRows.reduce(
         (s: any, d: any) => s + (d.lateMinutes ?? 0),
         0,
@@ -996,14 +1017,10 @@ export class PayrollComputeService {
       rawAbsentDays = empDailyRows.filter(
         (d: any) => d.status === "absent",
       ).length;
-      missingCheckoutDays = empDailyRows.filter((d: any) => {
-        if (d.status !== "missing_checkout") return false;
-        const ds =
-          d.workDate instanceof Date
-            ? `${d.workDate.getFullYear()}-${String(d.workDate.getMonth() + 1).padStart(2, "0")}-${String(d.workDate.getDate()).padStart(2, "0")}`
-            : String(d.workDate).slice(0, 10);
-        return !mcExcludeSet.has(`${emp.empCd}|${ds}`);
-      }).length;
+      missingCheckoutDays = [...singlePunchDaySet].filter(
+        (key) =>
+          key.startsWith(`${emp.empCd}|`) && !mcExcludeSet.has(key),
+      ).length;
       lateMinutes = empDailyRows.reduce(
         (s: any, d: any) => s + (d.lateMinutes ?? 0),
         0,

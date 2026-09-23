@@ -78,7 +78,7 @@ export default function PostOpOffdaysEnglish() {
           min-height: 297mm;
         }
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A4 portrait; margin: 10mm; } /* letterhead via medical-report-brand.css padding-top 50mm */
           html, body {
             width: 210mm !important;
             min-height: 297mm !important;
@@ -99,7 +99,7 @@ export default function PostOpOffdaysEnglish() {
             margin: 0 !important;
             border: 0 !important;
             box-shadow: none !important;
-            padding: 24mm 22mm 18mm !important;
+            padding: 8mm 12mm 12mm 12mm !important;
           }
           input {
             box-shadow: none !important;
@@ -224,7 +224,7 @@ export default function PostOpOffdaysEnglish() {
               <h3 className="mb-3 bg-[#eef5f7] px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
                 Clinical Justification
               </h3>
-              <div className="space-y-4 px-3 text-[14px] leading-7">
+              <div className="space-y-4 px-3 text-[15px] leading-7">
                 <p>
                   This is to certify that the above-named patient underwent an
                   ophthalmic surgical procedure and requires a mandatory period

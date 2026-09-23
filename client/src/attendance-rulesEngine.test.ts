@@ -498,6 +498,15 @@ describe("computeDay", () => {
     expect(result.insideNow).toBe(true);
   });
 
+  it("7b — a single departure scan is not absence", () => {
+    const result = computeDay(
+      baseCtx({ punches: [punch("2026-06-10T16:00:00", "out")] }),
+    );
+    expect(result.status).toBe("missing_checkout");
+    expect(result.firstIn).toBeNull();
+    expect(result.lastOut).toEqual(d("2026-06-10T16:00:00"));
+  });
+
   it("8 — absent on scheduled day (requirePunch=true, no punches)", () => {
     const result = computeDay(baseCtx({ punches: [] }));
     expect(result.status).toBe("absent");

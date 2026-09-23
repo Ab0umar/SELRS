@@ -1,6 +1,6 @@
 {
   "name": "SELRS",
-  "version": "1.1.84",
+  "version": "1.1.99",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -20,7 +20,8 @@
     "test:backend": "vitest run --config vitest.backend.config.ts",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:ui": "playwright test",
+    "e2e:install-browser": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium --only-shell",
+    "test:ui": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:sync-check": "tsx scripts/check-db-sync.ts",
     "perms:backfill": "tsx scripts/backfill-inherited-permissions.ts",
@@ -185,5 +186,5 @@
     "vite-plugin-manus-runtime": "^0.0.57",
     "vitest": "^4.1.11"
   },
-  "packageManager": "pnpm@12.4.2"
+  "packageManager": "pnpm@12.5.1"
 }

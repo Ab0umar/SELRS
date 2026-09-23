@@ -27,7 +27,10 @@ import { MedicalRoutes } from "./routes/medical-routes";
 import { ClinicalSuiteRoutes } from "./routes/clinical-suite-routes";
 import { MarketingRoutes } from "./routes/marketing-routes";
 import { MiscRoutes } from "./routes/misc-routes";
-import { DashboardRouteGate } from "./routes/guards";
+import {
+  DashboardRouteGate,
+  LegacySurgerySheetRedirect,
+} from "./routes/guards";
 import { RECENT_KEY, TRACKED_ROUTES } from "./routes/tracked-routes";
 import { ROUTES } from "../../shared/routes";
 import {
@@ -71,9 +74,9 @@ const DESKTOP_SHELL_HEALTH_POLL_MS = 15 * 60_000;
 function buildInfoMatches(left: BuildInfo | null, right: BuildInfo): boolean {
   return Boolean(
     left &&
-      left.version === right.version &&
-      left.buildTime === right.buildTime &&
-      left.commit === right.commit,
+    left.version === right.version &&
+    left.buildTime === right.buildTime &&
+    left.commit === right.commit,
   );
 }
 
@@ -158,6 +161,10 @@ const Router = memo(function Router() {
   return (
     <Switch>
       <Route path={ROUTES.dashboard} component={DashboardRouteGate} />
+      <Route
+        path="/sheets/surgery/:id"
+        component={LegacySurgerySheetRedirect}
+      />
       {AttendanceRoutes}
       {SalaryRoutes}
       {KfRoutes}

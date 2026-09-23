@@ -5,6 +5,7 @@ import {
   mediumtext,
   timestamp,
   date,
+  double,
   boolean,
   json,
   decimal,
@@ -197,6 +198,22 @@ export const stockTransactions = mysqlTable("stock_transactions", {
 
 export type StockTransaction = typeof stockTransactions.$inferSelect;
 export type InsertStockTransaction = typeof stockTransactions.$inferInsert;
+
+/**
+ * Read-only inventory balance table maintained outside the stock movement flow.
+ * Its Arabic source column names are mapped to stable application field names.
+ */
+export const stockInventory = mysqlTable("stock_inventory", {
+  id: int("ID"),
+  name: varchar("Name", { length: 255 }),
+  category: varchar("Category", { length: 100 }),
+  openingBalance: varchar("الرصيد_الافتتاحي", { length: 255 }),
+  totalAdd: varchar("total_add", { length: 255 }),
+  totalDispense: varchar("total_dispense", { length: 255 }),
+  currentBalance: double("الرصيد_الحالي"),
+});
+
+export type StockInventory = typeof stockInventory.$inferSelect;
 
 export const attendanceShifts = mysqlTable(
   "attendance_shifts",
@@ -1443,6 +1460,7 @@ export const accLedger = mysqlTable(
     expense: decimal("expense", { precision: 15, scale: 2 }),
     txDate: date("txDate").notNull(),
     notes: varchar("notes", { length: 500 }),
+    remarks: varchar("remarks", { length: 500 }),
     syncedAt: timestamp("syncedAt").defaultNow().onUpdateNow().notNull(),
   },
   (t) => ({ uniq: index("accLedger_accessId").on(t.accessId) }),
@@ -2511,6 +2529,8 @@ export const shiftStaffCycle = mysqlTable(
     staffId: int("staff_id").notNull(),
     dayOfWeek: int("day_of_week").notNull(), // 0=Sun 1=Mon ... 6=Sat
     shiftName: varchar("shift_name", { length: 128 }).notNull(),
+    startTime: varchar("start_time", { length: 5 }),
+    endTime: varchar("end_time", { length: 5 }),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.staffId, t.dayOfWeek, t.shiftName] }),

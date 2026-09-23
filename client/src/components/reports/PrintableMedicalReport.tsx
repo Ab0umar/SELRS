@@ -3,6 +3,7 @@ import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import PatientPicker from "@/components/PatientPicker";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Printer,
@@ -122,6 +123,7 @@ export default function PrintableMedicalReport({
   hidePrintButton = false,
 }: MedicalReportProps) {
   const [activeLang, setActiveLang] = useState<"en" | "ar">("ar");
+  const [includeGlassesCard, setIncludeGlassesCard] = useState(false);
 
   const [, params] = useRoute("/medical-report/:id");
   const queryParamId =
@@ -356,20 +358,21 @@ export default function PrintableMedicalReport({
 
           .printable-report-sheet {
             box-sizing: border-box !important;
-            width: 210mm !important;
-            max-width: 210mm !important;
-            min-width: 210mm !important;
-            min-height: 297mm !important;
-            max-height: 297mm !important;
-            margin: 0 auto !important;
-            padding: 16mm 18mm !important;
+            width: auto !important;
+            max-width: none !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            margin: 0 !important;
+            /* ~5cm letterhead; tighter content for single page */
+            padding: 50mm 15mm 8mm 15mm !important;
+            font-size: 12pt !important;
+            line-height: 1.3 !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             background-color: #ffffff !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            overflow: hidden !important;
+            overflow: visible !important;
           }
 
           .printable-report-sheet table {
@@ -396,11 +399,30 @@ export default function PrintableMedicalReport({
             print-color-adjust: exact !important;
           }
 
-          .printable-report-sheet div.bg-sky-800 {
+          /* Featured patient-name row: beat global print * { color:#000 } */
+          .printable-report-sheet .medical-report-featured-row,
+          .printable-report-sheet .medical-report-featured-row *,
+          .printable-report-sheet .medical-report-featured-row input,
+          .printable-report-sheet .medical-report-featured-row span,
+          .printable-report-sheet .medical-report-featured-row label,
+          .printable-report-sheet .medical-report-featured-row div,
+          .printable-report-sheet div.bg-sky-800,
+          .printable-report-sheet div.bg-sky-800 * {
             background-color: #075985 !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .dark .printable-report-sheet .medical-report-featured-row,
+          .dark .printable-report-sheet .medical-report-featured-row *,
+          .dark .printable-report-sheet .medical-report-featured-row input,
+          .dark .printable-report-sheet .medical-report-featured-row [class*="text-"] {
+            background-color: #075985 !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
 
           .printable-report-sheet td {
@@ -505,7 +527,7 @@ export default function PrintableMedicalReport({
       {activeLang === "en" && (
         <article
           dir="ltr"
-          className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[11pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
+          className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[12pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
           style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
         >
           {/* Document Title (Editable on screen, solid header on print) */}
@@ -555,15 +577,26 @@ export default function PrintableMedicalReport({
               onChange={(e) => updateField("clinicalSummary", e.target.value)}
               placeholder=""
               rows={2}
-              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[11pt] leading-relaxed resize-none transition-all print:hidden"
+              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[12pt] leading-relaxed resize-none transition-all print:hidden"
             />
-            <div className="hidden print:block text-slate-900 text-[11pt] leading-relaxed p-1 whitespace-pre-wrap">
+            <div className="hidden print:block text-slate-900 text-[12pt] leading-relaxed p-1 whitespace-pre-wrap">
               {reportEn.clinicalSummary || " "}
             </div>
           </section>
 
-          {/* Refraction Table */}
-          <section className="mb-5">
+          <label className="print:hidden mb-3 flex items-center gap-2 text-sm font-bold text-sky-800">
+            <Checkbox
+              checked={includeGlassesCard}
+              onCheckedChange={(checked) =>
+                setIncludeGlassesCard(checked === true)
+              }
+            />
+            Add Refraction / Spectacle Card
+          </label>
+
+          {includeGlassesCard && (
+            <section className="mb-5">
+              {/* Refraction Table */}
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-bold text-slate-900">Refraction:</h2>
               <button
@@ -757,7 +790,8 @@ export default function PrintableMedicalReport({
                 })}
               </tbody>
             </table>
-          </section>
+            </section>
+          )}
 
           {/* Procedure & Follow-Up */}
           <section className="space-y-3 mb-5">
@@ -768,9 +802,9 @@ export default function PrintableMedicalReport({
                 value={reportEn.procedure}
                 onChange={(e) => updateField("procedure", e.target.value)}
                 placeholder=""
-                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1.5 py-0.5 text-slate-900 placeholder:text-slate-400 text-[11pt] transition-all print:hidden"
+                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1.5 py-0.5 text-slate-900 placeholder:text-slate-400 text-[12pt] transition-all print:hidden"
               />
-              <div className="hidden print:block text-slate-900 text-[11pt]">
+              <div className="hidden print:block text-slate-900 text-[12pt]">
                 {reportEn.procedure || " "}
               </div>
             </div>
@@ -782,9 +816,9 @@ export default function PrintableMedicalReport({
                 onChange={(e) => updateField("followUp", e.target.value)}
                 placeholder=""
                 rows={2}
-                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[11pt] leading-relaxed resize-none transition-all print:hidden"
+                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[12pt] leading-relaxed resize-none transition-all print:hidden"
               />
-              <div className="hidden print:block text-slate-900 text-[11pt] leading-relaxed whitespace-pre-wrap">
+              <div className="hidden print:block text-slate-900 text-[12pt] leading-relaxed whitespace-pre-wrap">
                 {reportEn.followUp || " "}
               </div>
             </div>
@@ -797,9 +831,9 @@ export default function PrintableMedicalReport({
               type="text"
               value={reportEn.physician.name}
               onChange={(e) => updatePhysician("name", e.target.value)}
-              className="w-80 bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1 py-0.5 text-slate-900 font-semibold block transition-all text-[11pt] print:hidden"
+              className="w-80 bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1 py-0.5 text-slate-900 font-semibold block transition-all text-[12pt] print:hidden"
             />
-            <div className="hidden print:block text-slate-900 font-semibold text-[11pt]">
+            <div className="hidden print:block text-slate-900 font-semibold text-[12pt]">
               {reportEn.physician.name}
             </div>
 
@@ -830,7 +864,7 @@ export default function PrintableMedicalReport({
       {activeLang === "ar" && (
         <article
           dir="rtl"
-          className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[11pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
+          className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[12pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
           style={{ fontFamily: "Arial, Tahoma, Cairo, sans-serif" }}
         >
           {/* Document Title (Editable on screen, solid header on print) */}
@@ -883,15 +917,26 @@ export default function PrintableMedicalReport({
               onChange={(e) => updateField("clinicalSummary", e.target.value)}
               placeholder=""
               rows={2}
-              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[11pt] leading-relaxed resize-none transition-all print:hidden"
+              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[12pt] leading-relaxed resize-none transition-all print:hidden"
             />
-            <div className="hidden print:block text-slate-900 text-[11pt] leading-relaxed p-1 whitespace-pre-wrap">
+            <div className="hidden print:block text-slate-900 text-[12pt] leading-relaxed p-1 whitespace-pre-wrap">
               {reportAr.clinicalSummary || " "}
             </div>
           </section>
 
-          {/* Refraction Table (LTR) */}
-          <section className="mb-5" style={{ direction: "ltr" }}>
+          <label className="print:hidden mb-3 flex items-center gap-2 text-sm font-bold text-sky-800">
+            <Checkbox
+              checked={includeGlassesCard}
+              onCheckedChange={(checked) =>
+                setIncludeGlassesCard(checked === true)
+              }
+            />
+            إضافة كارت النظارة
+          </label>
+
+          {includeGlassesCard && (
+            <section className="mb-5" style={{ direction: "ltr" }}>
+              {/* Refraction Table (LTR) */}
             <div className="flex items-center justify-between mb-2" style={{ direction: "rtl" }}>
               <h2 className="font-bold text-slate-900">كارت النظارة:</h2>
               <button
@@ -1088,7 +1133,8 @@ export default function PrintableMedicalReport({
                 })}
               </tbody>
             </table>
-          </section>
+            </section>
+          )}
 
           {/* Procedure & Follow-Up */}
           <section className="space-y-3 mb-5">
@@ -1099,9 +1145,9 @@ export default function PrintableMedicalReport({
                 value={reportAr.procedure}
                 onChange={(e) => updateField("procedure", e.target.value)}
                 placeholder=""
-                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1.5 py-0.5 text-slate-900 placeholder:text-slate-400 text-[11pt] transition-all print:hidden"
+                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1.5 py-0.5 text-slate-900 placeholder:text-slate-400 text-[12pt] transition-all print:hidden"
               />
-              <div className="hidden print:block text-slate-900 text-[11pt]">
+              <div className="hidden print:block text-slate-900 text-[12pt]">
                 {reportAr.procedure || " "}
               </div>
             </div>
@@ -1113,9 +1159,9 @@ export default function PrintableMedicalReport({
                 onChange={(e) => updateField("followUp", e.target.value)}
                 placeholder=""
                 rows={2}
-                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[11pt] leading-relaxed resize-none transition-all print:hidden"
+                className="w-full bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded p-1.5 text-slate-900 placeholder:text-slate-400 text-[12pt] leading-relaxed resize-none transition-all print:hidden"
               />
-              <div className="hidden print:block text-slate-900 text-[11pt] leading-relaxed whitespace-pre-wrap">
+              <div className="hidden print:block text-slate-900 text-[12pt] leading-relaxed whitespace-pre-wrap">
                 {reportAr.followUp || " "}
               </div>
             </div>
@@ -1128,9 +1174,9 @@ export default function PrintableMedicalReport({
               type="text"
               value={reportAr.physician.name}
               onChange={(e) => updatePhysician("name", e.target.value)}
-              className="w-80 bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1 py-0.5 text-slate-900 font-semibold block transition-all text-[11pt] print:hidden"
+              className="w-80 bg-transparent border border-slate-300 dark:border-slate-700 outline-none focus:bg-sky-50/50 focus:ring-1 focus:ring-sky-500 rounded px-1 py-0.5 text-slate-900 font-semibold block transition-all text-[12pt] print:hidden"
             />
-            <div className="hidden print:block text-slate-900 font-semibold text-[11pt]">
+            <div className="hidden print:block text-slate-900 font-semibold text-[12pt]">
               {reportAr.physician.name}
             </div>
 
@@ -1174,7 +1220,9 @@ function InfoRow({
   return (
     <div
       className={`grid grid-cols-[35%_65%] border-b border-sky-800 last:border-b-0 ${
-        featured ? "bg-sky-800 text-white" : "bg-sky-50 text-slate-900"
+        featured
+          ? "medical-report-featured-row bg-sky-800 text-white"
+          : "bg-sky-50 text-slate-900"
       }`}
       style={{
         backgroundColor: featured ? "#075985" : "#f0f9ff",
@@ -1203,14 +1251,24 @@ function InfoRow({
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}
-          className={`w-full bg-transparent border-none outline-none focus:ring-1 focus:ring-sky-400 rounded px-1.5 py-0.5 transition-all text-[11pt] print:hidden ${
+          className={`w-full bg-transparent border-none outline-none focus:ring-1 focus:ring-sky-400 rounded px-1.5 py-0.5 transition-all text-[12pt] print:hidden ${
             featured
               ? "text-white font-semibold placeholder:text-white/60 focus:bg-sky-900/50"
               : "text-slate-900 placeholder:text-slate-400 focus:bg-white/80"
           }`}
+          style={
+            featured
+              ? {
+                  color: "#ffffff",
+                  backgroundColor: "transparent",
+                  WebkitPrintColorAdjust: "exact",
+                  printColorAdjust: "exact",
+                }
+              : undefined
+          }
         />
         <div
-          className={`hidden print:block w-full px-1.5 py-0.5 text-[11pt] break-words ${
+          className={`hidden print:block w-full px-1.5 py-0.5 text-[12pt] break-words ${
             featured ? "text-white font-bold" : "text-slate-900 font-semibold"
           }`}
           style={{

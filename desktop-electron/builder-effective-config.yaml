@@ -1,5 +1,5 @@
 directories:
-  output: D:\c\srv100_acc\desktop-electron
+  output: E:\selrs.cc\desktop-electron
   buildResources: build
 appId: cc.selrs.electron
 productName: SELRS
@@ -7,6 +7,10 @@ files:
   - filter:
       - main.js
       - preload.js
+      - dist/**/*
+publish:
+  provider: generic
+  url: http://192.168.1.100:4000/updates
 win:
   icon: assets/app.ico
   target:
@@ -23,4 +27,4 @@ nsis:
   uninstallerIcon: assets/app.ico
   installerHeaderIcon: assets/app.ico
   artifactName: SELRS-Electron-Setup-${version}.${ext}
-electronVersion: 37.10.3
+electronVersion: 44.4.3

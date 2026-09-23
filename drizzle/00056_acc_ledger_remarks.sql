@@ -1,0 +1,1 @@
+ALTER TABLE accLedger ADD COLUMN remarks VARCHAR(500) NULL;

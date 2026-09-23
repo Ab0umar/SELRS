@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import PatientPicker from "@/components/PatientPicker";
 import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +26,7 @@ const emptyEye: EyeValues = { s: "", c: "", ax: "", pd: "", add: "" };
 
 function FieldLabel({ children }: { children: string }) {
   return (
-    <span className="block text-[10px] font-bold uppercase tracking-[0.04em] text-[#727780]">
+    <span className="block text-[11px] font-bold uppercase tracking-[0.04em] text-[#727780]">
       {children}
     </span>
   );
@@ -68,7 +69,7 @@ function RefractionTable({
             </th>
             <th className="w-[12%] px-2 py-1.5" />
           </tr>
-          <tr className="bg-[#f4fafd] text-[9px] font-bold uppercase text-[#42474f]">
+          <tr className="bg-[#f4fafd] text-[11px] font-bold uppercase text-[#42474f]">
             <th className="px-1.5 py-1">Distance</th>
             <th className="px-1.5 py-1">S</th>
             <th className="px-1.5 py-1">C</th>
@@ -255,6 +256,7 @@ export default function PrePostOpReport({
   const [patientName, setPatientName] = useState("");
   const [patientDob, setPatientDob] = useState("");
   const [patientCode, setPatientCode] = useState("");
+  const [includePostOpResults, setIncludePostOpResults] = useState(false);
 
   useEffect(() => {
     if (!patientId) {
@@ -439,60 +441,40 @@ export default function PrePostOpReport({
           text-align: center;
           vertical-align: middle;
         }
+
         @media print {
-          @page { size: A4 portrait; margin: 0; }
-          html, body {
-            width: 210mm !important;
-            min-height: 297mm !important;
-            margin: 0 !important;
-            background: white !important;
-          }
+          /* Chrome hide + overflow; sheet WYSIWYG from ClinicalReportFrame/brand */
           .no-print { display: none !important; }
           .prepost-report-root {
             min-height: 0 !important;
+            height: auto !important;
             background: white !important;
+            overflow: visible !important;
           }
           .prepost-print-shell {
-            box-sizing: border-box;
-            width: 210mm !important;
-            margin: 0 auto !important;
             padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
           }
           .prepost-paper {
-            box-sizing: border-box !important;
-            width: 210mm !important;
-            height: 297mm !important;
-            min-height: 297mm !important;
+            /* legacy class (unused by frame); keep harmless if present */
+            width: auto !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
             margin: 0 !important;
+            padding: 0 !important;
             border: 0 !important;
             box-shadow: none !important;
-            border-radius: 0 !important;
-            padding: 10mm !important;
-            justify-content: center !important;
-            gap: 4mm !important;
-          }
-          .report-block {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          input, textarea, select {
-            -webkit-appearance: none !important;
-            appearance: none !important;
-            box-shadow: none !important;
-            outline: none !important;
-            font: inherit !important;
-            color: inherit !important;
-          }
-          table input {
-            border: 0 !important;
-            background: transparent !important;
+            overflow: visible !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
         }
-      `}</style>
+`}</style>
 
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
@@ -684,36 +666,48 @@ export default function PrePostOpReport({
               />
             </section>
 
-            <section className="space-y-3">
-              <div
-                className="flex items-center gap-2 border-b border-[#c2c7d1] pb-1"
-                dir="ltr"
-              >
-                <span className="h-2 w-2 rounded-full bg-[#00355f]" />
-                <h3 className="text-lg font-bold text-[#00355f]">
-                  Post-Operative Results
-                </h3>
-                <VaSummary
-                  metrics={[
-                    {
-                      title: "VA Post-Op",
-                      od: postVaOd,
-                      os: postVaOs,
-                      setOd: setPostVaOd,
-                      setOs: setPostVaOs,
-                    },
-                  ]}
-                />
-              </div>
-              <RefractionTable
-                title="Refraction"
-                od={residualOd}
-                os={residualOs}
-                setOd={setResidualOd}
-                setOs={setResidualOs}
-                showReading={false}
+            <label className="no-print mb-3 flex items-center gap-2 text-sm font-bold text-[#00355f]">
+              <Checkbox
+                checked={includePostOpResults}
+                onCheckedChange={(checked) =>
+                  setIncludePostOpResults(checked === true)
+                }
               />
-            </section>
+              Add Post-Operative Results
+            </label>
+
+            {includePostOpResults && (
+              <section className="space-y-3">
+                <div
+                  className="flex items-center gap-2 border-b border-[#c2c7d1] pb-1"
+                  dir="ltr"
+                >
+                  <span className="h-2 w-2 rounded-full bg-[#00355f]" />
+                  <h3 className="text-lg font-bold text-[#00355f]">
+                    Post-Operative Results
+                  </h3>
+                  <VaSummary
+                    metrics={[
+                      {
+                        title: "VA Post-Op",
+                        od: postVaOd,
+                        os: postVaOs,
+                        setOd: setPostVaOd,
+                        setOs: setPostVaOs,
+                      },
+                    ]}
+                  />
+                </div>
+                <RefractionTable
+                  title="Refraction"
+                  od={residualOd}
+                  os={residualOs}
+                  setOd={setResidualOd}
+                  setOs={setResidualOs}
+                  showReading={false}
+                />
+              </section>
+            )}
 
             <section className="grid grid-cols-[1fr_72mm] gap-8 border-t border-[#c2c7d1] pt-5">
               <label>

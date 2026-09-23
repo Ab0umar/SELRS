@@ -132,7 +132,7 @@ export class ZK4370SyncService {
           deviceId: deviceId,
           source: "tcp" as const,
           sourceRowId: `${r.enrollNo}_${r.timestamp.getTime()}`,
-          sourceHash: sha1(
+          sourceHash: zkSourceHash(
             `${r.enrollNo}|${r.timestamp.toISOString()}|${r.inOutMode}`,
           ),
           importedAt: new Date(),
@@ -311,14 +311,14 @@ export class ZK4370SyncService {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function sha1(s: string): string {
-  return crypto.createHash("sha256").update(s).digest("hex");
+export function zkSourceHash(s: string): string {
+  return crypto.createHash("sha1").update(s).digest("hex");
 }
 
 function empCdToUid(empCd: string): number {
   const n = parseInt(empCd, 10);
   if (!isNaN(n) && n >= 1 && n <= 65535) return n;
-  const hash = parseInt(sha1(empCd).slice(-4), 16);
+  const hash = parseInt(zkSourceHash(empCd).slice(-4), 16);
   return (hash % 65534) + 1;
 }
 

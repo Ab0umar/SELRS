@@ -182,6 +182,7 @@ export default function ClinicalReportsPage({
     <div className="w-full bg-background text-foreground print:bg-white">
       <style>{`
         @media print {
+          /* Letterhead ~5cm via sheet padding-top in medical-report-brand.css */
           @page {
             size: A4 portrait;
             margin: 0;
@@ -189,7 +190,9 @@ export default function ClinicalReportsPage({
           html, body {
             margin: 0 !important;
             padding: 0 !important;
-            width: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            overflow: visible !important;
             background: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -200,11 +203,10 @@ export default function ClinicalReportsPage({
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
-          .print\\:hidden,
+          /* Hide hub chrome only - do NOT blanket-hide document <header> */
+          .print\:hidden,
           .no-print,
-          header,
-          [role="tablist"],
-          button {
+          [role="tablist"] {
             display: none !important;
           }
           .page-layout {

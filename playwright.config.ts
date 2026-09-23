@@ -1,6 +1,10 @@
 import { defineConfig } from "@playwright/test";
 import "dotenv/config";
 
+// Keep the browser cache in the checked-out workspace so service-account and
+// interactive test runs use the same downloaded revision.
+process.env.PLAYWRIGHT_BROWSERS_PATH ??= "0";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,

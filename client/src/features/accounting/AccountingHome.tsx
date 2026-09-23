@@ -30,6 +30,9 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { formatMoneyAr, formatCountAr } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import AccountingLedger from "./AccountingLedger";
+import AccountingServiceEntry from "./AccountingServiceEntry";
+import AccountingLoanEntry from "./AccountingLoanEntry";
 
 function formatTime(isoDate: string) {
   const d = new Date(isoDate);
@@ -77,6 +80,7 @@ export default function AccountingHome() {
   const [expense, setExpense] = useState("");
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState(false);
+  const [entryTab, setEntryTab] = useState<"ledger" | "service" | "loan">("ledger");
   const [notesFocused, setNotesFocused] = useState(false);
   const [servicePat, setServicePat] = useState("");
   const [serviceDocCode, setServiceDocCode] = useState("");
@@ -354,8 +358,14 @@ export default function AccountingHome() {
                   ) : null}
                 </div>
               )}
-              <div className="flex flex-col gap-4 lg:flex-row-reverse lg:items-start">
-                <div className="flex-1 rounded-lg border border-border bg-background p-3">
+              <div className="flex rounded-lg border border-border bg-muted/40 p-1">
+                <button type="button" onClick={() => setEntryTab("ledger")} className={cn("flex-1 rounded-md px-4 py-2 text-sm font-black", entryTab === "ledger" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background")}>قيد خزنة</button>
+                <button type="button" onClick={() => setEntryTab("service")} className={cn("flex-1 rounded-md px-4 py-2 text-sm font-black", entryTab === "service" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background")}>خدمة</button>
+                <button type="button" onClick={() => setEntryTab("loan")} className={cn("flex-1 rounded-md px-4 py-2 text-sm font-black", entryTab === "loan" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background")}>قرض</button>
+              </div>
+              <div className="mt-4">
+                {entryTab === "ledger" && <AccountingLedger />}
+                {false && <div className="rounded-lg border border-border bg-background p-3">
                   <h3 className="mb-2 flex items-center gap-1.5 text-lg font-black text-foreground">
                     <Wallet className="h-4 w-4 text-muted-foreground " />
                     قيد خزنة
@@ -480,8 +490,10 @@ export default function AccountingHome() {
                     </button>
                   </div>
                 </div>
-                </div>
-                <div className="flex-1 rounded-lg border border-border bg-background p-3">
+                </div>}
+                {entryTab === "service" && <AccountingServiceEntry />}
+                {entryTab === "loan" && <AccountingLoanEntry />}
+                {false && <div className="rounded-lg border border-border bg-background p-3">
                   <h3 className="mb-2 flex items-center gap-1.5 text-sm font-black text-foreground">
                     <Scissors className="h-4 w-4 text-muted-foreground" />
                     خدمة
@@ -721,7 +733,7 @@ export default function AccountingHome() {
                   })()}
                   {addServicesMut.error && (
                     <p className="text-xs text-destructive">
-                      {addServicesMut.error.message}
+                      {addServicesMut.error?.message}
                     </p>
                   )}
                   <div className="flex justify-start pt-0.5">
@@ -740,7 +752,7 @@ export default function AccountingHome() {
                     </button>
                   </div>
                 </div>
-                </div>
+                </div>}
               </div>
             </div>
         </section>

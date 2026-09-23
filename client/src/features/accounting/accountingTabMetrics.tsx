@@ -53,22 +53,24 @@ export function useAccountingTabMetrics(metrics: OperationalMetric[]) {
     )
     .join("|");
 
+  const setTabMetrics = ctx?.setTabMetrics;
   useEffect(() => {
-    if (!ctx) return;
-    ctx.setTabMetrics(metrics);
-    return () => ctx.setTabMetrics([]);
+    if (!setTabMetrics) return;
+    setTabMetrics(metrics);
+    return () => setTabMetrics([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- signature captures metric content
-  }, [ctx, signature]);
+  }, [setTabMetrics, signature]);
 }
 
 /** Publish a center action (e.g. refresh button) into the metrics row. Clears on unmount. */
 export function useAccountingTabCenter(node: ReactNode) {
   const ctx = useContext(AccountingTabMetricsContext);
+  const setTabCenter = ctx?.setTabCenter;
   useEffect(() => {
-    if (!ctx) return;
-    ctx.setTabCenter(node);
-    return () => ctx.setTabCenter(null);
-  }, [ctx, node]);
+    if (!setTabCenter) return;
+    setTabCenter(node);
+    return () => setTabCenter(null);
+  }, [setTabCenter, node]);
 }
 
 export function useAccountingTabMetricsState() {

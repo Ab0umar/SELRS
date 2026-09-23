@@ -183,7 +183,7 @@ export default function SalaryPenalties() {
   }
   const lateEmpRows = Object.values(lateByEmp).sort((a, b) => a.empName.localeCompare(b.empName, "ar"));
 
-  // ── Missing Checkout Days ─────────────────────────────────────────────────
+  // ── Single raw-punch days (regardless of device In/Out direction) ─────────
   const missingCheckoutQ = (trpc as any).salary.listMissingCheckoutDays.useQuery({ fromDate, toDate });
   const mcExclusionsQ = (trpc as any).salary.listMissingCheckoutExclusions.useQuery({ fromDate, toDate });
   const toggleMcExclusionMut = (trpc as any).salary.toggleMissingCheckoutExclusion.useMutation({
@@ -343,7 +343,7 @@ export default function SalaryPenalties() {
         </tr>`).join("")
     ).join("");
     const html = `
-      <h1>كشف الحضور بدون انصراف (بصمة واحدة) — ${periodLabel}</h1>
+      <h1>كشف البصمة الواحدة — ${periodLabel}</h1>
       <table>
         <thead><tr>
           <th>الموظف</th><th>القسم</th><th>التاريخ</th>
@@ -1192,13 +1192,13 @@ export default function SalaryPenalties() {
         </section>
       )}
 
-      {/* Missing Checkout (one punch) tab */}
+      {/* Any single raw-punch day, regardless of device direction */}
       {tab === "missingcheckout" && (
         <section className="rounded-xl border border-border bg-background">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
-              <h3 className="text-base font-semibold">بصمة واحدة (بدون انصراف) — {periodLabel}</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">أيام الحضور التي لا يوجد فيها بصمة انصراف — خصم ¼ يوم لكل يوم</p>
+              <h3 className="text-base font-semibold">بصمة واحدة — {periodLabel}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">كل يوم له بصمة خام واحدة فقط، سواء سجّلها الجهاز حضورًا أو انصرافًا — خصم ¼ يوم لكل يوم</p>
             </div>
           </div>
 

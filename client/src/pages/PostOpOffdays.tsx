@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import PatientPicker from "@/components/PatientPicker";
 import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
@@ -102,6 +103,7 @@ export default function PostOpOffdays({
   const [patientName, setPatientName] = useState("");
   const [patientCode, setPatientCode] = useState("");
   const [patientDob, setPatientDob] = useState("");
+  const [includePostOpStatus, setIncludePostOpStatus] = useState(false);
 
   useEffect(() => {
     const days = diffDaysInclusive(leaveStart, returnDate);
@@ -208,111 +210,40 @@ export default function PostOpOffdays({
           width: 210mm;
           min-height: 297mm;
         }
+
         @media print {
-          @page { size: A4 portrait; margin: 0; }
-          html, body {
-            width: 210mm !important;
-            height: 297mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background: white !important;
-          }
+          /* Chrome hide + overflow; sheet WYSIWYG from ClinicalReportFrame/brand */
           .no-print { display: none !important; }
           .post-op-offdays-root {
             min-height: 0 !important;
-            height: 297mm !important;
+            height: auto !important;
             background: white !important;
-            overflow: hidden !important;
+            overflow: visible !important;
           }
           .offdays-print-shell {
             padding: 0 !important;
-            height: 297mm !important;
-            overflow: hidden !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
           }
           .offdays-paper {
-            width: 210mm !important;
-            height: 297mm !important;
+            /* legacy class (unused by frame); keep harmless if present */
+            width: auto !important;
+            height: auto !important;
             min-height: 0 !important;
-            max-height: 297mm !important;
+            max-height: none !important;
             margin: 0 !important;
+            padding: 0 !important;
             border: 0 !important;
             box-shadow: none !important;
-            padding: 30mm 18mm 12mm !important;
-            overflow: hidden !important;
-          }
-          .offdays-paper header {
-            margin-bottom: 6mm !important;
-            padding-bottom: 4mm !important;
-          }
-          .offdays-paper section {
-            margin-bottom: 5mm !important;
-          }
-          .offdays-recommendations {
-            margin-bottom: 1mm !important;
-          }
-          .offdays-paper section:nth-of-type(1) {
-            padding: 4mm !important;
-          }
-          .offdays-paper section:nth-of-type(1) h3 {
-            margin-bottom: 2mm !important;
-            font-size: 15px !important;
-          }
-          .offdays-paper p {
-            line-height: 1.45 !important;
-          }
-          .offdays-paper table th,
-          .offdays-paper table td {
-            padding-top: 1.6mm !important;
-            padding-bottom: 1.6mm !important;
-          }
-          .offdays-paper input,
-          .offdays-paper textarea {
-            height: 7mm !important;
-            min-height: 0 !important;
-            font-size: 15px !important;
-          }
-          .offdays-status-table input {
-            font-size: 16px !important;
-          }
-          .offdays-status-table textarea {
-            height: 32mm !important;
-            min-height: 32mm !important;
             overflow: visible !important;
-          }
-          .offdays-statement,
-          .offdays-status-table textarea {
-            font-size: 18px !important;
-            font-weight: 700 !important;
-            line-height: 1.35 !important;
-          }
-          .offdays-statement {
-            height: 27mm !important;
-            min-height: 27mm !important;
-            width: 100% !important;
-            max-width: none !important;
-            box-sizing: border-box !important;
-          }
-          .offdays-paper .h-20 {
-            height: 14mm !important;
-          }
-          .offdays-paper footer {
-            margin-top: 4mm !important;
-            padding-top: 3mm !important;
-            gap: 14mm !important;
-          }
-          .offdays-paper footer p {
-            margin-bottom: 3mm !important;
-          }
-          input {
-            box-shadow: none !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
         }
-      `}</style>
+`}</style>
 
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
@@ -431,6 +362,17 @@ export default function PostOpOffdays({
               </label>
             </section>
 
+            <label className="no-print mb-3 flex items-center gap-2 text-sm font-bold text-[#00355f]">
+              <Checkbox
+                checked={includePostOpStatus}
+                onCheckedChange={(checked) =>
+                  setIncludePostOpStatus(checked === true)
+                }
+              />
+              إضافة قياسات ما بعد العملية / Post-Op Status
+            </label>
+
+            {includePostOpStatus && (
             <section
               className="mb-8 overflow-hidden border border-[#c2c7d1]"
               dir="ltr"
@@ -440,7 +382,7 @@ export default function PostOpOffdays({
               </h3>
               <table className="offdays-status-table w-full table-fixed border-collapse text-center">
                 <thead>
-                  <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
+                  <tr className="bg-[#e8eff1] text-[13px] font-bold text-[#42474f]">
                     <th className="w-[9%] border border-[#c2c7d1] px-3 py-2">Eye</th>
                     <th className="w-[46%] border border-[#c2c7d1] px-3 py-2">VA</th>
                     <th className="w-[45%] border border-[#c2c7d1] px-3 py-2">
@@ -485,6 +427,7 @@ export default function PostOpOffdays({
                 </tbody>
               </table>
             </section>
+            )}
 
             <section className="mb-8 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)] gap-0 border-2 border-[#c2c7d1] p-5">
               <label className="min-w-0 border-l border-[#c2c7d1] px-3 text-center">
@@ -492,8 +435,8 @@ export default function PostOpOffdays({
                 <DateInput
                   value={leaveStart}
                   onChange={(event) => setLeaveStart(event.target.value)}
-                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-sm font-bold"
-                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-sm"
+                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-base font-bold"
+                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-base"
                 />
               </label>
               <label className="min-w-0 border-l border-[#c2c7d1] px-3 text-center">
@@ -501,8 +444,8 @@ export default function PostOpOffdays({
                 <DateInput
                   value={returnDate}
                   onChange={(event) => setReturnDate(event.target.value)}
-                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-sm font-bold"
-                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-sm"
+                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-base font-bold"
+                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-base"
                 />
               </label>
               <label className="min-w-0 px-3 text-center">

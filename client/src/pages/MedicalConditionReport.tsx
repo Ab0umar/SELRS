@@ -224,79 +224,40 @@ export default function MedicalConditionReport({
           width: 210mm;
           min-height: 297mm;
         }
+
         @media print {
-          @page { size: A4 portrait; margin: 0; }
-          html, body {
-            width: 210mm !important;
-            height: 297mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background: white !important;
-          }
+          /* Chrome hide + overflow; sheet WYSIWYG from ClinicalReportFrame/brand */
           .no-print { display: none !important; }
           .medical-condition-report-root {
             min-height: 0 !important;
-            height: 297mm !important;
+            height: auto !important;
             background: white !important;
-            overflow: hidden !important;
+            overflow: visible !important;
           }
           .mcr-print-shell {
             padding: 0 !important;
-            height: 297mm !important;
-            overflow: hidden !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
           }
           .mcr-paper {
-            width: 210mm !important;
-            height: 297mm !important;
+            /* legacy class (unused by frame); keep harmless if present */
+            width: auto !important;
+            height: auto !important;
             min-height: 0 !important;
-            max-height: 297mm !important;
+            max-height: none !important;
             margin: 0 !important;
+            padding: 0 !important;
             border: 0 !important;
             box-shadow: none !important;
-            padding: 30mm 18mm 12mm !important;
-            overflow: hidden !important;
-          }
-          .mcr-paper header {
-            margin-bottom: 6mm !important;
-            padding-bottom: 4mm !important;
-          }
-          .mcr-paper section {
-            margin-bottom: 5mm !important;
-          }
-          .mcr-paper section:nth-of-type(1) {
-            padding: 4mm !important;
-          }
-          .mcr-paper section:nth-of-type(1) h3 {
-            margin-bottom: 2mm !important;
-            font-size: 15px !important;
-          }
-          .mcr-paper p {
-            line-height: 1.45 !important;
-          }
-          .mcr-paper table th,
-          .mcr-paper table td {
-            padding-top: 1.6mm !important;
-            padding-bottom: 1.6mm !important;
-          }
-          .mcr-paper input,
-          .mcr-paper textarea {
-            box-shadow: none !important;
-          }
-          .mcr-paper footer {
-            margin-top: 4mm !important;
-            padding-top: 3mm !important;
-            gap: 14mm !important;
-          }
-          .mcr-paper footer p {
-            margin-bottom: 3mm !important;
+            overflow: visible !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
         }
-      `}</style>
+`}</style>
 
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
@@ -482,7 +443,7 @@ export default function MedicalConditionReport({
                 </h3>
                 <table className="w-full border-collapse text-center">
                   <thead>
-                    <tr className="bg-[#e8eff1] text-[12px] font-bold text-[#42474f]">
+                    <tr className="bg-[#e8eff1] text-[13px] font-bold text-[#42474f]">
                       <th className="border border-[#c2c7d1] px-3 py-2 text-center">Eye</th>
                       <th className="border border-[#c2c7d1] px-3 py-2 text-center">VA</th>
                     </tr>

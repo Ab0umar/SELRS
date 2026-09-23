@@ -76,7 +76,7 @@ export function ClinicalReportFrame({
     >
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          /* Letterhead padding on .report-sheet-body (Chrome ignores large @page top) */
           html, body {
             min-height: 0 !important;
             height: auto !important;
@@ -85,75 +85,77 @@ export function ClinicalReportFrame({
             overflow: visible !important;
             background: white !important;
           }
+          /* Letterhead ~5cm + compact content for single A4 page */
           main.clinical-report-frame {
-            box-sizing: border-box !important;
-            display: block !important;
-            width: 210mm !important;
-            min-width: 210mm !important;
-            max-width: 210mm !important;
-            min-height: 0 !important;
-            height: auto !important;
-            margin: 0 auto !important;
-            padding: 40mm 18mm 8mm !important;
-            border: 0 !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          main.clinical-report-frame > div {
-            position: static !important;
-            box-sizing: border-box !important;
-            width: 212.2mm !important;
-            margin: 0 auto !important;
             padding: 0 !important;
-            border: 0 !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            zoom: 0.82 !important;
-            transform: none !important;
-            transform-origin: top center !important;
           }
-          main.clinical-report-frame > div > header {
-            margin-bottom: 4mm !important;
-            padding-bottom: 3mm !important;
+
+          /* Tighten vertical rhythm so sheet fits one A4 under 5cm letterhead */
+          @page {
+            size: A4 portrait;
+            margin: 0;
           }
-          main.clinical-report-frame > div > section {
-            margin-bottom: 4mm !important;
-            gap: 3mm !important;
+          main.clinical-report-frame .report-sheet-body {
+            padding: 50mm 15mm 4mm 15mm !important;
+            font-size: 12px !important;
+            line-height: 1.25 !important;
           }
-          main.clinical-report-frame .clinical-report-content {
-            line-height: 1.35 !important;
-          }
-          main.clinical-report-frame .clinical-report-content > div {
-            gap: 3mm !important;
-          }
-          main.clinical-report-frame .clinical-report-content section {
-            margin-top: 0 !important;
+          main.clinical-report-frame .report-sheet-body > header {
             margin-bottom: 3mm !important;
+            padding-bottom: 2mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body h1 {
+            font-size: 15px !important;
+            line-height: 1.15 !important;
+          }
+          main.clinical-report-frame .report-sheet-body section {
+            margin-bottom: 2mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .mb-6 {
+            margin-bottom: 3mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .mb-4 {
+            margin-bottom: 2mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .mb-3,
+          main.clinical-report-frame .report-sheet-body .mb-2 {
+            margin-bottom: 1.5mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .gap-4,
+          main.clinical-report-frame .report-sheet-body .gap-x-4,
+          main.clinical-report-frame .report-sheet-body .gap-y-6 {
             gap: 2mm !important;
           }
-          main.clinical-report-frame .clinical-report-content section + section,
-          main.clinical-report-frame .clinical-report-content > * + * {
-            margin-top: 3mm !important;
+          main.clinical-report-frame .report-sheet-body .gap-3,
+          main.clinical-report-frame .report-sheet-body .gap-x-3,
+          main.clinical-report-frame .report-sheet-body .gap-y-2 {
+            gap: 1.5mm !important;
           }
-          main.clinical-report-frame .clinical-report-content table th,
-          main.clinical-report-frame .clinical-report-content table td {
-            padding-top: 1.2mm !important;
-            padding-bottom: 1.2mm !important;
+          main.clinical-report-frame .report-sheet-body .p-4,
+          main.clinical-report-frame .report-sheet-body .p-3,
+          main.clinical-report-frame .report-sheet-body .px-3,
+          main.clinical-report-frame .report-sheet-body .py-2 {
+            padding: 1.5mm !important;
           }
-          main.clinical-report-frame .clinical-report-content table th {
-            font-size: 13px !important;
+          main.clinical-report-frame .report-sheet-body table th,
+          main.clinical-report-frame .report-sheet-body table td,
+          main.clinical-report-frame .report-sheet-body .clinical-report-content table th,
+          main.clinical-report-frame .report-sheet-body .clinical-report-content table td {
+            padding: 2px 4px !important;
+            font-size: 12px !important;
+            line-height: 1.25 !important;
           }
-          main.clinical-report-frame .clinical-report-content table td,
-          main.clinical-report-frame .clinical-report-content table td input,
-          main.clinical-report-frame .clinical-report-content table td select {
-            font-size: 15px !important;
-            font-weight: 700 !important;
+          main.clinical-report-frame .report-sheet-body p,
+          main.clinical-report-frame .report-sheet-body label,
+          main.clinical-report-frame .report-sheet-body input,
+          main.clinical-report-frame .report-sheet-body textarea,
+          main.clinical-report-frame .report-sheet-body select {
+            font-size: 12px !important;
+            line-height: 1.25 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
           }
-          main.clinical-report-frame .clinical-report-content textarea {
-            min-height: 14mm !important;
-          }
+          /* Hide empty field chrome only — do not restyle typography/spacing */
           main.clinical-report-frame input::placeholder,
           main.clinical-report-frame textarea::placeholder {
             color: transparent !important;
@@ -170,13 +172,9 @@ export function ClinicalReportFrame({
           main.clinical-report-frame input[type="date"]:not([value])::-webkit-calendar-picker-indicator {
             visibility: hidden !important;
           }
-          main.clinical-report-frame > div > footer {
-            margin-top: 4mm !important;
-            padding-top: 3mm !important;
-          }
         }
       `}</style>
-      <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+      <div className="report-sheet-body rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:shadow-none">
         <header className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
           <div />
           <div className="text-left" dir="ltr">

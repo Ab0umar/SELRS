@@ -65,7 +65,7 @@ test.describe("today operations board", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     await expect(
-      page.getByRole("button", { name: "تسجيل", exact: true }),
+      page.getByRole("button", { name: /تسجيل مريض/ }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: /معالج/ })).toBeVisible();
     await expect(

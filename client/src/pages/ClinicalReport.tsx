@@ -293,24 +293,87 @@ export default function ClinicalReport({
     >
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          /* Sheet layout + 50mm letterhead: ClinicalReportFrame + medical-report-brand.css */
           body { background: white !important; }
-          .clinical-report-root, html, body { min-height: 0 !important; height: auto !important; }
-          .clinical-report-root > main {
-            box-sizing: border-box;
-            display: block;
-            width: 210mm;
-            margin: 0 auto;
-            padding: 40mm 10mm 10mm !important;
-            break-inside: avoid;
-            page-break-inside: avoid;
+          .clinical-report-root, html, body {
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
           }
-          .clinical-report-root > main > div {
-            position: static;
-            width: 190mm;
-            margin: 0 auto;
-            transform: none;
+          .clinical-print-shell {
+            padding: 0 !important;
+            display: block !important;
           }
+          main.clinical-report-frame {
+            padding: 0 !important;
+          }
+
+          /* Tighten vertical rhythm so sheet fits one A4 under 5cm letterhead */
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          main.clinical-report-frame .report-sheet-body {
+            padding: 50mm 15mm 4mm 15mm !important;
+            font-size: 12px !important;
+            line-height: 1.25 !important;
+          }
+          main.clinical-report-frame .report-sheet-body > header {
+            margin-bottom: 3mm !important;
+            padding-bottom: 2mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body h1 {
+            font-size: 15px !important;
+            line-height: 1.15 !important;
+          }
+          main.clinical-report-frame .report-sheet-body section {
+            margin-bottom: 2mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .mb-6 {
+            margin-bottom: 3mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .mb-4 {
+            margin-bottom: 2mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .mb-3,
+          main.clinical-report-frame .report-sheet-body .mb-2 {
+            margin-bottom: 1.5mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .gap-4,
+          main.clinical-report-frame .report-sheet-body .gap-x-4,
+          main.clinical-report-frame .report-sheet-body .gap-y-6 {
+            gap: 2mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .gap-3,
+          main.clinical-report-frame .report-sheet-body .gap-x-3,
+          main.clinical-report-frame .report-sheet-body .gap-y-2 {
+            gap: 1.5mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body .p-4,
+          main.clinical-report-frame .report-sheet-body .p-3,
+          main.clinical-report-frame .report-sheet-body .px-3,
+          main.clinical-report-frame .report-sheet-body .py-2 {
+            padding: 1.5mm !important;
+          }
+          main.clinical-report-frame .report-sheet-body table th,
+          main.clinical-report-frame .report-sheet-body table td,
+          main.clinical-report-frame .report-sheet-body .clinical-report-content table th,
+          main.clinical-report-frame .report-sheet-body .clinical-report-content table td {
+            padding: 2px 4px !important;
+            font-size: 12px !important;
+            line-height: 1.25 !important;
+          }
+          main.clinical-report-frame .report-sheet-body p,
+          main.clinical-report-frame .report-sheet-body label,
+          main.clinical-report-frame .report-sheet-body input,
+          main.clinical-report-frame .report-sheet-body textarea,
+          main.clinical-report-frame .report-sheet-body select {
+            font-size: 12px !important;
+            line-height: 1.25 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+          }
+
         }
         .clinical-ltr { direction: ltr; text-align: left; }
         .clinical-refraction-table th,
@@ -389,8 +452,9 @@ export default function ClinicalReport({
         </div>
       </header>
 
-      <main className="medical-report-page mx-auto max-w-[210mm] bg-background p-4 sm:p-8 print:p-[10mm]">
-        <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+      <div className="clinical-print-shell flex justify-center p-4 sm:p-8">
+      <main className="clinical-report-frame medical-report-page mx-auto max-w-[210mm] bg-background p-4 text-foreground sm:p-8">
+        <div className="report-sheet-body rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:shadow-none">
           {/* Header */}
           <div className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
             <div />
@@ -508,7 +572,7 @@ export default function ClinicalReport({
 
               {/* Refraction */}
               <div className="mb-6">
-                <div className="mb-2 flex items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-[11px] font-bold uppercase tracking-wide">
+                <div className="mb-2 flex items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-[12px] font-bold uppercase tracking-wide">
                   <span>
                     UCVA {selectedAutoref?.ucvaOD || "........."} /{" "}
                     {selectedAutoref?.ucvaOS || "........."}
@@ -529,7 +593,7 @@ export default function ClinicalReport({
                   </span>
                 </div>
                 <div className="border border-border/60 rounded overflow-hidden clinical-ltr">
-                  <table className="clinical-refraction-table w-full table-fixed border-collapse text-center text-[11px]">
+                  <table className="clinical-refraction-table w-full table-fixed border-collapse text-center text-[12px]">
                     <thead>
                       <tr className="bg-muted border-b border-border/60">
                         <th className="w-[18%] px-3 py-2">Refraction</th>
@@ -609,7 +673,7 @@ export default function ClinicalReport({
                   <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
                     Anterior Segment
                   </h3>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 text-[12px]">
                     <div>
                       <p className="text-[9px] text-muted-foreground font-bold uppercase">
                         OD
@@ -628,7 +692,7 @@ export default function ClinicalReport({
                   <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
                     Fundus Exam
                   </h3>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 text-[12px]">
                     <div>
                       <p className="text-[9px] text-muted-foreground font-bold uppercase">
                         OD
@@ -667,7 +731,7 @@ export default function ClinicalReport({
                       Recommendations
                     </p>
                     <Textarea
-                      className="text-[11px] print:border-0 print:p-0 print:resize-none"
+                      className="text-[12px] print:border-0 print:p-0 print:resize-none"
                       rows={4}
                       placeholder="Recommendations…"
                       value={recommendations}
@@ -701,6 +765,7 @@ export default function ClinicalReport({
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 }

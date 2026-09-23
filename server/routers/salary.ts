@@ -23,6 +23,7 @@ import {
   salaryHolidays,
   attendanceEmployees,
   attendanceDaily,
+  attendancePunches,
   attendanceMonthlyReport,
   shiftStaff,
   shiftAttendance,
@@ -52,6 +53,10 @@ import {
   calcPentacamPool,
 } from "../services/salary/payrollCompute.service";
 import { normalizeLateTiers } from "../services/salary/lateDeduction";
+import {
+  getSinglePunchDayKeys,
+  getWorkDateForPunch,
+} from "../services/salary/singlePunchDays";
 
 const allowanceInput = z.object({
   basicAmount: z.number().min(0),
@@ -1745,34 +1750,46 @@ export const salaryRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const rangeStart = new Date(`${input.fromDate}T00:00:00`);
+      const rangeEnd = new Date(`${input.toDate}T23:59:59.999`);
       const rows = await db
         .select({
-          empCd: attendanceDaily.empCd,
+          empCd: attendancePunches.empCd,
           empName: attendanceEmployees.fullName,
           department: attendanceEmployees.department,
-          workDate: attendanceDaily.workDate,
+          punchAt: attendancePunches.punchAt,
         })
-        .from(attendanceDaily)
+        .from(attendancePunches)
         .leftJoin(
           attendanceEmployees,
-          eq(attendanceDaily.empCd, attendanceEmployees.empCd),
+          eq(attendancePunches.empCd, attendanceEmployees.empCd),
         )
         .where(
           and(
-            gte(attendanceDaily.workDate, input.fromDate as any),
-            lte(attendanceDaily.workDate, input.toDate as any),
-            eq(attendanceDaily.status, "missing_checkout"),
+            gte(attendancePunches.punchAt, rangeStart),
+            lte(attendancePunches.punchAt, rangeEnd),
+          ),
+        );
+      const singlePunchDays = getSinglePunchDayKeys(rows as any[]);
+      return (rows as any[])
+        .filter((row) =>
+          singlePunchDays.has(
+            `${row.empCd}|${getWorkDateForPunch(row.punchAt)}`,
           ),
         )
-        .orderBy(attendanceEmployees.fullName, attendanceDaily.workDate);
-      return rows.map((r: any) => {
-        const d = r.workDate as any;
-        const workDate =
-          d instanceof Date
-            ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-            : String(d).slice(0, 10);
-        return { ...r, workDate };
-      });
+        .map((row) => ({
+          empCd: row.empCd,
+          empName: row.empName,
+          department: row.department,
+          workDate: getWorkDateForPunch(row.punchAt),
+        }))
+        .sort(
+          (a, b) =>
+            String(a.empName ?? a.empCd).localeCompare(
+              String(b.empName ?? b.empCd),
+              "ar",
+            ) || a.workDate.localeCompare(b.workDate),
+        );
     }),
 
   listEarlyLeaveDays: makeSalaryProcedure("/salary")
@@ -2803,11 +2820,12 @@ export const salaryRouter = router({
     .input(
       z.object({
         staffId: z.number(),
-        // array of {dayOfWeek: 0-6, shiftName: "Morning"|"Night"}
+        // A weekly template carries its actual roster times, not a shift label.
         cycle: z.array(
           z.object({
             dayOfWeek: z.number().min(0).max(6),
-            shiftName: z.string().min(1),
+            startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+            endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
           }),
         ),
       }),
@@ -2815,6 +2833,17 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      if (input.cycle.some((entry) => entry.endTime <= entry.startTime)) {
+        throw new Error("وقت الانتهاء يجب أن يكون بعد وقت البداية");
+      }
+      const uniqueCycleEntries = new Set(
+        input.cycle.map(
+          (entry) => `${entry.dayOfWeek}:${entry.startTime}-${entry.endTime}`,
+        ),
+      );
+      if (uniqueCycleEntries.size !== input.cycle.length) {
+        throw new Error("لا يمكن إضافة نفس وقت الشفت أكثر من مرة في اليوم نفسه");
+      }
       // Replace all cycle entries for this staff member
       await db
         .delete(shiftStaffCycle)
@@ -2824,7 +2853,10 @@ export const salaryRouter = router({
           input.cycle.map((c) => ({
             staffId: input.staffId,
             dayOfWeek: c.dayOfWeek,
-            shiftName: c.shiftName,
+            // The time pair keeps each same-day roster entry distinct.
+            shiftName: `${c.startTime}-${c.endTime}`,
+            startTime: c.startTime,
+            endTime: c.endTime,
           })),
         );
       }
@@ -2889,10 +2921,16 @@ export const salaryRouter = router({
                 month: input.month,
                 workDate: workDate as any,
                 shiftName: cycleEntry.shiftName,
+                startTime: cycleEntry.startTime,
+                endTime: cycleEntry.endTime,
                 present: true,
               })
               .onDuplicateKeyUpdate({
-                set: { shiftName: cycleEntry.shiftName },
+                set: {
+                  shiftName: cycleEntry.shiftName,
+                  startTime: cycleEntry.startTime,
+                  endTime: cycleEntry.endTime,
+                },
               }); // no-op: safe to re-run without resetting absences
             inserted++;
           }

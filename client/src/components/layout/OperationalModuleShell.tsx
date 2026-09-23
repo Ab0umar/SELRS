@@ -8,6 +8,7 @@ export interface OperationalNavigationItem {
   label: string;
   icon: LucideIcon;
   activeFor: string[];
+  children?: OperationalNavigationItem[];
 }
 
 export interface OperationalMetric {
@@ -68,10 +69,16 @@ function MetricChip({
           tone === "fixed" ? "text-primary" : "text-muted-foreground",
         )}
       />
-      <span className="text-[11px] font-semibold text-muted-foreground">
+      <span
+        dir="rtl"
+        className="text-[11px] font-semibold text-muted-foreground [unicode-bidi:isolate]"
+      >
         {metric.label}
       </span>
-      <span className="text-sm font-black tabular-nums tracking-tight text-foreground">
+      <span
+        dir="rtl"
+        className="text-sm font-black tabular-nums tracking-tight text-foreground [unicode-bidi:isolate]"
+      >
         {metric.value}
       </span>
     </div>
@@ -92,7 +99,7 @@ export default function OperationalModuleShell({
   fullWidth = false,
   moduleName,
 }: OperationalModuleShellProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const showMetrics =
     metrics.length > 0 || endMetrics.length > 0 || metricsCenter != null;
 
@@ -145,7 +152,16 @@ export default function OperationalModuleShell({
         <nav className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap rounded-2xl border border-border/60 bg-card p-1.5 shadow-sm print:hidden scrollbar-none">
           {navigation.map((item) => {
             const Icon = item.icon;
-            const active = isItemActive(location, item.activeFor);
+            const active = isItemActive(location, item.activeFor) || item.children?.some((child) => isItemActive(location, child.activeFor));
+            if (item.children?.length) return (
+              <label key={item.label} className={cn("inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold", active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+                <Icon className="h-4 w-4" />
+                <select aria-label={item.label} value={item.children.find((child) => isItemActive(location, child.activeFor))?.href ?? ""} onChange={(event) => { if (event.target.value) setLocation(event.target.value); }} className="max-w-40 cursor-pointer bg-transparent font-bold outline-none">
+                  <option value="" disabled>{item.label}</option>
+                  {item.children.map((child) => <option key={child.href} value={child.href}>{child.label}</option>)}
+                </select>
+              </label>
+            );
             return (
               <Link
                 key={item.href}

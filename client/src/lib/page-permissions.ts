@@ -176,6 +176,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     group: "الحسابات",
   },
   { id: "/accounting/cashbook", label: "دفتر الخزينة", group: "الحسابات" },
+  { id: "/accounting/expenses", label: "مصروفات الخزينة", group: "الحسابات" },
   { id: "/accounting/ledger", label: "دفتر الأستاذ", group: "الحسابات" },
   { id: "/accounting/advances", label: "السلف", group: "الحسابات" },
   { id: "/accounting/loans", label: "القروض", group: "الحسابات" },

@@ -14,6 +14,9 @@ const DailyRevenue = lazy(() => import("../features/accounting/DailyRevenue"));
 const AccountingCashbook = lazy(
   () => import("../features/accounting/AccountingCashbook"),
 );
+const AccountingExpenses = lazy(
+  () => import("../features/accounting/AccountingExpenses"),
+);
 const AccountingLedger = lazy(
   () => import("../features/accounting/AccountingLedger"),
 );
@@ -227,6 +230,9 @@ export const AccountingRoutes = (
         </ProtectedRoute>
       )}
     />
+    <Route path={ROUTES.accountingExpenses} component={() => (
+      <ProtectedRoute><AccountingShell><AccountingExpenses /></AccountingShell></ProtectedRoute>
+    )} />
     <Route
       path={ROUTES.accountingLedger}
       component={() => (

@@ -3,6 +3,7 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Download, Printer, Save } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
 import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
@@ -146,6 +147,7 @@ export default function ReferralLetter({
   );
   const [form, setForm] = useState<FormData>(initialForm);
   const [existingLetterId, setExistingLetterId] = useState<number | undefined>();
+  const [includeClinicalFindings, setIncludeClinicalFindings] = useState(false);
 
   useEffect(() => {
     if (hideHeaderSearch || onSelectPatient) {
@@ -457,24 +459,35 @@ export default function ReferralLetter({
             </div>
           </section>
 
-          {/* Clinical Findings table */}
-          <section>
+          <label className="print:hidden mb-3 flex items-center gap-2 text-sm font-bold text-primary">
+            <Checkbox
+              checked={includeClinicalFindings}
+              onCheckedChange={(checked) =>
+                setIncludeClinicalFindings(checked === true)
+              }
+            />
+            Add Clinical Findings
+          </label>
+
+          {includeClinicalFindings && (
+            <section>
+              {/* Clinical Findings table */}
             <div className="mb-2 flex flex-row-reverse items-center justify-between gap-4 border-b border-border/70 pb-2">
-              <h3 className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-primary">
+              <h3 className="shrink-0 text-[12px] font-bold uppercase tracking-wider text-primary">
                 Clinical Findings
               </h3>
-              <div className="flex flex-1 items-center justify-center gap-5 text-center text-[11px] font-bold uppercase">
+              <div className="flex flex-1 items-center justify-center gap-5 text-center text-[12px] font-bold uppercase">
                 <label className="flex items-center gap-1">
                   UCVA
                   <Input
-                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaOD}
                     onChange={set("vaOD")}
                     placeholder="…"
                   />
                   /
                   <Input
-                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaOS}
                     onChange={set("vaOS")}
                     placeholder="…"
@@ -483,14 +496,14 @@ export default function ReferralLetter({
                 <label className="flex items-center gap-1">
                   BCVA
                   <Input
-                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaBestOD}
                     onChange={set("vaBestOD")}
                     placeholder="…"
                   />
                   /
                   <Input
-                    className={`${FIELD} w-8 text-center text-xs font-bold`}
+                    className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaBestOS}
                     onChange={set("vaBestOS")}
                     placeholder="…"
@@ -499,14 +512,14 @@ export default function ReferralLetter({
                 <label className="flex items-center gap-1">
                   IOP
                   <Input
-                    className={`${FIELD} w-8 text-center text-xs font-bold ${iopODNum > 21 ? "text-destructive" : ""}`}
+                    className={`${FIELD} w-8 text-center text-sm font-bold ${iopODNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOD}
                     onChange={set("iopOD")}
                     placeholder="…"
                   />
                   /
                   <Input
-                    className={`${FIELD} w-8 text-center text-xs font-bold ${iopOSNum > 21 ? "text-destructive" : ""}`}
+                    className={`${FIELD} w-8 text-center text-sm font-bold ${iopOSNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOS}
                     onChange={set("iopOS")}
                     placeholder="…"
@@ -518,7 +531,7 @@ export default function ReferralLetter({
               className="overflow-hidden rounded-md border border-[#c3c6d6]"
               dir="ltr"
             >
-              <table className="w-full table-fixed border-collapse text-center text-xs">
+              <table className="w-full table-fixed border-collapse text-center text-sm">
                 <thead className="bg-[#e7e8ea] font-bold">
                   <tr>
                     <th className="w-[18%] border border-[#c3c6d6] px-2 py-2">
@@ -562,7 +575,7 @@ export default function ReferralLetter({
                             className="border border-[#c3c6d6] px-2 py-2"
                           >
                             <Input
-                              className={`${FIELD} text-center font-mono text-xs`}
+                              className={`${FIELD} text-center font-mono text-sm`}
                               value={value}
                               onChange={(event) =>
                                 setForm((previous) => ({
@@ -610,7 +623,8 @@ export default function ReferralLetter({
                 />
               </div>
             </div>
-          </section>
+            </section>
+          )}
 
           {/* Diagnosis + Reason */}
           <div className="grid grid-cols-2 gap-8">
@@ -749,7 +763,7 @@ export default function ReferralLetter({
         }
 
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A4 portrait; margin: 10mm; } /* letterhead via medical-report-brand.css padding-top 50mm */
           
           .print\\:hidden { display: none !important; }
           .hidden.print\\:block { display: block !important; }

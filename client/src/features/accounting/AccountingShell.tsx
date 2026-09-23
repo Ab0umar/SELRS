@@ -4,6 +4,7 @@ import {
   Home,
   BookOpen,
   Wallet,
+  Receipt,
   CreditCard,
   Landmark,
   Smartphone,
@@ -32,40 +33,16 @@ interface AccountingShellProps {
 // Top navigation (horizontal bar, single row, all breakpoints)
 const topbarNavItems = [
   {
-    href: "/accounting/ledger",
+    href: "/accounting",
     label: "القيود",
     icon: BookOpen,
-    activeFor: ["/accounting/ledger"],
+    activeFor: ["/accounting", "/accounting/ledger"],
   },
   {
     href: "/accounting/cashbook",
     label: "الخزنة",
     icon: Wallet,
     activeFor: ["/accounting/cashbook"],
-  },
-  {
-    href: "/accounting/advances",
-    label: "السلف",
-    icon: CreditCard,
-    activeFor: ["/accounting/advances"],
-  },
-  {
-    href: "/accounting/loans",
-    label: "القروض",
-    icon: Landmark,
-    activeFor: ["/accounting/loans"],
-  },
-  {
-    href: "/accounting/home-fund",
-    label: "البيت",
-    icon: Home,
-    activeFor: ["/accounting/home-fund"],
-  },
-  {
-    href: "/accounting/instapay",
-    label: "انستاباي",
-    icon: Smartphone,
-    activeFor: ["/accounting/instapay"],
   },
   {
     href: "/accounting/daily-revenue",
@@ -78,12 +55,6 @@ const topbarNavItems = [
     label: "إيراد الخدمات",
     icon: TrendingUp,
     activeFor: ["/accounting/service-revenue"],
-  },
-  {
-    href: "/accounting/lasik-cost",
-    label: "تكلفة الليزك",
-    icon: Calculator,
-    activeFor: ["/accounting/lasik-cost"],
   },
   {
     href: "/accounting/services",
@@ -115,15 +86,30 @@ const topbarNavItems = [
     activeFor: ["/accounting/doctor-account", "/accounting/doctor"],
   },
   {
-    href: "/accounting/dr-saadany",
-    label: "د. السعدني",
-    icon: UserRound,
-    activeFor: ["/accounting/dr-saadany"],
+    href: "/accounting/lasik-cost",
+    label: "تكلفة الليزك",
+    icon: Calculator,
+    activeFor: ["/accounting/lasik-cost"],
+  },
+  {
+    href: "/accounting/advances",
+    label: "الحسابات الفرعية",
+    icon: Wallet,
+    activeFor: [],
+    children: [
+      { href: "/accounting/advances", label: "السلف", icon: CreditCard, activeFor: ["/accounting/advances"] },
+      { href: "/accounting/loans", label: "القروض", icon: Landmark, activeFor: ["/accounting/loans"] },
+      { href: "/accounting/instapay", label: "InstaPay", icon: Smartphone, activeFor: ["/accounting/instapay"] },
+      { href: "/accounting/home-fund", label: "البيت", icon: Home, activeFor: ["/accounting/home-fund"] },
+      { href: "/accounting/dr-saadany", label: "د. السعدني", icon: UserRound, activeFor: ["/accounting/dr-saadany"] },
+      { href: "/accounting/expenses", label: "المصروفات", icon: Receipt, activeFor: ["/accounting/expenses"] },
+    ],
   },
 ];
 
 function AccountingShellInner({ children }: AccountingShellProps) {
   const { canAccess } = usePermissions();
+  const isLedgerPage = ["/accounting", "/accounting/ledger"].includes(window.location.pathname);
 
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -177,7 +163,9 @@ function AccountingShellInner({ children }: AccountingShellProps) {
       : []),
   ];
 
-  const visibleNavItems = topbarNavItems.filter((item) => canAccess(item.href));
+  const visibleNavItems = topbarNavItems.filter(
+    (item) => item.children?.length || canAccess(item.href),
+  );
   const tabMetrics = useAccountingTabMetricsState();
   const tabCenter = useAccountingTabCenterState();
 
@@ -187,7 +175,7 @@ function AccountingShellInner({ children }: AccountingShellProps) {
       title="النظام المالي والحسابات"
       description="قيود اليومية، الخزنة، السلف، القروض، والتقارير المالية"
       mark="ACC"
-      metrics={shellMetrics}
+      metrics={isLedgerPage ? [] : shellMetrics}
       metricsCenter={tabCenter}
       endMetrics={tabMetrics}
       navigation={visibleNavItems}

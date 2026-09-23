@@ -314,8 +314,14 @@ export function computeDay(ctx: DayContext): DayResult {
   result.firstIn = paired.firstIn;
   result.lastOut = paired.lastOut;
 
-  // No punches
+  // No arrival punch. A solitary late-half scan is still evidence of attendance;
+  // classify it as a single-punch day rather than absence. Device direction is
+  // unreliable, so absence is reserved for a day with no raw scans at all.
   if (!paired.firstIn) {
+    if (paired.lastOut) {
+      result.status = "missing_checkout";
+      return result;
+    }
     if (!ctx.shift.requirePunch) {
       // Auto-present: assume full shift worked
       result.status = "present";
@@ -602,12 +608,15 @@ export function partitionPunchesForShifts(
 
   for (const p of punches) {
     const time = p.punchAt.getTime();
-    const deviceCandidates = p.deviceId
-      ? shifts.filter((shift) => shiftMatchesDevice(shift.deviceId, p.deviceId))
+    const punchDeviceId = p.deviceId;
+    const deviceCandidates = punchDeviceId
+      ? shifts.filter((shift) =>
+          shiftMatchesDevice(shift.deviceId, punchDeviceId),
+        )
       : [];
     // A punch from a known device belongs only to a shift that allows it.
     // Manual punches have no device ID and continue to use the time fallback.
-    if (p.deviceId && deviceCandidates.length === 0) continue;
+    if (punchDeviceId && deviceCandidates.length === 0) continue;
     const candidates = deviceCandidates.length > 0 ? deviceCandidates : shifts;
     let closestShiftId = candidates[0].id;
     let minDistance = Infinity;
