@@ -173,6 +173,10 @@ android/app/key.properties
 # Root-level accidental artifacts and regenerated Android web bundle
 /I
 *.tgz
+/lighthouse-report.json
+/battery-report.html
+/logs.csv
+/access-review.json
 /.adminhub-design-backup-*/
 /.page-cleanup-backup-*/
 /android/app/src/main/assets/public/assets/
