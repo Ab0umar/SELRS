@@ -155,6 +155,8 @@ tmp_*.txt
 # Build assets in public (generated)
 
 # Secrets and certs
+y
+y.pub
 origin_cert.txt
 origin_key.txt
 *.keystore
@@ -167,6 +169,13 @@ android/app/key.properties
 /op
 /OD
 /selrs_web
+
+# Root-level accidental artifacts and regenerated Android web bundle
+/I
+*.tgz
+/.adminhub-design-backup-*/
+/.page-cleanup-backup-*/
+/android/app/src/main/assets/public/assets/
 
 # Typos
 capacitor.conkfig.ts
