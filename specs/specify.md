@@ -1,5 +1,8 @@
 # /specify — SRV100 Accounting Module (Phase 1: Read-Only, Lasik)
 
+> Historical Phase 1 specification (2026-05). Its read-only requirement is not the
+> current production policy; see Constitution v2.0.0 and ADR-004.
+
 > Companions: `specs/CONSTITUTION.md`, `specs/PROJECT_PRINCIPLES.md`.
 > This spec describes the Accounting module to be added beside the existing
 > Medical module inside the single SRV100 web app. It covers Phase 1 only
@@ -222,7 +225,7 @@ totalPaid, lastTransactionDate`). Uses `accounting.patientLasikSummary`.
 
 ## 8. Data Boundaries
 
-### MySQL (selrs26) — medical only, read-only for Accounting
+### MySQL (selrs26) — Medical data + production Accounting operational ledgers
 
 - `patients.patientCode` is the only field read by accounting code, and only
   for descriptive display (patient name, etc., if linked).

@@ -1,5 +1,9 @@
 # Phase 1 Sign-off — SRV100 Accounting Module
 
+> Historical Phase 1 acceptance record (2026-05). The read-only pass result is valid
+> for that release slice only; current production behavior is governed by
+> Constitution v2.0.0 and ADR-004.
+
 **Reviewer:** Claude (Final Reviewer — Task 20)  
 **Review date:** 2026-05-04  
 **Re-review date:** 2026-05-04 (B-1 cleared)  

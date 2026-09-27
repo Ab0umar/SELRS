@@ -1,5 +1,11 @@
 # ADR-001: Strict Module Separation
 
+> Historical decision. Its prohibition on all shared mutation paths is superseded
+> only for the established production integrations named in ADR-004 and Constitution
+> v2.0.0. Database ownership remains distinct, but Medical patient sync and the
+> Accounting service-link workflow cross that ownership boundary through named
+> integration helpers. The prohibition on arbitrary cross-imports remains.
+
 **Date:** 2026-05-07
 **Status:** Adopted
 

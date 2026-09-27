@@ -6,13 +6,15 @@
 
 ## Core Principles
 
-### I. Strict Module Separation (NON-NEGOTIABLE)
+### I. Strict Module Separation with Named Production Bridges
 
-The Medical module and the Accounting module MUST remain strictly separated at every
-layer: routes, tRPC routers, database access, permissions, and UI surfaces. Code,
-types, or queries from one module MUST NOT import from the other. Cross-module data
-linkage is allowed ONLY through the existing `PAT_CD` patient code key, and only at
-read-time inside reporting boundaries — never via shared mutation paths.
+The Medical and Accounting modules MUST remain separately owned: no direct
+cross-imports of domain routers, services, or UI; use only established integration
+boundaries and the shared `PAT_CD` / `patientCode` key where required. Existing
+production integrations are permitted: Medical patient synchronization to MSSQL,
+Accounting `addPatientServices` writing its receipt and MySQL patient-service link,
+and read-time patient lookup for accounting display. These do not authorize new
+cross-module writes or bypassing the established integration helpers.
 
 ### II. Service-Based Accounting Only
 
@@ -22,11 +24,23 @@ database. They MUST NOT be derived from patient identity, doctor identity, or an
 medical-side computation. Doctor or patient identifiers may appear as descriptive
 columns in a report, but never as the basis of a revenue calculation.
 
-### III. Read-Only Accounting APIs
+### III. Read-Only Reports and Scoped Production Accounting Writes
 
-All Accounting tRPC procedures MUST be `protectedProcedure` queries (read-only). Any
-mutation against MSSQL accounting is FORBIDDEN unless an explicit, documented
-constitutional amendment authorizes it for a named scope.
+Accounting is a live production workflow, not a read-only module. Existing reports
+and inquiries remain read-only. Existing writes are authorized only through their
+established procedures and data-store boundaries:
+
+- MSSQL receipt/service tables: `addPatientServices`, `deleteReceipt`,
+  `updateReceipt`, and `editReceiptServiceLine`.
+- MySQL Accounting ledgers/subledgers: existing ledger recalculation/mirroring,
+  cashbook, advances, home-fund, InstaPay, loans, and Dr. Saadany procedures/imports.
+- Access cashbook: existing administrator-only pull/push procedures.
+- Medical-to-MSSQL patient synchronization: existing Medical patient-sync flows.
+
+These writes MUST retain existing authorization guards, validated inputs, database
+helpers, and transaction/consistency behavior. New write procedures, broadened
+targets, or new cross-module/database write paths require explicit review and a
+documented constitutional amendment before implementation.
 
 ### IV. Use Existing Databases As-Is
 
@@ -56,10 +70,12 @@ touching shared infrastructure MUST run `pnpm check` minimum.
 
 ## System Boundaries & Constraints
 
-- **Out of scope (this phase):** OneDrive, full rebuild, DB redesigns, accounting
-  write APIs, mobile-first redesign of accounting screens.
-- **In scope (this phase):** Add Accounting beside Medical; connect to existing
-  MSSQL accounting DB; deliver service-revenue reports matching legacy outputs.
+- **Out of scope (without separate approval):** OneDrive, full rebuild, DB redesigns, new or
+  broadened Accounting/Medical write integrations beyond Principle III, mobile-first
+  redesign of accounting screens.
+- **Current production scope:** Maintain integrated Medical and Accounting workflows,
+  established data-store-specific writes/synchronization, and service-revenue reports
+  matching legacy outputs. New write paths require approval.
 - **UI:** Light mode, web-style. Preserve existing Arabic/English language per
   screen.
 - **Permissions:** Frontend `ProtectedRoute` + backend role-based procedures. Keep
@@ -89,4 +105,4 @@ touching shared infrastructure MUST run `pnpm check` minimum.
 - `CLAUDE.md` and `.claude/rules/*.md` are operational guidance, subordinate to
   this Constitution.
 
-**Version**: 1.0.0 | **Ratified**: 2026-05-03 | **Last Amended**: 2026-05-03
+**Version**: 2.0.0 | **Ratified**: 2026-05-03 | **Last Amended**: 2026-09-25

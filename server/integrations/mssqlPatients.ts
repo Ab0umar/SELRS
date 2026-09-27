@@ -2442,6 +2442,16 @@ async function overwriteMssqlPatientDemographics(
     req.input("GNDR", values.gender);
     assignments.push("GNDR = @GNDR");
   }
+  if (input.locationType !== undefined && targetCols.has("IDNO")) {
+    const locationType = String(input.locationType ?? "")
+      .trim()
+      .toLowerCase();
+    req.input(
+      "IDNO",
+      locationType === "external" ? 2 : locationType === "center" ? 1 : null,
+    );
+    assignments.push("IDNO = @IDNO");
+  }
   if (input.dateOfBirth !== undefined) {
     req.input("BDT", values.dobLiteral);
     assignments.push("BDT = @BDT");

@@ -13,6 +13,8 @@ import {
   getGlassesRecordsByPatient,
   getMedicalHistoryByPatient,
   getPrescriptionsWithItemsByPatient,
+  consumeLoginRateLimit,
+  clearLoginRateLimit,
 } from "../db";
 import {
   patientPortalSessions,
@@ -94,15 +96,28 @@ export const patientPortalRouter = router({
         patientCode: z.string().min(1).max(30),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const phone = normalizePhone(input.phone);
+      const clientIp = ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown";
+      const attemptKey = `patient-portal:${clientIp}:${phone}`;
+      const attempts = await consumeLoginRateLimit(
+        attemptKey,
+        new Date(),
+        15 * 60_000,
+      );
+      if (attempts !== null && attempts > 5) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many login attempts, try again later",
+        });
+      }
+
       const db = await getDb();
       if (!db)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-
-      const phone = normalizePhone(input.phone);
 
       const [patient] = await db
         .select({
@@ -142,6 +157,7 @@ export const patientPortalRouter = router({
       await db
         .insert(patientPortalSessions)
         .values({ patientId: patient.id, token, expiresAt });
+      await clearLoginRateLimit(attemptKey);
 
       return {
         token,

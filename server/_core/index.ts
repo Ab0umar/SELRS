@@ -2536,6 +2536,16 @@ async function startServer() {
     }
   });
   // tRPC API
+  // doctorPortal.login is a public password endpoint; constrain its requests
+  // before tRPC parses and dispatches the procedure.
+  app.use(
+    "/api/trpc/doctorPortal.login",
+    createApiRateLimiter(20, 15 * 60_000),
+  );
+  app.use(
+    "/api/trpc/patientPortal.login",
+    createApiRateLimiter(20, 15 * 60_000),
+  );
   app.use(
     "/api/trpc",
     createExpressMiddleware({

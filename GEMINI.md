@@ -8,16 +8,16 @@ This is the comprehensive context and rulebook for the SELRS application. It def
 
 SELRS is a full-stack, monolithic TypeScript medical center platform designed to manage clinical workflows and accounting. It integrates a React 19/Vite frontend with an Express + tRPC backend, using a dual-database architecture:
 1. **Medical Database (MySQL - `selrs26`)**: Handles patient registrations, examinations, clinic bookings, surgical scheduling, ZK synchronization (attendance), and system permissions. Managed via Drizzle ORM.
-2. **Accounting Database (MSSQL - `op2026`)**: An immutable legacy source of truth. All clinic receipts, invoice lines, and doctor fee shares are queried from this database. Parameterized `SELECT` queries only.
+2. **Accounting Database (MSSQL - `op2026`)**: The source of truth for clinic receipts, invoice lines, and doctor fee shares. Reports use parameterized reads; established, permission-guarded receipt/service workflows also write to this database.
 
 ### Medical vs. Accounting Philosophy
 
 | Feature | Medical Module | Accounting Module |
 | :--- | :--- | :--- |
 | **Database** | MySQL (`selrs26`) | MSSQL (`op2026`) |
-| **Data Direction** | Read + Write (Full CRUD) | Read-Only (SELECT only) |
+| **Data Direction** | Read + Write (Full CRUD) | Read reports + existing production writes by data-store scope |
 | **Primary Key** | `patients.id` (auto-increment) | `PAT_CD` (string, zero-padded, e.g., `"0013"`) |
-| **Sync Bridge** | `patients.patientCode` maps to `PAT_CD` at read-time | Same |
+| **Sync Bridge** | `patients.patientCode` maps to `PAT_CD` through established sync/link flows | Same |
 | **Permission Gate**| Role-based (doctor, nurse, tech, reception, admin) | Path-based `/accounting` permissions |
 | **UI Language** | Arabic + English mix | Arabic (RTL, Eastern Arabic-Indic digits) |
 | **State Updates** | Real-time WebSockets (session-cookie based) | Polling (60s auto-refresh) |
@@ -91,17 +91,20 @@ scripts/                     — Maintenance, database sync checks, migrations, 
 
 ### I. Strict Module Separation (Principle I)
 * **No Cross-Imports**: Medical code and Accounting code must NEVER import from each other. They must remain completely isolated.
-* **Bridge Key**: The ONLY connection point is matching `patients.patientCode` (MySQL) to `PAT_CD` (MSSQL) during read-time presentation.
-* **No Shared Mutations**: Never create a mutation that spans both databases or crosses the boundary.
+* **Bridge Key**: The existing `patients.patientCode` / `PAT_CD` key is used by established patient synchronization, accounting service linking, and read-time display lookup.
+* **Bounded Integrations**: Preserve existing Medical-to-MSSQL patient sync, Accounting `addPatientServices`, and their integration helpers. Do not create new cross-module/database write paths without an approved constitutional amendment.
 
 ### II. Service-Based Accounting Only (Principle II)
 * **Revenue Derivation**: All financial revenue metrics MUST be computed directly from `PAPAT_SRV` (line items) joined with `PAJRNRCVH` (invoice headers).
 * **Formula**: Gross = `QTY * PRC`, Net = `Gross - DISC_VL`.
 * **Prohibited**: Never calculate revenue or financial ratios using patient count, visit counts, or doctor schedule counts.
 
-### III. Read-Only Accounting APIs (Principle III)
-* All tRPC endpoints in `server/routers/accounting.ts` MUST be read-only `query` procedures.
-* **Exceptions**: Operations on the local MySQL-side Cashbook (`accLedger`, `accCategories`) and custom service entries mapping are allowed write privileges.
+### III. Production Accounting Read/Write Boundaries (Principle III)
+* Reports and inquiry procedures remain read-only.
+* Current MSSQL receipt/service writes: `addPatientServices`, `deleteReceipt`, `updateReceipt`, and `editReceiptServiceLine`.
+* Current MySQL Accounting writes cover the established ledger/cashbook, advances, home-fund, InstaPay, loans, and Dr. Saadany procedures/imports.
+* Access cashbook pull/push remains administrator-only (`triggerAccSync`, `triggerAccPush`).
+* Preserve existing path/role guards and helper/data-store boundaries; do not infer authorization for new writes.
 
 ### IV. JSX Constant Route Injection
 * Route collections in `client/src/App.tsx` must be structured as **JSX Constants, NOT function calls**.

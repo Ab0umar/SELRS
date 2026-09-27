@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.1.0 — aligned with Constitution v1.0.0, Principles v1.0.0. Updated 2026-06-14. Adds: app router split (JSX constants), doctor portal real-time WS notifications + auto-referral, Pentacam auto-linker, حجز filter in today queue.
+> Version: 2.2.0 — aligned with Constitution v2.0.0. Updated 2026-09-25: documents the current production accounting write scope.
 
 ---
 
@@ -22,9 +22,9 @@ SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monoli
 
 ## Main Goals
 
-- Replace legacy desktop OP (accounting) application with web-based reports matching row-by-row output
+- Replace legacy desktop OP (accounting) application with web-based reports and production receipt/service workflows matching legacy behavior
 - Modernize the medical workflow (registration, exam, operations) into a responsive web app
-- Strict separation between Medical and Accounting: no cross-module imports, no shared mutations
+- Strict separation between Medical and Accounting: no cross-module imports; only explicitly named production bridge `addPatientServices`
 - Service-based accounting only: all revenue derived from `PAPAT_SRV` service rows, never from patient/doctor/visit counts
 
 ## Medical vs Accounting Philosophy
@@ -32,10 +32,10 @@ SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monoli
 | Aspect          | Medical                                                  | Accounting                                                  |
 | --------------- | -------------------------------------------------------- | ----------------------------------------------------------- |
 | Database        | MySQL (`selrs26`)                                        | MSSQL (`op2026`)                                            |
-| Data direction  | Read + Write                                             | Read-Only (Phase 1)                                         |
+| Data direction  | Read + Write                                             | Read reports + scoped production receipt/service writes     |
 | Primary key     | `patients.id` (auto-increment)                           | `PAT_CD` (string, zero-padded)                              |
-| Access pattern  | Full CRUD                                                | SELECT only, parameterized                                  |
-| Bridge key      | `patients.patientCode` = MSSQL `PAT_CD` (read-time only) | Same                                                        |
+| Access pattern  | Full CRUD                                                | Read queries + four guarded receipt/service mutations       |
+| Bridge key      | `patients.patientCode` = MSSQL `PAT_CD`                  | Same; mutation bridge only in `addPatientServices`          |
 | Permission gate | Role-based (doctor, nurse, tech, reception, admin)       | `accountingProcedure` (path-based `/accounting` permission) |
 | UI language     | Arabic + English                                         | Arabic (Eastern Arabic-Indic digits for money)              |
 | State           | Real-time WebSocket updates                              | Polling (60s auto-refresh)                                  |
@@ -102,7 +102,7 @@ server/routers/
 ├── index.ts          → appRouter composition (ONLY allowed shared edit point)
 ├── medical.ts        → Medical CRUD (UNTOUCHABLE)
 ├── patient.ts        → Patient queries (UNTOUCHABLE)
-├── accounting.ts     → Accounting reports + MySQL cashbook mutations
+├── accounting.ts     → Accounting reports + guarded MSSQL/MySQL production mutations
 ├── kf.ts             → KF clinical module (isolated MySQL-only)
 ├── attendance.ts     → Attendance + fingerprint module + shift management
 ├── salary.ts         → Salary + payroll module
@@ -264,34 +264,39 @@ The clinics area in `adminNavGroups` / `staffNavGroups` is split into five `NavG
 
 # Database Separation Rules
 
-## MySQL (selrs26) — Medical Only
+## MySQL (selrs26) — Medical + Accounting Operational Data
 
-- **Owner:** Medical module (read + write via Drizzle ORM in `server/db.ts`)
-- **Accounting access:** Read-only reference of `patients.patientCode` for display only
-- **Forbidden for accounting:** Any write, any schema change, any new table
+- **Medical owner:** Medical patient, examination, and workflow data (read/write).
+- **Accounting owner:** Existing cashbook and subledgers (`accLedger`, advances,
+  home fund, InstaPay, loans, Dr. Saadany) through guarded Accounting procedures.
+- **Patient link:** Accounting may use `patients.patientCode` for the established
+  service-entry linking/display paths; do not use `patients.id` as an accounting key.
+- Schema changes remain governed by Principle IV; current writes do not authorize
+  schema redesign or arbitrary Medical-table mutations.
 - **Tables:** `patients`, `users`, `operations`, `audit_logs`, `branches`, `patient_service_entries`, `permissions`, etc.
 
-## MSSQL (op2026) — Accounting Source of Truth
+## MSSQL (op2026) — Accounting Source of Truth + Medical Patient Sync
 
-- **Owner:** Accounting module (read-only via `mssqlQuery()` in `server/services/accounting/mssqlAccounting.ts`)
-- **Access pattern:** Parameterized SELECT queries only
-- **Forbidden:** INSERT, UPDATE, DELETE, EXEC, MERGE, any DDL, any new indexes/tables
-- **Tables read:** `PAPATMF`, `MDTEAM`, `SRVCMF`, `PAJRNRCVH`, `PAPAT_SRV`, `DEPT`, `APPCODES`, `CMPMF`
-- **Connection:** `createMssqlPool()` from `server/integrations/mssqlPatients.ts` (UNTOUCHABLE)
+- **Reporting:** `mssqlQuery()` and report builders perform parameterized reads.
+- **Accounting writes:** receipt/service mutations are limited to
+  `addPatientServices`, `deleteReceipt`, `updateReceipt`, and
+  `editReceiptServiceLine` through established helpers.
+- **Medical sync:** Existing Medical patient synchronization writes the designated
+  patient data to MSSQL through its integration flow.
+- **No DDL/schema redesign:** Principle IV still forbids unapproved schema changes.
+- **Connection:** established helpers/pools in `server/integrations/`.
 
-## Allowed Bridge
+## Established Integration Boundaries
 
-- `patients.patientCode` (MySQL) maps to `PAT_CD` (MSSQL)
-- Used at read-time only for descriptive display (patient name enrichment)
-- 1358 matched codes, 2 MSSQL-only codes (`0013`, `0699`) handled with "No medical record linked" placeholder
-- **Never** used as a mutation path or shared key for writes
+- `patients.patientCode` (MySQL) maps to `PAT_CD` (MSSQL) for existing Medical
+  patient sync, Accounting service linking, and read-time name enrichment.
+- Keep these operations in their established integration helpers and preserve their
+  current authorization and consistency behavior.
 
-## Forbidden Operations
+## Prohibited Expansion
 
 - Accounting code importing from medical modules (or vice versa)
-- Shared mutation paths between modules
-- Accounting writing to MySQL
-- Medical writing to MSSQL accounting tables
+- New shared mutation paths or cross-database writes outside the established flows
 - New MSSQL tables or schema changes
 - Cross-module type imports (shared types go through `shared/` only)
 
@@ -495,12 +500,13 @@ LEFT JOIN PAPATMF p ON h.PAT_CD = p.PAT_CD
 - **Doctor Summary:** Service revenue pinned to one doctor code
 - All grouping and totalling done in `mappers.ts` (post-query aggregation)
 
-## Read-Only Rules
+## Accounting Read/Write Boundaries
 
-- `mssqlQuery()` in `server/services/accounting/mssqlAccounting.ts` is SELECT-only
+- Reporting `mssqlQuery()` in `server/services/accounting/mssqlAccounting.ts` is SELECT-only
 - `sqlBuilders.ts` produces parameterized queries — no string concatenation of user input
-- `grep -iE "INSERT|UPDATE|DELETE|EXEC|MERGE"` on `server/services/accounting/` must return zero results
-- No stored procedure calls, no dynamic SQL assembly
+- Production MSSQL mutations are limited to `addPatientServices`, `deleteReceipt`, `updateReceipt`, and `editReceiptServiceLine` in `accountingRouter` and their established integration helpers.
+- Keep these routes behind their existing role/path permission guards and validated schemas; retain parameterized SQL and existing transaction/consistency behavior.
+- No other MSSQL accounting write, stored-procedure call, or dynamic SQL assembly is authorized without a separate constitutional amendment.
 
 ---
 
@@ -691,24 +697,26 @@ server/services/accounting/
 
 # Critical Rules
 
-(From Constitution v1.0.0 — all NON-NEGOTIABLE)
+(From Constitution v2.0.0 — all NON-NEGOTIABLE)
 
-## Principle I: Strict Module Separation
+## Principle I: Strict Module Separation with Named Production Bridges
 
 - Medical and Accounting code, types, queries MUST NOT cross-import
-- Only bridge: `patientCode` = `PAT_CD` at read-time
-- No shared mutation paths
+- Established integrations use `patientCode` = `PAT_CD`: Medical patient sync to MSSQL, Accounting `addPatientServices` receipt/service linking, and patient lookup for display
+- Keep domain code separately owned; do not add cross-imports or new shared write paths
 
 ## Principle II: Service-Based Accounting Only
 
 - Revenue derived from `PAPAT_SRV`/`PAJRNRCVH` service rows only
 - NEVER from patient count, doctor count, visit count, or medical-side computation
 
-## Principle III: Read-Only Accounting APIs
+## Principle III: Production Accounting Read/Write Boundaries
 
-- All accounting tRPC procedures MUST be queries (no mutations)
-- Exception: MySQL-side cashbook operations and service entry additions (post-Phase 1 extensions)
-- Any new mutation requires constitutional amendment
+- Accounting reports/inquiries stay read-only
+- Existing MSSQL writes: `addPatientServices`, `deleteReceipt`, `updateReceipt`, `editReceiptServiceLine`
+- Existing MySQL writes: guarded ledger/cashbook, advances, home-fund, InstaPay, loans, and Dr. Saadany procedures/imports
+- Existing Access cashbook sync/push: administrator-only `triggerAccSync` / `triggerAccPush`
+- Preserve existing permission/helper boundaries; new write paths or broadened targets require a constitutional amendment
 
 ## Principle IV: Use Existing Databases As-Is
 
@@ -870,7 +878,7 @@ Every completed task reports:
 
 1. **Cross-importing between Medical and Accounting modules** — violates Principle I
 2. **Deriving revenue from patient/doctor/visit counts** — violates Principle II
-3. **Adding INSERT/UPDATE/DELETE to accounting SQL** — violates Principle III
+3. **Adding or broadening an Accounting write path beyond the established production procedures** — requires a constitutional amendment
 4. **Creating new MSSQL tables or renaming columns** — violates Principle IV
 5. **Shipping reports without legacy parity artifacts** — violates Principle V
 6. **Implementing before spec/plan/tasks exist** — violates Principle VI
@@ -917,12 +925,12 @@ After editing:
 
 - [ ] Run smallest relevant check (`pnpm check` / `pnpm test` / `pnpm build`)
 - [ ] Verify zero changes to protected files (`git diff --stat`)
-- [ ] Verify no mutating SQL verbs in accounting files (`grep -iE "INSERT|UPDATE|DELETE|EXEC|MERGE"`)
+- [ ] Verify Accounting writes stay within established guarded procedures and targets; audit any new write path against Constitution Principle III
 - [ ] Report: changed files, what changed, checks run, checks skipped
 
 ---
 
-**Document version:** 2.1.0 — updated 2026-06-14
-**Aligned with:** Constitution v1.0.0, Project Principles v1.0.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0
+**Document version:** 2.2.0 — updated 2026-09-25
+**Aligned with:** Constitution v2.0.0, Project Principles v1.1.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0
 **Plans complete:** 001–005 + 010 (app router split — JSX constants, dead import cleanup, Vite strip-impeccable-live plugin)
 **Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)

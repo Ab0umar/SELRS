@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { execSync } from "child_process";
+import { execFile as execFileCb } from "child_process";
+import { promisify } from "node:util";
 import path from "path";
 import { sql, eq } from "drizzle-orm";
 import { accAdvances as accAdvancesTable } from "../../drizzle/schema";
@@ -58,6 +59,8 @@ import {
   getReceiptsInquiry,
 } from "../services/accounting/receiptsInquiry.service";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
+
+const execFile = promisify(execFileCb);
 
 function getMssqlPatientsTable(): string {
   const configured = String(
@@ -1807,10 +1810,17 @@ export const accountingRouter = router({
       "sync-access-db.ts",
     );
     try {
-      const output = execSync(`npx tsx "${syncScript}"`, {
-        encoding: "utf8",
-        timeout: 120_000,
-      });
+      const { stdout: output } = await execFile(
+        process.execPath,
+        [
+          path.resolve(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs"),
+          syncScript,
+        ],
+        {
+          timeout: 120_000,
+          encoding: "utf8",
+        },
+      );
       return { success: true, log: output };
     } catch (e: any) {
       const log = [e.stdout, e.stderr].filter(Boolean).join("\n");
@@ -1832,10 +1842,17 @@ export const accountingRouter = router({
       "push-access-db.ts",
     );
     try {
-      const output = execSync(`npx tsx "${pushScript}"`, {
-        encoding: "utf8",
-        timeout: 120_000,
-      });
+      const { stdout: output } = await execFile(
+        process.execPath,
+        [
+          path.resolve(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs"),
+          pushScript,
+        ],
+        {
+          timeout: 120_000,
+          encoding: "utf8",
+        },
+      );
       return { success: true, log: output };
     } catch (e: any) {
       const log = [e.stdout, e.stderr].filter(Boolean).join("\n");

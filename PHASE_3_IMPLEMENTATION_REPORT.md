@@ -1,5 +1,9 @@
 # Phase 3 Production Hardening & Stabilization Report
 
+> Historical report (2026-05-07). The MSSQL read-only Accounting boundary described
+> below was the Phase 3 release scope, not current production policy. See Constitution
+> v2.0.0, ADR-004, and `ACCOUNTING_BOUNDARY.md` for current write boundaries.
+
 **Status:** ✅ PRODUCTION READY (All Critical Fixes Verified & Tested)
 **Date:** 2026-05-07
 **Version:** SRV100 v1.0 Phase 3

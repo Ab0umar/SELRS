@@ -10,6 +10,21 @@ export function getServiceTypeFilterVariants(serviceType: string): string[] {
   return [serviceType];
 }
 
+export const PATIENT_SERVICE_TYPES = [
+  "consultant",
+  "specialist",
+  "lasik",
+  "surgery",
+  "external",
+  "pentacam_c",
+  "pentacam_ex",
+  "pentacam_ex_c",
+  "surgery_external",
+  "surgery_center",
+  "pentacam_center",
+  "pentacam_external",
+] as const;
+
 // serviceType values whose patients are physically seen at an external
 // location. Used to derive `patients.locationType` whenever serviceType is
 // set/changed, since several queries (e.g. monthly/yearly stats) count by

@@ -1,5 +1,9 @@
 # ADR-002: Read-Only Accounting Module
 
+> Historical Phase 1 decision. This read-only scope is superseded for current
+> production by ADR-004 and Constitution v2.0.0. The record below documents the
+> original Phase 1 choice and is retained as history, not current implementation policy.
+
 **Date:** 2026-05-07
 **Status:** Adopted
 

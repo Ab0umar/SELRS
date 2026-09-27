@@ -150,4 +150,4 @@ review passes.
 
 ---
 
-**Version:** 1.0.0 — aligned with Constitution v1.0.0 (2026-05-03).
+**Version:** 1.1.0 — aligned with Constitution v2.0.0 (2026-09-25).

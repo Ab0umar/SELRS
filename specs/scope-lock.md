@@ -1,5 +1,10 @@
 # Scope Lock — SRV100 Accounting Module Phase 1
 
+> Historical Phase 1 artifact (2026-05). Its frozen read-only scope and write
+> prohibitions describe that original feature slice only. They are superseded for
+> current production by Constitution v2.0.0 and ADR-004; do not use this file to
+> block the established production Accounting write workflows.
+
 > **Status: FROZEN**
 > Ratified: 2026-05-03 | Aligned with Constitution v1.0.0, Spec v1.0.0, Plan v1.0.0.
 >

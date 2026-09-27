@@ -1,31 +1,36 @@
-# Accounting Data Boundary & MSSQL Sync Policy
+# Accounting Data Boundary & Production Write Policy
 
 ## Executive Summary
 
-Accounting data is **read-only from MSSQL**. SRV100 aggregates and reports financial data but never modifies source systems. This document locks accounting boundaries for production.
+SELRS is a live production Accounting system. Reports read financial data from MSSQL;
+approved receipt/service workflows also write to MSSQL. Cashbook and operational
+subledgers are written in MySQL, and the Access cashbook has administrator-only
+pull/push synchronization. The boundary is by data store and established procedure,
+not a blanket read-only rule.
 
 ## Data Ownership
 
-### MSSQL Tables (Authoritative, Read-Only)
+### MSSQL Tables (Authoritative; Read + Scoped Writes)
 
 All accounting source tables live in MSSQL and are **authoritative**:
 
 | Table       | Purpose          | Key Fields                                    | SRV100 Access       |
 | ----------- | ---------------- | --------------------------------------------- | ------------------- |
-| `PAJRNRCVH` | Receipt headers  | TR_NO, TR_DT, PAT_CD, TOTL, DISC, PA_VL, CNCL | Read-only           |
-| `PAPAT_SRV` | Service lines    | SRV_CD, QTY, PRC, PA_VL, DISC_VL, CNCL        | Read-only           |
+| `PAJRNRCVH` | Receipt headers  | TR_NO, TR_DT, PAT_CD, TOTL, DISC, PA_VL, CNCL | Query + approved receipt writes |
+| `PAPAT_SRV` | Service lines    | SRV_CD, QTY, PRC, PA_VL, DISC_VL, CNCL        | Query + approved service writes |
 | `SRVCMF`    | Service catalog  | SRV_CD, SRV_NM_AR                             | Read-only reference |
 | `MDTEAM`    | Doctor catalog   | DRS_CD, DRS_NM                                | Read-only reference |
 | `DEPT`      | Department codes | SEC_CD, SEC_NM                                | Read-only reference |
 
-### MySQL Tables (Reporting Cache, Derived)
+### MySQL Tables (Medical Data + Accounting Operational Ledgers)
 
 SRV100 aggregates accounting data into MySQL for reporting only:
 
 | Table                   | Purpose              | Derives From         | Update Frequency | Retention    |
 | ----------------------- | -------------------- | -------------------- | ---------------- | ------------ |
-| `patientServiceEntries` | Service links        | PAPAT_SRV            | Per MSSQL sync   | Indefinite   |
-| Report caches (if any)  | Dashboard aggregates | PAJRNRCVH, PAPAT_SRV | Query-time       | Session-only |
+| `patientServiceEntries` | Medical service links | MSSQL sync and `addPatientServices` | Established sync / production write | Indefinite |
+| `accLedger` and linked subledgers | Accounting cashbook, advances, home fund, InstaPay, loans, Dr. Saadany | Web entry, mirrors, imports, Access sync | Production writes | Operational |
+| Report caches (if any) | Dashboard aggregates | PAJRNRCVH, PAPAT_SRV | Query-time | Session-only |
 
 ## SQL Query Rules
 
@@ -130,18 +135,27 @@ These legacy behaviors are preserved to maintain parity:
 
 ## Access Control
 
-### Read-Only Boundary
+### Production Write Boundary
 
-- ✅ SRV100 can READ from PAJRNRCVH, PAPAT_SRV, reference tables
-- ❌ SRV100 CANNOT write to MSSQL
-- ❌ SRV100 CANNOT modify accounting transactions
-- ❌ SRV100 CANNOT cancel/void transactions
+- Accounting reports/inquiries remain read-only.
+- Current MSSQL receipt/service mutations are `addPatientServices`, `deleteReceipt`,
+  `updateReceipt`, and `editReceiptServiceLine` in `server/routers/accounting.ts`
+  and their established integration helpers.
+- MySQL cashbook and subledger changes use existing guarded procedures for ledger,
+  advances, home-fund, InstaPay, loans, and Dr. Saadany data.
+- Access cashbook synchronization is administrator-only via `triggerAccSync` and
+  `triggerAccPush`.
+- Medical patient synchronization to MSSQL remains an established Medical
+  integration, not permission for arbitrary Accounting writes.
+- No new mutation route, target table, or cross-database write path is authorized
+  here. Preserve existing permission guards, input validation, parameterized access,
+  and transaction/consistency behavior.
 
 ### User Permissions
 
-- `view_accounting` role: Can read all accounting reports
-- `admin` role: Can access accounting diagnostics
-- No user can write-back to MSSQL from SRV100
+- Existing Accounting path permissions gate Accounting procedures; write procedures
+  use `makeAccWriteProcedure` and Access synchronization uses `adminProcedure`.
+- Preserve path-based grants and administrator-only sync/push restrictions.
 
 ## Sync & Integration
 
@@ -223,6 +237,6 @@ These legacy behaviors are preserved to maintain parity:
 
 ---
 
-**Last Updated:** 2026-05-07
-**Policy Status:** Locked for Phase 3 production
+**Last Updated:** 2026-09-25
+**Policy Status:** Production scope aligned with Constitution v2.0.0
 **Owner:** Finance & Architecture teams

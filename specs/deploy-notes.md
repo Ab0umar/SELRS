@@ -1,5 +1,9 @@
 # Task 19 — Deployment Preparation (Phase 1 Accounting)
 
+> Historical Accounting Phase 1 deployment notes are retained as a release record.
+> References below to read-only MSSQL access and code-only rollback describe that
+> 2026 release slice, not current production policy; see Constitution v2.0.0 and ADR-004.
+
 **Document version:** 1.0.0 — aligned with Constitution v1.0.0, Project Principles v1.0.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0.  
 **Workspace verified:** `D:\C\SRV100` — **2026-05-04**
 

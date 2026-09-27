@@ -17,6 +17,12 @@ vi.mock("child_process", async () => {
   return {
     ...actual,
     execSync: vi.fn(() => ""),
+    execFile: Object.assign(vi.fn(), {
+      [Symbol.for("nodejs.util.promisify.custom")]: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+      })),
+    }),
   };
 });
 

@@ -1,5 +1,9 @@
 # Legacy Reports Inventory
 
+> Historical Accounting Phase 1 report-design artifact (2026-05). Its read-only
+> assumption describes report development at that time; current production policy
+> is Constitution v2.0.0 and ADR-004. Report derivation/parity guidance remains useful.
+
 Task 05 output for SRV100 Accounting Phase 1. Sources inspected first:
 
 - `specs/CONSTITUTION.md`
@@ -12,7 +16,11 @@ Task 05 output for SRV100 Accounting Phase 1. Sources inspected first:
 - `Acc_SRV100/SRV100_Plan.txt`
 - `Acc_SRV100/*.rtm`
 
-Rules applied: read-only accounting, service-based revenue, no database redesign, no Medical module changes, no invented SQL. Legacy report predicates such as `(1<>1)` are copied as found because OP appears to inject runtime filters there.
+Rules applied at the time: read-only accounting report development, service-based
+revenue, no database redesign, no Medical module changes, no invented SQL. The
+read-only assumption is historical; the report derivation/parity rules remain useful.
+Legacy report predicates such as `(1<>1)` are copied as found because OP appears to
+inject runtime filters there.
 
 ## RTM Mapping
 

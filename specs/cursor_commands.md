@@ -1,5 +1,9 @@
 # cursor_commands.md — SRV100 Accounting Phase 1
 
+> Historical Phase 1 executor prompts (2026-05). The read-only Accounting commands
+> below are obsolete for current production and MUST NOT be used to reject or replace
+> the live workflows. Current policy is Constitution v2.0.0 and ADR-004.
+
 Ready-to-copy Cursor commands for every **implementation** task in
 `specs/tasks.md` (Tasks 05 through 19). Tasks 01–04 and Task 20 are
 Claude-only (governance, specs, review) and are not included here.

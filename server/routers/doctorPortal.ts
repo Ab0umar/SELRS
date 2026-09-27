@@ -9,6 +9,8 @@ import {
   getDb,
   getGlassesRecordsByPatient,
   getPrescriptionsWithItemsByPatient,
+  consumeLoginRateLimit,
+  clearLoginRateLimit,
 } from "../db";
 import {
   externalDoctors,
@@ -36,8 +38,13 @@ async function logAccess(
     await db
       .insert(externalDoctorAccessLogs)
       .values({ externalDoctorId: doctorId, patientCode, action } as any);
-  } catch {
-    // non-critical
+  } catch (error) {
+    // Keep portal access available, but make audit-log failures observable.
+    console.warn("[doctor-portal] Failed to write access log", {
+      doctorId,
+      action,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -49,7 +56,22 @@ export const doctorPortalRouter = router({
         password: z.string().min(1),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const normalizedUsername = input.username.trim().toLowerCase();
+      const clientIp = ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown";
+      const attemptKey = `doctor-portal:${clientIp}:${normalizedUsername}`;
+      const attempts = await consumeLoginRateLimit(
+        attemptKey,
+        new Date(),
+        15 * 60_000,
+      );
+      if (attempts !== null && attempts > 5) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many login attempts, try again later",
+        });
+      }
+
       const db = await getDb();
       if (!db)
         throw new TRPCError({
@@ -89,6 +111,7 @@ export const doctorPortalRouter = router({
         { expiresIn: DOCTOR_SESSION_TTL_S },
       );
 
+      await clearLoginRateLimit(attemptKey);
       await logAccess(doctor.id, "", "login");
 
       return {

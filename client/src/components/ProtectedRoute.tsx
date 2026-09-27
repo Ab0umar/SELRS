@@ -20,6 +20,12 @@ const DEFINED_PERMISSION_PATHS = new Set(
 );
 const PERMISSIONS_CACHE_KEY = "selrs:my-permissions-cache";
 const PERMISSIONS_RECOVERY_INTERVAL_MS = 10_000;
+const PERMISSIONS_CACHE_TTL_MS = 60 * 60 * 1000;
+
+type CachedPermissions = {
+  permissions: string[];
+  cachedAt: number;
+};
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -51,25 +57,46 @@ function normalizePath(path: string): string {
   return cleanPath;
 }
 
-function readCachedPermissions(cacheKey: string): string[] | null {
+function readCachedPermissions(cacheKey: string): CachedPermissions | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(cacheKey);
     if (raw === null) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter((entry): entry is string => typeof entry === "string")
-      : [];
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      !Array.isArray(parsed.permissions) ||
+      typeof parsed.cachedAt !== "number" ||
+      !Number.isFinite(parsed.cachedAt) ||
+      Date.now() - parsed.cachedAt < 0 ||
+      Date.now() - parsed.cachedAt > PERMISSIONS_CACHE_TTL_MS
+    ) {
+      return null;
+    }
+    return {
+      permissions: parsed.permissions.filter(
+        (entry: unknown): entry is string => typeof entry === "string",
+      ),
+      cachedAt: parsed.cachedAt,
+    };
   } catch {
-    return [];
+    return null;
   }
 }
 
-function cachePermissions(cacheKey: string, permissions: string[]) {
-  if (typeof window === "undefined") return;
+function cachePermissions(
+  cacheKey: string,
+  permissions: string[],
+): CachedPermissions | null {
+  if (typeof window === "undefined") return null;
+  const cached = { permissions, cachedAt: Date.now() };
   try {
-    localStorage.setItem(cacheKey, JSON.stringify(permissions));
-  } catch {}
+    localStorage.setItem(cacheKey, JSON.stringify(cached));
+    return cached;
+  } catch {
+    return null;
+  }
 }
 
 function isPrintModeUrl(): boolean {
@@ -116,9 +143,10 @@ export default function ProtectedRoute({
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
     staleTime: 5 * 60 * 1000,
   });
-  const [cachedPermissions, setCachedPermissions] = useState<string[] | null>(
-    readCachedPermissions(permissionsCacheKey),
-  );
+  const [cachedPermissions, setCachedPermissions] =
+    useState<CachedPermissions | null>(
+      readCachedPermissions(permissionsCacheKey),
+    );
 
   useEffect(() => {
     setCachedPermissions(readCachedPermissions(permissionsCacheKey));
@@ -129,10 +157,20 @@ export default function ProtectedRoute({
       const permissions = ((permissionsQuery.data ?? []) as string[]).filter(
         (entry): entry is string => typeof entry === "string",
       );
-      setCachedPermissions(permissions);
-      cachePermissions(permissionsCacheKey, permissions);
+      setCachedPermissions(cachePermissions(permissionsCacheKey, permissions));
     }
   }, [permissionsCacheKey, permissionsQuery.data, permissionsQuery.isSuccess]);
+
+  useEffect(() => {
+    if (!cachedPermissions) return;
+    const expiresIn =
+      cachedPermissions.cachedAt + PERMISSIONS_CACHE_TTL_MS - Date.now();
+    const timer = window.setTimeout(
+      () => setCachedPermissions(null),
+      Math.max(0, expiresIn),
+    );
+    return () => window.clearTimeout(timer);
+  }, [cachedPermissions]);
 
   useEffect(() => {
     if (!permissionsQuery.isError || !user || userRole === "admin") return;
@@ -164,7 +202,7 @@ export default function ProtectedRoute({
   const allowedPaths = useMemo(() => {
     const raw =
       permissionsQuery.isError && cachedPermissions !== null
-        ? cachedPermissions
+        ? cachedPermissions.permissions
         : ((permissionsQuery.data ?? []) as string[]);
     const normalized = raw
       .map((entry) => normalizePath(entry.replace(/:r[w]?$/, "")))
@@ -355,7 +393,7 @@ export default function ProtectedRoute({
         (p) =>
           p === ROUTES.today ||
           p === ROUTES.todayRoute ||
-          p === "/today-patients",
+          p === ROUTES.todayPatients,
       );
     }
     if (!allowedPaths.length) {
@@ -425,6 +463,8 @@ export default function ProtectedRoute({
 
     if (
       userRole === "accountant" &&
+      permissionsVerified &&
+      allowedPaths.includes(ROUTES.accounting) &&
       (cleanPath === ROUTES.home || cleanPath === ROUTES.dashboard)
     ) {
       setLocation(ROUTES.accounting);

@@ -9,3 +9,4 @@ ADRs are immutable. If a decision is changed, a new ADR is created to supersede 
 - [ADR-001-module-separation.md](./ADR-001-module-separation.md)
 - [ADR-002-read-only-accounting.md](./ADR-002-read-only-accounting.md)
 - [ADR-003-mssql-mysql-boundary.md](./ADR-003-mssql-mysql-boundary.md)
+- [ADR-004-production-accounting-integrations.md](./ADR-004-production-accounting-integrations.md)

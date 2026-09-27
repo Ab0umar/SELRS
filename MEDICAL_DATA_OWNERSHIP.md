@@ -25,18 +25,21 @@ All medical record tables are **authoritative**. Display layers must read from t
 | `consentForms`                | Patient consent records         | MySQL | Yes       |
 | `surgeries`                   | Surgical records                | MySQL | Yes       |
 
-### Synced Fields (MSSQL → MySQL)
+### Synced Fields (MSSQL → MySQL, with Existing Medical Push Paths)
 
-The following patient fields are synced FROM MSSQL and stored in MySQL `patients` table:
+The following patient/service fields may be refreshed FROM MSSQL into MySQL by the
+existing import/sync flows. Medical registration and patient-update workflows also
+push their designated patient fields from MySQL TO MSSQL through the established
+integration helpers; MSSQL is not a read-only destination for the running system.
 
 | Field            | Source                 | Sync Frequency     | Cache Rule                       |
 | ---------------- | ---------------------- | ------------------ | -------------------------------- |
-| `doctorCode`     | PAPAT_SRV.SRV_BY1      | MSSQL nightly sync | Never cache in patientPageStates |
-| `doctorId`       | doctorsLookup join     | MSSQL nightly sync | Never cache in patientPageStates |
-| `serviceCode`    | PAPAT_SRV.SRV_CD       | MSSQL nightly sync | Never cache in patientPageStates |
-| `serviceType`    | service catalog        | MSSQL nightly sync | Never cache in patientPageStates |
-| `locationType`   | PAPAT_SRV metadata     | MSSQL nightly sync | Never cache in patientPageStates |
-| `treatingDoctor` | PAPAT_SRV.SRV_BY1 name | MSSQL nightly sync | Never cache in patientPageStates |
+| `doctorCode`     | PAPAT_SRV.SRV_BY1 / patient workflow | MSSQL sync + applicable patient push | Never cache in patientPageStates |
+| `doctorId`       | doctorsLookup join / patient workflow | MSSQL sync + applicable patient push | Never cache in patientPageStates |
+| `serviceCode`    | PAPAT_SRV.SRV_CD / patient workflow | MSSQL sync + applicable service push | Never cache in patientPageStates |
+| `serviceType`    | service catalog / patient workflow | MSSQL sync + applicable patient push | Never cache in patientPageStates |
+| `locationType`   | PAPAT_SRV metadata / patient workflow | MSSQL sync + applicable patient push | Never cache in patientPageStates |
+| `treatingDoctor` | PAPAT_SRV.SRV_BY1 name | MSSQL sync + applicable patient push | Never cache in patientPageStates |
 
 ### Forbidden Cache Fields
 
@@ -103,19 +106,23 @@ Current cleanup location:
 
 ## Sync Boundaries
 
-### MSSQL → MySQL (One-Way Read)
+### MSSQL → MySQL (Existing Pull/Refresh Flow)
 
 - **Source:** MSSQL PAJRNRCVH, PAPAT_SRV, MDTEAM, SRVCMF
 - **Destination:** MySQL `patients` table + `patientServiceEntries`
 - **Frequency:** Nightly (configurable)
-- **Direction:** Read-only from MSSQL
+- **Direction:** This sync flow reads MSSQL and updates MySQL; it is not the only
+  production data flow between these stores.
 - **Transformation:** Code maps MSSQL codes to MySQL IDs
 
-### MySQL ← → MSSQL (No Direct Write)
+### MySQL → MSSQL (Established Medical Patient Push)
 
-- ❌ SRV100 does NOT write back to MSSQL
-- ❌ Doctor/service codes flow one direction only (MSSQL → MySQL)
-- ✅ Manual patient edits stay in MySQL only
+- Medical patient registration and applicable patient edits use
+  `pushNewPatientToMssql()` through the established integration helpers.
+- Accounting service registration uses its separately authorized receipt/service
+  procedures; it is not a general medical-to-accounting write permission.
+- Keep field mapping, patient-code identity, helper-level validation, and current
+  error handling intact. Do not create direct ad hoc MSSQL writes.
 
 ## Data Flow Rules
 
@@ -141,7 +148,8 @@ No cache fallback allowed
 ```
 Load: patients table (MySQL) → doctorCode, serviceCode are synced values
 Display: Fresh from latest sync, never from patientPageStates
-Sync: MSSQL nightly → updates MySQL columns → invalidates cache
+Sync: Existing MSSQL refresh updates MySQL columns; patient registration/update
+flows may also push designated fields to MSSQL through the integration helper.
 ```
 
 ## Error Handling
@@ -160,7 +168,9 @@ Sync: MSSQL nightly → updates MySQL columns → invalidates cache
 
 ### Network Offline
 
-**If cannot reach MSSQL:** Use cached sync state (readonly). Do not attempt writes. ✅
+**If MSSQL is unavailable:** Preserve local MySQL data and follow the existing
+sync/push error-handling path; do not substitute an unapproved write or stale
+cross-store update.
 
 ## Testing & Validation
 
@@ -206,6 +216,6 @@ If cache invalidation breaks workflows:
 
 ---
 
-**Last Updated:** 2026-05-07
-**Policy Status:** Locked for Phase 3 production
+**Last Updated:** 2026-09-25
+**Policy Status:** Production data-ownership and established-sync policy
 **Owner:** Architecture team

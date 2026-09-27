@@ -1,5 +1,9 @@
 # claude_review_prompt.md — Claude Review Template for Executed Tasks
 
+> Historical template for Accounting Phase 1. Its original Phase 1 scope references
+> are retained, but review gates below are aligned with current production policy in
+> Constitution v2.0.0 and ADR-004.
+
 Use this prompt verbatim (fill the placeholders) to have Claude review any
 completed Accounting Phase 1 task before it is considered accepted. One
 review per task.
@@ -37,10 +41,11 @@ Check:
 - Did it break Medical? (confirm zero diffs to server/routers/medical.ts,
   server/db.ts, server/integrations/mssqlPatients.ts,
   client/src/components/ProtectedRoute.tsx)
-- Did it keep Accounting separated? (no imports between medical and
-  accounting code; no shared mutation paths)
-- Did it avoid DB redesign? (no new tables, no renamed columns, no schema
-  migrations, no INSERT/UPDATE/DELETE on MSSQL accounting)
+- Did it preserve module ownership and use only established integration
+  boundaries? New cross-imports or shared write paths require constitutional approval.
+- Did it avoid DB redesign? (no new tables, renamed columns, or schema migrations)
+- Are Accounting writes confined to the established production procedures and
+  their current MSSQL/MySQL/Access targets, with existing authorization preserved?
 - Did it match service-based accounting rules? (Principle II: revenue
   derived from PAPAT_SRV / PAJRNRCVH service rows, not from patient or
   medical-side counts)
@@ -87,13 +92,13 @@ Output (produce exactly these sections):
 ## Review gates enforced by this template
 
 - **Principle I (Separation):** changed-files list is cross-checked against
-  the untouchable list; any hit on it automatically triggers Needs Fixes.
+  task-specific protected files; established production integrations are not
+  automatically violations, but new cross-imports/write paths require approval.
 - **Principle II (Service-based):** revenue math provenance must be
   traceable to `PAPAT_SRV` / `PAJRNRCVH` joins; any patient-count or
   visit-count derivation triggers Needs Fixes.
-- **Principle III (Read-only):** any INSERT/UPDATE/DELETE/EXEC/MERGE verb
-  under `server/services/accounting/` or `server/routers/accounting.ts`
-  triggers Needs Fixes.
+- **Principle III (Production writes):** existing guarded Accounting mutations are
+  allowed. A new/broadened write path, target, or unguarded mutation triggers Needs Fixes.
 - **Principle IV (DBs as-is):** any migration file, schema edit, or new
   MSSQL object triggers Needs Fixes.
 - **Principle V (Legacy parity):** for report-touching tasks, missing or
@@ -105,5 +110,5 @@ Output (produce exactly these sections):
 
 ---
 
-**Template version:** 1.0.0 — aligned with Constitution v1.0.0, Principles
-v1.0.0.
+**Template version:** 1.1.0 — aligned with Constitution v2.0.0, Principles
+v1.1.0. Phase 1 task/scope references are historical.

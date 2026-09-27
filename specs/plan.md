@@ -1,5 +1,9 @@
 # /plan — SRV100 Accounting Module Phase 1 Implementation Plan
 
+> Historical Phase 1 plan (2026-05). Its read-only architecture and Constitution
+> Check record describe the original feature slice, not current production. See
+> Constitution v2.0.0 and ADR-004.
+
 > Companions: `specs/CONSTITUTION.md`, `specs/PROJECT_PRINCIPLES.md`,
 > `specs/specify.md`. This plan converts the spec into design artifacts.
 
@@ -144,7 +148,7 @@ All procedures are `managerProcedure` (admin/manager/accountant),
 - Empty results → empty array/zeroed totals, not an error.
 - Validation errors → `TRPCError({ code: 'BAD_REQUEST' })` via zod.
 
-## 5. MSSQL Read-Only Accounting Strategy
+## 5. Historical Phase 1 MSSQL Read-Only Accounting Strategy
 
 - Single shared pool via `createMssqlPool()` (existing). No new connection
   strings, no new env vars.

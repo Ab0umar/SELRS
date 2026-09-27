@@ -1,5 +1,9 @@
 # /tasks — SRV100 Accounting Module Phase 1
 
+> Historical Phase 1 task plan (2026-05). Read-only requirements below are retained
+> as historical implementation records; current production policy is Constitution
+> v2.0.0 and ADR-004.
+
 > Each task follows the mandatory schema from `specs/PROJECT_PRINCIPLES.md §2`.
 > Implementation tasks are model-routed per `specs/plan.md §10`. No task may
 > begin before tasks it depends on are accepted by Claude review.

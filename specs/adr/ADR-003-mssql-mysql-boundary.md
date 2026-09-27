@@ -1,5 +1,9 @@
 # ADR-003: MSSQL/MySQL Data Boundary
 
+> Historical boundary decision. Its absolute ban on cross-database writes is
+> superseded only for established production integrations named in ADR-004 and
+> Constitution v2.0.0; database ownership and all other boundary constraints remain.
+
 **Date:** 2026-05-07
 **Status:** Adopted
 

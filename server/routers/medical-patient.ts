@@ -20,7 +20,10 @@ import {
   syncSinglePatientFromMssql,
   deleteSinglePatientServiceFromMssqlByCode,
 } from "../integrations/mssqlPatients";
-import { isExternalServiceType } from "../../shared/serviceType";
+import {
+  isExternalServiceType,
+  PATIENT_SERVICE_TYPES,
+} from "../../shared/serviceType";
 import {
   patientServiceEntries,
   visits,
@@ -115,9 +118,7 @@ export const medicalPatientRoutes = {
         occupation: z.string().optional(),
         referralSource: z.string().optional(),
         branch: z.enum(["examinations", "surgery"]).optional(),
-        serviceType: z
-          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
-          .optional(),
+        serviceType: z.enum(PATIENT_SERVICE_TYPES).optional(),
         locationType: z.enum(["center", "external"]).optional(),
         doctorId: z.number().optional(),
         doctorCode: z.string().optional(),
@@ -810,9 +811,7 @@ export const medicalPatientRoutes = {
         address: z.string().optional(),
         occupation: z.string().optional(),
         gender: z.enum(["male", "female"]).optional(),
-        serviceType: z
-          .enum(["consultant", "specialist", "lasik", "surgery", "external"])
-          .optional(),
+        serviceType: z.enum(PATIENT_SERVICE_TYPES).optional(),
         locationType: z.enum(["center", "external"]).default("center"),
         doctorId: z.number().optional(),
         doctorCode: z.string().optional(),
