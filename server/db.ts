@@ -18,6 +18,7 @@ import {
   ne,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { deduplicateOperationHistory } from "./lib/operationHistory";
 import mysql from "mysql2/promise";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -7885,6 +7886,33 @@ export async function getServiceCodeOpTypeMappings() {
     .orderBy(serviceCodeOpTypeMap.serviceCode);
 }
 
+export async function getLinkedOperationTypesForPatient(patientId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [services, history]: [Array<{ patientId: number; operationType: string; operationDate: string | Date | null; serviceCode: string }>, Array<typeof patientOperations.$inferSelect>] = await Promise.all([
+    db.select({
+      patientId: patientServiceEntries.patientId,
+      operationType: serviceCodeOpTypeMap.operationType,
+      operationDate: patientServiceEntries.serviceDate,
+      serviceCode: patientServiceEntries.serviceCode,
+    }).from(patientServiceEntries)
+      .innerJoin(serviceCodeOpTypeMap, eq(patientServiceEntries.serviceCode, serviceCodeOpTypeMap.serviceCode))
+      .where(eq(patientServiceEntries.patientId, patientId)),
+    db.select().from(patientOperations).where(eq(patientOperations.patientId, patientId)),
+  ]);
+  const linked = deduplicateOperationHistory([
+    ...services.map((row) => ({ ...row, source: "service_code" })),
+    ...history.filter((row) => row.source !== "service_code").map((row) => ({ ...row, serviceCode: null })),
+  ]);
+  return linked.sort((a, b) => String(b.operationDate ?? "").localeCompare(String(a.operationDate ?? "")))
+    .map((row) => ({
+      operationType: row.operationType,
+      operationDate: row.operationDate,
+      serviceCode: row.serviceCode,
+      source: row.source,
+    }));
+}
+
 export async function upsertServiceCodeOpTypeMapping(input: {
   serviceCode: string;
   operationType: string;
@@ -8027,6 +8055,7 @@ export async function getPatientOperationTypeCounts() {
       patientId: patientOperations.patientId,
       operationType: patientOperations.operationType,
       operationDate: patientOperations.operationDate,
+      source: patientOperations.source,
     })
     .from(patientOperations)
     .innerJoin(patients, eq(patientOperations.patientId, patients.id));
@@ -8034,14 +8063,14 @@ export async function getPatientOperationTypeCounts() {
   const buckets = new Map<string, Set<string>>(
     OP_TYPES.map((type) => [type, new Set<string>()]),
   );
-  for (const row of raw) {
+  for (const row of deduplicateOperationHistory(raw)) {
     const canonical = resolveCanonicalOpType(row.operationType);
     const operationDate = row.operationDate
       ? row.operationDate instanceof Date
         ? row.operationDate.toISOString().slice(0, 10)
         : String(row.operationDate).slice(0, 10)
       : "";
-    buckets.get(canonical)?.add(`${Number(row.patientId)}:${operationDate}`);
+    buckets.get(canonical)?.add(`${Number(row.patientId)}:${row.operationType}:${operationDate}`);
   }
   // Fixed tab order (PRK/Lasik/FL/FS/IOL/ICL/Cataract/Squint/Others), not
   // resorted by count — these are stable tabs, not a leaderboard.
@@ -8050,15 +8079,6 @@ export async function getPatientOperationTypeCounts() {
     count: buckets.get(t)?.size ?? 0,
   }));
 }
-
-const OP_HISTORY_SOURCE_PRIORITY: Record<string, number> = {
-  operation_list: 0,
-  manual: 1,
-  surgery: 2,
-  followup: 3,
-  sheet: 4,
-  service_code: 5,
-};
 
 async function rawOperationTypesForCanonical(
   canonical: string,
@@ -8108,18 +8128,10 @@ export async function getPatientOperationsByType(input: {
   // billed). Only fall back to the patient's service-derived locationType
   // when the operation's doctorCode has no matching row in `doctors` at
   // all (COALESCE picks the first non-null).
-  if (input.locationType) {
-    conditions.push(
-      eq(
-        sql`COALESCE(${doctorsLookup.locationType}, ${patients.locationType})`,
-        input.locationType,
-      ),
-    );
-  }
   const whereClause =
     conditions.length > 1 ? and(...conditions) : conditions[0];
 
-  const rows = await db
+  const rows: Array<Pick<typeof patientOperations.$inferSelect, "id" | "patientId" | "operationType" | "operationDate" | "source" | "doctorCode" | "eye" | "notes"> & { patientFullName: string; patientCode: string; resolvedLocationType: string | null }> = await db
     .select({
       id: patientOperations.id,
       patientId: patientOperations.patientId,
@@ -8131,6 +8143,7 @@ export async function getPatientOperationsByType(input: {
       doctorCode: patientOperations.doctorCode,
       eye: patientOperations.eye,
       notes: patientOperations.notes,
+      resolvedLocationType: sql<string | null>`COALESCE(${doctorsLookup.locationType}, ${patients.locationType})`,
     })
     .from(patientOperations)
     .innerJoin(patients, eq(patientOperations.patientId, patients.id))
@@ -8141,25 +8154,9 @@ export async function getPatientOperationsByType(input: {
     .where(whereClause)
     .orderBy(desc(patientOperations.operationDate));
 
-  const uniqueRows = new Map<string, (typeof rows)[number]>();
-  for (const row of rows) {
-    const operationDate = row.operationDate
-      ? row.operationDate instanceof Date
-        ? row.operationDate.toISOString().slice(0, 10)
-        : String(row.operationDate).slice(0, 10)
-      : "";
-    const key = `${Number(row.patientId)}:${operationDate}`;
-    const existing = uniqueRows.get(key);
-    if (
-      !existing ||
-      (OP_HISTORY_SOURCE_PRIORITY[row.source] ?? 99) <
-        (OP_HISTORY_SOURCE_PRIORITY[existing.source] ?? 99)
-    ) {
-      uniqueRows.set(key, row);
-    }
-  }
-
-  return Array.from(uniqueRows.values()).slice(offset, offset + input.pageSize);
+  return deduplicateOperationHistory(rows)
+    .filter((row) => !input.locationType || row.resolvedLocationType === input.locationType)
+    .slice(offset, offset + input.pageSize);
 }
 
 export async function getPatientServiceEntriesByPatients(patientIds: number[]) {

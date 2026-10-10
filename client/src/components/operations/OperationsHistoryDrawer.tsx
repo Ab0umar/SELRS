@@ -1,5 +1,5 @@
 import { X, Search, Loader, Trash2, CalendarClock, FolderOpen, User } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -92,6 +92,20 @@ export function OperationsHistoryDrawer({
       }) as { item: any; matches: string[]; hasMatch: boolean }[];
   }, [historyQuery.data, historySearch, activeTab]);
 
+  // Escape closes the panel and focus returns to the control that opened it.
+  useEffect(() => {
+    if (!(open)) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previous?.focus?.();
+    };
+  }, [open, onClose]);
+
   const needle = historySearch.trim().toLowerCase();
 
   if (!open) return null;
@@ -107,7 +121,7 @@ export function OperationsHistoryDrawer({
 
       {/* Drawer panel */}
       <aside
-        className="fixed inset-y-0 left-0 z-50 flex w-full max-w-xl md:max-w-2xl flex-col bg-background border-r border-border/60 shadow-2xl print:hidden"
+        className="fixed inset-y-0 end-0 z-50 flex w-full max-w-xl md:max-w-2xl flex-col bg-background border-s border-border/60 shadow-2xl print:hidden"
         dir="rtl"
         role="dialog"
         aria-modal="true"
@@ -124,25 +138,25 @@ export function OperationsHistoryDrawer({
               <p className="text-xs text-muted-foreground">استعرض واسترجع القوائم السابقة المسجلة بسهولة</p>
             </div>
           </div>
-          <button
+          <Button variant="bare"
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Search */}
         <div className="px-5 py-3 border-b border-border/60 bg-card">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={historySearch}
               onChange={(e) => onHistorySearchChange(e.target.value)}
               placeholder="ابحث باسم المريض أو تاريخ القائمة…"
-              className="h-10 pr-9 text-right text-sm bg-muted/30 border-border focus:bg-card rounded-xl"
+              className="h-10 ps-9 text-start text-sm bg-muted/30 border-border focus:bg-card rounded-xl"
               dir="rtl"
               aria-label="بحث في سجل العمليات"
             />
@@ -256,7 +270,7 @@ export function OperationsHistoryDrawer({
                                   {operationTypeLabel(bk.operationType)} — {bk.casesCount} حالة
                                 </div>
                               </div>
-                              <div className="text-[11px] font-mono text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md" dir="ltr">
+                              <div className="text-[13px] font-mono text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md" dir="ltr">
                                 {bk.bookingDate} {bk.bookingTime || ""}
                               </div>
                             </div>
@@ -347,22 +361,22 @@ function HistoryItem({
           <span className="font-bold text-xs text-foreground truncate">
             {item.doctorName ?? tabLabelByKey(item.doctorTab)}
           </span>
-          <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
+          <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.2 text-[13px] font-semibold text-primary">
             <CalendarClock className="h-2.5 w-2.5" />
             {formatDayDate(item.listDate)}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground">
           <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.2 font-medium text-foreground">
             {operationTypeLabel(item.operationType ?? "Other")}
           </span>
           {item.items?.length ? (
-            <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded">
+            <span className="text-[13px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded">
               {item.items.length} حالة
             </span>
           ) : null}
           {(matches[0] || item.items?.[0]?.name) && (
-            <span className="text-muted-foreground font-medium text-[11px]">
+            <span className="text-muted-foreground font-medium text-[13px]">
               • {matches[0] ?? item.items?.[0]?.name}
             </span>
           )}
@@ -372,7 +386,7 @@ function HistoryItem({
         <Button
           variant="default"
           size="sm"
-          className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-7 px-2.5 rounded-lg text-[11px] gap-1 shadow-2xs"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-7 px-2.5 rounded-lg text-[13px] gap-1 shadow-2xs"
           onClick={() => {
             onLoadListById(item.id);
             onClose();

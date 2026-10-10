@@ -36,7 +36,16 @@ export const OP_TYPE_OPTIONS = OP_TYPES.map((value) => ({
 // "Others" is not matched by alias; it's whatever doesn't match anything else.
 export const OP_TYPE_ALIASES: Record<Exclude<OpType, "Others">, string[]> = {
   PRK: ["prk"],
-  Lasik: ["lasik", "ليزك"],
+  Lasik: [
+    "lasik",
+    "ليزك",
+    "lasik moria 130",
+    "lasik moria 90",
+    "lasik metal",
+    "sbk130",
+    "sbk90",
+    "sbk metal",
+  ],
   FL: ["fl", "femto lasik", "فيمتو ليزك"],
   FS: ["fs", "femto smile", "فيمتو سمايل", "smile", "سمايل"],
   IOL: ["iol"],

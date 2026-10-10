@@ -138,37 +138,44 @@ export default function OpHistory() {
   };
 
   return (
-    <div className="w-full space-y-6 pb-4 text-right" dir="rtl">
+    <div className="w-full space-y-6 pb-4 text-start" dir="rtl">
       <Card className="rounded-lg border-border shadow-none">
         <CardContent className="space-y-3 p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap flex-1 items-center gap-2 min-w-[280px]">
               <form
                 onSubmit={handleSearchSubmit}
-                className="flex flex-1 min-w-[180px] sm:min-w-[220px] items-center gap-1.5"
+                className="flex min-w-0 flex-1 items-center gap-1.5 sm:min-w-[220px]"
               >
                 <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <label htmlFor="op-history-search" className="sr-only">
+                    البحث في سجل العمليات
+                  </label>
+                  <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
+                    id="op-history-search"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="بحث بالاسم أو كود المريض…"
-                    className="h-9 pr-9 text-xs sm:text-sm"
+                    className="h-9 ps-9 text-xs sm:text-sm"
                   />
                 </div>
-                <button
+                <Button variant="bare"
                   type="submit"
-                  className="inline-flex h-9 items-center gap-1 rounded-md border bg-background px-3 text-xs font-semibold hover:bg-accent"
+                  className="inline-flex min-h-11 items-center gap-1 rounded-md border bg-background px-3 text-xs font-semibold hover:bg-accent"
                 >
                   بحث
-                </button>
+                </Button>
               </form>
 
               <Select
                 value={locationType}
                 onValueChange={handleLocationTypeChange}
               >
-                <SelectTrigger className="h-9 w-28 sm:w-32 text-xs">
+                <SelectTrigger
+                  aria-label="تصفية حسب مكان العملية"
+                  className="h-9 w-28 text-xs sm:w-32"
+                >
                   <SelectValue placeholder="المكان" />
                 </SelectTrigger>
                 <SelectContent>
@@ -182,7 +189,10 @@ export default function OpHistory() {
                 value={String(pageSize)}
                 onValueChange={handlePageSizeChange}
               >
-                <SelectTrigger className="h-9 w-24 sm:w-28 text-xs">
+                <SelectTrigger
+                  aria-label="عدد العمليات في الصفحة"
+                  className="h-9 w-24 text-xs sm:w-28"
+                >
                   <SelectValue placeholder="عدد النتائج" />
                 </SelectTrigger>
                 <SelectContent>
@@ -195,7 +205,7 @@ export default function OpHistory() {
               </Select>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
               {isAdmin && (
                 <Button
                   variant="outline"
@@ -203,10 +213,14 @@ export default function OpHistory() {
                   type="button"
                   onClick={() => syncMutation.mutate()}
                   disabled={syncMutation.isPending}
-                  className="h-9 text-xs gap-1"
+                  className="min-h-11 text-xs gap-1"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
-                  <span>{syncMutation.isPending ? "...جاري المزامنة" : "مزامنة الآن"}</span>
+                  <span>
+                    {syncMutation.isPending
+                      ? "...جاري المزامنة"
+                      : "مزامنة الآن"}
+                  </span>
                 </Button>
               )}
               {isAdmin && (
@@ -215,13 +229,18 @@ export default function OpHistory() {
                   size="sm"
                   type="button"
                   onClick={() => setMappingOpen(true)}
-                  className="h-9 text-xs gap-1"
+                  className="min-h-11 text-xs gap-1"
                 >
                   <ListChecks className="h-3.5 w-3.5" />
                   <span>ربط أكواد الخدمات</span>
                 </Button>
               )}
-              <Button size="sm" type="button" onClick={() => setAddOpen(true)} className="h-9 text-xs gap-1">
+              <Button
+                size="sm"
+                type="button"
+                onClick={() => setAddOpen(true)}
+                className="min-h-11 text-xs gap-1"
+              >
                 <Plus className="h-3.5 w-3.5" />
                 <span>إضافة عملية</span>
               </Button>
@@ -229,25 +248,47 @@ export default function OpHistory() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
-            {counts.length === 0 ? (
+            {countsQuery.isLoading ? (
+              <span
+                className="py-1 text-xs text-muted-foreground"
+                role="status"
+              >
+                جاري تحميل أنواع العمليات…
+              </span>
+            ) : countsQuery.error ? (
+              <div className="flex flex-wrap items-center gap-2" role="alert">
+                <span className="py-1 text-xs text-destructive">
+                  تعذر تحميل أنواع العمليات: {countsQuery.error.message}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => countsQuery.refetch()}
+                >
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : counts.length === 0 ? (
               <span className="text-xs text-muted-foreground py-1">
-                لا توجد بيانات — جرّب زر المزامنة
+                لا توجد سجلات عمليات متاحة
               </span>
             ) : (
               counts.map((c: { operationType: string; count: number }) => (
-                <button
+                <Button variant="bare"
                   key={c.operationType}
                   type="button"
+                  aria-pressed={activeType === c.operationType}
                   onClick={() => handleTypeClick(c.operationType)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                  className={`min-h-11 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                     activeType === c.operationType
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-muted/40 hover:bg-accent border-border/80 text-foreground"
                   }`}
                 >
-                  {c.operationType}{" "}
+                  {operationTypeLabelAr(c.operationType)}{" "}
                   <span className="opacity-75 tabular-nums">({c.count})</span>
-                </button>
+                </Button>
               ))
             )}
           </div>
@@ -258,92 +299,128 @@ export default function OpHistory() {
         <Card className="rounded-lg border-border shadow-none overflow-hidden">
           <CardContent className="p-0">
             {listQuery.isLoading ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">
-                ...جاري التحميل
+              <div
+                className="p-6 text-center text-sm text-muted-foreground"
+                role="status"
+              >
+                جارٍ تحميل السجلات…
+              </div>
+            ) : listQuery.error ? (
+              <div
+                className="flex flex-col items-center gap-3 p-6 text-center text-sm text-destructive"
+                role="alert"
+              >
+                <span>
+                  تعذر تحميل سجلات نوع العملية: {listQuery.error.message}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => listQuery.refetch()}
+                >
+                  إعادة المحاولة
+                </Button>
               </div>
             ) : rows.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
-                لا توجد نتائج
+                {query || locationType !== "all"
+                  ? "لا توجد سجلات مطابقة للمرشحات"
+                  : "لا توجد سجلات لهذا النوع من العمليات"}
               </div>
             ) : (
-              <Table className="table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[9%]">كود المريض</TableHead>
-                    <TableHead className="w-[16%]">الاسم</TableHead>
-                    <TableHead className="w-[14%]">اسم العملية</TableHead>
-                    <TableHead className="w-[10%]">تاريخ العملية</TableHead>
-                    <TableHead className="w-[7%]">العين</TableHead>
-                    <TableHead className="w-[12%]">الطبيب</TableHead>
-                    <TableHead className="w-[9%]">المصدر</TableHead>
-                    <TableHead className="w-[13%]">ملاحظات</TableHead>
-                    <TableHead className="w-[10%]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row: any) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-mono truncate">
-                        {row.patientCode}
-                      </TableCell>
-                      <TableCell className="truncate">
-                        {row.patientFullName}
-                      </TableCell>
-                      <TableCell className="truncate">
-                        {operationTypeLabelAr(row.operationType)}
-                      </TableCell>
-                      <TableCell className="truncate">
-                        {formatDate(row.operationDate)}
-                      </TableCell>
-                      <TableCell className="truncate">
-                        {row.eye || "—"}
-                      </TableCell>
-                      <TableCell className="truncate">
-                        {row.doctorName || row.doctorCode || "—"}
-                      </TableCell>
-                      <TableCell className="truncate">
-                        <Badge variant="secondary">
-                          {SOURCE_LABEL[row.source] ?? row.source}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="truncate">
-                        {row.notes || "—"}
-                      </TableCell>
-                      <TableCell className="truncate">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          onClick={() =>
-                            setLocation(`/patient-file/${row.patientId}`)
-                          }
-                        >
-                          ملف المريض
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table className="min-w-[900px] table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[9%]">كود المريض</TableHead>
+                      <TableHead className="w-[16%]">الاسم</TableHead>
+                      <TableHead className="w-[14%]">اسم العملية</TableHead>
+                      <TableHead className="w-[10%]">تاريخ العملية</TableHead>
+                      <TableHead className="w-[7%]">العين</TableHead>
+                      <TableHead className="w-[12%]">الطبيب</TableHead>
+                      <TableHead className="w-[9%]">المصدر</TableHead>
+                      <TableHead className="w-[13%]">ملاحظات</TableHead>
+                      <TableHead className="w-[10%]">الإجراء</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row: any) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-mono truncate">
+                          {row.patientCode}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          {row.patientFullName}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          {operationTypeLabelAr(row.operationType)}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          {formatDate(row.operationDate)}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          {row.eye || "—"}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          {row.doctorName || row.doctorCode || "—"}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          <Badge variant="secondary">
+                            {SOURCE_LABEL[row.source] ?? row.source}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="truncate">
+                          {row.notes || "—"}
+                        </TableCell>
+                        <TableCell className="truncate">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            type="button"
+                            onClick={() =>
+                              setLocation(`/patient-file/${row.patientId}`)
+                            }
+                          >
+                            ملف المريض
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
 
-          <CardContent className="flex items-center justify-between border-t pt-4">
-            <button
-              disabled={page <= 1}
+          <CardContent className="flex items-center justify-between gap-3 border-t pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || listQuery.isFetching}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
+              className="min-h-11"
             >
               السابق
-            </button>
-            <span className="text-sm text-muted-foreground">صفحة {page}</span>
-            <button
-              disabled={!hasMore}
+            </Button>
+            <span
+              className="text-center text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              {listQuery.isFetching ? "جاري تحديث النتائج…" : `صفحة ${page}`}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!hasMore || listQuery.isFetching}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
+              className="min-h-11"
             >
               التالي
-            </button>
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -441,6 +518,8 @@ function ServiceCodeMappingDialog({
   const unmapped: { serviceCode: string; serviceName: string }[] =
     unmappedQuery.data ?? [];
   const mappings = mappingsQuery.data ?? [];
+  const mappingIsLoading = mappingsQuery.isLoading || unmappedQuery.isLoading;
+  const mappingError = mappingsQuery.error ?? unmappedQuery.error;
 
   const suggestions = unmapped
     .map((u) => ({
@@ -532,141 +611,189 @@ function ServiceCodeMappingDialog({
           <DialogTitle>ربط أكواد الخدمات بنوع العملية</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {suggestions.length > 0 && (
-            <div className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-sm">
-              <span>
-                فيه {suggestions.length} كود ينطبق عليهم قواعد تلقائية (سطحي ←
-                PRK، تصحيح/ميتال هيد ← Lasik)
-              </span>
+          {mappingIsLoading ? (
+            <div
+              className="p-4 text-center text-sm text-muted-foreground"
+              role="status"
+            >
+              جارٍ تحميل أكواد الخدمات…
+            </div>
+          ) : mappingError ? (
+            <div
+              className="flex flex-col items-center gap-3 p-4 text-center text-sm text-destructive"
+              role="alert"
+            >
+              تعذر تحميل أكواد الخدمات.
               <Button
                 type="button"
+                variant="outline"
                 size="sm"
-                onClick={applyAllSuggestions}
-                disabled={applySuggestionsMutation.isPending}
+                onClick={() => {
+                  void mappingsQuery.refetch();
+                  void unmappedQuery.refetch();
+                }}
               >
-                {applySuggestionsMutation.isPending
-                  ? "...جاري التطبيق"
-                  : "طبّق كل الاقتراحات"}
+                إعادة المحاولة
               </Button>
             </div>
-          )}
-          {femtoAmbiguous.length > 0 && (
-            <div className="rounded-md border border-amber-400/40 bg-amber-50 p-2 text-sm text-amber-800">
-              فيه {femtoAmbiguous.length} كود فيمتو محتاج اختيار يدوي بين F.S و
-              F.L (مش واضح من الاسم أي نوع بالظبط):{" "}
-              {femtoAmbiguous.map((u) => u.serviceCode).join("، ")}
-            </div>
-          )}
-          <div>
-            <label className="text-sm font-medium">
-              أكواد غير مربوطة (اختر واحد أو أكثر)
-            </label>
-            <div className="mt-2 max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
-              {unmapped.length === 0 ? (
-                <span className="text-sm text-muted-foreground">
-                  لا توجد أكواد غير مربوطة
-                </span>
-              ) : (
-                unmapped.map(({ serviceCode, serviceName }) => {
-                  const suggestion =
-                    suggestOperationTypeFromServiceName(serviceName);
-                  return (
-                    <label
-                      key={serviceCode}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <Checkbox
-                        checked={selectedCodes.has(serviceCode)}
-                        onCheckedChange={() => toggleCode(serviceCode)}
-                      />
-                      <span className="font-medium">{serviceCode}</span>
-                      {serviceName ? (
-                        <span className="text-muted-foreground">
-                          — {serviceName}
-                        </span>
-                      ) : null}
-                      {suggestion && suggestion.type !== "femto" ? (
-                        <Badge variant="outline" className="text-[10px]">
-                          {suggestion.type}
-                        </Badge>
-                      ) : suggestion?.type === "femto" ? (
-                        <Badge
-                          variant="outline"
-                          className="border-amber-400 text-[10px] text-amber-700"
-                        >
-                          فيمتو؟
-                        </Badge>
-                      ) : null}
-                    </label>
-                  );
-                })
+          ) : (
+            <>
+              {suggestions.length > 0 && (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-sm">
+                  <span>
+                    فيه {suggestions.length} كود ينطبق عليهم قواعد تلقائية (سطحي
+                    ← PRK، تصحيح/ميتال هيد ← Lasik)
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={applyAllSuggestions}
+                    disabled={applySuggestionsMutation.isPending}
+                  >
+                    {applySuggestionsMutation.isPending
+                      ? "...جاري التطبيق"
+                      : "طبّق كل الاقتراحات"}
+                  </Button>
+                </div>
               )}
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium">أو اكتب كود يدويًا</label>
-            <Input
-              value={customCode}
-              onChange={(e) => setCustomCode(e.target.value)}
-              placeholder="كود الخدمة"
-              className="mt-2"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">نوع العملية</label>
-            <Select value={targetType} onValueChange={setTargetType}>
-              <SelectTrigger className="mt-2">
-                <SelectValue placeholder="اختر نوع العملية" />
-              </SelectTrigger>
-              <SelectContent>
-                {OP_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            type="button"
-            onClick={handleAssign}
-            disabled={assignMutation.isPending}
-          >
-            {assignMutation.isPending ? "...جاري الربط" : "ربط الأكواد المحددة"}
-          </Button>
-
-          {mappings.length > 0 && (
-            <div>
-              <label className="text-sm font-medium">
-                الأكواد المربوطة حاليًا
-              </label>
-              <div className="mt-2 max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
-                {mappings.map(
-                  (m: {
-                    id: number;
-                    serviceCode: string;
-                    operationType: string;
-                    label?: string | null;
-                  }) => (
-                    <div
-                      key={m.id}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span>
-                        {m.serviceCode}
-                        {m.label ? (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            — {m.label}
-                          </span>
-                        ) : null}
-                      </span>
-                      <Badge variant="secondary">{m.operationType}</Badge>
-                    </div>
-                  ),
-                )}
+              {femtoAmbiguous.length > 0 && (
+                <div className="rounded-md border border-amber-400/40 bg-amber-50 p-2 text-sm text-amber-800">
+                  فيه {femtoAmbiguous.length} كود فيمتو محتاج اختيار يدوي بين
+                  F.S و F.L (مش واضح من الاسم أي نوع بالظبط):{" "}
+                  {femtoAmbiguous.map((u) => u.serviceCode).join("، ")}
+                </div>
+              )}
+              <div>
+                <label
+                  id="unmapped-service-codes-label"
+                  className="text-sm font-medium"
+                >
+                  أكواد غير مربوطة (اختر واحد أو أكثر)
+                </label>
+                <div
+                  aria-labelledby="unmapped-service-codes-label"
+                  className="mt-2 max-h-40 overflow-y-auto rounded-md border p-2 space-y-1"
+                >
+                  {unmapped.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">
+                      لا توجد أكواد غير مربوطة
+                    </span>
+                  ) : (
+                    unmapped.map(({ serviceCode, serviceName }) => {
+                      const suggestion =
+                        suggestOperationTypeFromServiceName(serviceName);
+                      return (
+                        <label
+                          key={serviceCode}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <Checkbox
+                            checked={selectedCodes.has(serviceCode)}
+                            onCheckedChange={() => toggleCode(serviceCode)}
+                          />
+                          <span className="font-medium">{serviceCode}</span>
+                          {serviceName ? (
+                            <span className="text-muted-foreground">
+                              — {serviceName}
+                            </span>
+                          ) : null}
+                          {suggestion && suggestion.type !== "femto" ? (
+                            <Badge variant="outline" className="text-[13px]">
+                              {suggestion.type}
+                            </Badge>
+                          ) : suggestion?.type === "femto" ? (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-400 text-[13px] text-amber-700"
+                            >
+                              فيمتو؟
+                            </Badge>
+                          ) : null}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
+              <div>
+                <label
+                  htmlFor="custom-service-code"
+                  className="text-sm font-medium"
+                >
+                  أو اكتب كود يدويًا
+                </label>
+                <Input
+                  id="custom-service-code"
+                  value={customCode}
+                  onChange={(e) => setCustomCode(e.target.value)}
+                  placeholder="كود الخدمة"
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="mapping-operation-type"
+                  className="text-sm font-medium"
+                >
+                  نوع العملية
+                </label>
+                <Select value={targetType} onValueChange={setTargetType}>
+                  <SelectTrigger id="mapping-operation-type" className="mt-2">
+                    <SelectValue placeholder="اختر نوع العملية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OP_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                type="button"
+                onClick={handleAssign}
+                disabled={assignMutation.isPending}
+              >
+                {assignMutation.isPending
+                  ? "...جاري الربط"
+                  : "ربط الأكواد المحددة"}
+              </Button>
+
+              {mappings.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium">
+                    الأكواد المربوطة حاليًا
+                  </label>
+                  <div className="mt-2 max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                    {mappings.map(
+                      (m: {
+                        id: number;
+                        serviceCode: string;
+                        operationType: string;
+                        label?: string | null;
+                      }) => (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span>
+                            {m.serviceCode}
+                            {m.label ? (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                — {m.label}
+                              </span>
+                            ) : null}
+                          </span>
+                          <Badge variant="secondary">{m.operationType}</Badge>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </DialogContent>
@@ -733,9 +860,11 @@ function AddOperationDialog({
             onSelect={(patient) => setPatientId(patient.id)}
           />
           <div className="space-y-2">
-            <label className="text-sm font-medium">نوع العملية</label>
+            <label htmlFor="add-operation-type" className="text-sm font-medium">
+              نوع العملية
+            </label>
             <Select value={opType} onValueChange={setOpType}>
-              <SelectTrigger>
+              <SelectTrigger id="add-operation-type">
                 <SelectValue placeholder="اختر نوع العملية" />
               </SelectTrigger>
               <SelectContent>
@@ -747,23 +876,35 @@ function AddOperationDialog({
               </SelectContent>
             </Select>
             {opType === "Others" && (
-              <Input
-                value={customType}
-                onChange={(e) => setCustomType(e.target.value)}
-                placeholder="اكتب نوع العملية"
-              />
+              <div>
+                <label htmlFor="custom-operation-type" className="sr-only">
+                  نوع العملية المخصص
+                </label>
+                <Input
+                  id="custom-operation-type"
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  placeholder="اكتب نوع العملية"
+                />
+              </div>
             )}
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">تاريخ العملية</label>
+            <label htmlFor="operation-date" className="text-sm font-medium">
+              تاريخ العملية
+            </label>
             <DateInput
+              id="operation-date"
               value={opDate}
               onChange={(e) => setOpDate(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">ملاحظات</label>
+            <label htmlFor="operation-notes" className="text-sm font-medium">
+              ملاحظات
+            </label>
             <Textarea
+              id="operation-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />

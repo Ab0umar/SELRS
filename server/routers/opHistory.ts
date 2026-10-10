@@ -9,7 +9,11 @@
 import { z } from "zod";
 import crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
-import { router, adminProcedure, protectedProcedure } from "../_core/procedures";
+import {
+  router,
+  adminProcedure,
+  protectedProcedure,
+} from "../_core/procedures";
 import * as db from "../db";
 import { loadNameMaps } from "./legacyPatients";
 import { getServiceCodeNamesFromMssql } from "../integrations/mssqlPatients";
@@ -43,6 +47,12 @@ export const opHistoryRouter = router({
   getTypeCounts: protectedProcedure.query(async () => {
     return await db.getPatientOperationTypeCounts();
   }),
+
+  getLinkedOperationTypes: protectedProcedure
+    .input(z.object({ patientId: z.number().int().positive() }))
+    .query(async ({ input }) =>
+      db.getLinkedOperationTypesForPatient(input.patientId),
+    ),
 
   listByType: protectedProcedure
     .input(
@@ -117,14 +127,17 @@ export const opHistoryRouter = router({
         // Per-code operation types — a rule-based bulk apply can map
         // different codes in the same batch to different types (e.g. one
         // call mapping some codes to PRK and others to Lasik at once).
-        operationTypes: z.record(z.string(), z.string().trim().min(1).max(50)).optional(),
+        operationTypes: z
+          .record(z.string(), z.string().trim().min(1).max(50))
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {
       for (const serviceCode of input.serviceCodes) {
         await db.upsertServiceCodeOpTypeMapping({
           serviceCode,
-          operationType: input.operationTypes?.[serviceCode] ?? input.operationType,
+          operationType:
+            input.operationTypes?.[serviceCode] ?? input.operationType,
           label: input.labels?.[serviceCode] ?? input.label ?? null,
         });
       }
