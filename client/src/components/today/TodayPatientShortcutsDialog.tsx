@@ -280,7 +280,7 @@ export function TodayPatientShortcutsDialog({
                   if (groupItems.length === 0) return null;
                   return (
                     <div key={groupKey}>
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                         {groupLabels[groupKey]}
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

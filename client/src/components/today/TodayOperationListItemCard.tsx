@@ -52,14 +52,14 @@ export function TodayOperationListItemCard({
   const phone = str(item.phone) || null;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card p-3.5 text-right shadow-sm">
+    <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card p-3.5 text-start shadow-sm">
       {/* Patient name + code */}
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold leading-snug text-foreground">{name}</p>
         {code ? (
           <span
             dir="ltr"
-            className="shrink-0 rounded-md bg-muted/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+            className="shrink-0 rounded-md bg-muted/60 px-1.5 py-0.5 font-mono text-[13px] text-muted-foreground"
           >
             {code}
           </span>
@@ -105,7 +105,7 @@ export function TodayOperationListItemCard({
       </div>
 
       {row.isAutoFromMssql ? (
-        <p className={cn("mt-0.5 text-[10px] text-muted-foreground/60")}>
+        <p className={cn("mt-0.5 text-[13px] text-muted-foreground/60")}>
           مزامنة تلقائية
         </p>
       ) : null}

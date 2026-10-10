@@ -78,6 +78,7 @@ export function PatientMedicalStatusDots({
           title={b.title}
         />
       ))}
+      <span className="sr-only">{badges.map((badge) => badge.title).join("، ")}</span>
     </div>
   );
 }

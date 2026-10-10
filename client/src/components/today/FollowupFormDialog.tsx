@@ -30,7 +30,7 @@ const sectionDivider =
   "grid grid-cols-[80px_1fr_1fr] items-center gap-2 pt-3 mt-1 border-t border-border";
 const fieldClass = "h-10 w-full text-sm text-center";
 const labelClass = "text-sm font-semibold";
-const subLabelClass = "text-xs text-muted-foreground pl-2";
+const subLabelClass = "text-xs text-muted-foreground pe-2";
 
 type EyeData = {
   s: string;
@@ -162,11 +162,11 @@ export function FollowupFormDialog({
         className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-xl"
         dir="rtl"
       >
-        <DialogHeader className="text-right">
-          <DialogTitle className="text-right">
+        <DialogHeader className="text-start">
+          <DialogTitle className="text-start">
             متابعة {patientName ? `— ${patientName}` : ""}
           </DialogTitle>
-          <DialogDescription className="text-right text-muted-foreground sr-only">
+          <DialogDescription className="text-start text-muted-foreground sr-only">
             نموذج تسجيل بيانات المتابعة
           </DialogDescription>
         </DialogHeader>
@@ -278,13 +278,13 @@ export function FollowupFormDialog({
 
             <div className={rowClass}>
               <div className={subLabelClass}>Axis</div>
-              <Input
+              <Input aria-label="0-180"
                 value={od.axis}
                 onChange={(e) => updOd("axis", e.target.value)}
                 className={fieldClass}
                 placeholder="0-180"
               />
-              <Input
+              <Input aria-label="0-180"
                 value={os.axis}
                 onChange={(e) => updOs("axis", e.target.value)}
                 className={fieldClass}
@@ -326,13 +326,13 @@ export function FollowupFormDialog({
 
             <div className={rowClass}>
               <div className={subLabelClass}>Axis</div>
-              <Input
+              <Input aria-label="0-180"
                 value={od.glassesAxis}
                 onChange={(e) => updOd("glassesAxis", e.target.value)}
                 className={fieldClass}
                 placeholder="0-180"
               />
-              <Input
+              <Input aria-label="0-180"
                 value={os.glassesAxis}
                 onChange={(e) => updOs("glassesAxis", e.target.value)}
                 className={fieldClass}
@@ -342,13 +342,13 @@ export function FollowupFormDialog({
 
             <div className={sectionDivider}>
               <div className={labelClass}>IOP</div>
-              <Input
+              <Input aria-label="mmHg"
                 value={od.iop}
                 onChange={(e) => updOd("iop", e.target.value)}
                 className={fieldClass}
                 placeholder="mmHg"
               />
-              <Input
+              <Input aria-label="mmHg"
                 value={os.iop}
                 onChange={(e) => updOs("iop", e.target.value)}
                 className={fieldClass}
@@ -359,7 +359,7 @@ export function FollowupFormDialog({
 
           <div className="space-y-1.5" dir="rtl">
             <Label className="text-sm font-semibold">ملاحظات / علاج</Label>
-            <Textarea
+            <Textarea aria-label="ملاحظات…"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="ملاحظات…"

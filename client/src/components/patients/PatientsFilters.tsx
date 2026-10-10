@@ -61,8 +61,8 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
           <div className="relative w-full sm:w-[340px] md:w-[520px]">
-            <Search className="absolute right-3 top-3 h-5 w-5 text-muted-foreground" />
-            <Input
+            <Search className="absolute start-3 top-3 h-5 w-5 text-muted-foreground" />
+            <Input aria-label="ابحث بالاسم أو الكود أو الموبايل أو الدكتور أو الخدمة…"
               placeholder="ابحث بالاسم أو الكود أو الموبايل أو الدكتور أو الخدمة…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -118,7 +118,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                   ? `suggestion-${activeSuggestionIndex}`
                   : undefined
               }
-              className="h-11 rounded-xl border-border bg-background pr-10 text-right"
+              className="h-11 rounded-xl border-border bg-background ps-10 text-start"
               dir="rtl"
             />
             {isSearchFocused && groupedSearchSuggestions.length > 0 ? (
@@ -127,7 +127,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                 role="listbox"
                 className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-border bg-popover shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
               >
-                <div className="border-b border-border px-4 py-2 text-right text-xs font-semibold text-muted-foreground">
+                <div className="border-b border-border px-4 py-2 text-start text-xs font-semibold text-muted-foreground">
                   اقتراحات سريعة
                 </div>
                 <div className="max-h-80 overflow-y-auto">
@@ -135,7 +135,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                     let runningIndex = -1;
                     return groupedSearchSuggestions.map((group) => (
                       <div key={group.key}>
-                        <div className="bg-muted/50 px-4 py-2 text-right text-[11px] font-bold text-muted-foreground">
+                        <div className="bg-muted/50 px-4 py-2 text-start text-[13px] font-bold text-muted-foreground">
                           {group.label}
                         </div>
                         {group.items.map((suggestion: any) => {
@@ -148,7 +148,7 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
                               id={`suggestion-${runningIndex}`}
                               role="option"
                               aria-selected={isActive}
-                              className={`flex w-full items-start justify-between gap-3 border-b border-border/60 px-4 py-3 text-right transition last:border-b-0 cursor-pointer ${
+                              className={`flex w-full items-start justify-between gap-3 border-b border-border/60 px-4 py-3 text-start transition last:border-b-0 cursor-pointer ${
                                 isActive ? "bg-primary/10" : "hover:bg-accent"
                               }`}
                               onMouseEnter={() =>
@@ -217,8 +217,14 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
             ) : null}
           </div>
           <div className="flex w-full sm:w-auto flex-wrap items-center justify-end gap-2">
-            <span className="text-sm text-muted-foreground">من تاريخ</span>
+            <label
+              htmlFor="patients-date-from"
+              className="text-sm text-muted-foreground"
+            >
+              من تاريخ
+            </label>
             <Input
+              id="patients-date-from"
               type="text"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
@@ -227,8 +233,14 @@ export const PatientsFilters: React.FC<PatientsFiltersProps> = ({
               placeholder="DD/MM/YYYY"
               dir="ltr"
             />
-            <span className="text-sm text-muted-foreground">إلى تاريخ</span>
+            <label
+              htmlFor="patients-date-to"
+              className="text-sm text-muted-foreground"
+            >
+              إلى تاريخ
+            </label>
             <Input
+              id="patients-date-to"
               type="text"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}

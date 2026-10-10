@@ -46,7 +46,7 @@ export default function TodayPatientsPanel() {
   return (
     <div className="space-y-3 h-full flex flex-col">
       <div className="flex-shrink-0">
-        <h3 className="text-sm font-bold text-right">مرضى اليوم</h3>
+        <h3 className="text-sm font-bold text-start">مرضى اليوم</h3>
       </div>
 
       {/* Date Picker */}

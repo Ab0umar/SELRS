@@ -70,7 +70,7 @@ const ROLE_META: Record<Role, { label: string; short: string; icon: typeof UserR
     label: "الطبيب الأخصائي",
     short: "الفحص والمقاس",
     icon: Eye,
-    tone: "bg-blue-50 text-blue-800 border-blue-200",
+    tone: "bg-muted text-foreground border-border",
   },
   consultant: {
     label: "الطبيب الاستشاري",
@@ -85,10 +85,10 @@ const IMAGING_OPTIONS = ["OCT", "Pentacam", "Visual Field", "B-Scan", "FFA"];
 const LAB_OPTIONS = ["CBC", "FBS / HbA1c", "PT / PTT / INR", "Kidney Function", "Thyroid Profile"];
 
 const createVisit = (): VisitData => ({
-  patientName: "سارة محمد علي",
-  patientCode: "P-18352",
-  age: "27",
-  phone: "01012345678",
+  patientName: "",
+  patientCode: "",
+  age: "",
+  phone: "",
   service: "كشف استشاري",
   consultant: "د. أحمد الصواف",
   complaint: "زغللة بالمسافات مع صداع متكرر",
@@ -142,19 +142,19 @@ function SectionHeader({
         </span>
         <Icon className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-bold">{title}</h2>
-        {note ? <span className="hidden text-[11px] text-muted-foreground sm:inline">{note}</span> : null}
+        {note ? <span className="hidden text-[13px] text-muted-foreground sm:inline">{note}</span> : null}
       </div>
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className={cn("rounded px-2 py-0.5 text-[10px]", ROLE_META[owner].tone)}>
+        <Badge variant="outline" className={cn("rounded px-2 py-0.5 text-[13px]", ROLE_META[owner].tone)}>
           {ROLE_META[owner].label}
         </Badge>
         {complete ? (
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+          <span className="flex items-center gap-1 text-[13px] font-semibold text-emerald-700">
             <CheckCircle2 className="h-3.5 w-3.5" />
             مكتمل
           </span>
         ) : (
-          <span className="text-[11px] font-semibold text-amber-700">قيد الاستكمال</span>
+          <span className="text-[13px] font-semibold text-amber-700">قيد الاستكمال</span>
         )}
       </div>
     </div>
@@ -176,7 +176,7 @@ function Field({
 }) {
   return (
     <label className="min-w-0">
-      <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">{label}</span>
+      <span className="mb-1 block text-[13px] font-semibold text-muted-foreground">{label}</span>
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -205,24 +205,24 @@ function EyeTable({
     <div className="overflow-hidden rounded border border-border" dir="ltr">
       <div className="border-b border-border bg-slate-50 px-3 py-2 text-center text-xs font-bold text-slate-700">{title}</div>
       <div className="grid" style={{ gridTemplateColumns: `76px repeat(${fields.length}, minmax(74px, 1fr))` }}>
-        <div className="border-b border-r border-border bg-muted/50 p-2 text-center text-[10px] font-bold">EYE</div>
+        <div className="border-b border-r border-border bg-muted/50 p-2 text-center text-[13px] font-bold">EYE</div>
         {fields.map((field) => (
-          <div key={field.key} className="border-b border-r border-border bg-muted/50 p-2 text-center text-[10px] font-bold last:border-r-0">
+          <div key={field.key} className="border-b border-r border-border bg-muted/50 p-2 text-center text-[13px] font-bold last:border-r-0">
             {field.label}
           </div>
         ))}
         {(["od", "os"] as EyeSide[]).map((eye) => (
           <div key={eye} className="contents">
-            <div className={cn("border-r border-t border-border p-2 text-center text-xs font-bold", eye === "od" ? "bg-blue-50 text-blue-800" : "bg-slate-100 text-slate-700")}>
+            <div className={cn("border-r border-t border-border p-2 text-center text-xs font-bold", eye === "od" ? "bg-muted text-foreground" : "bg-slate-100 text-slate-700")}>
               {eye.toUpperCase()}
             </div>
             {fields.map((field) => (
               <div key={`${eye}-${field.key}`} className="border-r border-t border-border p-1 last:border-r-0">
-                <input
+                <Input bare
                   value={data[eye][field.key] ?? ""}
                   onChange={(event) => onChange(eye, field.key, event.target.value)}
                   disabled={disabled}
-                  className="h-8 w-full min-w-0 bg-transparent px-1 text-center font-mono text-xs outline-none disabled:opacity-100"
+                  className="h-8 w-full min-w-0 bg-transparent px-1 text-center font-mono text-xs disabled:opacity-100"
                 />
               </div>
             ))}
@@ -340,9 +340,9 @@ export default function WorkflowPrototype() {
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <strong className="text-sm">{visit.patientName}</strong>
                   <span className="font-mono text-xs text-muted-foreground" dir="ltr">{visit.patientCode}</span>
-                  <Badge variant="outline" className="rounded text-[10px]">زيارة اليوم · 09:12</Badge>
+                  <Badge variant="outline" className="rounded text-[13px]">زيارة اليوم · 09:12</Badge>
                 </div>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">{visit.service} · {visit.consultant}</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">{visit.service} · {visit.consultant}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 text-xs">
@@ -360,12 +360,12 @@ export default function WorkflowPrototype() {
               const Icon = meta.icon;
               const active = role === activeRole;
               return (
-                <button
+                <Button variant="bare"
                   key={role}
                   type="button"
                   onClick={() => setActiveRole(role)}
                   className={cn(
-                    "flex min-w-[180px] flex-1 items-center gap-2 border-l border-border px-3 py-2.5 text-right last:border-l-0",
+                    "flex min-w-[180px] flex-1 items-center gap-2 border-e border-border px-3 py-2.5 text-start last:border-e-0",
                     active ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted/50",
                   )}
                 >
@@ -374,9 +374,9 @@ export default function WorkflowPrototype() {
                   </span>
                   <span>
                     <span className="block text-xs font-bold">{meta.label}</span>
-                    <span className={cn("mt-0.5 block text-[10px]", active ? "text-primary-foreground/75" : "text-muted-foreground")}>{meta.short}</span>
+                    <span className={cn("mt-0.5 block text-[13px]", active ? "text-primary-foreground/75" : "text-muted-foreground")}>{meta.short}</span>
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -438,9 +438,9 @@ export default function WorkflowPrototype() {
                 <div className="border-b border-border bg-slate-50 px-3 py-2 text-center text-xs font-bold">Fundus Examination</div>
                 {(["od", "os"] as EyeSide[]).map((eye) => (
                   <div key={eye} className="grid grid-cols-[64px_110px_1fr] items-center gap-2 border-b border-border p-2 last:border-b-0">
-                    <strong className={cn("text-center text-xs", eye === "od" ? "text-blue-800" : "text-slate-600")}>{eye.toUpperCase()}</strong>
+                    <strong className={cn("text-center text-xs", eye === "od" ? "text-foreground" : "text-slate-600")}>{eye.toUpperCase()}</strong>
                     <label className="flex items-center gap-2 text-xs"><Checkbox checked={visit.fundusNormal[eye]} onCheckedChange={(value) => update("fundusNormal", { ...visit.fundusNormal, [eye]: value === true })} disabled={!canEdit(["specialist"])} />Normal</label>
-                    <Input value={visit.fundus[eye]} onChange={(event) => update("fundus", { ...visit.fundus, [eye]: event.target.value })} disabled={!canEdit(["specialist"])} placeholder="Abnormal findings" dir="ltr" className="h-9 rounded text-xs disabled:opacity-100" />
+                    <Input aria-label="Abnormal findings" value={visit.fundus[eye]} onChange={(event) => update("fundus", { ...visit.fundus, [eye]: event.target.value })} disabled={!canEdit(["specialist"])} placeholder="Abnormal findings" dir="ltr" className="h-9 rounded text-xs disabled:opacity-100" />
                   </div>
                 ))}
               </div>
@@ -475,7 +475,7 @@ export default function WorkflowPrototype() {
             <div className="grid gap-5 p-3 lg:grid-cols-2 lg:p-4">
               <label className="lg:col-span-2">
                 <span className="mb-1.5 flex items-center gap-2 text-xs font-bold"><Microscope className="h-4 w-4 text-primary" />التشخيص النهائي</span>
-                <Textarea value={visit.diagnosis} onChange={(event) => update("diagnosis", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="اكتب التشخيص النهائي…" className="min-h-20 rounded disabled:opacity-100" />
+                <Textarea aria-label="اكتب التشخيص النهائي…" value={visit.diagnosis} onChange={(event) => update("diagnosis", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="اكتب التشخيص النهائي…" className="min-h-20 rounded disabled:opacity-100" />
               </label>
               <div className="border-t border-border pt-3">
                 <h3 className="mb-3 flex items-center gap-2 text-xs font-bold"><ScanLine className="h-4 w-4 text-primary" />الأشعات المطلوبة</h3>
@@ -487,7 +487,7 @@ export default function WorkflowPrototype() {
               </div>
               <label>
                 <span className="mb-1.5 block text-xs font-bold">العلاج والخطة</span>
-                <Textarea value={visit.treatment} onChange={(event) => update("treatment", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="الأدوية، الجرعات، والتعليمات…" className="min-h-28 rounded disabled:opacity-100" />
+                <Textarea aria-label="الأدوية، الجرعات، والتعليمات…" value={visit.treatment} onChange={(event) => update("treatment", event.target.value)} disabled={!canEdit(["consultant"])} placeholder="الأدوية، الجرعات، والتعليمات…" className="min-h-28 rounded disabled:opacity-100" />
               </label>
               <label>
                 <span className="mb-1.5 block text-xs font-bold">المتابعة القادمة</span>
@@ -500,7 +500,7 @@ export default function WorkflowPrototype() {
         <div className="sticky bottom-0 z-20 mt-4 flex flex-col gap-2 border border-border bg-background/95 p-3 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-xs">
             <span className={cn("flex h-8 w-8 items-center justify-center rounded border", ROLE_META[activeRole].tone)}>{(() => { const Icon = ROLE_META[activeRole].icon; return <Icon className="h-4 w-4" />; })()}</span>
-            <span><strong>{ROLE_META[activeRole].label}</strong><span className="mr-2 text-muted-foreground">يعدّل الجزء المخصص له فقط</span></span>
+            <span><strong>{ROLE_META[activeRole].label}</strong><span className="ms-2 text-muted-foreground">يعدّل الجزء المخصص له فقط</span></span>
           </div>
           {activeRole !== "consultant" ? (
             <Button type="button" onClick={moveToNextRole} className="min-h-10 sm:min-w-52">

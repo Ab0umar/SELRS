@@ -28,7 +28,7 @@ export const PatientRowActions: React.FC<PatientRowActionsProps> = ({
       <Button
         size="sm"
         variant="outline"
-        className="h-8 w-8 rounded-lg border-primary/25 bg-primary text-primary-foreground shadow-sm hover:border-primary/40 hover:bg-primary/90"
+        className="h-11 w-11 rounded-lg border-primary/25 bg-primary text-primary-foreground hover:border-primary/40 hover:bg-primary/90"
         title="فتح الشيت"
         aria-label="فتح الشيت"
         onClick={(event) => {
@@ -42,7 +42,7 @@ export const PatientRowActions: React.FC<PatientRowActionsProps> = ({
         <Button
           size="sm"
           variant="outline"
-          className="h-8 w-8 rounded-lg border-warning/50 bg-warning/10 p-0 text-warning/90 shadow-sm hover:border-warning hover:bg-warning/20"
+          className="h-11 w-11 rounded-lg border-warning/50 bg-warning/10 p-0 text-warning-text hover:border-warning hover:bg-warning/20"
           title="تعديل المريض"
           aria-label="تعديل المريض"
           onClick={(event) => {
@@ -56,7 +56,7 @@ export const PatientRowActions: React.FC<PatientRowActionsProps> = ({
       <Button
         size="sm"
         variant="outline"
-        className="h-8 w-8 rounded-lg border-border bg-background p-0 shadow-sm"
+        className="h-11 w-11 rounded-lg border-border bg-background p-0"
         title="طباعة الشيت"
         aria-label="طباعة الشيت"
         onClick={(event) => {
@@ -70,7 +70,7 @@ export const PatientRowActions: React.FC<PatientRowActionsProps> = ({
         <Button
           size="sm"
           variant="destructive"
-          className="h-8 w-8 rounded-lg p-0 shadow-sm"
+          className="h-11 w-11 rounded-lg p-0"
           title="حذف المريض"
           aria-label="حذف المريض"
           onClick={(event) => {

@@ -356,7 +356,7 @@ function SelectBox({
   return (
     <label className="block" dir="ltr">
       {label ? (
-        <span className="mb-1 block text-[11px] font-semibold text-slate-500">
+        <span className="mb-1 block text-[13px] font-semibold text-slate-500">
           {label}
         </span>
       ) : null}
@@ -364,7 +364,7 @@ function SelectBox({
         aria-label={ariaLabel}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-center text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-center text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -434,26 +434,26 @@ function CatalogSearchSelect({
             return (
               <span
                 key={String(selectedId)}
-                className="inline-flex max-w-full items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-[10px] text-blue-900"
+                className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-[13px] text-foreground"
               >
                 <span className="min-w-0 truncate">
                   {item?.name ?? String(selectedId)}
                 </span>
-                <button
+                <Button variant="bare"
                   type="button"
                   onClick={() => item && onToggle(item)}
-                  className="text-blue-700 hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive"
                   aria-label={`Remove ${item?.name ?? selectedId}`}
                 >
                   ×
-                </button>
+                </Button>
               </span>
             );
           })}
         </div>
       ) : null}
       <div className="relative">
-        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search className="absolute end-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           dir="ltr"
           placeholder={placeholder}
@@ -504,19 +504,19 @@ function CatalogSearchSelect({
             return (
               <span
                 key={String(selectedId)}
-                className="inline-flex max-w-full items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-[10px] text-blue-900"
+                className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-[13px] text-foreground"
               >
                 <span className="min-w-0 truncate">
                   {item?.name ?? String(selectedId)}
                 </span>
-                <button
+                <Button variant="bare"
                   type="button"
                   onClick={() => item && onToggle(item)}
-                  className="text-blue-700 hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive"
                   aria-label={`Remove ${item?.name ?? selectedId}`}
                 >
                   ×
-                </button>
+                </Button>
               </span>
             );
           })}
@@ -602,13 +602,13 @@ function Panel({
 }) {
   return (
     <Card
-      className={`overflow-hidden border-slate-200 shadow-sm ${active ? "ring-2 ring-blue-100" : ""}`}
+      className={`overflow-hidden border-slate-200 shadow-sm ${active ? "ring-2 ring-ring/20" : ""}`}
     >
       <CardHeader className="border-b border-slate-100 bg-white pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span
-              className={`flex h-9 w-9 items-center justify-center rounded-xl ${active ? "bg-blue-700 text-white" : "bg-blue-50 text-blue-700"}`}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl ${active ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
             >
               <Icon className="h-4 w-4" />
             </span>
@@ -620,7 +620,7 @@ function Panel({
             </div>
           </div>
           {active ? (
-            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+            <Badge className="bg-muted text-muted-foreground hover:bg-muted">
               قيد التنفيذ
             </Badge>
           ) : null}
@@ -689,7 +689,10 @@ export default function WorkflowPrototypeLive() {
     Array<string | number>
   >([]);
   const [medicationDetailsById, setMedicationDetailsById] = useState<
-    Record<string, { frequency: string; duration: string; instructions: string }>
+    Record<
+      string,
+      { frequency: string; duration: string; instructions: string }
+    >
   >({});
   const [referenceMedicationItems, setReferenceMedicationItems] = useState<
     CatalogItem[]
@@ -1655,7 +1658,7 @@ export default function WorkflowPrototypeLive() {
           />
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted p-3 text-sm text-foreground">
         <span>
           بعد الحفظ تظهر الحالة تلقائيًا للتمريض. لا توجد متابعة استقبال بعد
           التسجيل.
@@ -2014,11 +2017,11 @@ export default function WorkflowPrototypeLive() {
       icon={role === "specialist" ? Stethoscope : ClipboardList}
       active
     >
-      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-        <p className="text-sm font-bold text-blue-950">
+      <div className="rounded-2xl border border-border bg-muted p-4">
+        <p className="text-sm font-bold text-foreground">
           الحالة وصلت لمرحلة {role === "specialist" ? "الأخصائي" : "الاستشاري"}.
         </p>
-        <p className="mt-1 text-xs leading-5 text-blue-800">
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
           اختر الشيت الخاص بالخدمة. لن يتم إنشاء نموذج جديد؛ سيتم فتح الشيت
           الموجود حاليًا بنفس بياناته وجدوله.
         </p>
@@ -2028,7 +2031,7 @@ export default function WorkflowPrototypeLive() {
           <>
             <Button
               type="button"
-              className="h-auto justify-start gap-3 p-4 text-right"
+              className="h-auto justify-start gap-3 p-4 text-start"
               onClick={() => {
                 setDoctorSheet("specialist");
                 setVisitType("consultation");
@@ -2046,7 +2049,7 @@ export default function WorkflowPrototypeLive() {
             <Button
               type="button"
               variant="outline"
-              className="h-auto justify-start gap-3 p-4 text-right"
+              className="h-auto justify-start gap-3 p-4 text-start"
               onClick={() => {
                 setDoctorSheet("lasik");
                 setVisitType("lasik");
@@ -2063,7 +2066,7 @@ export default function WorkflowPrototypeLive() {
         ) : (
           <Button
             type="button"
-            className="h-auto justify-start gap-3 p-4 text-right"
+            className="h-auto justify-start gap-3 p-4 text-start"
             onClick={() => {
               setDoctorSheet("consultant");
               toast.success("تم فتح شيت الاستشاري التجريبي");
@@ -2121,7 +2124,7 @@ export default function WorkflowPrototypeLive() {
                 />
                 <div>
                   <span
-                    className="mb-1 block text-[11px] font-semibold text-slate-500"
+                    className="mb-1 block text-[13px] font-semibold text-slate-500"
                     dir="ltr"
                   >
                     Distance S / C / A
@@ -2301,7 +2304,7 @@ export default function WorkflowPrototypeLive() {
       </div>
       <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
         <p className="mb-2 font-bold">مسار الزيارة</p>
-        <label className="mr-4 inline-flex items-center gap-2">
+        <label className="ms-4 inline-flex items-center gap-2">
           <input
             type="radio"
             checked={visitType === "consultation"}
@@ -2309,7 +2312,7 @@ export default function WorkflowPrototypeLive() {
           />
           كشف استشاري عادي
         </label>
-        <label className="mr-4 inline-flex items-center gap-2">
+        <label className="ms-4 inline-flex items-center gap-2">
           <input
             type="radio"
             checked={visitType === "lasik"}
@@ -2510,11 +2513,11 @@ export default function WorkflowPrototypeLive() {
   };
 
   const renderLivePatientPicker = () => (
-    <div className="w-[320px] max-w-full min-w-0 shrink-0" dir="ltr">
+    <div className="w-[320px] max-w-full min-w-0 shrink-0" dir="rtl">
       <div className="flex items-end gap-2">
         <label className="block w-[135px] shrink-0">
-          <span className="mb-0.5 block text-[10px] font-semibold text-slate-600">
-            Visit Date
+          <span className="mb-0.5 block text-[13px] font-semibold text-slate-600">
+            تاريخ الزيارة
           </span>
           <DateInput
             value={selectedDate}
@@ -2523,14 +2526,14 @@ export default function WorkflowPrototypeLive() {
               setSelectedLivePatientId(null);
               setSelectedLiveVisitId(null);
             }}
-            aria-label="Visit Date"
+            aria-label="تاريخ الزيارة"
             className="h-8 w-full text-xs"
             inputClassName="h-7 w-full text-xs"
           />
         </label>
         <label className="block min-w-0 flex-1">
-          <span className="mb-0.5 block text-[10px] font-semibold text-slate-600">
-            Patient
+          <span className="mb-0.5 block text-[13px] font-semibold text-slate-600">
+            المريض
           </span>
           <select
             value={selectedLivePatient?.visitId ?? ""}
@@ -2543,8 +2546,8 @@ export default function WorkflowPrototypeLive() {
               );
               selectLivePatient(patient?.id ?? null, visitId);
             }}
-            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            aria-label="Patient"
+            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            aria-label="المريض"
           >
             <option value="">اختر الزيارة</option>
             {livePatients.map((patient) => (
@@ -2552,17 +2555,21 @@ export default function WorkflowPrototypeLive() {
                 key={`${patient.id}-${patient.visitId ?? "visit"}`}
                 value={patient.visitId ?? ""}
               >
-                {patient.fullName ?? "Unnamed Patient"} — #
-                {patient.visitId ?? "—"}
+                {patient.fullName ?? "مريض غير مسمى"} | رقم الزيارة:
+                {patient.visitId ?? "غير متاح"}
               </option>
             ))}
           </select>
         </label>
       </div>
       {liveQueue.isLoading ? (
-        <p className="mt-1 text-[10px] text-slate-500">Loading…</p>
+        <p className="mt-1 text-[13px] text-slate-500">
+          جارٍ تحميل الزيارات...
+        </p>
       ) : livePatients.length === 0 ? (
-        <p className="mt-1 text-[10px] text-slate-500">No visits found.</p>
+        <p className="mt-1 text-[13px] text-slate-500">
+          لا توجد زيارات لهذا اليوم.
+        </p>
       ) : null}
     </div>
   );
@@ -2583,8 +2590,8 @@ export default function WorkflowPrototypeLive() {
           : [value, ...cylinderOptions];
       return (
         <div className="rounded-lg border border-slate-200 p-2" dir="ltr">
-          <h3 className="mb-2 text-sm font-black text-blue-950">{title}</h3>
-          <div className="grid grid-cols-[52px_repeat(6,minmax(0,1fr))] items-center gap-1 text-center text-[10px] font-bold">
+          <h3 className="mb-2 text-sm font-black text-foreground">{title}</h3>
+          <div className="grid grid-cols-[52px_repeat(6,minmax(0,1fr))] items-center gap-1 text-center text-[13px] font-bold">
             <span className="text-left">EYE</span>
             <span className="col-span-3 rounded bg-slate-100 py-1">OD</span>
             <span className="col-span-3 rounded bg-slate-100 py-1">OS</span>
@@ -3011,7 +3018,7 @@ export default function WorkflowPrototypeLive() {
       return (
         <div className="mt-2">
           <span
-            className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[10px]"} text-muted-foreground`}
+            className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[13px]"} text-muted-foreground`}
           >
             {kind === "tests" ? "قوالب:" : "وصفات جاهزة:"}
           </span>
@@ -3028,13 +3035,13 @@ export default function WorkflowPrototypeLive() {
               return (
                 <DropdownMenu key={tab}>
                   <DropdownMenuTrigger asChild>
-                    <button
+                    <Button variant="bare"
                       type="button"
-                      className={`flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 font-medium text-[#1e3a66] transition-colors hover:bg-muted/60 ${kind === "prescription" ? "text-sm" : "text-[10px]"}`}
+                      className={`flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 font-medium text-[#1e3a66] transition-colors hover:bg-muted/60 ${kind === "prescription" ? "text-sm" : "text-[13px]"}`}
                     >
                       <span>{tab}</span>
                       <ChevronDown className="h-3 w-3 opacity-70" />
-                    </button>
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="start"
@@ -3044,7 +3051,7 @@ export default function WorkflowPrototypeLive() {
                       ([templateId, template]: [string, any]) => (
                         <DropdownMenuItem
                           key={templateId}
-                          className={`cursor-pointer py-2 pr-4 text-right hover:bg-muted/50 ${kind === "prescription" ? "text-sm" : "text-xs"}`}
+                          className={`cursor-pointer py-2 ps-4 text-start hover:bg-muted/50 ${kind === "prescription" ? "text-sm" : "text-xs"}`}
                           onClick={() =>
                             kind === "tests"
                               ? applyTestTemplate(template)
@@ -3071,13 +3078,13 @@ export default function WorkflowPrototypeLive() {
       subtitle = "Digital Visit Summary",
     ) => (
       <div
-        className="final-report-sheet mx-auto w-full max-w-none space-y-5 bg-white p-[8mm] text-[15px] leading-7 text-slate-900 shadow-[0_4px_24px_rgba(0,0,0,0.14)] print:w-[190mm] print:max-w-[190mm] print:space-y-2 print:text-[11px] print:leading-4 print:p-0 print:shadow-none"
+        className="final-report-sheet mx-auto w-full max-w-none space-y-5 bg-white p-[8mm] text-[15px] leading-7 text-slate-900 shadow-[0_4px_24px_rgba(0,0,0,0.14)] print:w-[190mm] print:max-w-[190mm] print:space-y-2 print:text-[13px] print:leading-4 print:p-0 print:shadow-none"
         dir="ltr"
       >
         <header className="border-b-4 border-blue-900 pb-5">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
-              <p className="text-sm font-black tracking-[0.22em] text-blue-900">
+              <p className="text-sm font-black text-blue-900">
                 SELRS EYE CENTER
               </p>
               <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
@@ -3199,7 +3206,7 @@ export default function WorkflowPrototypeLive() {
               dir="ltr"
             >
               <div className="flex flex-col items-center gap-4 py-3 md:items-start">
-                <div className="grid w-full max-w-[280px] grid-cols-[64px_1fr_1fr] overflow-hidden rounded-xl border-2 border-slate-300 bg-white text-center text-sm font-semibold print:max-w-[52mm] print:text-[10px]">
+                <div className="grid w-full max-w-[280px] grid-cols-[64px_1fr_1fr] overflow-hidden rounded-xl border-2 border-slate-300 bg-white text-center text-sm font-semibold print:max-w-[52mm] print:text-[13px]">
                   <div className="border-b border-r border-slate-300 bg-slate-100 px-2 py-2" />
                   <div className="border-b border-r border-slate-300 bg-slate-100 px-2 py-2 font-black text-[#003d9b]">
                     OD
@@ -3231,10 +3238,10 @@ export default function WorkflowPrototypeLive() {
                   <article className="relative w-full rotate-[0.5deg] border border-slate-300 bg-[#fffef9] px-3 py-4 text-[12px] leading-5 text-slate-950 shadow-[4px_5px_0_rgba(15,23,42,0.14)] print:rotate-0 print:shadow-none">
                     <div className="receipt-edge absolute -bottom-1 left-0 right-0 h-2 bg-[radial-gradient(circle_at_4px_0,#fffef9_3px,transparent_3.5px)] bg-[length:8px_8px]" />
                     <header className="border-b border-dashed border-slate-500 pb-3 text-center font-mono">
-                      <p className="text-[11px] font-bold tracking-[0.28em]">
+                      <p className="text-[13px] font-bold">
                         SELRS EYE CENTER
                       </p>
-                      <p className="mt-1 text-xl font-black tracking-widest">
+                      <p className="mt-1 text-xl font-black">
                         AUTO REFRACTION
                       </p>
                     </header>
@@ -3308,7 +3315,7 @@ export default function WorkflowPrototypeLive() {
                         </th>
                       </tr>
                       <tr>
-                        <th className="whitespace-nowrap border border-slate-300 bg-[#f3f4f6] px-1 py-3 text-[11px] sm:text-sm">
+                        <th className="whitespace-nowrap border border-slate-300 bg-[#f3f4f6] px-1 py-3 text-[13px] sm:text-sm">
                           Distance
                         </th>
                         <th className="border border-slate-300 px-3 py-3">S</th>
@@ -3485,7 +3492,7 @@ export default function WorkflowPrototypeLive() {
                 isError={diseasesQuery.isError}
                 errorText="تعذر تحميل التشخيصات"
               />
-              <Textarea
+              <Textarea aria-label="اكتب التشخيص…"
                 value={data.consultant.diagnosis}
                 onChange={(event) =>
                   update("consultant", {
@@ -3570,7 +3577,7 @@ export default function WorkflowPrototypeLive() {
         </section>
         <section className="rounded-xl border-2 border-slate-300 p-4 print:break-inside-avoid print:p-3">
           <h3 className="text-lg font-black text-blue-950">Final Decision</h3>
-          <Textarea
+          <Textarea aria-label="اكتب القرار النهائي…"
             value={data.consultant.finalDecision}
             onChange={(event) =>
               update("consultant", {
@@ -3748,7 +3755,7 @@ export default function WorkflowPrototypeLive() {
                   }}
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Add Section
+                  إضافة قسم
                 </Button>
               ) : null}
               <Button
@@ -3757,8 +3764,8 @@ export default function WorkflowPrototypeLive() {
                 size="icon"
                 className="h-8 w-8 shrink-0"
                 onClick={() => setSidebarOpen((open) => !open)}
-                aria-label="Toggle visit sections"
-                title="Toggle visit sections"
+                aria-label="إظهار أقسام الزيارة"
+                title="إظهار أقسام الزيارة"
               >
                 {sidebarOpen ? (
                   <ChevronLeft className="h-4 w-4" />
@@ -3783,7 +3790,7 @@ export default function WorkflowPrototypeLive() {
                     className={
                       (sidebarOpen ? "gap-2 px-3" : "px-2") +
                       " h-8 shrink-0 " +
-                      (active ? "bg-blue-900 text-white" : "")
+                      (active ? "bg-primary text-primary-foreground" : "")
                     }
                     onClick={() => {
                       setActiveSection(tab.id);
@@ -3825,6 +3832,7 @@ export default function WorkflowPrototypeLive() {
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900" dir="rtl">
       <main className="mx-auto max-w-[1500px] space-y-2 px-2 py-0 lg:px-3">
+        <h1 className="sr-only">مسار اليوم</h1>
         <QueueLoadStatus {...liveQueue} />
         {selectedLivePatient
           ? renderLiveWorkspace()

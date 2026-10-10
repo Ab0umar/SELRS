@@ -31,7 +31,7 @@ export const PatientTransactions = memo(function PatientTransactions({
   }
 
   return (
-    <div className="space-y-1 text-xs text-right" dir="rtl">
+    <div className="space-y-1 text-xs text-start" dir="rtl">
       {rows.map((entry: any) => {
         const code = normalizeServiceCode(entry?.serviceCode);
         const name = String(

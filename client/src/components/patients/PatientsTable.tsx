@@ -309,17 +309,7 @@ export const PatientsTable = memo(function PatientsTable({
           return (
             <Card
               key={String((patient as any).__rowKey ?? patient.id)}
-              className="cursor-pointer overflow-hidden border-border/80 bg-card shadow-sm transition-colors hover:border-primary/25 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              tabIndex={0}
-              role="button"
-              aria-label={`فتح ملف المريض ${patient.fullName}${patient.patientCode ? ` — ${patient.patientCode}` : ""}`}
-              onClick={() => onOpenDetails(patient.id)}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onOpenDetails(patient.id);
-                }
-              }}
+              className="overflow-hidden border-border/80 bg-card shadow-sm"
             >
               <PatientMedicalStatusStrip
                 status={medicalStatuses?.[patient.id]}
@@ -347,15 +337,20 @@ export const PatientsTable = memo(function PatientsTable({
                   ) : (
                     <span />
                   )}
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-[13px] text-primary-foreground">
                     {serviceLabel}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-end gap-2" dir="rtl">
-                  <div className="text-sm font-bold break-words text-foreground">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto min-h-11 whitespace-normal p-0 text-start text-sm font-bold text-foreground"
+                    onClick={() => onOpenDetails(patient.id)}
+                  >
                     {patient.fullName}
-                  </div>
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -384,14 +379,14 @@ export const PatientsTable = memo(function PatientsTable({
                     {displayCode || "-"}
                   </div>
                   <div className="text-muted-foreground">الدكتور</div>
-                  <div className="text-right text-foreground">
+                  <div className="text-start text-foreground">
                     {String((patient as any).treatingDoctor ?? "").trim() ||
                       "-"}
                   </div>
                   <div className="text-muted-foreground">نوع الشيت</div>
-                  <div className="text-right text-foreground">
+                  <div className="text-start text-foreground">
                     <span>{getSheetTypeLabel(getRowSheetType(patient))}</span>
-                    <span className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <span className="ms-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[13px] text-muted-foreground">
                       {getSheetSourceLabel(getRowSheetSource(patient))}
                     </span>
                   </div>
@@ -407,7 +402,7 @@ export const PatientsTable = memo(function PatientsTable({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 w-9 rounded-xl border-primary/25 bg-primary text-primary-foreground shadow-sm hover:border-primary/40 hover:bg-primary/90"
+                    className="h-11 w-11 rounded-lg border-primary/25 bg-primary text-primary-foreground hover:border-primary/40 hover:bg-primary/90"
                     title="فتح الشيت"
                     aria-label="فتح الشيت"
                     onClick={(event) => {
@@ -421,7 +416,7 @@ export const PatientsTable = memo(function PatientsTable({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-9 w-9 rounded-xl border-warning/50 bg-warning/10 p-0 text-warning/90 shadow-sm hover:border-warning hover:bg-warning/20"
+                      className="h-11 w-11 rounded-lg border-warning/50 bg-warning/10 p-0 text-warning-text hover:border-warning hover:bg-warning/20"
                       title="تعديل المريض"
                       aria-label="تعديل المريض"
                       onClick={(event) => {
@@ -435,7 +430,7 @@ export const PatientsTable = memo(function PatientsTable({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 w-9 rounded-xl border-border bg-background p-0 shadow-sm"
+                    className="h-11 w-11 rounded-lg border-border bg-background p-0"
                     title="طباعة الشيت"
                     aria-label="طباعة الشيت"
                     onClick={(event) => {
@@ -449,7 +444,7 @@ export const PatientsTable = memo(function PatientsTable({
                     <Button
                       size="sm"
                       variant="destructive"
-                      className="h-9 w-9 rounded-xl p-0 shadow-sm"
+                      className="h-11 w-11 rounded-lg p-0"
                       title="حذف المريض"
                       aria-label="حذف المريض"
                       onClick={(event) => {
@@ -537,19 +532,7 @@ export const PatientsTable = memo(function PatientsTable({
                 <Fragment
                   key={String((patient as any).__rowKey ?? patient.id)}
                 >
-                  <TableRow
-                    className="cursor-pointer border-border transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:bg-primary/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`فتح ملف المريض ${patient.fullName}${patient.patientCode ? ` — ${patient.patientCode}` : ""}`}
-                    onClick={() => onOpenDetails(patient.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onOpenDetails(patient.id);
-                      }
-                    }}
-                  >
+                  <TableRow className="border-border">
                     {canBulkManage ? (
                       <TableCell
                         className="text-center"
@@ -579,11 +562,18 @@ export const PatientsTable = memo(function PatientsTable({
                     <TableCell className="text-center break-words">
                       <div className="flex flex-col items-end gap-1" dir="rtl">
                         <div className="flex items-center justify-end gap-2">
-                          <span>{patient.fullName}</span>
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="h-auto min-h-11 whitespace-normal p-0 text-start font-medium text-foreground"
+                            onClick={() => onOpenDetails(patient.id)}
+                          >
+                            {patient.fullName}
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-9 w-9 rounded-lg border-border bg-background p-0"
+                            className="h-11 w-11 rounded-lg border-border bg-background p-0"
                             aria-label={
                               isExpanded(Number(patient.id))
                                 ? "طي معاملات المريض"
@@ -602,7 +592,7 @@ export const PatientsTable = memo(function PatientsTable({
                           </Button>
                         </div>
                         {isExpanded(Number(patient.id)) ? (
-                          <div className="w-full rounded border border-border bg-muted/60 p-2 text-right">
+                          <div className="w-full rounded border border-border bg-muted/60 p-2 text-start">
                             <PatientTransactions
                               patientId={Number(patient.id)}
                               serviceCodeToLabel={serviceCodeToLabel}
@@ -628,7 +618,7 @@ export const PatientsTable = memo(function PatientsTable({
                     <TableCell className="text-center">-</TableCell>
                     <TableCell className="text-center">
                       <span>{getSheetTypeLabel(getRowSheetType(patient))}</span>
-                      <span className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      <span className="ms-2 inline-block rounded bg-muted px-1.5 py-0.5 text-[13px] text-muted-foreground">
                         {getSheetSourceLabel(getRowSheetSource(patient))}
                       </span>
                     </TableCell>

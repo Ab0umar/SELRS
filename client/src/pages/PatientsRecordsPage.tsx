@@ -5,6 +5,7 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import "@/styles/clinical-workspace.css";
 import {
   ArrowRight,
   CalendarCheck,
@@ -13,21 +14,23 @@ import {
   ScrollText,
 } from "lucide-react";
 
-// Sub-components
 import AdminLegacyPatients from "@/features/admin/AdminLegacyPatients";
 import Followups from "./Followups";
 import Visits from "./Visits";
 import OpHistory from "@/features/admin/OpHistory";
 
-export type PatientsRecordsTabKey =
-  | "record"
-  | "followups"
-  | "visits"
-  | "op";
+export type PatientsRecordsTabKey = "record" | "followups" | "visits" | "op";
 
 export type PatientsRecordsPageProps = {
   defaultTab?: PatientsRecordsTabKey;
   embeddedInHub?: boolean;
+};
+
+const TAB_LABELS: Record<PatientsRecordsTabKey, string> = {
+  record: "سجل المرضى",
+  followups: "المتابعات",
+  visits: "الزيارات",
+  op: "سجل العمليات",
 };
 
 export default function PatientsRecordsPage({
@@ -85,14 +88,18 @@ export default function PatientsRecordsPage({
     }
   }, [isAuthenticated, setLocation]);
 
+  const activeTabLabel = TAB_LABELS[activeTab];
+
   return (
-    <div className="w-full bg-background text-foreground">
-      <div className="w-full space-y-4 p-3 sm:p-5">
+    <div
+      className="clinical-workspace w-full bg-background text-foreground print:bg-white"
+      dir="rtl"
+    >
+      <div className="w-full space-y-4 p-3 sm:p-5 print:space-y-0 print:p-0">
         {!embeddedInHub && (
-          <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+          <div className="records-page-header rounded-2xl border border-border/80 bg-card p-4 shadow-sm print:hidden">
             <PageHeader
               title="سجلات المرضى"
-              description="سجل المرضى، المتابعات الدورية، الزيارات، وسجل العمليات في صفحة موحدة"
               actions={
                 <Button
                   variant="outline"
@@ -111,16 +118,27 @@ export default function PatientsRecordsPage({
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
-          className="w-full space-y-4"
+          className="w-full space-y-4 print:space-y-0"
+          dir="rtl"
         >
-          <div className="overflow-x-auto pb-1 [scrollbar-width:none]">
-            <TabsList className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1">
+          <div className="overflow-x-auto pb-1 [scrollbar-width:none] print:hidden">
+            <TabsList
+              aria-label="تبويبات سجلات المرضى"
+              className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1"
+            >
+              <TabsTrigger
+                value="record"
+                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
+              >
+                <History className="h-4 w-4 shrink-0 text-primary" />
+                <span>المرضى</span>
+              </TabsTrigger>
               <TabsTrigger
                 value="op"
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
               >
                 <ScrollText className="h-4 w-4 shrink-0 text-primary" />
-                <span>سجل العمليات</span>
+                <span>العمليات</span>
               </TabsTrigger>
 
               <TabsTrigger
@@ -139,36 +157,45 @@ export default function PatientsRecordsPage({
                 <span>المتابعات</span>
               </TabsTrigger>
 
-              <TabsTrigger
-                value="record"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <History className="h-4 w-4 shrink-0 text-primary" />
-                <span>سجل المرضى</span>
-              </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="record" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
+          <div className="hidden border-b border-border pb-3 text-sm font-semibold print:block">
+            سجلات المرضى — {activeTabLabel}
+          </div>
+
+          <TabsContent
+            value="record"
+            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+          >
+            <div className="rounded-2xl border border-border/80 bg-card p-2 shadow-sm sm:p-4 print:border-0 print:p-0 print:shadow-none">
               <AdminLegacyPatients />
             </div>
           </TabsContent>
 
-          <TabsContent value="followups" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
+          <TabsContent
+            value="followups"
+            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+          >
+            <div className="rounded-2xl border border-border/80 bg-card p-2 shadow-sm sm:p-4 print:border-0 print:p-0 print:shadow-none">
               <Followups />
             </div>
           </TabsContent>
 
-          <TabsContent value="visits" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
+          <TabsContent
+            value="visits"
+            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+          >
+            <div className="rounded-2xl border border-border/80 bg-card p-2 shadow-sm sm:p-4 print:border-0 print:p-0 print:shadow-none">
               <Visits />
             </div>
           </TabsContent>
 
-          <TabsContent value="op" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
+          <TabsContent
+            value="op"
+            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+          >
+            <div className="rounded-2xl border border-border/80 bg-card p-2 shadow-sm sm:p-4 print:border-0 print:p-0 print:shadow-none">
               <OpHistory />
             </div>
           </TabsContent>

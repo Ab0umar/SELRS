@@ -2,16 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Filter,
-  History,
-  ScrollText,
-} from "lucide-react";
+import { Filter, History, Printer, ScrollText } from "lucide-react";
 
-// Sub-components
 import AdminLegacyPatients from "@/features/admin/AdminLegacyPatients";
 import OpHistory from "@/features/admin/OpHistory";
 import MedicalReference from "./MedicalReference";
+import { Button } from "@/components/ui/button";
 
 export type ArchiveTabKey = "patients" | "operations" | "reference";
 
@@ -32,7 +28,10 @@ export default function ArchivePage({
     try {
       const sp = new URLSearchParams(window.location.search);
       const tabParam = sp.get("tab");
-      if (tabParam && ["patients", "operations", "reference"].includes(tabParam)) {
+      if (
+        tabParam &&
+        ["patients", "operations", "reference"].includes(tabParam)
+      ) {
         return tabParam as ArchiveTabKey;
       }
     } catch {
@@ -64,6 +63,13 @@ export default function ArchivePage({
     }
   };
 
+  const activeTabLabel =
+    activeTab === "patients"
+      ? "سجل المرضى"
+      : activeTab === "operations"
+        ? "سجل العمليات"
+        : "المرجع الطبي";
+
   useEffect(() => {
     const onPopState = () => {
       try {
@@ -90,16 +96,35 @@ export default function ArchivePage({
   }, [isAuthenticated, setLocation]);
 
   return (
-    <div className="w-full bg-background text-foreground print:bg-white" dir="rtl">
-      <div className="w-full space-y-4 p-3 sm:p-5 print:p-0 print:space-y-0">
+    <div
+      className="w-full bg-background text-foreground print:bg-white"
+      dir="rtl"
+    >
+      <div data-module-content-start className="w-full space-y-4 p-3 sm:p-5 print:p-0 print:space-y-0">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="w-full space-y-4 print:space-y-0"
           dir="rtl"
         >
-          <div className="overflow-x-auto pb-1 [scrollbar-width:none] print:hidden">
-            <TabsList className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1" dir="rtl">
+          <div className="mb-3 flex items-center justify-between gap-3 print:hidden">
+            <p className="text-sm text-muted-foreground">
+              الطباعة تقتصر على التبويب النشط: {activeTabLabel}
+            </p>
+            <Button variant="bare"
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold hover:bg-muted"
+            >
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              طباعة التبويب النشط
+            </Button>
+          </div>
+          <div className="overflow-x-auto pb-1 print:hidden">
+            <TabsList
+              className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1"
+              dir="rtl"
+            >
               <TabsTrigger
                 value="patients"
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
@@ -124,6 +149,10 @@ export default function ArchivePage({
                 <span>المرجع الطبي</span>
               </TabsTrigger>
             </TabsList>
+          </div>
+
+          <div className="hidden border-b border-border pb-3 text-sm font-semibold print:block">
+            الأرشيف — {activeTabLabel}
           </div>
 
           <TabsContent

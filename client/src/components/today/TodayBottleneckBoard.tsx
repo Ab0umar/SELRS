@@ -282,15 +282,15 @@ function CompactPatientCard({
   return (
     <div
       className={cn(
-        "rounded-lg border text-right transition-[border-color,box-shadow]",
+        "rounded-lg border text-start transition-[border-color,box-shadow]",
         meta.accent,
       )}
     >
       <PatientMedicalStatusStrip status={medicalStatus} />
-      <button
+      <Button variant="bare"
         type="button"
         onClick={onSelectPatient}
-        className="w-full px-3 py-2.5 text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+        className="w-full px-3 py-2.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
         aria-label={`فتح اختصارات ${getPatientLabel(patient)}`}
       >
         <div className="flex items-start gap-2">
@@ -304,7 +304,7 @@ function CompactPatientCard({
             </p>
           </div>
         </div>
-      </button>
+      </Button>
       {canMarkTreated ? (
         <div className="flex justify-end border-t border-border/40 px-2.5 pb-2 pt-1.5">
           <Button
@@ -404,7 +404,7 @@ function GridPatientCard({
         </p>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
           <div className="flex items-center gap-1">
-            <button
+            <Button variant="bare"
               type="button"
               title="طباعة روشتة"
               aria-label="طباعة روشتة"
@@ -416,8 +416,8 @@ function GridPatientCard({
               }}
             >
               <Pill className="h-3.5 w-3.5" aria-hidden />
-            </button>
-            <button
+            </Button>
+            <Button variant="bare"
               type="button"
               title="طباعة طلب تحاليل"
               aria-label="طباعة طلب تحاليل"
@@ -429,8 +429,8 @@ function GridPatientCard({
               }}
             >
               <FlaskConical className="h-3.5 w-3.5" aria-hidden />
-            </button>
-            <button
+            </Button>
+            <Button variant="bare"
               type="button"
               title="طباعة مقاس النظارة"
               aria-label="طباعة مقاس النظارة"
@@ -442,20 +442,20 @@ function GridPatientCard({
               }}
             >
               <Glasses className="h-3.5 w-3.5" aria-hidden />
-            </button>
+            </Button>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1">
             {st === "treated" ? (
               <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
             ) : null}
             {(patient as any).visitType === "followup" ? (
-              <Badge className="max-w-full truncate text-[10px] sm:text-xs bg-info/15 text-info border-info/20">
+              <Badge className="max-w-full truncate text-[13px] sm:text-xs bg-info/15 text-info border-info/20">
                 متابعة
               </Badge>
             ) : null}
             <Badge
               className={cn(
-                "max-w-full truncate text-[10px] sm:text-xs",
+                "max-w-full truncate text-[13px] sm:text-xs",
                 meta.softTone,
               )}
             >
@@ -465,20 +465,20 @@ function GridPatientCard({
         </div>
         <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-xs">
           <span className="text-muted-foreground">الطبيب</span>
-          <span className="break-words text-right text-foreground">
+          <span className="break-words text-start text-foreground">
             {doctorText}
           </span>
           <span className="text-muted-foreground">الخدمة</span>
-          <span className="text-right">
+          <span className="text-start">
             <Badge
               variant="outline"
-              className="max-w-full truncate text-[10px]"
+              className="max-w-full truncate text-[13px]"
             >
               {serviceText}
             </Badge>
           </span>
           <span className="text-muted-foreground">الوقت</span>
-          <span className="tabular-nums text-right text-foreground">
+          <span className="tabular-nums text-start text-foreground">
             {timeText}
           </span>
         </div>
@@ -562,7 +562,7 @@ function BookingRequestCard({
     serviceTypeLabels[String(request.service ?? "")] ?? request.service ?? "—";
 
   return (
-    <div className="rounded-xl border border-warning/25 bg-warning/5 p-3 text-right shadow-sm">
+    <div className="rounded-xl border border-warning/25 bg-warning/5 p-3 text-start shadow-sm">
       <div className="flex items-start gap-2">
         <div className="mt-1 flex shrink-0 flex-col gap-2">
           <label
@@ -603,7 +603,7 @@ function BookingRequestCard({
           </p>
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
             <span className="text-muted-foreground">الخدمة</span>
-            <span className="text-right text-foreground">{serviceText}</span>
+            <span className="text-start text-foreground">{serviceText}</span>
             <span className="text-muted-foreground">التاريخ</span>
             <span className="text-right tabular-nums text-foreground" dir="ltr">
               {formatScheduleRequestDate(request.visitDate)}
@@ -705,7 +705,7 @@ function KanbanColumn({
           <Clock3 className="h-3 w-3 shrink-0" aria-hidden />
           <span>متوسط {avg}</span>
           {isBottleneck ? (
-            <span className={cn("mr-auto font-medium", meta.tone)}>
+            <span className={cn("ms-auto font-medium", meta.tone)}>
               · الأولوية
             </span>
           ) : null}
@@ -1012,7 +1012,7 @@ export function TodayBottleneckBoard({
             <Badge
               variant={isHistoricalDate ? "outline" : "secondary"}
               className={cn(
-                "text-[10px] font-semibold tabular-nums",
+                "text-[13px] font-semibold tabular-nums",
                 isHistoricalDate
                   ? "border-warning/30 bg-warning text-warning-foreground"
                   : "bg-muted/70 text-muted-foreground",
@@ -1068,7 +1068,7 @@ export function TodayBottleneckBoard({
 
           {/* Tab toggle */}
           <div className="inline-flex items-center rounded-lg border border-border/70 bg-muted/20 p-0.5">
-            <button
+            <Button variant="bare"
               type="button"
               onClick={() => setActiveTab("queue")}
               className={cn(
@@ -1080,12 +1080,12 @@ export function TodayBottleneckBoard({
             >
               المرضى
               {merged.length > 0 ? (
-                <Badge className="bg-muted/80 text-[10px] tabular-nums text-muted-foreground">
+                <Badge className="bg-muted/80 text-[13px] tabular-nums text-muted-foreground">
                   {merged.length.toLocaleString("ar-EG")}
                 </Badge>
               ) : null}
-            </button>
-            <button
+            </Button>
+            <Button variant="bare"
               type="button"
               onClick={() => setActiveTab("operations")}
               className={cn(
@@ -1097,11 +1097,11 @@ export function TodayBottleneckBoard({
             >
               العمليات
               {todayOperationsFlat.length > 0 ? (
-                <Badge variant="outline" className="text-[10px] tabular-nums">
+                <Badge variant="outline" className="text-[13px] tabular-nums">
                   {todayOperationsFlat.length.toLocaleString("ar-EG")}
                 </Badge>
               ) : null}
-            </button>
+            </Button>
           </div>
 
           {/* Action buttons */}
@@ -1164,7 +1164,7 @@ export function TodayBottleneckBoard({
 
       {/* Quick Actions collapsible */}
       <div className="shrink-0 border-b border-border/70 bg-card/50">
-        <button
+        <Button variant="bare"
           type="button"
           onClick={() => setQuickActionsExpanded((v) => !v)}
           className="flex w-full items-center justify-between px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -1181,7 +1181,7 @@ export function TodayBottleneckBoard({
             )}
             aria-hidden
           />
-        </button>
+        </Button>
         {quickActionsExpanded ? (
           <div className="space-y-2 px-4 pb-3">
             {isHistoricalDate ? (
@@ -1218,7 +1218,7 @@ export function TodayBottleneckBoard({
                 const n = counts[value];
                 const active = queueFilter === value;
                 return (
-                  <button
+                  <Button variant="bare"
                     key={value}
                     type="button"
                     onClick={() => setQueueFilter(value)}
@@ -1233,7 +1233,7 @@ export function TodayBottleneckBoard({
                     <span className="tabular-nums opacity-90">
                       ({n.toLocaleString("ar-EG")})
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>

@@ -252,7 +252,7 @@ export default function Patients() {
               title="المحدد"
               value={selectedCount}
               icon={Eye}
-              iconColor="bg-warning/20 text-warning"
+              iconColor="bg-warning/20 text-warning-text"
             />
             <StatCard
               title="الأطباء"

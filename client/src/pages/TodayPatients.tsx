@@ -89,7 +89,7 @@ export default function TodayPatients() {
       label: "في الانتظار",
       value: waiting,
       icon: Clock,
-      cls: "bg-warning/15 text-warning",
+      cls: "bg-warning/15 text-warning-text",
       bar: "bg-warning",
     },
     {
@@ -137,7 +137,7 @@ export default function TodayPatients() {
         <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex-1 min-w-0">
-              <button
+              <Button variant="bare"
                 type="button"
                 aria-expanded={quickActionsOpen}
                 onClick={() => setQuickActionsOpen((open) => !open)}
@@ -145,7 +145,7 @@ export default function TodayPatients() {
               >
                 إجراءات سريعة
                 <span aria-hidden>{quickActionsOpen ? "−" : "+"}</span>
-              </button>
+              </Button>
               {quickActionsOpen ? (
                 <QuickActions
                   onOpenMeasurementsMedicalFile={openMedicalFilePicker}

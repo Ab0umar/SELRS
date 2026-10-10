@@ -16,6 +16,7 @@ import {
   Syringe,
   Workflow,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function parseRowDate(value: unknown): Date | null {
   if (value == null) return null;
@@ -193,7 +194,7 @@ export default function WorkflowHub() {
 
   return (
     <div className="min-h-screen bg-muted/40" dir="rtl">
-      <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
+      <div data-module-content-start className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
         <QueueLoadStatus {...queue} />
         <PageHeader
           title="مركز سير العمل"
@@ -212,14 +213,14 @@ export default function WorkflowHub() {
               <p className="mt-0.5 text-xs text-muted-foreground">استقبال · تمريض · أخصائي · استشاري</p>
             </div>
           </div>
-          <button
+          <Button variant="bare"
             type="button"
             onClick={() => setLocation("/workflow-hub/prototype")}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             فتح النموذج التجريبي
             <ArrowLeft className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -227,12 +228,12 @@ export default function WorkflowHub() {
             const Icon = card.icon;
             const a = ACCENT[card.accent];
             return (
-              <button
+              <Button variant="bare"
                 key={card.key}
                 type="button"
                 onClick={() => setLocation(card.path)}
                 className={cn(
-                  "group w-full rounded-2xl border border-border/70 bg-card text-right shadow-sm transition-all",
+                  "group w-full rounded-2xl border border-border/70 bg-card text-start shadow-sm transition-all",
                   "hover:shadow-md hover:border-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   a.bar,
                   "border-t-[3px]",
@@ -240,11 +241,11 @@ export default function WorkflowHub() {
               >
                 <div className="flex flex-col gap-4 p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex flex-col items-end text-right">
-                      <span className="text-3xl font-black tabular-nums tracking-tight text-foreground sm:text-[2rem] leading-none">
+                    <div className="min-w-0 flex flex-col items-end text-start">
+                      <span className="text-3xl font-black tabular-nums text-foreground sm:text-[2rem] leading-none">
                         {card.statMain}
                       </span>
-                      <span className="mt-1.5 text-[11px] font-medium text-muted-foreground">
+                      <span className="mt-1.5 text-[13px] font-medium text-muted-foreground">
                         {card.statSub}
                       </span>
                     </div>
@@ -267,7 +268,7 @@ export default function WorkflowHub() {
                     </p>
                   </div>
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>
