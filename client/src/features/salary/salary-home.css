@@ -1,0 +1,249 @@
+@media screen {
+  .salary-home-focused {
+    display: grid;
+    gap: 12px;
+  }
+  .salary-home-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .salary-home-month {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .salary-home-month input {
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--input);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--foreground);
+  }
+  .salary-home-payroll {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 0 22px;
+    border-radius: 6px;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    font-weight: 800;
+    transition: background-color 0.15s;
+  }
+  .salary-home-payroll:hover {
+    background: color-mix(in srgb, var(--secondary) 86%, black);
+  }
+
+  /* Ruled lines echo a ledger page behind the net total. */
+  .salary-home-ledger {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: var(--primary);
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 23px,
+      rgb(255 255 255 / 0.07) 23px,
+      rgb(255 255 255 / 0.07) 24px
+    );
+    color: var(--primary-foreground);
+    animation: salary-home-rise 0.5s ease-out both;
+  }
+  .salary-home-pane {
+    min-width: 0;
+    padding: 14px clamp(14px, 2vw, 20px) 0;
+  }
+  .salary-home-pane + .salary-home-pane {
+    border-inline-start: 1px solid rgb(255 255 255 / 0.3);
+  }
+  .salary-home-eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+  .salary-home-flow .salary-home-eyebrow {
+    margin-bottom: 6px;
+    color: var(--muted-foreground);
+    opacity: 1;
+  }
+  .salary-home-net {
+    margin: 2px 0 0;
+    font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+    font-weight: 900;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    unicode-bidi: isolate;
+  }
+  .salary-home-approval {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  .salary-home-meter {
+    flex: 1 1 160px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgb(255 255 255 / 0.22);
+    overflow: hidden;
+  }
+  .salary-home-meter > span {
+    display: block;
+    height: 100%;
+    background: var(--secondary);
+    transition: width 0.6s ease-out;
+  }
+  .salary-home-entries {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 12px calc(-1 * clamp(14px, 2vw, 20px)) 0;
+    border-top: 1px solid rgb(255 255 255 / 0.3);
+  }
+  .salary-home-entries > div {
+    min-width: 0;
+    padding: 8px clamp(10px, 1.4vw, 16px) 10px;
+  }
+  .salary-home-entries > div + div {
+    border-inline-start: 1px solid rgb(255 255 255 / 0.2);
+  }
+  .salary-home-entries dt {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.85;
+  }
+  .salary-home-entries dd {
+    margin: 2px 0 0;
+    font-size: clamp(0.85rem, 1.3vw, 1rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    unicode-bidi: isolate;
+  }
+
+  .salary-home-status {
+    display: grid;
+    gap: 2px;
+    padding: 10px 14px;
+    box-shadow: none;
+  }
+
+  .salary-home-flow ol {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 2px solid var(--primary);
+  }
+  .salary-home-flow li + li {
+    border-inline-start: 1px solid var(--border);
+  }
+  .salary-home-flow a {
+    display: flex;
+    height: 100%;
+    min-height: 44px;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: var(--foreground);
+    transition: background-color 0.15s;
+  }
+  .salary-home-flow a:hover {
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+  }
+  .salary-home-step {
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--primary);
+  }
+  .salary-home-step-text strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .salary-home-step-text small {
+    display: block;
+    margin-top: 1px;
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+
+  @media (max-width: 767px) {
+    .salary-home-ledger {
+      grid-template-columns: 1fr;
+    }
+    .salary-home-pane + .salary-home-pane {
+      border-inline-start: 0;
+      border-top: 1px solid rgb(255 255 255 / 0.3);
+    }
+    .salary-home-entries {
+      grid-template-columns: 1fr;
+    }
+    .salary-home-entries > div {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 14px;
+    }
+    .salary-home-entries > div + div {
+      border-inline-start: 0;
+      border-top: 1px solid rgb(255 255 255 / 0.2);
+    }
+    .salary-home-entries dd {
+      margin: 0;
+    }
+    .salary-home-flow ol {
+      grid-template-columns: 1fr;
+    }
+    .salary-home-flow li + li {
+      border-inline-start: 0;
+      border-top: 1px solid var(--border);
+    }
+    .salary-home-toolbar {
+      align-items: stretch;
+    }
+    .salary-home-payroll {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+  @media (max-width: 1023px) and (min-width: 768px) {
+    .salary-home-flow ol {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .salary-home-flow li:nth-child(3) {
+      border-inline-start: 0;
+    }
+    .salary-home-flow li:nth-child(n + 3) {
+      border-top: 1px solid var(--border);
+    }
+  }
+}
+@keyframes salary-home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .salary-home-ledger {
+    animation: none;
+  }
+  .salary-home-meter > span {
+    transition: none;
+  }
+}

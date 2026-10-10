@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { ConfirmHost } from "../attendance/askConfirm";
 import OperationalModuleShell from "@/components/layout/OperationalModuleShell";
 import {
   BadgeDollarSign,
@@ -8,13 +9,15 @@ import {
   UserRound,
   SlidersHorizontal,
   WalletCards,
+  FileText,
 } from "lucide-react";
+import "./salary.css";
+import "./salary-design.css";
 
 interface SalaryLayoutProps {
   children: ReactNode;
 }
 
-// Reorganized navigation structure - cleaner hierarchy
 const navigationSections = [
   {
     id: "dashboard",
@@ -106,6 +109,26 @@ const navigationSections = [
     ],
   },
   {
+    id: "reports",
+    label: "التقارير",
+    description: "بيانات الرواتب والغياب",
+    icon: FileText,
+    items: [
+      {
+        href: "/salary/current-data",
+        label: "بيانات الشهر",
+        activeFor: ["/salary/current-data"],
+        icon: FileText,
+      },
+      {
+        href: "/salary/absent-report",
+        label: "تقرير الغياب",
+        activeFor: ["/salary/absent-report"],
+        icon: FileText,
+      },
+    ],
+  },
+  {
     id: "settings",
     label: "الإعدادات",
     description: "ضبط قواعد الرواتب",
@@ -126,12 +149,17 @@ export default function SalaryLayout({ children }: SalaryLayoutProps) {
   return (
     <OperationalModuleShell
       moduleName="salary"
+      fullWidth
+      ledger
       title="الرواتب والعمولات"
       description="تجهيز الرواتب، المتغيرات الشهرية، وكشف الاستحقاقات"
       mark={<BadgeDollarSign className="h-5 w-5" />}
       navigation={navigationSections.flatMap((section) => section.items)}
     >
-      {children}
+      <div className="attendance-touch salary-touch contents">
+        {children}
+      </div>
+      <ConfirmHost />
     </OperationalModuleShell>
   );
 }

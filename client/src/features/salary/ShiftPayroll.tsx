@@ -1,11 +1,22 @@
-﻿import { useState } from "react";
-import { canUseNativeAndroidPrint, requestNativeAndroidPrint } from "@/lib/nativePrint";
+import { useState } from "react";
+import {
+  canUseNativeAndroidPrint,
+  requestNativeAndroidPrint,
+} from "@/lib/nativePrint";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Printer, ChevronDown, ChevronUp, Pencil, RotateCcw } from "lucide-react";
+import {
+  RefreshCw,
+  Printer,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  RotateCcw,
+} from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 function AttendedEditableCell({
   value,
@@ -21,7 +32,7 @@ function AttendedEditableCell({
 
   if (editing) {
     return (
-      <input
+      <Input bare
         type="number"
         min={0}
         autoFocus
@@ -30,7 +41,7 @@ function AttendedEditableCell({
         onBlur={() => {
           setEditing(false);
           const n = Number(draft);
-          if (Number.isFinite(n) && n >= 0) onSave(n);
+          if (Number.isInteger(n) && n >= 0 && n !== value) onSave(n);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -39,29 +50,40 @@ function AttendedEditableCell({
             setEditing(false);
           }
         }}
-        className="w-16 rounded border border-border bg-background px-1.5 py-0.5 text-right tabular-nums"
+        className="w-16 rounded border border-input bg-background px-1.5 py-0.5 text-start tabular-nums"
       />
     );
   }
 
   return (
     <span
+      role="button"
+      tabIndex={0}
+      aria-label={`تعديل عدد الحضور الحالي ${value}`}
       className={cn(
-        "inline-flex items-center gap-1 cursor-pointer group",
+        "inline-flex min-h-11 items-center gap-1 cursor-pointer group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         hasOverride && "underline decoration-dotted",
       )}
       onClick={() => {
         setDraft(String(value));
         setEditing(true);
       }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setDraft(String(value));
+          setEditing(true);
+        }
+      }}
       title="اضغط للتعديل"
     >
       {value}
       <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60" />
       {hasOverride && (
-        <button
+        <Button variant="bare"
           type="button"
           title="إرجاع للحساب التلقائي"
+          aria-label="إرجاع للحساب التلقائي"
           onClick={(e) => {
             e.stopPropagation();
             onSave(null);
@@ -69,7 +91,7 @@ function AttendedEditableCell({
           className="text-muted-foreground hover:text-foreground"
         >
           <RotateCcw className="h-3 w-3" />
-        </button>
+        </Button>
       )}
     </span>
   );
@@ -106,7 +128,7 @@ const MONTHS_AR = [
 ];
 
 function fmt(n: number) {
-  return Number(n).toLocaleString("en-EG", {
+  return Number(n).toLocaleString("ar-EG", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
@@ -180,7 +202,11 @@ const defaultPayrollEnd = new Date(
   25,
 );
 const DEFAULT_FROM = (() => {
-  const previousMonth = new Date(defaultPayrollEnd.getFullYear(), defaultPayrollEnd.getMonth() - 1, 26);
+  const previousMonth = new Date(
+    defaultPayrollEnd.getFullYear(),
+    defaultPayrollEnd.getMonth() - 1,
+    26,
+  );
   return `${isoMonthStr(previousMonth)}-26`;
 })();
 const DEFAULT_TO = `${isoMonthStr(defaultPayrollEnd)}-25`;
@@ -195,7 +221,7 @@ export default function ShiftPayroll() {
 
   // The payroll month follows the range end, matching the monthly payroll page.
   const [year, month] = toDate.split("-").map(Number);
-  const periodLabel = `${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} — ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
+  const periodLabel = `من ${new Date(fromDate + "T00:00:00").toLocaleDateString("ar-EG")} إلى ${new Date(toDate + "T00:00:00").toLocaleDateString("ar-EG")}`;
 
   const payrollQ = (trpc as any).salary.computeShiftPayroll.useQuery({
     year,
@@ -205,7 +231,9 @@ export default function ShiftPayroll() {
   });
   const rawRows: any[] = payrollQ.data ?? [];
 
-  const setOverrideMut = (trpc as any).salary.setShiftAttendanceOverride.useMutation({
+  const setOverrideMut = (
+    trpc as any
+  ).salary.setShiftAttendanceOverride.useMutation({
     onSuccess: () => {
       toast.success("تم الحفظ");
       payrollQ.refetch();
@@ -215,7 +243,7 @@ export default function ShiftPayroll() {
     },
   });
 
-  // Trust the backend's big/small breakdown directly — it derives shift size
+  // Trust the backend's big/small breakdown directly - it derives shift size
   // from each shift's actual definition (attendanceShifts.shiftSize / duration),
   // not from the shift's name.
   const rows = rawRows;
@@ -255,7 +283,7 @@ export default function ShiftPayroll() {
       hr.sep { border: none; border-top: 1px dashed #888; margin: 8px 0; }
     `;
 
-    const titleAr = `مرتب الشفتات — ${periodLabel}`;
+    const titleAr = `مرتب الشفتات: ${periodLabel}`;
     const today = new Date().toLocaleDateString("ar-EG");
 
     const slips = rows
@@ -269,7 +297,11 @@ export default function ShiftPayroll() {
           .join("");
 
         const shiftNameAr = (sn: string) =>
-          sn === "Morning" ? "شفت صباحي" : sn === "Night" ? "شفت مسائي" : `شفت ${sn}`;
+          sn === "Morning"
+            ? "شفت صباحي"
+            : sn === "Night"
+              ? "شفت مسائي"
+              : `شفت ${sn}`;
         const shiftHeaders = allShiftNames
           .map((sn: string) => `<th colspan="2">${shiftNameAr(sn)}</th>`)
           .join("");
@@ -320,11 +352,11 @@ export default function ShiftPayroll() {
             </tr>
             <tr>
               <td></td>
-              <td colspan="${shiftColspan - 2}">0.00</td>
-              <td>0.00</td>
-              <td>${r.absent}</td>
-              <td>0.00</td>
-              <td>0.00</td>
+              <td colspan="${Math.max(1, shiftColspan - 2)}">غير متاح</td>
+              <td>غير متاح</td>
+              <td>${r.absent ?? "غير متاح"}</td>
+              <td>غير متاح</td>
+              <td>غير متاح</td>
             </tr>
           </table>
           <div class="words">${toArabicWords(r.totalPay)}</div>
@@ -339,7 +371,7 @@ export default function ShiftPayroll() {
     const footer = `
       <div style="display:flex;justify-content:space-between;font-size:8px;color:#555;margin-top:10px;">
         <span>تاريخ الطباعة: ${today}</span>
-        <span>صفحة 1 من 1</span>
+        <span>التقرير الكامل في هذه الطباعة</span>
       </div>`;
 
     const fullHtml = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><style>${SLIP_CSS}</style></head><body>${slips}${footer}</body></html>`;
@@ -372,47 +404,80 @@ export default function ShiftPayroll() {
     return (
       <div className="space-y-1">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h3 className="text-xs font-semibold  text-muted-foreground">
             {title}
           </h3>
           <span className="text-sm font-semibold text-primary">
             {fmt(sectionPay)} ج.م
           </span>
         </div>
-        
-        {/* Desktop Table View */}
-        <div className="hidden lg:block rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm" dir="rtl">
+
+        <div className="hidden xl:block rounded-xl border border-border overflow-hidden">
+          <table
+            aria-label="مرتبات الشفتات"
+            className="w-full text-sm"
+            dir="rtl"
+          >
             <thead>
               <tr className="border-b border-border bg-muted/30 text-xs">
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground"
+                >
                   الاسم
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground"
+                >
                   شفت كبير
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground"
+                >
                   شفت صغير
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground"
+                >
                   مجدول ك
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground"
+                >
                   مجدول ص
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-success">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground text-success"
+                >
                   حضور ك
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-success">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground text-success"
+                >
                   حضور ص
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-destructive">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground text-destructive"
+                >
                   غياب ك
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground text-destructive">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground text-destructive"
+                >
                   غياب ص
                 </th>
-                <th className="px-3 py-3 text-right font-medium text-muted-foreground font-bold">
+                <th
+                  scope="col"
+                  className="px-3 py-3 text-start font-medium text-muted-foreground font-bold"
+                >
                   المستحق
                 </th>
               </tr>
@@ -424,19 +489,19 @@ export default function ShiftPayroll() {
                   className="border-b border-border/50 hover:bg-muted/20"
                 >
                   <td className="px-3 py-3 font-medium">{r.name}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="px-3 py-3 text-start tabular-nums">
                     {fmt(r.ratePerShift)}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="px-3 py-3 text-start tabular-nums">
                     {fmt(r.rateSmallShift ?? r.ratePerShift)}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="px-3 py-3 text-start tabular-nums">
                     {r.bigScheduled ?? 0}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="px-3 py-3 text-start tabular-nums">
                     {r.smallScheduled ?? 0}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-success font-medium">
+                  <td className="px-3 py-3 text-start tabular-nums text-success font-medium">
                     <AttendedEditableCell
                       value={r.bigAttended ?? 0}
                       hasOverride={r.hasBigAttendanceOverride}
@@ -453,7 +518,7 @@ export default function ShiftPayroll() {
                       }
                     />
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-success font-medium">
+                  <td className="px-3 py-3 text-start tabular-nums text-success font-medium">
                     <AttendedEditableCell
                       value={r.smallAttended ?? 0}
                       hasOverride={r.hasSmallAttendanceOverride}
@@ -470,13 +535,13 @@ export default function ShiftPayroll() {
                       }
                     />
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-destructive">
+                  <td className="px-3 py-3 text-start tabular-nums text-destructive">
                     {r.bigAbsent ?? 0}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-destructive">
+                  <td className="px-3 py-3 text-start tabular-nums text-destructive">
                     {r.smallAbsent ?? 0}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums font-bold text-primary">
+                  <td className="px-3 py-3 text-start tabular-nums font-bold text-primary">
                     {fmt(r.totalPay)}
                   </td>
                 </tr>
@@ -485,8 +550,7 @@ export default function ShiftPayroll() {
           </table>
         </div>
 
-        {/* Mobile Accordion Cards View */}
-        <div className="block lg:hidden rounded-xl border border-border overflow-hidden divide-y divide-border/60">
+        <div className="block xl:hidden rounded-xl border border-border overflow-hidden divide-y divide-border/60">
           {data.map((r: any) => {
             const isExpanded = !!expandedRows[r.id];
             return (
@@ -495,8 +559,18 @@ export default function ShiftPayroll() {
                 className="p-4 bg-card hover:bg-muted/20 transition-colors"
               >
                 <div
-                  className="flex items-center justify-between cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
+                  aria-label={`${r.name}، تفاصيل كشف الشفت`}
+                  className="flex min-h-11 items-center justify-between cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   onClick={() => toggleRow(r.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      toggleRow(r.id);
+                    }
+                  }}
                 >
                   <div className="space-y-1">
                     <div className="font-bold text-sm text-foreground">
@@ -507,8 +581,8 @@ export default function ShiftPayroll() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="text-left">
-                      <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                    <div className="text-end">
+                      <div className="text-xs font-bold text-muted-foreground ">
                         المستحق
                       </div>
                       <div className="text-sm font-bold text-primary tabular-nums">
@@ -528,34 +602,50 @@ export default function ShiftPayroll() {
                     <div className="grid grid-cols-2 gap-3">
                       {/* Big shift column */}
                       <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
-                        <div className="font-medium text-foreground">شفت كبير</div>
+                        <div className="font-medium text-foreground">
+                          شفت كبير
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">مجدول:</span>
-                          <span className="font-semibold tabular-nums">{r.bigScheduled ?? 0}</span>
+                          <span className="font-semibold tabular-nums">
+                            {r.bigScheduled ?? 0}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">حضور:</span>
-                          <span className="font-semibold text-success tabular-nums">{r.bigAttended ?? 0}</span>
+                          <span className="font-semibold text-success tabular-nums">
+                            {r.bigAttended ?? 0}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">غياب:</span>
-                          <span className="font-semibold text-destructive tabular-nums">{r.bigAbsent ?? 0}</span>
+                          <span className="font-semibold text-destructive tabular-nums">
+                            {r.bigAbsent ?? 0}
+                          </span>
                         </div>
                       </div>
                       {/* Small shift column */}
                       <div className="bg-muted/30 p-2.5 rounded-lg space-y-1.5">
-                        <div className="font-medium text-foreground">شفت صغير</div>
+                        <div className="font-medium text-foreground">
+                          شفت صغير
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">مجدول:</span>
-                          <span className="font-semibold tabular-nums">{r.smallScheduled ?? 0}</span>
+                          <span className="font-semibold tabular-nums">
+                            {r.smallScheduled ?? 0}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">حضور:</span>
-                          <span className="font-semibold text-success tabular-nums">{r.smallAttended ?? 0}</span>
+                          <span className="font-semibold text-success tabular-nums">
+                            {r.smallAttended ?? 0}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">غياب:</span>
-                          <span className="font-semibold text-destructive tabular-nums">{r.smallAbsent ?? 0}</span>
+                          <span className="font-semibold text-destructive tabular-nums">
+                            {r.smallAbsent ?? 0}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -575,15 +665,19 @@ export default function ShiftPayroll() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <DateInput
+            aria-label="من تاريخ"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="h-11 w-[11rem] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="hidden text-sm text-muted-foreground sm:inline">
+            -
+          </span>
           <DateInput
+            aria-label="إلى تاريخ"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="h-11 w-[11rem] shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
           <Button
             variant="outline"
@@ -598,8 +692,13 @@ export default function ShiftPayroll() {
             تحديث
           </Button>
           {rows.length > 0 && (
-            <Button variant="outline" onClick={printSlips} className="gap-2">
-              <Printer size={15} /> طباعة
+            <Button
+              variant="outline"
+              onClick={printSlips}
+              className="gap-2"
+              aria-label="طباعة كشف الشفتات أو حفظه PDF"
+            >
+              <Printer size={15} /> طباعة / حفظ PDF
             </Button>
           )}
         </div>
@@ -607,7 +706,23 @@ export default function ShiftPayroll() {
 
       {/* Tables */}
       {payrollQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">جاري التحميل…</p>
+        <p role="status" className="text-sm text-muted-foreground">
+          جاري التحميل...
+        </p>
+      ) : payrollQ.isError ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-10 text-center text-sm text-destructive"
+        >
+          <p>تعذر تحميل كشف الشفتات للفترة المحددة.</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => payrollQ.refetch()}
+          >
+            إعادة المحاولة
+          </Button>
+        </div>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-border bg-background px-4 py-16 text-center text-muted-foreground text-sm">
           لا يوجد طاقم شفتات أو حضور مسجل للفترة {periodLabel}.
@@ -621,7 +736,7 @@ export default function ShiftPayroll() {
           <div className="flex justify-end">
             <div className="rounded-xl border border-border bg-muted/20 px-6 py-3 text-sm">
               الإجمالي:{" "}
-              <span className="font-bold text-primary ml-2">
+              <span className="font-bold text-primary me-2">
                 {fmt(totalPay)} ج.م
               </span>
             </div>

@@ -1,0 +1,176 @@
+@media screen {
+  html:not(.dark) .selrs-mobile-brand-canvas:has([data-operational-module="salary"]) {
+    --background: #ffffff;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --muted: #f3f4f5;
+    --mobile-content-surface: #ffffff;
+    --mobile-brand-gradient: #ffffff;
+    background: #ffffff !important;
+  }
+  div[data-operational-module="salary"][data-ledger] #module-content {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+  }
+  div[data-operational-module="salary"][data-ledger] #module-content h1 {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    clip: auto !important;
+    clip-path: none !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    margin: 0 !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content div[data-operational-module="salary"] nav[aria-label="أقسام الوحدة"] {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--card) !important;
+    overflow: visible !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content div[data-operational-module="salary"] nav[aria-label="أقسام الوحدة"] a {
+    border-radius: 8px !important;
+    padding: 10px !important;
+    white-space: normal !important;
+    height: auto !important;
+  }
+  [data-operational-module="salary"] {
+    background: var(--card) !important;
+    padding: 12px;
+  }
+
+  [data-operational-module="salary"] > div {
+    max-width: 1600px;
+    gap: 16px;
+  }
+
+  [data-operational-module="salary"] nav[aria-label="أقسام الوحدة"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    overflow: visible;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  [data-operational-module="salary"] nav[aria-label="أقسام الوحدة"] a {
+    min-width: 0;
+    min-height: 44px;
+    border-radius: 8px;
+    white-space: normal;
+    height: auto;
+  }
+
+  [data-operational-module="salary"] #module-content {
+    padding: 16px;
+    border-radius: 16px;
+    border-color: var(--border);
+    background: var(--card);
+  }
+
+  [data-operational-module="salary"] :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 3px;
+  }
+
+  [data-operational-module="salary"] .salary-home-focused { gap: 20px; }
+  [data-operational-module="salary"] .salary-home-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.4;
+    order: -1;
+  }
+  [data-operational-module="salary"] .salary-home-toolbar { order: 0; }
+  [data-operational-module="salary"] .salary-home-status {
+    order: 1;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 12px;
+  }
+  [data-operational-module="salary"] .salary-home-ledger {
+    order: 2;
+    gap: 16px;
+    border-radius: 0;
+    overflow: visible;
+    background: none;
+    color: var(--foreground);
+    animation: none;
+  }
+  [data-operational-module="salary"] .salary-home-pane {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--muted);
+  }
+  [data-operational-module="salary"] .salary-home-pane + .salary-home-pane {
+    border: 1px solid var(--border);
+  }
+  [data-operational-module="salary"] .salary-home-eyebrow {
+    opacity: 1;
+    color: var(--muted-foreground);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  [data-operational-module="salary"] .salary-home-net {
+    margin-top: 12px;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  [data-operational-module="salary"] .salary-home-entries {
+    margin: 16px 0 0;
+    border-color: var(--border);
+  }
+  [data-operational-module="salary"] .salary-home-entries > div {
+    padding: 12px 8px;
+    border-color: var(--border);
+  }
+  [data-operational-module="salary"] .salary-home-entries dt {
+    opacity: 1;
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+  [data-operational-module="salary"] .salary-home-entries dd {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  [data-operational-module="salary"] .salary-home-meter { background: var(--border); }
+  [data-operational-module="salary"] .salary-home-meter > span {
+    background: var(--primary);
+    transition: none;
+  }
+  [data-operational-module="salary"] .salary-home-flow { order: 3; }
+  [data-operational-module="salary"] .salary-home-flow ol {
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  [data-operational-module="salary"] .salary-home-flow small { font-size: 13px; }
+}
+
+@media screen and (max-width: 699px) {
+  .selrs-mobile-brand-canvas .selrs-app-content div[data-operational-module="salary"] nav[aria-label="أقسام الوحدة"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-operational-module="salary"] nav[aria-label="أقسام الوحدة"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-operational-module="salary"] nav[aria-label="أقسام الوحدة"] a {
+    width: 100%;
+    padding: 10px;
+    gap: 6px;
+  }
+}
+
+@media screen and (min-width: 700px) {
+  [data-operational-module="salary"] { padding: 20px; }
+  [data-operational-module="salary"] #module-content { padding: 24px; }
+}

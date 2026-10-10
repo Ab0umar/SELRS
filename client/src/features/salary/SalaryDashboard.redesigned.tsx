@@ -1,188 +1,184 @@
-import { useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowLeft,
-  Users,
-  Activity,
-  Zap,
-  RefreshCw,
-  BadgeDollarSign,
-  TrendingUp,
-  Percent,
-  AlertCircle,
-  FileText,
-  SlidersHorizontal,
-  ChevronRight,
-} from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import "./salary-home.css";
+import { Input } from "@/components/ui/input";
+
+const fmt = (n: number) =>
+  Number(n).toLocaleString("ar-EG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 export default function SalaryDashboard() {
   const now = new Date();
+  const [period, setPeriod] = useState(
+    () => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+  );
+  const [year, month] = period.split("-").map(Number);
   const summaryQ = (trpc as any).salary.monthSummary.useQuery(
-    { year: now.getFullYear(), month: now.getMonth() + 1 },
+    { year, month },
     { refetchInterval: 60_000, refetchIntervalInBackground: false },
   );
 
   const summary = summaryQ.data as any;
-  const isLoading = summaryQ.isLoading;
+  const staffCount = Number(summary?.staffCount ?? 0);
+  const finalCount = Number(summary?.finalCount ?? 0);
+  const figure = (value: number | undefined, suffix = " ج.م") => {
+    if (summaryQ.isLoading) return "...";
+    if (summaryQ.isError || value === undefined) return "غير متاح";
+    return `${fmt(value)}${suffix}`;
+  };
 
-  function fmt(n: number) {
-    return Number(n).toLocaleString("en-EG", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  const count = (value: number | undefined) =>
+    summaryQ.isLoading
+      ? "..."
+      : summaryQ.isError || value === undefined
+        ? "غير متاح"
+        : Number(value).toLocaleString("ar-EG");
+
+  let statusTitle = "";
+  let statusBody = "";
+  let statusTone = "border-border bg-muted/40 text-foreground";
+  if (summaryQ.isError) {
+    statusTitle = "تعذر تحميل ملخص الشهر";
+    statusBody = "الأرقام أدناه غير متاحة. أعد المحاولة قبل اتخاذ أي قرار.";
+    statusTone = "border-destructive/30 bg-destructive/5 text-destructive-text";
+  } else if (!summaryQ.isLoading && staffCount === 0) {
+    statusTitle = "لا يوجد موظفون في كشف هذا الشهر";
+    statusBody =
+      "أضف الموظفين والرواتب الأساسية أولاً، ثم افتح كشف الرواتب لإعداده.";
+  } else if (!summaryQ.isLoading && finalCount >= staffCount) {
+    statusTitle = "الكشف معتمد نهائياً";
+    statusBody = `${staffCount} موظف في كشف ${month}/${year}.`;
+    statusTone = "border-success/30 bg-success/10 text-success-text";
+  } else if (!summaryQ.isLoading) {
+    statusTitle = "الكشف مسودة";
+    statusBody = `${finalCount} من ${staffCount} موظف معتمد. راجع الكشف ثم اعتمده.`;
+    statusTone = "border-warning/40 bg-warning/10 text-warning-text";
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto" dir="rtl">
+    <div className="salary-home-focused w-full" dir="rtl">
+      <h1 className="salary-home-title">ملخص الرواتب</h1>
+      <header className="salary-home-toolbar">
+        <label className="salary-home-month" htmlFor="salary-summary-month">
+          <span>الشهر</span>
+          <Input bare
+            id="salary-summary-month"
+            type="month"
+            dir="ltr"
+            value={period}
+            onChange={(event) => {
+              if (event.target.validity.valid && event.target.value)
+                setPeriod(event.target.value);
+            }}
+          />
+        </label>
+        <Link href="/salary/payroll" className="salary-home-payroll">
+          كشف الرواتب
+        </Link>
+      </header>
 
-      {/* ── Main Redesigned Layout Structure ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-        {/* Left 8/12: Coverage Timelines & Circular Gauges */}
-        <div className="lg:col-span-8 space-y-8">
-
-          {/* Section A: Visual Shift Coverage Timelines -> Payroll Budget Progress */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الإجماليات الحالية</h3>
-
-            <div className="space-y-4">
-              {/* Basic salaries total */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-xs">
-                <span className="text-sm font-bold text-foreground">إجمالي الرواتب الأساسية والبدلات</span>
-                <div className="text-3xl font-black text-primary font-mono">
-                  {isLoading ? "جاري التحميل…" : `${fmt(summary?.totalPay ?? 0)} ج.م`}
+      <div className="salary-home-ledger">
+        {[
+          { key: "center", label: "المركز", data: summary?.center },
+          { key: "clinic", label: "العيادة", data: summary?.clinic },
+        ].map(({ key, label, data }) => {
+          const staff = Number(data?.staffCount ?? 0);
+          const done = Number(data?.finalCount ?? 0);
+          const pct = staff > 0 ? Math.min(100, Math.round((done / staff) * 100)) : 0;
+          const headingId = `salary-totals-${key}`;
+          return (
+            <section key={key} className="salary-home-pane" aria-labelledby={headingId}>
+              <h2 id={headingId} className="salary-home-eyebrow">
+                {label} · صافي الرواتب المستحقة · {month}/{year}
+              </h2>
+              <p className="salary-home-net">{figure(data?.totalPay)}</p>
+              {!summaryQ.isLoading && !summaryQ.isError && staff > 0 && (
+                <div className="salary-home-approval">
+                  <div
+                    role="progressbar"
+                    aria-label={`نسبة الموظفين المعتمدين في ${label}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={pct}
+                    className="salary-home-meter"
+                  >
+                    <span style={{ width: `${pct}%` }} />
+                  </div>
+                  <p>
+                    {done.toLocaleString("ar-EG")} من {staff.toLocaleString("ar-EG")} موظف معتمد
+                  </p>
                 </div>
-              </div>
-
-              {/* Commissions total */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl space-y-4 shadow-xs">
-                <span className="text-sm font-bold text-foreground">إجمالي العمولات</span>
-                <div className="text-3xl font-black text-amber-500 font-mono">
-                  {isLoading ? "جاري التحميل…" : `${fmt(summary?.totalCommissions ?? 0)} ج.م`}
+              )}
+              <dl className="salary-home-entries">
+                <div>
+                  <dt>إجمالي العمولات</dt>
+                  <dd>{figure(data?.totalCommissions)}</dd>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section B: Circular Stats Indicators */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">مؤشرات الأداء المالي والجزاءات</h3>
-            <div className="grid grid-cols-3 gap-6">
-
-              {/* Lateness Gauge -> Total Penalties */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-xs">
-                <div className="w-14 h-14 rounded-full border-4 border-rose-500/20 border-t-rose-500 flex items-center justify-center font-bold text-xs mx-auto font-mono text-foreground">
-                  {isLoading ? "—" : summary?.totalPenalties ? `${Math.round(summary.totalPenalties)}` : "0"}
+                <div>
+                  <dt>إجمالي الجزاءات</dt>
+                  <dd>{figure(data?.totalPenalties)}</dd>
                 </div>
-                <span className="text-[10px] font-bold text-muted-foreground block">إجمالي الجزاءات (ج.م)</span>
-              </div>
-
-              {/* Missing Checkouts -> Active Staff Count */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-xs">
-                <div className="w-14 h-14 rounded-full border-4 border-sky-500/20 border-t-sky-500 flex items-center justify-center font-bold text-sm mx-auto font-mono text-foreground">
-                  {isLoading ? "—" : summary?.staffCount ?? "0"}
+                <div>
+                  <dt>الموظفون في الكشف</dt>
+                  <dd>{count(data ? staff : undefined)}</dd>
                 </div>
-                <span className="text-[10px] font-bold text-muted-foreground block">الموظفين المشمولين</span>
-              </div>
-
-              {/* Active Inside -> Net Total Pay */}
-              <div className="p-5 bg-card border border-border/60 rounded-xl text-center space-y-3 shadow-xs">
-                <div className="w-14 h-14 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 flex items-center justify-center font-bold text-xs mx-auto font-mono text-foreground">
-                  {isLoading ? "—" : summary?.totalPay ? `${Math.round(summary.totalPay / 1000)}k` : "0k"}
-                </div>
-                <span className="text-[10px] font-bold text-muted-foreground block">صافي الرواتب الحالية</span>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-        {/* Right 4/12: Control Badges & Device Status Radar */}
-        <div className="lg:col-span-4 space-y-8">
-
-          {/* Section C: Oval Command Badges */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">أزرار الإجراءات والتحكم</h3>
-            <div className="flex flex-col gap-3">
-
-              <Link
-                href="/salary/basics"
-                className="w-full flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 p-4 text-right text-xs font-bold text-primary transition-all duration-200 hover:bg-primary/15"
-              >
-                <span className="flex items-center gap-2.5">
-                  <Users className="h-4.5 w-4.5 text-primary" />
-                  <span>تحضير الرواتب الأساسية</span>
-                </span>
-                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-mono font-bold text-primary">
-                  إعداد
-                </span>
-              </Link>
-
-              <Link
-                href="/salary/pools"
-                className="w-full flex items-center justify-between p-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 rounded-xl transition-all duration-200 text-right text-xs font-bold"
-              >
-                <span className="flex items-center gap-2.5">
-                  <Percent className="h-4.5 w-4.5 text-amber-400" />
-                  <span>العمولات الشهرية والنشاط</span>
-                </span>
-                <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                  تسجيل
-                </span>
-              </Link>
-
-              <Link
-                href="/salary/penalties"
-                className="w-full flex items-center justify-between p-4 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 rounded-xl transition-all duration-200 text-right text-xs font-bold"
-              >
-                <span className="flex items-center gap-2.5">
-                  <AlertCircle className="h-4.5 w-4.5 text-rose-400" />
-                  <span>الخصومات والسلف الشهرية</span>
-                </span>
-                <span className="text-[9px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                  خصم
-                </span>
-              </Link>
-
-              <Link
-                href="/salary/payroll"
-                className="w-full flex items-center justify-between p-4 bg-primary text-primary-foreground hover:bg-primary/95 rounded-xl shadow-glow-gold-sm hover:shadow-glow-gold-md transition-all duration-200 text-right text-xs font-bold"
-              >
-                <span className="flex items-center gap-2.5">
-                  <FileText className="h-4.5 w-4.5 text-primary-foreground" />
-                  <span>كشف رواتب الموظفين النهائي</span>
-                </span>
-                <ArrowLeft className="w-4 h-4 text-primary-foreground" />
-              </Link>
-
-            </div>
-          </div>
-
-          {/* Section D: Device Status Radar -> Salary Audit Radar */}
-          <div className="p-6 bg-card border border-border/60 rounded-xl space-y-4 relative overflow-hidden shadow-md">
-            <h3 className="text-xs font-bold text-foreground border-b border-border/40 pb-2.5">
-              📡 حالة الاحتساب والتدقيق (Roster Audit)
-            </h3>
-            <div className="flex items-center gap-4 text-xs">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center relative shrink-0">
-                <span className="absolute w-10 h-10 rounded-full border border-emerald-500/20 animate-ping"></span>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-              </div>
-              <div>
-                <span className="text-[10px] text-muted-foreground block">قواعد التدقيق التلقائي</span>
-                <span className="font-bold text-foreground block mt-0.5">جاهز ومطابق</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
+              </dl>
+            </section>
+          );
+        })}
       </div>
 
+      <section
+        aria-live="polite"
+        className={`salary-home-status rounded-md border ${statusTone}`}
+      >
+        <h2 className="text-xs font-bold">حالة الاحتساب والتدقيق</h2>
+        <p className="text-base font-bold">
+          {summaryQ.isLoading ? "جارٍ تحميل ملخص الشهر..." : statusTitle}
+        </p>
+        {statusBody && <p className="text-sm">{statusBody}</p>}
+        {summaryQ.isError && (
+          <Button variant="outline" onClick={() => summaryQ.refetch()}>
+            إعادة المحاولة
+          </Button>
+        )}
+        {!summaryQ.isLoading && !summaryQ.isError && staffCount === 0 && (
+          <Link
+            href="/salary/basics"
+            className="inline-flex min-h-11 items-center text-sm font-bold underline"
+          >
+            تحضير الرواتب الأساسية
+          </Link>
+        )}
+      </section>
+
+      <nav aria-label="ترتيب العمل الشهري" className="salary-home-flow">
+        <h2 className="salary-home-eyebrow">ترتيب العمل الشهري</h2>
+        <ol>
+          {[
+            { href: "/salary/basics", label: "تحضير الرواتب الأساسية", note: "الأساسي والبدلات" },
+            { href: "/salary/pools", label: "العمولات الشهرية", note: "الكشف والبنتاكام" },
+            { href: "/salary/penalties", label: "الخصومات والسلف", note: "الجزاءات والتأمينات" },
+            { href: "/salary/payroll", label: "كشف الرواتب", note: "احتساب واعتماد وطباعة" },
+          ].map(({ href, label, note }, index) => (
+            <li key={href}>
+              <Link href={href}>
+                <span className="salary-home-step" aria-hidden>
+                  {(index + 1).toLocaleString("ar-EG")}
+                </span>
+                <span className="salary-home-step-text">
+                  <strong>{label}</strong>
+                  <small>{note}</small>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </nav>
     </div>
   );
 }

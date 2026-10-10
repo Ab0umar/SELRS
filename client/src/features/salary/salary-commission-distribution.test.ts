@@ -22,7 +22,13 @@ describe("salary commission distribution", () => {
   });
 
   it("applies the leave multiplier separately", () => {
-    const share = calcWeightedCommissionShare(2_000, 10_000, 20_000, 9_000, 0.75);
+    const share = calcWeightedCommissionShare(
+      2_000,
+      10_000,
+      20_000,
+      9_000,
+      0.75,
+    );
 
     expect(share.raw).toBe(1_000);
     expect(share.payable).toBe(675);

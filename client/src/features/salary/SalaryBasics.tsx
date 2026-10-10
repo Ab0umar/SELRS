@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { askConfirm } from "../attendance/askConfirm";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +19,7 @@ import { toast } from "sonner";
 import { localISODate } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 const today = localISODate();
 
@@ -70,7 +73,7 @@ const FIELDS: { key: keyof BasicForm; label: string }[] = [
   { key: "transportAllowance", label: "بدل انتقال" },
   { key: "workNatureAllowance", label: "طبيعة عمل" },
   { key: "receptionAllowance", label: "بدل استقبال" },
-  { key: "yearlyRaise", label: "الزيادة السنوية" },
+  { key: "yearlyRaise", label: "الزيادة السنوية (غير شهرية)" },
 ];
 
 function num(v: string) {
@@ -98,7 +101,7 @@ function rowTotal(b: any) {
 }
 
 function fmt(n: number) {
-  return Number(n).toLocaleString("en-EG", {
+  return Number(n).toLocaleString("ar-EG", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -106,9 +109,9 @@ function fmt(n: number) {
 
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
-const dateCls = inputCls + " w-[11rem] shrink-0";
+const dateCls = inputCls + " w-full sm:w-[11rem] shrink-0";
 
-// ── Salary Table Component ─────────────────────────────────
+// Salary Table Component
 interface SalaryTableProps {
   title: string;
   data: any[];
@@ -140,13 +143,12 @@ function SalaryTable({
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-      {/* Header */}
       <div className="border-b border-border bg-muted/50 px-6 py-4 flex items-center justify-between">
         <div>
           <h3 className="text-base font-bold text-foreground">{title}</h3>
         </div>
-        <div className="text-right">
-          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+        <div className="text-start">
+          <div className="text-xs font-bold text-muted-foreground ">
             إجمالي الرواتب
           </div>
           <div className="text-lg font-black text-primary tabular-nums">
@@ -158,40 +160,54 @@ function SalaryTable({
         </div>
       </div>
 
-      {/* Table & Cards */}
       {data.length === 0 ? (
         <div className="px-6 py-10 text-center text-muted-foreground text-xs font-medium">
           لا توجد بيانات رواتب مسجلة مطابقة للبحث
         </div>
       ) : (
         <>
-          {/* Desktop Table View */}
-          <div className="overflow-x-auto hidden lg:block" dir="rtl">
-            <table dir="rtl" className="w-full text-xs">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto hidden xl:block" dir="rtl">
+            <table
+              aria-label="الرواتب الأساسية"
+              dir="rtl"
+              className="w-full text-xs"
+            >
               <thead>
                 <tr className="border-b border-border bg-primary/8 text-foreground font-bold">
-                  <th className="px-4 py-3 text-right font-bold w-40">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-start font-bold w-40"
+                  >
                     الموظف
                   </th>
-                  <th className="px-4 py-3 text-right font-bold">
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
                     الراتب الأساسي
                   </th>
-                  <th className="px-4 py-3 text-right font-bold">
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
                     إعانة اجتماعية
                   </th>
-                  <th className="px-4 py-3 text-right font-bold">
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
                     بدل غلاء معيشة
                   </th>
-                  <th className="px-4 py-3 text-right font-bold">بدل انتقال</th>
-                  <th className="px-4 py-3 text-right font-bold">طبيعة عمل</th>
-                  <th className="px-4 py-3 text-right font-bold">
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    بدل انتقال
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    طبيعة عمل
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
                     بدل استقبال
                   </th>
-                  <th className="px-4 py-3 text-right font-bold">
-                    الزيادة السنوية
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الزيادة السنوية (غير شهرية)
                   </th>
-                  <th className="px-4 py-3 text-right font-bold">الإجمالي</th>
-                  <th className="px-4 py-3 text-center font-bold w-20">
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الإجمالي المسجل شامل الزيادة السنوية
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-center font-bold w-20"
+                  >
                     الإجراءات
                   </th>
                 </tr>
@@ -208,28 +224,28 @@ function SalaryTable({
                     <td className="px-4 py-3 font-semibold text-foreground">
                       {getEmployeeName(item.empCd)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-start tabular-nums">
                       {fmt(Number(item.basicAmount))}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-start tabular-nums">
                       {fmt(Number(item.socialAllowance ?? 0))}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-start tabular-nums">
                       {fmt(Number(item.costOfLivingAllowance ?? 0))}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-start tabular-nums">
                       {fmt(Number(item.transportAllowance ?? 0))}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-start tabular-nums">
                       {fmt(Number(item.workNatureAllowance ?? 0))}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-start tabular-nums">
                       {fmt(Number(item.receptionAllowance ?? 0))}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-start tabular-nums">
                       {fmt(Number(item.yearlyRaise ?? 0))}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-primary tabular-nums">
+                    <td className="px-4 py-3 text-start font-bold text-primary tabular-nums">
                       {fmt(rowTotal(item))}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -239,16 +255,17 @@ function SalaryTable({
                           size="sm"
                           onClick={() => onEdit(item)}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-primary/10"
+                          aria-label={`تعديل راتب ${getEmployeeName(item.empCd)}`}
+                          className="h-11 w-11 p-0 hover:bg-primary/10"
                         >
                           <Pencil className="h-4 w-4 text-primary" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              confirm(
+                              await askConfirm(
                                 `هل تريد حذف راتب ${getEmployeeName(item.empCd)}؟`,
                               )
                             ) {
@@ -256,7 +273,8 @@ function SalaryTable({
                             }
                           }}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-destructive/10"
+                          aria-label={`حذف راتب ${getEmployeeName(item.empCd)}`}
+                          className="h-11 w-11 p-0 hover:bg-destructive/10"
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -268,8 +286,7 @@ function SalaryTable({
             </table>
           </div>
 
-          {/* Mobile Accordion Cards View */}
-          <div className="block lg:hidden divide-y divide-border/60">
+          <div className="block xl:hidden divide-y divide-border/60">
             {data.map((item) => {
               const isExpanded = !!expandedRows[item.id];
               return (
@@ -278,8 +295,19 @@ function SalaryTable({
                   className="p-4 bg-card hover:bg-muted/20 transition-colors"
                 >
                   <div
-                    className="flex items-center justify-between cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    aria-controls={`salary-basic-details-${item.id}`}
+                    aria-label={`${getEmployeeName(item.empCd)}، تفاصيل الراتب`}
+                    className="flex min-h-11 items-center justify-between cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     onClick={() => toggleRow(item.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleRow(item.id);
+                      }
+                    }}
                   >
                     <div className="space-y-1">
                       <div className="font-bold text-sm text-foreground">
@@ -290,8 +318,8 @@ function SalaryTable({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="text-left">
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                      <div className="text-end">
+                        <div className="text-xs font-bold text-muted-foreground ">
                           الإجمالي
                         </div>
                         <div className="text-sm font-black text-primary tabular-nums">
@@ -307,7 +335,10 @@ function SalaryTable({
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                    <div
+                      id={`salary-basic-details-${item.id}`}
+                      className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs"
+                    >
                       <div className="grid grid-cols-2 gap-y-2.5 gap-x-4">
                         <div className="flex justify-between border-b border-border/20 pb-1">
                           <span className="text-muted-foreground">
@@ -359,7 +390,7 @@ function SalaryTable({
                         </div>
                         <div className="flex justify-between border-b border-border/20 pb-1 col-span-2">
                           <span className="text-muted-foreground">
-                            الزيادة السنوية:
+                            الزيادة السنوية (غير شهرية):
                           </span>
                           <span className="font-semibold tabular-nums">
                             {fmt(Number(item.yearlyRaise ?? 0))} ج.م
@@ -381,9 +412,9 @@ function SalaryTable({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              confirm(
+                              await askConfirm(
                                 `هل تريد حذف راتب ${getEmployeeName(item.empCd)}؟`,
                               )
                             ) {
@@ -406,7 +437,6 @@ function SalaryTable({
         </>
       )}
 
-      {/* Footer */}
       <div className="border-t border-border bg-muted/30 px-6 py-3">
         <div className="text-xs text-muted-foreground">
           عدد الموظفين:{" "}
@@ -417,7 +447,7 @@ function SalaryTable({
   );
 }
 
-// ── Shifts Table Component ──────────────────────────────────
+// Shifts Table Component
 interface ShiftsTableProps {
   title: string;
   data: any[];
@@ -453,7 +483,7 @@ function ShiftsTable({
         <div>
           <h3 className="text-base font-bold text-foreground">{title}</h3>
         </div>
-        <div className="text-right">
+        <div className="text-start">
           <span className="text-xs text-muted-foreground">
             عدد كادر الشفتات: {data.length}
           </span>
@@ -466,17 +496,36 @@ function ShiftsTable({
         </div>
       ) : (
         <>
-          {/* Desktop Table View */}
-          <div className="overflow-x-auto hidden lg:block" dir="rtl">
-            <table dir="rtl" className="w-full text-xs">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto hidden xl:block" dir="rtl">
+            <table
+              aria-label="أعضاء الشفتات"
+              dir="rtl"
+              className="w-full text-xs"
+            >
               <thead>
                 <tr className="border-b border-border bg-primary/8 text-foreground font-bold">
-                  <th className="px-4 py-3 text-right font-bold w-40">الاسم</th>
-                  <th className="px-4 py-3 text-right font-bold">النوع</th>
-                  <th className="px-4 py-3 text-right font-bold">قيمة الشفت</th>
-                  <th className="px-4 py-3 text-right font-bold">ربط الحضور</th>
-                  <th className="px-4 py-3 text-right font-bold">الحالة</th>
-                  <th className="px-4 py-3 text-center font-bold w-20">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-start font-bold w-40"
+                  >
+                    الاسم
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    النوع
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    قيمة الشفت
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    ربط الحضور
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الحالة
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-center font-bold w-20"
+                  >
                     الإجراءات
                   </th>
                 </tr>
@@ -495,14 +544,14 @@ function ShiftsTable({
                     <td className="px-4 py-3 text-muted-foreground">
                       {TYPE_LABEL[s.type]}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                    <td className="px-4 py-3 text-start font-semibold tabular-nums">
                       {fmt(Number(s.ratePerShift))} ج.م
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {s.empCd ? (
                         getEmployeeName(s.empCd)
                       ) : (
-                        <span className="text-[10px] italic text-muted-foreground/50">
+                        <span className="text-xs italic text-muted-foreground">
                           يدوي
                         </span>
                       )}
@@ -521,20 +570,26 @@ function ShiftsTable({
                           size="sm"
                           onClick={() => onEdit(s)}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-primary/10"
+                          aria-label={`تعديل عضو الشفت ${s.name}`}
+                          className="h-11 w-11 p-0 hover:bg-primary/10"
                         >
                           <Pencil className="h-4 w-4 text-primary" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            if (confirm(`هل تريد حذف عضو الشفت ${s.name}؟`)) {
+                          onClick={async () => {
+                            if (
+                              await askConfirm(
+                                `هل تريد حذف عضو الشفت ${s.name}؟`,
+                              )
+                            ) {
                               onDelete(s.id);
                             }
                           }}
                           disabled={isPending}
-                          className="h-8 w-8 p-0 hover:bg-destructive/10"
+                          aria-label={`حذف عضو الشفت ${s.name}`}
+                          className="h-11 w-11 p-0 hover:bg-destructive/10"
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -546,8 +601,7 @@ function ShiftsTable({
             </table>
           </div>
 
-          {/* Mobile Accordion Cards View */}
-          <div className="block lg:hidden divide-y divide-border/60">
+          <div className="block xl:hidden divide-y divide-border/60">
             {data.map((s) => {
               const isExpanded = !!expandedRows[s.id];
               return (
@@ -556,8 +610,19 @@ function ShiftsTable({
                   className="p-4 bg-card hover:bg-muted/20 transition-colors"
                 >
                   <div
-                    className="flex items-center justify-between cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    aria-controls={`shift-basic-details-${s.id}`}
+                    aria-label={`${s.name}، تفاصيل عضو الشفت`}
+                    className="flex min-h-11 items-center justify-between cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     onClick={() => toggleRow(s.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleRow(s.id);
+                      }
+                    }}
                   >
                     <div className="space-y-1">
                       <div className="font-bold text-sm text-foreground">
@@ -568,8 +633,8 @@ function ShiftsTable({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="text-left">
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                      <div className="text-end">
+                        <div className="text-xs font-bold text-muted-foreground ">
                           قيمة الشفت
                         </div>
                         <div className="text-sm font-semibold text-foreground tabular-nums">
@@ -585,7 +650,10 @@ function ShiftsTable({
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                    <div
+                      id={`shift-basic-details-${s.id}`}
+                      className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs"
+                    >
                       <div className="space-y-2">
                         <div className="flex justify-between border-b border-border/20 pb-1">
                           <span className="text-muted-foreground">
@@ -595,7 +663,7 @@ function ShiftsTable({
                             {s.empCd ? (
                               getEmployeeName(s.empCd)
                             ) : (
-                              <span className="text-[10px] italic text-muted-foreground/50">
+                              <span className="text-xs italic text-muted-foreground">
                                 يدوي
                               </span>
                             )}
@@ -625,8 +693,12 @@ function ShiftsTable({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            if (confirm(`هل تريد حذف عضو الشفت ${s.name}؟`)) {
+                          onClick={async () => {
+                            if (
+                              await askConfirm(
+                                `هل تريد حذف عضو الشفت ${s.name}؟`,
+                              )
+                            ) {
                               onDelete(s.id);
                             }
                           }}
@@ -649,7 +721,7 @@ function ShiftsTable({
   );
 }
 
-// ── Main page ─────────────────────────────────────────────
+// Main page
 export default function SalaryBasics() {
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<"salary" | "shift">("salary");
@@ -659,7 +731,9 @@ export default function SalaryBasics() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Section Tabs (Center / Clinic)
-  const [activeSectionTab, setActiveSectionTab] = useState<"center" | "clinic">("center");
+  const [activeSectionTab, setActiveSectionTab] = useState<"center" | "clinic">(
+    "center",
+  );
 
   // Tabs status for Center
   const [centerTab, setCenterTab] = useState<
@@ -680,6 +754,14 @@ export default function SalaryBasics() {
   const shiftStaff: any[] = shiftStaffQ.data ?? [];
   const usersList: any[] = usersQ.data ?? [];
   const supervisionMembers: any[] = supervisionMembersQ.data ?? [];
+  const salaryBasicsLoading =
+    empsQ.isLoading || basicsQ.isLoading || shiftStaffQ.isLoading;
+  const salaryBasicsError =
+    empsQ.isError ||
+    basicsQ.isError ||
+    shiftStaffQ.isError ||
+    usersQ.isError ||
+    supervisionMembersQ.isError;
 
   // Salary Mutations
   const setMut = (trpc as any).salary.setBasic.useMutation({
@@ -689,7 +771,7 @@ export default function SalaryBasics() {
       setForm(BLANK);
       toast.success("تم الحفظ");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حفظ الراتب الأساسي: " + e.message),
   });
   const updateMut = (trpc as any).salary.updateBasic.useMutation({
     onSuccess: () => {
@@ -699,14 +781,14 @@ export default function SalaryBasics() {
       setForm(BLANK);
       toast.success("تم التعديل");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر تعديل الراتب الأساسي: " + e.message),
   });
   const deleteMut = (trpc as any).salary.deleteBasic.useMutation({
     onSuccess: () => {
       basicsQ.refetch();
       toast.success("تم الحذف");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حذف الراتب الأساسي: " + e.message),
   });
 
   // Shift Staff Mutations
@@ -715,9 +797,9 @@ export default function SalaryBasics() {
       shiftStaffQ.refetch();
       setShowForm(false);
       setForm(BLANK);
-      toast.success("تم إضافة عضو الشفت");
+      toast.success("تمت إضافة عضو الشفت");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر إضافة عضو الشفت: " + e.message),
   });
   const updateShiftMut = (trpc as any).salary.updateShiftStaff.useMutation({
     onSuccess: () => {
@@ -727,14 +809,18 @@ export default function SalaryBasics() {
       setForm(BLANK);
       toast.success("تم حفظ تعديل عضو الشفت");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر تعديل عضو الشفت: " + e.message),
   });
   const deleteShiftMut = (trpc as any).salary.deleteShiftStaff.useMutation({
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       shiftStaffQ.refetch();
-      toast.success("تم حذف عضو الشفت");
+      toast.success(
+        res?.deactivated
+          ? "تم إيقاف عضو الشفت (له سجل شفتات سابق)"
+          : "تم حذف عضو الشفت",
+      );
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حذف عضو الشفت: " + e.message),
   });
   const addSupervisionMemberMut = (
     trpc as any
@@ -744,7 +830,7 @@ export default function SalaryBasics() {
       setSupervisionEmpCd("");
       toast.success("تمت إضافة الموظف لمكافأة الإشراف");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر إضافة عضو الإشراف: " + e.message),
   });
   const removeSupervisionMemberMut = (
     trpc as any
@@ -753,7 +839,7 @@ export default function SalaryBasics() {
       supervisionMembersQ.refetch();
       toast.success("تم حذف الموظف من مكافأة الإشراف");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر إزالة عضو الإشراف: " + e.message),
   });
 
   const getEmployeeName = (empCd: string) => {
@@ -849,7 +935,6 @@ export default function SalaryBasics() {
     setShowForm(true);
   };
 
-  // Filter list of basics by search query
   const filteredBasics = basics.filter((b) => {
     const empName = getEmployeeName(b.empCd).toLowerCase();
     const empCd = String(b.empCd).toLowerCase();
@@ -857,7 +942,6 @@ export default function SalaryBasics() {
     return empName.includes(query) || empCd.includes(query);
   });
 
-  // Filter list of shift staff by search query
   const filteredShifts = shiftStaff.filter((s) => {
     const empName = (s.name || "").toLowerCase();
     const linkedEmpName = s.empCd ? getEmployeeName(s.empCd).toLowerCase() : "";
@@ -895,376 +979,389 @@ export default function SalaryBasics() {
 
   return (
     <div className="space-y-6" dir="rtl">
+      {salaryBasicsLoading && (
+        <p
+          role="status"
+          className="rounded-lg border border-border p-4 text-sm text-muted-foreground"
+        >
+          جاري تحميل بيانات الرواتب الأساسية...
+        </p>
+      )}
+      {salaryBasicsError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
+        >
+          تعذر تحميل بعض بيانات الرواتب الأساسية. أعد المحاولة قبل الاعتماد على
+          الجداول.
+        </div>
+      )}
       {/* Slide-Over Side Drawer Form */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 overflow-hidden" dir="rtl">
-          <div className="absolute inset-0 overflow-hidden">
-            {/* Backdrop Overlay */}
-            <div
-              className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity cursor-pointer"
+      <Sheet
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowForm(false);
+            setEditingId(null);
+            setEditingShiftId(null);
+          }
+        }}
+      >
+        <SheetContent
+          side="left"
+          aria-describedby={undefined}
+          className="w-full gap-0 bg-card p-0 sm:max-w-md print:hidden [&>button:last-child]:hidden"
+        >
+          <div className="border-b border-border bg-muted/50 px-6 py-4 flex items-center justify-between">
+            <SheetTitle className="text-base font-bold text-foreground">
+              {editingId || editingShiftId
+                ? editingId
+                  ? `تعديل راتب: ${getEmployeeName(form.empCd)}`
+                  : `تعديل عضو الشفت: ${form.shiftName}`
+                : formType === "salary"
+                  ? "إضافة راتب أساسي جديد"
+                  : "إضافة عضو شفت جديد"}
+            </SheetTitle>
+            <Button variant="bare"
+              type="button"
+              aria-label="إغلاق"
+              className="flex size-7 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted/5 transition-colors cursor-pointer"
               onClick={() => {
                 setShowForm(false);
                 setEditingId(null);
                 setEditingShiftId(null);
               }}
-            />
-            {/* Drawer Panel */}
-            <div className="pointer-events-none fixed inset-y-0 left-0 flex max-w-full pl-10 sm:pl-16">
-              <div className="pointer-events-auto w-screen max-w-md transform bg-card shadow-2xl transition-transform duration-300 ease-in-out border-r border-border flex flex-col">
-                {/* Header */}
-                <div className="border-b border-border bg-muted/50 px-6 py-4 flex items-center justify-between">
-                  <h3 className="text-base font-bold text-foreground">
-                    {editingId || editingShiftId
-                      ? editingId
-                        ? `تعديل راتب: ${getEmployeeName(form.empCd)}`
-                        : `تعديل عضو الشفت: ${form.shiftName}`
-                      : formType === "salary"
-                        ? "إضافة راتب أساسي جديد"
-                        : "إضافة عضو شفت جديد"}
-                  </h3>
-                  <button
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+
+          {/* Form Body (Scrollable) */}
+          <form
+            onSubmit={handleSubmit}
+            className="flex-1 overflow-y-auto p-6 space-y-5"
+          >
+            {/* Form Type Selector (Only visible when creating new items) */}
+            {!editingId && !editingShiftId && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-foreground">
+                  نوع البيانات
+                </label>
+                <div className="grid grid-cols-2 p-1 bg-muted/10 rounded-lg border border-border/60">
+                  <Button variant="bare"
                     type="button"
-                    className="flex size-7 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted/5 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setShowForm(false);
-                      setEditingId(null);
-                      setEditingShiftId(null);
-                    }}
+                    onClick={() => setFormType("salary")}
+                    className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                      formType === "salary"
+                        ? "bg-background text-primary shadow-xs"
+                        : "text-muted-foreground"
+                    }`}
                   >
-                    <X className="size-4" />
-                  </button>
+                    راتب أساسي لموظف
+                  </Button>
+                  <Button variant="bare"
+                    type="button"
+                    onClick={() => setFormType("shift")}
+                    className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                      formType === "shift"
+                        ? "bg-background text-primary shadow-xs"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    عضو شفت طبيب/فني
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Basic Salary Form */}
+            {formType === "salary" ? (
+              <div className="space-y-5">
+                {!editingId ? (
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-foreground">
+                      الموظف
+                    </label>
+                    <select
+                      value={form.empCd}
+                      onChange={(e) =>
+                        setForm({ ...form, empCd: e.target.value })
+                      }
+                      className={inputCls}
+                      required
+                    >
+                      <option value="">-- اختر موظفاً من القائمة --</option>
+                      {employees.map((emp: any) => (
+                        <option key={emp.empCd} value={emp.empCd}>
+                          {emp.fullName} ({emp.empCd})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-primary/8 border border-primary/15 p-3 space-y-1">
+                    <div className="text-xs font-bold text-foreground ">
+                      اسم الموظف كود ({form.empCd})
+                    </div>
+                    <div className="text-sm font-bold text-foreground">
+                      {getEmployeeName(form.empCd)}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-foreground">
+                    الفرع
+                  </label>
+                  <select
+                    value={form.section}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        section: e.target.value as "مركز" | "عيادة",
+                      })
+                    }
+                    className={inputCls}
+                    required
+                  >
+                    <option value="مركز">المركز</option>
+                    <option value="عيادة">العيادة</option>
+                  </select>
                 </div>
 
-                {/* Form Body (Scrollable) */}
-                <form
-                  onSubmit={handleSubmit}
-                  className="flex-1 overflow-y-auto p-6 space-y-5"
-                >
-                  {/* Form Type Selector (Only visible when creating new items) */}
-                  {!editingId && !editingShiftId && (
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-foreground">
-                        نوع البيانات
-                      </label>
-                      <div className="grid grid-cols-2 p-1 bg-muted/10 rounded-lg border border-border/60">
-                        <button
-                          type="button"
-                          onClick={() => setFormType("salary")}
-                          className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                            formType === "salary"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          راتب أساسي لموظف
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormType("shift")}
-                          className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                            formType === "shift"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          عضو شفت طبيب/فني
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ──── Basic Salary Form ──── */}
-                  {formType === "salary" ? (
-                    <div className="space-y-5">
-                      {!editingId ? (
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-foreground">
-                            الموظف
-                          </label>
-                          <select
-                            value={form.empCd}
-                            onChange={(e) =>
-                              setForm({ ...form, empCd: e.target.value })
-                            }
-                            className={inputCls}
-                            required
-                          >
-                            <option value="">
-                              -- اختر موظفاً من القائمة --
-                            </option>
-                            {employees.map((emp: any) => (
-                              <option key={emp.empCd} value={emp.empCd}>
-                                {emp.fullName} ({emp.empCd})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      ) : (
-                        <div className="rounded-lg bg-primary/8 border border-primary/15 p-3 space-y-1">
-                          <div className="text-[10px] font-bold text-foreground uppercase">
-                            اسم الموظف كود ({form.empCd})
-                          </div>
-                          <div className="text-sm font-bold text-foreground">
-                            {getEmployeeName(form.empCd)}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="space-y-1.5">
+                {/* Salary Components Section */}
+                <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">
+                  <p className="text-xs font-bold  text-muted-foreground">
+                    تفاصيل بنود الراتب
+                  </p>
+                  <div className="space-y-3.5">
+                    {FIELDS.map(({ key, label }) => (
+                      <div key={key} className="space-y-1.5">
                         <label className="block text-xs font-bold text-foreground">
-                          الفرع
+                          {label}
                         </label>
-                        <select
-                          value={form.section}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              section: e.target.value as "مركز" | "عيادة",
-                            })
-                          }
-                          className={inputCls}
-                          required
-                        >
-                          <option value="مركز">المركز</option>
-                          <option value="عيادة">العيادة</option>
-                        </select>
-                      </div>
-
-                      {/* Salary Components Section */}
-                      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          تفاصيل بنود الراتب
-                        </p>
-                        <div className="space-y-3.5">
-                          {FIELDS.map(({ key, label }) => (
-                            <div key={key} className="space-y-1.5">
-                              <label className="block text-xs font-bold text-foreground">
-                                {label}
-                              </label>
-                              <input
-                                type="number"
-                                value={(form as any)[key]}
-                                min={0}
-                                step="0.01"
-                                onChange={(e) =>
-                                  setForm({ ...form, [key]: e.target.value })
-                                }
-                                className={inputCls}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Calculator Highlight */}
-                      <div className="mt-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/15 px-4 py-3">
-                        <span className="text-xs font-bold text-foreground">
-                          إجمالي مستحقات الراتب
-                        </span>
-                        <span className="text-lg font-black text-primary tabular-nums">
-                          {totalOf(form).toLocaleString("en-EG")} ج.م
-                        </span>
-                      </div>
-
-                      {/* Effective dates & notes */}
-                      <div className="space-y-3.5 pt-2">
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-foreground">
-                            تاريخ السريان
-                          </label>
-                          <DateInput
-                            value={form.effectiveFrom}
-                            onChange={(e) =>
-                              setForm({
-                                ...form,
-                                effectiveFrom: e.target.value,
-                              })
-                            }
-                            className={dateCls}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-foreground">
-                            تاريخ الانتهاء (اختياري)
-                          </label>
-                          <DateInput
-                            value={form.effectiveTo}
-                            onChange={(e) =>
-                              setForm({ ...form, effectiveTo: e.target.value })
-                            }
-                            className={dateCls}
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-foreground">
-                            ملاحظات
-                          </label>
-                          <input
-                            type="text"
-                            value={form.notes}
-                            onChange={(e) =>
-                              setForm({ ...form, notes: e.target.value })
-                            }
-                            className={inputCls}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    /* ──── Shift Staff Form ──── */
-                    <div className="space-y-5">
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-foreground">
-                          الاسم الكامل لعضو الكادر
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="أدخل الاسم الرباعي"
-                          value={form.shiftName}
-                          onChange={(e) =>
-                            setForm({ ...form, shiftName: e.target.value })
-                          }
-                          className={inputCls}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-foreground">
-                          النوع
-                        </label>
-                        <select
-                          value={form.shiftType}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              shiftType: e.target.value as any,
-                            })
-                          }
-                          className={inputCls}
-                        >
-                          <option value="doctor">طبيب شفت</option>
-                          <option value="tech">فني شفت</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-foreground">
-                          قيمة الشفت (ج.م)
-                        </label>
-                        <input
+                        <Input bare
                           type="number"
+                          value={(form as any)[key]}
                           min={0}
                           step="0.01"
-                          placeholder="0.00"
-                          value={form.ratePerShift}
                           onChange={(e) =>
-                            setForm({ ...form, ratePerShift: e.target.value })
+                            setForm({ ...form, [key]: e.target.value })
                           }
                           className={inputCls}
-                          required
                         />
                       </div>
-
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-foreground">
-                          ربط الحضور مع سجل الموظفين (اختياري)
-                        </label>
-                        <select
-                          value={form.empCd}
-                          onChange={(e) =>
-                            setForm({ ...form, empCd: e.target.value })
-                          }
-                          className={inputCls}
-                        >
-                          <option value="">-- ربط غير مسجل (يدوي) --</option>
-                          {employees.map((e: any) => (
-                            <option key={e.empCd} value={e.empCd}>
-                              {e.fullName} ({e.empCd})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-foreground">
-                          ربط حساب مستخدم بالنظام (اختياري)
-                        </label>
-                        <select
-                          value={form.userId}
-                          onChange={(e) =>
-                            setForm({ ...form, userId: e.target.value })
-                          }
-                          className={inputCls}
-                        >
-                          <option value="">-- بدون حساب مستخدم --</option>
-                          {usersList.map((u: any) => (
-                            <option key={u.id} value={u.id}>
-                              {u.name ?? u.username} ({u.role})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {editingShiftId && (
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-foreground">
-                            حالة العضو
-                          </label>
-                          <select
-                            value={form.shiftActive ? "1" : "0"}
-                            onChange={(e) =>
-                              setForm({
-                                ...form,
-                                shiftActive: e.target.value === "1",
-                              })
-                            }
-                            className={inputCls}
-                          >
-                            <option value="1">نشط ومتاح في الشفتات</option>
-                            <option value="0">غير نشط (موقوف مؤقتاً)</option>
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Action Buttons in Drawer */}
-                  <div className="flex gap-3 pt-4 border-t border-border mt-6">
-                    <Button
-                      type="submit"
-                      className="flex-1 h-11 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-lg shadow-xs"
-                      disabled={
-                        setMut.isPending ||
-                        updateMut.isPending ||
-                        addShiftMut.isPending ||
-                        updateShiftMut.isPending
-                      }
-                    >
-                      {editingId || editingShiftId
-                        ? "حفظ التعديلات"
-                        : "إضافة إلى القائمة"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-11 border-border text-muted-foreground hover:text-foreground font-semibold rounded-lg"
-                      onClick={() => {
-                        setShowForm(false);
-                        setEditingId(null);
-                        setEditingShiftId(null);
-                      }}
-                    >
-                      إلغاء
-                    </Button>
+                    ))}
                   </div>
-                </form>
+                </div>
+
+                {/* Calculator Highlight */}
+                <div className="mt-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/15 px-4 py-3">
+                  <span className="text-xs font-bold text-foreground">
+                    إجمالي الراتب المسجل شامل الزيادة السنوية
+                  </span>
+                  <span className="text-lg font-black text-primary tabular-nums">
+                    {totalOf(form).toLocaleString("ar-EG")} ج.م
+                  </span>
+                </div>
+
+                {/* Effective dates & notes */}
+                <div className="space-y-3.5 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-foreground">
+                      تاريخ السريان
+                    </label>
+                    <DateInput
+                      value={form.effectiveFrom}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          effectiveFrom: e.target.value,
+                        })
+                      }
+                      className={dateCls}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-foreground">
+                      تاريخ الانتهاء (اختياري)
+                    </label>
+                    <DateInput
+                      value={form.effectiveTo}
+                      onChange={(e) =>
+                        setForm({ ...form, effectiveTo: e.target.value })
+                      }
+                      className={dateCls}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-foreground">
+                      ملاحظات
+                    </label>
+                    <Input bare
+                      type="text"
+                      value={form.notes}
+                      onChange={(e) =>
+                        setForm({ ...form, notes: e.target.value })
+                      }
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
               </div>
+            ) : (
+              /* Shift Staff Form */
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-foreground">
+                    الاسم الكامل لعضو الكادر
+                  </label>
+                  <Input bare
+                    type="text"
+                    placeholder="أدخل الاسم الرباعي"
+                    aria-label="أدخل الاسم الرباعي"
+                    value={form.shiftName}
+                    onChange={(e) =>
+                      setForm({ ...form, shiftName: e.target.value })
+                    }
+                    className={inputCls}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-foreground">
+                    النوع
+                  </label>
+                  <select
+                    value={form.shiftType}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        shiftType: e.target.value as any,
+                      })
+                    }
+                    className={inputCls}
+                  >
+                    <option value="doctor">طبيب شفت</option>
+                    <option value="tech">فني شفت</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-foreground">
+                    قيمة الشفت (ج.م)
+                  </label>
+                  <Input bare aria-label="0.00"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.ratePerShift}
+                    onChange={(e) =>
+                      setForm({ ...form, ratePerShift: e.target.value })
+                    }
+                    className={inputCls}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-foreground">
+                    ربط الحضور مع سجل الموظفين (اختياري)
+                  </label>
+                  <select
+                    value={form.empCd}
+                    onChange={(e) =>
+                      setForm({ ...form, empCd: e.target.value })
+                    }
+                    className={inputCls}
+                  >
+                    <option value="">-- ربط غير مسجل (يدوي) --</option>
+                    {employees.map((e: any) => (
+                      <option key={e.empCd} value={e.empCd}>
+                        {e.fullName} ({e.empCd})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-foreground">
+                    ربط حساب مستخدم بالنظام (اختياري)
+                  </label>
+                  <select
+                    value={form.userId}
+                    onChange={(e) =>
+                      setForm({ ...form, userId: e.target.value })
+                    }
+                    className={inputCls}
+                  >
+                    <option value="">-- بدون حساب مستخدم --</option>
+                    {usersList.map((u: any) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name ?? u.username} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {editingShiftId && (
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-foreground">
+                      حالة العضو
+                    </label>
+                    <select
+                      value={form.shiftActive ? "1" : "0"}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          shiftActive: e.target.value === "1",
+                        })
+                      }
+                      className={inputCls}
+                    >
+                      <option value="1">نشط ومتاح في الشفتات</option>
+                      <option value="0">غير نشط (موقوف مؤقتاً)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons in Drawer */}
+            <div className="flex gap-3 pt-4 border-t border-border mt-6">
+              <Button
+                type="submit"
+                className="flex-1 h-11 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-lg shadow-xs"
+                disabled={
+                  setMut.isPending ||
+                  updateMut.isPending ||
+                  addShiftMut.isPending ||
+                  updateShiftMut.isPending
+                }
+              >
+                {editingId || editingShiftId
+                  ? "حفظ التعديلات"
+                  : "إضافة إلى القائمة"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 border-border text-muted-foreground hover:text-foreground font-semibold rounded-lg"
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingId(null);
+                  setEditingShiftId(null);
+                }}
+              >
+                إلغاء
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </form>
+        </SheetContent>
+      </Sheet>
 
       {/* Main Section Tabs (مركز / عيادة) */}
       <Tabs
@@ -1283,7 +1380,7 @@ export default function SalaryBasics() {
             >
               <Building2 className="h-4 w-4" />
               <span>المركز</span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
+              <span className="rounded-full bg-current/10 px-2 py-0.5 text-xs font-black text-current">
                 {centerSalaries.length + centerShifts.length}
               </span>
             </TabsTrigger>
@@ -1293,7 +1390,7 @@ export default function SalaryBasics() {
             >
               <Stethoscope className="h-4 w-4" />
               <span>العيادة</span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
+              <span className="rounded-full bg-current/10 px-2 py-0.5 text-xs font-black text-current">
                 {clinicSalaries.length}
               </span>
             </TabsTrigger>
@@ -1301,13 +1398,15 @@ export default function SalaryBasics() {
 
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
-              <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-              <input
+              <Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input bare
                 type="text"
-                placeholder="بحث بالاسم أو الكود…"
+                placeholder="بحث بالاسم أو الكود..."
+                enterKeyHint="search"
+                aria-label="بحث بالاسم أو الكود..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-56 rounded-lg border border-border bg-background pr-10 pl-4 text-xs font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="h-10 w-56 rounded-lg border border-input bg-background ps-10 pe-4 text-xs font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <Button
@@ -1331,7 +1430,7 @@ export default function SalaryBasics() {
                 setForm(BLANK);
                 setShowForm(true);
               }}
-              className="h-10 gap-2 rounded-lg bg-primary px-4 font-semibold text-white shadow-xs transition-all hover:bg-primary/90"
+              className="h-10 gap-2 rounded-lg bg-primary px-4 font-semibold text-primary-foreground shadow-xs transition-all hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
               إضافة عضو شفت
@@ -1344,7 +1443,7 @@ export default function SalaryBasics() {
               dir="rtl"
               className="flex bg-muted/40 rounded-lg p-1 border border-border/60 self-start sm:self-auto"
             >
-              <button
+              <Button variant="bare"
                 onClick={() => setCenterTab("salaries")}
                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   centerTab === "salaries"
@@ -1353,8 +1452,8 @@ export default function SalaryBasics() {
                 }`}
               >
                 رواتب المركز ({centerSalaries.length})
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 onClick={() => setCenterTab("shifts")}
                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   centerTab === "shifts"
@@ -1363,8 +1462,8 @@ export default function SalaryBasics() {
                 }`}
               >
                 طاقم الشفتات ({centerShifts.length})
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 onClick={() => setCenterTab("supervision")}
                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                   centerTab === "supervision"
@@ -1373,13 +1472,16 @@ export default function SalaryBasics() {
                 }`}
               >
                 مكافأة الإشراف ({supervisionMembers.length})
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
-        {/* ── Center Tab Content ── */}
-        <TabsContent value="center" className="space-y-4 m-0 focus-visible:outline-none">
+        {/* Center Tab Content */}
+        <TabsContent
+          value="center"
+          className="space-y-4 m-0 focus-visible:outline-none"
+        >
           {centerTab === "salaries" ? (
             <SalaryTable
               title="رواتب موظفي المركز"
@@ -1406,15 +1508,18 @@ export default function SalaryBasics() {
                     طاقم مكافأة الإشراف
                   </h3>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    يبدأ فارغًا. الموظفون هنا يظلون محفوظين حتى تعدّلهم، وهم فقط الذين يظهرون في كشف الشهر.
+                    يبدأ فارغًا. الموظفون هنا يظلون محفوظين حتى تعدّلهم، وهم فقط
+                    الذين يظهرون في كشف الشهر.
                   </p>
                 </div>
                 <div className="flex w-full gap-2 sm:w-auto">
                   <select
                     aria-label="إضافة موظف لمكافأة الإشراف"
                     value={supervisionEmpCd}
-                    onChange={(event) => setSupervisionEmpCd(event.target.value)}
-                    className="min-h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-64"
+                    onChange={(event) =>
+                      setSupervisionEmpCd(event.target.value)
+                    }
+                    className="min-h-10 min-w-0 flex-1 bg-background text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-64 rounded-md border border-border px-3"
                   >
                     <option value="">اختر موظفًا لإضافته</option>
                     {supervisionCandidates.map((employee) => (
@@ -1430,7 +1535,9 @@ export default function SalaryBasics() {
                       !supervisionEmpCd || addSupervisionMemberMut.isPending
                     }
                     onClick={() =>
-                      addSupervisionMemberMut.mutate({ empCd: supervisionEmpCd })
+                      addSupervisionMemberMut.mutate({
+                        empCd: supervisionEmpCd,
+                      })
                     }
                     className="min-h-10 gap-1.5 whitespace-nowrap"
                   >
@@ -1443,32 +1550,46 @@ export default function SalaryBasics() {
                   لا يوجد موظفون محددون لمكافأة الإشراف بعد.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="border-b border-border bg-primary/8 text-right text-xs text-foreground">
+                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+                  <table aria-label="موظفو الإشراف" className="w-full text-sm">
+                    <thead className="border-b border-border bg-primary/8 text-start text-xs text-foreground">
                       <tr>
-                        <th className="px-5 py-3 font-bold">الموظف</th>
-                        <th className="px-5 py-3 font-bold">القسم</th>
-                        <th className="px-5 py-3 text-left font-bold">إدارة</th>
+                        <th scope="col" className="px-5 py-3 font-bold">
+                          الموظف
+                        </th>
+                        <th scope="col" className="px-5 py-3 font-bold">
+                          القسم
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-5 py-3 text-end font-bold"
+                        >
+                          إدارة
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {supervisionMembers.map((member) => (
-                        <tr key={member.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
+                        <tr
+                          key={member.id}
+                          className="border-b border-border/60 last:border-0 hover:bg-muted/20"
+                        >
                           <td className="px-5 py-3 font-medium">
                             {member.fullName ?? member.empCd}
                           </td>
                           <td className="px-5 py-3 text-muted-foreground">
-                            {member.department || member.jobTitle || "—"}
+                            {member.department || member.jobTitle || "-"}
                           </td>
-                          <td className="px-5 py-3 text-left">
+                          <td className="px-5 py-3 text-end">
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               disabled={removeSupervisionMemberMut.isPending}
                               onClick={() =>
-                                removeSupervisionMemberMut.mutate({ id: member.id })
+                                removeSupervisionMemberMut.mutate({
+                                  id: member.id,
+                                })
                               }
                               className="gap-1.5 text-destructive hover:bg-destructive/10"
                             >
@@ -1485,8 +1606,11 @@ export default function SalaryBasics() {
           )}
         </TabsContent>
 
-        {/* ── Clinic Tab Content ── */}
-        <TabsContent value="clinic" className="space-y-4 m-0 focus-visible:outline-none">
+        {/* Clinic Tab Content */}
+        <TabsContent
+          value="clinic"
+          className="space-y-4 m-0 focus-visible:outline-none"
+        >
           <SalaryTable
             title="رواتب موظفي العيادة"
             data={clinicSalaries}
@@ -1499,17 +1623,9 @@ export default function SalaryBasics() {
       </Tabs>
 
       {/* Summary Statistics */}
-      <div className="grid gap-4 sm:grid-cols-3 pt-2">
+      <div className="grid gap-4 sm:grid-cols-2 pt-2">
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            إجمالي الموظفين والكادر
-          </div>
-          <div className="mt-2 text-2xl font-black text-foreground tabular-nums">
-            {basics.length + shiftStaff.length}
-          </div>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="text-xs font-bold text-muted-foreground ">
             إجمالي المركز
           </div>
           <div className="mt-2 text-2xl font-black text-primary tabular-nums">
@@ -1517,7 +1633,7 @@ export default function SalaryBasics() {
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="text-xs font-bold text-muted-foreground ">
             إجمالي العيادة
           </div>
           <div className="mt-2 text-2xl font-black text-primary tabular-nums">

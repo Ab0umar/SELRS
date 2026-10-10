@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { askConfirm } from "../attendance/askConfirm";
+import { rosterDates, rosterAddDates } from "./rosterDates";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +17,7 @@ import {
   Star,
   Trash2,
   X,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,9 +34,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 
 const now = new Date();
-const todayStr = now.toISOString().split("T")[0];
+const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 const MONTHS_AR = [
   "يناير",
   "فبراير",
@@ -81,43 +85,6 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-function daysInMonth(y: number, m: number) {
-  return new Date(y, m, 0).getDate();
-}
-
-function monthDates(y: number, m: number) {
-  return Array.from(
-    { length: daysInMonth(y, m) },
-    (_, i) => `${y}-${pad(m)}-${pad(i + 1)}`,
-  );
-}
-
-function dateRange(from: string, to: string) {
-  const start = new Date(`${from}T00:00:00`);
-  const end = new Date(`${to}T00:00:00`);
-  const out: string[] = [];
-  for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
-    out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
-  }
-  return out;
-}
-
-function weekDates(anchor: string, y: number, m: number) {
-  const d = new Date(anchor);
-  const day = d.getDay();
-  const mon = new Date(d);
-  mon.setDate(d.getDate() - ((day + 6) % 7));
-  return Array.from({ length: 7 }, (_, i) => {
-    const c = new Date(mon);
-    c.setDate(mon.getDate() + i);
-    return c;
-  })
-    .filter((c) => c.getFullYear() === y && c.getMonth() + 1 === m)
-    .map(
-      (c) => `${c.getFullYear()}-${pad(c.getMonth() + 1)}-${pad(c.getDate())}`,
-    );
-}
-
 function fmtDate(ds: string) {
   const d = new Date(`${ds}T00:00:00`);
   return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -139,7 +106,7 @@ function toDateKey(v: unknown): string {
 
 type Period = "day" | "week" | "weekly" | "month";
 type ShiftName = "Morning" | "Night";
-type StaffFilter = "all" | "doctor" | "tech";
+type StaffFilter = "doctor" | "tech";
 type RosterPanel = "summary" | "today" | "actions" | "upcoming";
 
 interface AddForm {
@@ -329,7 +296,7 @@ export default function ShiftSchedule() {
 
   const defaultPayrollEnd = new Date(
     now.getFullYear(),
-    now.getMonth() - (now.getDate() < 25 ? 1 : 0),
+    now.getMonth() + (now.getDate() >= 26 ? 1 : 0),
     25,
   );
   const defaultPayrollStart = new Date(
@@ -350,7 +317,7 @@ export default function ShiftSchedule() {
   const [editShift, setEditShift] = useState<EditShiftForm | null>(null);
   const [showHolidayAdd, setShowHolidayAdd] = useState(false);
   const [holidayForm, setHolidayForm] = useState<HolidayForm>(EMPTY_HOLIDAY);
-  const [staffFilter, setStaffFilter] = useState<StaffFilter>("all");
+  const [staffFilter, setStaffFilter] = useState<StaffFilter>("doctor");
   const [selectedMobileDate, setSelectedMobileDate] = useState(todayStr);
   const [rosterPanel, setRosterPanel] = useState<RosterPanel | null>(null);
 
@@ -386,13 +353,17 @@ export default function ShiftSchedule() {
   ).map((name) => ({ name, label: name }));
   const doctors = staff.filter((s: any) => s.type === "doctor");
   const techs = staff.filter((s: any) => s.type === "tech");
-  const displayStaff = [...doctors, ...techs];
-  const visibleStaff =
-    staffFilter === "doctor"
-      ? doctors
-      : staffFilter === "tech"
-        ? techs
-        : displayStaff;
+  const visibleStaff = staffFilter === "doctor" ? doctors : techs;
+  const visibleStaffIds = new Set(visibleStaff.map((s: any) => s.id));
+  const visibleAttendance = attendance.filter((row: any) => visibleStaffIds.has(row.staffId));
+  const rosterTitle = staffFilter === "doctor" ? "روستر الأطباء" : "روستر الفنيين";
+  function selectRoster(value: StaffFilter) {
+    setStaffFilter(value);
+    setAddForm(EMPTY_ADD);
+    setShowAdd(false);
+    setShowMobileAdd(false);
+    setEditShift(null);
+  }
 
   const generateMut = (trpc as any).salary.generateFromCycles.useMutation({
     onSuccess: (res: any) => {
@@ -409,7 +380,7 @@ export default function ShiftSchedule() {
       setShowAdd(false);
       setShowMobileAdd(false);
       setAddForm(EMPTY_ADD);
-      toast.success(`تم إضافة ${res.inserted} وردية`);
+      toast.success(`تمت إضافة ${res.inserted} وردية`);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -425,11 +396,11 @@ export default function ShiftSchedule() {
       setAddForm(EMPTY_ADD);
       toast.success("تم تسجيل الوردية");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر إضافة الوردية: " + e.message),
   });
   const toggleMyMut = (trpc as any).salary.toggleMyShiftEntry.useMutation({
     onSuccess: () => schedQ.refetch(),
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر تغيير حالة الوردية: " + e.message),
   });
   const updateEntryMut = (trpc as any).salary.updateShiftEntry.useMutation({
     onSuccess: () => {
@@ -438,7 +409,7 @@ export default function ShiftSchedule() {
       setEditShift(null);
       toast.success("تم تعديل الوردية");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر تعديل الوردية: " + e.message),
   });
   const updateMyEntryMut = (trpc as any).salary.updateMyShiftEntry.useMutation({
     onSuccess: () => {
@@ -446,7 +417,7 @@ export default function ShiftSchedule() {
       setEditShift(null);
       toast.success("تم تعديل الوردية");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر تعديل الوردية: " + e.message),
   });
   const deleteEntryMut = (trpc as any).salary.deleteShiftEntry.useMutation({
     onSuccess: () => {
@@ -454,7 +425,7 @@ export default function ShiftSchedule() {
       payrollQ.refetch();
       toast.success("تم حذف الوردية");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حذف الوردية: " + e.message),
   });
   const clearRosterMut = (trpc as any).salary.clearRoster.useMutation({
     onSuccess: () => {
@@ -462,33 +433,38 @@ export default function ShiftSchedule() {
       payrollQ.refetch();
       toast.success("تم مسح الروستر بالكامل");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر مسح الروستر: " + e.message),
   });
-  function handleClearRoster() {
+  async function handleClearRoster() {
     if (
-      !window.confirm(
-        `هل أنت متأكد من مسح كل ورديات شهر ${fromDate.slice(0, 7)}؟\nهذه العملية لا يمكن التراجع عنها.`,
-      )
+      !(await askConfirm(
+        `هل أنت متأكد من مسح كل الورديات من ${fromDate} إلى ${toDate}؟\nهذه العملية لا يمكن التراجع عنها.`,
+      ))
     )
       return;
-    clearRosterMut.mutate({ year, month });
+    clearRosterMut.mutate({ year, month, fromDate, toDate });
   }
-  const holidaysQ = (trpc as any).salary.listHolidays.useQuery({ year, month });
+  const holidaysQ = (trpc as any).salary.listHolidays.useQuery({
+    year,
+    month,
+    fromDate,
+    toDate,
+  });
   const addHolidayMut = (trpc as any).salary.addHoliday.useMutation({
     onSuccess: () => {
       holidaysQ.refetch();
       setShowHolidayAdd(false);
       setHolidayForm(EMPTY_HOLIDAY);
-      toast.success("تم إضافة العطلة");
+      toast.success("تمت إضافة العطلة");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر إضافة العطلة: " + e.message),
   });
   const deleteHolidayMut = (trpc as any).salary.deleteHoliday.useMutation({
     onSuccess: () => {
       holidaysQ.refetch();
       toast.success("تم حذف العطلة");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حذف العطلة: " + e.message),
   });
 
   const holidays: any[] = holidaysQ.data ?? [];
@@ -507,9 +483,7 @@ export default function ShiftSchedule() {
     attendMap.get(key)!.push(row);
   }
 
-  const allDates = (
-    fromDate && toDate ? dateRange(fromDate, toDate) : monthDates(year, month)
-  ).filter((ds) => {
+  const allDates = rosterDates(fromDate, toDate).filter((ds) => {
     const dow = new Date(`${ds}T00:00:00`).getDay();
     if (dow === 5) return false;
     if (fromDate && ds < fromDate) return false;
@@ -517,13 +491,13 @@ export default function ShiftSchedule() {
     return true;
   });
 
-  const totalEntries = attendance.length;
-  const totalPresent = attendance.filter((row: any) => row.present).length;
+  const totalEntries = visibleAttendance.length;
+  const totalPresent = visibleAttendance.filter((row: any) => row.present).length;
   const totalAbsent = totalEntries - totalPresent;
-  const scheduledStaff = new Set(attendance.map((row: any) => row.staffId))
+  const scheduledStaff = new Set(visibleAttendance.map((row: any) => row.staffId))
     .size;
   const coveredDays = new Set(
-    attendance.map((row: any) => toDateKey(row.workDate)),
+    visibleAttendance.map((row: any) => toDateKey(row.workDate)),
   ).size;
   const myEntries = myStaffId
     ? attendance.filter((row: any) => row.staffId === myStaffId)
@@ -534,9 +508,7 @@ export default function ShiftSchedule() {
   const activeDates = allDates.filter(
     (ds) => new Date(`${ds}T00:00:00`).getDay() !== 5,
   );
-  const mobileMonthDates = monthDates(year, month).filter(
-    (date) => new Date(`${date}T00:00:00`).getDay() !== 5,
-  );
+  const mobileMonthDates = allDates;
   const firstMonthDate = mobileMonthDates[0];
   const mobilePrefixEmpty = firstMonthDate
     ? getSixDayIndex(new Date(`${firstMonthDate}T00:00:00`).getDay())
@@ -608,20 +580,11 @@ export default function ShiftSchedule() {
       toast.error("اختر تاريخاً");
       return;
     }
-    const anchorWeekday = addForm.anchorDate
-      ? new Date(`${addForm.anchorDate}T00:00:00`).getDay()
-      : null;
-    const dates =
-      addForm.period === "day"
-        ? [addForm.anchorDate]
-        : addForm.period === "week"
-          ? weekDates(addForm.anchorDate, year, month)
-          : addForm.period === "weekly"
-            ? dateRange(fromDate, toDate).filter(
-                (date) =>
-                  new Date(`${date}T00:00:00`).getDay() === anchorWeekday,
-              )
-            : monthDates(year, month);
+    const dates = rosterAddDates(
+      { from: fromDate, to: toDate },
+      addForm.period,
+      addForm.anchorDate,
+    );
     if (dates.length === 0) {
       toast.error("لا يوجد أيام في هذه الفترة");
       return;
@@ -696,7 +659,7 @@ export default function ShiftSchedule() {
           </th>`;
         })
         .join("");
-      const rows = displayStaff
+      const rows = visibleStaff
         .map((s: any) => {
           const cells = dates
             .map((ds) => {
@@ -706,7 +669,7 @@ export default function ShiftSchedule() {
                 ? entries.map(buildShiftToken).join("")
                 : holiday
                   ? `<span class="holiday-label">${escapeHtml(holiday.name || "عطلة")}</span>`
-                  : '<span class="empty-cell">—</span>';
+                  : '<span class="empty-cell">-</span>';
               return `<td class="${holiday ? "holiday-cell" : ""}">${content}</td>`;
             })
             .join("");
@@ -746,7 +709,7 @@ export default function ShiftSchedule() {
         const holiday = holidayByDate.get(ds);
         const dayEntries: Array<{ staff: any; entry: any }> = [];
 
-        displayStaff.forEach((s: any) => {
+        visibleStaff.forEach((s: any) => {
           const entries = attendMap.get(`${s.id}_${ds}`) ?? [];
           entries.forEach((entry: any) => {
             dayEntries.push({ staff: s, entry });
@@ -798,7 +761,7 @@ export default function ShiftSchedule() {
     }
 
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
-      <title>روستر ${escapeHtml(fromDate.slice(0, 7))}</title>
+      <title>${escapeHtml(rosterTitle)} ${escapeHtml(fromDate.slice(0, 7))}</title>
       <style>${PRINT_CSS}</style></head><body>
       <main class="sheet">
         <header class="print-header">
@@ -810,7 +773,7 @@ export default function ShiftSchedule() {
             </div>
           </div>
           <div class="title-block">
-            <h1>روستر شهر ${escapeHtml(fromDate.slice(0, 7))}</h1>
+            <h1>${escapeHtml(rosterTitle)} ${escapeHtml(fromDate.slice(0, 7))}</h1>
             <div class="date-range">
               <span>من ${escapeHtml(fmtDate(fromDate))}</span>
               <span>إلى ${escapeHtml(fmtDate(toDate))}</span>
@@ -818,7 +781,7 @@ export default function ShiftSchedule() {
             </div>
           </div>
           <div class="summary-strip" aria-label="ملخص الروستر">
-            <div class="summary-pill">${arabicDigits(displayStaff.length)}<span>فريق</span></div>
+            <div class="summary-pill">${arabicDigits(visibleStaff.length)}<span>فريق</span></div>
             <div class="summary-pill">${arabicDigits(coveredDays)}<span>أيام</span></div>
             <div class="summary-pill">${arabicDigits(totalEntries)}<span>وردية</span></div>
             <div class="summary-pill">${arabicDigits(totalAbsent)}<span>غياب</span></div>
@@ -866,7 +829,7 @@ export default function ShiftSchedule() {
   }
 
   return (
-    <div dir="rtl" className="min-h-full bg-background text-foreground">
+    <div dir="rtl" className="roster-workspace min-h-full bg-background text-foreground">
       <style>{`
         @media (hover: hover) and (pointer: fine) {
           .roster-add-shift,
@@ -901,28 +864,15 @@ export default function ShiftSchedule() {
         }
       `}</style>
       <div className="space-y-4 px-4 pb-24 pt-3 md:hidden">
-        <header className="sticky top-0 z-20 -mx-4 border-b border-border/70 bg-background/95 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handlePrint}
-              className="h-10 w-10 rounded-full text-primary"
-              title="طباعة"
-            >
-              <Printer size={18} />
-            </Button>
-          </div>
-        </header>
-
-        <section className="rounded-xl border border-border bg-card p-4">
+        <section className="roster-mobile-period border-b border-border py-2">
           <div className="flex items-center justify-between gap-3">
             <Button
               size="icon"
               variant="ghost"
               onClick={() => moveMonth(-1)}
-              className="h-10 w-10 rounded-full text-primary"
+              className="h-10 w-10 rounded-lg text-primary"
               title="الشهر السابق"
+              aria-label="الشهر السابق"
             >
               <ChevronRight size={20} />
             </Button>
@@ -939,10 +889,16 @@ export default function ShiftSchedule() {
               size="icon"
               variant="ghost"
               onClick={() => moveMonth(1)}
-              className="h-10 w-10 rounded-full text-primary"
+              className="h-10 w-10 rounded-lg text-primary"
               title="الشهر التالي"
+              aria-label="الشهر التالي"
             >
               <ChevronLeft size={20} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={handlePrint}
+              className="h-11 w-11 shrink-0 text-primary"
+              title="طباعة الجدول أو حفظه PDF" aria-label="طباعة جدول الشفتات أو حفظه PDF">
+              <Printer size={18} />
             </Button>
           </div>
         </section>
@@ -950,15 +906,15 @@ export default function ShiftSchedule() {
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(
             [
-              ["all", "الكل"],
               ["doctor", "الأطباء"],
               ["tech", "الفنيين"],
             ] as [StaffFilter, string][]
           ).map(([value, label]) => (
-            <button
+            <Button variant="bare"
               key={value}
               type="button"
-              onClick={() => setStaffFilter(value)}
+              onClick={() => selectRoster(value)}
+              aria-pressed={staffFilter === value}
               className={`min-h-10 shrink-0 rounded-full px-5 text-sm font-bold transition-colors ${
                 staffFilter === value
                   ? "bg-primary text-primary-foreground shadow-xs"
@@ -966,7 +922,7 @@ export default function ShiftSchedule() {
               }`}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -975,7 +931,7 @@ export default function ShiftSchedule() {
             {DAYS_AR_CALENDAR.map((dayName) => (
               <div
                 key={dayName}
-                className="py-2 text-[11px] font-black text-muted-foreground/70"
+                className="py-2 text-xs font-black text-muted-foreground"
               >
                 {dayName}
               </div>
@@ -1005,7 +961,7 @@ export default function ShiftSchedule() {
 
               return (
                 <div key={ds} className="relative mx-auto h-12 w-full max-w-12">
-                  <button
+                  <Button variant="bare"
                     type="button"
                     onClick={() => {
                       if (isSelected && canAdd) {
@@ -1027,11 +983,25 @@ export default function ShiftSchedule() {
                           ? "bg-primary/10 text-primary"
                           : "text-foreground hover:bg-muted"
                     }`}
-                    aria-label={
+                    aria-label={`${
                       isSelected && canAdd
                         ? `إضافة وردية يوم ${ds}`
                         : `عرض ورديات يوم ${ds}`
-                    }
+                    }${
+                      [
+                        hasMorning && "صباحي",
+                        hasNight && "مسائي",
+                        holiday && "عطلة",
+                      ].filter(Boolean).length
+                        ? `: ${[
+                            hasMorning && "صباحي",
+                            hasNight && "مسائي",
+                            holiday && "عطلة",
+                          ]
+                            .filter(Boolean)
+                            .join("، ")}`
+                        : ""
+                    }`}
                   >
                     <span>
                       {arabicDigits(new Date(`${ds}T00:00:00`).getDate())}
@@ -1039,7 +1009,7 @@ export default function ShiftSchedule() {
                     <span className="mt-1 flex h-2 items-center gap-0.5">
                       {hasMorning && (
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
+                          className={`h-2 w-2 rounded-full ${
                             isSelected
                               ? "bg-primary-foreground"
                               : "bg-secondary"
@@ -1048,40 +1018,49 @@ export default function ShiftSchedule() {
                       )}
                       {hasNight && (
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
+                          className={`h-2 w-2 rounded-[2px] ${
                             isSelected ? "bg-primary-foreground" : "bg-primary"
                           }`}
                         />
                       )}
                       {holiday && (
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
+                          className={`h-2 w-2 rotate-45 rounded-[1px] ${
                             isSelected ? "bg-primary-foreground" : "bg-warning"
                           }`}
                         />
                       )}
                     </span>
                     {isSelected && canAdd && (
-                      <span className="absolute -left-0.5 -top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-secondary text-secondary-foreground shadow-xs">
+                      <span className="absolute -end-0.5 -top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-secondary text-secondary-foreground shadow-xs">
                         <Plus size={12} strokeWidth={3} aria-hidden />
                       </span>
                     )}
-                  </button>
+                  </Button>
                 </div>
               );
             })}
           </div>
           <div className="mt-5 flex flex-wrap justify-center gap-3 border-t border-border pt-4">
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-              <span className="h-2.5 w-2.5 rounded-full bg-secondary" />
+              <span
+                className="h-2.5 w-2.5 rounded-full bg-secondary"
+                aria-hidden
+              />
               صباحي
             </span>
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+              <span
+                className="h-2.5 w-2.5 rounded-[2px] bg-primary"
+                aria-hidden
+              />
               مسائي
             </span>
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-              <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+              <span
+                className="h-2.5 w-2.5 rotate-45 rounded-[1px] bg-warning"
+                aria-hidden
+              />
               عطلة
             </span>
           </div>
@@ -1099,7 +1078,7 @@ export default function ShiftSchedule() {
             dir="rtl"
           >
             <DialogHeader>
-              <DialogTitle className="text-right">
+              <DialogTitle className="text-start">
                 إضافة وردية - {arabicDigits(selectedDateInMonth)}
               </DialogTitle>
             </DialogHeader>
@@ -1115,10 +1094,10 @@ export default function ShiftSchedule() {
                         staffId: e.target.value,
                       }))
                     }
-                    className="min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                    className="min-h-11 w-full bg-background text-sm text-foreground rounded-lg border border-border px-3"
                   >
                     <option value="">اختر الطبيب أو الفني</option>
-                    {displayStaff.map((staff: any) => (
+                    {visibleStaff.map((staff: any) => (
                       <option key={staff.id} value={staff.id}>
                         {staff.name}
                       </option>
@@ -1129,7 +1108,7 @@ export default function ShiftSchedule() {
               <div className="grid grid-cols-2 gap-3">
                 <label className="space-y-1.5 text-sm font-bold">
                   <span>من</span>
-                  <input
+                  <Input bare
                     type="time"
                     value={addForm.startTime}
                     onChange={(e) =>
@@ -1138,12 +1117,12 @@ export default function ShiftSchedule() {
                         startTime: e.target.value,
                       }))
                     }
-                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                    className="min-h-11 min-w-0 w-full bg-background text-sm text-foreground rounded-lg border border-border px-2"
                   />
                 </label>
                 <label className="space-y-1.5 text-sm font-bold">
                   <span>إلى</span>
-                  <input
+                  <Input bare
                     type="time"
                     value={addForm.endTime}
                     onChange={(e) =>
@@ -1152,7 +1131,7 @@ export default function ShiftSchedule() {
                         endTime: e.target.value,
                       }))
                     }
-                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                    className="min-h-11 min-w-0 w-full bg-background text-sm text-foreground rounded-lg border border-border px-2"
                   />
                 </label>
               </div>
@@ -1162,7 +1141,7 @@ export default function ShiftSchedule() {
                 className="h-11 w-full rounded-lg text-sm font-bold"
               >
                 {bulkMut.isPending || addMyShiftMut.isPending
-                  ? "جاري الإضافة…"
+                  ? "جاري الإضافة..."
                   : "إضافة الوردية"}
               </Button>
             </div>
@@ -1178,13 +1157,15 @@ export default function ShiftSchedule() {
             dir="rtl"
           >
             <DialogHeader>
-              <DialogTitle className="text-right">تعديل وقت الوردية</DialogTitle>
+              <DialogTitle className="text-start">
+                تعديل وقت الوردية
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <label className="space-y-1.5 text-sm font-bold">
                   <span>من</span>
-                  <input
+                  <Input bare
                     type="time"
                     value={editShift?.startTime ?? ""}
                     onChange={(e) =>
@@ -1194,12 +1175,12 @@ export default function ShiftSchedule() {
                           : current,
                       )
                     }
-                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                    className="min-h-11 min-w-0 w-full bg-background text-sm text-foreground rounded-lg border border-border px-2"
                   />
                 </label>
                 <label className="space-y-1.5 text-sm font-bold">
                   <span>إلى</span>
-                  <input
+                  <Input bare
                     type="time"
                     value={editShift?.endTime ?? ""}
                     onChange={(e) =>
@@ -1209,17 +1190,19 @@ export default function ShiftSchedule() {
                           : current,
                       )
                     }
-                    className="min-h-11 min-w-0 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                    className="min-h-11 min-w-0 w-full bg-background text-sm text-foreground rounded-lg border border-border px-2"
                   />
                 </label>
               </div>
               <Button
                 onClick={submitShiftEdit}
-                disabled={updateEntryMut.isPending || updateMyEntryMut.isPending}
+                disabled={
+                  updateEntryMut.isPending || updateMyEntryMut.isPending
+                }
                 className="h-11 w-full rounded-lg text-sm font-bold"
               >
                 {updateEntryMut.isPending || updateMyEntryMut.isPending
-                  ? "جاري الحفظ…"
+                  ? "جاري الحفظ..."
                   : "حفظ التعديل"}
               </Button>
             </div>
@@ -1263,18 +1246,18 @@ export default function ShiftSchedule() {
                         }`}
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-foreground">
+                        <p className="break-words text-sm font-black text-foreground">
                           {compactStaffName(staff)}
                         </p>
                         <span
-                          className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-black ${meta.tone}`}
+                          className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-xs font-black ${meta.tone}`}
                         >
                           {shiftTimeLabel(entry)}
                         </span>
                       </div>
                     </div>
                     {canEdit && (
-                      <button
+                      <Button variant="bare"
                         type="button"
                         onClick={() => openShiftEditor(entry)}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 text-primary"
@@ -1282,9 +1265,9 @@ export default function ShiftSchedule() {
                         aria-label="تعديل وقت الوردية"
                       >
                         <Pencil size={15} />
-                      </button>
+                      </Button>
                     )}
-                    <button
+                    <Button variant="bare"
                       type="button"
                       onClick={() =>
                         canEdit
@@ -1313,7 +1296,7 @@ export default function ShiftSchedule() {
                         className="h-4 w-4"
                         fill={entry.present ? "currentColor" : "none"}
                       />
-                    </button>
+                    </Button>
                   </div>
                 );
               })}
@@ -1327,7 +1310,7 @@ export default function ShiftSchedule() {
 
         <section className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-border bg-card p-3">
-            <span className="text-[11px] font-bold text-muted-foreground">
+            <span className="text-xs font-bold text-muted-foreground">
               المجدولون
             </span>
             <strong className="mt-1 block text-2xl font-black text-foreground">
@@ -1335,7 +1318,7 @@ export default function ShiftSchedule() {
             </strong>
           </div>
           <div className="rounded-xl border border-border bg-card p-3">
-            <span className="text-[11px] font-bold text-muted-foreground">
+            <span className="text-xs font-bold text-muted-foreground">
               المؤكدة
             </span>
             <strong className="mt-1 block text-2xl font-black text-success-text">
@@ -1344,13 +1327,19 @@ export default function ShiftSchedule() {
           </div>
         </section>
 
+        {isManager && <details className="roster-mobile-tools border-t border-border pt-3" open={showAdd || showHolidayAdd || undefined}>
+          <summary className="flex min-h-11 cursor-pointer items-center justify-between text-sm font-bold text-primary">
+            إجراءات الروستر <ChevronDown size={16} />
+          </summary>
         {isManager && (
           <section className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => generateMut.mutate({ year, month })}
+                onClick={() =>
+                  generateMut.mutate({ year, month, fromDate, toDate })
+                }
                 disabled={generateMut.isPending}
                 className="gap-1.5 rounded-xl font-bold"
               >
@@ -1382,10 +1371,10 @@ export default function ShiftSchedule() {
                 onChange={(e) =>
                   setAddForm((f) => ({ ...f, staffId: e.target.value }))
                 }
-                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                className="min-h-11 w-full bg-background text-sm text-foreground rounded-xl border border-border px-3 py-2"
               >
                 <option value="">-- اختر الموظف --</option>
-                {displayStaff.map((s: any) => (
+                {visibleStaff.map((s: any) => (
                   <option key={s.id} value={s.id}>
                     {s.name} ({s.type === "doctor" ? "طبيب" : "فني"})
                   </option>
@@ -1394,24 +1383,24 @@ export default function ShiftSchedule() {
               <div className="grid grid-cols-2 gap-3">
                 <label className="space-y-1 text-xs font-bold text-muted-foreground">
                   <span>من</span>
-                  <input
+                  <Input bare
                     type="time"
                     value={addForm.startTime}
                     onChange={(e) =>
                       setAddForm((f) => ({ ...f, startTime: e.target.value }))
                     }
-                    className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                    className="min-h-11 w-full bg-background text-sm text-foreground rounded-xl border border-border px-3 py-2"
                   />
                 </label>
                 <label className="space-y-1 text-xs font-bold text-muted-foreground">
                   <span>إلى</span>
-                  <input
+                  <Input bare
                     type="time"
                     value={addForm.endTime}
                     onChange={(e) =>
                       setAddForm((f) => ({ ...f, endTime: e.target.value }))
                     }
-                    className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                    className="min-h-11 w-full bg-background text-sm text-foreground rounded-xl border border-border px-3 py-2"
                   />
                 </label>
               </div>
@@ -1424,7 +1413,7 @@ export default function ShiftSchedule() {
                     ["month", "شهر"],
                   ] as [Period, string][]
                 ).map(([p, lbl]) => (
-                  <button
+                  <Button variant="bare"
                     key={p}
                     type="button"
                     onClick={() => setAddForm((f) => ({ ...f, period: p }))}
@@ -1435,7 +1424,7 @@ export default function ShiftSchedule() {
                     }`}
                   >
                     {lbl}
-                  </button>
+                  </Button>
                 ))}
               </div>
               {addForm.period !== "month" && (
@@ -1447,7 +1436,7 @@ export default function ShiftSchedule() {
                       anchorDate: e.target.value,
                     }))
                   }
-                  className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                  className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0"
                 />
               )}
               <div className="flex gap-2">
@@ -1457,7 +1446,7 @@ export default function ShiftSchedule() {
                   disabled={bulkMut.isPending}
                   className="flex-1 rounded-xl"
                 >
-                  {bulkMut.isPending ? "جاري الإضافة…" : "إضافة"}
+                  {bulkMut.isPending ? "جاري الإضافة..." : "إضافة"}
                 </Button>
                 <Button
                   size="sm"
@@ -1485,18 +1474,19 @@ export default function ShiftSchedule() {
                 {holidays.map((h: any) => (
                   <span
                     key={h.id}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning-text"
                   >
                     {arabicDigits(String(h.date).slice(0, 10))}
                     {h.name && <span>· {h.name}</span>}
-                    <button
+                    <Button variant="bare"
                       type="button"
                       onClick={() => deleteHolidayMut.mutate({ id: h.id })}
-                      className="inline-flex items-center justify-center text-warning hover:text-destructive"
+                      className="inline-flex items-center justify-center text-warning-text hover:text-destructive"
                       title="حذف"
+                      aria-label="حذف"
                     >
                       <X size={11} />
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -1507,16 +1497,17 @@ export default function ShiftSchedule() {
                 onChange={(e) =>
                   setHolidayForm((f) => ({ ...f, date: e.target.value }))
                 }
-                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                className="min-h-11 w-full bg-background text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0 rounded-xl border border-border px-3 py-2"
               />
-              <input
+              <Input bare
                 type="text"
                 placeholder="الاسم (اختياري)"
+                aria-label="الاسم (اختياري)"
                 value={holidayForm.name}
                 onChange={(e) =>
                   setHolidayForm((f) => ({ ...f, name: e.target.value }))
                 }
-                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
               />
               <Button
                 size="sm"
@@ -1535,28 +1526,29 @@ export default function ShiftSchedule() {
                 disabled={addHolidayMut.isPending}
                 className="w-full rounded-xl"
               >
-                {addHolidayMut.isPending ? "جاري…" : "إضافة"}
+                {addHolidayMut.isPending ? "جاري..." : "إضافة"}
               </Button>
             </div>
           </section>
         )}
+        </details>}
       </div>
 
-      <div className="mx-auto hidden w-full max-w-none flex-col gap-4 px-4 py-4 md:flex lg:px-6">
-        <header className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card px-5 py-4">
+      <div className="roster-desktop mx-auto hidden w-full max-w-none flex-col gap-4 px-4 py-4 md:flex lg:px-6">
+        <header className="roster-toolbar flex flex-wrap items-end gap-3 border-b border-border py-3">
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex items-center gap-2">
               {(
                 [
-                  ["all", "الكل"],
                   ["doctor", "الأطباء"],
                   ["tech", "الفنيين"],
                 ] as [StaffFilter, string][]
               ).map(([value, label]) => (
-                <button
+                <Button variant="bare"
                   key={value}
                   type="button"
-                  onClick={() => setStaffFilter(value)}
+                  onClick={() => selectRoster(value)}
+                  aria-pressed={staffFilter === value}
                   className={`min-h-10 rounded-xl border px-4 text-sm font-bold transition-colors ${
                     staffFilter === value
                       ? "border-primary bg-primary text-primary-foreground"
@@ -1564,7 +1556,7 @@ export default function ShiftSchedule() {
                   }`}
                 >
                   {label}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -1574,7 +1566,7 @@ export default function ShiftSchedule() {
                 <DateInput
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="h-11 w-[11rem] shrink-0 h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
+                  className="h-11 w-full sm:w-[11rem] shrink-0 h-10 w-40 shrink-0 bg-background text-center text-xs font-bold text-foreground rounded-xl border border-border px-1"
                   inputClassName="w-[118px] min-w-0 px-2 text-center"
                   aria-label="تاريخ بداية الروستر"
                 />
@@ -1584,7 +1576,7 @@ export default function ShiftSchedule() {
                 <DateInput
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="h-11 w-[11rem] shrink-0 h-10 w-40 shrink-0 rounded-xl border border-border bg-background px-1 text-center text-xs font-bold text-foreground"
+                  className="h-11 w-full sm:w-[11rem] shrink-0 h-10 w-40 shrink-0 bg-background text-center text-xs font-bold text-foreground rounded-xl border border-border px-1"
                   inputClassName="w-[118px] min-w-0 px-2 text-center"
                   aria-label="تاريخ نهاية الروستر"
                 />
@@ -1596,7 +1588,7 @@ export default function ShiftSchedule() {
                 className="h-10 gap-1.5 rounded-xl font-bold"
               >
                 <Printer size={14} />
-                طباعة
+                طباعة / حفظ PDF
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1637,7 +1629,7 @@ export default function ShiftSchedule() {
         </header>
 
         {!isManager && myStaffId === null && !myStaffIdQ.isLoading && (
-          <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm font-semibold text-warning">
+          <div className="rounded-xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm font-semibold text-warning-text">
             حسابك غير مرتبط بسجل وردية، تواصل مع المدير لربط الحساب.
           </div>
         )}
@@ -1648,8 +1640,8 @@ export default function ShiftSchedule() {
         )}
 
         <div className="roster-desktop-layout relative">
-          <section className="roster-calendar-panel min-w-0 overflow-hidden rounded-xl border border-border bg-card">
-            <div className="grid grid-cols-6 border-b border-border bg-primary/5">
+          <section className="roster-calendar-panel min-w-0 overflow-x-auto border border-border bg-card">
+            <div className="roster-week-grid grid grid-cols-6 border-b border-border bg-primary/5">
               {DAYS_AR_CALENDAR.map((dayName) => (
                 <div
                   key={dayName}
@@ -1661,7 +1653,7 @@ export default function ShiftSchedule() {
             </div>
 
             {schedQ.isLoading ? (
-              <div className="grid grid-cols-2 gap-px bg-border p-px md:grid-cols-3 xl:grid-cols-6">
+              <div className="roster-week-grid grid grid-cols-6 gap-px bg-border p-px">
                 {Array.from({ length: 18 }).map((_, i) => (
                   <div key={i} className="min-h-[148px] bg-background p-3">
                     <div className="h-4 w-12 animate-pulse rounded bg-muted" />
@@ -1672,20 +1664,30 @@ export default function ShiftSchedule() {
                   </div>
                 ))}
               </div>
-            ) : displayStaff.length === 0 ? (
+            ) : schedQ.isError ? (
+              <div
+                role="alert"
+                className="flex flex-col items-center gap-3 px-4 py-20 text-center text-sm text-destructive"
+              >
+                <span>تعذر تحميل جدول الشفتات للفترة المحددة.</span>
+                <Button variant="outline" onClick={() => schedQ.refetch()}>
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : visibleStaff.length === 0 ? (
               <div className="px-4 py-20 text-center text-sm font-semibold text-muted-foreground">
                 لا يوجد موظفون. أضف الموظفين أولاً من تبويب الشفتات.
               </div>
             ) : (
               <>
-                {attendance.length === 0 && (
-                  <div className="border-b border-warning/20 bg-warning/10 px-4 py-3 text-sm font-bold text-warning">
+                {visibleAttendance.length === 0 && (
+                  <div className="border-b border-warning/20 bg-warning/10 px-4 py-3 text-sm font-bold text-warning-text">
                     لا توجد ورديات لهذا الشهر. استخدم توليد من الدورات أو إضافة
                     ورديات للبدء.
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-px bg-border md:grid-cols-3 xl:grid-cols-6">
+                <div className="roster-week-grid grid grid-cols-6 gap-px bg-border">
                   {Array.from({ length: prefixEmpty }).map((_, idx) => (
                     <div
                       key={`empty-${idx}`}
@@ -1747,25 +1749,25 @@ export default function ShiftSchedule() {
                             >
                               {arabicDigits(dateObj.getDate())}
                             </span>
-                            <span className="text-[11px] font-bold text-muted-foreground">
+                            <span className="text-xs font-bold text-muted-foreground">
                               {MONTHS_AR[dateObj.getMonth()]}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
                             {holiday ? (
                               <span
-                                className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning"
+                                className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-bold text-warning-text"
                                 title={holiday.name}
                               >
                                 عطلة
                               </span>
                             ) : isToday ? (
-                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                                 اليوم
                               </span>
                             ) : null}
                             {(isManager || myStaffId !== null) && (
-                              <button
+                              <Button variant="bare"
                                 type="button"
                                 onClick={() => {
                                   setAddForm((prev) => ({
@@ -1779,32 +1781,26 @@ export default function ShiftSchedule() {
                                   }));
                                   setShowAdd(true);
                                 }}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary transition-colors hover:border-primary/50 hover:bg-primary/15"
+                                className="roster-day-add inline-flex h-7 w-7 items-center justify-center rounded-md text-primary hover:bg-primary/10"
                                 title="إضافة وردية"
                                 aria-label="إضافة وردية"
                               >
                                 <Plus size={13} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </div>
 
                         <div
-                          className="mt-3 grid flex-1 gap-2 text-right"
-                          style={{
-                            gridTemplateColumns: `repeat(${Math.max(shiftGroups.length, 1)}, minmax(0, 1fr))`,
-                          }}
+                          className="roster-day-entries mt-3 flex flex-col gap-2 text-start"
                         >
                           {shiftGroups.map(
                             ({ shiftName, label, entries, meta }) => {
                               return (
                                 <div
                                   key={shiftName}
-                                  className="min-w-0 space-y-1 border-r border-border/70 pr-2 first:border-r-0 first:pr-0"
+                                  className="min-w-0"
                                 >
-                                  <span className="block text-[10px] font-black text-muted-foreground">
-                                    {label}
-                                  </span>
                                   <div className="space-y-1">
                                     {entries.map(({ staff, entry }) => {
                                       const isMyRow =
@@ -1813,9 +1809,9 @@ export default function ShiftSchedule() {
                                       return (
                                         <div
                                           key={entry.id}
-                                          className="roster-shift-pill relative"
+                                          className="roster-entry-row flex min-w-0 items-center gap-1 border-b border-border/50"
                                         >
-                                          <button
+                                          <Button variant="bare"
                                             type="button"
                                             onClick={() =>
                                               canEdit
@@ -1835,7 +1831,7 @@ export default function ShiftSchedule() {
                                               toggleMut.isPending ||
                                               toggleMyMut.isPending
                                             }
-                                            className={`block w-full whitespace-normal break-words rounded-lg px-1.5 py-1 text-center text-[10px] font-semibold leading-tight transition-colors ${
+                                            className={`roster-entry-name flex min-w-0 flex-1 flex-col items-start gap-1 whitespace-normal break-words rounded-md px-2 py-2 text-start text-xs font-semibold leading-tight transition-colors ${
                                               isMyRow
                                                 ? "bg-primary text-primary-foreground"
                                                 : entry.present
@@ -1846,40 +1842,30 @@ export default function ShiftSchedule() {
                                             title={compactStaffName(staff)}
                                           >
                                             {compactStaffName(staff)}
-                                          </button>
-                                          {canEdit && (
-                                            <button
-                                              type="button"
-                                              onClick={() => openShiftEditor(entry)}
-                                              className="roster-edit-shift absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xs transition-opacity"
-                                              title="تعديل وقت الوردية"
-                                              aria-label="تعديل وقت الوردية"
-                                            >
-                                              <Pencil size={10} />
-                                            </button>
-                                          )}
-                                          {isManager && (
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                deleteEntryMut.mutate({
-                                                  id: entry.id,
-                                                })
-                                              }
-                                              disabled={
-                                                deleteEntryMut.isPending
-                                              }
-                                              className="roster-delete-shift absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground shadow-xs transition-opacity"
-                                              title="حذف"
-                                            >
-                                              ×
-                                            </button>
-                                          )}
+                                            <span dir="ltr" className="roster-entry-time text-xs font-normal tabular-nums">{shiftTimeLabel(entry)}</span>
+                                          </Button>
+                                          {canEdit && <DropdownMenu dir="rtl">
+                                            <DropdownMenuTrigger asChild>
+                                              <Button variant="bare" type="button" className="roster-entry-menu flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+                                                title="إجراءات الوردية" aria-label={`إجراءات وردية ${compactStaffName(staff)}`}>
+                                                <MoreHorizontal size={16} />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuItem onSelect={() => openShiftEditor(entry)}>
+                                                <Pencil size={14} /> تعديل وقت الوردية
+                                              </DropdownMenuItem>
+                                              {isManager && <DropdownMenuItem className="text-destructive" disabled={deleteEntryMut.isPending}
+                                                onSelect={() => deleteEntryMut.mutate({ id: entry.id })}>
+                                                <Trash2 size={14} /> حذف الوردية
+                                              </DropdownMenuItem>}
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>}
                                         </div>
                                       );
                                     })}
                                     {entries.length === 0 && (
-                                      <span className="block rounded-full border border-dashed border-border px-2 py-1 text-center text-[10px] font-bold text-muted-foreground/60">
+                                      <span className="block rounded-full border border-dashed border-border px-2 py-1 text-center text-xs font-bold text-muted-foreground">
                                         فارغ
                                       </span>
                                     )}
@@ -1893,7 +1879,7 @@ export default function ShiftSchedule() {
                         {(isManager || myStaffId !== null) &&
                           showAdd &&
                           addForm.anchorDate === ds && (
-                            <div className="absolute inset-x-2 top-12 z-20 space-y-2 rounded-lg border border-primary/25 bg-card/95 p-2 shadow-lg backdrop-blur">
+                            <div className="absolute inset-x-2 top-12 z-20 space-y-2 rounded-lg border border-primary/25 bg-card p-2 shadow-lg">
                               {isManager ? (
                                 <select
                                   value={addForm.staffId}
@@ -1903,11 +1889,11 @@ export default function ShiftSchedule() {
                                       staffId: e.target.value,
                                     }))
                                   }
-                                  className="min-h-9 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground"
+                                  className="min-h-9 w-full bg-background text-xs text-foreground rounded-md border border-border px-2"
                                   aria-label="الطبيب أو الفني"
                                 >
                                   <option value="">اختر الطبيب أو الفني</option>
-                                  {displayStaff.map((staff: any) => (
+                                  {visibleStaff.map((staff: any) => (
                                     <option key={staff.id} value={staff.id}>
                                       {staff.name}
                                     </option>
@@ -1915,7 +1901,7 @@ export default function ShiftSchedule() {
                                 </select>
                               ) : null}
                               <div className="grid grid-cols-2 gap-2">
-                                <input
+                                <Input bare
                                   type="time"
                                   value={addForm.startTime}
                                   onChange={(e) =>
@@ -1924,10 +1910,10 @@ export default function ShiftSchedule() {
                                       startTime: e.target.value,
                                     }))
                                   }
-                                  className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
+                                  className="min-h-9 min-w-0 bg-background text-xs text-foreground rounded-md border border-border px-1"
                                   aria-label="من"
                                 />
-                                <input
+                                <Input bare
                                   type="time"
                                   value={addForm.endTime}
                                   onChange={(e) =>
@@ -1936,12 +1922,12 @@ export default function ShiftSchedule() {
                                       endTime: e.target.value,
                                     }))
                                   }
-                                  className="min-h-9 min-w-0 rounded-md border border-border bg-background px-1 text-xs text-foreground"
+                                  className="min-h-9 min-w-0 bg-background text-xs text-foreground rounded-md border border-border px-1"
                                   aria-label="إلى"
                                 />
                               </div>
                               {isManager ? (
-                                <label className="flex min-h-9 items-center gap-2 text-[11px] font-bold text-foreground">
+                                <label className="flex min-h-9 items-center gap-2 text-xs font-bold text-foreground">
                                   <input
                                     type="checkbox"
                                     checked={addForm.period === "weekly"}
@@ -1995,18 +1981,18 @@ export default function ShiftSchedule() {
 
           {rosterPanel && (
             <aside
-              className="roster-menu absolute left-0 top-0 z-30 grid w-full max-w-xl gap-3 rounded-xl border border-border bg-background p-3 shadow-lg"
+              className="roster-menu absolute end-0 top-0 z-30 grid w-full max-w-xl gap-3 rounded-xl border border-border bg-background p-3 shadow-lg"
               data-panel={rosterPanel}
             >
-              <button
+              <Button variant="bare"
                 type="button"
                 onClick={() => setRosterPanel(null)}
-                className="absolute left-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="absolute end-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="إغلاق لوحات الروستر"
                 title="إغلاق"
               >
                 <X size={16} />
-              </button>
+              </Button>
               <>
                 <div className="roster-menu-summary rounded-xl border border-border bg-card p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -2049,7 +2035,7 @@ export default function ShiftSchedule() {
                       <span className="text-xs font-bold text-muted-foreground">
                         العطلات
                       </span>
-                      <strong className="text-lg font-black text-warning">
+                      <strong className="text-lg font-black text-warning-text">
                         {arabicDigits(holidays.length)}
                       </strong>
                     </div>
@@ -2077,11 +2063,11 @@ export default function ShiftSchedule() {
                             key={entry.id}
                             className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
                           >
-                            <span className="min-w-0 truncate text-xs font-semibold text-foreground">
+                            <span className="min-w-0 break-words text-xs font-semibold text-foreground">
                               {compactStaffName(staff)}
                             </span>
                             <span
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-black ${meta.tone}`}
+                              className={`rounded-full px-2 py-0.5 text-xs font-black ${meta.tone}`}
                             >
                               {shiftTimeLabel(entry)}
                             </span>
@@ -2097,269 +2083,281 @@ export default function ShiftSchedule() {
                 </div>
 
                 <div className="roster-menu-actions contents">
-                {isManager ? (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-border bg-card p-4">
-                      <h3 className="text-sm font-black text-foreground">
-                        إجراءات الروستر
-                      </h3>
-                      <div className="mt-3 grid gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => generateMut.mutate({ year, month })}
-                          disabled={generateMut.isPending}
-                          className="justify-start gap-2 rounded-xl font-bold"
-                        >
-                          <RefreshCw
-                            size={14}
-                            className={
-                              generateMut.isPending ? "animate-spin" : ""
-                            }
-                          />
-                          توليد من الدورات
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setShowHolidayAdd((v) => !v)}
-                          className="justify-start gap-2 rounded-xl font-bold"
-                        >
-                          <Star size={14} />
-                          العطلات الرسمية
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleClearRoster}
-                          disabled={
-                            clearRosterMut.isPending || attendance.length === 0
-                          }
-                          className="justify-start gap-2 rounded-xl border-destructive/25 font-bold text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 size={14} />
-                          مسح الروستر
-                        </Button>
-                      </div>
-                    </div>
-
-                    {showAdd && !addForm.anchorDate && (
+                  {isManager ? (
+                    <div className="space-y-4">
                       <div className="rounded-xl border border-border bg-card p-4">
                         <h3 className="text-sm font-black text-foreground">
-                          إضافة ورديات
+                          إجراءات الروستر
                         </h3>
-                        <div className="mt-3 space-y-3">
-                          <select
-                            value={addForm.staffId}
-                            onChange={(e) =>
-                              setAddForm((f) => ({
-                                ...f,
-                                staffId: e.target.value,
-                              }))
+                        <div className="mt-3 grid gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              generateMut.mutate({
+                                year,
+                                month,
+                                fromDate,
+                                toDate,
+                              })
                             }
-                            className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            disabled={generateMut.isPending}
+                            className="justify-start gap-2 rounded-xl font-bold"
                           >
-                            <option value="">-- اختر الموظف --</option>
-                            {displayStaff.map((s: any) => (
-                              <option key={s.id} value={s.id}>
-                                {s.name} ({s.type === "doctor" ? "طبيب" : "فني"}
-                                )
-                              </option>
-                            ))}
-                          </select>
-                          <div className="grid grid-cols-2 gap-3">
-                            <label className="space-y-1 text-xs font-bold text-muted-foreground">
-                              <span>من</span>
-                              <input
-                                type="time"
-                                value={addForm.startTime}
-                                onChange={(e) =>
-                                  setAddForm((f) => ({
-                                    ...f,
-                                    startTime: e.target.value,
-                                  }))
-                                }
-                                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                              />
-                            </label>
-                            <label className="space-y-1 text-xs font-bold text-muted-foreground">
-                              <span>إلى</span>
-                              <input
-                                type="time"
-                                value={addForm.endTime}
-                                onChange={(e) =>
-                                  setAddForm((f) => ({
-                                    ...f,
-                                    endTime: e.target.value,
-                                  }))
-                                }
-                                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                              />
-                            </label>
-                          </div>
-                          <div className="flex overflow-hidden rounded-xl border border-border text-sm font-bold">
-                            {(
-                              [
-                                ["day", "يوم"],
-                                ["week", "أسبوع"],
-                                ["weekly", "كل أسبوع"],
-                                ["month", "شهر"],
-                              ] as [Period, string][]
-                            ).map(([p, lbl]) => (
-                              <button
-                                key={p}
-                                type="button"
-                                onClick={() =>
-                                  setAddForm((f) => ({ ...f, period: p }))
-                                }
-                                className={`flex-1 px-3 py-2 transition-colors ${
-                                  addForm.period === p
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-background text-foreground hover:bg-muted"
-                                }`}
-                              >
-                                {lbl}
-                              </button>
-                            ))}
-                          </div>
-                          {addForm.period !== "month" && (
-                            <DateInput
-                              value={addForm.anchorDate}
+                            <RefreshCw
+                              size={14}
+                              className={
+                                generateMut.isPending ? "animate-spin" : ""
+                              }
+                            />
+                            توليد من الدورات
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setShowHolidayAdd((v) => !v)}
+                            className="justify-start gap-2 rounded-xl font-bold"
+                          >
+                            <Star size={14} />
+                            العطلات الرسمية
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleClearRoster}
+                            disabled={
+                              clearRosterMut.isPending ||
+                              attendance.length === 0
+                            }
+                            className="justify-start gap-2 rounded-xl border-destructive/25 font-bold text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 size={14} />
+                            مسح الروستر
+                          </Button>
+                        </div>
+                      </div>
+
+                      {showAdd && !addForm.anchorDate && (
+                        <div className="rounded-xl border border-border bg-card p-4">
+                          <h3 className="text-sm font-black text-foreground">
+                            إضافة ورديات
+                          </h3>
+                          <div className="mt-3 space-y-3">
+                            <select
+                              value={addForm.staffId}
                               onChange={(e) =>
                                 setAddForm((f) => ({
                                   ...f,
-                                  anchorDate: e.target.value,
+                                  staffId: e.target.value,
                                 }))
                               }
-                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
-                            />
-                          )}
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={submitAdd}
-                              disabled={bulkMut.isPending}
-                              className="flex-1 rounded-xl"
+                              className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
                             >
-                              {bulkMut.isPending ? "جاري الإضافة…" : "إضافة"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setShowAdd(false);
-                                setAddForm(EMPTY_ADD);
-                              }}
-                              className="flex-1 rounded-xl"
-                            >
-                              إلغاء
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {showHolidayAdd && (
-                      <div className="rounded-xl border border-border bg-card p-4">
-                        <h3 className="text-sm font-black text-foreground">
-                          العطلات الرسمية - {fromDate.slice(0, 7)}
-                        </h3>
-                        {holidays.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {holidays.map((h: any) => (
-                              <span
-                                key={h.id}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning"
-                              >
-                                {arabicDigits(String(h.date).slice(0, 10))}
-                                {h.name && <span>· {h.name}</span>}
-                                <button
+                              <option value="">-- اختر الموظف --</option>
+                              {visibleStaff.map((s: any) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name} (
+                                  {s.type === "doctor" ? "طبيب" : "فني"})
+                                </option>
+                              ))}
+                            </select>
+                            <div className="grid grid-cols-2 gap-3">
+                              <label className="space-y-1 text-xs font-bold text-muted-foreground">
+                                <span>من</span>
+                                <Input bare
+                                  type="time"
+                                  value={addForm.startTime}
+                                  onChange={(e) =>
+                                    setAddForm((f) => ({
+                                      ...f,
+                                      startTime: e.target.value,
+                                    }))
+                                  }
+                                  className="min-h-11 w-full bg-background text-sm text-foreground rounded-xl border border-border px-3 py-2"
+                                />
+                              </label>
+                              <label className="space-y-1 text-xs font-bold text-muted-foreground">
+                                <span>إلى</span>
+                                <Input bare
+                                  type="time"
+                                  value={addForm.endTime}
+                                  onChange={(e) =>
+                                    setAddForm((f) => ({
+                                      ...f,
+                                      endTime: e.target.value,
+                                    }))
+                                  }
+                                  className="min-h-11 w-full bg-background text-sm text-foreground rounded-xl border border-border px-3 py-2"
+                                />
+                              </label>
+                            </div>
+                            <div className="flex overflow-hidden rounded-xl border border-border text-sm font-bold">
+                              {(
+                                [
+                                  ["day", "يوم"],
+                                  ["week", "أسبوع"],
+                                  ["weekly", "كل أسبوع"],
+                                  ["month", "شهر"],
+                                ] as [Period, string][]
+                              ).map(([p, lbl]) => (
+                                <Button variant="bare"
+                                  key={p}
                                   type="button"
                                   onClick={() =>
-                                    deleteHolidayMut.mutate({ id: h.id })
+                                    setAddForm((f) => ({ ...f, period: p }))
                                   }
-                                  className="inline-flex items-center justify-center text-warning hover:text-destructive"
-                                  title="حذف"
+                                  className={`flex-1 px-3 py-2 transition-colors ${
+                                    addForm.period === p
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-background text-foreground hover:bg-muted"
+                                  }`}
                                 >
-                                  <X size={11} />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-3 text-xs font-semibold text-muted-foreground">
-                            لا توجد عطلات رسمية لهذا الشهر.
-                          </p>
-                        )}
-                        <div className="mt-3 border-t border-border pt-3">
-                          <div className="flex flex-col gap-3">
-                            <DateInput
-                              value={holidayForm.date}
-                              onChange={(e) =>
-                                setHolidayForm((f) => ({
-                                  ...f,
-                                  date: e.target.value,
-                                }))
-                              }
-                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
-                            />
-                            <input
-                              type="text"
-                              placeholder="الاسم (اختياري)"
-                              value={holidayForm.name}
-                              onChange={(e) =>
-                                setHolidayForm((f) => ({
-                                  ...f,
-                                  name: e.target.value,
-                                }))
-                              }
-                              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                            />
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                if (!holidayForm.date) {
-                                  toast.error("اختر تاريخاً");
-                                  return;
+                                  {lbl}
+                                </Button>
+                              ))}
+                            </div>
+                            {addForm.period !== "month" && (
+                              <DateInput
+                                value={addForm.anchorDate}
+                                onChange={(e) =>
+                                  setAddForm((f) => ({
+                                    ...f,
+                                    anchorDate: e.target.value,
+                                  }))
                                 }
-                                addHolidayMut.mutate({
-                                  date: holidayForm.date,
-                                  name: holidayForm.name,
-                                  year,
-                                  month,
-                                });
-                              }}
-                              disabled={addHolidayMut.isPending}
-                              className="rounded-xl"
-                            >
-                              {addHolidayMut.isPending ? "جاري…" : "إضافة"}
-                            </Button>
+                                className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0"
+                              />
+                            )}
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={submitAdd}
+                                disabled={bulkMut.isPending}
+                                className="flex-1 rounded-xl"
+                              >
+                                {bulkMut.isPending
+                                  ? "جاري الإضافة..."
+                                  : "إضافة"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setShowAdd(false);
+                                  setAddForm(EMPTY_ADD);
+                                }}
+                                className="flex-1 rounded-xl"
+                              >
+                                إلغاء
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-border bg-card p-4">
-                    <h3 className="text-sm font-black text-foreground">
-                      ماذا تستطيع هنا
-                    </h3>
-                    <ul className="mt-3 space-y-2 text-sm font-semibold text-muted-foreground">
-                      <li>قراءة شهر الروستر بالكامل.</li>
-                      <li>إضافة وردياتك فقط عندما تكون الخانة متاحة.</li>
-                      <li>
-                        الضغط على خانة موجودة لتبديل الحالة عندما يكون ذلك
-                        مسموحاً.
-                      </li>
-                    </ul>
-                    {myStaffId !== null && (
-                      <div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 px-3 py-3 text-sm font-bold text-foreground">
-                        لديك {arabicDigits(myScheduledDays)} يوم مجدول هذا
-                        الشهر.
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+
+                      {showHolidayAdd && (
+                        <div className="rounded-xl border border-border bg-card p-4">
+                          <h3 className="text-sm font-black text-foreground">
+                            العطلات الرسمية - {fromDate.slice(0, 7)}
+                          </h3>
+                          {holidays.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {holidays.map((h: any) => (
+                                <span
+                                  key={h.id}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning-text"
+                                >
+                                  {arabicDigits(String(h.date).slice(0, 10))}
+                                  {h.name && <span>· {h.name}</span>}
+                                  <Button variant="bare"
+                                    type="button"
+                                    onClick={() =>
+                                      deleteHolidayMut.mutate({ id: h.id })
+                                    }
+                                    className="inline-flex items-center justify-center text-warning-text hover:text-destructive"
+                                    title="حذف"
+                                    aria-label="حذف"
+                                  >
+                                    <X size={11} />
+                                  </Button>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-3 text-xs font-semibold text-muted-foreground">
+                              لا توجد عطلات رسمية لهذا الشهر.
+                            </p>
+                          )}
+                          <div className="mt-3 border-t border-border pt-3">
+                            <div className="flex flex-col gap-3">
+                              <DateInput
+                                value={holidayForm.date}
+                                onChange={(e) =>
+                                  setHolidayForm((f) => ({
+                                    ...f,
+                                    date: e.target.value,
+                                  }))
+                                }
+                                className="min-h-11 w-full bg-background text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0 rounded-xl border border-border px-3 py-2"
+                              />
+                              <Input bare
+                                type="text"
+                                placeholder="الاسم (اختياري)"
+                                aria-label="الاسم (اختياري)"
+                                value={holidayForm.name}
+                                onChange={(e) =>
+                                  setHolidayForm((f) => ({
+                                    ...f,
+                                    name: e.target.value,
+                                  }))
+                                }
+                                className="min-h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground"
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  if (!holidayForm.date) {
+                                    toast.error("اختر تاريخاً");
+                                    return;
+                                  }
+                                  addHolidayMut.mutate({
+                                    date: holidayForm.date,
+                                    name: holidayForm.name,
+                                    year,
+                                    month,
+                                  });
+                                }}
+                                disabled={addHolidayMut.isPending}
+                                className="rounded-xl"
+                              >
+                                {addHolidayMut.isPending ? "جاري..." : "إضافة"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-border bg-card p-4">
+                      <h3 className="text-sm font-black text-foreground">
+                        ماذا تستطيع هنا
+                      </h3>
+                      <ul className="mt-3 space-y-2 text-sm font-semibold text-muted-foreground">
+                        <li>قراءة شهر الروستر بالكامل.</li>
+                        <li>إضافة وردياتك فقط عندما تكون الخانة متاحة.</li>
+                        <li>
+                          الضغط على خانة موجودة لتبديل الحالة عندما يكون ذلك
+                          مسموحاً.
+                        </li>
+                      </ul>
+                      {myStaffId !== null && (
+                        <div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 px-3 py-3 text-sm font-bold text-foreground">
+                          لديك {arabicDigits(myScheduledDays)} يوم مجدول هذا
+                          الشهر.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="roster-menu-upcoming rounded-xl border border-border bg-card p-4">
@@ -2378,16 +2376,16 @@ export default function ShiftSchedule() {
                             className="rounded-xl border border-border px-3 py-2"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="min-w-0 truncate text-xs font-semibold text-foreground">
+                              <span className="min-w-0 break-words text-xs font-semibold text-foreground">
                                 {compactStaffName(staff)}
                               </span>
                               <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-black ${meta.tone}`}
+                                className={`rounded-full px-2 py-0.5 text-xs font-black ${meta.tone}`}
                               >
                                 {shiftTimeLabel(entry)}
                               </span>
                             </div>
-                            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                            <p className="mt-1 text-xs font-semibold text-muted-foreground">
                               {arabicDigits(ds)}
                             </p>
                           </div>

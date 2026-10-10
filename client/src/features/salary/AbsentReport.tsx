@@ -14,7 +14,11 @@ const defaultPayrollEnd = new Date(
   25,
 );
 const DEFAULT_FROM = (() => {
-  const previousMonth = new Date(defaultPayrollEnd.getFullYear(), defaultPayrollEnd.getMonth() - 1, 26);
+  const previousMonth = new Date(
+    defaultPayrollEnd.getFullYear(),
+    defaultPayrollEnd.getMonth() - 1,
+    26,
+  );
   return `${isoMonth(previousMonth)}-26`;
 })();
 const DEFAULT_TO = `${isoMonth(defaultPayrollEnd)}-25`;
@@ -69,14 +73,14 @@ export default function AbsentReport({
   const byEmp: Record<string, { name: string; days: string[] }> = {};
   for (const r of rows) {
     if (!byEmp[r.empCd])
-      byEmp[r.empCd] = { name: r.empName ?? r.empCd, days: [] };
+      byEmp[r.empCd] = { name: r.empName ?? `موظف رقم ${r.empCd}`, days: [] };
     byEmp[r.empCd].days.push(r.workDate);
   }
   const empEntries = Object.entries(byEmp).sort((a, b) =>
     a[1].name.localeCompare(b[1].name, "ar"),
   );
 
-  const periodLabel = `${fmtAr(fromDate)} — ${fmtAr(toDate)}`;
+  const periodLabel = `من ${fmtAr(fromDate)} إلى ${fmtAr(toDate)}`;
 
   const [actionsHost, setActionsHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
@@ -107,7 +111,7 @@ export default function AbsentReport({
 
     const html = `
       <h1>تقرير أيام الغياب</h1>
-      <div class="meta">الفترة: ${periodLabel} — إجمالي: ${rows.length} يوم غياب</div>
+      <div class="meta">الفترة: ${periodLabel}: إجمالي: ${rows.length} يوم غياب</div>
       <table>
         <thead><tr><th>الموظف</th><th>تاريخ الغياب</th></tr></thead>
         <tbody>${bodyRows || '<tr><td colspan="2">لا توجد أيام غياب</td></tr>'}</tbody>
@@ -137,38 +141,57 @@ export default function AbsentReport({
 
   return (
     <div className="space-y-6" dir="rtl">
-      {actionsHost && createPortal(
-        <Button
-          variant="outline"
-          onClick={handlePrint}
-          className="gap-2"
-          disabled={absentQ.isLoading}
-        >
-          <Printer size={16} /> طباعة
-        </Button>,
-        actionsHost,
-      )}
+      {actionsHost &&
+        createPortal(
+          <Button
+            variant="outline"
+            onClick={handlePrint}
+            className="gap-2"
+            disabled={absentQ.isLoading}
+          >
+            <Printer size={16} /> طباعة / حفظ PDF
+          </Button>,
+          actionsHost,
+        )}
 
       {absentQ.isLoading && (
-        <p className="text-sm text-muted-foreground animate-pulse">
+        <p role="status" className="text-sm text-muted-foreground">
           جاري التحميل...
         </p>
       )}
 
-      {!absentQ.isLoading && (
+      {absentQ.isError && (
+        <div
+          role="alert"
+          className="flex flex-col items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive-text"
+        >
+          <span>
+            تعذر تحميل أيام الغياب. أعد المحاولة قبل الاعتماد على التقرير.
+          </span>
+          <Button variant="outline" onClick={() => absentQ.refetch()}>
+            إعادة المحاولة
+          </Button>
+        </div>
+      )}
+
+      {!absentQ.isLoading && !absentQ.isError && (
         <section className="rounded-xl border border-border/60 bg-background shadow-sm">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-base font-semibold">
-              أيام الغياب — {periodLabel}
+              أيام الغياب: {periodLabel}
             </h3>
           </div>
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-sm">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto">
+            <table aria-label="أيام الغياب" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-xs">
-                  <th className="px-3 py-2 text-right font-medium">الموظف</th>
-                  <th className="px-3 py-2 font-medium text-center">التاريخ</th>
-                  <th className="px-3 py-2 font-medium text-center">
+                  <th scope="col" className="px-3 py-2 text-right font-medium">
+                    الموظف
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium text-center">
+                    التاريخ
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium text-center">
                     عدد أيام الغياب
                   </th>
                 </tr>
@@ -221,8 +244,7 @@ export default function AbsentReport({
             </table>
           </div>
 
-          {/* Mobile Accordion Cards View */}
-          <div className="block lg:hidden divide-y divide-border/60">
+          <div className="block xl:hidden divide-y divide-border/60">
             {empEntries.map(([empCd, { name, days }]) => {
               const isExpanded = !!expandedRows[empCd];
               return (
@@ -231,8 +253,19 @@ export default function AbsentReport({
                   className="bg-card p-4 transition-colors hover:bg-muted/30"
                 >
                   <div
-                    className="flex items-center justify-between cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    aria-controls={`absent-details-${empCd}`}
+                    aria-label={`${name}، تفاصيل أيام الغياب`}
+                    className="flex min-h-11 items-center justify-between cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     onClick={() => toggleRow(empCd)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleRow(empCd);
+                      }
+                    }}
                   >
                     <div className="space-y-1">
                       <div className="font-bold text-sm text-foreground">
@@ -241,7 +274,7 @@ export default function AbsentReport({
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="text-left">
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase">
+                        <div className="text-xs font-bold text-muted-foreground ">
                           أيام الغياب
                         </div>
                         <div className="text-sm font-bold text-destructive tabular-nums">
@@ -257,8 +290,11 @@ export default function AbsentReport({
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 pt-4 border-t border-border/40 space-y-2 text-xs">
-                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                    <div
+                      id={`absent-details-${empCd}`}
+                      className="mt-4 pt-4 border-t border-border/40 space-y-2 text-xs"
+                    >
+                      <div className="text-xs font-bold text-muted-foreground  mb-2">
                         تاريخ الغياب:
                       </div>
                       <div className="grid grid-cols-2 gap-2">

@@ -6,6 +6,7 @@ import { Pencil, Calculator, Stethoscope, Camera, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 const now = new Date();
 const MONTHS = [
   "يناير",
@@ -124,33 +125,62 @@ function IncludedServicesTable({
   rows: IncludedServiceRow[];
 }) {
   return (
-    <details open className="overflow-hidden rounded-md border border-border bg-background">
+    <details
+      open
+      className="overflow-hidden rounded-md border border-border bg-background"
+    >
       <summary className="cursor-pointer bg-muted/40 px-3 py-2.5 text-xs font-bold text-foreground">
         {title} ({rows.length} خدمة)
       </summary>
       {rows.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px] text-xs" dir="rtl">
+        <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+          <table
+            aria-label="خدمات العمولات"
+            className="w-full min-w-[620px] text-xs"
+            dir="rtl"
+          >
             <thead>
               <tr className="border-y border-border bg-muted/20">
-                <th className="px-3 py-2 text-right font-semibold">الخدمة</th>
-                <th className="px-3 py-2 text-center font-semibold">الكود</th>
-                <th className="px-3 py-2 text-center font-semibold">داخلة ضمن</th>
-                <th className="px-3 py-2 text-center font-semibold">الكمية</th>
-                <th className="px-3 py-2 text-center font-semibold">صافي الإيراد</th>
+                <th scope="col" className="px-3 py-2 text-start font-semibold">
+                  الخدمة
+                </th>
+                <th scope="col" className="px-3 py-2 text-center font-semibold">
+                  الكود
+                </th>
+                <th scope="col" className="px-3 py-2 text-center font-semibold">
+                  داخلة ضمن
+                </th>
+                <th scope="col" className="px-3 py-2 text-center font-semibold">
+                  الكمية
+                </th>
+                <th scope="col" className="px-3 py-2 text-center font-semibold">
+                  صافي الإيراد
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={`${row.serviceCode}-${row.group}`} className="border-b border-border/70 last:border-b-0">
+                <tr
+                  key={`${row.serviceCode}-${row.group}`}
+                  className="border-b border-border/70 last:border-b-0"
+                >
                   <td className="px-3 py-2 font-medium">{row.serviceName}</td>
-                  <td className="px-3 py-2 text-center font-mono" dir="ltr">{row.serviceCode}</td>
-                  <td className="px-3 py-2 text-center text-muted-foreground">{row.group}</td>
+                  <td className="px-3 py-2 text-center font-mono" dir="ltr">
+                    {row.serviceCode}
+                  </td>
+                  <td className="px-3 py-2 text-center text-muted-foreground">
+                    {row.group}
+                  </td>
                   <td className="px-3 py-2 text-center tabular-nums">
-                    {row.quantity.toLocaleString("ar-EG", { maximumFractionDigits: 2 })}
+                    {row.quantity.toLocaleString("ar-EG", {
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                   <td className="px-3 py-2 text-center font-semibold tabular-nums">
-                    {row.revenue.toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ج
+                    {row.revenue.toLocaleString("ar-EG", {
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    ج
                   </td>
                 </tr>
               ))}
@@ -170,7 +200,9 @@ export default function CommissionPools() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [section, setSection] = useState<Section>("مركز");
-  const [markazTab, setMarkazTab] = useState<"settings" | "exams" | "pentacam" | "allowances">("settings");
+  const [markazTab, setMarkazTab] = useState<
+    "settings" | "exams" | "pentacam" | "allowances"
+  >("settings");
   const periodLabel = MONTHS[month - 1];
   const [form, setForm] = useState<FormState>(BLANK);
 
@@ -203,7 +235,9 @@ export default function CommissionPools() {
     setManualPentacamPool(String(autoPools.pentacamPool ?? 0));
   }, [autoPools, manualEditing]);
 
-  const manualPoolsMut = (trpc as any).salary.setMarkazManualCommissionPools.useMutation({
+  const manualPoolsMut = (
+    trpc as any
+  ).salary.setMarkazManualCommissionPools.useMutation({
     onSuccess: () => {
       autoPoolsQ.refetch();
       setManualEditing(false);
@@ -240,9 +274,11 @@ export default function CommissionPools() {
   const [consultantPriceInput, setConsultantPriceInput] = useState("");
   const [examCommissionInput, setExamCommissionInput] = useState("75");
   const [examDoctorPercentInput, setExamDoctorPercentInput] = useState("60");
-  const [examEmployeePercentInput, setExamEmployeePercentInput] = useState("40");
+  const [examEmployeePercentInput, setExamEmployeePercentInput] =
+    useState("40");
   const [xrayDoctorPercentInput, setXrayDoctorPercentInput] = useState("54.5");
-  const [xrayEmployeePercentInput, setXrayEmployeePercentInput] = useState("45.5");
+  const [xrayEmployeePercentInput, setXrayEmployeePercentInput] =
+    useState("45.5");
   const [xray1600PriceInput, setXray1600PriceInput] = useState("");
   const [xrayRemainingPriceInput, setXrayRemainingPriceInput] = useState("");
   const [xray1502PriceInput, setXray1502PriceInput] = useState("");
@@ -250,17 +286,27 @@ export default function CommissionPools() {
     if (priceOverridesQ.data) {
       setSpecialistPriceInput(priceOverridesQ.data.examSpecialist ?? "");
       setConsultantPriceInput(priceOverridesQ.data.examConsultant ?? "");
-      setExamCommissionInput(priceOverridesQ.data.examCommissionPerUnit ?? "75");
+      setExamCommissionInput(
+        priceOverridesQ.data.examCommissionPerUnit ?? "75",
+      );
       setExamDoctorPercentInput(priceOverridesQ.data.examDoctorPercent ?? "60");
-      setExamEmployeePercentInput(priceOverridesQ.data.examEmployeePercent ?? "40");
-      setXrayDoctorPercentInput(priceOverridesQ.data.xrayDoctorPercent ?? "54.5");
-      setXrayEmployeePercentInput(priceOverridesQ.data.xrayEmployeePercent ?? "45.5");
+      setExamEmployeePercentInput(
+        priceOverridesQ.data.examEmployeePercent ?? "40",
+      );
+      setXrayDoctorPercentInput(
+        priceOverridesQ.data.xrayDoctorPercent ?? "54.5",
+      );
+      setXrayEmployeePercentInput(
+        priceOverridesQ.data.xrayEmployeePercent ?? "45.5",
+      );
       setXray1600PriceInput(priceOverridesQ.data.xray1600 ?? "");
       setXrayRemainingPriceInput(priceOverridesQ.data.xrayRemaining ?? "");
       setXray1502PriceInput(priceOverridesQ.data.xray1502 ?? "");
     }
   }, [priceOverridesQ.data]);
-  const setPriceOverridesMut = (trpc as any).salary.setPriceOverrides.useMutation({
+  const setPriceOverridesMut = (
+    trpc as any
+  ).salary.setPriceOverrides.useMutation({
     onSuccess: () => {
       priceOverridesQ.refetch();
       autoPoolsQ.refetch();
@@ -270,15 +316,19 @@ export default function CommissionPools() {
   });
   const saveExamPrices = () => {
     setPriceOverridesMut.mutate({
-      examSpecialist: specialistPriceInput === "" ? null : Number(specialistPriceInput),
-      examConsultant: consultantPriceInput === "" ? null : Number(consultantPriceInput),
-      examCommissionPerUnit: examCommissionInput === "" ? null : Number(examCommissionInput),
+      examSpecialist:
+        specialistPriceInput === "" ? null : Number(specialistPriceInput),
+      examConsultant:
+        consultantPriceInput === "" ? null : Number(consultantPriceInput),
+      examCommissionPerUnit:
+        examCommissionInput === "" ? null : Number(examCommissionInput),
     });
   };
   const saveXrayPrices = () => {
     setPriceOverridesMut.mutate({
       xray1600: xray1600PriceInput === "" ? null : Number(xray1600PriceInput),
-      xrayRemaining: xrayRemainingPriceInput === "" ? null : Number(xrayRemainingPriceInput),
+      xrayRemaining:
+        xrayRemainingPriceInput === "" ? null : Number(xrayRemainingPriceInput),
       xray1502: xray1502PriceInput === "" ? null : Number(xray1502PriceInput),
     });
   };
@@ -297,12 +347,6 @@ export default function CommissionPools() {
       calculationMode: enabled ? "fixed_percentage" : "legacy",
     });
   };
-
-  const allPoolsQ = (trpc as any).salary.listCommissionPools.useQuery({
-    year,
-    section,
-  });
-  const allPools = allPoolsQ.data || [];
 
   // Fetch clinic doctors' salaries for commission distribution
   const doctorsQ = (trpc as any).salary.listBasics.useQuery({
@@ -380,7 +424,6 @@ export default function CommissionPools() {
   const saveMut = (trpc as any).salary.setCommissionPool.useMutation({
     onSuccess: () => {
       poolQ.refetch();
-      allPoolsQ.refetch();
       toast.success("تم الحفظ");
       setEditingMonth(null);
     },
@@ -538,7 +581,7 @@ export default function CommissionPools() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (isMarkaz) {
-      // exam/x-ray pools are auto-computed from MSSQL revenue — only day-10 allowances + notes are manual
+      // exam/x-ray pools are auto-computed from MSSQL revenue - only day-10 allowances + notes are manual
       saveMut.mutate({
         year,
         month,
@@ -583,7 +626,7 @@ export default function CommissionPools() {
             <select
               value={section}
               onChange={(e) => setSection(e.target.value as Section)}
-              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              className="h-10 bg-background text-sm rounded-md border border-border px-3"
               aria-label="القسم"
             >
               <option value="مركز">مركز</option>
@@ -592,7 +635,7 @@ export default function CommissionPools() {
             <select
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value))}
-              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              className="h-10 bg-background text-sm rounded-md border border-border px-3"
               aria-label="الشهر"
             >
               {MONTHS.map((monthName, index) => (
@@ -604,10 +647,14 @@ export default function CommissionPools() {
             <select
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
-              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
               aria-label="السنة"
             >
-              {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((optionYear) => (
+              {[
+                now.getFullYear() - 1,
+                now.getFullYear(),
+                now.getFullYear() + 1,
+              ].map((optionYear) => (
                 <option key={optionYear} value={optionYear}>
                   {optionYear}
                 </option>
@@ -616,6 +663,17 @@ export default function CommissionPools() {
           </div>
         </CardHeader>
         <CardContent>
+          {(poolQ.isError ||
+            autoPoolsQ.isError ||
+            priceOverridesQ.isError ||
+            doctorsQ.isError) && (
+            <div
+              role="alert"
+              className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
+            >
+              تعذر تحميل بعض بيانات العمولات. أعد المحاولة قبل الحفظ.
+            </div>
+          )}
           <form onSubmit={handleSave} className="space-y-6">
             {isMarkaz ? (
               <Tabs
@@ -626,7 +684,10 @@ export default function CommissionPools() {
               >
                 {/* Tabs Switcher for Center */}
                 <div className="overflow-x-auto pb-1" dir="rtl">
-                  <TabsList className="h-11 bg-muted/60 p-1 rounded-xl border border-border/60 flex w-full min-w-[500px] justify-start" dir="rtl">
+                  <TabsList
+                    className="h-11 bg-muted/60 p-1 rounded-xl border border-border/60 flex w-full min-w-[500px] justify-start"
+                    dir="rtl"
+                  >
                     <TabsTrigger
                       value="settings"
                       className="flex-1 gap-2 px-3 py-2 text-xs sm:text-sm font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs rounded-lg transition-all"
@@ -641,7 +702,7 @@ export default function CommissionPools() {
                       <Stethoscope className="h-4 w-4" />
                       <span>الكشوفات (تلقائي)</span>
                       {autoPools?.examPool !== undefined && (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
+                        <span className="rounded-full bg-current/10 px-2 py-0.5 text-xs font-black text-current">
                           {Number(autoPools.examPool).toLocaleString("ar-EG")} ج
                         </span>
                       )}
@@ -653,8 +714,12 @@ export default function CommissionPools() {
                       <Camera className="h-4 w-4" />
                       <span>البنتاكام (تلقائي)</span>
                       {autoPools?.pentacamPool !== undefined && (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
-                          {(Number(autoPools.pentacamPool) + Number(autoPools.pentacamDrPool ?? 0)).toLocaleString("ar-EG")} ج
+                        <span className="rounded-full bg-current/10 px-2 py-0.5 text-xs font-black text-current">
+                          {(
+                            Number(autoPools.pentacamPool) +
+                            Number(autoPools.pentacamDrPool ?? 0)
+                          ).toLocaleString("ar-EG")}{" "}
+                          ج
                         </span>
                       )}
                     </TabsTrigger>
@@ -664,20 +729,28 @@ export default function CommissionPools() {
                     >
                       <Gift className="h-4 w-4" />
                       <span>بدلات يوم 10</span>
-                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-black text-success">
-                        {(costOfLivingAllowanceTotal + transportAllowanceTotal).toLocaleString("ar-EG")} ج
+                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-black text-success">
+                        {(
+                          costOfLivingAllowanceTotal + transportAllowanceTotal
+                        ).toLocaleString("ar-EG")}{" "}
+                        ج
                       </span>
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
                 {/* Tab 1: Settings & Source */}
-                <TabsContent value="settings" className="space-y-4 m-0 focus-visible:outline-none">
+                <TabsContent
+                  value="settings"
+                  className="space-y-4 m-0 focus-visible:outline-none"
+                >
                   {autoPools && (
                     <section className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <h3 className="text-base font-semibold">مصدر مبالغ التوزيع</h3>
+                          <h3 className="text-base font-semibold">
+                            مصدر مبالغ التوزيع
+                          </h3>
                           <p className="text-xs text-muted-foreground">
                             {autoPools.source === "manual"
                               ? "يتم استخدام المبالغ اليدوية في النِّسب والرواتب لهذا الشهر."
@@ -691,7 +764,7 @@ export default function CommissionPools() {
                               variant="outline"
                               onClick={() => setManualEditing(true)}
                             >
-                              <Pencil className="ml-2 h-4 w-4" />
+                              <Pencil className="me-2 h-4 w-4" />
                               تعديل يدوي
                             </Button>
                           )}
@@ -734,22 +807,26 @@ export default function CommissionPools() {
                               {item.label}
                             </span>
                             <div className="relative">
-                              <input
+                              <Input bare
                                 type="number"
                                 min={0}
                                 step="0.01"
                                 value={item.value}
                                 disabled={!manualEditing}
                                 onChange={(e) => item.setValue(e.target.value)}
-                                className="h-11 w-full rounded-md border border-border bg-background px-3 pl-8 text-center text-base font-semibold disabled:cursor-default disabled:opacity-100"
+                                className="h-11 w-full bg-background text-center text-base font-semibold disabled:cursor-default disabled:opacity-100 rounded-md border border-border px-3 pe-8"
                               />
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                              <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                 ج
                               </span>
                             </div>
                             {autoPools.source === "manual" && (
-                              <span className="block text-[11px] text-muted-foreground">
-                                التلقائي: {Number(item.automatic ?? 0).toLocaleString("ar-EG")} ج
+                              <span className="block text-xs text-muted-foreground">
+                                التلقائي:{" "}
+                                {Number(item.automatic ?? 0).toLocaleString(
+                                  "ar-EG",
+                                )}{" "}
+                                ج
                               </span>
                             )}
                           </label>
@@ -763,9 +840,15 @@ export default function CommissionPools() {
                             variant="ghost"
                             onClick={() => {
                               setManualEditing(false);
-                              setManualExamPool(String(autoPools.examPool ?? 0));
-                              setManualPentacamDrPool(String(autoPools.pentacamDrPool ?? 0));
-                              setManualPentacamPool(String(autoPools.pentacamPool ?? 0));
+                              setManualExamPool(
+                                String(autoPools.examPool ?? 0),
+                              );
+                              setManualPentacamDrPool(
+                                String(autoPools.pentacamDrPool ?? 0),
+                              );
+                              setManualPentacamPool(
+                                String(autoPools.pentacamPool ?? 0),
+                              );
                             }}
                           >
                             إلغاء
@@ -805,36 +888,61 @@ export default function CommissionPools() {
                       />
                     </div>
                     <div className="mt-4 border-t border-primary/15 pt-4">
-                      <div className="mb-3 text-sm font-bold text-foreground">إعدادات تقسيم العمولات</div>
+                      <div className="mb-3 text-sm font-bold text-foreground">
+                        إعدادات تقسيم العمولات
+                      </div>
                       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                         {[
-                          { label: "أطباء الكشف %", value: examDoctorPercentInput, setValue: setExamDoctorPercentInput },
-                          { label: "موظفو الكشف %", value: examEmployeePercentInput, setValue: setExamEmployeePercentInput },
-                          { label: "أطباء الأشعة %", value: xrayDoctorPercentInput, setValue: setXrayDoctorPercentInput },
-                          { label: "موظفو الأشعة %", value: xrayEmployeePercentInput, setValue: setXrayEmployeePercentInput },
+                          {
+                            label: "أطباء الكشف %",
+                            value: examDoctorPercentInput,
+                            setValue: setExamDoctorPercentInput,
+                          },
+                          {
+                            label: "موظفو الكشف %",
+                            value: examEmployeePercentInput,
+                            setValue: setExamEmployeePercentInput,
+                          },
+                          {
+                            label: "أطباء الأشعة %",
+                            value: xrayDoctorPercentInput,
+                            setValue: setXrayDoctorPercentInput,
+                          },
+                          {
+                            label: "موظفو الأشعة %",
+                            value: xrayEmployeePercentInput,
+                            setValue: setXrayEmployeePercentInput,
+                          },
                         ].map((item) => (
                           <label key={item.label} className="space-y-1">
-                            <span className="text-xs text-muted-foreground">{item.label}</span>
-                            <input
+                            <span className="text-xs text-muted-foreground">
+                              {item.label}
+                            </span>
+                            <Input bare
                               type="number"
                               value={item.value}
                               min={0}
                               max={100}
                               step="0.5"
                               onChange={(e) => item.setValue(e.target.value)}
-                              className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                              className="w-full bg-background text-center text-sm rounded border border-border px-3 py-1.5"
                             />
                           </label>
                         ))}
                       </div>
                       <div className="mt-3 flex justify-end">
-                        <Button type="button" size="sm" onClick={saveCommissionSplits} disabled={setPriceOverridesMut.isPending}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={saveCommissionSplits}
+                          disabled={setPriceOverridesMut.isPending}
+                        >
                           حفظ تقسيم العمولات
                         </Button>
                       </div>
                     </div>
                     {fixedPercentageMode && (
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-semibold text-primary sm:grid-cols-5">
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-primary sm:grid-cols-5">
                         <span>أخصائي 23.26%</span>
                         <span>استشاري 10.75%</span>
                         <span>1600: 24.50%</span>
@@ -846,142 +954,277 @@ export default function CommissionPools() {
                 </TabsContent>
 
                 {/* Tab 2: Exams */}
-                <TabsContent value="exams" className="space-y-4 m-0 focus-visible:outline-none">
+                <TabsContent
+                  value="exams"
+                  className="space-y-4 m-0 focus-visible:outline-none"
+                >
                   <div className="space-y-3">
-                    <h3 className="font-semibold text-base">الكشوفات (محسوبة تلقائيًا من الإيراد)</h3>
+                    <h3 className="font-semibold text-base">
+                      الكشوفات (محسوبة تلقائيًا من الإيراد)
+                    </h3>
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                       <div className="text-xs font-semibold text-muted-foreground">
-                        سعر الكشف (اتركه فارغًا للقراءة التلقائية من جدول الأسعار)
+                        سعر الكشف (اتركه فارغًا للقراءة التلقائية من جدول
+                        الأسعار)
                       </div>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">سعر كشف الأخصائي</label>
-                          <input
+                          <label className="text-xs text-muted-foreground">
+                            سعر كشف الأخصائي
+                          </label>
+                          <Input bare
                             type="number"
                             value={specialistPriceInput}
                             min={0}
                             step="0.5"
-                            placeholder={String(autoPools?.breakdown.examSpecialistPrice ?? "")}
-                            onChange={(e) => setSpecialistPriceInput(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            placeholder={String(
+                              autoPools?.breakdown.examSpecialistPrice ?? "",
+                            )}
+                            onChange={(e) =>
+                              setSpecialistPriceInput(e.target.value)
+                            }
+                            className="w-full bg-background text-center text-sm rounded border border-border px-3 py-1.5"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">سعر كشف الاستشاري</label>
-                          <input
+                          <label className="text-xs text-muted-foreground">
+                            سعر كشف الاستشاري
+                          </label>
+                          <Input bare
                             type="number"
                             value={consultantPriceInput}
                             min={0}
                             step="0.5"
-                            placeholder={String(autoPools?.breakdown.examConsultantPrice ?? "")}
-                            onChange={(e) => setConsultantPriceInput(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            placeholder={String(
+                              autoPools?.breakdown.examConsultantPrice ?? "",
+                            )}
+                            onChange={(e) =>
+                              setConsultantPriceInput(e.target.value)
+                            }
+                            className="w-full bg-background text-center text-sm rounded border border-border px-3 py-1.5"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">مبلغ الخصم لكل كشف</label>
-                          <input
+                          <label className="text-xs text-muted-foreground">
+                            مبلغ الخصم لكل كشف
+                          </label>
+                          <Input bare aria-label="75"
                             type="number"
                             value={examCommissionInput}
                             min={0}
                             step="0.5"
                             placeholder="75"
-                            onChange={(e) => setExamCommissionInput(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            onChange={(e) =>
+                              setExamCommissionInput(e.target.value)
+                            }
+                            className="w-full bg-background text-center text-sm rounded border border-border px-3 py-1.5"
                           />
                         </div>
                       </div>
-                      <Button type="button" size="sm" onClick={saveExamPrices} disabled={setPriceOverridesMut.isPending}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={saveExamPrices}
+                        disabled={setPriceOverridesMut.isPending}
+                      >
                         حفظ الأسعار
                       </Button>
                     </div>
                     {autoPoolsQ.isLoading ? (
-                      <div className="text-sm text-muted-foreground">جاري التحميل…</div>
+                      <div
+                        role="status"
+                        className="text-sm text-muted-foreground"
+                      >
+                        جاري التحميل...
+                      </div>
                     ) : (
                       <div className="space-y-3">
-                        <div className="hidden lg:block overflow-x-auto" dir="rtl">
+                        <div role="region" aria-label="جدول بيانات" tabIndex={0}
+                          className="hidden xl:block overflow-x-auto"
+                          dir="rtl"
+                        >
                           <table
+                            aria-label="الكشوفات (محسوبة تلقائيًا من الإيراد)"
                             className="w-full text-sm border border-border rounded-lg"
                             dir="rtl"
                           >
                             <thead>
                               <tr className="bg-muted/50 border-b">
-                                <th className="px-4 py-3 text-right font-semibold">الكشف</th>
-                                <th className="px-4 py-3 text-center font-semibold">الإيراد</th>
-                                <th className="px-4 py-3 text-center font-semibold">العدد المحسوب</th>
-                                <th className="px-4 py-3 text-center font-semibold">
-                                  العمولة ({autoPools?.breakdown.examCommissionPerUnit ?? 75} ج/كشف)
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-start font-semibold"
+                                >
+                                  الكشف
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-center font-semibold"
+                                >
+                                  الإيراد
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-center font-semibold"
+                                >
+                                  العدد المحسوب
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-center font-semibold"
+                                >
+                                  العمولة (
+                                  {autoPools?.breakdown.examCommissionPerUnit ??
+                                    75}{" "}
+                                  ج/كشف)
                                 </th>
                               </tr>
                             </thead>
                             <tbody>
                               <tr className="border-b hover:bg-muted/20">
-                                <td className="px-4 py-3 font-medium">أخصائي</td>
-                                <td className="px-4 py-3 text-center">
-                                  {(autoPools?.breakdown.examSpecialistRevenue ?? 0).toLocaleString("ar-EG")} ج
+                                <td className="px-4 py-3 font-medium">
+                                  أخصائي
                                 </td>
                                 <td className="px-4 py-3 text-center">
-                                  {(autoPools?.breakdown.examSpecialistCount ?? 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 })}
+                                  {(
+                                    autoPools?.breakdown
+                                      .examSpecialistRevenue ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {(
+                                    autoPools?.breakdown.examSpecialistCount ??
+                                    0
+                                  ).toLocaleString("ar-EG", {
+                                    maximumFractionDigits: 2,
+                                  })}
                                 </td>
                                 <td className="px-4 py-3 text-center font-semibold text-primary">
-                                  {(autoPools?.breakdown.examSpecialistPool ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.examSpecialistPool ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                               </tr>
                               <tr className="border-b bg-primary/5 hover:bg-muted/20">
-                                <td className="px-4 py-3 font-medium">استشاري</td>
-                                <td className="px-4 py-3 text-center">
-                                  {(autoPools?.breakdown.examConsultantRevenue ?? 0).toLocaleString("ar-EG")} ج
+                                <td className="px-4 py-3 font-medium">
+                                  استشاري
                                 </td>
                                 <td className="px-4 py-3 text-center">
-                                  {(autoPools?.breakdown.examConsultantCount ?? 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 })}
+                                  {(
+                                    autoPools?.breakdown
+                                      .examConsultantRevenue ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {(
+                                    autoPools?.breakdown.examConsultantCount ??
+                                    0
+                                  ).toLocaleString("ar-EG", {
+                                    maximumFractionDigits: 2,
+                                  })}
                                 </td>
                                 <td className="px-4 py-3 text-center font-semibold text-primary">
-                                  {(autoPools?.breakdown.examConsultantPool ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.examConsultantPool ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                               </tr>
                             </tbody>
                           </table>
                         </div>
 
-                        {/* Mobile View */}
-                        <div className="block lg:hidden space-y-3">
+                        <div className="block xl:hidden space-y-3">
                           {[
-                            { label: "أخصائي", revenue: autoPools?.breakdown.examSpecialistRevenue, count: autoPools?.breakdown.examSpecialistCount, pool: autoPools?.breakdown.examSpecialistPool },
-                            { label: "استشاري", revenue: autoPools?.breakdown.examConsultantRevenue, count: autoPools?.breakdown.examConsultantCount, pool: autoPools?.breakdown.examConsultantPool },
+                            {
+                              label: "أخصائي",
+                              revenue:
+                                autoPools?.breakdown.examSpecialistRevenue,
+                              count: autoPools?.breakdown.examSpecialistCount,
+                              pool: autoPools?.breakdown.examSpecialistPool,
+                            },
+                            {
+                              label: "استشاري",
+                              revenue:
+                                autoPools?.breakdown.examConsultantRevenue,
+                              count: autoPools?.breakdown.examConsultantCount,
+                              pool: autoPools?.breakdown.examConsultantPool,
+                            },
                           ].map((row) => (
-                            <div key={row.label} className="rounded-xl border border-border bg-card p-4 flex justify-between items-center">
+                            <div
+                              key={row.label}
+                              className="rounded-xl border border-border bg-card p-4 flex justify-between items-center"
+                            >
                               <div>
-                                <div className="text-sm font-bold text-foreground">{row.label}</div>
-                                <div className="text-[10px] text-muted-foreground">{(row.revenue ?? 0).toLocaleString("ar-EG")} ج إيراد</div>
-                                <div className="text-[10px] text-muted-foreground">{(row.count ?? 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 })} كشف محسوب</div>
+                                <div className="text-sm font-bold text-foreground">
+                                  {row.label}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {(row.revenue ?? 0).toLocaleString("ar-EG")} ج
+                                  إيراد
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {(row.count ?? 0).toLocaleString("ar-EG", {
+                                    maximumFractionDigits: 2,
+                                  })}{" "}
+                                  كشف محسوب
+                                </div>
                               </div>
-                              <div className="text-base font-black text-primary">{(row.pool ?? 0).toLocaleString("ar-EG")} ج</div>
+                              <div className="text-base font-black text-primary">
+                                {(row.pool ?? 0).toLocaleString("ar-EG")} ج
+                              </div>
                             </div>
                           ))}
                         </div>
 
                         <IncludedServicesTable
                           title="الخدمات الداخلة في الكشف"
-                          rows={(autoPools?.breakdown.includedServices?.exam ?? []) as IncludedServiceRow[]}
+                          rows={
+                            (autoPools?.breakdown.includedServices?.exam ??
+                              []) as IncludedServiceRow[]
+                          }
                         />
 
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <div className="rounded-xl border border-border bg-card p-4 text-center">
-                            <div className="text-[10px] text-muted-foreground mb-1">إجمالي الكشف</div>
+                            <div className="text-xs text-muted-foreground mb-1">
+                              إجمالي الكشف
+                            </div>
                             <div className="text-lg font-black text-foreground">
-                              {(autoPools?.examPool ?? 0).toLocaleString("ar-EG")} ج
+                              {(autoPools?.examPool ?? 0).toLocaleString(
+                                "ar-EG",
+                              )}{" "}
+                              ج
                             </div>
                           </div>
                           <div className="rounded-xl border border-primary/20 bg-primary/8 p-4 text-center">
-                            <div className="text-[10px] text-primary font-semibold mb-1">الأطباء ({autoPools?.breakdown.examDoctorPercent ?? 60}%)</div>
+                            <div className="text-xs text-primary font-semibold mb-1">
+                              الأطباء (
+                              {autoPools?.breakdown.examDoctorPercent ?? 60}%)
+                            </div>
                             <div className="text-lg font-black text-primary">
-                              {Math.round((autoPools?.examPool ?? 0) * (autoPools?.breakdown.examDoctorPercent ?? 60)) / 100} ج
+                              {Math.round(
+                                (autoPools?.examPool ?? 0) *
+                                  (autoPools?.breakdown.examDoctorPercent ??
+                                    60),
+                              ) / 100}{" "}
+                              ج
                             </div>
                           </div>
                           <div className="rounded-xl border border-success/20 bg-success/8 p-4 text-center">
-                            <div className="text-[10px] text-success font-semibold mb-1">الموظفين والفنيين ({autoPools?.breakdown.examEmployeePercent ?? 40}%)</div>
+                            <div className="text-xs text-success font-semibold mb-1">
+                              الموظفين والفنيين (
+                              {autoPools?.breakdown.examEmployeePercent ?? 40}%)
+                            </div>
                             <div className="text-lg font-black text-success">
-                              {Math.round((autoPools?.examPool ?? 0) * (autoPools?.breakdown.examEmployeePercent ?? 40)) / 100} ج
+                              {Math.round(
+                                (autoPools?.examPool ?? 0) *
+                                  (autoPools?.breakdown.examEmployeePercent ??
+                                    40),
+                              ) / 100}{" "}
+                              ج
                             </div>
                           </div>
                         </div>
@@ -991,136 +1234,252 @@ export default function CommissionPools() {
                 </TabsContent>
 
                 {/* Tab 3: Pentacam */}
-                <TabsContent value="pentacam" className="space-y-4 m-0 focus-visible:outline-none">
+                <TabsContent
+                  value="pentacam"
+                  className="space-y-4 m-0 focus-visible:outline-none"
+                >
                   <div className="space-y-3">
-                    <h3 className="font-semibold text-base">البنتاكام (محسوبة تلقائيًا من الإيراد)</h3>
+                    <h3 className="font-semibold text-base">
+                      البنتاكام (محسوبة تلقائيًا من الإيراد)
+                    </h3>
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                       <div className="text-xs font-semibold text-muted-foreground">
-                        سعر الخدمة (اتركه فارغًا للقراءة التلقائية من جدول الأسعار)
+                        سعر الخدمة (اتركه فارغًا للقراءة التلقائية من جدول
+                        الأسعار)
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">سعر خدمة 1600</label>
-                          <input
+                          <label className="text-xs text-muted-foreground">
+                            سعر خدمة 1600
+                          </label>
+                          <Input bare
                             type="number"
                             value={xray1600PriceInput}
                             min={0}
                             step="0.5"
-                            placeholder={String(autoPools?.breakdown.xray1600Price ?? "")}
-                            onChange={(e) => setXray1600PriceInput(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            placeholder={String(
+                              autoPools?.breakdown.xray1600Price ?? "",
+                            )}
+                            onChange={(e) =>
+                              setXray1600PriceInput(e.target.value)
+                            }
+                            className="w-full bg-background text-center text-sm rounded border border-border px-3 py-1.5"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">سعر باقي الخدمات</label>
-                          <input
+                          <label className="text-xs text-muted-foreground">
+                            سعر باقي الخدمات
+                          </label>
+                          <Input bare
                             type="number"
                             value={xrayRemainingPriceInput}
                             min={0}
                             step="0.5"
-                            placeholder={String(autoPools?.breakdown.xrayRemainingPrice ?? "")}
-                            onChange={(e) => setXrayRemainingPriceInput(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            placeholder={String(
+                              autoPools?.breakdown.xrayRemainingPrice ?? "",
+                            )}
+                            onChange={(e) =>
+                              setXrayRemainingPriceInput(e.target.value)
+                            }
+                            className="w-full bg-background text-center text-sm rounded border border-border px-3 py-1.5"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">سعر خدمة 1502</label>
-                          <input
+                          <label className="text-xs text-muted-foreground">
+                            سعر خدمة 1502
+                          </label>
+                          <Input bare
                             type="number"
                             value={xray1502PriceInput}
                             min={0}
                             step="0.5"
-                            placeholder={String(autoPools?.breakdown.xray1502Price ?? "")}
-                            onChange={(e) => setXray1502PriceInput(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            placeholder={String(
+                              autoPools?.breakdown.xray1502Price ?? "",
+                            )}
+                            onChange={(e) =>
+                              setXray1502PriceInput(e.target.value)
+                            }
+                            className="w-full bg-background text-center text-sm rounded border border-border px-3 py-1.5"
                           />
                         </div>
                       </div>
-                      <Button type="button" size="sm" onClick={saveXrayPrices} disabled={setPriceOverridesMut.isPending}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={saveXrayPrices}
+                        disabled={setPriceOverridesMut.isPending}
+                      >
                         حفظ الأسعار
                       </Button>
                     </div>
                     {autoPoolsQ.isLoading ? (
-                      <div className="text-sm text-muted-foreground">جاري التحميل…</div>
+                      <div
+                        role="status"
+                        className="text-sm text-muted-foreground"
+                      >
+                        جاري التحميل...
+                      </div>
                     ) : (
                       <div className="space-y-3">
-                        <div className="hidden lg:block overflow-x-auto" dir="rtl">
+                        <div role="region" aria-label="جدول بيانات" tabIndex={0}
+                          className="hidden xl:block overflow-x-auto"
+                          dir="rtl"
+                        >
                           <table
+                            aria-label="البنتاكام (محسوبة تلقائيًا من الإيراد)"
                             className="w-full text-sm border border-border rounded-lg"
                             dir="rtl"
                           >
                             <thead>
                               <tr className="bg-secondary/8 border-b">
-                                <th className="px-4 py-3 text-right font-semibold">الخدمة</th>
-                                <th className="px-4 py-3 text-center font-semibold">الإيراد</th>
-                                <th className="px-4 py-3 text-center font-semibold">النسبة</th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-start font-semibold"
+                                >
+                                  الخدمة
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-center font-semibold"
+                                >
+                                  الإيراد
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-center font-semibold"
+                                >
+                                  النسبة
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               <tr className="border-b hover:bg-muted/20">
-                                <td className="px-4 py-3 font-medium">خدمة 1600</td>
+                                <td className="px-4 py-3 font-medium">
+                                  خدمة 1600
+                                </td>
                                 <td className="px-4 py-3 text-center">
-                                  {(autoPools?.breakdown.xray1600Revenue ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.xray1600Revenue ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                                 <td className="px-4 py-3 text-center font-semibold text-primary">
-                                  {(autoPools?.breakdown.xray1600Pool ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.xray1600Pool ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                               </tr>
                               <tr className="border-b hover:bg-muted/20">
-                                <td className="px-4 py-3 font-medium">خدمة 1502</td>
+                                <td className="px-4 py-3 font-medium">
+                                  خدمة 1502
+                                </td>
                                 <td className="px-4 py-3 text-center">
-                                  {(autoPools?.breakdown.xray1502Revenue ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.xray1502Revenue ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                                 <td className="px-4 py-3 text-center font-semibold text-primary">
-                                  {(autoPools?.breakdown.xray1502Pool ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.xray1502Pool ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                               </tr>
                               <tr className="border-b bg-primary/5 hover:bg-muted/20">
-                                <td className="px-4 py-3 font-medium">باقي الخدمات</td>
+                                <td className="px-4 py-3 font-medium">
+                                  باقي الخدمات
+                                </td>
                                 <td className="px-4 py-3 text-center">
-                                  {(autoPools?.breakdown.xrayRemainingRevenue ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.xrayRemainingRevenue ??
+                                    0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                                 <td className="px-4 py-3 text-center font-semibold text-primary">
-                                  {(autoPools?.breakdown.xrayRemainingPool ?? 0).toLocaleString("ar-EG")} ج
+                                  {(
+                                    autoPools?.breakdown.xrayRemainingPool ?? 0
+                                  ).toLocaleString("ar-EG")}{" "}
+                                  ج
                                 </td>
                               </tr>
                             </tbody>
                           </table>
                         </div>
 
-                        {/* Mobile View */}
-                        <div className="block lg:hidden space-y-3">
+                        <div className="block xl:hidden space-y-3">
                           {[
-                            { label: "خدمة 1600", revenue: autoPools?.breakdown.xray1600Revenue, pool: autoPools?.breakdown.xray1600Pool },
-                            { label: "خدمة 1502", revenue: autoPools?.breakdown.xray1502Revenue, pool: autoPools?.breakdown.xray1502Pool },
-                            { label: "باقي الخدمات", revenue: autoPools?.breakdown.xrayRemainingRevenue, pool: autoPools?.breakdown.xrayRemainingPool },
+                            {
+                              label: "خدمة 1600",
+                              revenue: autoPools?.breakdown.xray1600Revenue,
+                              pool: autoPools?.breakdown.xray1600Pool,
+                            },
+                            {
+                              label: "خدمة 1502",
+                              revenue: autoPools?.breakdown.xray1502Revenue,
+                              pool: autoPools?.breakdown.xray1502Pool,
+                            },
+                            {
+                              label: "باقي الخدمات",
+                              revenue:
+                                autoPools?.breakdown.xrayRemainingRevenue,
+                              pool: autoPools?.breakdown.xrayRemainingPool,
+                            },
                           ].map((row) => (
-                            <div key={row.label} className="rounded-xl border border-border bg-card p-4 flex justify-between items-center">
+                            <div
+                              key={row.label}
+                              className="rounded-xl border border-border bg-card p-4 flex justify-between items-center"
+                            >
                               <div>
-                                <div className="text-sm font-bold text-foreground">{row.label}</div>
-                                <div className="text-[10px] text-muted-foreground">{(row.revenue ?? 0).toLocaleString("ar-EG")} ج إيراد</div>
+                                <div className="text-sm font-bold text-foreground">
+                                  {row.label}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {(row.revenue ?? 0).toLocaleString("ar-EG")} ج
+                                  إيراد
+                                </div>
                               </div>
-                              <div className="text-base font-black text-primary">{(row.pool ?? 0).toLocaleString("ar-EG")} ج</div>
+                              <div className="text-base font-black text-primary">
+                                {(row.pool ?? 0).toLocaleString("ar-EG")} ج
+                              </div>
                             </div>
                           ))}
                         </div>
 
                         <IncludedServicesTable
                           title="الخدمات الداخلة في الأشعة"
-                          rows={(autoPools?.breakdown.includedServices?.xray ?? []) as IncludedServiceRow[]}
+                          rows={
+                            (autoPools?.breakdown.includedServices?.xray ??
+                              []) as IncludedServiceRow[]
+                          }
                         />
 
                         <div className="grid grid-cols-2 gap-3">
                           <div className="rounded-xl border border-primary/20 bg-primary/8 p-4 text-center">
-                            <div className="text-[10px] text-primary font-semibold mb-1">الأطباء ({autoPools?.breakdown.xrayDoctorPercent ?? 54.5}%)</div>
+                            <div className="text-xs text-primary font-semibold mb-1">
+                              الأطباء (
+                              {autoPools?.breakdown.xrayDoctorPercent ?? 54.5}%)
+                            </div>
                             <div className="text-lg font-black text-primary">
-                              {(autoPools?.pentacamDrPool ?? 0).toLocaleString("ar-EG")} ج
+                              {(autoPools?.pentacamDrPool ?? 0).toLocaleString(
+                                "ar-EG",
+                              )}{" "}
+                              ج
                             </div>
                           </div>
                           <div className="rounded-xl border border-success/20 bg-success/8 p-4 text-center">
-                            <div className="text-[10px] text-success font-semibold mb-1">الموظفين ({autoPools?.breakdown.xrayEmployeePercent ?? 45.5}%)</div>
+                            <div className="text-xs text-success font-semibold mb-1">
+                              الموظفين (
+                              {autoPools?.breakdown.xrayEmployeePercent ?? 45.5}
+                              %)
+                            </div>
                             <div className="text-lg font-black text-success">
-                              {(autoPools?.pentacamPool ?? 0).toLocaleString("ar-EG")} ج
+                              {(autoPools?.pentacamPool ?? 0).toLocaleString(
+                                "ar-EG",
+                              )}{" "}
+                              ج
                             </div>
                           </div>
                         </div>
@@ -1130,82 +1489,110 @@ export default function CommissionPools() {
                 </TabsContent>
 
                 {/* Tab 4: Day 10 Allowances */}
-                <TabsContent value="allowances" className="space-y-4 m-0 focus-visible:outline-none">
+                <TabsContent
+                  value="allowances"
+                  className="space-y-4 m-0 focus-visible:outline-none"
+                >
                   {/* Day-10 Allowances */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-base">بدلات يوم 10</h3>
-                    <div className="hidden lg:block overflow-x-auto" dir="rtl">
+                    <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
                       <table
+                        aria-label="بدلات يوم 10"
                         className="w-full text-sm border border-border rounded-lg"
                         dir="rtl"
                       >
                         <thead>
                           <tr className="bg-success/8 border-b">
-                            <th className="px-4 py-3 text-right font-semibold">
+                            <th
+                              scope="col"
+                              className="px-4 py-3 text-start font-semibold"
+                            >
                               البيان
                             </th>
-                            <th className="px-4 py-3 text-center font-semibold">
+                            <th
+                              scope="col"
+                              className="px-4 py-3 text-center font-semibold"
+                            >
                               المبلغ
                             </th>
-                            <th className="px-4 py-3 text-center font-semibold">
+                            <th
+                              scope="col"
+                              className="px-4 py-3 text-center font-semibold"
+                            >
                               العدد
                             </th>
-                            <th className="px-4 py-3 text-center font-semibold">
+                            <th
+                              scope="col"
+                              className="px-4 py-3 text-center font-semibold"
+                            >
                               الإجمالي
                             </th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr className="border-b hover:bg-muted/20">
-                            <td className="px-4 py-3 font-medium">غلاء معيشه</td>
+                            <td className="px-4 py-3 font-medium">
+                              غلاء معيشه
+                            </td>
                             <td className="px-4 py-3 text-center">
-                              <input
+                              <Input bare
                                 type="number"
                                 value={form.costOfLivingAllowanceAmount}
+                                aria-label="بدل غلاء المعيشة، المبلغ"
                                 min={0}
                                 step="0.01"
                                 onChange={set("costOfLivingAllowanceAmount")}
-                                className="w-20 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                                className="w-20 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                               />
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <input
+                              <Input bare
                                 type="number"
                                 value={form.costOfLivingAllowanceCount}
+                                aria-label="بدل غلاء المعيشة، العدد"
                                 min={0}
                                 step="1"
                                 onChange={set("costOfLivingAllowanceCount")}
-                                className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                                className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                               />
                             </td>
                             <td className="px-4 py-3 text-center font-semibold text-primary">
-                              {costOfLivingAllowanceTotal.toLocaleString("ar-EG")} ج
+                              {costOfLivingAllowanceTotal.toLocaleString(
+                                "ar-EG",
+                              )}{" "}
+                              ج
                             </td>
                           </tr>
                           <tr className="border-b hover:bg-muted/20">
-                            <td className="px-4 py-3 font-medium">بدل مواصلات</td>
+                            <td className="px-4 py-3 font-medium">
+                              بدل مواصلات
+                            </td>
                             <td className="px-4 py-3 text-center">
-                              <input
+                              <Input bare
                                 type="number"
                                 value={form.transportAllowanceAmount}
+                                aria-label="بدل المواصلات، المبلغ"
                                 min={0}
                                 step="0.01"
                                 onChange={set("transportAllowanceAmount")}
-                                className="w-20 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                                className="w-20 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                               />
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <input
+                              <Input bare
                                 type="number"
                                 value={form.transportAllowanceCount}
+                                aria-label="بدل المواصلات، العدد"
                                 min={0}
                                 step="1"
                                 onChange={set("transportAllowanceCount")}
-                                className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                                className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                               />
                             </td>
                             <td className="px-4 py-3 text-center font-semibold text-primary">
-                              {transportAllowanceTotal.toLocaleString("ar-EG")} ج
+                              {transportAllowanceTotal.toLocaleString("ar-EG")}{" "}
+                              ج
                             </td>
                           </tr>
                           <tr className="bg-success/8 font-bold">
@@ -1214,7 +1601,8 @@ export default function CommissionPools() {
                             <td className="px-4 py-3 text-center">-</td>
                             <td className="px-4 py-3 text-center text-primary">
                               {(
-                                costOfLivingAllowanceTotal + transportAllowanceTotal
+                                costOfLivingAllowanceTotal +
+                                transportAllowanceTotal
                               ).toLocaleString("ar-EG")}{" "}
                               ج
                             </td>
@@ -1223,81 +1611,109 @@ export default function CommissionPools() {
                       </table>
                     </div>
 
-                    {/* Mobile View: Cards Layout */}
-                    <div className="block lg:hidden space-y-4">
+                    <div className="block xl:hidden space-y-4">
                       {/* Cost of Living Card */}
                       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                        <div className="font-bold text-sm text-foreground">غلاء معيشة</div>
+                        <div className="font-bold text-sm text-foreground">
+                          غلاء معيشة
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                            <input
+                            <label className="text-xs font-semibold text-muted-foreground">
+                              المبلغ
+                            </label>
+                            <Input bare
                               type="number"
                               value={form.costOfLivingAllowanceAmount}
+                              aria-label="بدل غلاء المعيشة، المبلغ"
                               min={0}
                               step="0.01"
                               onChange={set("costOfLivingAllowanceAmount")}
-                              className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                              className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                            <input
+                            <label className="text-xs font-semibold text-muted-foreground">
+                              العدد
+                            </label>
+                            <Input bare
                               type="number"
                               value={form.costOfLivingAllowanceCount}
+                              aria-label="بدل غلاء المعيشة، العدد"
                               min={0}
                               step="1"
                               onChange={set("costOfLivingAllowanceCount")}
-                              className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                              className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                             />
                           </div>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                          <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                          <span className="text-sm font-bold text-primary">{costOfLivingAllowanceTotal.toLocaleString("ar-EG")} ج</span>
+                          <span className="text-xs text-muted-foreground">
+                            الإجمالي:
+                          </span>
+                          <span className="text-sm font-bold text-primary">
+                            {costOfLivingAllowanceTotal.toLocaleString("ar-EG")}{" "}
+                            ج
+                          </span>
                         </div>
                       </div>
 
                       {/* Transport Allowance Card */}
                       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                        <div className="font-bold text-sm text-foreground">بدل مواصلات</div>
+                        <div className="font-bold text-sm text-foreground">
+                          بدل مواصلات
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                            <input
+                            <label className="text-xs font-semibold text-muted-foreground">
+                              المبلغ
+                            </label>
+                            <Input bare
                               type="number"
                               value={form.transportAllowanceAmount}
+                              aria-label="بدل المواصلات، المبلغ"
                               min={0}
                               step="0.01"
                               onChange={set("transportAllowanceAmount")}
-                              className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                              className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                            <input
+                            <label className="text-xs font-semibold text-muted-foreground">
+                              العدد
+                            </label>
+                            <Input bare
                               type="number"
                               value={form.transportAllowanceCount}
+                              aria-label="بدل المواصلات، العدد"
                               min={0}
                               step="1"
                               onChange={set("transportAllowanceCount")}
-                              className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                              className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                             />
                           </div>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                          <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                          <span className="text-sm font-bold text-primary">{transportAllowanceTotal.toLocaleString("ar-EG")} ج</span>
+                          <span className="text-xs text-muted-foreground">
+                            الإجمالي:
+                          </span>
+                          <span className="text-sm font-bold text-primary">
+                            {transportAllowanceTotal.toLocaleString("ar-EG")} ج
+                          </span>
                         </div>
                       </div>
 
-                      {/* Summary Card */}
                       <div className="rounded-xl bg-success/8 border border-success/15 p-4 flex justify-between items-center">
                         <div className="space-y-1">
-                          <div className="text-xs font-bold text-foreground">إجمالي بدلات يوم 10</div>
+                          <div className="text-xs font-bold text-foreground">
+                            إجمالي بدلات يوم 10
+                          </div>
                         </div>
                         <div className="text-lg font-black text-primary">
-                          {(costOfLivingAllowanceTotal + transportAllowanceTotal).toLocaleString("ar-EG")} ج
+                          {(
+                            costOfLivingAllowanceTotal + transportAllowanceTotal
+                          ).toLocaleString("ar-EG")}{" "}
+                          ج
                         </div>
                       </div>
                     </div>
@@ -1308,23 +1724,36 @@ export default function CommissionPools() {
               <div className="space-y-6">
                 <div className="space-y-3">
                   <h3 className="font-semibold text-base">الكشوفات</h3>
-                  <div className="hidden lg:block overflow-x-auto" dir="rtl">
+                  <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
                     <table
+                      aria-label="الكشوفات"
                       className="w-full text-sm border border-border rounded-lg"
                       dir="rtl"
                     >
                       <thead>
                         <tr className="bg-muted/50 border-b">
-                          <th className="px-4 py-3 text-right font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-start font-semibold"
+                          >
                             الكشف
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-center font-semibold"
+                          >
                             العدد
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-center font-semibold"
+                          >
                             المبلغ
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-center font-semibold"
+                          >
                             الإجمالي
                           </th>
                         </tr>
@@ -1333,23 +1762,27 @@ export default function CommissionPools() {
                         <tr className="border-b hover:bg-muted/20">
                           <td className="px-4 py-3 font-medium">استشاري</td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={form.consultantCount}
+                              aria-label="الاستشاري، العدد"
                               min={0}
                               step="1"
                               onChange={set("consultantCount")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={consultantRate}
+                              aria-label="الاستشاري، المبلغ"
                               min={0}
                               step="0.5"
-                              onChange={(e) => setConsultantRate(e.target.value)}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              onChange={(e) =>
+                                setConsultantRate(e.target.value)
+                              }
+                              className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center font-semibold text-primary">
@@ -1359,23 +1792,27 @@ export default function CommissionPools() {
                         <tr className="border-b hover:bg-muted/20">
                           <td className="px-4 py-3 font-medium">أخصائي</td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={form.specialistCount}
+                              aria-label="الأخصائي، العدد"
                               min={0}
                               step="1"
                               onChange={set("specialistCount")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={specialistRate}
+                              aria-label="الأخصائي، المبلغ"
                               min={0}
                               step="0.5"
-                              onChange={(e) => setSpecialistRate(e.target.value)}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              onChange={(e) =>
+                                setSpecialistRate(e.target.value)
+                              }
+                              className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center font-semibold text-primary">
@@ -1397,84 +1834,114 @@ export default function CommissionPools() {
                     </table>
                   </div>
 
-                  {/* Mobile View: Cards Layout */}
-                  <div className="block lg:hidden space-y-4">
+                  <div className="block xl:hidden space-y-4">
                     {/* Consultant Card */}
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="font-bold text-sm text-foreground">استشاري</div>
+                      <div className="font-bold text-sm text-foreground">
+                        استشاري
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            العدد
+                          </label>
+                          <Input bare
                             type="number"
                             value={form.consultantCount}
+                            aria-label="الاستشاري، العدد"
                             min={0}
                             step="1"
                             onChange={set("consultantCount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            المبلغ
+                          </label>
+                          <Input bare
                             type="number"
                             value={consultantRate}
+                            aria-label="الاستشاري، المبلغ"
                             min={0}
                             step="0.5"
                             onChange={(e) => setConsultantRate(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                        <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                        <span className="text-sm font-bold text-primary">{consultantPool.toLocaleString("ar-EG")} ج</span>
+                        <span className="text-xs text-muted-foreground">
+                          الإجمالي:
+                        </span>
+                        <span className="text-sm font-bold text-primary">
+                          {consultantPool.toLocaleString("ar-EG")} ج
+                        </span>
                       </div>
                     </div>
 
                     {/* Specialist Card */}
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="font-bold text-sm text-foreground">أخصائي</div>
+                      <div className="font-bold text-sm text-foreground">
+                        أخصائي
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            العدد
+                          </label>
+                          <Input bare
                             type="number"
                             value={form.specialistCount}
+                            aria-label="الأخصائي، العدد"
                             min={0}
                             step="1"
                             onChange={set("specialistCount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            المبلغ
+                          </label>
+                          <Input bare
                             type="number"
                             value={specialistRate}
+                            aria-label="الأخصائي، المبلغ"
                             min={0}
                             step="0.5"
                             onChange={(e) => setSpecialistRate(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                        <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                        <span className="text-sm font-bold text-primary">{specialistPool.toLocaleString("ar-EG")} ج</span>
+                        <span className="text-xs text-muted-foreground">
+                          الإجمالي:
+                        </span>
+                        <span className="text-sm font-bold text-primary">
+                          {specialistPool.toLocaleString("ar-EG")} ج
+                        </span>
                       </div>
                     </div>
 
-                    {/* Summary Card */}
                     <div className="rounded-xl bg-primary/8 border border-primary/15 p-4 flex justify-between items-center">
                       <div className="space-y-1">
-                        <div className="text-xs font-bold text-foreground">إجمالي نسب الكشف</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          العدد: {(consultantCount + specialistCount).toLocaleString("ar-EG")}
+                        <div className="text-xs font-bold text-foreground">
+                          إجمالي نسب الكشف
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          العدد:{" "}
+                          {(consultantCount + specialistCount).toLocaleString(
+                            "ar-EG",
+                          )}
                         </div>
                       </div>
                       <div className="text-lg font-black text-primary">
-                        {(consultantPool + specialistPool).toLocaleString("ar-EG")} ج
+                        {(consultantPool + specialistPool).toLocaleString(
+                          "ar-EG",
+                        )}{" "}
+                        ج
                       </div>
                     </div>
                   </div>
@@ -1483,23 +1950,36 @@ export default function CommissionPools() {
                 {/* Day-10 Allowances for Clinic */}
                 <div className="space-y-3">
                   <h3 className="font-semibold text-base">بدلات يوم 10</h3>
-                  <div className="hidden lg:block overflow-x-auto" dir="rtl">
+                  <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
                     <table
+                      aria-label="بدلات يوم 10"
                       className="w-full text-sm border border-border rounded-lg"
                       dir="rtl"
                     >
                       <thead>
                         <tr className="bg-success/8 border-b">
-                          <th className="px-4 py-3 text-right font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-start font-semibold"
+                          >
                             البيان
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-center font-semibold"
+                          >
                             المبلغ
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-center font-semibold"
+                          >
                             العدد
                           </th>
-                          <th className="px-4 py-3 text-center font-semibold">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-center font-semibold"
+                          >
                             الإجمالي
                           </th>
                         </tr>
@@ -1508,49 +1988,54 @@ export default function CommissionPools() {
                         <tr className="border-b hover:bg-muted/20">
                           <td className="px-4 py-3 font-medium">غلاء معيشه</td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={form.costOfLivingAllowanceAmount}
+                              aria-label="بدل غلاء المعيشة، المبلغ"
                               min={0}
                               step="0.01"
                               onChange={set("costOfLivingAllowanceAmount")}
-                              className="w-20 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              className="w-20 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={form.costOfLivingAllowanceCount}
+                              aria-label="بدل غلاء المعيشة، العدد"
                               min={0}
                               step="1"
                               onChange={set("costOfLivingAllowanceCount")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center font-semibold text-primary">
-                            {costOfLivingAllowanceTotal.toLocaleString("ar-EG")} ج
+                            {costOfLivingAllowanceTotal.toLocaleString("ar-EG")}{" "}
+                            ج
                           </td>
                         </tr>
                         <tr className="border-b hover:bg-muted/20">
                           <td className="px-4 py-3 font-medium">بدل مواصلات</td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={form.transportAllowanceAmount}
+                              aria-label="بدل المواصلات، المبلغ"
                               min={0}
                               step="0.01"
                               onChange={set("transportAllowanceAmount")}
-                              className="w-20 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              className="w-20 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <input
+                            <Input bare
                               type="number"
                               value={form.transportAllowanceCount}
+                              aria-label="بدل المواصلات، العدد"
                               min={0}
                               step="1"
                               onChange={set("transportAllowanceCount")}
-                              className="w-16 rounded border border-border bg-background px-2 py-1 text-center text-sm"
+                              className="w-16 rounded border border-input bg-background px-2 py-1 text-center text-sm"
                             />
                           </td>
                           <td className="px-4 py-3 text-center font-semibold text-primary">
@@ -1563,7 +2048,8 @@ export default function CommissionPools() {
                           <td className="px-4 py-3 text-center">-</td>
                           <td className="px-4 py-3 text-center text-primary">
                             {(
-                              costOfLivingAllowanceTotal + transportAllowanceTotal
+                              costOfLivingAllowanceTotal +
+                              transportAllowanceTotal
                             ).toLocaleString("ar-EG")}{" "}
                             ج
                           </td>
@@ -1572,78 +2058,106 @@ export default function CommissionPools() {
                     </table>
                   </div>
 
-                  {/* Mobile View: Cards Layout */}
-                  <div className="block lg:hidden space-y-4">
+                  <div className="block xl:hidden space-y-4">
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="font-bold text-sm text-foreground">غلاء معيشة</div>
+                      <div className="font-bold text-sm text-foreground">
+                        غلاء معيشة
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            المبلغ
+                          </label>
+                          <Input bare
                             type="number"
                             value={form.costOfLivingAllowanceAmount}
+                            aria-label="بدل غلاء المعيشة، المبلغ"
                             min={0}
                             step="0.01"
                             onChange={set("costOfLivingAllowanceAmount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            العدد
+                          </label>
+                          <Input bare
                             type="number"
                             value={form.costOfLivingAllowanceCount}
+                            aria-label="بدل غلاء المعيشة، العدد"
                             min={0}
                             step="1"
                             onChange={set("costOfLivingAllowanceCount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                        <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                        <span className="text-sm font-bold text-primary">{costOfLivingAllowanceTotal.toLocaleString("ar-EG")} ج</span>
+                        <span className="text-xs text-muted-foreground">
+                          الإجمالي:
+                        </span>
+                        <span className="text-sm font-bold text-primary">
+                          {costOfLivingAllowanceTotal.toLocaleString("ar-EG")} ج
+                        </span>
                       </div>
                     </div>
 
                     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-                      <div className="font-bold text-sm text-foreground">بدل مواصلات</div>
+                      <div className="font-bold text-sm text-foreground">
+                        بدل مواصلات
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            المبلغ
+                          </label>
+                          <Input bare
                             type="number"
                             value={form.transportAllowanceAmount}
+                            aria-label="بدل المواصلات، المبلغ"
                             min={0}
                             step="0.01"
                             onChange={set("transportAllowanceAmount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">العدد</label>
-                          <input
+                          <label className="text-xs font-semibold text-muted-foreground">
+                            العدد
+                          </label>
+                          <Input bare
                             type="number"
                             value={form.transportAllowanceCount}
+                            aria-label="بدل المواصلات، العدد"
                             min={0}
                             step="1"
                             onChange={set("transportAllowanceCount")}
-                            className="w-full rounded border border-border bg-background px-3 py-1.5 text-center text-sm"
+                            className="w-full rounded border border-input bg-background px-3 py-1.5 text-center text-sm"
                           />
                         </div>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-border/40">
-                        <span className="text-xs text-muted-foreground">الإجمالي:</span>
-                        <span className="text-sm font-bold text-primary">{transportAllowanceTotal.toLocaleString("ar-EG")} ج</span>
+                        <span className="text-xs text-muted-foreground">
+                          الإجمالي:
+                        </span>
+                        <span className="text-sm font-bold text-primary">
+                          {transportAllowanceTotal.toLocaleString("ar-EG")} ج
+                        </span>
                       </div>
                     </div>
 
                     <div className="rounded-xl bg-success/8 border border-success/15 p-4 flex justify-between items-center">
                       <div className="space-y-1">
-                        <div className="text-xs font-bold text-foreground">إجمالي بدلات يوم 10</div>
+                        <div className="text-xs font-bold text-foreground">
+                          إجمالي بدلات يوم 10
+                        </div>
                       </div>
                       <div className="text-lg font-black text-primary">
-                        {(costOfLivingAllowanceTotal + transportAllowanceTotal).toLocaleString("ar-EG")} ج
+                        {(
+                          costOfLivingAllowanceTotal + transportAllowanceTotal
+                        ).toLocaleString("ar-EG")}{" "}
+                        ج
                       </div>
                     </div>
                   </div>
@@ -1651,40 +2165,54 @@ export default function CommissionPools() {
               </div>
             )}
 
-            {/* Totals Summary for Markaz */}
-            {isMarkaz && autoPools && (() => {
-              const examDr = Math.round(autoPools.examPool * 0.6 * 100) / 100;
-              const examEmp = Math.round(autoPools.examPool * 0.4 * 100) / 100;
-              const drTotal = Math.round((examDr + autoPools.pentacamDrPool) * 100) / 100;
-              const empTechTotal = Math.round((examEmp + autoPools.pentacamPool) * 100) / 100;
-              return (
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <h3 className="font-semibold text-base">ملخص التوزيع</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-primary/20 bg-primary/8 p-4">
-                      <div className="text-xs font-semibold text-primary mb-1">إجمالي الأطباء</div>
-                      <div className="text-xl font-black text-primary">
-                        {drTotal.toLocaleString("ar-EG")} ج
+            {isMarkaz &&
+              autoPools &&
+              (() => {
+                const examDr = Math.round(autoPools.examPool * 0.6 * 100) / 100;
+                const examEmp =
+                  Math.round(autoPools.examPool * 0.4 * 100) / 100;
+                const drTotal =
+                  Math.round((examDr + autoPools.pentacamDrPool) * 100) / 100;
+                const empTechTotal =
+                  Math.round((examEmp + autoPools.pentacamPool) * 100) / 100;
+                return (
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <h3 className="font-semibold text-base">ملخص التوزيع</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-primary/20 bg-primary/8 p-4">
+                        <div className="text-xs font-semibold text-primary mb-1">
+                          إجمالي الأطباء
+                        </div>
+                        <div className="text-xl font-black text-primary">
+                          {drTotal.toLocaleString("ar-EG")} ج
+                        </div>
+                        <div className="mt-1.5 text-xs text-primary space-y-0.5">
+                          <div>كشف: {examDr.toLocaleString("ar-EG")} ج</div>
+                          <div>
+                            بنتاكام:{" "}
+                            {autoPools.pentacamDrPool.toLocaleString("ar-EG")} ج
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-1.5 text-[10px] text-primary space-y-0.5">
-                        <div>كشف: {examDr.toLocaleString("ar-EG")} ج</div>
-                        <div>بنتاكام: {autoPools.pentacamDrPool.toLocaleString("ar-EG")} ج</div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-success/20 bg-success/10/40 p-4">
-                      <div className="text-xs font-semibold text-success mb-1">إجمالي الموظفين والفنيين</div>
-                      <div className="text-xl font-black text-success">
-                        {empTechTotal.toLocaleString("ar-EG")} ج
-                      </div>
-                      <div className="mt-1.5 text-[10px] text-success space-y-0.5">
-                        <div>كشف: {examEmp.toLocaleString("ar-EG")} ج</div>
-                        <div>بنتاكام: {autoPools.pentacamPool.toLocaleString("ar-EG")} ج</div>
+                      <div className="rounded-xl border border-success/20 bg-success/10/40 p-4">
+                        <div className="text-xs font-semibold text-success mb-1">
+                          إجمالي الموظفين والفنيين
+                        </div>
+                        <div className="text-xl font-black text-success">
+                          {empTechTotal.toLocaleString("ar-EG")} ج
+                        </div>
+                        <div className="mt-1.5 text-xs text-success space-y-0.5">
+                          <div>كشف: {examEmp.toLocaleString("ar-EG")} ج</div>
+                          <div>
+                            بنتاكام:{" "}
+                            {autoPools.pentacamPool.toLocaleString("ar-EG")} ج
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
             {/* Notes */}
             <div className="space-y-2">
@@ -1694,16 +2222,16 @@ export default function CommissionPools() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, notes: e.target.value }))
                 }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 rows={3}
-                placeholder="أي ملاحظات إضافية…"
+                placeholder="أي ملاحظات إضافية..."
+                aria-label="أي ملاحظات إضافية..."
               />
             </div>
 
-            {/* Save Button */}
             <div className="flex gap-2">
               <Button type="submit" disabled={saveMut.isPending}>
-                {saveMut.isPending ? "جاري الحفظ…" : "حفظ"}
+                {saveMut.isPending ? "جاري الحفظ..." : "حفظ"}
               </Button>
             </div>
           </form>

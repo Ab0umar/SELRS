@@ -21,6 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 interface RateForm {
   r3: string;
@@ -50,16 +51,16 @@ function DeductionsControl() {
     onError: (err: any) =>
       toast.error(err.message ?? "خطأ في تعديل نظام الخصومات"),
   });
-  const enabled = enabledQ.data ?? true;
+  const enabled = enabledQ.data == null ? false : Boolean(enabledQ.data);
 
   return (
-    <Card className="border-border/60 bg-card/30 shadow-xs">
+    <Card className="border-border/60 bg-card shadow-xs">
       <CardContent className="flex items-center justify-between gap-4 py-5">
         <div className="flex items-start gap-3">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
             <p className="text-sm font-bold">نظام خصومات المرتبات</p>
-            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
               يشمل الغياب والتأخير والانصراف المبكر والجزاءات والسلف. عند
               الإلغاء تُوقف هذه الخصومات مع بقاء خصم التأمين طبيعيًا، وتظل
               العمولات غير متأثرة مع الاحتفاظ بالسجلات.
@@ -79,6 +80,11 @@ function DeductionsControl() {
             aria-label="تفعيل نظام خصومات المرتبات"
           />
         </div>
+        {enabledQ.isError && (
+          <p role="alert" className="mt-2 text-xs text-destructive">
+            تعذر تحميل حالة نظام الخصومات. أعد المحاولة قبل تغييرها.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -97,7 +103,7 @@ function GlobalRates() {
   const setRatesMut = (trpc as any).salary.setAttendanceRates.useMutation({
     onSuccess: () => {
       ratesQ.refetch();
-      toast.success("تم حفظ النسب العامة بنجاح");
+      toast.success("تم حفظ النسب العامة");
     },
     onError: (err: any) => toast.error(err.message ?? "خطأ في حفظ النسب"),
     onSettled: () => setSaving(false),
@@ -128,7 +134,7 @@ function GlobalRates() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-xs">
+    <Card className="border-border/60 bg-card shadow-xs">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5 text-primary" />
@@ -136,25 +142,26 @@ function GlobalRates() {
             <CardTitle className="text-sm font-bold">
               نسب الحضور العامة (المركز)
             </CardTitle>
-            <CardDescription className="text-[11px]">
+            <CardDescription className="text-xs">
               تُطبَّق هذه النسب تلقائياً على كل موظف ليس لديه نسبة حضور خاصة.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {TIERS.map(({ key, label }) => (
             <div
               key={key}
               className="flex flex-col gap-1 rounded-lg border border-border/40 p-3 bg-muted/10"
             >
-              <span className="text-[10px] font-semibold text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground">
                 {label}
               </span>
               <div className="relative">
-                <input
+                <Input bare
                   type="number"
+                  aria-label={label}
                   min={0}
                   max={100}
                   step={1}
@@ -162,9 +169,9 @@ function GlobalRates() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, [key]: e.target.value }))
                   }
-                  className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs pr-7 text-right outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                  className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs ps-7 text-start outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
                 />
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">
+                <span className="absolute end-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                   %
                 </span>
               </div>
@@ -172,7 +179,7 @@ function GlobalRates() {
           ))}
         </div>
         <div className="flex items-center justify-between border-t border-border/40 pt-4">
-          <span className="text-[10px] text-muted-foreground/80">
+          <span className="text-xs text-muted-foreground">
             * الغياب الأكثر من 10 أيام يُحسب بنسبة 0% تلقائياً.
           </span>
           <Button
@@ -181,7 +188,7 @@ function GlobalRates() {
             size="sm"
             className="h-8 text-xs font-semibold"
           >
-            {saving ? "جاري الحفظ…" : "حفظ النسب"}
+            {saving ? "جاري الحفظ..." : "حفظ النسب"}
           </Button>
         </div>
       </CardContent>
@@ -343,8 +350,7 @@ function EmployeeSettingsGrid() {
       commExam: key === "commExam" ? !examEnabled : examEnabled,
       commPentacam: key === "commPentacam" ? !pentacamEnabled : pentacamEnabled,
       commDay10: key === "commDay10" ? !day10Enabled : day10Enabled,
-      commOvertime:
-        key === "commOvertime" ? !overtimeEnabled : overtimeEnabled,
+      commOvertime: key === "commOvertime" ? !overtimeEnabled : overtimeEnabled,
     });
   }
 
@@ -415,8 +421,21 @@ function EmployeeSettingsGrid() {
     return (
       <Card className="border-border/60">
         <CardContent className="py-6 space-y-3">
-          <Skeleton className="h-6 w-1/3 animate-pulse" />
-          <Skeleton className="h-20 w-full animate-pulse" />
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (empsQ.isError) {
+    return (
+      <Card className="border-destructive/30">
+        <CardContent
+          role="alert"
+          className="py-8 text-center text-sm text-destructive"
+        >
+          تعذر تحميل إعدادات الموظفين. أعد المحاولة من تحديث الصفحة.
         </CardContent>
       </Card>
     );
@@ -433,7 +452,7 @@ function EmployeeSettingsGrid() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-xs overflow-hidden">
+    <Card className="border-border/60 bg-card shadow-xs overflow-hidden">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
@@ -447,9 +466,9 @@ function EmployeeSettingsGrid() {
                 أو التلقائي فقط عند ترك القيمة الخاصة فارغة.
               </p>
             </div>
-            <CardDescription className="text-[11px]">
-              تعديل النسب الخاصة ومعامل الحضور الإضافي وتفعيل عمولات
-              الحضور، الكشف، البنتاكام، وبدلات يوم 10.
+            <CardDescription className="text-xs">
+              تعديل النسب الخاصة ومعامل الحضور الإضافي وتفعيل عمولات الحضور،
+              الكشف، البنتاكام، وبدلات يوم 10.
             </CardDescription>
           </div>
         </div>
@@ -459,7 +478,7 @@ function EmployeeSettingsGrid() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="inline-flex w-fit rounded-md border border-border bg-background p-1">
               {(["مركز", "عيادة"] as const).map((tab) => (
-                <button
+                <Button variant="bare"
                   key={tab}
                   type="button"
                   onClick={() => {
@@ -473,13 +492,13 @@ function EmployeeSettingsGrid() {
                   }`}
                 >
                   {tab}
-                </button>
+                </Button>
               ))}
             </div>
             {sectionTab === "مركز" && (
               <div className="inline-flex w-fit rounded-md bg-muted p-1">
                 {(["رواتب", "شفتات"] as const).map((tab) => (
-                  <button
+                  <Button variant="bare"
                     key={tab}
                     type="button"
                     onClick={() => {
@@ -493,7 +512,7 @@ function EmployeeSettingsGrid() {
                     }`}
                   >
                     {tab}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -501,12 +520,14 @@ function EmployeeSettingsGrid() {
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-sm">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input bare
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="بحث بالاسم أو الكود أو النوع"
-                className="h-10 w-full rounded-md border border-input bg-background pr-9 pl-3 text-sm outline-none focus:border-primary/50"
+                enterKeyHint="search"
+                aria-label="بحث بالاسم أو الكود أو النوع"
+                className="h-10 w-full rounded-md border border-input bg-background ps-9 pe-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary/50"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -526,7 +547,7 @@ function EmployeeSettingsGrid() {
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground">
                 نسبة الحضور
               </span>
               <div className="flex gap-2">
@@ -542,7 +563,7 @@ function EmployeeSettingsGrid() {
                   <option value="custom">قيمة موحدة</option>
                 </select>
                 {bulkRateMode === "custom" && (
-                  <input
+                  <Input bare
                     type="number"
                     min={0}
                     max={100}
@@ -555,7 +576,7 @@ function EmployeeSettingsGrid() {
             </label>
 
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground">
                 معامل الحضور
               </span>
               <div className="flex gap-2">
@@ -573,7 +594,7 @@ function EmployeeSettingsGrid() {
                   <option value="custom">قيمة موحدة</option>
                 </select>
                 {bulkMultiplierMode === "custom" && (
-                  <input
+                  <Input bare
                     type="number"
                     min={0}
                     max={100}
@@ -593,7 +614,7 @@ function EmployeeSettingsGrid() {
               ["commOvertime", "الإضافي"],
             ].map(([field, label]) => (
               <label key={field} className="space-y-1">
-                <span className="text-[11px] font-semibold text-muted-foreground">
+                <span className="text-xs font-semibold text-muted-foreground">
                   {label}
                 </span>
                 <select
@@ -627,21 +648,38 @@ function EmployeeSettingsGrid() {
             </Button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse text-xs">
+        <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+          <table
+            aria-label="إعدادات الموظفين الخاصة"
+            className="w-full text-start border-collapse text-xs"
+          >
             <thead>
               <tr className="border-t border-b border-border bg-muted/40 text-muted-foreground font-bold">
-                <th className="px-6 py-3 font-semibold">الموظف</th>
-                <th className="w-12 px-2 py-3 text-center font-semibold">
+                <th scope="col" className="px-6 py-3 font-semibold">
+                  الموظف
+                </th>
+                <th
+                  scope="col"
+                  className="w-12 px-2 py-3 text-center font-semibold"
+                >
                   تحديد
                 </th>
-                <th className="px-4 py-3 font-semibold text-center w-24">
+                <th
+                  scope="col"
+                  className="px-4 py-3 font-semibold text-center w-24"
+                >
                   النوع
                 </th>
-                <th className="px-4 py-3 font-semibold text-center w-[240px]">
+                <th
+                  scope="col"
+                  className="px-4 py-3 font-semibold text-center w-[240px]"
+                >
                   النسب والمعاملات الخاصة
                 </th>
-                <th className="px-6 py-3 font-semibold text-center w-80">
+                <th
+                  scope="col"
+                  className="px-6 py-3 font-semibold text-center w-80"
+                >
                   تفعيل العمولات والبدلات
                 </th>
               </tr>
@@ -681,7 +719,7 @@ function EmployeeSettingsGrid() {
                           }))
                         }
                         aria-label={`نوع عمولة الكشف للموظف ${emp.fullName}`}
-                        className="h-8 w-24 rounded-md border border-input bg-background px-1 text-[10px] font-semibold outline-none focus:border-primary/50"
+                        className="h-8 w-24 rounded-md border border-input bg-background px-1 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary/50"
                       >
                         <option value="">بدون</option>
                         <option value="استشاري">استشاري</option>
@@ -691,18 +729,18 @@ function EmployeeSettingsGrid() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3 justify-center">
-                        {/* att% Input */}
                         <div className="flex flex-col items-center gap-1 w-20">
-                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             عمولة الحضور %
                           </span>
                           <div className="relative w-full">
-                            <input
+                            <Input bare
                               type="number"
                               min={0}
                               max={100}
                               step={1}
                               placeholder="عام"
+                              aria-label="عام"
                               value={rates[emp.empCd] ?? ""}
                               onChange={(e) =>
                                 setRates((r) => ({
@@ -710,9 +748,9 @@ function EmployeeSettingsGrid() {
                                   [emp.empCd]: e.target.value,
                                 }))
                               }
-                              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs pr-6 text-right outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs ps-6 text-start outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
                             />
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">
+                            <span className="absolute end-2 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                               %
                             </span>
                           </div>
@@ -720,16 +758,17 @@ function EmployeeSettingsGrid() {
 
                         {/* Multiplier Input */}
                         <div className="flex flex-col items-center gap-1 w-20">
-                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             المعامل %
                           </span>
                           <div className="relative w-full">
-                            <input
+                            <Input bare
                               type="number"
                               min={0}
                               max={100}
                               step={1}
                               placeholder="تلقائي"
+                              aria-label="تلقائي"
                               value={multipliers[emp.empCd] ?? ""}
                               onChange={(e) =>
                                 setMultipliers((m) => ({
@@ -737,22 +776,21 @@ function EmployeeSettingsGrid() {
                                   [emp.empCd]: e.target.value,
                                 }))
                               }
-                              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs pr-6 text-right outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                              className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs ps-6 text-start outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
                             />
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">
+                            <span className="absolute end-2 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                               %
                             </span>
                           </div>
                         </div>
 
-                        {/* Save Button */}
                         <div className="flex flex-col items-center gap-1 pt-4 shrink-0">
                           <Button
                             size="sm"
                             variant="outline"
                             disabled={updateMut.isPending}
                             onClick={() => saveEmpSettings(emp)}
-                            className="h-7 px-2 text-[10px] font-bold"
+                            className="h-7 px-2 text-xs font-bold"
                           >
                             حفظ
                           </Button>
@@ -763,90 +801,94 @@ function EmployeeSettingsGrid() {
                       <div className="flex items-center gap-4 justify-center">
                         {/* عمولة الحضور */}
                         <div className="flex flex-col items-center gap-1.5 w-16">
-                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             عمولة الحضور
                           </span>
-                          <button
+                          <Button variant="bare"
                             type="button"
                             disabled={flagsMut.isPending}
                             onClick={() => toggleFlag(emp, "commAttendance")}
-                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${attendanceEnabled ? "bg-primary" : "bg-input"}`}
+                            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${attendanceEnabled ? "bg-primary" : "bg-input"}`}
                             role="switch"
+                            aria-label={`تفعيل عمولة الحضور للموظف ${emp.fullName}`}
                             aria-checked={attendanceEnabled}
                           >
                             <span
                               className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${attendanceEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
-                          </button>
+                          </Button>
                         </div>
 
                         {/* معامل الكشف */}
                         <div className="flex flex-col items-center gap-1.5 w-16">
-                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             معامل الكشف
                           </span>
-                          <button
+                          <Button variant="bare"
                             type="button"
                             disabled={flagsMut.isPending}
                             onClick={() => toggleFlag(emp, "commExam")}
-                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${examEnabled ? "bg-primary" : "bg-input"}`}
+                            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${examEnabled ? "bg-primary" : "bg-input"}`}
                             role="switch"
+                            aria-label={`تفعيل معامل الكشف للموظف ${emp.fullName}`}
                             aria-checked={examEnabled}
                           >
                             <span
                               className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${examEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
-                          </button>
+                          </Button>
                         </div>
 
                         {/* معامل البنتاكام */}
                         <div className="flex flex-col items-center gap-1.5 w-16">
-                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             البنتاكام
                           </span>
-                          <button
+                          <Button variant="bare"
                             type="button"
                             disabled={flagsMut.isPending}
                             onClick={() => toggleFlag(emp, "commPentacam")}
-                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${pentacamEnabled ? "bg-primary" : "bg-input"}`}
+                            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${pentacamEnabled ? "bg-primary" : "bg-input"}`}
                             role="switch"
+                            aria-label={`تفعيل البنتاكام للموظف ${emp.fullName}`}
                             aria-checked={pentacamEnabled}
                           >
                             <span
                               className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${pentacamEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
-                          </button>
+                          </Button>
                         </div>
 
                         {/* بدلات يوم 10 */}
                         <div className="flex flex-col items-center gap-1.5 w-16">
-                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             بدلات يوم 10
                           </span>
-                          <button
+                          <Button variant="bare"
                             type="button"
                             disabled={flagsMut.isPending}
                             onClick={() => toggleFlag(emp, "commDay10")}
-                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${day10Enabled ? "bg-primary" : "bg-input"}`}
+                            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${day10Enabled ? "bg-primary" : "bg-input"}`}
                             role="switch"
+                            aria-label={`تفعيل بدلات يوم 10 للموظف ${emp.fullName}`}
                             aria-checked={day10Enabled}
                           >
                             <span
                               className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${day10Enabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
-                          </button>
+                          </Button>
                         </div>
 
                         {/* الإضافي */}
                         <div className="flex flex-col items-center gap-1.5 w-16">
-                          <span className="text-[9px] font-bold text-muted-foreground whitespace-nowrap">
+                          <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                             الإضافي
                           </span>
-                          <button
+                          <Button variant="bare"
                             type="button"
                             disabled={flagsMut.isPending}
                             onClick={() => toggleFlag(emp, "commOvertime")}
-                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none disabled:opacity-50 ${overtimeEnabled ? "bg-primary" : "bg-input"}`}
+                            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${overtimeEnabled ? "bg-primary" : "bg-input"}`}
                             role="switch"
                             aria-label={`تفعيل الإضافي للموظف ${emp.fullName}`}
                             aria-checked={overtimeEnabled}
@@ -854,7 +896,7 @@ function EmployeeSettingsGrid() {
                             <span
                               className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-xs ring-0 transition-transform ${overtimeEnabled ? "translate-x-3.5" : "translate-x-0"}`}
                             />
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </td>
@@ -908,7 +950,7 @@ function LateTiersCard() {
   const setTiersMut = (trpc as any).salary.setLateTiers.useMutation({
     onSuccess: () => {
       tiersQ.refetch();
-      toast.success("تم حفظ شرائح التأخير بنجاح");
+      toast.success("تم حفظ شرائح التأخير");
     },
     onError: (err: any) => toast.error(err.message ?? "خطأ في حفظ الشرائح"),
   });
@@ -953,7 +995,7 @@ function LateTiersCard() {
   }
 
   return (
-    <Card className="border-border/60 bg-card/30 backdrop-blur-sm shadow-xs">
+    <Card className="border-border/60 bg-card shadow-xs">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -962,8 +1004,10 @@ function LateTiersCard() {
               <CardTitle className="text-sm font-bold">
                 شرائح خصم التأخير (لكل يوم)
               </CardTitle>
-              <CardDescription className="text-[11px]">
-                الشريحة الخطية تتصاعد أسبوعيًا داخل دورة المرتب: الأولى بالدقيقة، الثانية ×2، الثالثة ×3، والرابعة فأكثر ×4. تبدأ الدورة يوم 26 من كل شهر.
+              <CardDescription className="text-xs">
+                الشريحة الخطية تتصاعد أسبوعيًا داخل دورة المرتب: الأولى
+                بالدقيقة، الثانية ×2، الثالثة ×3، والرابعة فأكثر ×4. تبدأ الدورة
+                يوم 26 من كل شهر.
               </CardDescription>
             </div>
           </div>
@@ -974,9 +1018,9 @@ function LateTiersCard() {
             onClick={() => setEditing((current) => !current)}
           >
             {editing ? (
-              <ChevronUp className="ml-1 h-4 w-4" />
+              <ChevronUp className="me-1 h-4 w-4" />
             ) : (
-              <ChevronDown className="ml-1 h-4 w-4" />
+              <ChevronDown className="me-1 h-4 w-4" />
             )}
             {editing ? "إغلاق" : "تعديل الشرائح"}
           </Button>
@@ -984,15 +1028,24 @@ function LateTiersCard() {
       </CardHeader>
       <CardContent className="space-y-3">
         {tiersQ.isLoading ? (
-          <Skeleton className="h-20 w-full animate-pulse" />
+          <Skeleton className="h-20 w-full" />
         ) : editing ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs border-collapse">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+            <table
+              aria-label="شرائح خصم التأخير"
+              className="w-full text-start text-xs border-collapse"
+            >
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-muted-foreground">
-                  <th className="px-3 py-2 font-semibold">من (دقيقة)</th>
-                  <th className="px-3 py-2 font-semibold">إلى (دقيقة)</th>
-                  <th className="px-3 py-2 font-semibold">الخصم</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">
+                    من (دقيقة)
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-semibold">
+                    إلى (دقيقة)
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-semibold">
+                    الخصم
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1002,18 +1055,18 @@ function LateTiersCard() {
                     className="border-b border-border/30 hover:bg-muted/10"
                   >
                     <td className="px-3 py-2">
-                      <input
+                      <Input bare
                         type="number"
                         min={0}
                         value={t.minMin}
                         onChange={(e) =>
                           setTierField(i, "minMin", e.target.value)
                         }
-                        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-right outline-none focus:border-primary/50"
+                        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary/50"
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <input
+                      <Input bare aria-label="∞"
                         type="number"
                         min={0}
                         value={t.maxMin ?? ""}
@@ -1021,7 +1074,7 @@ function LateTiersCard() {
                         onChange={(e) =>
                           setTierField(i, "maxMin", e.target.value)
                         }
-                        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-right outline-none focus:border-primary/50"
+                        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary/50"
                       />
                     </td>
                     <td className="px-3 py-2 font-semibold text-primary">
@@ -1037,7 +1090,7 @@ function LateTiersCard() {
             {tiers.map((tier) => (
               <span
                 key={`${tier.minMin}-${tier.maxMin ?? "plus"}`}
-                className="rounded-md border border-border bg-muted/30 px-3 py-2 text-[11px]"
+                className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs"
               >
                 {tier.minMin} إلى {tier.maxMin ?? "∞"} دقيقة:{" "}
                 <strong>{tierLabel(tier)}</strong>
@@ -1053,7 +1106,7 @@ function LateTiersCard() {
               size="sm"
               className="h-8 text-xs font-semibold"
             >
-              {setTiersMut.isPending ? "جاري الحفظ…" : "حفظ الشرائح"}
+              {setTiersMut.isPending ? "جاري الحفظ..." : "حفظ الشرائح"}
             </Button>
           </div>
         )}
@@ -1067,7 +1120,7 @@ export default function SalarySettings() {
     <div className="w-full space-y-6">
       <DeductionsControl />
       <Tabs defaultValue="global" dir="rtl" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl bg-muted/60 p-1">
+        <TabsList className="grid h-auto w-full grid-cols-1 rounded-xl sm:grid-cols-3 bg-muted/60 p-1">
           <TabsTrigger value="global">نسب الحضور العامة (المركز)</TabsTrigger>
           <TabsTrigger value="late">شرائح خصم التأخير (لكل يوم)</TabsTrigger>
           <TabsTrigger value="employees">إعدادات الموظفين الخاصة</TabsTrigger>

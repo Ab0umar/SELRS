@@ -1,0 +1,62 @@
+.salary-touch :is(button, a[role="button"]):not([role="switch"]) {
+  min-height: 2.75rem;
+}
+
+/* The switch keeps its visual size; the extra reach is invisible. */
+.salary-touch [role="switch"] {
+  position: relative;
+  min-height: 0;
+}
+
+.salary-touch [role="switch"]::after {
+  content: "";
+  position: absolute;
+  inset: -0.625rem -0.25rem;
+}
+
+.salary-touch :is(button, a[role="button"], [role="switch"]):focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+@media screen {
+  [data-operational-module="salary"]
+    :is(input, select, textarea):focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+  .salary-overview {
+    width: 100%;
+    min-width: 0;
+  }
+  .salary-overview-totals > div {
+    min-width: 0;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .salary-overview-totals dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.salary-touch :is(button, a[role="button"], [role="switch"]):disabled {
+  cursor: not-allowed;
+}
+
+.salary-touch input:not([type="checkbox"]):not([type="radio"]),
+.salary-touch select,
+.salary-touch textarea {
+  min-height: 2.75rem;
+}
+
+@media (min-width: 40rem) and (max-width: 64rem) {
+  .salary-table-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  .salary-table-scroll > table {
+    min-width: 44rem;
+  }
+}

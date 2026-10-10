@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { payrollSnapshot } from "../../../../shared/payrollSnapshot";
 import {
   canUseNativeAndroidPrint,
   requestNativeAndroidPrint,
@@ -14,6 +15,7 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import { askConfirm } from "../attendance/askConfirm";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +48,11 @@ const defaultPayrollEnd = new Date(
   25,
 );
 const DEFAULT_FROM = (() => {
-  const prev = new Date(defaultPayrollEnd.getFullYear(), defaultPayrollEnd.getMonth() - 1, 26);
+  const prev = new Date(
+    defaultPayrollEnd.getFullYear(),
+    defaultPayrollEnd.getMonth() - 1,
+    26,
+  );
   return `${isoMonth(prev)}-26`;
 })();
 const DEFAULT_TO = `${isoMonth(defaultPayrollEnd)}-25`;
@@ -70,6 +76,13 @@ function escapeHtml(value: any): string {
     .replace(/'/g, "&#039;");
 }
 
+function dateKeyOf(value: any): string {
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  }
+  return String(value ?? "").slice(0, 10);
+}
+
 const SECTIONS = ["مركز", "عيادة"] as const;
 type Section = (typeof SECTIONS)[number];
 
@@ -81,8 +94,7 @@ export default function PayrollReport() {
   const [toDate, setToDate] = useState(DEFAULT_TO);
   const [section, setSection] = useState<Section>("مركز");
   const [activeTab, setActiveTab] = useState<TabType>("salaries");
-  const [salariesSubTab, setSalariesSubTab] =
-    useState<PayrollSubTab>("basic");
+  const [salariesSubTab, setSalariesSubTab] = useState<PayrollSubTab>("basic");
   const [shiftsSubTab, setShiftsSubTab] = useState<PayrollSubTab>("basic");
   const [searchTerm, setSearchTerm] = useState("");
   const [bonusEdits, setBonusEdits] = useState<Record<string, string>>({});
@@ -93,21 +105,19 @@ export default function PayrollReport() {
     setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // يوم 10 (النسب/العمولات — الكشف والبنتاكام) بيتحسب دايمًا على الشهر الميلادي كامل (1-31)
+  // يوم 10 (النسب/العمولات - الكشف والبنتاكام) بيتحسب دايمًا على الشهر الميلادي كامل (1-31)
   // بغض النظر عن نطاق تاريخ يوم 1، فبنشتق السنة/الشهر من toDate عشان نفضل في الشهر الصح
   const [year, month] = toDate.split("-").map(Number);
   const fromPeriodDate = new Date(fromDate + "T00:00:00");
   const toPeriodDate = new Date(toDate + "T00:00:00");
   const fromDateLabel = fromPeriodDate.toLocaleDateString("ar-EG");
   const toDateLabel = toPeriodDate.toLocaleDateString("ar-EG");
-  const periodLabel = `${fromDateLabel} — ${toDateLabel}`;
+  const periodLabel = `من ${fromDateLabel} إلى ${toDateLabel}`;
 
   const setPayrollPeriod = (selectedYear: number, selectedMonth: number) => {
     const previousMonth = new Date(selectedYear, selectedMonth - 2, 26);
     setFromDate(`${isoMonth(previousMonth)}-26`);
-    setToDate(
-      `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-25`,
-    );
+    setToDate(`${selectedYear}-${String(selectedMonth).padStart(2, "0")}-25`);
   };
   const centerQ = (trpc as any).salary.getPayroll.useQuery({
     year,
@@ -143,17 +153,17 @@ export default function PayrollReport() {
       supervisionBonusQ.refetch();
       toast.success("تم الحفظ");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حفظ مكافأة الإشراف: " + e.message),
   });
 
-  // salaryBasics — for allowance breakdown in day-1 slips
+  // salaryBasics - for allowance breakdown in day-1 slips
   const basicsQ = (trpc as any).salary.listBasics.useQuery();
   const latestBasics: Record<string, any> = (
     (basicsQ.data ?? []) as any[]
   ).reduce((acc: Record<string, any>, b: any) => {
     if (
       !acc[b.empCd] ||
-      String(b.effectiveFrom) > String(acc[b.empCd].effectiveFrom)
+      dateKeyOf(b.effectiveFrom) > dateKeyOf(acc[b.empCd].effectiveFrom)
     )
       acc[b.empCd] = b;
     return acc;
@@ -178,7 +188,8 @@ export default function PayrollReport() {
   // getShiftSchedule already scopes to year/month; no extra date filter needed
   const filteredShiftSchedule = shiftSchedule;
 
-  const rows: any[] = (section === "مركز" ? centerQ : clinicQ).data ?? [];
+  const activeQ = section === "مركز" ? centerQ : clinicQ;
+  const rows: any[] = activeQ.data ?? [];
   const getAllowanceValues = (r: any) => ({
     cola: Number(r.costOfLivingAllowance ?? 0),
     travel: Number(r.transportAllowance ?? 0),
@@ -187,6 +198,7 @@ export default function PayrollReport() {
     const late =
       Number(row.lateDeduction ?? 0) + Number(row.earlyLeaveDeduction ?? 0);
     const absent = Number(row.absentDeduction ?? 0);
+    const leave = Number(row.leaveDeduction ?? 0);
     const penalty = Number(row.penaltyDeduction ?? 0);
     const advances = Number(row.advancesDeduction ?? 0);
     const insurance = Number(row.insuranceDeduction ?? 0);
@@ -194,10 +206,14 @@ export default function PayrollReport() {
     const missingCheckout =
       row.missingCheckoutDeduction != null
         ? Number(row.missingCheckoutDeduction)
-        : Math.max(0, total - late - absent - penalty - advances - insurance);
+        : Math.max(
+            0,
+            total - late - absent - leave - penalty - advances - insurance,
+          );
     return {
       late,
       absent,
+      leave,
       penalty,
       missingCheckout,
       advances,
@@ -243,9 +259,10 @@ export default function PayrollReport() {
 
     const rateBig = Number(staff.ratePerShift ?? 0);
     const mainShiftMinutes = Number(staff.mainShiftMinutes ?? 360) || 360;
-    const rateSmall = Math.round((rateBig / mainShiftMinutes) * 240 * 100) / 100;
+    const rateSmall =
+      Math.round((rateBig / mainShiftMinutes) * 240 * 100) / 100;
 
-    // Trust the backend's big/small breakdown directly — it derives shift size
+    // Trust the backend's big/small breakdown directly - it derives shift size
     // from each shift's actual definition (attendanceShifts.shiftSize / duration).
     const bigScheduled = Number(liveRow?.bigScheduled ?? 0);
     const bigAttended = Number(liveRow?.bigAttended ?? 0);
@@ -317,7 +334,7 @@ export default function PayrollReport() {
     };
   });
 
-  // All non-shift employees from both sections — used for combined receipts print
+  // All non-shift employees from both sections - used for combined receipts print
   const allPrintRows: any[] = [
     ...(centerQ.data ?? []).map((r: any) => ({ ...r, _section: "مركز" })),
     ...(clinicQ.data ?? []).map((r: any) => ({ ...r, _section: "عيادة" })),
@@ -333,7 +350,7 @@ export default function PayrollReport() {
       refetchBoth();
       toast.success(`تم احتساب ${res.saved} موظف`);
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر احتساب الرواتب: " + e.message),
   });
 
   const finalizeMut = (trpc as any).salary.finalizePayroll.useMutation({
@@ -341,7 +358,7 @@ export default function PayrollReport() {
       refetchBoth();
       toast.success("تم اعتماد كشف الرواتب");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر اعتماد كشف الرواتب: " + e.message),
   });
 
   const totals = allPrintRows.reduce(
@@ -841,7 +858,7 @@ export default function PayrollReport() {
             </div>
           </div>
           <div class="report-title">
-            <h1>${escapeHtml(title)} — ${escapeHtml(MONTHS[month - 1])}</h1>
+            <h1>${escapeHtml(title)}: ${escapeHtml(MONTHS[month - 1])}</h1>
             <span class="period">${escapeHtml(periodLabel)}</span>
           </div>
           <div class="report-title" style="text-align:left">
@@ -895,7 +912,7 @@ export default function PayrollReport() {
           <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
           <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
         </div>
-        <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>
+        <div class="footer-meta"><span>التقرير الكامل في هذه الطباعة</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>
       </main>`;
   }
 
@@ -911,6 +928,10 @@ export default function PayrollReport() {
     );
     const tAbsent = nonShift.reduce(
       (sum: number, row: any) => sum + Number(row.absentDeduction ?? 0),
+      0,
+    );
+    const tLeave = nonShift.reduce(
+      (sum: number, row: any) => sum + Number(row.leaveDeduction ?? 0),
       0,
     );
     const tLate = nonShift.reduce(
@@ -961,6 +982,7 @@ export default function PayrollReport() {
         <td class="emp-col">${escapeHtml(r.fullName ?? r.empCd)}</td>
         <td>${fmt(r.basicSalary)}</td>
         <td>${fmt(r.absentDeduction)}</td>
+        <td>${fmt(r.leaveDeduction ?? 0)}</td>
         <td>${fmt(r.lateDeduction ?? 0)}</td>
         <td>${fmt(r.earlyLeaveDeduction ?? 0)}</td>
         <td>${fmt(r.penaltyDeduction)}</td>
@@ -993,6 +1015,7 @@ export default function PayrollReport() {
             <th>الاسم</th>
             <th>الأساسي</th>
             <th>خصم غياب</th>
+            <th>خصم إجازة من الراتب</th>
             <th>خصم تأخير</th>
             <th>خصم مبكر</th>
             <th>جزاءات</th>
@@ -1012,6 +1035,7 @@ export default function PayrollReport() {
             <td class="emp-col">الإجمالي</td>
             <td>${fmt(tBasic)}</td>
             <td>${fmt(tAbsent)}</td>
+            <td>${fmt(tLeave)}</td>
             <td>${fmt(tLate)}</td>
             <td>${fmt(tEarly)}</td>
             <td>${fmt(tPenalty)}</td>
@@ -1033,12 +1057,12 @@ export default function PayrollReport() {
         <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
       </div>
       <div class="footer-meta">
-        <span>صفحة 1 من 1</span>
+        <span>التقرير الكامل في هذه الطباعة</span>
         <span>تاريخ الطباعة: ${escapeHtml(today)}</span>
       </div>
       </main>`;
 
-    openPrint(html, `كشف الرواتب — ${section} — ${periodLabel}`, SHEET_CSS);
+    openPrint(html, `كشف الرواتب: ${section}، ${periodLabel}`, SHEET_CSS);
   }
 
   function printShiftsSheet() {
@@ -1186,21 +1210,35 @@ export default function PayrollReport() {
           <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
         </div>
         <div class="footer-meta">
-          <span>صفحة 1 من 1</span>
+          <span>التقرير الكامل في هذه الطباعة</span>
           <span>تاريخ الطباعة: ${escapeHtml(today)}</span>
         </div>
       </main>`;
 
-    openPrint(html, `كشف الشفتات — ${periodLabel}`, SHEET_CSS);
+    openPrint(html, `كشف الشفتات: ${periodLabel}`, SHEET_CSS);
   }
 
   function printShiftBasicsSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
-    const totalBig = enhancedShiftRows.reduce((sum, row) => sum + row.shiftDayTotal, 0);
-    const totalSmall = enhancedShiftRows.reduce((sum, row) => sum + row.shiftNightTotal, 0);
-    const totalDeductions = enhancedShiftRows.reduce((sum, row) => sum + Number(row.totalDeductions), 0);
-    const totalNet = enhancedShiftRows.reduce((sum, row) => sum + Number(row.netBasic), 0);
-    const bodyRows = enhancedShiftRows.map((row) => `
+    const totalBig = enhancedShiftRows.reduce(
+      (sum, row) => sum + row.shiftDayTotal,
+      0,
+    );
+    const totalSmall = enhancedShiftRows.reduce(
+      (sum, row) => sum + row.shiftNightTotal,
+      0,
+    );
+    const totalDeductions = enhancedShiftRows.reduce(
+      (sum, row) => sum + Number(row.totalDeductions),
+      0,
+    );
+    const totalNet = enhancedShiftRows.reduce(
+      (sum, row) => sum + Number(row.netBasic),
+      0,
+    );
+    const bodyRows = enhancedShiftRows
+      .map(
+        (row) => `
       <tr>
         <td class="emp-col">${escapeHtml(row.fullName)}</td>
         <td>${escapeHtml(row.type === "doctor" ? "طبيب" : "فني")}</td>
@@ -1208,7 +1246,9 @@ export default function PayrollReport() {
         <td>${row.shiftNightCount}</td><td>${fmt(row.shiftNightRate)}</td><td>${fmt(row.shiftNightTotal)}</td>
         <td>${fmt(row.totalDeductions)}</td><td>${pct(row.leaveMultiplier)}</td>
         <td class="money-strong">${fmt(row.netBasic)}</td><td class="sig-col"></td>
-      </tr>`).join("");
+      </tr>`,
+      )
+      .join("");
     const html = `
       ${renderSheetHeader("كشف رواتب الشفتات", "مركز")}
       <table><thead><tr>
@@ -1219,51 +1259,88 @@ export default function PayrollReport() {
         <tr class="total-row"><td class="emp-col" colspan="4">الإجمالي</td><td>${fmt(totalBig)}</td><td colspan="2"></td><td>${fmt(totalSmall)}</td><td>${fmt(totalDeductions)}</td><td></td><td class="money-strong">${fmt(totalNet)}</td><td></td></tr>
       </tbody></table>
       <div class="footer"><div class="footer-block"><div class="footer-line"></div>المدير الإداري</div><div class="footer-block"><div class="footer-line"></div>الحسابات</div><div class="footer-block"><div class="footer-line"></div>شئون العاملين</div></div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>`;
-    openPrint(html, `كشف رواتب الشفتات — ${periodLabel}`, SHEET_CSS);
+      <div class="footer-meta"><span>التقرير الكامل في هذه الطباعة</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>`;
+    openPrint(html, `كشف رواتب الشفتات: ${periodLabel}`, SHEET_CSS);
   }
 
   function getShiftCommissionSheetRows() {
-    const doctors = enhancedShiftRows.filter((row: any) => row.type === "doctor");
-    const totalShiftPay = doctors.reduce((sum: number, row: any) => sum + Number(row.netBasic), 0);
-    const payrollRows = doctors.map((row: any) => shiftRows.find((item: any) => item.empCd === `shift_${row.id}`)).filter(Boolean);
-    const examPool = payrollRows.reduce((sum: number, row: any) => sum + Number(row.examCommission ?? 0), 0);
-    const pentacamPool = payrollRows.reduce((sum: number, row: any) => sum + Number(row.pentacamCommission ?? 0), 0);
+    const doctors = enhancedShiftRows.filter(
+      (row: any) => row.type === "doctor",
+    );
+    const totalShiftPay = doctors.reduce(
+      (sum: number, row: any) => sum + Number(row.netBasic),
+      0,
+    );
+    const payrollRows = doctors
+      .map((row: any) =>
+        shiftRows.find((item: any) => item.empCd === `shift_${row.id}`),
+      )
+      .filter(Boolean);
+    const examPool = payrollRows.reduce(
+      (sum: number, row: any) => sum + Number(row.examCommission ?? 0),
+      0,
+    );
+    const pentacamPool = payrollRows.reduce(
+      (sum: number, row: any) => sum + Number(row.pentacamCommission ?? 0),
+      0,
+    );
     return doctors.map((row: any) => {
-      const payrollRow = shiftRows.find((item: any) => item.empCd === `shift_${row.id}`);
+      const payrollRow = shiftRows.find(
+        (item: any) => item.empCd === `shift_${row.id}`,
+      );
       const base = Number(row.netBasic);
       const share = totalShiftPay > 0 ? base / totalShiftPay : 0;
       const previousBase = Number(payrollRow?.netBasic ?? 0);
-      const attendanceRaw = Number(payrollRow?.attendanceCommissionRaw ?? payrollRow?.attendanceCommission ?? 0);
-      const attendanceRate = previousBase > 0 ? attendanceRaw / previousBase : 0.25;
+      const attendanceRaw = Number(
+        payrollRow?.attendanceCommissionRaw ??
+          payrollRow?.attendanceCommission ??
+          0,
+      );
+      const attendanceRate =
+        previousBase > 0 ? attendanceRaw / previousBase : 0.25;
       const attend = base * attendanceRate * Number(row.leaveMultiplier ?? 1);
       const examComm = examPool * share;
       const pentComm = pentacamPool * share;
-      return { ...row, base, share, attend, examComm, pentComm, total: attend + examComm + pentComm };
+      return {
+        ...row,
+        base,
+        share,
+        attend,
+        examComm,
+        pentComm,
+        total: attend + examComm + pentComm,
+      };
     });
   }
 
   function printShiftCommissionsSheet() {
     const today = new Date().toLocaleDateString("ar-EG");
     const commissionRows = getShiftCommissionSheetRows();
-    const totals = commissionRows.reduce((acc, row) => ({
-      base: acc.base + row.base,
-      attend: acc.attend + row.attend,
-      exam: acc.exam + row.examComm,
-      pentacam: acc.pentacam + row.pentComm,
-      total: acc.total + row.total,
-    }), { base: 0, attend: 0, exam: 0, pentacam: 0, total: 0 });
-    const bodyRows = commissionRows.map((row) => `
+    const totals = commissionRows.reduce(
+      (acc, row) => ({
+        base: acc.base + row.base,
+        attend: acc.attend + row.attend,
+        exam: acc.exam + row.examComm,
+        pentacam: acc.pentacam + row.pentComm,
+        total: acc.total + row.total,
+      }),
+      { base: 0, attend: 0, exam: 0, pentacam: 0, total: 0 },
+    );
+    const bodyRows = commissionRows
+      .map(
+        (row) => `
       <tr><td class="emp-col">${escapeHtml(row.fullName)}</td><td>${fmt(row.base)}</td><td>${pct(row.share)}</td>
       <td>${fmt(row.attend)}</td><td>${fmt(row.examComm)}</td><td>${fmt(row.pentComm)}</td>
-      <td class="money-strong">${fmt(row.total)}</td><td class="sig-col"></td></tr>`).join("");
+      <td class="money-strong">${fmt(row.total)}</td><td class="sig-col"></td></tr>`,
+      )
+      .join("");
     const html = `
       ${renderSheetHeader("كشف عمولات الشفتات", "مركز")}
       <table><thead><tr><th>الاسم</th><th>صافي الشفتات</th><th>نسبة التوزيع</th><th>الحضور</th><th>الفحص</th><th>البنتاكام</th><th>إجمالي العمولات</th><th class="sig-col">التوقيع</th></tr></thead>
       <tbody>${bodyRows}<tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(totals.base)}</td><td></td><td>${fmt(totals.attend)}</td><td>${fmt(totals.exam)}</td><td>${fmt(totals.pentacam)}</td><td class="money-strong">${fmt(totals.total)}</td><td></td></tr></tbody></table>
       <div class="footer"><div class="footer-block"><div class="footer-line"></div>المدير الإداري</div><div class="footer-block"><div class="footer-line"></div>الحسابات</div><div class="footer-block"><div class="footer-line"></div>شئون العاملين</div></div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>`;
-    openPrint(html, `كشف عمولات الشفتات — ${periodLabel}`, SHEET_CSS);
+      <div class="footer-meta"><span>التقرير الكامل في هذه الطباعة</span><span>تاريخ الطباعة: ${escapeHtml(today)}</span></div>`;
+    openPrint(html, `كشف عمولات الشفتات: ${periodLabel}`, SHEET_CSS);
   }
 
   function printShiftDay1Slips() {
@@ -1306,7 +1383,7 @@ export default function PayrollReport() {
         };
         return buildSlip(
           slipRow,
-          `مرتب الشفتات — يوم 1 — ${MONTHS[month - 1]} ${year}`,
+          `مرتب الشفتات: يوم 1، ${MONTHS[month - 1]} ${year}`,
           table,
           net,
           section,
@@ -1315,7 +1392,7 @@ export default function PayrollReport() {
       .join("");
     openPrint(
       html,
-      `قسائم الشفتات يوم 1 — ${MONTHS[month - 1]} ${year}`,
+      `قسائم الشفتات يوم 1: ${MONTHS[month - 1]} ${year}`,
       SLIPS_CSS,
     );
   }
@@ -1368,7 +1445,7 @@ export default function PayrollReport() {
         };
         return buildSlip(
           slipRow,
-          `نسب الشفتات — ${MONTHS[month - 1]} ${year}`,
+          `نسب الشفتات: ${MONTHS[month - 1]} ${year}`,
           table,
           net,
           section,
@@ -1377,7 +1454,7 @@ export default function PayrollReport() {
       .join("");
     openPrint(
       html,
-      `قسائم الشفتات يوم 10 — ${MONTHS[month - 1]} ${year}`,
+      `قسائم الشفتات يوم 10: ${MONTHS[month - 1]} ${year}`,
       SLIPS_CSS,
     );
   }
@@ -1468,8 +1545,8 @@ export default function PayrollReport() {
         <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
         <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
       </div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
-    openPrint(html, `كشف الأساسي — ${section} — ${periodLabel}`, SHEET_CSS);
+      <div class="footer-meta"><span>التقرير الكامل في هذه الطباعة</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف الأساسي: ${section}، ${periodLabel}`, SHEET_CSS);
   }
 
   function printCommissionsSheet() {
@@ -1573,8 +1650,8 @@ export default function PayrollReport() {
         <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
         <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
       </div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
-    openPrint(html, `كشف العمولات — ${section} — ${periodLabel}`, SHEET_CSS);
+      <div class="footer-meta"><span>التقرير الكامل في هذه الطباعة</span><span>تاريخ الطباعة: ${today}</span></div>`;
+    openPrint(html, `كشف العمولات: ${section}، ${periodLabel}`, SHEET_CSS);
   }
 
   function printSupervisionSheet() {
@@ -1616,10 +1693,10 @@ export default function PayrollReport() {
         <div class="footer-block"><div class="footer-line"></div>الحسابات</div>
         <div class="footer-block"><div class="footer-line"></div>شئون العاملين</div>
       </div>
-      <div class="footer-meta"><span>صفحة 1 من 1</span><span>تاريخ الطباعة: ${today}</span></div>`;
+      <div class="footer-meta"><span>التقرير الكامل في هذه الطباعة</span><span>تاريخ الطباعة: ${today}</span></div>`;
     openPrint(
       html,
-      `كشف مكافآت الإشراف — ${section} — ${periodLabel}`,
+      `كشف مكافآت الإشراف: ${section}، ${periodLabel}`,
       SHEET_CSS,
     );
   }
@@ -1653,7 +1730,7 @@ export default function PayrollReport() {
         );
       })
       .join("");
-    openPrint(html, `مكافآت الإشراف — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+    openPrint(html, `مكافآت الإشراف: ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
   }
 
   function buildSlip(
@@ -1723,7 +1800,7 @@ export default function PayrollReport() {
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tPenalty)}</td><td></td></tr>
         </tbody>
       </table>`;
-    openPrint(html, `كشف الجزاءات — ${section} — ${periodLabel}`, SHEET_CSS);
+    openPrint(html, `كشف الجزاءات: ${section}، ${periodLabel}`, SHEET_CSS);
   }
 
   function printAdvancesSheet() {
@@ -1754,7 +1831,7 @@ export default function PayrollReport() {
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tAdv)}</td><td></td></tr>
         </tbody>
       </table>`;
-    openPrint(html, `كشف السلف — ${section} — ${periodLabel}`, SHEET_CSS);
+    openPrint(html, `كشف السلف: ${section}، ${periodLabel}`, SHEET_CSS);
   }
 
   function printLateSheet() {
@@ -1802,7 +1879,7 @@ export default function PayrollReport() {
           </tr>
         </tbody>
       </table>`;
-    openPrint(html, `كشف التأخيرات — ${section} — ${periodLabel}`, SHEET_CSS);
+    openPrint(html, `كشف التأخيرات: ${section}، ${periodLabel}`, SHEET_CSS);
   }
 
   function printInsuranceSheet() {
@@ -1833,7 +1910,7 @@ export default function PayrollReport() {
           <tr class="total-row"><td class="emp-col">الإجمالي</td><td>${fmt(tIns)}</td><td></td></tr>
         </tbody>
       </table>`;
-    openPrint(html, `كشف التأمينات — ${section} — ${periodLabel}`, SHEET_CSS);
+    openPrint(html, `كشف التأمينات: ${section}، ${periodLabel}`, SHEET_CSS);
   }
 
   function printDay1Slips() {
@@ -1860,9 +1937,9 @@ export default function PayrollReport() {
             <th>غلاء معيشة</th>
             <th>بدلات</th>
             <th>زيادة سنوات سابقة</th>
-            <th>زيادة يناير</th>
-            <th>إجمالي أساسي</th>
-            <th>ح عاملين</th>
+            <th>زيادة يناير (غير مسجلة)</th>
+            <th>إجمالي أساسي شامل الزيادة السنوية</th>
+            <th>حصة العاملين (غير متاحة)</th>
             <th>إجمالي الاستحقاقات</th>
             <th rowspan="4" class="net-cell"><span class="net-label">صافي المستحق</span><span class="net-val">${fmt(net)}</span></th>
           </tr>
@@ -1872,9 +1949,9 @@ export default function PayrollReport() {
             <td>${fmt(cola)}</td>
             <td>${fmt(badlat)}</td>
             <td>${fmt(raise)}</td>
-            <td>0.00</td>
+            <td>غير متاح</td>
             <td>${fmt(grossBasic)}</td>
-            <td>0.00</td>
+            <td>غير متاح</td>
             <td>${fmt(grossBasic)}</td>
           </tr>
           <tr>
@@ -1899,7 +1976,7 @@ export default function PayrollReport() {
         return buildSlip(r, `مرتب ${MONTHS[month - 1]} ${year}`, table, net);
       })
       .join("");
-    openPrint(html, `دفعة يوم 1 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 1: ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
   }
 
   function printDay10Slips() {
@@ -1947,21 +2024,26 @@ export default function PayrollReport() {
         return buildSlip(r, `نسب ${MONTHS[month - 1]} ${year}`, table, net);
       })
       .join("");
-    openPrint(html, `دفعة يوم 10 — ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
+    openPrint(html, `دفعة يوم 10: ${MONTHS[month - 1]} ${year}`, SLIPS_CSS);
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="min-w-0 space-y-4" dir="rtl">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-lg border border-border overflow-hidden text-sm w-full sm:w-auto">
+            <div
+              role="group"
+              aria-label="قسم المرتبات"
+              className="flex rounded-md border border-border overflow-hidden text-sm w-full sm:w-auto"
+            >
               {SECTIONS.map((s) => (
                 <button
                   key={s}
                   type="button"
+                  aria-pressed={section === s}
                   onClick={() => setSection(s)}
-                  className={`flex-1 sm:flex-none px-4 py-2 transition-colors ${section === s ? "bg-primary text-primary-foreground font-semibold" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                  className={`min-h-11 flex-1 sm:flex-none px-4 py-2 transition-colors ${section === s ? "bg-primary text-primary-foreground font-semibold" : "bg-background text-muted-foreground hover:bg-muted"}`}
                 >
                   {s}
                 </button>
@@ -1969,8 +2051,10 @@ export default function PayrollReport() {
             </div>
             <select
               value={month}
-              onChange={(event) => setPayrollPeriod(year, Number(event.target.value))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground"
+              onChange={(event) =>
+                setPayrollPeriod(year, Number(event.target.value))
+              }
+              className="h-11 rounded-md border border-input bg-card px-3 text-sm font-semibold text-foreground"
               aria-label="الشهر"
             >
               {MONTHS.map((monthName, monthIndex) => (
@@ -1981,8 +2065,10 @@ export default function PayrollReport() {
             </select>
             <select
               value={year}
-              onChange={(event) => setPayrollPeriod(Number(event.target.value), month)}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground"
+              onChange={(event) =>
+                setPayrollPeriod(Number(event.target.value), month)
+              }
+              className="h-11 rounded-md border border-input bg-card px-3 text-sm font-semibold text-foreground"
               aria-label="السنة"
             >
               {Array.from({ length: 11 }, (_, index) => year - 5 + index).map(
@@ -2013,7 +2099,7 @@ export default function PayrollReport() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="gap-2">
-                        <Printer size={15} /> طباعة الكشف
+                        <Printer size={15} /> طباعة / حفظ PDF
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
@@ -2144,13 +2230,13 @@ export default function PayrollReport() {
                             onClick={printShiftDay1Slips}
                             className="gap-2 justify-start cursor-pointer"
                           >
-                            <Printer size={14} /> إيصالات الشفتات — يوم 1
+                            <Printer size={14} /> إيصالات الشفتات: يوم 1
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={printShiftDay10Slips}
                             className="gap-2 justify-start cursor-pointer"
                           >
-                            <Printer size={14} /> إيصالات الشفتات — يوم 10
+                            <Printer size={14} /> إيصالات الشفتات: يوم 10
                           </DropdownMenuItem>
                         </>
                       )}
@@ -2162,11 +2248,23 @@ export default function PayrollReport() {
             {rows.length > 0 && !isFinalized && (
               <Button
                 variant="outline"
-                onClick={() => {
-                  if (confirm("اعتماد كشف الرواتب كنهائي؟"))
-                    finalizeMut.mutate({ year, month });
+                onClick={async () => {
+                  if (await askConfirm("اعتماد كشف الرواتب كنهائي؟"))
+                    finalizeMut.mutate({
+                      year,
+                      month,
+                      section,
+                      fromDate,
+                      toDate,
+                      expectedSnapshot: payrollSnapshot(rows),
+                    });
                 }}
-                disabled={finalizeMut.isPending}
+                disabled={
+                  finalizeMut.isPending ||
+                  computeMut.isPending ||
+                  centerQ.isFetching ||
+                  clinicQ.isFetching
+                }
                 className="gap-2 w-full sm:w-auto justify-center"
               >
                 <CheckCircle size={15} /> اعتماد
@@ -2176,17 +2274,44 @@ export default function PayrollReport() {
         </div>
       </div>
 
-      {/* ── Tabs Navigation ── */}
+      {activeQ.isLoading ? (
+        <div
+          role="status"
+          className="rounded-xl border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground"
+        >
+          جارٍ تحميل كشف الرواتب...
+        </div>
+      ) : activeQ.isError ? (
+        <div
+          role="alert"
+          className="flex flex-col items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive-text"
+        >
+          <span>
+            تعذر تحميل كشف الرواتب. لا تعتمد الأرقام المعروضة حتى تُحمَّل بنجاح.
+          </span>
+          <Button variant="outline" onClick={() => activeQ.refetch()}>
+            إعادة المحاولة
+          </Button>
+        </div>
+      ) : null}
+
+      {/* Tabs Navigation */}
       {rows.length > 0 && (
         <div className="flex flex-col gap-2 border-b border-border sm:flex-row sm:items-end sm:justify-between">
           {section === "مركز" && (
-            <div className="flex flex-col gap-2" role="tablist" aria-label="أقسام كشف الشهر">
+            <div
+              className="flex flex-col gap-2"
+              role="tablist"
+              aria-label="أقسام كشف الشهر"
+            >
               <div className="flex flex-wrap gap-2">
-                {([
-                  ["salaries", "الرواتب"],
-                  ["shifts", "الشفتات"],
-                  ["supervision", "مكافأة الإشراف"],
-                ] as const).map(([tab, label]) => (
+                {(
+                  [
+                    ["salaries", "الرواتب"],
+                    ["shifts", "الشفتات"],
+                    ["supervision", "مكافأة الإشراف"],
+                  ] as const
+                ).map(([tab, label]) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -2211,7 +2336,9 @@ export default function PayrollReport() {
                         : setShiftsSubTab("basic")
                     }
                     className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
-                      (activeTab === "salaries" ? salariesSubTab : shiftsSubTab) === "basic"
+                      (activeTab === "salaries"
+                        ? salariesSubTab
+                        : shiftsSubTab) === "basic"
                         ? "bg-background text-primary shadow-xs"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
@@ -2225,7 +2352,9 @@ export default function PayrollReport() {
                         : setShiftsSubTab("commissions")
                     }
                     className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
-                      (activeTab === "salaries" ? salariesSubTab : shiftsSubTab) === "commissions"
+                      (activeTab === "salaries"
+                        ? salariesSubTab
+                        : shiftsSubTab) === "commissions"
                         ? "bg-background text-primary shadow-xs"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
@@ -2240,16 +2369,18 @@ export default function PayrollReport() {
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="البحث باسم الموظف…"
+              placeholder="البحث باسم الموظف..."
+              enterKeyHint="search"
+              aria-label="البحث باسم الموظف..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="min-h-10 w-full rounded-md border border-border bg-background pr-9 pl-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              className="min-h-10 w-full rounded-md border border-input bg-background pr-9 pl-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>
       )}
 
-      {/* ── Salaries Tab ── */}
+      {/* Salaries Tab */}
       {(section === "عيادة" ||
         (activeTab === "salaries" && salariesSubTab === "basic")) &&
         (() => {
@@ -2262,9 +2393,9 @@ export default function PayrollReport() {
           );
           return (
             <section className="rounded-xl border border-border bg-background overflow-hidden">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/10">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 bg-muted/10">
                 <h3 className="text-base font-semibold">
-                  الرواتب الأساسية — {periodLabel}
+                  الرواتب الأساسية: {periodLabel}
                 </h3>
                 <div className="flex items-center gap-2">
                   {isFinalized && (
@@ -2273,7 +2404,7 @@ export default function PayrollReport() {
                     </span>
                   )}
                   {rows.length > 0 && !isFinalized && (
-                    <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning font-semibold">
+                    <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning-text font-semibold">
                       مسودة
                     </span>
                   )}
@@ -2290,48 +2421,96 @@ export default function PayrollReport() {
                 </div>
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto" dir="rtl">
-                <table dir="rtl" className="w-full text-sm">
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+                <table
+                  aria-label="الرواتب الأساسية"
+                  dir="rtl"
+                  className="w-full text-sm"
+                >
                   <thead>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         الموظف
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         الأساسي
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         أيام عمل
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         تأخير
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         غياب
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
+                        إجازة من الراتب
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         جزاء
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         بصمة واحدة
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         سلف
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         تأمين
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         إجمالي الخصومات
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         إجازة
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         معامل
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground font-bold">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground font-bold"
+                      >
                         صافي الأساسي
                       </th>
                     </tr>
@@ -2358,11 +2537,14 @@ export default function PayrollReport() {
                           <td className="px-3 py-3 text-center">
                             {r.workingDays}
                           </td>
-                          <td className="px-3 py-3 text-center text-warning">
+                          <td className="px-3 py-3 text-center text-warning-text">
                             {fmt(deductions.late)}
                           </td>
                           <td className="px-3 py-3 text-center text-destructive">
                             {fmt(deductions.absent)}
+                          </td>
+                          <td className="px-3 py-3 text-center text-destructive">
+                            {fmt(deductions.leave)}
                           </td>
                           <td className="px-3 py-3 text-center text-destructive">
                             {fmt(deductions.penalty)}
@@ -2394,7 +2576,7 @@ export default function PayrollReport() {
                     {filteredRegularRows.length === 0 && (
                       <tr>
                         <td
-                          colSpan={13}
+                          colSpan={14}
                           className="px-4 py-10 text-center text-muted-foreground"
                         >
                           لا توجد رواتب تطابق البحث
@@ -2422,6 +2604,15 @@ export default function PayrollReport() {
                             filteredRegularRows.reduce(
                               (sum: number, row: any) =>
                                 sum + getDeductionBreakdown(row).absent,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {fmt(
+                            filteredRegularRows.reduce(
+                              (sum: number, row: any) =>
+                                sum + getDeductionBreakdown(row).leave,
                               0,
                             ),
                           )}
@@ -2487,8 +2678,7 @@ export default function PayrollReport() {
                 </table>
               </div>
 
-              {/* Mobile Accordion Card List View */}
-              <div className="block lg:hidden divide-y divide-border/60">
+              <div className="block xl:hidden divide-y divide-border/60">
                 {filteredRegularRows.map((r: any) => {
                   const isExpanded = !!expandedCards[`salary-${r.empCd}`];
                   const deductions = getDeductionBreakdown(r);
@@ -2498,8 +2688,18 @@ export default function PayrollReport() {
                       className="bg-card p-4 transition-colors hover:bg-muted/5"
                     >
                       <div
-                        className="flex items-center justify-between cursor-pointer select-none"
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        aria-label={`${r.fullName ?? r.empCd}، تفاصيل الراتب`}
+                        className="flex min-h-11 items-center justify-between cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         onClick={() => toggleCard(`salary-${r.empCd}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleCard(`salary-${r.empCd}`);
+                          }
+                        }}
                       >
                         <div className="space-y-0.5">
                           <div className="font-semibold text-foreground text-sm">
@@ -2511,7 +2711,7 @@ export default function PayrollReport() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-left">
-                            <span className="text-[10px] text-muted-foreground block uppercase">
+                            <span className="text-xs text-muted-foreground block">
                               صافي الأساسي
                             </span>
                             <span className="font-bold text-primary tabular-nums text-sm">
@@ -2550,7 +2750,7 @@ export default function PayrollReport() {
                             <span className="text-muted-foreground">
                               تأخير:
                             </span>
-                            <span className="font-medium text-warning tabular-nums">
+                            <span className="font-medium text-warning-text tabular-nums">
                               {fmt(deductions.late)}
                             </span>
                           </div>
@@ -2558,6 +2758,14 @@ export default function PayrollReport() {
                             <span className="text-muted-foreground">غياب:</span>
                             <span className="font-medium text-destructive tabular-nums">
                               {fmt(deductions.absent)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-b border-border/10 pb-1">
+                            <span className="text-muted-foreground">
+                              إجازة من الراتب:
+                            </span>
+                            <span className="font-medium text-destructive tabular-nums">
+                              {fmt(deductions.leave)}
                             </span>
                           </div>
                           <div className="flex justify-between border-b border-border/10 pb-1">
@@ -2623,7 +2831,6 @@ export default function PayrollReport() {
                   </div>
                 )}
 
-                {/* Mobile Footer/Totals */}
                 {filteredRegularRows.length > 0 && (
                   <div className="bg-muted/20 p-4 space-y-2 text-xs font-semibold">
                     <div className="flex justify-between">
@@ -2660,7 +2867,7 @@ export default function PayrollReport() {
           );
         })()}
 
-      {/* ── Shifts Tab (Center only) ── */}
+      {/* Shifts Tab (Center only) */}
       {section === "مركز" &&
         activeTab === "shifts" &&
         shiftsSubTab === "basic" &&
@@ -2672,9 +2879,9 @@ export default function PayrollReport() {
           );
           return (
             <section className="rounded-xl border border-border bg-background overflow-hidden">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/10">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 bg-muted/10">
                 <h3 className="text-base font-semibold">
-                  الشفتات — {periodLabel}
+                  الشفتات: {periodLabel}
                 </h3>
                 {enhancedShiftRows.length > 0 && (
                   <div className="flex items-center gap-2">
@@ -2706,39 +2913,72 @@ export default function PayrollReport() {
                 )}
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto" dir="rtl">
-                <table dir="rtl" className="w-full text-sm">
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+                <table
+                  aria-label="الشفتات"
+                  dir="rtl"
+                  className="w-full text-sm"
+                >
                   <thead>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         الموظف
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         شفت كبير
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         قيمة
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         إجمالي
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         شفت صغير
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         قيمة
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         إجمالي
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         الخصومات
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         معامل
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground font-bold">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground font-bold"
+                      >
                         صافي الأساسي
                       </th>
                     </tr>
@@ -2790,7 +3030,7 @@ export default function PayrollReport() {
                           colSpan={10}
                           className="px-4 py-10 text-center text-muted-foreground"
                         >
-                          لا توجد موظفي شفتات تطابق البحث
+                          لا يوجد موظفو شفتات يطابقون البحث
                         </td>
                       </tr>
                     )}
@@ -2841,8 +3081,7 @@ export default function PayrollReport() {
                 </table>
               </div>
 
-              {/* Mobile Accordion Card List View */}
-              <div className="block lg:hidden divide-y divide-border/60">
+              <div className="block xl:hidden divide-y divide-border/60">
                 {filteredEnhancedShiftRows.map((r: any) => {
                   const isExpanded = !!expandedCards[`shift-${r.id}`];
                   return (
@@ -2851,8 +3090,18 @@ export default function PayrollReport() {
                       className="bg-card p-4 transition-colors hover:bg-muted/5"
                     >
                       <div
-                        className="flex items-center justify-between cursor-pointer select-none"
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        aria-label={`${r.fullName}، تفاصيل راتب الشفت`}
+                        className="flex min-h-11 items-center justify-between cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         onClick={() => toggleCard(`shift-${r.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleCard(`shift-${r.id}`);
+                          }
+                        }}
                       >
                         <div className="space-y-0.5">
                           <div className="font-semibold text-foreground text-sm">
@@ -2864,7 +3113,7 @@ export default function PayrollReport() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-left">
-                            <span className="text-[10px] text-muted-foreground block uppercase">
+                            <span className="text-xs text-muted-foreground block">
                               صافي الأساسي
                             </span>
                             <span className="font-bold text-primary tabular-nums text-sm">
@@ -2888,7 +3137,7 @@ export default function PayrollReport() {
                             <div className="font-medium text-foreground">
                               شفت كبير
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                            <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                               <div>
                                 العدد:{" "}
                                 <span className="text-foreground font-medium tabular-nums">
@@ -2915,7 +3164,7 @@ export default function PayrollReport() {
                             <div className="font-medium text-foreground">
                               شفت صغير
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                            <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                               <div>
                                 العدد:{" "}
                                 <span className="text-foreground font-medium tabular-nums">
@@ -2967,7 +3216,6 @@ export default function PayrollReport() {
                   </div>
                 )}
 
-                {/* Mobile Footer/Totals */}
                 {filteredEnhancedShiftRows.length > 0 && (
                   <div className="bg-muted/20 p-4 space-y-2 text-xs font-semibold">
                     <div className="flex justify-between">
@@ -3030,7 +3278,7 @@ export default function PayrollReport() {
           );
         })()}
 
-      {/* ── Shift Commissions Tab ── */}
+      {/* Shift Commissions Tab */}
       {section === "مركز" &&
         activeTab === "shifts" &&
         shiftsSubTab === "commissions" &&
@@ -3146,30 +3394,54 @@ export default function PayrollReport() {
                 </div>
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto" dir="rtl">
-                <table dir="rtl" className="w-full text-sm">
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+                <table
+                  aria-label="عمولات الشفتات"
+                  dir="rtl"
+                  className="w-full text-sm"
+                >
                   <thead>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         الموظف
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         الأساسي (صافي الشفتات)
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         النسبة %
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         حضور (٢٥٪)
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         فحص
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground"
+                      >
                         بنتاكام
                       </th>
-                      <th className="px-3 py-3 text-center font-medium text-muted-foreground font-bold">
+                      <th
+                        scope="col"
+                        className="px-3 py-3 text-center font-medium text-muted-foreground font-bold"
+                      >
                         الإجمالي
                       </th>
                     </tr>
@@ -3241,8 +3513,7 @@ export default function PayrollReport() {
                 </table>
               </div>
 
-              {/* Mobile Accordion Card List View */}
-              <div className="block lg:hidden divide-y divide-border/60">
+              <div className="block xl:hidden divide-y divide-border/60">
                 {filteredCommRows.map((r: any) => {
                   const isExpanded = !!expandedCards[`shiftcomm-${r.id}`];
                   return (
@@ -3251,8 +3522,18 @@ export default function PayrollReport() {
                       className="bg-card p-4 transition-colors hover:bg-muted/5"
                     >
                       <div
-                        className="flex items-center justify-between cursor-pointer select-none"
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        aria-label={`${r.fullName}، تفاصيل عمولات الشفت`}
+                        className="flex min-h-11 items-center justify-between cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         onClick={() => toggleCard(`shiftcomm-${r.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleCard(`shiftcomm-${r.id}`);
+                          }
+                        }}
                       >
                         <div className="space-y-0.5">
                           <div className="font-semibold text-foreground text-sm">
@@ -3264,7 +3545,7 @@ export default function PayrollReport() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-left">
-                            <span className="text-[10px] text-muted-foreground block uppercase">
+                            <span className="text-xs text-muted-foreground block">
                               إجمالي العمولات
                             </span>
                             <span className="font-bold text-primary tabular-nums text-sm">
@@ -3334,7 +3615,6 @@ export default function PayrollReport() {
                   </div>
                 )}
 
-                {/* Mobile Footer/Totals */}
                 {filteredCommRows.length > 0 && (
                   <div className="bg-muted/20 p-4 space-y-2 text-xs font-semibold">
                     <div className="flex justify-between">
@@ -3374,7 +3654,7 @@ export default function PayrollReport() {
           );
         })()}
 
-      {/* ── Commissions Tab ── */}
+      {/* Commissions Tab */}
       {(section === "عيادة" ||
         (activeTab === "salaries" && salariesSubTab === "commissions")) &&
         (() => {
@@ -3393,9 +3673,9 @@ export default function PayrollReport() {
           );
           return (
             <section className="rounded-xl border border-border bg-background overflow-hidden">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/10">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 bg-muted/10">
                 <h3 className="text-base font-semibold">
-                  العمولات — {periodLabel}
+                  العمولات: {periodLabel}
                 </h3>
                 {filteredRegularRows.length > 0 && (
                   <Button
@@ -3409,9 +3689,12 @@ export default function PayrollReport() {
                 )}
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto" dir="rtl">
-                <table dir="rtl" className="w-full text-sm">
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+                <table
+                  aria-label="العمولات"
+                  dir="rtl"
+                  className="w-full text-sm"
+                >
                   <thead>
                     <tr className="border-b border-border bg-muted/30 text-xs">
                       <th
@@ -3472,24 +3755,42 @@ export default function PayrollReport() {
                       </th>
                     </tr>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-2 py-1.5 text-center font-medium text-muted-foreground"
+                      >
                         النسبة
                       </th>
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-2 py-1.5 text-center font-medium text-muted-foreground"
+                      >
                         المستحق
                       </th>
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-2 py-1.5 text-center font-medium text-muted-foreground"
+                      >
                         النسبة
                       </th>
-                      <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-2 py-1.5 text-center font-medium text-muted-foreground"
+                      >
                         المستحق
                       </th>
                       {section !== "عيادة" && (
                         <>
-                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                          <th
+                            scope="col"
+                            className="px-2 py-1.5 text-center font-medium text-muted-foreground"
+                          >
                             النسبة
                           </th>
-                          <th className="px-2 py-1.5 text-center font-medium text-muted-foreground">
+                          <th
+                            scope="col"
+                            className="px-2 py-1.5 text-center font-medium text-muted-foreground"
+                          >
                             المستحق
                           </th>
                         </>
@@ -3569,7 +3870,7 @@ export default function PayrollReport() {
                       </tr>
                     )}
 
-                    {/* ── Tech shift rows appended to salary commissions ── */}
+                    {/* Tech shift rows appended to salary commissions */}
                     {section === "مركز" &&
                       filteredTechRows.map((tech: any) => {
                         const tAttend2 = Number(tech.attendanceCommission ?? 0);
@@ -3868,8 +4169,7 @@ export default function PayrollReport() {
                 </table>
               </div>
 
-              {/* Mobile Accordion Card List View */}
-              <div className="block lg:hidden divide-y divide-border/60">
+              <div className="block xl:hidden divide-y divide-border/60">
                 {/* Regular employees commissions */}
                 {filteredRegularRows.map((r: any) => {
                   const isExpanded = !!expandedCards[`comm-${r.empCd}`];
@@ -3881,8 +4181,18 @@ export default function PayrollReport() {
                       className="bg-card p-4 transition-colors hover:bg-muted/5"
                     >
                       <div
-                        className="flex items-center justify-between cursor-pointer select-none"
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        aria-label={`${r.fullName ?? r.empCd}، تفاصيل العمولات`}
+                        className="flex min-h-11 items-center justify-between cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         onClick={() => toggleCard(`comm-${r.empCd}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleCard(`comm-${r.empCd}`);
+                          }
+                        }}
                       >
                         <div className="space-y-0.5">
                           <div className="font-semibold text-foreground text-sm">
@@ -3894,7 +4204,7 @@ export default function PayrollReport() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-left">
-                            <span className="text-[10px] text-muted-foreground block uppercase">
+                            <span className="text-xs text-muted-foreground block">
                               إجمالي العمولات
                             </span>
                             <span className="font-bold text-primary tabular-nums text-sm">
@@ -4020,8 +4330,18 @@ export default function PayrollReport() {
                         className="bg-secondary/5 p-4 transition-colors hover:bg-secondary/10 divide-y divide-border/20"
                       >
                         <div
-                          className="flex items-center justify-between cursor-pointer select-none pb-2"
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={isExpanded}
+                          aria-label={`${tech.fullName}، تفاصيل عمولات الشفت`}
+                          className="flex min-h-11 items-center justify-between cursor-pointer select-none pb-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           onClick={() => toggleCard(`comm-tech-${tech.id}`)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              toggleCard(`comm-tech-${tech.id}`);
+                            }
+                          }}
                         >
                           <div className="space-y-0.5">
                             <div className="font-semibold text-foreground text-sm">
@@ -4033,7 +4353,7 @@ export default function PayrollReport() {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-left">
-                              <span className="text-[10px] text-muted-foreground block uppercase">
+                              <span className="text-xs text-muted-foreground block">
                                 إجمالي العمولات
                               </span>
                               <span className="font-bold text-primary tabular-nums text-sm">
@@ -4121,7 +4441,6 @@ export default function PayrollReport() {
                     </div>
                   )}
 
-                {/* Mobile Footer/Totals */}
                 {(filteredRegularRows.length > 0 ||
                   filteredTechRows.length > 0) && (
                   <div className="bg-muted/20 p-4 space-y-2 text-xs font-semibold">
@@ -4286,7 +4605,7 @@ export default function PayrollReport() {
           );
         })()}
 
-      {/* ── Supervision Bonus Tab ── */}
+      {/* Supervision Bonus Tab */}
       {section === "مركز" &&
         activeTab === "supervision" &&
         (() => {
@@ -4304,7 +4623,7 @@ export default function PayrollReport() {
                     مكافأة الإشراف
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    خارج إجمالي الراتب — لا تؤثر على الحسابات
+                    خارج إجمالي الراتب، ولا تؤثر على الحسابات
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -4326,17 +4645,30 @@ export default function PayrollReport() {
                   </Button>
                 </div>
               </div>
-              <div className="overflow-x-auto" dir="rtl">
-                <table dir="rtl" className="w-full text-sm">
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+                <table
+                  aria-label="مكافآت الإشراف"
+                  dir="rtl"
+                  className="w-full text-sm"
+                >
                   <thead>
                     <tr className="border-b border-border bg-muted/30 text-xs">
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-right font-medium text-muted-foreground"
+                      >
                         الموظف
                       </th>
-                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center font-medium text-muted-foreground"
+                      >
                         مكافأة الإشراف
                       </th>
-                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center font-medium text-muted-foreground"
+                      >
                         حفظ
                       </th>
                     </tr>
@@ -4363,6 +4695,7 @@ export default function PayrollReport() {
                           <td className="px-4 py-3 text-center">
                             <input
                               type="number"
+                              aria-label={`مكافأة الإشراف ${r.fullName ?? r.empCd}`}
                               min="0"
                               step="0.01"
                               value={current}
@@ -4372,7 +4705,7 @@ export default function PayrollReport() {
                                   [key]: e.target.value,
                                 }))
                               }
-                              className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 tabular-nums"
+                              className="w-28 rounded-md border border-input bg-background px-2 py-1 text-sm text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 tabular-nums"
                             />
                           </td>
                           <td className="px-4 py-3 text-center">
