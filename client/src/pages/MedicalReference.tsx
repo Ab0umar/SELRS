@@ -200,15 +200,20 @@ export default function MedicalReference() {
       <section className="overflow-hidden rounded-lg border border-border bg-background">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2"
+              role="group"
+              aria-label="طريقة مطابقة الشروط"
+            >
               <span className="text-xs font-semibold text-muted-foreground sm:text-sm">
                 طريقة المطابقة
               </span>
               <div className="flex rounded-md border border-border bg-background p-0.5">
                 {(["and", "or"] as const).map((value) => (
-                  <button
+                  <Button variant="bare"
                     key={value}
                     type="button"
+                    aria-pressed={mode === value}
                     onClick={() => setMode(value)}
                     className={`h-8 rounded px-2.5 text-xs font-semibold ${
                       mode === value
@@ -217,7 +222,7 @@ export default function MedicalReference() {
                     }`}
                   >
                     {value === "and" ? "كل الشروط AND" : "أي شرط OR"}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -265,7 +270,7 @@ export default function MedicalReference() {
                 className="h-8 text-xs"
                 onClick={() => setCriteria([defaultCriterion()])}
               >
-                <RotateCcw className="ml-1 h-3.5 w-3.5" />
+                <RotateCcw className="me-1 h-3.5 w-3.5" />
                 مسح
               </Button>
             </div>
@@ -273,14 +278,14 @@ export default function MedicalReference() {
 
           <div className="relative w-full sm:w-72">
             <Search
-              className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
-            <Input
+            <Input aria-label="اسم المريض أو رقم الملف…"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="اسم المريض أو رقم الملف…"
-              className="h-9 pr-9 text-xs sm:text-sm bg-background"
+              className="h-9 ps-9 text-xs sm:text-sm bg-background"
             />
           </div>
         </div>
@@ -316,6 +321,7 @@ export default function MedicalReference() {
               criterion.kind === "pentacam" ? (
                 <div className="grid gap-2 sm:grid-cols-4">
                   <select
+                    aria-label={`المقياس للشرط ${index + 1}`}
                     value={criterion.metric}
                     onChange={(event) =>
                       update(criterion.id, {
@@ -334,6 +340,7 @@ export default function MedicalReference() {
                     ))}
                   </select>
                   <select
+                    aria-label={`العين للشرط ${index + 1}`}
                     value={criterion.eye}
                     onChange={(event) =>
                       update(criterion.id, { eye: event.target.value as Eye })
@@ -349,6 +356,7 @@ export default function MedicalReference() {
                   <Input
                     type="number"
                     step="0.01"
+                    aria-label={`الحد الأدنى للشرط ${index + 1}`}
                     value={criterion.min ?? ""}
                     onChange={(event) =>
                       update(criterion.id, {
@@ -363,6 +371,7 @@ export default function MedicalReference() {
                   <Input
                     type="number"
                     step="0.01"
+                    aria-label={`الحد الأقصى للشرط ${index + 1}`}
                     value={criterion.max ?? ""}
                     onChange={(event) =>
                       update(criterion.id, {
@@ -378,6 +387,7 @@ export default function MedicalReference() {
               ) : criterion.kind === "diagnosis" ? (
                 <div className="grid gap-2 sm:grid-cols-[11rem_1fr]">
                   <select
+                    aria-label={`حقل التشخيص للشرط ${index + 1}`}
                     value={criterion.field}
                     onChange={(event) =>
                       update(criterion.id, { field: event.target.value } as any)
@@ -390,6 +400,7 @@ export default function MedicalReference() {
                     <option value="symptoms">الأعراض</option>
                   </select>
                   <Input
+                    aria-label={`نص التشخيص للشرط ${index + 1}`}
                     value={criterion.text}
                     onChange={(event) =>
                       update(criterion.id, { text: event.target.value })
@@ -399,6 +410,7 @@ export default function MedicalReference() {
                 </div>
               ) : (
                 <Input
+                  aria-label={`نص نوع العملية للشرط ${index + 1}`}
                   value={(criterion as OperationCriterion).text}
                   onChange={(event) =>
                     update(criterion.id, { text: event.target.value })
@@ -432,18 +444,18 @@ export default function MedicalReference() {
               setCriteria((current) => [...current, defaultCriterion()])
             }
           >
-            <Plus className="ml-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             إضافة شرط
           </Button>
           <div className="flex w-full gap-2 sm:w-auto">
-            <Input
+            <Input aria-label="اسم التصنيف للحفظ"
               value={saveName}
               onChange={(event) => setSaveName(event.target.value)}
               placeholder="اسم التصنيف للحفظ"
               className="sm:w-56"
             />
             <Button onClick={saveCurrent}>
-              <Save className="ml-2 h-4 w-4" />
+              <Save className="me-2 h-4 w-4" />
               حفظ
             </Button>
           </div>
@@ -464,7 +476,7 @@ export default function MedicalReference() {
               key={item.id}
               className="inline-flex items-center rounded-full border border-border bg-background"
             >
-              <button
+              <Button variant="bare"
                 type="button"
                 className="min-h-9 px-3 text-sm hover:text-primary"
                 onClick={() => {
@@ -473,8 +485,8 @@ export default function MedicalReference() {
                 }}
               >
                 {item.name}
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 type="button"
                 aria-label={`حذف ${item.name}`}
                 className="min-h-9 px-2 text-muted-foreground hover:text-destructive"
@@ -485,7 +497,7 @@ export default function MedicalReference() {
                 }
               >
                 <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
           ))}
         </section>
@@ -510,15 +522,26 @@ export default function MedicalReference() {
             ))}
           </div>
         ) : query.error ? (
-          <p className="p-8 text-center text-sm text-destructive">
-            تعذر تحميل النتائج: {query.error.message}
-          </p>
+          <div
+            className="flex flex-col items-center gap-3 p-8 text-center text-sm text-destructive"
+            role="alert"
+          >
+            <p>تعذر تحميل النتائج: {query.error.message}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => query.refetch()}
+            >
+              إعادة المحاولة
+            </Button>
+          </div>
         ) : query.data?.rows.length === 0 ? (
           <p className="p-12 text-center text-sm text-muted-foreground">
             لا توجد نتائج مطابقة. عدّل الحدود أو طريقة المطابقة.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
             <table className="w-full min-w-[1100px] text-sm">
               <thead className="bg-info/10 text-foreground">
                 <tr>

@@ -5,10 +5,20 @@ import { trpc } from "@/lib/trpc";
 import { ServicesHubNav } from "@/components/shared/ServicesHubNav";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { FilterBar } from "@/components/shared/FilterBar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  emptyTestReferenceRange,
+  formatTestReferenceRange,
+  getTestReferenceRanges,
+  referenceIsDisabled,
+  testReferenceRangesSchema,
+  type TestReferenceRange,
+} from "@shared/test-reference-ranges";
 import {
   Select,
   SelectContent,
@@ -17,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { OfflinePageState } from "@/components/OfflinePageState";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
@@ -34,10 +45,9 @@ type TestType = "examination" | "lab" | "imaging" | "other";
 type DashboardMode = "examinations" | "txhub";
 
 const examinationsFilters = [
-  { value: "all", label: "الكل" },
-  { value: "lab", label: "تحاليل مخبرية" },
+  { value: "lab", label: "تحاليل" },
   { value: "imaging", label: "أشعة" },
-  { value: "examination", label: "فحوصات بصرية" },
+  { value: "examination", label: "فحوصات" },
   { value: "other", label: "أخرى" },
 ];
 
@@ -64,35 +74,14 @@ function rowActive(t: Record<string, unknown>): boolean {
 }
 
 function hasMedicalReference(row: Record<string, unknown>): boolean {
-  return Boolean(String(row.normalRange ?? "").trim());
-}
-
-function parseEditableRange(raw: string): { min: string; max: string } | null {
-  const nums = raw
-    .replace(/[<>]/g, " ")
-    .replace(/[–—]/g, "-")
-    .match(/-?\d+(?:\.\d+)?/g);
-  if (!nums || nums.length < 2) return null;
-  return { min: nums[0]!, max: nums[1]! };
-}
-
-function buildNormalRange(form: {
-  refMin: string;
-  refMax: string;
-  normalRange: string;
-}): string {
-  const min = form.refMin.trim();
-  const max = form.refMax.trim();
-  if (min || max) return `${min || "—"} - ${max || "—"}`;
-  return form.normalRange.trim();
+  return referenceIsDisabled(row) || getTestReferenceRanges(row).length > 0;
 }
 
 function rangeDisplay(row: Record<string, unknown>): string {
-  const nr = String(row.normalRange ?? "").trim();
-  const u = String(row.unit ?? "").trim();
-  if (!nr && !u) return "—";
-  if (nr && u) return `${nr} ${u}`;
-  return nr || u;
+  if (referenceIsDisabled(row)) return "لا ينطبق عليه مدى طبيعي";
+  return (
+    getTestReferenceRanges(row).map(formatTestReferenceRange).join("\n") || "—"
+  );
 }
 
 export default function TestsCatalogDashboard({
@@ -105,7 +94,9 @@ export default function TestsCatalogDashboard({
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>(
+    mode === "txhub" ? "all" : "lab",
+  );
   const [editingId, setEditingId] = useState<number | null>(null);
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
@@ -113,10 +104,8 @@ export default function TestsCatalogDashboard({
     name: "",
     type: "examination" as TestType,
     category: "",
-    refMin: "",
-    refMax: "",
-    normalRange: "",
-    unit: "",
+    referenceRanges: [emptyTestReferenceRange()],
+    noNormalRange: false,
     description: "",
     isActive: true,
   });
@@ -188,7 +177,7 @@ export default function TestsCatalogDashboard({
       if (!q) return true;
       const name = String(row.name ?? "").toLowerCase();
       const cat = String(row.category ?? "").toLowerCase();
-      const ref = String(row.normalRange ?? "").toLowerCase();
+      const ref = rangeDisplay(row).toLowerCase();
       return (
         name.includes(q) ||
         cat.includes(q) ||
@@ -199,7 +188,7 @@ export default function TestsCatalogDashboard({
   }, [baseRows, search, typeFilter]);
 
   useEffect(() => {
-    setTypeFilter("all");
+    setTypeFilter(mode === "txhub" ? "all" : "lab");
     resetForm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
@@ -208,20 +197,19 @@ export default function TestsCatalogDashboard({
     setEditingId(null);
     setForm({
       name: "",
-      type: isTx ? "lab" : "examination",
+      type: isTx
+        ? "lab"
+        : ((typeFilter === "all" ? "lab" : typeFilter) as TestType),
       category: "",
-      refMin: "",
-      refMax: "",
-      normalRange: "",
-      unit: "",
+      referenceRanges: [emptyTestReferenceRange()],
+      noNormalRange: false,
       description: "",
       isActive: true,
     });
   };
 
   const openEdit = (row: Record<string, unknown>) => {
-    const rawRange = String(row.normalRange ?? "").trim();
-    const parsedRange = parseEditableRange(rawRange);
+    const ranges = getTestReferenceRanges(row);
     setEditingId(Number(row.id));
     setForm({
       name: String(row.name ?? ""),
@@ -229,27 +217,36 @@ export default function TestsCatalogDashboard({
         (String(row.type ?? (isTx ? "lab" : "examination")) as TestType) ||
         (isTx ? "lab" : "examination"),
       category: String(row.category ?? ""),
-      refMin: parsedRange?.min ?? "",
-      refMax: parsedRange?.max ?? "",
-      normalRange: parsedRange ? "" : rawRange,
-      unit: String(row.unit ?? ""),
+      referenceRanges: ranges.length ? ranges : [emptyTestReferenceRange()],
+      noNormalRange: referenceIsDisabled(row),
       description: String(row.description ?? ""),
       isActive: rowActive(row),
     });
   };
 
-  const save = async () => {
+  const save = () => {
     if (!form.name.trim()) {
       toast.error("يرجى إدخال اسم الفحص");
       return;
     }
 
+    const ranges = testReferenceRangesSchema.safeParse(
+      form.noNormalRange
+        ? []
+        : form.referenceRanges.filter((range) =>
+            Object.values(range).some((value) => value.trim()),
+          ),
+    );
+    if (!ranges.success) {
+      toast.error(ranges.error.issues[0]?.message ?? "راجع المديات الطبيعية");
+      return;
+    }
     const payloadCommon = {
       name: form.name.trim(),
       type: form.type,
       category: form.category.trim(),
-      normalRange: buildNormalRange(form),
-      unit: form.unit.trim(),
+      referenceRanges: ranges.data,
+      noNormalRange: form.noNormalRange,
       description: form.description.trim(),
       priceEgp: undefined,
       durationMinutes: undefined,
@@ -257,21 +254,32 @@ export default function TestsCatalogDashboard({
     };
 
     if (editingId) {
-      await updateMutation.mutateAsync({
+      updateMutation.mutate({
         testId: editingId,
         updates: {
           ...payloadCommon,
-          priceEgp: null,
-          durationMinutes: null,
         },
       });
     } else {
-      await createMutation.mutateAsync(payloadCommon);
+      createMutation.mutate(payloadCommon);
     }
   };
 
-  const remove = async (id: number) => {
-    await deleteMutation.mutateAsync({ testId: id });
+  const remove = (id: number) => {
+    deleteMutation.mutate({ testId: id });
+  };
+
+  const updateRange = (
+    index: number,
+    key: keyof TestReferenceRange,
+    value: string,
+  ) => {
+    setForm((current) => ({
+      ...current,
+      referenceRanges: current.referenceRanges.map((range, i) =>
+        i === index ? { ...range, [key]: value } : range,
+      ),
+    }));
   };
 
   if (!isAuthenticated) return null;
@@ -283,7 +291,10 @@ export default function TestsCatalogDashboard({
         dir="rtl"
       >
         {!embeddedInHub && (
-          <ServicesHubNav active={isTx ? "txhub" : "catalog"} className="mb-4" />
+          <ServicesHubNav
+            active={isTx ? "txhub" : "catalog"}
+            className="mb-4"
+          />
         )}
 
         <div
@@ -318,7 +329,7 @@ export default function TestsCatalogDashboard({
               title="بلا مدى طبيعي"
               value={stats.missingRef}
               icon={AlertTriangle}
-              iconColor="bg-warning/100/10 text-warning/90"
+              iconColor="bg-warning/100/10 text-warning-text/90"
             />
           ) : null}
         </div>
@@ -330,9 +341,7 @@ export default function TestsCatalogDashboard({
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder={
-                    isTx ? "بحث في المرجع الخارجي…" : "بحث عن فحص…"
-                  }
+                  placeholder={isTx ? "بحث في المرجع الخارجي…" : "بحث عن فحص…"}
                   className="flex-1"
                 />
                 <Button
@@ -346,11 +355,32 @@ export default function TestsCatalogDashboard({
                   {isTx ? "إضافة مرجع" : "إنشاء"}
                 </Button>
               </div>
-              <FilterBar
-                filters={isTx ? txhubFilters : examinationsFilters}
-                selected={typeFilter}
-                onSelect={setTypeFilter}
-              />
+              {isTx ? (
+                <FilterBar
+                  filters={txhubFilters}
+                  selected={typeFilter}
+                  onSelect={setTypeFilter}
+                />
+              ) : (
+                <Tabs
+                  value={typeFilter}
+                  onValueChange={setTypeFilter}
+                  dir="rtl"
+                  className="w-full"
+                >
+                  <TabsList className="grid h-auto w-full grid-cols-4">
+                    {examinationsFilters.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className="min-h-11"
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              )}
             </div>
 
             {isTx ? (
@@ -364,21 +394,21 @@ export default function TestsCatalogDashboard({
               </div>
             ) : null}
 
-            <div className="overflow-x-auto rounded-xl border">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded-xl border">
               <table className="w-full min-w-[820px] text-sm" dir="rtl">
                 <thead>
-                  <tr className="border-b bg-muted/40 text-[11px] font-semibold text-muted-foreground">
-                    <th className="p-3 text-right">
+                  <tr className="border-b bg-muted/40 text-[13px] font-semibold text-muted-foreground">
+                    <th className="p-3 text-start">
                       {isTx ? "اسم المرجع" : "اسم الفحص"}
                     </th>
-                    <th className="p-3 text-right">
+                    <th className="p-3 text-start">
                       {isTx ? "الوصف / التصنيف" : "التصنيف"}
                     </th>
-                    <th className="p-3 text-right">
+                    <th className="p-3 text-start">
                       {isTx ? "النوع الخارجي" : "النوع"}
                     </th>
-                    <th className="p-3 text-right">المدى الطبيعي</th>
-                    <th className="p-3 text-right">الحالة</th>
+                    <th className="p-3 text-start">المدى الطبيعي</th>
+                    <th className="p-3 text-start">الحالة</th>
                     <th className="w-24 p-3 text-center">إجراءات</th>
                   </tr>
                 </thead>
@@ -390,6 +420,17 @@ export default function TestsCatalogDashboard({
                         className="p-8 text-center text-muted-foreground"
                       >
                         جاري التحميل…
+                      </td>
+                    </tr>
+                  ) : testsQuery.isError ? (
+                    <tr>
+                      <td colSpan={6} className="p-4">
+                        <OfflinePageState
+                          title="تعذر تحميل كتالوج الفحوصات"
+                          body="تحقق من الاتصال ثم أعد المحاولة."
+                          retryLabel="إعادة المحاولة"
+                          onRetry={() => void testsQuery.refetch()}
+                        />
                       </td>
                     </tr>
                   ) : filtered.length === 0 ? (
@@ -416,7 +457,7 @@ export default function TestsCatalogDashboard({
                               {String(row.name ?? "")}
                             </div>
                             {String(row.description ?? "").trim() ? (
-                              <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
+                              <div className="mt-0.5 line-clamp-2 text-[13px] text-muted-foreground">
                                 {String(row.description)}
                               </div>
                             ) : null}
@@ -433,13 +474,13 @@ export default function TestsCatalogDashboard({
                             className={cn(
                               "p-3 text-xs whitespace-pre-wrap",
                               missingRef
-                                ? "bg-warning/100/10 text-warning"
+                                ? "bg-warning/100/10 text-warning-text"
                                 : "font-medium text-foreground",
                             )}
                           >
                             {rangeDisplay(row)}
                             {missingRef ? (
-                              <span className="mt-1 block text-[10px] font-bold">
+                              <span className="mt-1 block text-[13px] font-bold">
                                 ناقص مدى طبيعي
                               </span>
                             ) : null}
@@ -447,7 +488,7 @@ export default function TestsCatalogDashboard({
                           <td className="p-3">
                             <span
                               className={cn(
-                                "inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                                "inline-flex rounded-full px-2.5 py-0.5 text-[13px] font-semibold",
                                 active
                                   ? "bg-success/15 text-success"
                                   : "bg-muted text-muted-foreground",
@@ -471,7 +512,7 @@ export default function TestsCatalogDashboard({
                               </Button>
                               {delConfirm === id ? (
                                 <div className="flex items-center gap-1">
-                                  <button
+                                  <Button variant="bare"
                                     type="button"
                                     aria-label="تأكيد الحذف"
                                     className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -481,25 +522,25 @@ export default function TestsCatalogDashboard({
                                     }}
                                   >
                                     تأكيد
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button variant="bare"
                                     type="button"
                                     aria-label="إلغاء الحذف"
                                     className="rounded bg-muted text-muted-foreground hover:bg-border"
                                     onClick={() => setDelConfirm(null)}
                                   >
                                     ✕
-                                  </button>
+                                  </Button>
                                 </div>
                               ) : (
-                                <button
+                                <Button variant="bare"
                                   type="button"
                                   aria-label="حذف الفحص"
                                   className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                   onClick={() => setDelConfirm(id)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </td>
@@ -522,7 +563,10 @@ export default function TestsCatalogDashboard({
                   ? "إضافة مرجع جديد"
                   : "إضافة فحص جديد"}
             </h2>
-            <div className="grid gap-3">
+            <fieldset
+              className="grid gap-3"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
               <div className="space-y-1">
                 <Label>{isTx ? "اسم المرجع" : "اسم الفحص"}</Label>
                 <Input
@@ -565,7 +609,7 @@ export default function TestsCatalogDashboard({
 
               <div className="space-y-1">
                 <Label>{isTx ? "المصدر / التصنيف" : "التصنيف"}</Label>
-                <Input
+                <Input aria-label="مثال: بنتاكام، جلوكوما، شبكية"
                   value={form.category}
                   onChange={(e) =>
                     setForm({ ...form, category: e.target.value })
@@ -574,56 +618,140 @@ export default function TestsCatalogDashboard({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label>أقل طبيعي</Label>
-                  <Input
-                    dir="ltr"
-                    className="text-left"
-                    value={form.refMin}
-                    onChange={(e) =>
-                      setForm({ ...form, refMin: e.target.value })
-                    }
-                    placeholder="500"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>أعلى طبيعي</Label>
-                  <Input
-                    dir="ltr"
-                    className="text-left"
-                    value={form.refMax}
-                    onChange={(e) =>
-                      setForm({ ...form, refMax: e.target.value })
-                    }
-                    placeholder="600"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label>{isTx ? "الوحدة الخارجية" : "الوحدة"}</Label>
-                <Input
-                  value={form.unit}
-                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                  placeholder="D، µm، mmHg، mg/dL…"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label>مدى نصي بديل</Label>
-                <Input
-                  value={form.normalRange}
-                  onChange={(e) =>
-                    setForm({ ...form, normalRange: e.target.value })
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="no-normal-range"
+                  checked={form.noNormalRange}
+                  onCheckedChange={(checked) =>
+                    setForm((current) => ({
+                      ...current,
+                      noNormalRange: checked === true,
+                    }))
                   }
-                  placeholder="مثال: طبيعي بالسالب"
-                  disabled={Boolean(form.refMin.trim() || form.refMax.trim())}
                 />
-                <p className="text-[11px] text-muted-foreground">
-                  استخدمه لو المرجع ليس رقماً من/إلى.
-                </p>
+                <Label htmlFor="no-normal-range">لا ينطبق عليه مدى طبيعي</Label>
               </div>
+              <div className="flex items-center justify-between gap-2">
+                <Label>المديات الطبيعية</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="إضافة مدى طبيعي"
+                  title="إضافة مدى طبيعي"
+                  disabled={
+                    form.noNormalRange || form.referenceRanges.length >= 100
+                  }
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      referenceRanges: [
+                        ...current.referenceRanges,
+                        emptyTestReferenceRange(),
+                      ],
+                    }))
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {form.referenceRanges.map((range, index) => (
+                <fieldset
+                  key={index}
+                  disabled={form.noNormalRange}
+                  className="grid gap-2 rounded-lg border p-3 disabled:opacity-50"
+                >
+                  <legend className="px-1 text-xs">مدى {index + 1}</legend>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor={`range-${index}-name`}>
+                        اسم القياس / الفئة
+                      </Label>
+                      <Input
+                        id={`range-${index}-name`}
+                        value={range.name}
+                        onChange={(e) =>
+                          updateRange(index, "name", e.target.value)
+                        }
+                        placeholder="مثال: K1، رجال، سيدات"
+                      />
+                    </div>
+                    {form.referenceRanges.length > 1 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`حذف مدى ${index + 1}`}
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            referenceRanges: current.referenceRanges.filter(
+                              (_, i) => i !== index,
+                            ),
+                          }))
+                        }
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor={`range-${index}-min`}>أقل طبيعي</Label>
+                      <Input
+                        id={`range-${index}-min`}
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={range.min}
+                        disabled={Boolean(range.text.trim())}
+                        onChange={(e) =>
+                          updateRange(index, "min", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`range-${index}-max`}>أعلى طبيعي</Label>
+                      <Input
+                        id={`range-${index}-max`}
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={range.max}
+                        disabled={Boolean(range.text.trim())}
+                        onChange={(e) =>
+                          updateRange(index, "max", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`range-${index}-unit`}>الوحدة</Label>
+                    <Input
+                      id={`range-${index}-unit`}
+                      value={range.unit}
+                      onChange={(e) =>
+                        updateRange(index, "unit", e.target.value)
+                      }
+                      placeholder="D، µm، mmHg، mg/dL…"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`range-${index}-text`}>مرجع نصي بديل</Label>
+                    <Input
+                      id={`range-${index}-text`}
+                      value={range.text}
+                      disabled={Boolean(range.min.trim() || range.max.trim())}
+                      onChange={(e) =>
+                        updateRange(index, "text", e.target.value)
+                      }
+                      placeholder="مثال: Negative أو أقل من 5"
+                    />
+                  </div>
+                </fieldset>
+              ))}
+              <p className="text-[13px] text-muted-foreground">
+                لكل قياس اسم ومدى ووحدة مستقلة. اترك اسم الفئة فارغًا فقط للمدى
+                العام؛ مديات العمر والجنس لا تُطبّق تلقائيًا على كل المرضى.
+              </p>
 
               <div className="space-y-1">
                 <Label>الحالة</Label>
@@ -645,7 +773,7 @@ export default function TestsCatalogDashboard({
 
               <div className="space-y-1">
                 <Label>{isTx ? "ملاحظات الربط" : "الوصف"}</Label>
-                <Textarea
+                <Textarea aria-label={isTx ? "ملاحظات الربط أو المصدر" : "وصف الفحص"}
                   value={form.description}
                   onChange={(e) =>
                     setForm({ ...form, description: e.target.value })
@@ -676,7 +804,7 @@ export default function TestsCatalogDashboard({
                   </Button>
                 ) : null}
               </div>
-            </div>
+            </fieldset>
           </aside>
         </div>
       </div>

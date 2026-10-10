@@ -35,6 +35,7 @@ import { SearchBar } from "@/components/shared/SearchBar";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { OfflinePageState } from "@/components/OfflinePageState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadXlsx } from "@/lib/xlsx";
 
@@ -111,9 +112,7 @@ export default function MedicationsManagement({
       ) {
         return stored;
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
     return "medications";
   });
 
@@ -337,9 +336,7 @@ export default function MedicationsManagement({
       ) {
         setActiveTab(data.activeTab);
       }
-    } catch {
-      // ignore bad cache
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -373,7 +370,9 @@ export default function MedicationsManagement({
   const handleRegistryTabChange = (v: string) => {
     const tab = v as RegistryTab;
     setActiveTab(tab);
-    const basePath = embeddedInHub ? "/services-hub/registry" : "/medications/registry";
+    const basePath = embeddedInHub
+      ? "/services-hub/registry"
+      : "/medications/registry";
     setLocation(`${basePath}?tab=${tab}`, { replace: true });
   };
 
@@ -977,7 +976,7 @@ export default function MedicationsManagement({
               <CardContent className="space-y-4 pt-5">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">اسم الدواء</label>
-                  <Input
+                  <Input aria-label="مثال: توباماكس"
                     value={newMedication.name}
                     onChange={(e) =>
                       setNewMedication({
@@ -986,7 +985,7 @@ export default function MedicationsManagement({
                       })
                     }
                     placeholder="مثال: توباماكس"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1017,7 +1016,7 @@ export default function MedicationsManagement({
                   <label className="text-sm font-semibold">
                     التركيز / القوة
                   </label>
-                  <Input
+                  <Input aria-label="مثال: 0.25%"
                     value={newMedication.strength}
                     onChange={(e) =>
                       setNewMedication({
@@ -1026,7 +1025,7 @@ export default function MedicationsManagement({
                       })
                     }
                     placeholder="مثال: 0.25%"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1080,6 +1079,13 @@ export default function MedicationsManagement({
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     جاري التحميل…
                   </p>
+                ) : medicationsQuery.isError ? (
+                  <OfflinePageState
+                    title="تعذر تحميل قائمة الأدوية"
+                    body="تحقق من الاتصال ثم أعد المحاولة."
+                    retryLabel="إعادة المحاولة"
+                    onRetry={() => void medicationsQuery.refetch()}
+                  />
                 ) : filteredMedications.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     لا توجد نتائج.
@@ -1097,7 +1103,7 @@ export default function MedicationsManagement({
                         key={med.id}
                         className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                       >
-                        <div className="min-w-0 flex-1 text-right">
+                        <div className="min-w-0 flex-1 text-start">
                           <div className="font-semibold leading-snug">
                             {med.name}
                           </div>
@@ -1121,7 +1127,7 @@ export default function MedicationsManagement({
                           </Button>
                           {delConfirmMed === med.id ? (
                             <div className="flex items-center gap-1">
-                              <button
+                              <Button variant="bare"
                                 type="button"
                                 aria-label="تأكيد الحذف"
                                 className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -1131,25 +1137,25 @@ export default function MedicationsManagement({
                                 }}
                               >
                                 تأكيد
-                              </button>
-                              <button
+                              </Button>
+                              <Button variant="bare"
                                 type="button"
                                 aria-label="إلغاء الحذف"
                                 className="rounded bg-muted text-muted-foreground hover:bg-border"
                                 onClick={() => setDelConfirmMed(null)}
                               >
                                 ✕
-                              </button>
+                              </Button>
                             </div>
                           ) : (
-                            <button
+                            <Button variant="bare"
                               type="button"
                               aria-label="حذف الدواء"
                               className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                               onClick={() => setDelConfirmMed(med.id)}
                             >
                               <Trash2 className="h-4 w-4" />
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -1178,13 +1184,13 @@ export default function MedicationsManagement({
               <CardContent className="space-y-4 pt-5">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">اسم الفحص</label>
-                  <Input
+                  <Input aria-label="مثال: فحص النظر"
                     value={newTest.name}
                     onChange={(e) =>
                       setNewTest({ ...newTest, name: e.target.value })
                     }
                     placeholder="مثال: فحص النظر"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1208,13 +1214,13 @@ export default function MedicationsManagement({
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">التصنيف</label>
-                  <Input
+                  <Input aria-label="مثال: بصريات"
                     value={newTest.category}
                     onChange={(e) =>
                       setNewTest({ ...newTest, category: e.target.value })
                     }
                     placeholder="مثال: بصريات"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1266,6 +1272,13 @@ export default function MedicationsManagement({
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     جاري التحميل…
                   </p>
+                ) : testsQuery.isError ? (
+                  <OfflinePageState
+                    title="تعذر تحميل قائمة الفحوصات"
+                    body="تحقق من الاتصال ثم أعد المحاولة."
+                    retryLabel="إعادة المحاولة"
+                    onRetry={() => void testsQuery.refetch()}
+                  />
                 ) : filteredTests.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     لا توجد نتائج.
@@ -1276,7 +1289,7 @@ export default function MedicationsManagement({
                       key={test.id}
                       className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                     >
-                      <div className="min-w-0 flex-1 text-right">
+                      <div className="min-w-0 flex-1 text-start">
                         <div className="font-semibold leading-snug">
                           {test.name}
                         </div>
@@ -1300,7 +1313,7 @@ export default function MedicationsManagement({
                         </Button>
                         {delConfirmTest === test.id ? (
                           <div className="flex items-center gap-1">
-                            <button
+                            <Button variant="bare"
                               type="button"
                               aria-label="تأكيد الحذف"
                               className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -1310,25 +1323,25 @@ export default function MedicationsManagement({
                               }}
                             >
                               تأكيد
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="bare"
                               type="button"
                               aria-label="إلغاء الحذف"
                               className="rounded bg-muted text-muted-foreground hover:bg-border"
                               onClick={() => setDelConfirmTest(null)}
                             >
                               ✕
-                            </button>
+                            </Button>
                           </div>
                         ) : (
-                          <button
+                          <Button variant="bare"
                             type="button"
                             aria-label="حذف الفحص"
                             className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                             onClick={() => setDelConfirmTest(test.id)}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -1381,11 +1394,11 @@ export default function MedicationsManagement({
                       <label className="text-sm font-semibold">
                         اسم القالب
                       </label>
-                      <Input
+                      <Input aria-label="مثال: تحاليل ما قبل الليزك"
                         value={templateName}
                         onChange={(e) => setTemplateName(e.target.value)}
                         placeholder="مثال: تحاليل ما قبل الليزك"
-                        className="text-right"
+                        className="text-start"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1426,7 +1439,14 @@ export default function MedicationsManagement({
                       placeholder="بحث في الفحوصات…"
                     />
                     <div className="max-h-[320px] space-y-1 overflow-y-auto rounded-lg border border-border/80 p-2">
-                      {filteredBuilderTests.length === 0 ? (
+                      {testsQuery.isError ? (
+                        <OfflinePageState
+                          title="تعذر تحميل الفحوصات"
+                          body="تحقق من الاتصال ثم أعد المحاولة."
+                          retryLabel="إعادة المحاولة"
+                          onRetry={() => void testsQuery.refetch()}
+                        />
+                      ) : filteredBuilderTests.length === 0 ? (
                         <p className="py-6 text-center text-sm text-muted-foreground">
                           لا توجد نتائج.
                         </p>
@@ -1460,7 +1480,14 @@ export default function MedicationsManagement({
               ) : null}
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {testTemplates.length === 0 ? (
+                {testTemplateOverridesQuery.isError ? (
+                  <OfflinePageState
+                    title="تعذر تحميل قوالب الفحوصات"
+                    body="تحقق من الاتصال ثم أعد المحاولة."
+                    retryLabel="إعادة المحاولة"
+                    onRetry={() => void testTemplateOverridesQuery.refetch()}
+                  />
+                ) : testTemplates.length === 0 ? (
                   <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
                     لا توجد قوالب فحوصات بعد.
                   </p>
@@ -1523,35 +1550,35 @@ export default function MedicationsManagement({
               <CardContent className="space-y-4 pt-5">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">اسم المرض</label>
-                  <Input
+                  <Input aria-label="اسم المرض"
                     value={newDisease.name}
                     onChange={(e) =>
                       setNewDisease({ ...newDisease, name: e.target.value })
                     }
                     placeholder="اسم المرض"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">الفرع</label>
-                  <Input
+                  <Input aria-label="الفرع (اختياري)"
                     value={newDisease.branch}
                     onChange={(e) =>
                       setNewDisease({ ...newDisease, branch: e.target.value })
                     }
                     placeholder="الفرع (اختياري)"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">الاختصار</label>
-                  <Input
+                  <Input aria-label="اختصار (اختياري)"
                     value={newDisease.abbrev}
                     onChange={(e) =>
                       setNewDisease({ ...newDisease, abbrev: e.target.value })
                     }
                     placeholder="اختصار (اختياري)"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1603,6 +1630,13 @@ export default function MedicationsManagement({
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     جاري التحميل…
                   </p>
+                ) : diseasesQuery.isError ? (
+                  <OfflinePageState
+                    title="تعذر تحميل قائمة الأمراض"
+                    body="تحقق من الاتصال ثم أعد المحاولة."
+                    retryLabel="إعادة المحاولة"
+                    onRetry={() => void diseasesQuery.refetch()}
+                  />
                 ) : filteredDiseases.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     لا توجد نتائج.
@@ -1613,7 +1647,7 @@ export default function MedicationsManagement({
                       key={disease.id}
                       className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                     >
-                      <div className="min-w-0 flex-1 text-right">
+                      <div className="min-w-0 flex-1 text-start">
                         <div className="font-semibold leading-snug">
                           {disease.name}
                         </div>
@@ -1637,7 +1671,7 @@ export default function MedicationsManagement({
                         </Button>
                         {delConfirmDisease === disease.id ? (
                           <div className="flex items-center gap-1">
-                            <button
+                            <Button variant="bare"
                               type="button"
                               aria-label="تأكيد الحذف"
                               className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -1647,25 +1681,25 @@ export default function MedicationsManagement({
                               }}
                             >
                               تأكيد
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="bare"
                               type="button"
                               aria-label="إلغاء الحذف"
                               className="rounded bg-muted text-muted-foreground hover:bg-border"
                               onClick={() => setDelConfirmDisease(null)}
                             >
                               ✕
-                            </button>
+                            </Button>
                           </div>
                         ) : (
-                          <button
+                          <Button variant="bare"
                             type="button"
                             aria-label="حذف المرض"
                             className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                             onClick={() => setDelConfirmDisease(disease.id)}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -1681,7 +1715,7 @@ export default function MedicationsManagement({
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/100/10 text-warning">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/100/10 text-warning-text">
                     <MessageSquareWarning className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-lg">
@@ -1695,11 +1729,11 @@ export default function MedicationsManagement({
               <CardContent className="space-y-4 pt-5">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">اسم العرض</label>
-                  <Input
+                  <Input aria-label="اسم العرض"
                     value={newSymptom.name}
                     onChange={(e) => setNewSymptom({ name: e.target.value })}
                     placeholder="اسم العرض"
-                    className="text-right"
+                    className="text-start"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1751,6 +1785,13 @@ export default function MedicationsManagement({
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     جاري التحميل…
                   </p>
+                ) : symptomsQuery.isError ? (
+                  <OfflinePageState
+                    title="تعذر تحميل قائمة الأعراض"
+                    body="تحقق من الاتصال ثم أعد المحاولة."
+                    retryLabel="إعادة المحاولة"
+                    onRetry={() => void symptomsQuery.refetch()}
+                  />
                 ) : filteredSymptoms.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     لا توجد نتائج.
@@ -1761,7 +1802,7 @@ export default function MedicationsManagement({
                       key={symptom.id}
                       className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                     >
-                      <div className="min-w-0 flex-1 text-right">
+                      <div className="min-w-0 flex-1 text-start">
                         <div className="font-semibold leading-snug">
                           {symptom.name}
                         </div>
@@ -1780,7 +1821,7 @@ export default function MedicationsManagement({
                         </Button>
                         {delConfirmSymptom === symptom.id ? (
                           <div className="flex items-center gap-1">
-                            <button
+                            <Button variant="bare"
                               type="button"
                               aria-label="تأكيد الحذف"
                               className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -1790,25 +1831,25 @@ export default function MedicationsManagement({
                               }}
                             >
                               تأكيد
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="bare"
                               type="button"
                               aria-label="إلغاء الحذف"
                               className="rounded bg-muted text-muted-foreground hover:bg-border"
                               onClick={() => setDelConfirmSymptom(null)}
                             >
                               ✕
-                            </button>
+                            </Button>
                           </div>
                         ) : (
-                          <button
+                          <Button variant="bare"
                             type="button"
                             aria-label="حذف العرض"
                             className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                             onClick={() => setDelConfirmSymptom(symptom.id)}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>

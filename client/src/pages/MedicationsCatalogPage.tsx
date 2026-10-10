@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { OfflinePageState } from "@/components/OfflinePageState";
 import {
   CheckCircle2,
   Pencil,
@@ -37,12 +38,7 @@ import {
 } from "lucide-react";
 
 type MedType =
-  | "tablet"
-  | "drops"
-  | "ointment"
-  | "injection"
-  | "suspension"
-  | "other";
+  "tablet" | "drops" | "ointment" | "injection" | "suspension" | "other";
 type InventoryStatus = "available" | "out_of_stock" | "reserved";
 
 const medFilters = [
@@ -79,7 +75,7 @@ function resolveInventoryStatus(row: Record<string, unknown>): InventoryStatus {
 
 function statusBadgeClasses(s: InventoryStatus): string {
   if (s === "available") return "bg-success/15 text-success";
-  if (s === "reserved") return "bg-warning/20 text-warning";
+  if (s === "reserved") return "bg-warning/20 text-warning-text";
   return "bg-destructive/10 text-destructive";
 }
 
@@ -328,7 +324,7 @@ export default function MedicationsCatalogPage({
           />
         </div>
 
-        <p className="text-[11px] text-muted-foreground mb-4">
+        <p className="text-[13px] text-muted-foreground mb-4">
           البيانات الكاملة (أمراض، أعراض، استيراد):{" "}
           <Link
             href="/medications/registry"
@@ -339,15 +335,15 @@ export default function MedicationsCatalogPage({
         </p>
 
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
             <table className="w-full text-sm min-w-[760px]" dir="rtl">
               <thead>
-                <tr className="border-b bg-muted/40 text-[11px] font-semibold text-muted-foreground">
-                  <th className="text-right p-3">اسم الدواء</th>
-                  <th className="text-right p-3">الشكل الصيدلي</th>
-                  <th className="text-right p-3">الجرعة</th>
-                  <th className="text-right p-3">المخزون</th>
-                  <th className="text-right p-3">الحالة</th>
+                <tr className="border-b bg-muted/40 text-[13px] font-semibold text-muted-foreground">
+                  <th className="text-start p-3">اسم الدواء</th>
+                  <th className="text-start p-3">الشكل الصيدلي</th>
+                  <th className="text-start p-3">الجرعة</th>
+                  <th className="text-start p-3">المخزون</th>
+                  <th className="text-start p-3">الحالة</th>
                   <th className="w-24 p-3 text-center">إجراءات</th>
                 </tr>
               </thead>
@@ -359,6 +355,17 @@ export default function MedicationsCatalogPage({
                       className="p-8 text-center text-muted-foreground"
                     >
                       جاري التحميل…
+                    </td>
+                  </tr>
+                ) : medsQuery.isError ? (
+                  <tr>
+                    <td colSpan={6} className="p-4">
+                      <OfflinePageState
+                        title="تعذر تحميل كتالوج الأدوية"
+                        body="تحقق من الاتصال ثم أعد المحاولة."
+                        retryLabel="إعادة المحاولة"
+                        onRetry={() => void medsQuery.refetch()}
+                      />
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
@@ -390,7 +397,7 @@ export default function MedicationsCatalogPage({
                         <td className="p-3">
                           <span
                             className={cn(
-                              "inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                              "inline-flex rounded-full px-2.5 py-0.5 text-[13px] font-semibold",
                               statusBadgeClasses(st),
                             )}
                           >
@@ -412,7 +419,7 @@ export default function MedicationsCatalogPage({
                             </Button>
                             {delConfirm === id ? (
                               <div className="flex items-center gap-1">
-                                <button
+                                <Button variant="bare"
                                   type="button"
                                   aria-label="تأكيد الحذف"
                                   className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -422,25 +429,25 @@ export default function MedicationsCatalogPage({
                                   }}
                                 >
                                   تأكيد
-                                </button>
-                                <button
+                                </Button>
+                                <Button variant="bare"
                                   type="button"
                                   aria-label="إلغاء الحذف"
                                   className="rounded bg-muted text-muted-foreground hover:bg-border"
                                   onClick={() => setDelConfirm(null)}
                                 >
                                   ✕
-                                </button>
+                                </Button>
                               </div>
                             ) : (
-                              <button
+                              <Button variant="bare"
                                 type="button"
                                 aria-label="حذف الدواء"
                                 className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                                 onClick={() => setDelConfirm(id)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </td>
@@ -462,13 +469,13 @@ export default function MedicationsCatalogPage({
         }}
       >
         <DialogContent className="max-w-md" dir="rtl">
-          <DialogHeader className="text-right">
+          <DialogHeader className="text-start">
             <DialogTitle>{editingId ? "تعديل دواء" : "إضافة دواء"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <div className="space-y-1">
               <Label>اسم الدواء</Label>
-              <Input
+              <Input aria-label="اسم الدواء"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="اسم الدواء"
@@ -495,7 +502,7 @@ export default function MedicationsCatalogPage({
             </div>
             <div className="space-y-1">
               <Label>الجرعة</Label>
-              <Input
+              <Input aria-label="مثال: 25 مجم، 5 مل"
                 value={form.dosage}
                 onChange={(e) => setForm({ ...form, dosage: e.target.value })}
                 placeholder="مثال: 25 مجم، 5 مل"

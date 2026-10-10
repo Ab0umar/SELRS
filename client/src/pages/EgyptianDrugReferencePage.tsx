@@ -176,12 +176,12 @@ export default function EgyptianDrugReferencePage({
             </SelectContent>
           </Select>
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input aria-label="ابحث بالاسم أو المادة الفعالة أو الشركة…"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="ابحث بالاسم أو المادة الفعالة أو الشركة…"
-              className="h-9 pr-9 text-xs sm:text-sm"
+              className="h-9 ps-9 text-xs sm:text-sm"
               autoFocus
             />
           </div>
@@ -422,7 +422,7 @@ export default function EgyptianDrugReferencePage({
               <Button type="button" variant="outline" onClick={toggleSelectAll}>
                 <Checkbox
                   checked={allSelected}
-                  className="ml-2"
+                  className="me-2"
                   tabIndex={-1}
                 />
                 {allSelected ? "إلغاء تحديد الكل" : "تحديد الكل"}
@@ -439,7 +439,7 @@ export default function EgyptianDrugReferencePage({
                   })
                 }
               >
-                <Plus className="ml-2 h-4 w-4" />
+                <Plus className="me-2 h-4 w-4" />
                 إضافة المحدد للروشتات ({selectedCount})
               </Button>
             </div>

@@ -431,13 +431,13 @@ export default function MedicationsTestsManagement() {
           <CardContent className="space-y-4 pt-5">
             <div className="space-y-2">
               <label className="text-sm font-semibold">اسم الدواء</label>
-              <Input
+              <Input aria-label="مثال: توباماكس"
                 value={newMedication.name}
                 onChange={(e) =>
                   setNewMedication({ ...newMedication, name: e.target.value })
                 }
                 placeholder="مثال: توباماكس"
-                className="text-right"
+                className="text-start"
               />
             </div>
             <div className="space-y-2">
@@ -466,7 +466,7 @@ export default function MedicationsTestsManagement() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold">التركيز / القوة</label>
-              <Input
+              <Input aria-label="مثال: 0.25%"
                 value={newMedication.strength}
                 onChange={(e) =>
                   setNewMedication({
@@ -475,7 +475,7 @@ export default function MedicationsTestsManagement() {
                   })
                 }
                 placeholder="مثال: 0.25%"
-                className="text-right"
+                className="text-start"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -522,13 +522,13 @@ export default function MedicationsTestsManagement() {
           <CardContent className="space-y-4 pt-5">
             <div className="space-y-2">
               <label className="text-sm font-semibold">اسم الفحص</label>
-              <Input
+              <Input aria-label="مثال: فحص النظر"
                 value={newTest.name}
                 onChange={(e) =>
                   setNewTest({ ...newTest, name: e.target.value })
                 }
                 placeholder="مثال: فحص النظر"
-                className="text-right"
+                className="text-start"
               />
             </div>
             <div className="space-y-2">
@@ -552,13 +552,13 @@ export default function MedicationsTestsManagement() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold">التصنيف</label>
-              <Input
+              <Input aria-label="مثال: بصريات"
                 value={newTest.category}
                 onChange={(e) =>
                   setNewTest({ ...newTest, category: e.target.value })
                 }
                 placeholder="مثال: بصريات"
-                className="text-right"
+                className="text-start"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -624,7 +624,7 @@ export default function MedicationsTestsManagement() {
                     key={med.id}
                     className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                   >
-                    <div className="min-w-0 flex-1 text-right">
+                    <div className="min-w-0 flex-1 text-start">
                       <div className="font-semibold leading-snug">
                         {med.name}
                       </div>
@@ -648,7 +648,7 @@ export default function MedicationsTestsManagement() {
                       </Button>
                       {delConfirmMed === med.id ? (
                         <div className="flex items-center gap-1">
-                          <button
+                          <Button variant="bare"
                             type="button"
                             aria-label="تأكيد الحذف"
                             className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -658,25 +658,25 @@ export default function MedicationsTestsManagement() {
                             }}
                           >
                             تأكيد
-                          </button>
-                          <button
+                          </Button>
+                          <Button variant="bare"
                             type="button"
                             aria-label="إلغاء الحذف"
                             className="rounded bg-muted text-muted-foreground hover:bg-border"
                             onClick={() => setDelConfirmMed(null)}
                           >
                             ✕
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <button
+                        <Button variant="bare"
                           type="button"
                           aria-label="حذف الدواء"
                           className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                           onClick={() => setDelConfirmMed(med.id)}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -689,8 +689,8 @@ export default function MedicationsTestsManagement() {
         {/* قائمة الفحوصات + مفضلة */}
         <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <CardHeader className="space-y-3 border-b border-border/80 py-4">
-            <div className="flex items-center gap-2 text-warning">
-              <Star className="h-4 w-4 fill-warning text-warning" />
+            <div className="flex items-center gap-2 text-warning-text">
+              <Star className="h-4 w-4 fill-warning text-warning-text" />
               <span className="text-sm font-black">المفضلة</span>
             </div>
             {!canFavorite ? (
@@ -704,7 +704,7 @@ export default function MedicationsTestsManagement() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {favoriteTests.map((test) => (
-                  <button
+                  <Button variant="bare"
                     key={test.id}
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold transition hover:bg-primary/[0.08]"
@@ -713,9 +713,9 @@ export default function MedicationsTestsManagement() {
                       toggleFavoriteMutation.mutate({ testId: test.id })
                     }
                   >
-                    <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+                    <Star className="h-3.5 w-3.5 fill-warning text-warning-text" />
                     {test.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -742,7 +742,7 @@ export default function MedicationsTestsManagement() {
                   key={test.id}
                   className="flex items-start justify-between gap-3 rounded-lg border border-border/80 p-3 transition-colors hover:bg-muted/40"
                 >
-                  <div className="min-w-0 flex-1 text-right">
+                  <div className="min-w-0 flex-1 text-start">
                     <div className="font-semibold leading-snug">
                       {test.name}
                     </div>
@@ -781,7 +781,7 @@ export default function MedicationsTestsManagement() {
                       }}
                     >
                       <Star
-                        className={`h-4 w-4 ${favoriteIds.has(test.id) ? "fill-warning text-warning" : "text-muted-foreground"}`}
+                        className={`h-4 w-4 ${favoriteIds.has(test.id) ? "fill-warning text-warning-text" : "text-muted-foreground"}`}
                       />
                     </Button>
                     <Button
@@ -797,7 +797,7 @@ export default function MedicationsTestsManagement() {
                     </Button>
                     {delConfirmTest === test.id ? (
                       <div className="flex items-center gap-1">
-                        <button
+                        <Button variant="bare"
                           type="button"
                           aria-label="تأكيد الحذف"
                           className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -807,25 +807,25 @@ export default function MedicationsTestsManagement() {
                           }}
                         >
                           تأكيد
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="bare"
                           type="button"
                           aria-label="إلغاء الحذف"
                           className="rounded bg-muted text-muted-foreground hover:bg-border"
                           onClick={() => setDelConfirmTest(null)}
                         >
                           ✕
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
+                      <Button variant="bare"
                         type="button"
                         aria-label="حذف الفحص"
                         className="inline-flex h-9 w-9 items-center justify-center rounded text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                         onClick={() => setDelConfirmTest(test.id)}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
