@@ -131,7 +131,10 @@ describe("WhatsApp webhook authentication", () => {
     expect(rejected.status).toBe(403);
   });
 
-  function deliver(ids = ["wamid.test-1"]) {
+  function deliver(
+    ids = ["wamid.test-1"],
+    overrides: Record<string, unknown> = {},
+  ) {
     const payload = JSON.stringify({
       entry: [
         {
@@ -143,6 +146,7 @@ describe("WhatsApp webhook authentication", () => {
                   from: "201000000000",
                   type: "text",
                   text: { body: "Hello" },
+                  ...overrides,
                 })),
               },
             },
@@ -172,6 +176,53 @@ describe("WhatsApp webhook authentication", () => {
     vi.mocked(getDb).mockResolvedValue({ transaction });
     return { upsert, values, tx, transaction };
   }
+
+  it.each([
+    ["استقبال العروض", "subscribed"],
+    ["إيقاف الرسائل", "unsubscribed"],
+  ])(
+    "persists template button %s before acknowledging",
+    async (label, status) => {
+      const { values } = mockStorage();
+      expect(
+        (
+          await deliver(undefined, {
+            type: "button",
+            text: undefined,
+            button: { text: label, payload: label },
+          })
+        ).status,
+      ).toBe(200);
+      expect(values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          phone: "201000000000",
+          status,
+          source: "whatsapp_reply",
+        }),
+      );
+      await vi.waitFor(() => expect(sendWhatsAppReply).toHaveBeenCalledOnce());
+      expect(vi.mocked(sendWhatsAppReply).mock.calls[0][0].message).toContain(
+        status === "subscribed" ? "تم اشتراكك" : "تم إيقاف",
+      );
+    },
+  );
+
+  it("requests retry when saving a button preference fails", async () => {
+    const { upsert } = mockStorage();
+    upsert
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 1 }])
+      .mockRejectedValueOnce(new Error("subscription unavailable"));
+    expect(
+      (
+        await deliver(undefined, {
+          type: "button",
+          text: undefined,
+          button: { text: "إيقاف الرسائل" },
+        })
+      ).status,
+    ).toBe(503);
+    expect(sendWhatsAppReply).not.toHaveBeenCalled();
+  });
 
   it("returns 503 without replying when the database is unavailable", async () => {
     vi.mocked(getDb).mockResolvedValue(null);

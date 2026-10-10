@@ -1,4 +1,5 @@
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import type { MySql2Database } from "drizzle-orm/mysql2";
 import {
   patients,
   whatsappMarketingCampaigns,
@@ -88,6 +89,7 @@ export function marketingPreferenceFromInbound(input: {
         "marketing_continue",
         "continue_marketing",
         "subscribe_marketing",
+        "استقبال العروض",
         "استمرار",
         "اشتراك",
         "اشترك",
@@ -107,6 +109,8 @@ export function marketingPreferenceFromInbound(input: {
         "marketing_stop",
         "stop_marketing",
         "unsubscribe_marketing",
+        "إيقاف الرسائل",
+        "ايقاف الرسائل",
         "إيقاف",
         "ايقاف",
         "إلغاء",
@@ -126,10 +130,11 @@ export function marketingPreferenceFromInbound(input: {
 export async function recordMarketingPreference(
   rawPhone: string,
   preference: MarketingPreference,
+  connection?: Pick<MySql2Database, "insert">,
 ): Promise<boolean> {
   const phone = normalizedPhone(rawPhone);
   if (!phone) return false;
-  const db = await getDb();
+  const db = connection ?? (await getDb());
   if (!db) throw new Error("Database not available");
   await db
     .insert(whatsappMarketingSubscriptions)
@@ -210,7 +215,11 @@ export async function sendMarketingBatch(input: {
             phone: whatsappMarketingSubscriptions.phone,
           })
           .from(whatsappMarketingSubscriptions)
-          .where(eq(whatsappMarketingSubscriptions.status, "subscribed"))
+          .innerJoin(patients, eq(patients.id, whatsappMarketingSubscriptions.patientId))
+          .where(and(
+            eq(whatsappMarketingSubscriptions.status, "subscribed"),
+            eq(patients.locationType, "center"),
+          ))
           .limit(input.limit)
       : await db
           .select({ id: patients.id, phone: patients.phone })
@@ -221,6 +230,7 @@ export async function sendMarketingBatch(input: {
           )
           .where(
             and(
+              eq(patients.locationType, "center"),
               isNotNull(patients.phone),
               isNull(whatsappMarketingSubscriptions.id),
             ),
@@ -239,6 +249,26 @@ export async function sendMarketingBatch(input: {
   let failed = 0;
   for (const recipient of recipients) {
     try {
+      if (!input.testPhone) {
+        const [centerPatient] = await db.select({ id: patients.id }).from(patients)
+          .where(and(eq(patients.id, recipient.patientId!), eq(patients.locationType, "center"))).limit(1);
+        if (!centerPatient) throw new Error("تم منع الإرسال لأن الحالة ليست من حالات المركز");
+      }
+      const [subscription] = await db
+        .select({ status: whatsappMarketingSubscriptions.status })
+        .from(whatsappMarketingSubscriptions)
+        .where(eq(whatsappMarketingSubscriptions.phone, recipient.phone))
+        .limit(1);
+      if (subscription?.status === "unsubscribed") {
+        throw new Error("تم منع الإرسال لأن العميل أوقف رسائل العروض");
+      }
+      if (
+        input.kind === "promotion" &&
+        !input.testPhone &&
+        subscription?.status !== "subscribed"
+      ) {
+        throw new Error("تم منع الإرسال لعدم وجود اشتراك نشط");
+      }
       const metaMessageId = await sendTemplate(recipient.phone, template);
       await db.insert(whatsappMarketingDeliveries).values({
         campaignId,

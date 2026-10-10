@@ -51,7 +51,16 @@ function formatDateTime(value: unknown): string {
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
 const INBOX_REFRESH_INTERVAL_MS = 10_000;
 const WHATSAPP_NOTIFICATIONS_KEY = "selrs_whatsapp_inbox_notifications";
-const EMPTY_MESSAGES: any[] = [];
+type WhatsappInboxMessage = {
+  id: number;
+  waMessageId: string | null;
+  fromPhone: string | null;
+  messageType: string | null;
+  body: string | null;
+  receivedAt: Date | string;
+};
+
+const EMPTY_MESSAGES: WhatsappInboxMessage[] = [];
 
 type ReplyTarget = {
   fromPhone: string;
@@ -77,7 +86,7 @@ export default function AdminWhatsAppInbox() {
     });
   const latestMessageIdRef = useRef<number | null>(null);
 
-  const { data, isLoading, isFetching, error } =
+  const { data, isLoading, isFetching, error, refetch } =
     trpc.whatsappInbox.list.useQuery(
       { page, pageSize },
       {
@@ -96,9 +105,13 @@ export default function AdminWhatsAppInbox() {
     },
   );
 
-  const rows = data?.rows ?? EMPTY_MESSAGES;
-  const latestRows =
-    page === 1 ? rows : (latestMessagesQuery.data?.rows ?? EMPTY_MESSAGES);
+  const rows: WhatsappInboxMessage[] = (data?.rows ??
+    EMPTY_MESSAGES) as WhatsappInboxMessage[];
+  const latestRows: WhatsappInboxMessage[] =
+    page === 1
+      ? rows
+      : ((latestMessagesQuery.data?.rows ??
+          EMPTY_MESSAGES) as WhatsappInboxMessage[]);
   const hasMore = rows.length === pageSize;
   const sendReply = trpc.whatsappInbox.sendReply.useMutation({
     onSuccess: () => {
@@ -110,6 +123,32 @@ export default function AdminWhatsAppInbox() {
       toast.error(replyError.message || "تعذر إرسال الرد عبر واتساب");
     },
   });
+
+  const openReplyDialog = (message: WhatsappInboxMessage) => {
+    sendReply.reset();
+    setReplyTarget({
+      fromPhone: message.fromPhone ?? "",
+      waMessageId: message.waMessageId,
+      body: message.body,
+    });
+    setReplyMessage("");
+  };
+
+  const clearReplyDialog = () => {
+    if (sendReply.isPending) return;
+    sendReply.reset();
+    setReplyTarget(null);
+    setReplyMessage("");
+  };
+
+  const handleSendReply = () => {
+    if (!replyTarget || !replyMessage.trim() || sendReply.isPending) return;
+    sendReply.mutate({
+      recipientPhone: replyTarget.fromPhone,
+      message: replyMessage.trim(),
+      replyToMessageId: replyTarget.waMessageId,
+    });
+  };
 
   const handlePageSizeChange = (value: string) => {
     setPageSize(Number(value) as (typeof PAGE_SIZE_OPTIONS)[number]);
@@ -129,7 +168,7 @@ export default function AdminWhatsAppInbox() {
     if (newestId <= latestMessageIdRef.current) return;
 
     const newMessages = latestRows.filter(
-      (message: any) => Number(message.id) > latestMessageIdRef.current!,
+      (message) => Number(message.id) > latestMessageIdRef.current!,
     );
     latestMessageIdRef.current = newestId;
 
@@ -189,10 +228,10 @@ export default function AdminWhatsAppInbox() {
   };
 
   return (
-    <div className="w-full space-y-4 pb-6 text-right" dir="rtl">
+    <div className="w-full space-y-4 pb-6 text-start" dir="rtl">
       <Card
         dir="rtl"
-        className="overflow-hidden rounded-lg border-border text-right shadow-none"
+        className="overflow-hidden rounded-lg border-border text-start shadow-none"
       >
         <CardHeader className="space-y-0 border-b border-border bg-muted/20 p-4 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -201,13 +240,25 @@ export default function AdminWhatsAppInbox() {
                 <MessageCircle className="h-5 w-5" aria-hidden />
               </div>
               <div>
-                <h1 className="sr-only">رسائل واتساب الواردة</h1>
+                <h1 className="text-2xl font-bold text-foreground sm:text-2xl">
+                  رسائل واتساب الواردة
+                </h1>
                 <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
                   الرسائل المستلمة عبر Webhook واتساب
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {isFetching && !isLoading ? (
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  جارٍ تحديث الرسائل…
+                </span>
+              ) : null}
               <Badge variant="outline" className="gap-1.5 px-2.5 py-1">
                 تحديث تلقائي كل ١٠ ثوانٍ
               </Badge>
@@ -234,19 +285,26 @@ export default function AdminWhatsAppInbox() {
                 )}
               </Button>
               <Badge variant="outline" className="gap-1.5 px-2.5 py-1">
-                {rows.length} رسالة
+                المعروض: {rows.length} رسالة
               </Badge>
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="p-4 sm:p-5">
-          <div className="flex justify-end">
+          <div className="flex flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center">
+            <label htmlFor="whatsapp-page-size" className="sr-only">
+              عدد الرسائل في الصفحة
+            </label>
             <Select
               value={String(pageSize)}
               onValueChange={handlePageSizeChange}
             >
-              <SelectTrigger className="h-10 w-full min-w-[120px] sm:w-40">
+              <SelectTrigger
+                id="whatsapp-page-size"
+                aria-label="عدد الرسائل في الصفحة"
+                className="h-10 w-full min-w-[120px] sm:w-40"
+              >
                 <SelectValue placeholder="عدد النتائج" />
               </SelectTrigger>
               <SelectContent>
@@ -263,18 +321,33 @@ export default function AdminWhatsAppInbox() {
 
       <Card
         dir="rtl"
-        className="overflow-hidden rounded-lg border-border text-right shadow-none"
+        className="overflow-hidden rounded-lg border-border text-start shadow-none"
       >
         <CardContent className="p-0">
           {error ? (
             <div
-              className="m-4 rounded-lg border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive"
+              className="m-4 flex flex-col gap-3 rounded-lg border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive"
               role="alert"
             >
-              تعذر تحميل الرسائل: {error.message}
+              <div>
+                <p className="font-semibold">تعذر تحميل الرسائل.</p>
+                <p className="mt-1">تحقق من الاتصال ثم أعد المحاولة.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="self-start border-destructive/40 text-destructive hover:bg-destructive/10"
+                disabled={isFetching}
+                onClick={() => void refetch()}
+              >
+                {isFetching ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}
+              </Button>
             </div>
-          ) : isLoading ? (
+          ) : isLoading || (isFetching && !data) ? (
             <div className="space-y-2 p-4">
+              <span className="sr-only" role="status" aria-live="polite">
+                جارٍ تحميل رسائل واتساب…
+              </span>
               {Array.from({ length: 7 }).map((_, index) => (
                 <Skeleton key={index} className="h-12 w-full rounded-md" />
               ))}
@@ -295,8 +368,28 @@ export default function AdminWhatsAppInbox() {
             </div>
           ) : (
             <>
+              {page !== 1 && latestMessagesQuery.error ? (
+                <div
+                  className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
+                  role="alert"
+                >
+                  <span>تعذر التحقق من الرسائل الجديدة.</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                    disabled={latestMessagesQuery.isFetching}
+                    onClick={() => void latestMessagesQuery.refetch()}
+                  >
+                    {latestMessagesQuery.isFetching
+                      ? "جارٍ التحقق…"
+                      : "إعادة المحاولة"}
+                  </Button>
+                </div>
+              ) : null}
               <div className="divide-y divide-border lg:hidden">
-                {rows.map((msg: any, index: number) => (
+                {rows.map((msg, index) => (
                   <article
                     key={msg.id}
                     className={`space-y-3 px-4 py-4 ${
@@ -330,14 +423,15 @@ export default function AdminWhatsAppInbox() {
                       variant="outline"
                       className="min-h-11 w-full gap-1.5"
                       disabled={!msg.fromPhone}
-                      onClick={() => {
-                        setReplyTarget({
-                          fromPhone: msg.fromPhone,
-                          waMessageId: msg.waMessageId || null,
-                          body: msg.body || null,
-                        });
-                        setReplyMessage("");
-                      }}
+                      aria-label={
+                        msg.fromPhone
+                          ? `الرد على رسالة من ${msg.fromPhone}`
+                          : "لا يمكن الرد على رسالة بدون رقم مرسل"
+                      }
+                      title={
+                        msg.fromPhone ? undefined : "لا يمكن الرد بدون رقم مرسل"
+                      }
+                      onClick={() => openReplyDialog(msg)}
                     >
                       <Reply className="h-4 w-4" aria-hidden />
                       رد على الرسالة
@@ -345,21 +439,26 @@ export default function AdminWhatsAppInbox() {
                   </article>
                 ))}
               </div>
-              <div className="hidden overflow-x-auto lg:block">
+              <div
+                className="hidden overflow-x-auto lg:block"
+                role="region"
+                aria-label="جدول رسائل واتساب"
+                tabIndex={0}
+              >
                 <Table dir="rtl" className="min-w-[900px]">
                   <TableHeader className="bg-muted/50">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-right">الهاتف</TableHead>
-                      <TableHead className="text-right">النوع</TableHead>
-                      <TableHead className="min-w-72 text-right">
+                      <TableHead className="text-start">الهاتف</TableHead>
+                      <TableHead className="text-start">النوع</TableHead>
+                      <TableHead className="min-w-72 text-start">
                         نص الرسالة
                       </TableHead>
-                      <TableHead className="text-right">وقت الاستلام</TableHead>
-                      <TableHead className="w-24 text-right">إجراء</TableHead>
+                      <TableHead className="text-start">وقت الاستلام</TableHead>
+                      <TableHead className="w-24 text-start">إجراء</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map((msg: any, index: number) => (
+                    {rows.map((msg, index) => (
                       <TableRow
                         key={msg.id}
                         className={index % 2 === 1 ? "bg-muted/20" : undefined}
@@ -384,14 +483,17 @@ export default function AdminWhatsAppInbox() {
                             variant="outline"
                             size="sm"
                             disabled={!msg.fromPhone}
-                            onClick={() => {
-                              setReplyTarget({
-                                fromPhone: msg.fromPhone,
-                                waMessageId: msg.waMessageId || null,
-                                body: msg.body || null,
-                              });
-                              setReplyMessage("");
-                            }}
+                            aria-label={
+                              msg.fromPhone
+                                ? `الرد على رسالة من ${msg.fromPhone}`
+                                : "لا يمكن الرد على رسالة بدون رقم مرسل"
+                            }
+                            title={
+                              msg.fromPhone
+                                ? undefined
+                                : "لا يمكن الرد بدون رقم مرسل"
+                            }
+                            onClick={() => openReplyDialog(msg)}
                             className="gap-1.5"
                           >
                             <Reply className="h-4 w-4" aria-hidden />
@@ -406,7 +508,10 @@ export default function AdminWhatsAppInbox() {
             </>
           )}
 
-          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-3">
+          <nav
+            className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-3"
+            aria-label="التنقل بين صفحات رسائل واتساب"
+          >
             <Button
               type="button"
               variant="outline"
@@ -418,7 +523,10 @@ export default function AdminWhatsAppInbox() {
               <ChevronRight className="h-4 w-4" aria-hidden />
               السابق
             </Button>
-            <span className="text-sm font-medium text-foreground">
+            <span
+              className="text-sm font-medium text-foreground"
+              aria-live="polite"
+            >
               صفحة {page}
             </span>
             <Button
@@ -432,21 +540,18 @@ export default function AdminWhatsAppInbox() {
               التالي
               <ChevronLeft className="h-4 w-4" aria-hidden />
             </Button>
-          </div>
+          </nav>
         </CardContent>
       </Card>
 
       <Dialog
         open={replyTarget !== null}
         onOpenChange={(open) => {
-          if (!open && !sendReply.isPending) {
-            setReplyTarget(null);
-            setReplyMessage("");
-          }
+          if (!open) clearReplyDialog();
         }}
       >
-        <DialogContent dir="rtl" className="text-right sm:max-w-lg">
-          <DialogHeader className="text-right">
+        <DialogContent dir="rtl" className="text-start sm:max-w-lg">
+          <DialogHeader className="text-start">
             <DialogTitle>الرد عبر واتساب</DialogTitle>
             <DialogDescription dir="ltr" className="text-right">
               {replyTarget?.fromPhone}
@@ -462,49 +567,68 @@ export default function AdminWhatsAppInbox() {
             </div>
           ) : null}
 
+          <label
+            htmlFor="whatsapp-reply-message"
+            className="text-sm font-semibold text-foreground"
+          >
+            نص الرد
+          </label>
           <Textarea
+            id="whatsapp-reply-message"
             value={replyMessage}
             onChange={(event) => setReplyMessage(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                event.preventDefault();
+                handleSendReply();
+              }
+            }}
             placeholder="اكتب الرد…"
             maxLength={4096}
             rows={5}
             autoFocus
             disabled={sendReply.isPending}
+            aria-describedby="whatsapp-reply-hint whatsapp-reply-count"
+            aria-invalid={sendReply.error ? true : undefined}
           />
-          <p className="text-xs text-muted-foreground">
-            الرد النصي متاح خلال نافذة خدمة العميل. خارجها يتطلب واتساب قالبًا
-            معتمدًا.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-2 text-xs text-muted-foreground">
+            <p id="whatsapp-reply-hint">
+              الرد النصي متاح خلال نافذة خدمة العميل. خارجها يتطلب واتساب قالبًا
+              معتمدًا. اضغط Ctrl+Enter للإرسال.
+            </p>
+            <span id="whatsapp-reply-count" aria-live="polite">
+              {replyMessage.length}/4096
+            </span>
+          </div>
+
+          {sendReply.error ? (
+            <p className="text-sm text-destructive" role="alert">
+              تعذر إرسال الرد. تحقّق من الرقم والاتصال ثم أعد المحاولة.
+            </p>
+          ) : null}
 
           <DialogFooter className="gap-2 sm:justify-start">
             <Button
               type="button"
               disabled={!replyMessage.trim() || sendReply.isPending}
-              onClick={() => {
-                if (!replyTarget || !replyMessage.trim()) return;
-                sendReply.mutate({
-                  recipientPhone: replyTarget.fromPhone,
-                  message: replyMessage.trim(),
-                  replyToMessageId: replyTarget.waMessageId,
-                });
-              }}
+              onClick={handleSendReply}
               className="gap-2"
+              aria-label={
+                sendReply.isPending ? "جارٍ إرسال الرد" : "إرسال الرد"
+              }
             >
               {sendReply.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               ) : (
                 <Send className="h-4 w-4" aria-hidden />
               )}
-              إرسال
+              <span>{sendReply.isPending ? "جارٍ الإرسال…" : "إرسال"}</span>
             </Button>
             <Button
               type="button"
               variant="outline"
               disabled={sendReply.isPending}
-              onClick={() => {
-                setReplyTarget(null);
-                setReplyMessage("");
-              }}
+              onClick={clearReplyDialog}
             >
               إلغاء
             </Button>

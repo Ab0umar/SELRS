@@ -45,6 +45,7 @@ interface WhatsAppMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
+  button?: { text?: string; payload?: string };
   interactive?: { button_reply?: { id?: string; title?: string } };
   [key: string]: unknown;
 }
@@ -180,6 +181,7 @@ export function registerWhatsAppWebhook(app: Express) {
                   messageType: msg.type ?? null,
                   body:
                     msg.text?.body ??
+                    msg.button?.text ??
                     msg.interactive?.button_reply?.title ??
                     null,
                   rawPayload: JSON.stringify(msg),
@@ -195,7 +197,19 @@ export function registerWhatsAppWebhook(app: Express) {
                 Number(resultHeader?.affectedRows ?? 0) === 1 &&
                 Number(resultHeader?.insertId ?? 0) > 0;
 
-              if (insertedNewMessage) insertedMessages.push(msg);
+              if (insertedNewMessage) {
+                const preference = marketingPreferenceFromInbound({
+                  text:
+                    msg.button?.text ??
+                    msg.text?.body ??
+                    msg.interactive?.button_reply?.title,
+                  buttonId:
+                    msg.button?.payload ?? msg.interactive?.button_reply?.id,
+                });
+                if (preference && msg.from)
+                  await recordMarketingPreference(msg.from, preference, tx);
+                insertedMessages.push(msg);
+              }
             }
             return insertedMessages;
           },
@@ -215,11 +229,14 @@ export function registerWhatsAppWebhook(app: Express) {
         if (msg.from) {
           try {
             const preference = marketingPreferenceFromInbound({
-              text: msg.text?.body ?? msg.interactive?.button_reply?.title,
-              buttonId: msg.interactive?.button_reply?.id,
+              text:
+                msg.button?.text ??
+                msg.text?.body ??
+                msg.interactive?.button_reply?.title,
+              buttonId:
+                msg.button?.payload ?? msg.interactive?.button_reply?.id,
             });
             if (preference) {
-              await recordMarketingPreference(msg.from, preference);
               await sendWhatsAppReply({
                 recipientPhone: msg.from,
                 message:
