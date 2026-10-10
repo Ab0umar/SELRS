@@ -14,15 +14,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { DateInput } from "@/components/ui/date-input";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
+import { useLocalToday } from "@/hooks/useLocalToday";
+import { hasNotEnded } from "./visibleAssignments";
+import { Input } from "@/components/ui/input";
 
 const PERIOD_LABEL: Record<string, string> = {
-  day: "يومي",
+  day: "أسبوعي (قديم)",
   week: "أسبوعي",
   month: "شهري",
+  rotation: "تتابع متكرر",
 };
 
-// Week cycle: slotIndex = getDay() value (0=Sun…6=Sat), displayed Sat→Fri
+// Week cycle: slotIndex = getDay() value (0=Sun to 6=Sat), displayed Sat→Fri
 const WEEK_CYCLE_DAYS = [
   { slotIndex: 6, label: "السبت" },
   { slotIndex: 0, label: "الأحد" },
@@ -36,8 +40,26 @@ const WEEK_DAY_BY_INDEX: Record<number, string> = Object.fromEntries(
   WEEK_CYCLE_DAYS.map((d) => [d.slotIndex, d.label]),
 );
 
+function getCycleSlotIndexForDate(cycle: any, date: Date): number {
+  if (!cycle) return -1;
+  if (cycle.period === "month") return date.getDate();
+  if (cycle.period === "day" || cycle.period === "week") return date.getDay();
+  const configured = (cycle.slots ?? []).map((slot: any) => slot.slotIndex);
+  if (configured.length === 0) return -1;
+  // Must match the server: pattern length is the last configured day.
+  const length = Math.max(...configured) + 1;
+  const [year, month, day] = String(cycle.anchorDate)
+    .slice(0, 10)
+    .split("-")
+    .map(Number);
+  const anchorDay = Date.UTC(year, month - 1, day) / 86_400_000;
+  const currentDay =
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000;
+  return (((currentDay - anchorDay) % length) + length) % length;
+}
+
 function getCycleSlotLabel(period: string, slotIndex: number): string {
-  if (period === "week")
+  if (period === "day" || period === "week")
     return WEEK_DAY_BY_INDEX[slotIndex] ?? `يوم ${slotIndex}`;
   if (period === "month") return `${slotIndex}`;
   return `${slotIndex + 1}`;
@@ -66,8 +88,6 @@ interface BulkForm {
   selectedEmps: string[];
 }
 
-const today = new Date().toISOString().split("T")[0];
-
 const WEEKDAYS = [
   { bit: 0, label: "أح", fullLabel: "الأحد" },
   { bit: 1, label: "إث", fullLabel: "الاثنين" },
@@ -81,7 +101,8 @@ const WEEKDAYS = [
 // weekdayMask is managed from the Employees page, not here
 
 export default function ShiftAssignments() {
-  const isMobile = useIsMobile();
+  const today = useLocalToday();
+  const isMobile = useIsCompact();
   const [tab, setTab] = useState<"assignments" | "cycles" | "swap">(
     "assignments",
   );
@@ -95,11 +116,10 @@ export default function ShiftAssignments() {
     dateTo: today,
   });
 
-  // Cycle state
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleForm, setCycleForm] = useState({
     name: "",
-    period: "week" as "day" | "week" | "month",
+    period: "week" as "day" | "week" | "month" | "rotation",
     anchorDate: today,
     slots: {} as Record<number, number>, // slotIndex → shiftId (0 = none)
   });
@@ -128,7 +148,7 @@ export default function ShiftAssignments() {
   const [bulk, setBulk] = useState<BulkForm>({
     shiftId: 0,
     effectiveFrom: today,
-    weekdayMask: 62,
+    weekdayMask: 31,
     selectedEmps: [],
   });
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -152,9 +172,13 @@ export default function ShiftAssignments() {
 
   const employees: any[] = (listEmployeesQuery.data?.employees ?? []) as any;
   const shifts: any[] = (listShiftsQuery.data ?? []) as any;
-  const assignments: any[] = (listAssignmentsQuery.data ?? []) as any;
+  const assignments = (listAssignmentsQuery.data ?? []).filter((assignment) =>
+    hasNotEnded(assignment, today),
+  );
   const cycles: any[] = (listCyclesQuery.data ?? []) as any;
-  const cycleAssignments: any[] = (listCycleAssignmentsQuery.data ?? []) as any;
+  const cycleAssignments = (listCycleAssignmentsQuery.data ?? []).filter(
+    (assignment: { effectiveTo?: string | null }) => hasNotEnded(assignment, today),
+  );
 
   const resetSingleForm = () =>
     setForm({
@@ -168,7 +192,7 @@ export default function ShiftAssignments() {
     setBulk({
       shiftId: 0,
       effectiveFrom: today,
-      weekdayMask: 62,
+      weekdayMask: 31,
       selectedEmps: [],
     });
 
@@ -179,7 +203,7 @@ export default function ShiftAssignments() {
       listAssignmentsQuery.refetch();
       toast.success("تم تعيين الوردية");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر تعيين الوردية: " + e.message),
   });
 
   const bulkAssignMutation = trpc.attendance.bulkAssignShift.useMutation({
@@ -189,7 +213,7 @@ export default function ShiftAssignments() {
       listAssignmentsQuery.refetch();
       toast.success(`تم تعيين الوردية لـ ${res.inserted} موظف`);
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر تعيين الوردية للموظفين: " + e.message),
   });
 
   const updateAssignmentMutation = trpc.attendance.updateAssignment.useMutation(
@@ -199,7 +223,7 @@ export default function ShiftAssignments() {
         listAssignmentsQuery.refetch();
         toast.success("تم التعديل");
       },
-      onError: (e) => toast.error("خطأ: " + e.message),
+      onError: (e) => toast.error("تعذر تعديل التعيين: " + e.message),
     },
   );
 
@@ -209,7 +233,7 @@ export default function ShiftAssignments() {
       listAssignmentsQuery.refetch();
       toast.success("تم تبادل الورديات");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر تبديل الورديات: " + e.message),
   });
 
   const createCycleMutation = trpc.attendance.createShiftCycle.useMutation({
@@ -219,7 +243,7 @@ export default function ShiftAssignments() {
       listCyclesQuery.refetch();
       toast.success("تم إنشاء الدورة");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر إنشاء الدورة: " + e.message),
   });
   const updateCycleMutation = trpc.attendance.updateShiftCycle.useMutation({
     onSuccess: () => {
@@ -229,7 +253,7 @@ export default function ShiftAssignments() {
       listCyclesQuery.refetch();
       toast.success("تم التعديل");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر تعديل الدورة: " + e.message),
   });
   const updateCycleAssignmentMutation =
     trpc.attendance.updateCycleAssignment.useMutation({
@@ -238,7 +262,7 @@ export default function ShiftAssignments() {
         listCycleAssignmentsQuery.refetch();
         toast.success("تم التعديل");
       },
-      onError: (e) => toast.error("خطأ: " + e.message),
+      onError: (e) => toast.error("تعذر تعديل تعيين الدورة: " + e.message),
     });
   const deleteCycleMutation = trpc.attendance.deleteShiftCycle.useMutation({
     onSuccess: () => {
@@ -246,7 +270,7 @@ export default function ShiftAssignments() {
       listCycleAssignmentsQuery.refetch();
       toast.success("تم الحذف");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر حذف الدورة: " + e.message),
   });
   const assignCycleMutation = trpc.attendance.assignCycle.useMutation({
     onSuccess: (res) => {
@@ -260,7 +284,7 @@ export default function ShiftAssignments() {
       listCycleAssignmentsQuery.refetch();
       toast.success(`تم تعيين الدورة لـ ${res.inserted} موظف`);
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر تعيين الدورة: " + e.message),
   });
   const removeCycleAssignmentMutation =
     trpc.attendance.removeCycleAssignment.useMutation({
@@ -268,7 +292,7 @@ export default function ShiftAssignments() {
         listCycleAssignmentsQuery.refetch();
         toast.success("تم الإلغاء");
       },
-      onError: (e) => toast.error("خطأ: " + e.message),
+      onError: (e) => toast.error("تعذر إلغاء تعيين الدورة: " + e.message),
     });
 
   const deleteAssignmentMutation = trpc.attendance.deleteAssignment.useMutation(
@@ -277,7 +301,7 @@ export default function ShiftAssignments() {
         listAssignmentsQuery.refetch();
         toast.success("تم الحذف");
       },
-      onError: (e) => toast.error("خطأ: " + e.message),
+      onError: (e) => toast.error("تعذر حذف التعيين: " + e.message),
     },
   );
 
@@ -306,7 +330,9 @@ export default function ShiftAssignments() {
     for (const s of c.slots) slotMap[s.slotIndex] = s.shiftId;
     setCycleForm({
       name: c.name,
-      period: c.period,
+      // Existing day-cycle rows were weekday-based; map them to the current
+      // weekly editor without changing their effective schedule.
+      period: c.period === "day" ? "week" : c.period,
       anchorDate: c.anchorDate ?? today,
       slots: slotMap,
     });
@@ -330,15 +356,20 @@ export default function ShiftAssignments() {
 
   const clearAll = () => setBulk((prev) => ({ ...prev, selectedEmps: [] }));
 
-  // weekdayMask editing removed — managed from Employees page
 
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex flex-wrap justify-start gap-2">
-        <div className="flex flex-wrap gap-2">
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label="عرض توزيع الورديات"
+        >
           {(["assignments", "cycles", "swap"] as const).map((t) => (
-            <button
+            <Button variant="bare"
               key={t}
+              type="button"
+              aria-pressed={tab === t}
               onClick={() => setTab(t)}
               className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                 tab === t
@@ -351,12 +382,12 @@ export default function ShiftAssignments() {
                 : t === "cycles"
                   ? "الدورات"
                   : "التبادل"}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      {/* ── Assignments tab ── */}
+      {/* Assignments tab */}
       {tab === "assignments" && (
         <div className="flex flex-wrap gap-2">
           <Button
@@ -393,7 +424,10 @@ export default function ShiftAssignments() {
                 const label = side === "A" ? "الموظف الأول" : "الموظف الثاني";
                 const val = swap[key];
                 const assignment = assignments.find(
-                  (a: any) => a.empCd === val,
+                  (a: any) =>
+                    a.empCd === val &&
+                    a.effectiveFrom <= swap.dateFrom &&
+                    (!a.effectiveTo || a.effectiveTo >= swap.dateFrom),
                 );
                 return (
                   <div key={side} className="space-y-1.5">
@@ -405,7 +439,7 @@ export default function ShiftAssignments() {
                       onChange={(e) =>
                         setSwap({ ...swap, [key]: e.target.value })
                       }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
                     >
                       <option value="">اختر موظف</option>
                       {employees.map((emp: any) => (
@@ -449,8 +483,8 @@ export default function ShiftAssignments() {
                   swapShiftsMutation.isPending
                 }
               >
-                <ArrowLeftRight size={15} className="ml-1.5" />
-                {swapShiftsMutation.isPending ? "جاري التبادل…" : "تبادل"}
+                <ArrowLeftRight size={15} className="me-1.5" />
+                {swapShiftsMutation.isPending ? "جاري التبادل" : "تبادل"}
               </Button>
               <Button
                 type="button"
@@ -485,7 +519,7 @@ export default function ShiftAssignments() {
                     onChange={(e) =>
                       setForm({ ...form, empCd: e.target.value })
                     }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                    className="w-full bg-background text-sm text-foreground rounded-md border border-border px-3 py-2"
                     required
                   >
                     <option value="">اختر موظف</option>
@@ -514,7 +548,7 @@ export default function ShiftAssignments() {
                           : 0,
                       })
                     }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                    className="w-full bg-background text-sm text-foreground rounded-md border border-border px-3 py-2"
                     required
                   >
                     <option value="">اختر وردية</option>
@@ -538,7 +572,7 @@ export default function ShiftAssignments() {
                     onChange={(e) =>
                       setForm({ ...form, effectiveFrom: e.target.value })
                     }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                    className="w-full bg-background text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
                     required
                   />
                 </div>
@@ -558,7 +592,7 @@ export default function ShiftAssignments() {
                         effectiveTo: e.target.value || undefined,
                       })
                     }
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                    className="w-full bg-background text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
                   />
                 </div>
               </div>
@@ -571,7 +605,7 @@ export default function ShiftAssignments() {
                   {WEEKDAYS.map(({ bit, label, fullLabel }) => {
                     const active = !!((form.weekdayMask ?? 127) & (1 << bit));
                     return (
-                      <button
+                      <Button variant="bare"
                         key={bit}
                         type="button"
                         title={fullLabel}
@@ -588,17 +622,17 @@ export default function ShiftAssignments() {
                         }`}
                       >
                         {label}
-                      </button>
+                      </Button>
                     );
                   })}
-                  <button
+                  <Button variant="bare"
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, weekdayMask: 127 }))}
                     className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
                   >
                     كل الأيام
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="bare"
                     type="button"
                     onClick={() =>
                       setForm((f) => ({
@@ -609,7 +643,7 @@ export default function ShiftAssignments() {
                     className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
                   >
                     بدون جمعة
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -655,7 +689,7 @@ export default function ShiftAssignments() {
                         : 0,
                     })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  className="w-full bg-background text-sm text-foreground rounded-md border border-border px-3 py-2"
                 >
                   <option value="">اختر وردية</option>
                   {shifts.map((shift) => (
@@ -678,7 +712,7 @@ export default function ShiftAssignments() {
                   onChange={(e) =>
                     setBulk({ ...bulk, effectiveFrom: e.target.value })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                  className="w-full bg-background text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
                 />
               </div>
             </div>
@@ -691,7 +725,7 @@ export default function ShiftAssignments() {
                 {WEEKDAYS.map(({ bit, label, fullLabel }) => {
                   const active = !!(bulk.weekdayMask & (1 << bit));
                   return (
-                    <button
+                    <Button variant="bare"
                       key={bit}
                       type="button"
                       title={fullLabel}
@@ -708,17 +742,17 @@ export default function ShiftAssignments() {
                       }`}
                     >
                       {label}
-                    </button>
+                    </Button>
                   );
                 })}
-                <button
+                <Button variant="bare"
                   type="button"
                   onClick={() => setBulk((b) => ({ ...b, weekdayMask: 127 }))}
                   className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
                 >
                   كل الأيام
-                </button>
-                <button
+                </Button>
+                <Button variant="bare"
                   type="button"
                   onClick={() =>
                     setBulk((b) => ({
@@ -729,7 +763,7 @@ export default function ShiftAssignments() {
                   className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
                 >
                   بدون جمعة
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -806,7 +840,7 @@ export default function ShiftAssignments() {
                 }
               >
                 {bulkAssignMutation.isPending
-                  ? "جاري التعيين…"
+                  ? "جاري التعيين"
                   : `تعيين ${bulk.selectedEmps.length} موظف`}
               </Button>
               <Button
@@ -822,7 +856,7 @@ export default function ShiftAssignments() {
       )}
 
       {tab === "assignments" && (
-        <Card>
+        <Card className="attendance-section">
           <CardHeader>
             <CardTitle>التعيينات الحالية ({assignments.length})</CardTitle>
           </CardHeader>
@@ -832,15 +866,19 @@ export default function ShiftAssignments() {
                 لا توجد تعيينات
               </div>
             ) : isMobile ? (
-              <div className="space-y-2">
+              <div className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0">
                 {assignments.map((assignment: any) => {
                   const isEditing = editingId === assignment.id;
                   const isExpired = assignment.isExpired;
                   return (
                     <div
                       key={assignment.id}
-                      className={`rounded-2xl border border-border bg-background p-3 shadow-xs ${
-                        isEditing ? "bg-primary/5" : isExpired ? "opacity-60" : ""
+                      className={`rounded-xl border border-border bg-background p-3 shadow-xs ${
+                        isEditing
+                          ? "bg-primary/5"
+                          : isExpired
+                            ? "opacity-60"
+                            : ""
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -848,7 +886,7 @@ export default function ShiftAssignments() {
                           <div className="text-sm font-semibold text-foreground">
                             {assignment.empName}
                             {isExpired && (
-                              <span className="mr-2 text-[10px] text-muted-foreground">
+                              <span className="ms-2 text-xs text-muted-foreground">
                                 (منتهي)
                               </span>
                             )}
@@ -895,7 +933,7 @@ export default function ShiftAssignments() {
                                 shiftId: parseInt(e.target.value, 10),
                               })
                             }
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            className="w-full bg-background text-sm text-foreground rounded-md border border-border px-3 py-2"
                           >
                             {shifts.map((shift) => (
                               <option key={shift.id} value={shift.id}>
@@ -912,7 +950,7 @@ export default function ShiftAssignments() {
                                   effectiveFrom: e.target.value,
                                 })
                               }
-                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0"
                             />
                             <DateInput
                               value={editRow.effectiveTo ?? ""}
@@ -922,7 +960,7 @@ export default function ShiftAssignments() {
                                   effectiveTo: e.target.value || undefined,
                                 })
                               }
-                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0"
                             />
                           </div>
                           <div className="flex justify-end gap-1">
@@ -953,7 +991,7 @@ export default function ShiftAssignments() {
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
                           <div>
                             <div className="text-muted-foreground">الوردية</div>
                             <div className="font-medium text-foreground">
@@ -969,7 +1007,7 @@ export default function ShiftAssignments() {
                           <div>
                             <div className="text-muted-foreground">حتى</div>
                             <div className="font-mono font-medium text-foreground">
-                              {assignment.effectiveTo ?? "—"}
+                              {assignment.effectiveTo ?? "-"}
                             </div>
                           </div>
                         </div>
@@ -979,16 +1017,30 @@ export default function ShiftAssignments() {
                 })}
               </div>
             ) : (
-              <div className="overflow-x-auto" dir="rtl">
-                <table dir="rtl" className="min-w-[58rem] w-full text-sm">
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+                <table
+                  aria-label="التعيينات الحالية"
+                  dir="rtl"
+                  className="min-w-[58rem] w-full text-sm"
+                >
                   <thead>
                     <tr className="border-b bg-muted/50">
-                      <th className="px-4 py-3 text-right">الكود</th>
-                      <th className="px-4 py-3 text-right">الاسم</th>
-                      <th className="px-4 py-3 text-right">الوردية</th>
-                      <th className="px-4 py-3 text-right">من</th>
-                      <th className="px-4 py-3 text-right">حتى</th>
-                      <th className="px-4 py-3 text-right"></th>
+                      <th scope="col" className="px-4 py-3 text-start">
+                        الكود
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-start">
+                        الاسم
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-start">
+                        الوردية
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-start">
+                        من
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-start">
+                        حتى
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-start"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1000,7 +1052,11 @@ export default function ShiftAssignments() {
                         <tr
                           key={assignment.id}
                           className={`border-b transition-colors ${
-                            isEditing ? "bg-primary/5" : isExpired ? "bg-muted/20 opacity-60" : "hover:bg-muted/40"
+                            isEditing
+                              ? "bg-primary/5"
+                              : isExpired
+                                ? "bg-muted/20 opacity-60"
+                                : "hover:bg-muted/40"
                           }`}
                         >
                           <td className="px-4 py-2 font-mono text-xs text-foreground">
@@ -1009,7 +1065,9 @@ export default function ShiftAssignments() {
                           <td className="px-4 py-2 text-foreground">
                             {assignment.empName}
                             {isExpired && (
-                              <span className="mr-2 text-[10px] text-muted-foreground">(منتهي)</span>
+                              <span className="ms-2 text-xs text-muted-foreground">
+                                (منتهي)
+                              </span>
                             )}
                           </td>
                           {isEditing ? (
@@ -1023,7 +1081,7 @@ export default function ShiftAssignments() {
                                       shiftId: parseInt(e.target.value, 10),
                                     })
                                   }
-                                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                  className="w-full bg-background text-sm text-foreground rounded-md border border-border px-3 py-2"
                                 >
                                   {shifts.map((shift) => (
                                     <option key={shift.id} value={shift.id}>
@@ -1041,7 +1099,7 @@ export default function ShiftAssignments() {
                                       effectiveFrom: e.target.value,
                                     })
                                   }
-                                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0"
                                 />
                               </td>
                               <td className="px-2 py-2">
@@ -1053,7 +1111,7 @@ export default function ShiftAssignments() {
                                       effectiveTo: e.target.value || undefined,
                                     })
                                   }
-                                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground h-11 w-[11rem] shrink-0"
+                                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground h-11 w-full sm:w-[11rem] shrink-0"
                                 />
                               </td>
 
@@ -1100,7 +1158,7 @@ export default function ShiftAssignments() {
                                 {assignment.effectiveFrom}
                               </td>
                               <td className="px-4 py-2 text-foreground">
-                                {assignment.effectiveTo ?? "—"}
+                                {assignment.effectiveTo ?? "-"}
                               </td>
 
                               <td className="px-4 py-2">
@@ -1148,7 +1206,7 @@ export default function ShiftAssignments() {
         </Card>
       )}
 
-      {/* ── Cycles tab ── */}
+      {/* Cycles tab */}
       {tab === "cycles" && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -1180,18 +1238,20 @@ export default function ShiftAssignments() {
                     <label className="block text-sm font-medium">
                       اسم الدورة
                     </label>
-                    <input
+                    <Input bare
+                      aria-label="اسم الدورة"
                       value={cycleForm.name}
                       onChange={(e) =>
                         setCycleForm({ ...cycleForm, name: e.target.value })
                       }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       placeholder="مثال: دوام دوري"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="block text-sm font-medium">الفترة</label>
                     <select
+                      aria-label="الفترة"
                       value={cycleForm.period}
                       onChange={(e) =>
                         setCycleForm({
@@ -1200,51 +1260,87 @@ export default function ShiftAssignments() {
                           slots: {},
                         })
                       }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
-                      <option value="day">
-                        يومي — وردية لكل يوم من الأسبوع
+                      <option value="rotation">
+                        تتابع متكرر: يبدأ من تاريخ البداية
                       </option>
                       <option value="week">
-                        أسبوعي — وردية لكل يوم من الأسبوع
+                        أسبوعي: وردية حسب يوم الأسبوع
                       </option>
                       <option value="month">
-                        شهري — وردية لكل يوم من الشهر
+                        شهري: وردية لكل يوم من الشهر
                       </option>
                     </select>
                   </div>
                 </div>
 
-                {/* Day / Week: 7 named weekday rows */}
-                {(cycleForm.period === "day" ||
+                {cycleForm.period === "rotation" && (
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium">
+                      تاريخ بداية تتابع الورديات
+                    </label>
+                    <DateInput
+                      value={cycleForm.anchorDate}
+                      onChange={(event) =>
+                        setCycleForm({
+                          ...cycleForm,
+                          anchorDate: event.target.value,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      اليوم الأول يبدأ من هذا التاريخ، ثم تتكرر الورديات المسجلة
+                      بالترتيب.
+                    </p>
+                  </div>
+                )}
+
+                {/* Day / Week: seven ordered slots or weekday slots */}
+                {(cycleForm.period === "rotation" ||
                   cycleForm.period === "week") && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium">
-                      وردية كل يوم من الأسبوع
+                      {cycleForm.period === "rotation"
+                        ? "ترتيب تتابع الورديات (حتى 7 أيام)"
+                        : "الوردية حسب يوم الأسبوع"}
                     </label>
                     <div className="space-y-1.5">
-                      {WEEK_CYCLE_DAYS.map(({ slotIndex, label }) => (
+                      {(cycleForm.period === "rotation"
+                        ? [...WEEK_CYCLE_DAYS].sort(
+                            (a, b) => a.slotIndex - b.slotIndex,
+                          )
+                        : WEEK_CYCLE_DAYS
+                      ).map(({ slotIndex, label }) => (
                         <div
                           key={slotIndex}
                           className="flex items-center gap-3"
                         >
                           <span className="w-20 shrink-0 text-sm font-medium text-foreground">
-                            {label}
+                            {cycleForm.period === "rotation"
+                              ? `اليوم ${WEEK_CYCLE_DAYS.findIndex((d) => d.slotIndex === slotIndex) + 1}`
+                              : label}
                           </span>
                           <select
-                            value={cycleForm.slots[slotIndex] ?? 0}
-                            onChange={(e) =>
-                              setCycleForm({
-                                ...cycleForm,
-                                slots: {
-                                  ...cycleForm.slots,
-                                  [slotIndex]: Number(e.target.value),
-                                },
-                              })
+                            value={
+                              cycleForm.slots[slotIndex] ??
+                              (cycleForm.period === "rotation" ? "" : 0)
                             }
-                            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                            onChange={(e) => {
+                              const slots = { ...cycleForm.slots };
+                              if (e.target.value === "")
+                                delete slots[slotIndex];
+                              else slots[slotIndex] = Number(e.target.value);
+                              setCycleForm({ ...cycleForm, slots });
+                            }}
+                            className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
                           >
-                            <option value={0}>— راحة / لا وردية —</option>
+                            {cycleForm.period === "rotation" && (
+                              <option value="">
+                                غير مستخدم (بعد نهاية التتابع)
+                              </option>
+                            )}
+                            <option value={0}>راحة / لا وردية</option>
                             {shifts.map((s: any) => (
                               <option key={s.id} value={s.id}>
                                 {s.name} ({s.startTime}–{s.endTime})
@@ -1281,9 +1377,9 @@ export default function ShiftAssignments() {
                                   },
                                 })
                               }
-                              className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+                              className="flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-xs"
                             >
-                              <option value={0}>—</option>
+                              <option value={0}>-</option>
                               {shifts.map((s: any) => (
                                 <option key={s.id} value={s.id}>
                                   {s.name}
@@ -1299,13 +1395,21 @@ export default function ShiftAssignments() {
 
                 <div className="flex gap-2">
                   {(() => {
+                    // Rotation keeps explicit rest days (0) so the pattern
+                    // length is preserved; other periods drop empty days.
                     const slotsToSubmit = Object.entries(cycleForm.slots)
-                      .filter(([, v]) => Number(v) > 0)
+                      .filter(([, v]) =>
+                        cycleForm.period === "rotation"
+                          ? Number(v) >= 0
+                          : Number(v) > 0,
+                      )
                       .map(([k, v]) => ({
                         slotIndex: Number(k),
                         shiftId: Number(v),
                       }));
-                    const valid = !!cycleForm.name && slotsToSubmit.length > 0;
+                    const valid =
+                      !!cycleForm.name &&
+                      slotsToSubmit.some((slot) => slot.shiftId > 0);
                     const isPending =
                       createCycleMutation.isPending ||
                       updateCycleMutation.isPending;
@@ -1363,6 +1467,7 @@ export default function ShiftAssignments() {
                   <div className="space-y-1.5">
                     <label className="block text-sm font-medium">الدورة</label>
                     <select
+                      aria-label="الدورة"
                       value={cycleAssignForm.cycleId || ""}
                       onChange={(e) =>
                         setCycleAssignForm({
@@ -1370,7 +1475,7 @@ export default function ShiftAssignments() {
                           cycleId: Number(e.target.value),
                         })
                       }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <option value="">اختر دورة</option>
                       {cycles.map((c: any) => (
@@ -1392,7 +1497,7 @@ export default function ShiftAssignments() {
                           effectiveFrom: e.target.value,
                         })
                       }
-                      className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      className="h-11 w-full sm:w-[11rem] shrink-0 bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 rounded-lg border border-border"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1407,7 +1512,7 @@ export default function ShiftAssignments() {
                           effectiveTo: e.target.value,
                         })
                       }
-                      className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      className="h-11 w-full sm:w-[11rem] shrink-0 bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 rounded-lg border border-border"
                     />
                   </div>
                 </div>
@@ -1497,7 +1602,7 @@ export default function ShiftAssignments() {
                     }
                   >
                     {assignCycleMutation.isPending
-                      ? "جاري التعيين…"
+                      ? "جاري التعيين"
                       : `تعيين ${cycleAssignForm.empCds.length || ""} موظف`}
                   </Button>
                   <Button
@@ -1511,7 +1616,7 @@ export default function ShiftAssignments() {
             </Card>
           )}
 
-          <Card>
+          <Card className="attendance-section">
             <CardHeader>
               <CardTitle>الدورات ({cycles.length})</CardTitle>
             </CardHeader>
@@ -1533,8 +1638,11 @@ export default function ShiftAssignments() {
                             {c.name}
                           </div>
                           <div className="mt-0.5 text-xs text-muted-foreground">
-                            {PERIOD_LABEL[c.period]} · بداية من {c.anchorDate} ·{" "}
-                            {c.slots.length}{" "}
+                            {PERIOD_LABEL[c.period]}
+                            {c.period === "rotation"
+                              ? ` · بداية من ${c.anchorDate}`
+                              : ""}{" "}
+                            · {c.slots.length}{" "}
                             {c.slots.length === 1 ? "وردية" : "ورديات"}
                           </div>
                           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1547,12 +1655,14 @@ export default function ShiftAssignments() {
                                   key={s.slotIndex}
                                   className="rounded border border-border bg-muted px-2 py-0.5 text-xs"
                                 >
-                                  <span className="font-mono text-muted-foreground ml-1">
+                                  <span className="font-mono text-muted-foreground me-1">
                                     {getCycleSlotLabel(c.period, s.slotIndex)}
                                   </span>
                                   {shift
                                     ? `${shift.name} (${shift.startTime}–${shift.endTime})`
-                                    : `وردية ${s.shiftId}`}
+                                    : s.shiftId === 0
+                                      ? "راحة"
+                                      : `وردية ${s.shiftId}`}
                                 </span>
                               );
                             })}
@@ -1560,6 +1670,7 @@ export default function ShiftAssignments() {
                         </div>
                         <div className="flex gap-1">
                           <Button
+                            aria-label="تعديل"
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 shrink-0"
@@ -1568,6 +1679,7 @@ export default function ShiftAssignments() {
                             <Pencil size={14} className="text-primary" />
                           </Button>
                           <Button
+                            aria-label="حذف"
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 shrink-0"
@@ -1586,7 +1698,7 @@ export default function ShiftAssignments() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="attendance-section">
             <CardHeader>
               <CardTitle>تعيينات الدورات ({cycleAssignments.length})</CardTitle>
             </CardHeader>
@@ -1596,14 +1708,14 @@ export default function ShiftAssignments() {
                   لا توجد تعيينات
                 </div>
               ) : isMobile ? (
-                <div className="space-y-2">
+                <div className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0">
                   {cycleAssignments.map((a: any) => {
                     const isEditing = editingCycleAssignId === a.id;
                     const cycle = cycles.find((c: any) => c.id === a.cycleId);
-                    const todaySlotIdx =
-                      cycle?.period === "month"
-                        ? new Date().getDate()
-                        : new Date().getDay();
+                    const todaySlotIdx = getCycleSlotIndexForDate(
+                      cycle,
+                      new Date(),
+                    );
                     const todaySlot = cycle?.slots?.find(
                       (s: any) => s.slotIndex === todaySlotIdx,
                     );
@@ -1613,7 +1725,7 @@ export default function ShiftAssignments() {
                     return (
                       <div
                         key={a.id}
-                        className={`rounded-2xl border border-border bg-background p-3 shadow-xs ${isEditing ? "bg-primary/5" : ""}`}
+                        className={`rounded-xl border border-border bg-background p-3 shadow-xs ${isEditing ? "bg-primary/5" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -1627,6 +1739,7 @@ export default function ShiftAssignments() {
                           {!isEditing && (
                             <div className="flex items-center gap-1">
                               <Button
+                                aria-label="تعديل"
                                 variant="ghost"
                                 size="sm"
                                 className="h-9 w-9 p-0"
@@ -1642,6 +1755,7 @@ export default function ShiftAssignments() {
                                 <Pencil size={14} className="text-primary" />
                               </Button>
                               <Button
+                                aria-label="حذف"
                                 variant="ghost"
                                 size="sm"
                                 className="h-9 w-9 p-0"
@@ -1651,7 +1765,10 @@ export default function ShiftAssignments() {
                                   })
                                 }
                               >
-                                <Trash2 size={14} className="text-destructive" />
+                                <Trash2
+                                  size={14}
+                                  className="text-destructive"
+                                />
                               </Button>
                             </div>
                           )}
@@ -1667,7 +1784,7 @@ export default function ShiftAssignments() {
                                   cycleId: Number(e.target.value),
                                 })
                               }
-                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                              className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
                             >
                               {cycles.map((c: any) => (
                                 <option key={c.id} value={c.id}>
@@ -1684,7 +1801,7 @@ export default function ShiftAssignments() {
                                     effectiveFrom: e.target.value,
                                   })
                                 }
-                                className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                                className="h-11 w-full sm:w-[11rem] shrink-0 rounded-lg border border-input bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                               />
                               <DateInput
                                 value={editCycleAssignRow.effectiveTo}
@@ -1694,11 +1811,11 @@ export default function ShiftAssignments() {
                                     effectiveTo: e.target.value,
                                   })
                                 }
-                                className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                                className="h-11 w-full sm:w-[11rem] shrink-0 rounded-lg border border-input bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                               />
                             </div>
                             <div className="flex justify-end gap-1">
-                              <Button
+                              <Button aria-label="حفظ التعديل" title="حفظ التعديل"
                                 variant="ghost"
                                 size="sm"
                                 className="h-9 w-9 p-0"
@@ -1712,7 +1829,9 @@ export default function ShiftAssignments() {
                                       editCycleAssignRow.effectiveTo || null,
                                   })
                                 }
-                                disabled={updateCycleAssignmentMutation.isPending}
+                                disabled={
+                                  updateCycleAssignmentMutation.isPending
+                                }
                               >
                                 <Check size={15} className="text-success" />
                               </Button>
@@ -1722,23 +1841,28 @@ export default function ShiftAssignments() {
                                 className="h-9 w-9 p-0"
                                 onClick={() => setEditingCycleAssignId(null)}
                               >
-                                <X size={15} className="text-muted-foreground" />
+                                <X
+                                  size={15}
+                                  className="text-muted-foreground"
+                                />
                               </Button>
                             </div>
                           </div>
                         ) : (
-                          <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
                             <div>
-                              <div className="text-muted-foreground">الدورة</div>
+                              <div className="text-muted-foreground">
+                                الدورة
+                              </div>
                               <div className="font-medium text-foreground">
                                 {a.cycleName}
                               </div>
                               {todayShift ? (
-                                <span className="mt-0.5 inline-block rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                                <span className="mt-0.5 inline-block rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
                                   {todayShift.name}
                                 </span>
                               ) : (
-                                <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                                <span className="mt-0.5 block text-xs text-muted-foreground">
                                   راحة
                                 </span>
                               )}
@@ -1752,7 +1876,7 @@ export default function ShiftAssignments() {
                             <div>
                               <div className="text-muted-foreground">حتى</div>
                               <div className="font-mono font-medium text-foreground">
-                                {a.effectiveTo ?? "—"}
+                                {a.effectiveTo ?? "-"}
                               </div>
                             </div>
                           </div>
@@ -1762,29 +1886,42 @@ export default function ShiftAssignments() {
                   })}
                 </div>
               ) : (
-                <div className="overflow-x-auto" dir="rtl">
-                  <table dir="rtl" className="min-w-[52rem] w-full text-sm">
+                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+                  <table
+                    aria-label="تعيينات الدورات"
+                    dir="rtl"
+                    className="min-w-[52rem] w-full text-sm"
+                  >
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="px-4 py-3 text-right">الموظف</th>
-                        <th className="px-4 py-3 text-right">الدورة</th>
-                        <th className="px-4 py-3 text-right">وردية اليوم</th>
-                        <th className="px-4 py-3 text-right">من</th>
-                        <th className="px-4 py-3 text-right">حتى</th>
-                        <th className="px-4 py-3 text-right"></th>
+                        <th scope="col" className="px-4 py-3 text-start">
+                          الموظف
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-start">
+                          الدورة
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-start">
+                          وردية اليوم
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-start">
+                          من
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-start">
+                          حتى
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-start"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {cycleAssignments.map((a: any) => {
                         const isEditing = editingCycleAssignId === a.id;
-                        // Compute today's shift for this cycle assignment
                         const cycle = cycles.find(
                           (c: any) => c.id === a.cycleId,
                         );
-                        const todaySlotIdx =
-                          cycle?.period === "month"
-                            ? new Date().getDate()
-                            : new Date().getDay();
+                        const todaySlotIdx = getCycleSlotIndexForDate(
+                          cycle,
+                          new Date(),
+                        );
                         const todaySlot = cycle?.slots?.find(
                           (s: any) => s.slotIndex === todaySlotIdx,
                         );
@@ -1815,7 +1952,7 @@ export default function ShiftAssignments() {
                                         cycleId: Number(e.target.value),
                                       })
                                     }
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                    className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
                                   >
                                     {cycles.map((c: any) => (
                                       <option key={c.id} value={c.id}>
@@ -1825,7 +1962,7 @@ export default function ShiftAssignments() {
                                   </select>
                                 </td>
                                 <td className="px-2 py-2 text-muted-foreground text-xs">
-                                  —
+                                  -
                                 </td>
                                 <td className="px-2 py-2">
                                   <DateInput
@@ -1836,7 +1973,7 @@ export default function ShiftAssignments() {
                                         effectiveFrom: e.target.value,
                                       })
                                     }
-                                    className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                                    className="h-11 w-full sm:w-[11rem] shrink-0 rounded-lg border border-input bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                                   />
                                 </td>
                                 <td className="px-2 py-2">
@@ -1848,7 +1985,7 @@ export default function ShiftAssignments() {
                                         effectiveTo: e.target.value,
                                       })
                                     }
-                                    className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                                    className="h-11 w-full sm:w-[11rem] shrink-0 rounded-lg border border-input bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                                   />
                                 </td>
                                 <td className="px-2 py-2">
@@ -1914,11 +2051,12 @@ export default function ShiftAssignments() {
                                 </td>
                                 <td className="px-4 py-2">{a.effectiveFrom}</td>
                                 <td className="px-4 py-2">
-                                  {a.effectiveTo ?? "—"}
+                                  {a.effectiveTo ?? "-"}
                                 </td>
                                 <td className="px-4 py-2">
                                   <div className="flex items-center gap-1">
                                     <Button
+                                      aria-label="تعديل"
                                       variant="ghost"
                                       size="sm"
                                       className="h-9 w-9 p-0"
@@ -1937,6 +2075,7 @@ export default function ShiftAssignments() {
                                       />
                                     </Button>
                                     <Button
+                                      aria-label="حذف"
                                       variant="ghost"
                                       size="sm"
                                       className="h-9 w-9 p-0"
@@ -1967,15 +2106,14 @@ export default function ShiftAssignments() {
         </div>
       )}
 
-      {/* ── Swap tab ── */}
+      {/* Swap tab */}
       {tab === "swap" && (
         <Card>
           <CardHeader>
             <CardTitle>تبادل وردية مؤقت</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Date range */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium">من تاريخ</label>
                 <DateInput
@@ -1990,7 +2128,7 @@ export default function ShiftAssignments() {
                           : swap.dateTo,
                     })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
                 />
               </div>
               <div className="space-y-1.5">
@@ -1999,19 +2137,21 @@ export default function ShiftAssignments() {
                   value={swap.dateTo}
                   min={swap.dateFrom}
                   onChange={(e) => setSwap({ ...swap, dateTo: e.target.value })}
-                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  className="h-11 w-full sm:w-[11rem] shrink-0 bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 rounded-lg border border-border"
                 />
               </div>
             </div>
 
-            {/* Employees */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {(["A", "B"] as const).map((side) => {
                 const key = side === "A" ? "empCdA" : "empCdB";
                 const label = side === "A" ? "الموظف الأول" : "الموظف الثاني";
                 const val = swap[key];
                 const assignment = assignments.find(
-                  (a: any) => a.empCd === val,
+                  (a: any) =>
+                    a.empCd === val &&
+                    a.effectiveFrom <= swap.dateFrom &&
+                    (!a.effectiveTo || a.effectiveTo >= swap.dateFrom),
                 );
                 return (
                   <div key={side} className="space-y-1.5">
@@ -2021,7 +2161,7 @@ export default function ShiftAssignments() {
                       onChange={(e) =>
                         setSwap({ ...swap, [key]: e.target.value })
                       }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <option value="">اختر موظف</option>
                       {employees.map((emp: any) => (
@@ -2125,9 +2265,7 @@ export default function ShiftAssignments() {
               className="gap-2"
             >
               <ArrowLeftRight size={15} />
-              {swapShiftsMutation.isPending
-                ? "جاري التبادل…"
-                : "تأكيد التبادل"}
+              {swapShiftsMutation.isPending ? "جاري التبادل" : "تأكيد التبادل"}
             </Button>
           </CardContent>
         </Card>

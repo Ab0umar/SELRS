@@ -10,6 +10,11 @@ function dateKey(d: Date | string): string {
   return `${y}-${m}-${day}`;
 }
 
+// Local calendar date (toISOString would shift Cairo dates back a day).
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export class PermissionAdjustmentService {
   /**
    * Apply leave adjustments to daily records
@@ -46,7 +51,6 @@ export class PermissionAdjustmentService {
       const leaveStartKey = dateKey(leave.dateFrom as any);
       const leaveEndKey = dateKey(leave.dateTo as any);
 
-      // Get daily records within leave date range
       const dailyRecords = await db
         .select()
         .from(attendanceDaily)
@@ -58,7 +62,6 @@ export class PermissionAdjustmentService {
           ),
         );
 
-      // Update each daily record to 'leave' status
       for (const daily of dailyRecords) {
         const result: any = await db
           .update(attendanceDaily)
@@ -92,7 +95,7 @@ export class PermissionAdjustmentService {
     fromDate: Date,
     toDate: Date,
   ): Promise<number> {
-    // First, get all daily records in the range and reset them (if needed)
+    // Reset all daily records in the range if needed
     // Then apply leave adjustments
     return this.applyLeaveAdjustments(empCd, fromDate, toDate);
   }
@@ -108,7 +111,6 @@ export class PermissionAdjustmentService {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
-    // Get all daily records in range
     const dailyRecords = await db
       .select()
       .from(attendanceDaily)
@@ -168,8 +170,8 @@ export class PermissionAdjustmentService {
 
     return {
       empCd,
-      periodStart: fromDate.toISOString().split("T")[0],
-      periodEnd: toDate.toISOString().split("T")[0],
+      periodStart: localDateKey(fromDate),
+      periodEnd: localDateKey(toDate),
       approvedLeaves: leaves.length,
       totalLeaveDays: leaves.reduce((sum: any, l: any) => {
         const diff = l.dateTo.getTime() - l.dateFrom.getTime();

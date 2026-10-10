@@ -476,6 +476,12 @@ export async function getDb() {
   return _db;
 }
 
+export async function getDbConnection() {
+  await getDb();
+  if (!_pool) throw new Error("Database connection pool is not available");
+  return _pool.getConnection();
+}
+
 /** Stable UUID-shaped id from a namespace + business key (deterministic upserts). */
 export function deterministicCatalogId(ns: string, key: string): string {
   const h = createHash("sha1").update(`${ns}:${key}`).digest();

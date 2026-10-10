@@ -10,10 +10,14 @@ import {
   resolveShifts,
   partitionPunchesForShifts,
   applyApprovedPermissions,
+  cycleOverridesDirectAssignment,
   pairPunches,
+  mergeContinuousBothDeviceShifts,
   computeDay,
+  resolveCycleShift,
   type Shift,
   type DayContext,
+  type ShiftCycle,
 } from "../../server/services/attendance/rulesEngine";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -78,6 +82,107 @@ function baseCtx(overrides: Partial<DayContext> = {}): DayContext {
   };
 }
 
+describe("resolveCycleShift", () => {
+  const assignment = {
+    empCd: "001",
+    cycleId: 1,
+    effectiveFrom: d("2026-06-10T00:00:00"),
+    effectiveTo: null,
+  };
+
+  it("uses anchor-relative modulo slots for a day cycle", () => {
+    const cycle: ShiftCycle = {
+      id: 1,
+      period: "rotation",
+      anchorDate: d("2026-06-10T00:00:00"),
+      slots: [
+        { slotIndex: 0, shiftId: 1 },
+        { slotIndex: 1, shiftId: 2 },
+      ],
+    };
+    const cycles = new Map([[1, cycle]]);
+
+    expect(
+      resolveCycleShift(
+        "001",
+        d("2026-06-10T00:00:00"),
+        [assignment],
+        cycles,
+        shiftsById,
+      )?.id,
+    ).toBe(1);
+    expect(
+      resolveCycleShift(
+        "001",
+        d("2026-06-11T00:00:00"),
+        [assignment],
+        cycles,
+        shiftsById,
+      )?.id,
+    ).toBe(2);
+    expect(
+      resolveCycleShift(
+        "001",
+        d("2026-06-12T00:00:00"),
+        [assignment],
+        cycles,
+        shiftsById,
+      )?.id,
+    ).toBe(1);
+  });
+
+  it("keeps legacy day cycles mapped to weekdays regardless of anchorDate", () => {
+    const cycle: ShiftCycle = {
+      id: 1,
+      period: "day",
+      anchorDate: d("2026-06-10T00:00:00"),
+      slots: [
+        { slotIndex: 0, shiftId: 1 },
+        { slotIndex: 3, shiftId: 2 },
+      ],
+    };
+    const cycles = new Map([[1, cycle]]);
+
+    expect(
+      resolveCycleShift(
+        "001",
+        d("2026-06-14T00:00:00"),
+        [assignment],
+        cycles,
+        shiftsById,
+      )?.id,
+    ).toBe(1);
+    expect(
+      resolveCycleShift(
+        "001",
+        d("2026-06-17T00:00:00"),
+        [assignment],
+        cycles,
+        shiftsById,
+      )?.id,
+    ).toBe(2);
+  });
+
+  it("returns the configured rest slot for a monthly date without an assignment", () => {
+    const cycle: ShiftCycle = {
+      id: 1,
+      period: "month",
+      anchorDate: d("2026-06-01T00:00:00"),
+      slots: [{ slotIndex: 1, shiftId: 1 }],
+    };
+
+    expect(
+      resolveCycleShift(
+        "001",
+        d("2026-06-02T00:00:00"),
+        [assignment],
+        new Map([[1, cycle]]),
+        shiftsById,
+      ),
+    ).toBeNull();
+  });
+});
+
 // ── resolveShift ──────────────────────────────────────────────────────────────
 
 describe("resolveShift", () => {
@@ -114,7 +219,7 @@ describe("resolveShift", () => {
       "001",
       d("2026-06-10T00:00:00"), // Wednesday
       [asn("001", 1, "2026-06-01T00:00:00", null, noWedMask)],
-      null,
+      2,
       shiftsById,
     );
     expect(result).toBeNull();
@@ -177,6 +282,80 @@ describe("resolveShift", () => {
 });
 
 describe("multiple branch shifts", () => {
+  it.each([
+    ["2026-08-01", "2026-08-01", true],
+    ["2026-08-02", "2026-08-01", true],
+    ["2026-08-01", "2026-08-02", false],
+    [undefined, "2026-08-01", false],
+    ["2026-08-01", undefined, true],
+  ] as const)(
+    "uses the appropriate schedule for cycle %s and direct assignment %s",
+    (cycleFrom, directFrom, expected) => {
+      expect(cycleOverridesDirectAssignment(cycleFrom, directFrom)).toBe(
+        expected,
+      );
+    },
+  );
+  it("keeps two same-day shifts in one branch without duplicating an assignment", () => {
+    const morning = makeShift({
+      id: 11,
+      branch: "center",
+      startTime: "10:00",
+      endTime: "16:00",
+    });
+    const evening = makeShift({
+      id: 12,
+      branch: "center",
+      startTime: "13:00",
+      endTime: "19:00",
+    });
+    const selected = resolveShifts(
+      "23",
+      d("2026-09-30T00:00:00"),
+      [
+        asn("23", 11, "2026-08-01T00:00:00"),
+        asn("23", 12, "2026-08-01T00:00:00"),
+        asn("23", 11, "2026-08-01T00:00:00"),
+      ],
+      null,
+      new Map([
+        [11, morning],
+        [12, evening],
+      ]),
+    );
+    expect(selected.map((shift) => shift.id)).toEqual([11, 12]);
+    const scans = [
+      punch("2026-09-30T10:00:00", "unknown"),
+      punch("2026-09-30T19:00:00", "unknown"),
+    ];
+    const partitioned = partitionPunchesForShifts(
+      scans,
+      selected,
+      d("2026-09-30T00:00:00"),
+    );
+    expect([...partitioned.values()].flat()).toHaveLength(2);
+  });
+
+  it.each([false, true])(
+    "respects salary exemption flag %s on an entry permission",
+    (notAffectSalary) => {
+      const beforePermission = computeDay(
+        baseCtx({
+          punches: [
+            punch("2026-06-10T09:00:00", "in"),
+            punch("2026-06-10T16:00:00", "out"),
+          ],
+        }),
+      );
+      const afterPermission = applyApprovedPermissions(beforePermission, [
+        { type: "in", durationMinutes: 60, notAffectSalary },
+      ]);
+      expect(afterPermission.lateMinutes).toBe(
+        notAffectSalary ? 0 : beforePermission.lateMinutes,
+      );
+      expect(beforePermission.lateMinutes).toBeGreaterThan(0);
+    },
+  );
   const operations = makeShift({
     id: 10,
     name: "Operations",
@@ -251,6 +430,7 @@ describe("multiple branch shifts", () => {
       [
         { ...punch("2026-06-10T08:00:00", "in"), deviceId: "fk_ef10k" },
         { ...punch("2026-06-10T16:00:00", "out"), deviceId: "zkTeco" },
+        { ...punch("2026-06-10T16:30:00", "out"), deviceId: "12345678" },
         { ...punch("2026-06-10T17:00:00", "out"), deviceId: "other" },
       ],
       [shared],
@@ -260,7 +440,189 @@ describe("multiple branch shifts", () => {
     expect(groups.get(shared.id)?.map((item) => item.deviceId)).toEqual([
       "fk_ef10k",
       "zkTeco",
+      "12345678",
+      "other",
     ]);
+  });
+
+  describe("shifts set to both devices", () => {
+    const ops = makeShift({
+      id: 24,
+      name: "Operations",
+      branch: "both",
+      deviceId: "both",
+      startTime: "09:00",
+      endTime: "15:00",
+    });
+    const ctr = makeShift({
+      id: 34,
+      name: "Center evening",
+      branch: "both",
+      deviceId: "both",
+      startTime: "15:00",
+      endTime: "19:00",
+    });
+    const day = d("2026-06-10T00:00:00");
+    const now = d("2026-06-11T12:00:00");
+    const at = (hm: string, deviceId: string) => ({
+      ...punch(`2026-06-10T${hm}:00`),
+      deviceId,
+    });
+    const times = (group: { punchAt: Date }[] | undefined) =>
+      (group ?? []).map((p) => p.punchAt.toTimeString().slice(0, 5));
+    it("takes the first ZK scan as arrival and the last FK scan as departure", () => {
+      const groups = partitionPunchesForShifts(
+        [
+          at("08:58", "zk_1.2.3.4"),
+          at("15:28", "zk_1.2.3.4"),
+          at("15:38", "fk_ef10k"),
+          at("18:49", "fk_ef10k"),
+        ],
+        [ops, ctr],
+        day,
+      );
+      expect(times(groups.get(ops.id))).toEqual(["08:58"]);
+      expect(times(groups.get(ctr.id))).toEqual(["18:49"]);
+    });
+
+    it("gives one both-device shift the first ZK and last FK scan", () => {
+      const single = makeShift({
+        id: 20,
+        startTime: "10:00",
+        endTime: "20:00",
+        deviceId: "both",
+      });
+      const groups = partitionPunchesForShifts(
+        [
+          at("09:55", "zk_1.2.3.4"),
+          at("12:00", "fk_ef10k"),
+          at("14:00", "zk_1.2.3.4"),
+          at("19:58", "fk_ef10k"),
+        ],
+        [single],
+        day,
+      );
+      expect(times(groups.get(single.id))).toEqual(["09:55", "19:58"]);
+    });
+
+    it("keeps the time-based split when only one device was used", () => {
+      const groups = partitionPunchesForShifts(
+        [at("08:58", "zk_1.2.3.4"), at("15:28", "zk_1.2.3.4")],
+        [ops, ctr],
+        day,
+      );
+      expect(times(groups.get(ops.id))).toEqual(["08:58"]);
+      expect(times(groups.get(ctr.id))).toEqual(["15:28"]);
+    });
+
+    it("merges back-to-back both-device shifts into one continuous day", () => {
+      const merged = mergeContinuousBothDeviceShifts([ctr, ops]);
+      expect(merged).not.toBeNull();
+      expect(merged!.startTime).toBe("09:00");
+      expect(merged!.endTime).toBe("19:00");
+      expect(merged!.id).toBe(ops.id);
+    });
+
+    it("gives one attendance result: first ZK in, last FK out", () => {
+      const merged = mergeContinuousBothDeviceShifts([ops, ctr])!;
+      const groups = partitionPunchesForShifts(
+        [
+          at("08:52", "zk_1.2.3.4"),
+          at("15:28", "zk_1.2.3.4"),
+          at("15:38", "fk_ef10k"),
+          at("18:49", "fk_ef10k"),
+        ],
+        [merged],
+        day,
+      );
+      const result = computeDay({
+        empCd: "36",
+        workDate: day,
+        shift: merged,
+        punches: groups.get(merged.id) ?? [],
+        leaveApproved: false,
+        isHoliday: false,
+        breakMinutes: 0,
+        now,
+      });
+      expect(result.firstIn?.toTimeString().slice(0, 5)).toBe("08:52");
+      expect(result.lastOut?.toTimeString().slice(0, 5)).toBe("18:49");
+      expect(result.lateMinutes).toBe(0);
+      expect(result.earlyLeaveMin).toBe(11);
+    });
+
+    it("does not merge shifts that are far apart or not both-device", () => {
+      const early = makeShift({ id: 40, startTime: "08:00", endTime: "11:00", deviceId: "both" });
+      const late = makeShift({ id: 41, startTime: "15:00", endTime: "19:00", deviceId: "both" });
+      expect(mergeContinuousBothDeviceShifts([early, late])).toBeNull();
+      const zkOnly = makeShift({ id: 42, startTime: "15:00", endTime: "19:00", deviceId: "zk" });
+      expect(mergeContinuousBothDeviceShifts([ops, zkOnly])).toBeNull();
+    });
+  });
+
+  it("treats an alphanumeric ADMS serial as a ZK device", () => {
+    const zkShift = makeShift({ id: 31, name: "ZK", deviceId: "zk" });
+    const groups = partitionPunchesForShifts(
+      [{ ...punch("2026-06-10T08:00:00", "in"), deviceId: "A6F4172360091" }],
+      [zkShift],
+      d("2026-06-10T00:00:00"),
+    );
+    expect(groups.get(zkShift.id)).toHaveLength(1);
+  });
+
+  it("keeps a punch from a device no shift is configured for", () => {
+    const fkShift = makeShift({ id: 32, name: "FK only", deviceId: "fk" });
+    const groups = partitionPunchesForShifts(
+      [{ ...punch("2026-06-10T08:00:00", "in"), deviceId: "A6F4172360091" }],
+      [fkShift],
+      d("2026-06-10T00:00:00"),
+    );
+    expect(groups.get(fkShift.id)).toHaveLength(1);
+  });
+
+  it("does not assign following-day punches to a previous day's shifts by default", () => {
+    const groups = partitionPunchesForShifts(
+      [{ ...punch("2026-06-11T01:00:00", "in"), deviceId: "zkTeco" }],
+      [operations],
+      d("2026-06-10T00:00:00"),
+    );
+    expect(groups.get(operations.id)).toEqual([]);
+  });
+
+  it("only accepts a checkout inside a cross-midnight shift window", () => {
+    const night = makeShift({
+      id: 40,
+      startTime: "22:00",
+      endTime: "06:00",
+      crossesMidnight: true,
+      deviceId: "zk",
+    });
+    const groups = partitionPunchesForShifts(
+      [
+        { ...punch("2026-06-11T05:50:00", "out"), deviceId: "zkTeco" },
+        { ...punch("2026-06-11T09:00:00", "in"), deviceId: "zkTeco" },
+      ],
+      [night],
+      d("2026-06-10T00:00:00"),
+      true,
+    );
+    expect(
+      groups.get(night.id)?.map((item) => item.punchAt.getHours()),
+    ).toEqual([5]);
+  });
+
+  it("keeps punches in the unassigned group on a day without a scheduled shift", () => {
+    const punches = [
+      punch("2026-08-29T10:59:50", "in"),
+      punch("2026-08-29T15:58:56", "out"),
+    ];
+    const groups = partitionPunchesForShifts(
+      punches,
+      [],
+      d("2026-08-29T00:00:00"),
+    );
+
+    expect(groups.get(0)).toEqual(punches);
   });
 
   it("applies a full-day mission independently to both assigned shifts", () => {
@@ -333,19 +695,24 @@ describe("pairPunches", () => {
   });
 
   it("7 — two arrival punches do not fabricate a check-out", () => {
-    const result = pairPunches([
-      punch("2026-06-10T08:00:00", "in"),
-      punch("2026-06-10T09:00:00", "in"),
-    ], SHIFT_1, d("2026-06-10T00:00:00"));
+    const result = pairPunches(
+      [punch("2026-06-10T08:00:00", "in"), punch("2026-06-10T09:00:00", "in")],
+      SHIFT_1,
+      d("2026-06-10T00:00:00"),
+    );
     expect(result.firstIn).toEqual(d("2026-06-10T08:00:00"));
     expect(result.lastOut).toBeNull();
   });
 
   it("8 — departure punches do not fabricate a check-in", () => {
-    const result = pairPunches([
-      punch("2026-06-10T13:00:00", "out"),
-      punch("2026-06-10T16:00:00", "out"),
-    ], SHIFT_1, d("2026-06-10T00:00:00"));
+    const result = pairPunches(
+      [
+        punch("2026-06-10T13:00:00", "out"),
+        punch("2026-06-10T16:00:00", "out"),
+      ],
+      SHIFT_1,
+      d("2026-06-10T00:00:00"),
+    );
     expect(result).toEqual({
       firstIn: null,
       lastOut: d("2026-06-10T16:00:00"),
@@ -353,10 +720,11 @@ describe("pairPunches", () => {
   });
 
   it("9 — inverted device direction does not reverse the attendance day", () => {
-    const result = pairPunches([
-      punch("2026-06-10T08:00:00", "out"),
-      punch("2026-06-10T16:00:00", "in"),
-    ], SHIFT_1, d("2026-06-10T00:00:00"));
+    const result = pairPunches(
+      [punch("2026-06-10T08:00:00", "out"), punch("2026-06-10T16:00:00", "in")],
+      SHIFT_1,
+      d("2026-06-10T00:00:00"),
+    );
     expect(result).toEqual({
       firstIn: d("2026-06-10T08:00:00"),
       lastOut: d("2026-06-10T16:00:00"),
@@ -496,6 +864,19 @@ describe("computeDay", () => {
     expect(result.status).toBe("missing_checkout");
     expect(result.workedMinutes).toBeNull();
     expect(result.insideNow).toBe(true);
+  });
+
+  it("does not mark an old missing-checkout day as inside now", () => {
+    const result = computeDay(
+      baseCtx({
+        workDate: d("2026-06-09T00:00:00"),
+        now: d("2026-06-10T12:00:00"),
+        punches: [punch("2026-06-09T08:00:00")],
+      }),
+    );
+
+    expect(result.status).toBe("missing_checkout");
+    expect(result.insideNow).toBe(false);
   });
 
   it("7b — a single departure scan is not absence", () => {

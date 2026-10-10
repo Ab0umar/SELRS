@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import crypto from "crypto";
 import { execSync } from "child_process";
@@ -56,10 +57,81 @@ import {
   attendanceShiftChangeRequests,
 } from "../../drizzle/schema";
 import { isNull } from "drizzle-orm";
-import { desc, eq, and, or, gte, lte, lt, max, count, sql } from "drizzle-orm";
+import {
+  desc,
+  eq,
+  and,
+  or,
+  gte,
+  lte,
+  lt,
+  max,
+  count,
+  sql,
+  inArray,
+} from "drizzle-orm";
+
+async function recomputeAssignmentRange(
+  empCd: string,
+  fromKey: string,
+  toKey?: string | null,
+): Promise<void> {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const from = new Date(`${fromKey.slice(0, 10)}T12:00:00`);
+  if (from > today) return;
+  const requestedTo = toKey
+    ? new Date(`${toKey.slice(0, 10)}T12:00:00`)
+    : today;
+  const to = requestedTo < today ? requestedTo : today;
+  if (to < from) return;
+
+  await dailyMaterializer.recomputeRange(from, to, { empCd }, undefined, {
+    recomputeMonthly: true,
+  });
+}
+
+/** End open schedules at the termination date and drop any daily rows after it. */
+async function closeEmploymentSchedule(
+  empCd: string,
+  terminationDate: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(attendanceShiftAssignments)
+    .set({ effectiveTo: terminationDate as any })
+    .where(
+      and(
+        eq(attendanceShiftAssignments.empCd, empCd),
+        or(
+          isNull(attendanceShiftAssignments.effectiveTo),
+          gte(attendanceShiftAssignments.effectiveTo, terminationDate as any),
+        ),
+      ),
+    );
+  await db
+    .update(attendanceShiftCycleAssignments)
+    .set({ effectiveTo: terminationDate as any })
+    .where(
+      and(
+        eq(attendanceShiftCycleAssignments.empCd, empCd),
+        or(
+          isNull(attendanceShiftCycleAssignments.effectiveTo),
+          gte(
+            attendanceShiftCycleAssignments.effectiveTo,
+            terminationDate as any,
+          ),
+        ),
+      ),
+    );
+  const dayAfter = new Date(`${terminationDate}T12:00:00`);
+  dayAfter.setDate(dayAfter.getDate() + 1);
+  await recomputeAssignmentRange(empCd, fmtDate(dayAfter));
+}
 
 export const attendanceShiftsRoutes = {
-  listShifts: makeAttProcedure("/attendance/shift-schedule").query(async () => {
+  listShifts: makeAttProcedure(["/attendance/shift-schedule", "/attendance/employees", "/attendance/settings"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
@@ -100,7 +172,7 @@ export const attendanceShiftsRoutes = {
     }));
   }),
 
-  createShift: makeAttWriteProcedure("/attendance/shift-schedule")
+  createShift: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/settings"])
     .input(
       z.object({
         name: z.string().min(1).max(64),
@@ -108,7 +180,10 @@ export const attendanceShiftsRoutes = {
         deviceId: z.enum(["fk", "zk", "both"]),
         startTime: z.string().regex(/^\d{2}:\d{2}$/),
         endTime: z.string().regex(/^\d{2}:\d{2}$/),
-        crossesMidnight: z.boolean().optional(),
+        crossesMidnight: z
+          .boolean()
+          .optional()
+          .refine((value) => value !== true, "الورديات الليلية غير مدعومة"),
         graceLateMin: z.number().int().min(0).default(15),
         graceEarlyMin: z.number().int().min(0).default(15),
         allowOT: z.boolean().default(false),
@@ -183,9 +258,14 @@ export const attendanceShiftsRoutes = {
           active: true,
         });
 
-        const shiftId = (result as any).insertId;
+        const rawShiftId =
+          (result as any)?.[0]?.insertId ?? (result as any)?.insertId;
+        const shiftId = Number(rawShiftId);
+        if (!Number.isSafeInteger(shiftId) || shiftId <= 0) {
+          throw new Error("Could not read inserted shift ID");
+        }
 
-        AuditLogService.log({
+        await AuditLogService.log({
           action: "shift_created",
           details: { shiftId, name: input.name },
           status: "success",
@@ -194,16 +274,20 @@ export const attendanceShiftsRoutes = {
         return { success: true, shiftId };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
-        AuditLogService.log({
+        await AuditLogService.log({
           action: "shift_created",
           details: { error },
           status: "error",
         });
-        return { success: false, error };
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error,
+          cause: err,
+        });
       }
     }),
 
-  updateShift: makeAttWriteProcedure("/attendance/shift-schedule")
+  updateShift: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/settings"])
     .input(
       z.object({
         id: z.number(),
@@ -252,6 +336,7 @@ export const attendanceShiftsRoutes = {
           .nullable(),
         shiftSize: z.enum(["big", "small", "auto"]).optional(),
         autoSmallThresholdMin: z.number().int().min(0).optional(),
+        active: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -300,6 +385,7 @@ export const attendanceShiftsRoutes = {
             updateData.endTime = input.flexOutTo ?? "00:00";
           }
         }
+        if (input.active !== undefined) updateData.active = input.active;
         if (input.shiftSize !== undefined)
           updateData.shiftSize = input.shiftSize;
         if (input.autoSmallThresholdMin !== undefined)
@@ -310,7 +396,61 @@ export const attendanceShiftsRoutes = {
           .set(updateData)
           .where(eq(attendanceShifts.id, input.id));
 
-        AuditLogService.log({
+        const directAssignments = await db
+          .select({
+            empCd: attendanceShiftAssignments.empCd,
+            from: attendanceShiftAssignments.effectiveFrom,
+            to: attendanceShiftAssignments.effectiveTo,
+          })
+          .from(attendanceShiftAssignments)
+          .where(eq(attendanceShiftAssignments.shiftId, input.id));
+        const cycleSlotRows = await db
+          .select({ cycleId: attendanceShiftCycleSlots.cycleId })
+          .from(attendanceShiftCycleSlots)
+          .where(eq(attendanceShiftCycleSlots.shiftId, input.id));
+        const affectedCycleIds: number[] = [
+          ...new Set<number>(
+            cycleSlotRows.map((row: any) => Number(row.cycleId)),
+          ),
+        ];
+        const cycleAssignmentRows = affectedCycleIds.length
+          ? await db
+              .select({
+                empCd: attendanceShiftCycleAssignments.empCd,
+                from: attendanceShiftCycleAssignments.effectiveFrom,
+                to: attendanceShiftCycleAssignments.effectiveTo,
+              })
+              .from(attendanceShiftCycleAssignments)
+              .where(
+                inArray(
+                  attendanceShiftCycleAssignments.cycleId,
+                  affectedCycleIds,
+                ),
+              )
+          : [];
+        const affected = new Map<string, { from: string; to: string | null }>();
+        for (const assignment of [
+          ...directAssignments,
+          ...cycleAssignmentRows,
+        ] as any[]) {
+          const from = fmtDate(assignment.from);
+          const to = assignment.to ? fmtDate(assignment.to) : null;
+          const previous = affected.get(assignment.empCd);
+          affected.set(assignment.empCd, {
+            from: !previous || from < previous.from ? from : previous.from,
+            to:
+              !previous || previous.to === null || to === null
+                ? null
+                : to > previous.to
+                  ? to
+                  : previous.to,
+          });
+        }
+        for (const [empCd, range] of affected) {
+          await recomputeAssignmentRange(empCd, range.from, range.to);
+        }
+
+        await AuditLogService.log({
           action: "shift_updated",
           details: { shiftId: input.id, changes: Object.keys(updateData) },
           status: "success",
@@ -319,11 +459,15 @@ export const attendanceShiftsRoutes = {
         return { success: true };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
-        return { success: false, error };
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error,
+          cause: err,
+        });
       }
     }),
 
-  listAssignments: makeAttProcedure("/attendance/shift-schedule")
+  listAssignments: makeAttProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(z.object({ empCd: z.string().optional() }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -346,7 +490,7 @@ export const attendanceShiftsRoutes = {
         INNER JOIN attendance_employees e ON sa.emp_cd = e.emp_cd
         INNER JOIN attendance_shifts    s ON sa.shift_id = s.id
         WHERE 1=1 ${empFilter}
-        ORDER BY sa.emp_cd
+        ORDER BY sa.emp_cd, sa.effective_from DESC, sa.id DESC
       `);
 
       const now = new Date();
@@ -356,16 +500,15 @@ export const attendanceShiftsRoutes = {
         ? (rows as any)[0]
         : (rows as any);
       return assignments.map((a: any) => {
-        const effectiveTo = a.effectiveTo
-          ? String(a.effectiveTo).slice(0, 10)
-          : null;
+        // Raw SQL rows carry DATE columns as local-midnight Date objects.
+        const effectiveTo = a.effectiveTo ? fmtDate(a.effectiveTo) : null;
         return {
           id: a.id,
           empCd: a.empCd,
           empName: a.empName,
           shiftId: a.shiftId,
           shiftName: a.shiftName,
-          effectiveFrom: String(a.effectiveFrom).slice(0, 10),
+          effectiveFrom: fmtDate(a.effectiveFrom),
           effectiveTo,
           weekdayMask: a.weekdayMask,
           isExpired: effectiveTo !== null && effectiveTo < todayStr,
@@ -373,13 +516,16 @@ export const attendanceShiftsRoutes = {
       });
     }),
 
-  assignShift: makeAttWriteProcedure("/attendance/shift-schedule")
+  assignShift: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
         shiftId: z.number(),
-        effectiveFrom: z.string(), // YYYY-MM-DD
-        effectiveTo: z.string().optional(), // YYYY-MM-DD
+        effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD
+        effectiveTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(), // YYYY-MM-DD
         weekdayMask: z.number().int().min(0).max(127).default(127),
       }),
     )
@@ -395,8 +541,13 @@ export const attendanceShiftsRoutes = {
           effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
           weekdayMask: input.weekdayMask,
         });
+        await recomputeAssignmentRange(
+          input.empCd,
+          input.effectiveFrom,
+          input.effectiveTo,
+        );
 
-        AuditLogService.log({
+        await AuditLogService.log({
           action: "shift_assigned",
           details: {
             empCd: input.empCd,
@@ -409,16 +560,20 @@ export const attendanceShiftsRoutes = {
         return { success: true };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
-        return { success: false, error };
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error,
+          cause: err,
+        });
       }
     }),
 
-  addShiftAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
+  addShiftAssignment: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
         shiftId: z.number(),
-        effectiveFrom: z.string(),
+        effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         weekdayMask: z.number().int().min(0).max(127).default(127),
       }),
     )
@@ -432,16 +587,24 @@ export const attendanceShiftsRoutes = {
         effectiveTo: null,
         weekdayMask: input.weekdayMask,
       });
+      await recomputeAssignmentRange(input.empCd, input.effectiveFrom);
       return { success: true };
     }),
 
-  updateAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
+  updateAssignment: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         id: z.number(),
         shiftId: z.number().optional(),
-        effectiveFrom: z.string().optional(),
-        effectiveTo: z.string().nullable().optional(),
+        effectiveFrom: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        effectiveTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .optional(),
         weekdayMask: z.number().int().optional(),
       }),
     )
@@ -450,6 +613,17 @@ export const attendanceShiftsRoutes = {
       if (!db) throw new Error("Database not available");
 
       try {
+        const existing = await db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(eq(attendanceShiftAssignments.id, input.id))
+          .limit(1);
+        if (!existing[0]) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "تعيين الوردية غير موجود",
+          });
+        }
         const updateData: any = {};
         if (input.shiftId !== undefined) updateData.shiftId = input.shiftId;
         if (input.effectiveFrom) updateData.effectiveFrom = input.effectiveFrom;
@@ -464,25 +638,66 @@ export const attendanceShiftsRoutes = {
           .set(updateData)
           .where(eq(attendanceShiftAssignments.id, input.id));
 
+        const previousFrom = fmtDate(existing[0].effectiveFrom as any);
+        const previousTo = existing[0].effectiveTo
+          ? fmtDate(existing[0].effectiveTo as any)
+          : null;
+        const nextFrom = input.effectiveFrom?.slice(0, 10) ?? previousFrom;
+        const nextTo =
+          input.effectiveTo === undefined
+            ? previousTo
+            : (input.effectiveTo?.slice(0, 10) ?? null);
+        const recomputeFrom = nextFrom < previousFrom ? nextFrom : previousFrom;
+        const recomputeTo =
+          previousTo === null || nextTo === null
+            ? null
+            : previousTo > nextTo
+              ? previousTo
+              : nextTo;
+        await recomputeAssignmentRange(
+          existing[0].empCd,
+          recomputeFrom,
+          recomputeTo,
+        );
+
         return { success: true };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
-        return { success: false, error };
+        if (err instanceof TRPCError) throw err;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error,
+          cause: err,
+        });
       }
     }),
 
-  deleteAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
+  deleteAssignment: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       try {
+        const existing = await db
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(eq(attendanceShiftAssignments.id, input.id))
+          .limit(1);
         await db
           .delete(attendanceShiftAssignments)
           .where(eq(attendanceShiftAssignments.id, input.id));
+        if (existing[0]) {
+          await recomputeAssignmentRange(
+            existing[0].empCd,
+            fmtDate(existing[0].effectiveFrom as any),
+            existing[0].effectiveTo
+              ? fmtDate(existing[0].effectiveTo as any)
+              : null,
+          );
+        }
 
-        AuditLogService.log({
+        await AuditLogService.log({
           action: "shift_assignment_deleted",
           details: { assignmentId: input.id },
           status: "success",
@@ -491,11 +706,15 @@ export const attendanceShiftsRoutes = {
         return { success: true };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
-        return { success: false, error };
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error,
+          cause: err,
+        });
       }
     }),
 
-  saveDayShiftAssignments: makeAttWriteProcedure("/attendance/shift-schedule")
+  saveDayShiftAssignments: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
@@ -510,93 +729,128 @@ export const attendanceShiftsRoutes = {
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-
-      await db
-        .delete(attendanceShiftAssignments)
-        .where(
-          and(
-            eq(attendanceShiftAssignments.empCd, input.empCd),
-            isNull(attendanceShiftAssignments.effectiveTo),
-          ),
-        );
-
-      if (input.dayShifts.length === 0) return { success: true };
-
-      const byShift = new Map<number, number[]>();
-      for (const { dayOfWeek, shiftId } of input.dayShifts) {
-        if (!byShift.has(shiftId)) byShift.set(shiftId, []);
-        byShift.get(shiftId)!.push(dayOfWeek);
-      }
-
       const today = new Date();
-      const rows = Array.from(byShift.entries()).map(([shiftId, days]) => ({
-        empCd: input.empCd,
-        shiftId,
-        effectiveFrom: today,
-        effectiveTo: null as Date | null,
-        weekdayMask: days.reduce((m, d) => m | (1 << d), 0),
-      }));
+      today.setHours(0, 0, 0, 0);
+      const todayKey = fmtDate(today);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = fmtDate(yesterday);
 
-      await db.insert(attendanceShiftAssignments).values(rows);
+      await db.transaction(async (tx: any) => {
+        const openAssignments = await tx
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, input.empCd),
+              isNull(attendanceShiftAssignments.effectiveTo),
+            ),
+          );
+
+        for (const assignment of openAssignments) {
+          if (fmtDate(assignment.effectiveFrom) < todayKey) {
+            await tx
+              .update(attendanceShiftAssignments)
+              .set({ effectiveTo: yesterdayKey as any })
+              .where(eq(attendanceShiftAssignments.id, assignment.id));
+          } else {
+            // Same-day and future schedules have no historical period to retain.
+            await tx
+              .delete(attendanceShiftAssignments)
+              .where(eq(attendanceShiftAssignments.id, assignment.id));
+          }
+        }
+
+        if (input.dayShifts.length === 0) return;
+
+        const byShift = new Map<number, number[]>();
+        for (const { dayOfWeek, shiftId } of input.dayShifts) {
+          if (!byShift.has(shiftId)) byShift.set(shiftId, []);
+          byShift.get(shiftId)!.push(dayOfWeek);
+        }
+
+        const rows = Array.from(byShift.entries()).map(([shiftId, days]) => ({
+          empCd: input.empCd,
+          shiftId,
+          effectiveFrom: todayKey as any,
+          effectiveTo: null,
+          weekdayMask: days.reduce((mask, day) => mask | (1 << day), 0),
+        }));
+        await tx.insert(attendanceShiftAssignments).values(rows);
+      });
+
+      await recomputeAssignmentRange(input.empCd, todayKey);
       return { success: true };
     }),
 
-  updateEmployee: makeAttWriteProcedure("/attendance/shift-schedule")
+  updateEmployee: makeAttWriteProcedure("/attendance/employees")
     .input(
-      z.object({
-        empCd: z.string(),
-        fullName: z.string().min(1),
-        department: z.string().optional(),
-        salaryType: z.string().optional(),
-        jobTitle: z.string().optional(),
-        attendanceCommissionRate: z
-          .number()
-          .min(0)
-          .max(1)
-          .nullable()
-          .optional(),
-        attendanceLeaveMultiplier: z
-          .number()
-          .min(0)
-          .max(1)
-          .nullable()
-          .optional(),
-        active: z.boolean(),
-        terminationDate: z
-          .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .nullable()
-          .optional(),
-      }),
+      z
+        .object({
+          empCd: z.string(),
+          fullName: z.string().min(1).optional(),
+          department: z.string().optional(),
+          salaryType: z.string().optional(),
+          jobTitle: z.string().optional(),
+          attendanceCommissionRate: z
+            .number()
+            .min(0)
+            .max(1)
+            .nullable()
+            .optional(),
+          attendanceLeaveMultiplier: z
+            .number()
+            .min(0)
+            .max(1)
+            .nullable()
+            .optional(),
+          active: z.boolean().optional(),
+          terminationDate: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .nullable()
+            .optional(),
+        })
+        .refine((input) => Object.keys(input).some((key) => key !== "empCd"), {
+          message: "يجب إرسال حقل واحد على الأقل للتعديل",
+        }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const updateData: Record<string, unknown> = {};
+      if (input.fullName !== undefined) updateData.fullName = input.fullName;
+      if (input.active !== undefined) updateData.active = input.active;
+      if (input.department !== undefined)
+        updateData.department = input.department;
+      if (input.salaryType !== undefined)
+        updateData.salaryType = input.salaryType;
+      if (input.jobTitle !== undefined) updateData.jobTitle = input.jobTitle;
+      if (input.attendanceCommissionRate !== undefined) {
+        updateData.attendanceCommissionRate =
+          input.attendanceCommissionRate == null
+            ? null
+            : String(input.attendanceCommissionRate);
+      }
+      if (input.attendanceLeaveMultiplier !== undefined) {
+        updateData.attendanceLeaveMultiplier =
+          input.attendanceLeaveMultiplier == null
+            ? null
+            : String(input.attendanceLeaveMultiplier);
+      }
+      if (input.active === true) {
+        updateData.terminationDate = null;
+      } else if (input.terminationDate !== undefined) {
+        updateData.terminationDate = input.terminationDate;
+      }
       await db
         .update(attendanceEmployees)
-        .set({
-          fullName: input.fullName,
-          department: input.department ?? null,
-          salaryType: input.salaryType ?? null,
-          jobTitle: input.jobTitle ?? null,
-          attendanceCommissionRate:
-            input.attendanceCommissionRate != null
-              ? (String(input.attendanceCommissionRate) as any)
-              : null,
-          attendanceLeaveMultiplier:
-            input.attendanceLeaveMultiplier != null
-              ? (String(input.attendanceLeaveMultiplier) as any)
-              : null,
-          active: input.active,
-          terminationDate: input.active
-            ? null
-            : (input.terminationDate ?? null),
-        })
+        .set(updateData as any)
         .where(eq(attendanceEmployees.empCd, input.empCd));
       return { success: true };
     }),
 
-  terminateEmployee: makeAttWriteProcedure("/attendance/shift-schedule")
+  terminateEmployee: makeAttWriteProcedure("/attendance/employees")
     .input(
       z.object({
         empCd: z.string().min(1),
@@ -612,227 +866,331 @@ export const attendanceShiftsRoutes = {
         .set({ active: false, terminationDate: input.terminationDate })
         .where(eq(attendanceEmployees.empCd, input.empCd));
 
-      if ((result as any).affectedRows === 0)
-        throw new Error("الموظف غير موجود");
+      const affectedRows =
+        (result as any)?.[0]?.affectedRows ?? (result as any)?.affectedRows;
+      if (affectedRows === 0) throw new Error("الموظف غير موجود");
+      await closeEmploymentSchedule(input.empCd, input.terminationDate);
       return { success: true };
     }),
 
-  deleteEmployee: makeAttWriteProcedure("/attendance/shift-schedule")
+  deleteEmployee: makeAttWriteProcedure("/attendance/employees")
     .input(z.object({ empCd: z.string() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      await db
-        .delete(attendanceEmployees)
-        .where(eq(attendanceEmployees.empCd, input.empCd));
-      return { success: true };
-    }),
-
-  swapShifts: makeAttWriteProcedure("/attendance/shift-schedule")
-    .input(
-      z.object({
-        empCdA: z.string(),
-        empCdB: z.string(),
-        dateFrom: z.string(), // YYYY-MM-DD — start of swap
-        dateTo: z.string(), // YYYY-MM-DD — last day of swap (inclusive)
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-
-      const [aRows, bRows] = await Promise.all([
-        db
-          .select()
-          .from(attendanceShiftAssignments)
-          .where(
-            and(
-              eq(attendanceShiftAssignments.empCd, input.empCdA),
-              isNull(attendanceShiftAssignments.effectiveTo),
-            ),
-          )
-          .limit(1),
-        db
-          .select()
-          .from(attendanceShiftAssignments)
-          .where(
-            and(
-              eq(attendanceShiftAssignments.empCd, input.empCdB),
-              isNull(attendanceShiftAssignments.effectiveTo),
-            ),
-          )
-          .limit(1),
-      ]);
-
-      const aRow = aRows[0];
-      const bRow = bRows[0];
-
-      if (!aRow) throw new Error("لا توجد وردية نشطة للموظف الأول");
-      if (!bRow) throw new Error("لا توجد وردية نشطة للموظف الثاني");
-      if (aRow.shiftId === bRow.shiftId)
-        throw new Error("الموظفان على نفس الوردية بالفعل");
-
-      const fromDate = new Date(input.dateFrom);
-      const toDate = new Date(input.dateTo);
-      const dayBefore = new Date(fromDate);
-      dayBefore.setDate(dayBefore.getDate() - 1);
-      const dayAfter = new Date(toDate);
-      dayAfter.setDate(dayAfter.getDate() + 1);
-      const fmt = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-      // Close current open assignments the day before the swap starts
-      await Promise.all([
-        db
-          .update(attendanceShiftAssignments)
-          .set({ effectiveTo: fmt(dayBefore) as any })
-          .where(eq(attendanceShiftAssignments.id, aRow.id)),
-        db
-          .update(attendanceShiftAssignments)
-          .set({ effectiveTo: fmt(dayBefore) as any })
-          .where(eq(attendanceShiftAssignments.id, bRow.id)),
-      ]);
-
-      // Insert swapped temp assignments for the swap period
-      await db.insert(attendanceShiftAssignments).values([
-        {
-          empCd: input.empCdA,
-          shiftId: bRow.shiftId,
-          effectiveFrom: input.dateFrom as any,
-          effectiveTo: input.dateTo as any,
-          weekdayMask: aRow.weekdayMask,
-        },
-        {
-          empCd: input.empCdB,
-          shiftId: aRow.shiftId,
-          effectiveFrom: input.dateFrom as any,
-          effectiveTo: input.dateTo as any,
-          weekdayMask: bRow.weekdayMask,
-        },
-      ]);
-
-      // Restore original shifts starting the day after the swap ends (open-ended)
-      await db.insert(attendanceShiftAssignments).values([
-        {
-          empCd: input.empCdA,
-          shiftId: aRow.shiftId,
-          effectiveFrom: fmt(dayAfter) as any,
-          effectiveTo: null,
-          weekdayMask: aRow.weekdayMask,
-        },
-        {
-          empCd: input.empCdB,
-          shiftId: bRow.shiftId,
-          effectiveFrom: fmt(dayAfter) as any,
-          effectiveTo: null,
-          weekdayMask: bRow.weekdayMask,
-        },
-      ]);
-
-      return { success: true };
-    }),
-
-  tempChangeShift: makeAttWriteProcedure("/attendance/shift-schedule")
-    .input(
-      z.object({
-        empCd: z.string(),
-        newShiftId: z.number().int(),
-        dateFrom: z.string(), // YYYY-MM-DD — first day
-        dateTo: z.string(), // YYYY-MM-DD — last day (inclusive)
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-
-      const fmt = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-      const fromDate = new Date(input.dateFrom);
-      const toDate = new Date(input.dateTo);
-      const dayBefore = new Date(fromDate);
-      dayBefore.setDate(dayBefore.getDate() - 1);
-      const dayAfter = new Date(toDate);
-      dayAfter.setDate(dayAfter.getDate() + 1);
-
-      // Find current active assignment on dateFrom (handles open-ended and dated assignments like 2030-12-31)
-      const existing = await db
-        .select()
-        .from(attendanceShiftAssignments)
-        .where(
-          and(
-            eq(attendanceShiftAssignments.empCd, input.empCd),
-            lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-            or(
-              isNull(attendanceShiftAssignments.effectiveTo),
-              gte(attendanceShiftAssignments.effectiveTo, fromDate),
-            ),
-          ),
-        )
-        .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
+      const [employee] = await db
+        .select({
+          empCd: attendanceEmployees.empCd,
+          active: attendanceEmployees.active,
+          terminationDate: attendanceEmployees.terminationDate,
+        })
+        .from(attendanceEmployees)
+        .where(eq(attendanceEmployees.empCd, input.empCd))
         .limit(1);
-
-      const curr = existing[0];
-      if (!curr)
-        throw new Error("لا توجد وردية نشطة لهذا الموظف في هذا التاريخ");
-      if (curr.shiftId === input.newShiftId)
-        throw new Error("الموظف على هذه الوردية بالفعل");
-
-      const currEffFromStr = fmtDate(curr.effectiveFrom);
-
-      if (currEffFromStr === input.dateFrom) {
-        // Original assignment starts exactly on dateFrom.
-        // We delay its start to dayAfter.
-        if (curr.effectiveTo && fmtDate(curr.effectiveTo) <= input.dateTo) {
-          // If the original assignment ends within/on the swap period, delete it.
-          await db
-            .delete(attendanceShiftAssignments)
-            .where(eq(attendanceShiftAssignments.id, curr.id));
-        } else {
-          await db
-            .update(attendanceShiftAssignments)
-            .set({ effectiveFrom: fmt(dayAfter) as any })
-            .where(eq(attendanceShiftAssignments.id, curr.id));
-        }
-      } else {
-        // Original assignment starts before dateFrom.
-        // Close it the day before the change.
-        await db
-          .update(attendanceShiftAssignments)
-          .set({ effectiveTo: fmt(dayBefore) as any })
-          .where(eq(attendanceShiftAssignments.id, curr.id));
-
-        // Restore original shift after the period (if it doesn't end before/on dateTo)
-        if (!curr.effectiveTo || fmtDate(curr.effectiveTo) > input.dateTo) {
-          await db.insert(attendanceShiftAssignments).values({
-            empCd: input.empCd,
-            shiftId: curr.shiftId,
-            effectiveFrom: fmt(dayAfter) as any,
-            effectiveTo: curr.effectiveTo,
-            weekdayMask: curr.weekdayMask,
-          });
-        }
+      if (!employee) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "الموظف غير موجود",
+        });
       }
 
-      // Insert the temporary assignment
-      await db.insert(attendanceShiftAssignments).values({
-        empCd: input.empCd,
-        shiftId: input.newShiftId,
-        effectiveFrom: input.dateFrom as any,
-        effectiveTo: input.dateTo as any,
-        weekdayMask: curr.weekdayMask,
+      const terminationDate = employee.terminationDate
+        ? fmtDate(employee.terminationDate as any)
+        : fmtDate(new Date());
+      await db
+        .update(attendanceEmployees)
+        .set({ active: false, terminationDate: terminationDate as any })
+        .where(eq(attendanceEmployees.empCd, input.empCd));
+      await closeEmploymentSchedule(input.empCd, terminationDate);
+      return { success: true };
+    }),
+
+  swapShifts: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
+    .input(
+      z
+        .object({
+          empCdA: z.string().min(1),
+          empCdB: z.string().min(1),
+          dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD — start of swap
+          dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD — last day of swap (inclusive)
+        })
+        .refine(
+          (input) =>
+            input.empCdA !== input.empCdB && input.dateFrom <= input.dateTo,
+          {
+            message: "اختر موظفين مختلفين وفترة صحيحة",
+          },
+        ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const fromDate = new Date(`${input.dateFrom}T12:00:00`);
+      const toDate = new Date(`${input.dateTo}T12:00:00`);
+      const dayBefore = new Date(fromDate);
+      dayBefore.setDate(dayBefore.getDate() - 1);
+      const dayAfter = new Date(toDate);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      const fmt = fmtDate;
+
+      const originalRows = await db.transaction(async (tx: any) => {
+        const findAssignmentAtStart = async (empCd: string) => {
+          const rows = await tx
+            .select()
+            .from(attendanceShiftAssignments)
+            .where(
+              and(
+                eq(attendanceShiftAssignments.empCd, empCd),
+                lte(
+                  attendanceShiftAssignments.effectiveFrom,
+                  input.dateFrom as any,
+                ),
+                or(
+                  isNull(attendanceShiftAssignments.effectiveTo),
+                  gte(
+                    attendanceShiftAssignments.effectiveTo,
+                    input.dateFrom as any,
+                  ),
+                ),
+              ),
+            )
+            .orderBy(desc(attendanceShiftAssignments.effectiveFrom));
+          if (rows.length !== 1) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `يجب وجود تعيين وردية واحد فقط بتاريخ البداية للموظف ${empCd}`,
+            });
+          }
+          return rows[0];
+        };
+        const [aRow, bRow] = await Promise.all([
+          findAssignmentAtStart(input.empCdA),
+          findAssignmentAtStart(input.empCdB),
+        ]);
+        if (aRow.shiftId === bRow.shiftId)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "الموظفان على نفس الوردية بالفعل",
+          });
+        for (const [empCd, row] of [
+          [input.empCdA, aRow],
+          [input.empCdB, bRow],
+        ] as const) {
+          if (row.effectiveTo && fmtDate(row.effectiveTo) < input.dateTo) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `تعيين الموظف ${empCd} لا يغطي كامل فترة التبديل`,
+            });
+          }
+          const overlaps = await tx
+            .select({ id: attendanceShiftAssignments.id })
+            .from(attendanceShiftAssignments)
+            .where(
+              and(
+                eq(attendanceShiftAssignments.empCd, empCd),
+                lte(
+                  attendanceShiftAssignments.effectiveFrom,
+                  input.dateTo as any,
+                ),
+                or(
+                  isNull(attendanceShiftAssignments.effectiveTo),
+                  gte(
+                    attendanceShiftAssignments.effectiveTo,
+                    input.dateFrom as any,
+                  ),
+                ),
+              ),
+            );
+          if (overlaps.some((assignment: any) => assignment.id !== row.id)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `توجد تعيينات أخرى متداخلة للموظف ${empCd}`,
+            });
+          }
+        }
+        // Close each original the day before; one that starts on the swap
+        // day has no earlier period, so remove it instead of inverting it.
+        for (const row of [aRow, bRow]) {
+          if (fmtDate(row.effectiveFrom) >= input.dateFrom) {
+            await tx
+              .delete(attendanceShiftAssignments)
+              .where(eq(attendanceShiftAssignments.id, row.id));
+          } else {
+            await tx
+              .update(attendanceShiftAssignments)
+              .set({ effectiveTo: fmt(dayBefore) as any })
+              .where(eq(attendanceShiftAssignments.id, row.id));
+          }
+        }
+        await tx.insert(attendanceShiftAssignments).values([
+          {
+            empCd: input.empCdA,
+            shiftId: bRow.shiftId,
+            effectiveFrom: input.dateFrom as any,
+            effectiveTo: input.dateTo as any,
+            weekdayMask: aRow.weekdayMask,
+          },
+          {
+            empCd: input.empCdB,
+            shiftId: aRow.shiftId,
+            effectiveFrom: input.dateFrom as any,
+            effectiveTo: input.dateTo as any,
+            weekdayMask: bRow.weekdayMask,
+          },
+        ]);
+        // Restore the originals only if they continue past the swap.
+        const restores = [
+          { empCd: input.empCdA, row: aRow },
+          { empCd: input.empCdB, row: bRow },
+        ]
+          .filter(
+            ({ row }) =>
+              !row.effectiveTo || fmtDate(row.effectiveTo) > input.dateTo,
+          )
+          .map(({ empCd, row }) => ({
+            empCd,
+            shiftId: row.shiftId,
+            effectiveFrom: fmt(dayAfter) as any,
+            effectiveTo: row.effectiveTo,
+            weekdayMask: row.weekdayMask,
+          }));
+        if (restores.length) {
+          await tx.insert(attendanceShiftAssignments).values(restores);
+        }
+        return [aRow, bRow] as const;
+      });
+
+      for (const empCd of [input.empCdA, input.empCdB]) {
+        // Clamped to today: future days must not be materialized as absent.
+        await recomputeAssignmentRange(empCd, input.dateFrom, input.dateTo);
+      }
+      await AuditLogService.log({
+        action: "shift_swap",
+        details: {
+          empCdA: input.empCdA,
+          empCdB: input.empCdB,
+          dateFrom: input.dateFrom,
+          dateTo: input.dateTo,
+          shifts: originalRows.map((row: any) => row.shiftId),
+        },
+        userId: ctx.user.id,
+        status: "success",
       });
 
       return { success: true };
     }),
 
-  bulkAssignShift: makeAttWriteProcedure("/attendance/shift-schedule")
+  tempChangeShift: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
+    .input(
+      z
+        .object({
+          empCd: z.string(),
+          newShiftId: z.number().int(),
+          dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD — first day
+          dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD — last day (inclusive)
+        })
+        .refine(({ dateFrom, dateTo }) => dateFrom <= dateTo, {
+          message: "فترة تغيير الوردية غير صحيحة",
+        }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+      const fromDate = new Date(input.dateFrom);
+      const toDate = new Date(input.dateTo);
+      const dayBefore = new Date(fromDate);
+      dayBefore.setDate(dayBefore.getDate() - 1);
+      const dayAfter = new Date(toDate);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+
+      await db.transaction(async (tx: any) => {
+        // Find current active assignment on dateFrom (handles open-ended and dated assignments like 2030-12-31)
+        const existing = await tx
+          .select()
+          .from(attendanceShiftAssignments)
+          .where(
+            and(
+              eq(attendanceShiftAssignments.empCd, input.empCd),
+              lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+              or(
+                isNull(attendanceShiftAssignments.effectiveTo),
+                gte(attendanceShiftAssignments.effectiveTo, fromDate),
+              ),
+            ),
+          )
+          .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
+          .limit(1);
+
+        const curr = existing[0];
+        if (!curr)
+          throw new Error("لا توجد وردية نشطة لهذا الموظف في هذا التاريخ");
+        if (curr.shiftId === input.newShiftId)
+          throw new Error("الموظف على هذه الوردية بالفعل");
+
+        const currEffFromStr = fmtDate(curr.effectiveFrom);
+
+        if (currEffFromStr === input.dateFrom) {
+          // Original assignment starts exactly on dateFrom.
+          // We delay its start to dayAfter.
+          if (curr.effectiveTo && fmtDate(curr.effectiveTo) <= input.dateTo) {
+            // If the original assignment ends within/on the swap period, delete it.
+            await tx
+              .delete(attendanceShiftAssignments)
+              .where(eq(attendanceShiftAssignments.id, curr.id));
+          } else {
+            await tx
+              .update(attendanceShiftAssignments)
+              .set({ effectiveFrom: fmt(dayAfter) as any })
+              .where(eq(attendanceShiftAssignments.id, curr.id));
+          }
+        } else {
+          // Original assignment starts before dateFrom.
+          // Close it the day before the change.
+          await tx
+            .update(attendanceShiftAssignments)
+            .set({ effectiveTo: fmt(dayBefore) as any })
+            .where(eq(attendanceShiftAssignments.id, curr.id));
+
+          // Restore original shift after the period (if it doesn't end before/on dateTo)
+          if (!curr.effectiveTo || fmtDate(curr.effectiveTo) > input.dateTo) {
+            await tx.insert(attendanceShiftAssignments).values({
+              empCd: input.empCd,
+              shiftId: curr.shiftId,
+              effectiveFrom: fmt(dayAfter) as any,
+              effectiveTo: curr.effectiveTo,
+              weekdayMask: curr.weekdayMask,
+            });
+          }
+        }
+
+        // Insert the temporary assignment
+        await tx.insert(attendanceShiftAssignments).values({
+          empCd: input.empCd,
+          shiftId: input.newShiftId,
+          effectiveFrom: input.dateFrom as any,
+          effectiveTo: input.dateTo as any,
+          weekdayMask: curr.weekdayMask,
+        });
+      });
+      await recomputeAssignmentRange(input.empCd, input.dateFrom, input.dateTo);
+      return { success: true };
+    }),
+
+  bulkAssignShift: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         empCds: z.array(z.string()).min(1),
         shiftId: z.number().int(),
-        effectiveFrom: z.string(),
-        effectiveTo: z.string().optional(),
+        effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        effectiveTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
         weekdayMask: z.number().int().default(62), // Sun-Thu default (0b0111110)
       }),
     )
@@ -849,11 +1207,16 @@ export const attendanceShiftsRoutes = {
           weekdayMask: input.weekdayMask,
         });
         inserted++;
+        await recomputeAssignmentRange(
+          empCd,
+          input.effectiveFrom,
+          input.effectiveTo,
+        );
       }
       return { success: true, inserted };
     }),
 
-  createShiftChangeRequest: makeAttWriteProcedure("/attendance/shift-schedule")
+  createShiftChangeRequest: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
@@ -862,8 +1225,11 @@ export const attendanceShiftsRoutes = {
         weekdayMask: z.number().int().optional(),
         cycleId: z.number().int().optional(),
         swapEmpCd: z.string().optional(),
-        dateFrom: z.string(),
-        dateTo: z.string().optional(),
+        dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        dateTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
         note: z.string().optional(),
       }),
     )
@@ -887,7 +1253,7 @@ export const attendanceShiftsRoutes = {
       return { success: true };
     }),
 
-  listShiftChangeRequests: makeAttProcedure("/attendance")
+  listShiftChangeRequests: makeAttProcedure(["/attendance", "/attendance/employees"])
     .input(
       z
         .object({
@@ -951,297 +1317,304 @@ export const attendanceShiftsRoutes = {
       }));
     }),
 
-  approveShiftChangeRequest: makeAttWriteProcedure("/attendance/shift-schedule")
+  approveShiftChangeRequest: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         requestId: z.number().int(),
       }),
     )
-    .mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-
-      // 1. Get the request
-      const reqRows = await db
-        .select()
-        .from(attendanceShiftChangeRequests)
-        .where(eq(attendanceShiftChangeRequests.id, input.requestId))
-        .limit(1);
-      const req = reqRows[0];
-      if (!req) throw new Error("الطلب غير موجود");
-      if (req.status !== "pending") throw new Error("الطلب تم البت فيه بالفعل");
-
-      const fromDate = new Date(req.dateFrom);
-      const toDate = req.dateTo ? new Date(req.dateTo) : new Date(req.dateFrom);
-      const dateFromStr = fmtDate(req.dateFrom);
-      const dateToStr = fmtDate(req.dateTo || req.dateFrom);
-
-      const dayBefore = new Date(fromDate);
-      dayBefore.setDate(dayBefore.getDate() - 1);
-      const dayAfter = new Date(toDate);
-      dayAfter.setDate(dayAfter.getDate() + 1);
-      const fmt = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-      // 2. Execute based on type
-      if (req.requestType === "daily") {
-        // Daily temporary shift swap
-        if (!req.newShiftId)
-          throw new Error("الطلب غير مكتمل: لم يتم تحديد الوردية الجديدة");
-
-        // Reuse our robust temp change logic
-        const existing = await db
+    .mutation(async ({ input, ctx }) => {
+      const rootDb = await getDb();
+      if (!rootDb) throw new Error("Database not available");
+      const req = await rootDb.transaction(async (db: any) => {
+        // 1. Get the request
+        const reqRows = await db
           .select()
-          .from(attendanceShiftAssignments)
-          .where(
-            and(
-              eq(attendanceShiftAssignments.empCd, req.empCd),
-              lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-              or(
-                isNull(attendanceShiftAssignments.effectiveTo),
-                gte(attendanceShiftAssignments.effectiveTo, fromDate),
+          .from(attendanceShiftChangeRequests)
+          .where(eq(attendanceShiftChangeRequests.id, input.requestId))
+          .limit(1)
+          .for("update");
+        const req = reqRows[0];
+        if (!req) throw new Error("الطلب غير موجود");
+        if (req.status !== "pending")
+          throw new Error("الطلب تم البت فيه بالفعل");
+
+        const fromDate = new Date(req.dateFrom);
+        const toDate = req.dateTo
+          ? new Date(req.dateTo)
+          : new Date(req.dateFrom);
+        const dateFromStr = fmtDate(req.dateFrom);
+        const dateToStr = fmtDate(req.dateTo || req.dateFrom);
+
+        const dayBefore = new Date(fromDate);
+        dayBefore.setDate(dayBefore.getDate() - 1);
+        const dayAfter = new Date(toDate);
+        dayAfter.setDate(dayAfter.getDate() + 1);
+        const fmt = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+        // 2. Execute based on type
+        if (req.requestType === "daily") {
+          // Daily temporary shift swap
+          if (!req.newShiftId)
+            throw new Error("الطلب غير مكتمل: لم يتم تحديد الوردية الجديدة");
+
+          // Reuse our robust temp change logic
+          const existing = await db
+            .select()
+            .from(attendanceShiftAssignments)
+            .where(
+              and(
+                eq(attendanceShiftAssignments.empCd, req.empCd),
+                lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+                or(
+                  isNull(attendanceShiftAssignments.effectiveTo),
+                  gte(attendanceShiftAssignments.effectiveTo, fromDate),
+                ),
               ),
-            ),
-          )
-          .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
-          .limit(1);
+            )
+            .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
+            .for("update");
 
-        const curr = existing[0];
-        if (!curr)
-          throw new Error("لا توجد وردية نشطة للموظف في تاريخ البداية");
-        if (curr.shiftId === req.newShiftId)
-          throw new Error("الموظف على هذه الوردية بالفعل");
+          const curr = existing[0];
+          if (existing.length > 1)
+            throw new TRPCError({
+              code: "CONFLICT",
+              message:
+                "يوجد أكثر من تعيين نشط؛ حدّد الوردية من شاشة التعيينات بدل اعتماد تغيير مبهم",
+            });
+          if (!curr)
+            throw new Error("لا توجد وردية نشطة للموظف في تاريخ البداية");
+          if (curr.shiftId === req.newShiftId)
+            throw new Error("الموظف على هذه الوردية بالفعل");
 
-        const currEffFromStr = fmtDate(curr.effectiveFrom);
+          const currEffFromStr = fmtDate(curr.effectiveFrom);
 
-        if (currEffFromStr === dateFromStr) {
-          if (curr.effectiveTo && fmtDate(curr.effectiveTo) <= dateToStr) {
-            await db
-              .delete(attendanceShiftAssignments)
-              .where(eq(attendanceShiftAssignments.id, curr.id));
+          if (currEffFromStr === dateFromStr) {
+            if (curr.effectiveTo && fmtDate(curr.effectiveTo) <= dateToStr) {
+              await db
+                .delete(attendanceShiftAssignments)
+                .where(eq(attendanceShiftAssignments.id, curr.id));
+            } else {
+              await db
+                .update(attendanceShiftAssignments)
+                .set({ effectiveFrom: fmt(dayAfter) as any })
+                .where(eq(attendanceShiftAssignments.id, curr.id));
+            }
           } else {
             await db
               .update(attendanceShiftAssignments)
-              .set({ effectiveFrom: fmt(dayAfter) as any })
+              .set({ effectiveTo: fmt(dayBefore) as any })
               .where(eq(attendanceShiftAssignments.id, curr.id));
+
+            if (!curr.effectiveTo || fmtDate(curr.effectiveTo) > dateToStr) {
+              await db.insert(attendanceShiftAssignments).values({
+                empCd: req.empCd,
+                shiftId: curr.shiftId,
+                effectiveFrom: fmt(dayAfter) as any,
+                effectiveTo: curr.effectiveTo,
+                weekdayMask: curr.weekdayMask,
+              });
+            }
           }
-        } else {
-          await db
-            .update(attendanceShiftAssignments)
-            .set({ effectiveTo: fmt(dayBefore) as any })
-            .where(eq(attendanceShiftAssignments.id, curr.id));
 
-          if (!curr.effectiveTo || fmtDate(curr.effectiveTo) > dateToStr) {
-            await db.insert(attendanceShiftAssignments).values({
-              empCd: req.empCd,
-              shiftId: curr.shiftId,
-              effectiveFrom: fmt(dayAfter) as any,
-              effectiveTo: curr.effectiveTo,
-              weekdayMask: curr.weekdayMask,
-            });
-          }
-        }
+          await db.insert(attendanceShiftAssignments).values({
+            empCd: req.empCd,
+            shiftId: req.newShiftId,
+            effectiveFrom: req.dateFrom as any,
+            effectiveTo: req.dateTo as any,
+            weekdayMask: curr.weekdayMask,
+          });
+        } else if (req.requestType === "weekly") {
+          // Weekly assignment
+          if (!req.newShiftId || !req.weekdayMask)
+            throw new Error(
+              "الطلب غير مكتمل: لم يتم تحديد الوردية أو أيام العمل",
+            );
 
-        await db.insert(attendanceShiftAssignments).values({
-          empCd: req.empCd,
-          shiftId: req.newShiftId,
-          effectiveFrom: req.dateFrom as any,
-          effectiveTo: req.dateTo as any,
-          weekdayMask: curr.weekdayMask,
-        });
-      } else if (req.requestType === "weekly") {
-        // Weekly assignment
-        if (!req.newShiftId || !req.weekdayMask)
-          throw new Error(
-            "الطلب غير مكتمل: لم يتم تحديد الوردية أو أيام العمل",
-          );
-
-        // End current open-ended assignment if any
-        await db.execute(sql`
+          // End current open-ended assignment if any
+          await db.execute(sql`
           UPDATE attendance_shift_assignments
           SET effective_to = ${fmt(dayBefore)}
           WHERE emp_cd = ${req.empCd} AND effective_to IS NULL
         `);
 
-        // Insert new assignment
-        await db.insert(attendanceShiftAssignments).values({
-          empCd: req.empCd,
-          shiftId: req.newShiftId,
-          effectiveFrom: req.dateFrom as any,
-          effectiveTo: req.dateTo ? (req.dateTo as any) : null,
-          weekdayMask: req.weekdayMask,
-        });
-      } else if (req.requestType === "monthly") {
-        // Monthly shift cycle assignment
-        if (!req.cycleId)
-          throw new Error("الطلب غير مكتمل: لم يتم تحديد الدورة");
+          // Insert new assignment
+          await db.insert(attendanceShiftAssignments).values({
+            empCd: req.empCd,
+            shiftId: req.newShiftId,
+            effectiveFrom: req.dateFrom as any,
+            effectiveTo: req.dateTo ? (req.dateTo as any) : null,
+            weekdayMask: req.weekdayMask,
+          });
+        } else if (req.requestType === "monthly") {
+          // Monthly shift cycle assignment
+          if (!req.cycleId)
+            throw new Error("الطلب غير مكتمل: لم يتم تحديد الدورة");
 
-        // End current cycle assignment
-        await db.execute(sql`
+          // End current cycle assignment
+          await db.execute(sql`
           UPDATE attendance_shift_cycle_assignments
-          SET effective_to = ${req.dateFrom}
+          SET effective_to = ${fmt(dayBefore)}
           WHERE emp_cd = ${req.empCd} AND effective_to IS NULL
         `);
 
-        // Insert new cycle assignment
-        await db.insert(attendanceShiftCycleAssignments).values({
-          empCd: req.empCd,
-          cycleId: req.cycleId,
-          effectiveFrom: req.dateFrom as any,
-          effectiveTo: req.dateTo ? (req.dateTo as any) : null,
-        });
-      } else if (req.requestType === "swap") {
-        // Swap shifts between two employees
-        if (!req.swapEmpCd)
-          throw new Error("الطلب غير مكتمل: لم يتم تحديد الموظف الآخر");
-
-        // Find active shift of Employee A
-        const existingA = await db
-          .select()
-          .from(attendanceShiftAssignments)
-          .where(
-            and(
-              eq(attendanceShiftAssignments.empCd, req.empCd),
-              lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-              or(
-                isNull(attendanceShiftAssignments.effectiveTo),
-                gte(attendanceShiftAssignments.effectiveTo, fromDate),
-              ),
-            ),
-          )
-          .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
-          .limit(1);
-
-        // Find active shift of Employee B
-        const existingB = await db
-          .select()
-          .from(attendanceShiftAssignments)
-          .where(
-            and(
-              eq(attendanceShiftAssignments.empCd, req.swapEmpCd),
-              lte(attendanceShiftAssignments.effectiveFrom, fromDate),
-              or(
-                isNull(attendanceShiftAssignments.effectiveTo),
-                gte(attendanceShiftAssignments.effectiveTo, fromDate),
-              ),
-            ),
-          )
-          .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
-          .limit(1);
-
-        const aRow = existingA[0];
-        const bRow = existingB[0];
-        if (!aRow || !bRow)
-          throw new Error(
-            "أحد الموظفين لا توجد لديه وردية نشطة في هذا التاريخ",
-          );
-        if (aRow.shiftId === bRow.shiftId)
-          throw new Error("الموظفان على نفس الوردية بالفعل");
-
-        // Close both assignments the day before
-        await Promise.all([
-          db
-            .update(attendanceShiftAssignments)
-            .set({ effectiveTo: fmt(dayBefore) as any })
-            .where(eq(attendanceShiftAssignments.id, aRow.id)),
-          db
-            .update(attendanceShiftAssignments)
-            .set({ effectiveTo: fmt(dayBefore) as any })
-            .where(eq(attendanceShiftAssignments.id, bRow.id)),
-        ]);
-
-        // Create swapped assignments for the period
-        await db.insert(attendanceShiftAssignments).values([
-          {
+          // Insert new cycle assignment
+          await db.insert(attendanceShiftCycleAssignments).values({
             empCd: req.empCd,
-            shiftId: bRow.shiftId,
+            cycleId: req.cycleId,
             effectiveFrom: req.dateFrom as any,
-            effectiveTo: req.dateTo as any,
-            weekdayMask: aRow.weekdayMask,
-          },
-          {
-            empCd: req.swapEmpCd,
-            shiftId: aRow.shiftId,
-            effectiveFrom: req.dateFrom as any,
-            effectiveTo: req.dateTo as any,
-            weekdayMask: bRow.weekdayMask,
-          },
-        ]);
-
-        // Restore original shifts starting the day after the swap ends
-        if (!aRow.effectiveTo || fmtDate(aRow.effectiveTo) > dateToStr) {
-          await db.insert(attendanceShiftAssignments).values({
-            empCd: req.empCd,
-            shiftId: aRow.shiftId,
-            effectiveFrom: fmt(dayAfter) as any,
-            effectiveTo: aRow.effectiveTo,
-            weekdayMask: aRow.weekdayMask,
+            effectiveTo: req.dateTo ? (req.dateTo as any) : null,
           });
-        }
-        if (!bRow.effectiveTo || fmtDate(bRow.effectiveTo) > dateToStr) {
-          await db.insert(attendanceShiftAssignments).values({
-            empCd: req.swapEmpCd,
-            shiftId: bRow.shiftId,
-            effectiveFrom: fmt(dayAfter) as any,
-            effectiveTo: bRow.effectiveTo,
-            weekdayMask: bRow.weekdayMask,
-          });
-        }
-      }
+        } else if (req.requestType === "swap") {
+          // Swap shifts between two employees
+          if (!req.swapEmpCd)
+            throw new Error("الطلب غير مكتمل: لم يتم تحديد الموظف الآخر");
 
-      // 3. Mark request as approved
-      await db
-        .update(attendanceShiftChangeRequests)
-        .set({ status: "approved", updatedAt: new Date() })
-        .where(eq(attendanceShiftChangeRequests.id, input.requestId));
+          // Find active shift of Employee A
+          const existingA = await db
+            .select()
+            .from(attendanceShiftAssignments)
+            .where(
+              and(
+                eq(attendanceShiftAssignments.empCd, req.empCd),
+                lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+                or(
+                  isNull(attendanceShiftAssignments.effectiveTo),
+                  gte(attendanceShiftAssignments.effectiveTo, fromDate),
+                ),
+              ),
+            )
+            .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
+            .for("update");
+
+          // Find active shift of Employee B
+          const existingB = await db
+            .select()
+            .from(attendanceShiftAssignments)
+            .where(
+              and(
+                eq(attendanceShiftAssignments.empCd, req.swapEmpCd),
+                lte(attendanceShiftAssignments.effectiveFrom, fromDate),
+                or(
+                  isNull(attendanceShiftAssignments.effectiveTo),
+                  gte(attendanceShiftAssignments.effectiveTo, fromDate),
+                ),
+              ),
+            )
+            .orderBy(desc(attendanceShiftAssignments.effectiveFrom))
+            .for("update");
+
+          const aRow = existingA[0];
+          const bRow = existingB[0];
+          if (existingA.length > 1 || existingB.length > 1)
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "لا يمكن تبادل تعيين مبهم لموظف لديه أكثر من وردية نشطة",
+            });
+          if (!aRow || !bRow)
+            throw new Error(
+              "أحد الموظفين لا توجد لديه وردية نشطة في هذا التاريخ",
+            );
+          if (aRow.shiftId === bRow.shiftId)
+            throw new Error("الموظفان على نفس الوردية بالفعل");
+
+          // Close both assignments the day before
+          await Promise.all([
+            db
+              .update(attendanceShiftAssignments)
+              .set({ effectiveTo: fmt(dayBefore) as any })
+              .where(eq(attendanceShiftAssignments.id, aRow.id)),
+            db
+              .update(attendanceShiftAssignments)
+              .set({ effectiveTo: fmt(dayBefore) as any })
+              .where(eq(attendanceShiftAssignments.id, bRow.id)),
+          ]);
+
+          // Create swapped assignments for the period
+          await db.insert(attendanceShiftAssignments).values([
+            {
+              empCd: req.empCd,
+              shiftId: bRow.shiftId,
+              effectiveFrom: req.dateFrom as any,
+              effectiveTo: req.dateTo as any,
+              weekdayMask: aRow.weekdayMask,
+            },
+            {
+              empCd: req.swapEmpCd,
+              shiftId: aRow.shiftId,
+              effectiveFrom: req.dateFrom as any,
+              effectiveTo: req.dateTo as any,
+              weekdayMask: bRow.weekdayMask,
+            },
+          ]);
+
+          // Restore original shifts starting the day after the swap ends
+          if (!aRow.effectiveTo || fmtDate(aRow.effectiveTo) > dateToStr) {
+            await db.insert(attendanceShiftAssignments).values({
+              empCd: req.empCd,
+              shiftId: aRow.shiftId,
+              effectiveFrom: fmt(dayAfter) as any,
+              effectiveTo: aRow.effectiveTo,
+              weekdayMask: aRow.weekdayMask,
+            });
+          }
+          if (!bRow.effectiveTo || fmtDate(bRow.effectiveTo) > dateToStr) {
+            await db.insert(attendanceShiftAssignments).values({
+              empCd: req.swapEmpCd,
+              shiftId: bRow.shiftId,
+              effectiveFrom: fmt(dayAfter) as any,
+              effectiveTo: bRow.effectiveTo,
+              weekdayMask: bRow.weekdayMask,
+            });
+          }
+        }
+
+        // 3. Mark request as approved
+        await db
+          .update(attendanceShiftChangeRequests)
+          .set({ status: "approved", updatedAt: new Date() })
+          .where(eq(attendanceShiftChangeRequests.id, input.requestId));
+        return req;
+      });
+      const dateFromStr = fmtDate(req.dateFrom);
+      await AuditLogService.log({
+        action: "shift_request_approved",
+        empCd: req.empCd,
+        userId: ctx.user.id,
+        details: { requestId: input.requestId, type: req.requestType },
+        status: "success",
+      });
 
       // 4. Recompute daily attendance & monthly reports immediately to propagate changes
       try {
-        const today = new Date();
-        const calcToDate = req.dateTo
-          ? new Date(req.dateTo)
-          : new Date(fromDate).getTime() > today.getTime()
-            ? new Date(fromDate)
-            : today;
-
-        // Materialize for employee A
-        await dailyMaterializer.recomputeRange(fromDate, calcToDate, {
-          empCd: req.empCd,
-        });
-
-        // Materialize for employee B if it's a swap request
+        // Clamped to today and scoped to the affected employees.
+        const recomputeTo = req.dateTo ? fmtDate(req.dateTo) : null;
+        await recomputeAssignmentRange(req.empCd, dateFromStr, recomputeTo);
         if (req.requestType === "swap" && req.swapEmpCd) {
-          await dailyMaterializer.recomputeRange(fromDate, calcToDate, {
-            empCd: req.swapEmpCd,
-          });
-        }
-
-        // Also generate monthly reports for affected months
-        const months = new Set<string>();
-        for (
-          let d = new Date(fromDate);
-          d <= calcToDate;
-          d.setDate(d.getDate() + 1)
-        ) {
-          months.add(
-            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+          await recomputeAssignmentRange(
+            req.swapEmpCd,
+            dateFromStr,
+            recomputeTo,
           );
-        }
-        for (const month of months) {
-          const [year, monthNum] = month.split("-").map(Number);
-          await MonthlyComputeService.saveMonthlyReports(year, monthNum);
         }
       } catch (err: any) {
         console.error(
           "Failed to recompute daily/monthly attendance after shift approval:",
           err,
         );
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "تم اعتماد الطلب لكن تعذرت إعادة حساب الحضور؛ أعد الحساب من الإعدادات",
+          cause: err,
+        });
       }
 
       return { success: true };
     }),
 
-  rejectShiftChangeRequest: makeAttWriteProcedure("/attendance/shift-schedule")
+  rejectShiftChangeRequest: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         requestId: z.number().int(),
@@ -1264,7 +1637,7 @@ export const attendanceShiftsRoutes = {
       return { success: true };
     }),
 
-  listShiftCycles: makeAttProcedure("/attendance/shift-schedule").query(
+  listShiftCycles: makeAttProcedure(["/attendance/shift-schedule", "/attendance/employees"]).query(
     async () => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -1290,61 +1663,168 @@ export const attendanceShiftsRoutes = {
     },
   ),
 
-  createShiftCycle: makeAttWriteProcedure("/attendance/shift-schedule")
+  createShiftCycle: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
-      z.object({
-        name: z.string().min(1).max(100),
-        period: z.enum(["day", "week", "month"]),
-        anchorDate: z.string(),
-        slots: z
-          .array(
-            z.object({
-              slotIndex: z.number().int(),
-              shiftId: z.number().int(),
-            }),
-          )
-          .min(1),
-      }),
+      z
+        .object({
+          name: z.string().min(1).max(100),
+          period: z.enum(["day", "week", "month", "rotation"]),
+          anchorDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          slots: z
+            .array(
+              z.object({
+                slotIndex: z.number().int().min(0).max(31),
+                // 0 = explicit rest day (rotation cycles only)
+                shiftId: z.number().int().min(0),
+              }),
+            )
+            .min(1)
+            .max(31),
+        })
+        .superRefine((input, ctx) => {
+          const indexes = input.slots.map((slot) => slot.slotIndex);
+          if (
+            input.slots.some((slot) => slot.shiftId === 0) &&
+            input.period !== "rotation"
+          ) {
+            ctx.addIssue({
+              code: "custom",
+              message: "أيام الراحة الصريحة متاحة لدورات التتابع فقط",
+              path: ["slots"],
+            });
+          }
+          if (!input.slots.some((slot) => slot.shiftId > 0)) {
+            ctx.addIssue({
+              code: "custom",
+              message: "يجب تحديد وردية واحدة على الأقل",
+              path: ["slots"],
+            });
+          }
+          if (new Set(indexes).size !== indexes.length) {
+            ctx.addIssue({
+              code: "custom",
+              message: "مؤشر الوردية مكرر",
+              path: ["slots"],
+            });
+          }
+          const maxSlot = input.period === "month" ? 31 : 6;
+          if (
+            indexes.some(
+              (index) =>
+                index > maxSlot || (input.period === "month" && index === 0),
+            )
+          ) {
+            ctx.addIssue({
+              code: "custom",
+              message: "مؤشر الوردية خارج نطاق الدورة",
+              path: ["slots"],
+            });
+          }
+        }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const [res] = (await db.insert(attendanceShiftCycles).values({
-        name: input.name,
-        period: input.period,
-        anchorDate: input.anchorDate as any,
-      })) as any;
-      const cycleId = res.insertId;
-      for (const slot of input.slots) {
-        await db.insert(attendanceShiftCycleSlots).values({
-          cycleId,
-          slotIndex: slot.slotIndex,
-          shiftId: slot.shiftId,
+      const cycleId = await db.transaction(async (tx: any) => {
+        const cycleResult = await tx.insert(attendanceShiftCycles).values({
+          name: input.name,
+          period: input.period,
+          anchorDate: input.anchorDate as any,
         });
-      }
+        const insertedId = Number(
+          (cycleResult as any)?.[0]?.insertId ?? (cycleResult as any)?.insertId,
+        );
+        if (!Number.isSafeInteger(insertedId) || insertedId <= 0) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "تعذر قراءة رقم دورة الوردية الجديدة",
+          });
+        }
+        await tx
+          .insert(attendanceShiftCycleSlots)
+          .values(
+            input.slots.map((slot) => ({ ...slot, cycleId: insertedId })),
+          );
+        return insertedId;
+      });
       return { id: cycleId };
     }),
 
-  updateShiftCycle: makeAttWriteProcedure("/attendance/shift-schedule")
+  updateShiftCycle: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
-      z.object({
-        id: z.number().int(),
-        name: z.string().min(1).max(100).optional(),
-        period: z.enum(["day", "week", "month"]).optional(),
-        anchorDate: z.string().optional(),
-        slots: z
-          .array(
-            z.object({
-              slotIndex: z.number().int(),
-              shiftId: z.number().int(),
-            }),
-          )
-          .optional(),
-      }),
+      z
+        .object({
+          id: z.number().int(),
+          name: z.string().min(1).max(100).optional(),
+          period: z.enum(["day", "week", "month", "rotation"]).optional(),
+          anchorDate: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .optional(),
+          slots: z
+            .array(
+              z.object({
+                slotIndex: z.number().int().min(0).max(31),
+                // 0 = explicit rest day (rotation cycles only)
+                shiftId: z.number().int().min(0),
+              }),
+            )
+            .max(31)
+            .optional(),
+        })
+        .superRefine((input, ctx) => {
+          if (!input.slots || !input.period) return;
+          const indexes = input.slots.map((slot) => slot.slotIndex);
+          if (
+            input.slots.some((slot) => slot.shiftId === 0) &&
+            input.period !== "rotation"
+          ) {
+            ctx.addIssue({
+              code: "custom",
+              message: "أيام الراحة الصريحة متاحة لدورات التتابع فقط",
+              path: ["slots"],
+            });
+          }
+          if (!input.slots.some((slot) => slot.shiftId > 0)) {
+            ctx.addIssue({
+              code: "custom",
+              message: "يجب تحديد وردية واحدة على الأقل",
+              path: ["slots"],
+            });
+          }
+          if (new Set(indexes).size !== indexes.length) {
+            ctx.addIssue({
+              code: "custom",
+              message: "مؤشر الوردية مكرر",
+              path: ["slots"],
+            });
+          }
+          const maxSlot = input.period === "month" ? 31 : 6;
+          if (
+            indexes.some(
+              (index) =>
+                index > maxSlot || (input.period === "month" && index === 0),
+            )
+          ) {
+            ctx.addIssue({
+              code: "custom",
+              message: "مؤشر الوردية خارج نطاق الدورة",
+              path: ["slots"],
+            });
+          }
+        }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const existingAssignments = await db
+        .select({
+          empCd: attendanceShiftCycleAssignments.empCd,
+          from: attendanceShiftCycleAssignments.effectiveFrom,
+          to: attendanceShiftCycleAssignments.effectiveTo,
+        })
+        .from(attendanceShiftCycleAssignments)
+        .where(eq(attendanceShiftCycleAssignments.cycleId, input.id));
       const updateData: any = {};
       if (input.name) updateData.name = input.name;
       if (input.period) updateData.period = input.period;
@@ -1356,25 +1836,42 @@ export const attendanceShiftsRoutes = {
           .where(eq(attendanceShiftCycles.id, input.id));
       }
       if (input.slots) {
-        await db
-          .delete(attendanceShiftCycleSlots)
-          .where(eq(attendanceShiftCycleSlots.cycleId, input.id));
-        for (const slot of input.slots) {
-          await db.insert(attendanceShiftCycleSlots).values({
-            cycleId: input.id,
-            slotIndex: slot.slotIndex,
-            shiftId: slot.shiftId,
-          });
-        }
+        await db.transaction(async (tx: any) => {
+          await tx
+            .delete(attendanceShiftCycleSlots)
+            .where(eq(attendanceShiftCycleSlots.cycleId, input.id));
+          if (input.slots!.length) {
+            await tx
+              .insert(attendanceShiftCycleSlots)
+              .values(
+                input.slots!.map((slot) => ({ ...slot, cycleId: input.id })),
+              );
+          }
+        });
+      }
+      for (const assignment of existingAssignments as any[]) {
+        await recomputeAssignmentRange(
+          assignment.empCd,
+          fmtDate(assignment.from),
+          assignment.to ? fmtDate(assignment.to) : null,
+        );
       }
       return { success: true };
     }),
 
-  deleteShiftCycle: makeAttWriteProcedure("/attendance/shift-schedule")
+  deleteShiftCycle: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const existingAssignments = await db
+        .select({
+          empCd: attendanceShiftCycleAssignments.empCd,
+          from: attendanceShiftCycleAssignments.effectiveFrom,
+          to: attendanceShiftCycleAssignments.effectiveTo,
+        })
+        .from(attendanceShiftCycleAssignments)
+        .where(eq(attendanceShiftCycleAssignments.cycleId, input.id));
       await db
         .delete(attendanceShiftCycleSlots)
         .where(eq(attendanceShiftCycleSlots.cycleId, input.id));
@@ -1384,10 +1881,17 @@ export const attendanceShiftsRoutes = {
       await db
         .delete(attendanceShiftCycles)
         .where(eq(attendanceShiftCycles.id, input.id));
+      for (const assignment of existingAssignments as any[]) {
+        await recomputeAssignmentRange(
+          assignment.empCd,
+          fmtDate(assignment.from),
+          assignment.to ? fmtDate(assignment.to) : null,
+        );
+      }
       return { success: true };
     }),
 
-  listCycleAssignments: makeAttProcedure("/attendance/shift-schedule").query(
+  listCycleAssignments: makeAttProcedure(["/attendance/shift-schedule", "/attendance/employees"]).query(
     async () => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -1426,22 +1930,28 @@ export const attendanceShiftsRoutes = {
     },
   ),
 
-  assignCycle: makeAttWriteProcedure("/attendance/shift-schedule")
+  assignCycle: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         empCds: z.array(z.string()).min(1),
         cycleId: z.number().int(),
-        effectiveFrom: z.string(),
-        effectiveTo: z.string().optional(),
+        effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        effectiveTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       for (const empCd of input.empCds) {
+        // Close the previous cycle the day before so the two never overlap.
+        const previousDay = new Date(`${input.effectiveFrom}T12:00:00`);
+        previousDay.setDate(previousDay.getDate() - 1);
         await db.execute(sql`
           UPDATE attendance_shift_cycle_assignments
-          SET effective_to = ${input.effectiveFrom}
+          SET effective_to = ${fmtDate(previousDay)}
           WHERE emp_cd = ${empCd} AND effective_to IS NULL
         `);
         await db.insert(attendanceShiftCycleAssignments).values({
@@ -1450,22 +1960,40 @@ export const attendanceShiftsRoutes = {
           effectiveFrom: input.effectiveFrom as any,
           effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
         });
+        await recomputeAssignmentRange(
+          empCd,
+          input.effectiveFrom,
+          input.effectiveTo,
+        );
       }
       return { inserted: input.empCds.length };
     }),
 
-  updateCycleAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
+  updateCycleAssignment: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(
       z.object({
         id: z.number().int(),
         cycleId: z.number().int().optional(),
-        effectiveFrom: z.string().optional(),
-        effectiveTo: z.string().nullable().optional(),
+        effectiveFrom: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        effectiveTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const existing = await db
+        .select()
+        .from(attendanceShiftCycleAssignments)
+        .where(eq(attendanceShiftCycleAssignments.id, input.id))
+        .limit(1);
+      if (!existing[0]) throw new Error("تعيين الدورة غير موجود");
       const upd: any = {};
       if (input.cycleId !== undefined) upd.cycleId = input.cycleId;
       if (input.effectiveFrom !== undefined)
@@ -1478,17 +2006,45 @@ export const attendanceShiftsRoutes = {
           .set(upd)
           .where(eq(attendanceShiftCycleAssignments.id, input.id));
       }
+      const oldFrom = fmtDate(existing[0].effectiveFrom as any);
+      const newFrom = input.effectiveFrom?.slice(0, 10) ?? oldFrom;
+      const oldTo = existing[0].effectiveTo
+        ? fmtDate(existing[0].effectiveTo as any)
+        : null;
+      const newTo =
+        input.effectiveTo === undefined
+          ? oldTo
+          : (input.effectiveTo?.slice(0, 10) ?? null);
+      await recomputeAssignmentRange(
+        existing[0].empCd,
+        newFrom < oldFrom ? newFrom : oldFrom,
+        oldTo === null || newTo === null ? null : oldTo > newTo ? oldTo : newTo,
+      );
       return { success: true };
     }),
 
-  removeCycleAssignment: makeAttWriteProcedure("/attendance/shift-schedule")
+  removeCycleAssignment: makeAttWriteProcedure(["/attendance/shift-schedule", "/attendance/employees"])
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const existing = await db
+        .select()
+        .from(attendanceShiftCycleAssignments)
+        .where(eq(attendanceShiftCycleAssignments.id, input.id))
+        .limit(1);
       await db
         .delete(attendanceShiftCycleAssignments)
         .where(eq(attendanceShiftCycleAssignments.id, input.id));
+      if (existing[0]) {
+        await recomputeAssignmentRange(
+          existing[0].empCd,
+          fmtDate(existing[0].effectiveFrom as any),
+          existing[0].effectiveTo
+            ? fmtDate(existing[0].effectiveTo as any)
+            : null,
+        );
+      }
       return { success: true };
     }),
 };

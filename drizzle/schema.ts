@@ -1693,7 +1693,7 @@ export type InsertAttendanceShiftAssignment =
 export const attendanceShiftCycles = mysqlTable("attendance_shift_cycles", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  period: mysqlEnum("period", ["day", "week", "month"]).notNull(),
+  period: mysqlEnum("period", ["day", "week", "month", "rotation"]).notNull(),
   anchorDate: date("anchor_date").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

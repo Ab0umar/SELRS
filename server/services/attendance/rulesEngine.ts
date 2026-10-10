@@ -72,6 +72,14 @@ export interface DayResult {
 export interface ApprovedPermission {
   type: "in" | "out" | "mission";
   durationMinutes: number;
+  notAffectSalary?: boolean;
+}
+
+export function cycleOverridesDirectAssignment(
+  cycleFrom: string | undefined,
+  directFrom: string | undefined,
+): boolean {
+  return !!cycleFrom && (!directFrom || cycleFrom >= directFrom);
 }
 
 export function applyApprovedPermissions(
@@ -79,7 +87,10 @@ export function applyApprovedPermissions(
   permissions: ApprovedPermission[],
 ): DayResult {
   const adjusted = { ...result };
-  for (const permission of permissions) {
+  const salaryExemptPermissions = permissions.filter(
+    (permission) => permission.notAffectSalary !== false,
+  );
+  for (const permission of salaryExemptPermissions) {
     if (permission.type === "in") {
       adjusted.lateMinutes = Math.max(
         0,
@@ -93,7 +104,9 @@ export function applyApprovedPermissions(
     }
   }
 
-  if (permissions.some((permission) => permission.type === "mission")) {
+  if (
+    salaryExemptPermissions.some((permission) => permission.type === "mission")
+  ) {
     adjusted.lateMinutes = 0;
     adjusted.earlyLeaveMin = 0;
     if (adjusted.status === "absent" || adjusted.status === "partial") {
@@ -142,8 +155,8 @@ export function resolveShifts(
   }
 
   if (matchingAssignments.length > 0) {
-    // Keep the latest assignment in each branch. Legacy shifts without a branch
-    // remain mutually exclusive, while operations + center may run in one day.
+    // A newer schedule replaces older assignments in its branch. Distinct
+    // shifts saved together on the same effective day remain a multi-shift day.
     const latestByBranch = new Map<
       string,
       (typeof matchingAssignments)[number]
@@ -161,12 +174,33 @@ export function resolveShifts(
       }
     }
 
-    return Array.from(latestByBranch.values())
+    const selectedShiftIds = new Set<number>();
+    return matchingAssignments
+      .filter((asn) => {
+        const shift = shiftsById.get(asn.shiftId);
+        if (!shift || selectedShiftIds.has(asn.shiftId)) return false;
+        const latest = latestByBranch.get(shift.branch ?? "__unassigned");
+        if (asn.effectiveFrom.getTime() !== latest?.effectiveFrom.getTime())
+          return false;
+        selectedShiftIds.add(asn.shiftId);
+        return true;
+      })
       .map((asn) => shiftsById.get(asn.shiftId))
       .filter((shift): shift is Shift => Boolean(shift));
   }
 
-  // Fall back to default shift — cycle slots handle rest-day exclusion
+  // An effective direct assignment whose weekday mask excludes this date is an
+  // intentional rest day. Do not turn it into a workday via the default shift.
+  const hasEffectiveAssignment = assignments.some((assignment) => {
+    if (assignment.empCd !== empCd) return false;
+    if (ymd(assignment.effectiveFrom) > dateStr) return false;
+    if (assignment.effectiveTo && ymd(assignment.effectiveTo) < dateStr)
+      return false;
+    return true;
+  });
+  if (hasEffectiveAssignment) return [];
+
+  // Fall back to default shift only when no direct assignment covers this date.
   if (defaultShiftId) {
     const shift = shiftsById.get(defaultShiftId);
     if (shift) return [shift];
@@ -215,7 +249,6 @@ export function pairPunches(
     return { firstIn: null, lastOut: null };
   }
 
-  // Sort by time
   const sorted = [...punches].sort(
     (a, b) => a.punchAt.getTime() - b.punchAt.getTime(),
   );
@@ -243,8 +276,15 @@ export function pairPunches(
         shiftEnd = new Date(shiftEnd.getTime() + 24 * 60 * 60 * 1000);
       }
       const midpoint = (shiftStart.getTime() + shiftEnd.getTime()) / 2;
+      if (collapsed.length === 1) {
+        const onlyPunch = collapsed[0];
+        return onlyPunch.getTime() <= midpoint
+          ? { firstIn: onlyPunch, lastOut: null }
+          : { firstIn: null, lastOut: onlyPunch };
+      }
       return {
-        firstIn: collapsed.find((punchAt) => punchAt.getTime() <= midpoint) ?? null,
+        firstIn:
+          collapsed.find((punchAt) => punchAt.getTime() <= midpoint) ?? null,
         lastOut:
           [...collapsed]
             .reverse()
@@ -303,7 +343,7 @@ export function computeDay(ctx: DayContext): DayResult {
       result.lastOut = paired.lastOut;
       if (paired.firstIn && !paired.lastOut) {
         result.status = "missing_checkout";
-        result.insideNow = true; // checked in, not yet out
+        result.insideNow = ymd(ctx.workDate) === ymd(ctx.now);
       }
     }
     return result;
@@ -314,9 +354,8 @@ export function computeDay(ctx: DayContext): DayResult {
   result.firstIn = paired.firstIn;
   result.lastOut = paired.lastOut;
 
-  // No arrival punch. A solitary late-half scan is still evidence of attendance;
-  // classify it as a single-punch day rather than absence. Device direction is
-  // unreliable, so absence is reserved for a day with no raw scans at all.
+  // No arrival punch. Device direction is unreliable, so a lone scan counts as
+  // a single-punch day; absence is only a day with no raw scans.
   if (!paired.firstIn) {
     if (paired.lastOut) {
       result.status = "missing_checkout";
@@ -347,7 +386,6 @@ export function computeDay(ctx: DayContext): DayResult {
     return result;
   }
 
-  // Compute worked minutes
   if (paired.lastOut) {
     const workedMs = paired.lastOut.getTime() - paired.firstIn.getTime();
     result.workedMinutes = Math.max(
@@ -357,7 +395,7 @@ export function computeDay(ctx: DayContext): DayResult {
   } else {
     // Missing checkout
     result.status = "missing_checkout";
-    result.insideNow = true;
+    result.insideNow = ymd(ctx.workDate) === ymd(ctx.now);
     result.workedMinutes = null;
     return result;
   }
@@ -474,10 +512,17 @@ export function computeDay(ctx: DayContext): DayResult {
   if (result.lateMinutes > 0 || result.earlyLeaveMin > 0) {
     result.status = "partial";
   }
-  if (ctx.isHoliday) result.status = "holiday";
+  if (ctx.isHoliday) {
+    // Working an official holiday is voluntary extra work paid as holiday
+    // overtime; it must not produce late/early deductions.
+    result.status = "holiday";
+    result.lateMinutes = 0;
+    result.earlyLeaveMin = 0;
+  }
 
   // Inside now
   if (
+    ymd(ctx.workDate) === ymd(ctx.now) &&
     inMs <= ctx.now.getTime() &&
     (!paired.lastOut || paired.lastOut.getTime() > ctx.now.getTime())
   ) {
@@ -487,13 +532,90 @@ export function computeDay(ctx: DayContext): DayResult {
   return result;
 }
 
-// ============ Shift Cycle Resolution ============
+/**
+ * Back-to-back shifts that all accept both devices (operations until 15:00,
+ * center from 15:00) are one continuous working day: the employee arrives on
+ * the ZK reader and leaves on the FK reader, with no scan at the hand-over.
+ * They are evaluated as ONE shift (first start to last end), which yields one
+ * attendance row per day: first ZK scan in, last FK scan out.
+ *
+ * Returns null unless every shift is "both devices", none crosses midnight and
+ * each starts within an hour of the previous one ending.
+ */
+export function mergeContinuousBothDeviceShifts(shifts: Shift[]): Shift | null {
+  if (shifts.length < 2) return null;
+  if (
+    !shifts.every(
+      (shift) =>
+        (shift.deviceId ?? "").toLowerCase() === "both" &&
+        !shift.crossesMidnight,
+    )
+  ) {
+    return null;
+  }
+  const minutes = (hm: string): number | null => {
+    const parsed = parseTime(hm);
+    return parsed ? parsed.h * 60 + parsed.m : null;
+  };
+  const clock = (total: number): string => {
+    const clamped = Math.max(0, Math.min(23 * 60 + 59, total));
+    return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
+  };
+  const ordered = [...shifts].sort(
+    (a, b) => a.startTime.localeCompare(b.startTime) || a.id - b.id,
+  );
+  for (let i = 0; i + 1 < ordered.length; i++) {
+    const end = minutes(ordered[i].endTime);
+    const start = minutes(ordered[i + 1].startTime);
+    if (end === null || start === null || Math.abs(start - end) > 60) {
+      return null;
+    }
+  }
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+  const firstStart = minutes(first.startTime);
+  const lastEnd = minutes(last.endTime);
+  if (firstStart === null || lastEnd === null || lastEnd <= firstStart) {
+    return null;
+  }
+
+  const flexible = ordered.some((shift) => shift.isFlexible);
+  return {
+    ...first,
+    name: ordered.map((shift) => shift.name).join(" + "),
+    startTime: first.startTime,
+    endTime: last.endTime,
+    graceLateMin: first.graceLateMin,
+    graceEarlyMin: last.graceEarlyMin,
+    breakMinutes: ordered.reduce((sum, shift) => sum + (shift.breakMinutes ?? 0), 0),
+    allowOT: first.allowOT || last.allowOT,
+    allowOTIn: first.allowOTIn ?? first.allowOT,
+    allowOTOut: last.allowOTOut ?? last.allowOT,
+    otMinInMinutes: first.otMinInMinutes ?? first.otMinMinutes ?? 0,
+    otMinOutMinutes: last.otMinOutMinutes ?? last.otMinMinutes ?? 0,
+    otMaxMinutes: first.otMaxMinutes,
+    requirePunch: ordered.every((shift) => shift.requirePunch),
+    isFlexible: flexible,
+    // When flexible, lateness is measured against flexInTo and early leave
+    // against flexOutFrom; a fixed edge uses its start/end with its grace.
+    flexInFrom: first.isFlexible ? first.flexInFrom : first.startTime,
+    flexInTo: first.isFlexible
+      ? first.flexInTo
+      : clock(firstStart + (first.graceLateMin ?? 0)),
+    flexOutFrom: last.isFlexible
+      ? last.flexOutFrom
+      : clock(lastEnd - (last.graceEarlyMin ?? 0)),
+    flexOutTo: last.isFlexible ? last.flexOutTo : last.endTime,
+  };
+}
+
+// Shift Cycle Resolution
 
 export interface ShiftCycle {
   id: number;
-  period: "day" | "week" | "month";
+  period: "day" | "week" | "month" | "rotation";
   anchorDate: Date;
-  slots: { slotIndex: number; shiftId: number }[]; // sorted by slotIndex asc
+  slots: { slotIndex: number; shiftId: number }[]; // day: 0..slotCount-1; week: 0..6; month: 1..31
 }
 
 export interface CycleAssignment {
@@ -533,24 +655,38 @@ export function resolveCycleShift(
     cycle.anchorDate,
     date,
     cycle.slots.length,
+    cycle.slots.map((slot) => slot.slotIndex),
   );
   const slot = cycle.slots.find((s) => s.slotIndex === idx);
   return slot ? (shiftsById.get(slot.shiftId) ?? null) : null;
 }
 
 function calcCycleSlotIndex(
-  period: "day" | "week" | "month",
+  period: "day" | "week" | "month" | "rotation",
   anchorDate: Date,
   workDate: Date,
   totalSlots: number,
+  configuredSlotIndexes: number[],
 ): number {
-  // day / week: slot index = day of week (0=Sun … 6=Sat)
+  const dayNumber = (value: Date) =>
+    Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) /
+    86_400_000;
+  // Legacy "day" cycles were weekday maps. Keep their historical meaning;
+  // anchored rotating patterns use the explicit "rotation" period.
+  if (period === "rotation") {
+    // The pattern length is the last configured day; unconfigured days in
+    // between and rest slots (shiftId 0) resolve to no shift.
+    if (configuredSlotIndexes.length === 0) return -1;
+    const count = Math.max(...configuredSlotIndexes) + 1;
+    const elapsedDays = dayNumber(workDate) - dayNumber(anchorDate);
+    return ((elapsedDays % count) + count) % count;
+  }
+  // The UI defines weekly cycles by weekday and monthly cycles by day-of-month.
   if (period === "day" || period === "week") return workDate.getDay();
-  // month: slot index = day of month (1-31)
   return workDate.getDate();
 }
 
-// ============ Helpers ============
+// Helpers
 
 /** YYYY-MM-DD using local getters — avoids UTC-vs-local shift on DB date strings */
 export function ymd(d: Date): string {
@@ -577,17 +713,40 @@ function buildDateTime(date: Date, time: { h: number; m: number }): Date {
   return dt;
 }
 
+const deviceFamily = (deviceId: string | null | undefined): "fk" | "zk" | "" => {
+  const id = deviceId?.toLowerCase();
+  if (!id) return "";
+  return id === "fk" || id.startsWith("fk_") ? "fk" : "zk";
+};
+
 export function partitionPunchesForShifts(
   punches: RawPunchRecord[],
   shifts: Shift[],
   workDate: Date,
+  includeNextDayPunches = false,
 ): Map<number, RawPunchRecord[]> {
   const groups = new Map<number, RawPunchRecord[]>();
   for (const s of shifts) {
     groups.set(s.id, []);
   }
 
-  if (shifts.length === 0) return groups;
+  // Punches on a rest day stay under the synthetic shift 0, so the day is
+  // partial rather than absent.
+  if (shifts.length === 0) {
+    const dayStart = new Date(workDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const nextDayStart = new Date(dayStart);
+    nextDayStart.setDate(nextDayStart.getDate() + 1);
+    groups.set(
+      0,
+      punches.filter(
+        (punch) =>
+          punch.punchAt >= dayStart &&
+          (includeNextDayPunches || punch.punchAt < nextDayStart),
+      ),
+    );
+    return groups;
+  }
 
   // Calculate midpoints for each shift. Device match takes priority because
   // overlapping center shifts cannot be identified reliably by time alone.
@@ -606,18 +765,74 @@ export function partitionPunchesForShifts(
     return { shiftId: s.id, midpoint };
   });
 
+  const dayStart = new Date(workDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const nextDayStart = new Date(dayStart);
+  nextDayStart.setDate(nextDayStart.getDate() + 1);
+  const dayAfterNextStart = new Date(nextDayStart);
+  dayAfterNextStart.setDate(dayAfterNextStart.getDate() + 1);
+
+  // Both-device shifts: arrival is the first ZK scan and departure the last FK
+  // scan, assigned to the day's first and last shift.
+  if (
+    !includeNextDayPunches &&
+    shifts.every((shift) => (shift.deviceId ?? "").toLowerCase() === "both")
+  ) {
+    const todays = punches
+      .filter((p) => p.punchAt >= dayStart && p.punchAt < nextDayStart)
+      .sort((a, b) => a.punchAt.getTime() - b.punchAt.getTime());
+    const zk = todays.filter((p) => deviceFamily(p.deviceId) === "zk");
+    const fk = todays.filter((p) => deviceFamily(p.deviceId) === "fk");
+    if (zk.length > 0 && fk.length > 0) {
+      const arrival = zk[0];
+      const departure = fk[fk.length - 1];
+      if (arrival.punchAt.getTime() < departure.punchAt.getTime()) {
+        const ordered = [...shifts].sort(
+          (a, b) => a.startTime.localeCompare(b.startTime) || a.id - b.id,
+        );
+        if (ordered.length === 1) {
+          groups.set(ordered[0].id, [arrival, departure]);
+        } else {
+          groups.get(ordered[0].id)!.push(arrival);
+          groups.get(ordered[ordered.length - 1].id)!.push(departure);
+        }
+        return groups;
+      }
+    }
+  }
+
   for (const p of punches) {
     const time = p.punchAt.getTime();
+    const isNextDayPunch = p.punchAt >= nextDayStart;
+    if (
+      p.punchAt < dayStart ||
+      (isNextDayPunch &&
+        (!includeNextDayPunches || p.punchAt >= dayAfterNextStart))
+    ) {
+      continue;
+    }
     const punchDeviceId = p.deviceId;
+    const eligibleShifts = isNextDayPunch
+      ? shifts.filter((shift) => {
+          const endHm = parseTime(shift.endTime);
+          const startHm = parseTime(shift.startTime);
+          if (!shift.crossesMidnight || !startHm || !endHm) return false;
+          const punchMinute =
+            p.punchAt.getHours() * 60 + p.punchAt.getMinutes();
+          const endMinute = endHm.h * 60 + endHm.m;
+          return punchMinute <= endMinute;
+        })
+      : shifts;
+    if (isNextDayPunch && eligibleShifts.length === 0) continue;
     const deviceCandidates = punchDeviceId
-      ? shifts.filter((shift) =>
+      ? eligibleShifts.filter((shift) =>
           shiftMatchesDevice(shift.deviceId, punchDeviceId),
         )
       : [];
-    // A punch from a known device belongs only to a shift that allows it.
-    // Manual punches have no device ID and continue to use the time fallback.
-    if (punchDeviceId && deviceCandidates.length === 0) continue;
-    const candidates = deviceCandidates.length > 0 ? deviceCandidates : shifts;
+    // A device match narrows the choice. With none, the punch still counts
+    // (nearest shift): dropping it would become an absence, deducted as 3 days.
+    const candidates =
+      deviceCandidates.length > 0 ? deviceCandidates : eligibleShifts;
     let closestShiftId = candidates[0].id;
     let minDistance = Infinity;
 
@@ -651,17 +866,15 @@ function shiftMatchesDevice(
 
   const configured = shiftDeviceId.toLowerCase();
   const actual = punchDeviceId.toLowerCase();
+  const isFkDevice = actual === "fk" || actual.startsWith("fk_");
+  // ADMS devices report their serial number (digits and/or letters), so any
+  // device that is not an FK alias is a ZK device.
+  const isZkDevice = !isFkDevice;
   if (configured === "both") {
-    return (
-      actual === "fk" ||
-      actual.startsWith("fk_") ||
-      actual === "zkteco" ||
-      actual === "zk" ||
-      actual.startsWith("zk_")
-    );
+    return isFkDevice || isZkDevice;
   }
-  if (configured === "fk") return actual === "fk" || actual.startsWith("fk_");
-  if (configured === "zk")
-    return actual === "zkteco" || actual === "zk" || actual.startsWith("zk_");
+  if (configured === "fk") return isFkDevice;
+  // ADMS identifies ZK devices by serial number instead of a zk_* alias.
+  if (configured === "zk") return isZkDevice;
   return configured === actual;
 }
