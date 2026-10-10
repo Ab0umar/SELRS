@@ -6,6 +6,7 @@ import {
   WifiOff,
   ArrowRightFromLine,
   ArrowLeftFromLine,
+  CircleHelp,
   AlertCircle,
   Cpu,
   Trash2,
@@ -14,27 +15,39 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useIsMobile } from "@/hooks/useMobile";
+import {
+  liveBoardReconnectDelay,
+  mergeLivePunches,
+  shouldReconnectLiveBoard,
+  type LivePunch,
+} from "./livePunches";
 
 const tRPC = trpc as any;
 
 const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
-
-interface LivePunch {
-  empCd: string;
-  timestamp: Date;
-  direction: "in" | "out" | "unknown";
-  deviceId: string;
-}
 
 export default function LiveBoard() {
   const isMobile = useIsMobile();
   const [punchTab, setPunchTab] = useState<"ef10k" | "k40pro">("ef10k");
   const [punches, setPunches] = useState<LivePunch[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
-  const admsStatus = tRPC.attendance.admsStatus.useQuery(undefined, { refetchInterval: 15000 });
-  const fkStatus = tRPC.attendance.fkStatus.useQuery(undefined, { refetchInterval: 15000 });
+  const admsStatus = tRPC.attendance.admsStatus.useQuery(undefined, {
+    refetchInterval: 15000,
+  });
+  const fkStatus = tRPC.attendance.fkStatus.useQuery(undefined, {
+    refetchInterval: 15000,
+  });
   const wsRef = useRef<WebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsState, setWsState] = useState<
+    | "connecting"
+    | "connected"
+    | "reconnecting"
+    | "rejected"
+    | "error"
+    | "paused"
+  >("connecting");
+  const [announcement, setAnnouncement] = useState<string | null>(null);
 
   const punchesQuery = tRPC.attendance.rawPunches.useQuery(
     { limit: 50 },
@@ -44,11 +57,27 @@ export default function LiveBoard() {
   useEffect(() => {
     if (!isMonitoring) return;
 
-    try {
-      const ws = new WebSocket(WS_URL);
+    let disposed = false;
+    let reconnectTimer: number | undefined;
+    let reconnectAttempt = 0;
+
+    const connect = () => {
+      if (disposed) return;
+      setWsState(reconnectAttempt > 0 ? "reconnecting" : "connecting");
+      let ws: WebSocket;
+      try {
+        ws = new WebSocket(WS_URL);
+      } catch (err) {
+        console.error("Failed to create WebSocket:", err);
+        scheduleReconnect();
+        return;
+      }
+      wsRef.current = ws;
 
       ws.onopen = () => {
+        reconnectAttempt = 0;
         setWsConnected(true);
+        setWsState("connected");
         ws.send(JSON.stringify({ type: "subscribe-attendance" }));
       };
 
@@ -62,42 +91,61 @@ export default function LiveBoard() {
               direction: msg.direction,
               deviceId: msg.deviceId || "unknown",
             };
-            setPunches((prev) => [newPunch, ...prev.slice(0, 99)]);
+            setPunches((prev) => mergeLivePunches(prev, [newPunch]));
+            setAnnouncement(`وصلت بصمة جديدة للموظف ${newPunch.empCd}`);
           }
         } catch (err) {
           console.error("Failed to parse WS message:", err);
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        if (wsRef.current === ws) wsRef.current = null;
         setWsConnected(false);
+        setWsState(event.code === 1008 ? "rejected" : "reconnecting");
+        // 1008 is an intentional authorization rejection; retrying cannot fix it.
+        if (shouldReconnectLiveBoard(event.code)) scheduleReconnect();
       };
 
       ws.onerror = (err) => {
         console.error("WebSocket error:", err);
         setWsConnected(false);
+        setWsState("error");
+        ws.close();
       };
+    };
 
-      wsRef.current = ws;
+    const scheduleReconnect = () => {
+      if (disposed || reconnectTimer !== undefined) return;
+      const delay = liveBoardReconnectDelay(reconnectAttempt);
+      reconnectAttempt += 1;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = undefined;
+        connect();
+      }, delay);
+    };
 
-      return () => {
-        const currentWs = wsRef.current;
-        if (currentWs?.readyState === WebSocket.OPEN) {
-          currentWs.send(
-            JSON.stringify({ type: "unsubscribe-attendance" }),
-          );
-        }
-        if (
-          currentWs?.readyState === WebSocket.OPEN ||
-          currentWs?.readyState === WebSocket.CONNECTING
-        ) {
-          currentWs.close();
-        }
-        if (wsRef.current === currentWs) wsRef.current = null;
-      };
-    } catch (err) {
-      console.error("Failed to create WebSocket:", err);
-    }
+    connect();
+    return () => {
+      disposed = true;
+      if (!isMonitoring) setWsState("paused");
+      if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+      const currentWs = wsRef.current;
+      if (currentWs?.readyState === WebSocket.OPEN) {
+        currentWs.send(JSON.stringify({ type: "unsubscribe-attendance" }));
+      }
+      if (
+        currentWs?.readyState === WebSocket.OPEN ||
+        currentWs?.readyState === WebSocket.CONNECTING
+      ) {
+        currentWs.close();
+      }
+      if (wsRef.current === currentWs) wsRef.current = null;
+    };
+  }, [isMonitoring]);
+
+  useEffect(() => {
+    if (!isMonitoring) setWsState("paused");
   }, [isMonitoring]);
 
   useEffect(() => {
@@ -108,82 +156,124 @@ export default function LiveBoard() {
         direction: p.direction,
         deviceId: p.deviceId || "unknown",
       }));
-      setPunches((prev) => [...formatted, ...prev].slice(0, 100));
+      setPunches((prev) => mergeLivePunches(prev, formatted));
     }
   }, [punchesQuery.data]);
 
-  const { data: deviceStatus } = tRPC.attendance.deviceStatus.useQuery(
-    undefined,
-    { refetchInterval: 5000 },
-  );
+  const deviceStatus = tRPC.attendance.deviceStatus.useQuery(undefined, {
+    refetchInterval: 30000,
+  });
 
   const toggleMonitoring = () => {
     setIsMonitoring(!isMonitoring);
   };
 
+  // Remember when the screen was cleared so the next poll doesn't refill it.
+  const [clearedAt, setClearedAt] = useState<number>(0);
   const clearPunches = () => {
+    setClearedAt(Date.now());
     setPunches([]);
+    setAnnouncement("تم مسح شاشة البصمات");
   };
+  // EF10K tab: FK device punches (and manual/unknown ones), after any clear.
+  const fkPunches = punches.filter(
+    (punch) =>
+      punch.timestamp.getTime() > clearedAt &&
+      String(punch.deviceId).toLowerCase().startsWith("fk"),
+  );
+  // ZK/ADMS is push-based: treat it as live if a punch arrived in the last hour.
+  const admsLastPunch = admsStatus.data?.lastPunch
+    ? new Date(admsStatus.data.lastPunch).getTime()
+    : 0;
+  const zkLive = Date.now() - admsLastPunch < 60 * 60 * 1000;
 
   return (
-    <div className="space-y-6" dir="rtl">
-
-      {/* ── Bento Grid Puzzle ── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-
-        {/* Left Column: Live status indicators (col-span-5) */}
+    <div className="attendance-live min-w-0 space-y-6" dir="rtl">
+      <h1 className="border-b border-border pb-4 text-2xl font-semibold text-foreground">
+        الحضور الآن
+      </h1>
+      <div className="attendance-live-grid">
+        {/* Left Column: Live status indicators */}
         <div className="md:col-span-5 space-y-6">
-
-          {/* Bento Box 1: FK live channel (Mint Theme) */}
-          <div className="p-6 bg-card border border-border/60 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
+          {/* FK live channel */}
+          <section className="attendance-panel p-5" aria-label="قناة FK">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">قناة البث المباشر — FK</span>
+                <span className="text-xs text-success-text font-bold block">
+                  قناة البث المباشر: FK
+                </span>
 
                 {wsConnected ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-600/10 text-emerald-700 border border-border/60">
-                    نشط الآن
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-success/10 text-success-text border border-border/60">
+                    متصل الآن
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-600/10 text-rose-700 border border-rose-250">
-                    غير متصل
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive/10 text-destructive-text border border-destructive/30">
+                    {wsState === "connecting"
+                      ? "جارٍ الاتصال"
+                      : wsState === "reconnecting"
+                        ? "جارٍ إعادة الاتصال"
+                        : wsState === "rejected"
+                          ? "الاتصال مرفوض"
+                          : wsState === "paused"
+                            ? "الاستلام متوقف"
+                            : "تعذر الاتصال"}
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-4 py-2">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center relative shrink-0">
-                  <span className={`absolute w-10 h-10 rounded-full border border-emerald-500/20 ${wsConnected ? "animate-ping" : ""}`}></span>
-                  <Wifi className="w-5 h-5 text-emerald-700" />
+                <div className="w-12 h-12 rounded-full bg-success/10 border border-success/30 flex items-center justify-center relative shrink-0">
+                  <Wifi className="w-5 h-5 text-success-text" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-emerald-950 block">حالة بوابة FK (EF10-K)</span>
-                  <span className="text-[10px] text-emerald-700/80 block mt-0.5">تلقي الحركات الفوري من بوابة FK</span>
+                  <span className="text-xs font-bold text-foreground block">
+                    حالة بوابة FK (EF10-K)
+                  </span>
+                  <span className="text-xs text-success-text block mt-0.5">
+                    تلقي الحركات الفوري من بوابة FK
+                  </span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-card border border-border/60 rounded-xl">
-                  <span className="text-[9px] text-muted-foreground block font-bold">إجمالي الحركات</span>
-                  <span className="font-mono font-bold text-emerald-950 text-[11px] block mt-0.5">
-                    {fkStatus.data?.punchCount ?? 0} بصمة
+                <div className="min-w-0 border-s border-border ps-3">
+                  <span className="text-xs text-muted-foreground block font-bold">
+                    إجمالي الحركات
+                  </span>
+                  <span className="font-mono font-bold text-foreground text-xs block mt-0.5">
+                    {fkStatus.isLoading
+                      ? "جارٍ التحميل"
+                      : fkStatus.isError
+                        ? "غير متاح"
+                        : `${fkStatus.data?.punchCount ?? 0} بصمة`}
                   </span>
                 </div>
-                <div className="p-3 bg-card border border-border/60 rounded-xl">
-                  <span className="text-[9px] text-muted-foreground block font-bold">آخر وقت بث</span>
-                  <span className="font-mono font-bold text-emerald-950 text-[11px] block mt-0.5">
-                    {fkStatus.data?.lastPunch ? new Date(fkStatus.data.lastPunch).toLocaleTimeString("ar-EG") : "—"}
+                <div className="min-w-0 border-s border-border ps-3">
+                  <span className="text-xs text-muted-foreground block font-bold">
+                    آخر وقت بث
+                  </span>
+                  <span className="font-mono font-bold text-foreground text-xs block mt-0.5">
+                    {fkStatus.data?.lastPunch
+                      ? new Date(fkStatus.data.lastPunch).toLocaleTimeString(
+                          "ar-EG",
+                        )
+                      : "لا توجد حركة"}
                   </span>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-border/60/50">
+              <div className="flex flex-wrap gap-2 border-t border-border pt-3">
                 <Button
                   size="sm"
                   onClick={toggleMonitoring}
-                  className="h-auto gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-[10px] font-bold text-primary-foreground hover:bg-primary/90"
+                  className="h-auto gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90"
                 >
-                  {isMonitoring ? <Square className="w-3 h-3 text-primary-foreground" /> : <Play className="w-3 h-3 text-primary-foreground" />}
+                  {isMonitoring ? (
+                    <Square className="w-3 h-3 text-primary-foreground" />
+                  ) : (
+                    <Play className="w-3 h-3 text-primary-foreground" />
+                  )}
                   {isMonitoring ? "إيقاف الاستلام" : "تشغيل الاستلام"}
                 </Button>
                 <Button
@@ -191,191 +281,341 @@ export default function LiveBoard() {
                   variant="outline"
                   onClick={clearPunches}
                   disabled={punches.length === 0}
-                  className="border-border/60 hover:bg-emerald-100 text-emerald-950 text-[10px] font-bold py-1.5 px-4 h-auto rounded-lg gap-1.5"
+                  className="border-border/60 hover:bg-muted text-foreground text-xs font-bold py-1.5 px-4 h-auto rounded-lg gap-1.5"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-emerald-700" />
+                  <Trash2 className="w-3.5 h-3.5 text-success-text" />
                   مسح الشاشة
                 </Button>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Bento Box 2: ZK/ADMS live channel (Sky Theme) */}
-          <div className="p-6 bg-card border border-border/60 rounded-3xl flex flex-col justify-between hover:scale-[1.01] transition-transform duration-200">
+          {/* ZK/ADMS live channel */}
+          <section className="attendance-panel p-5" aria-label="قناة ZK">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-sky-850 font-bold uppercase tracking-wider block">قناة البث المباشر — ZK / ADMS</span>
+                <span className="text-xs text-info font-bold block">
+                  قناة البث المباشر: ZK / ADMS
+                </span>
 
-                {wsConnected ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-600/10 text-sky-700 border border-border/60">
+                {zkLive ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-info/10 text-info border border-border/60">
                     نشط الآن
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-600/10 text-rose-700 border border-rose-250">
-                    غير متصل
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive/10 text-destructive-text border border-destructive/30">
+                    {admsStatus.isLoading
+                      ? "جارٍ التحقق"
+                      : admsStatus.isError
+                        ? "تعذر التحقق"
+                        : "لا توجد حركة حديثة"}
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-4 py-2">
-                <div className="w-12 h-12 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center relative shrink-0">
-                  <span className={`absolute w-10 h-10 rounded-full border border-sky-500/20 ${wsConnected ? "animate-ping" : ""}`}></span>
-                  <Wifi className="w-5 h-5 text-sky-700" />
+                <div className="w-12 h-12 rounded-full bg-info/10 border border-info/30 flex items-center justify-center relative shrink-0">
+                  <Wifi className="w-5 h-5 text-info" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-sky-950 block">حالة خوادم ADMS (K40 Pro)</span>
-                  <span className="text-[10px] text-sky-700/80 block mt-0.5">تلقي الحركات الفوري من بوابة ZK</span>
+                  <span className="text-xs font-bold text-foreground block">
+                    حالة خوادم ADMS (K40 Pro)
+                  </span>
+                  <span className="text-xs text-info block mt-0.5">
+                    تلقي الحركات الفوري من بوابة ZK
+                  </span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-card border border-border/60 rounded-xl">
-                  <span className="text-[9px] text-muted-foreground block font-bold">إجمالي الحركات</span>
-                  <span className="font-mono font-bold text-sky-950 text-[11px] block mt-0.5">
-                    {admsStatus.data?.punchCount ?? 0} بصمة
+                <div className="min-w-0 border-s border-border ps-3">
+                  <span className="text-xs text-muted-foreground block font-bold">
+                    إجمالي الحركات
+                  </span>
+                  <span className="font-mono font-bold text-foreground text-xs block mt-0.5">
+                    {admsStatus.isLoading
+                      ? "جارٍ التحميل"
+                      : admsStatus.isError
+                        ? "غير متاح"
+                        : `${admsStatus.data?.punchCount ?? 0} بصمة`}
                   </span>
                 </div>
-                <div className="p-3 bg-card border border-border/60 rounded-xl">
-                  <span className="text-[9px] text-muted-foreground block font-bold">آخر وقت بث</span>
-                  <span className="font-mono font-bold text-sky-950 text-[11px] block mt-0.5">
-                    {admsStatus.data?.lastPunch ? new Date(admsStatus.data.lastPunch).toLocaleTimeString("ar-EG") : "—"}
+                <div className="min-w-0 border-s border-border ps-3">
+                  <span className="text-xs text-muted-foreground block font-bold">
+                    آخر وقت بث
+                  </span>
+                  <span className="font-mono font-bold text-foreground text-xs block mt-0.5">
+                    {admsStatus.data?.lastPunch
+                      ? new Date(admsStatus.data.lastPunch).toLocaleTimeString(
+                          "ar-EG",
+                        )
+                      : "لا توجد حركة"}
                   </span>
                 </div>
               </div>
             </div>
-          </div>
-
+          </section>
         </div>
 
-        {/* Right Column: Rolling Punches Stream console (col-span-7) */}
-        <div className="md:col-span-7 p-6 bg-card border border-border/60 rounded-3xl space-y-4 hover:scale-[1.01] transition-transform duration-200">
-          <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">شاشة البصمات المستلمة</h3>
-            <div className="flex gap-1 bg-muted p-0.5 border border-border/60 rounded-lg">
+        {/* Right Column: Rolling Punches Stream console */}
+        <div className="attendance-panel min-w-0 space-y-4 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+            <h3 className="text-xs font-bold text-foreground">
+              شاشة البصمات المستلمة
+            </h3>
+            <div
+              role="tablist"
+              aria-label="مصادر البصمات"
+              className="flex gap-1 bg-muted p-0.5 border border-border/60 rounded-lg"
+            >
               {(["ef10k", "k40pro"] as const).map((t) => (
-                <button
+                <Button variant="bare"
                   key={t}
+                  type="button"
+                  role="tab"
+                  aria-selected={punchTab === t}
+                  aria-controls={`live-punch-panel-${t}`}
+                  tabIndex={punchTab === t ? 0 : -1}
                   onClick={() => setPunchTab(t)}
-                  className={`rounded-md px-3 py-1 text-[10px] font-bold transition-all ${
-                    punchTab === t ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  className={`rounded-md px-3 py-1 text-xs font-bold transition-colors ${
+                    punchTab === t
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t === "ef10k" ? "بوابة EF10K" : "بوابة K40 Pro"}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
 
-          <div className="pt-2">
-            {punchTab === "ef10k" && (
-              punches.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 py-10 text-center text-muted-foreground text-xs">
-                  <p>لا توجد حركات حضور مستلمة بعد</p>
+          <div
+            id={`live-punch-panel-${punchTab}`}
+            role="tabpanel"
+            aria-label={
+              punchTab === "ef10k" ? "بصمات بوابة EF10K" : "بصمات بوابة K40 Pro"
+            }
+            className="min-w-0 pt-2"
+          >
+            {punchTab === "ef10k" &&
+              (fkPunches.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border/60 bg-muted/40 py-10 text-center text-muted-foreground text-xs">
+                  <p>
+                    {punchesQuery.isLoading
+                      ? "جاري تحميل الحركات"
+                      : punchesQuery.isError
+                        ? "تعذر تحميل الحركات. حاول التحديث بعد قليل."
+                        : "لا توجد حركات حضور مستلمة بعد"}
+                  </p>
                 </div>
               ) : (
-                <div className="max-h-[380px] space-y-2.5 overflow-y-auto pr-1">
-                  {punches.map((punch, idx) => (
+                <div className="max-h-[380px] space-y-2.5 overflow-y-auto ps-1">
+                  {fkPunches.map((punch, idx) => (
                     <div
                       key={`${punch.empCd}-${punch.timestamp.getTime()}-${idx}`}
-                      className="flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-muted/30 text-xs"
+                      className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/30 text-xs"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-bold">
-                          {punch.direction === "in" ? <ArrowRightFromLine className="w-4 h-4 text-emerald-600" /> : <ArrowLeftFromLine className="w-4 h-4 text-teal-600" />}
+                        <div className="w-8 h-8 rounded-full bg-success/10 text-success-text flex items-center justify-center font-bold">
+                          {punch.direction === "in" ? (
+                            <ArrowRightFromLine className="w-4 h-4 text-success-text" />
+                          ) : punch.direction === "out" ? (
+                            <ArrowLeftFromLine className="w-4 h-4 text-success-text" />
+                          ) : (
+                            <CircleHelp className="w-4 h-4 text-muted-foreground" />
+                          )}
                         </div>
                         <div>
-                          <span className="font-mono font-bold text-foreground block">ID: {punch.empCd}</span>
-                          <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">{punch.timestamp.toLocaleTimeString("ar-EG")}</span>
+                          <span className="font-mono font-bold text-foreground block">
+                            ID: {punch.empCd}
+                          </span>
+                          <span className="text-xs text-muted-foreground block mt-0.5 font-mono">
+                            {punch.timestamp.toLocaleTimeString("ar-EG")}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-left">
-                        <span className="inline-flex px-2 py-0.5 rounded bg-muted text-foreground text-[9px] font-bold">
-                          {punch.direction === "in" ? "دخول" : punch.direction === "out" ? "خروج" : "غير معروف"}
+                      <div className="text-end">
+                        <span className="inline-flex px-2 py-0.5 rounded bg-muted text-foreground text-xs font-bold">
+                          {punch.direction === "in"
+                            ? "دخول"
+                            : punch.direction === "out"
+                              ? "خروج"
+                              : "غير معروف"}
                         </span>
-                        <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">{punch.deviceId}</span>
+                        <span className="text-xs text-muted-foreground block mt-0.5 font-mono">
+                          {punch.deviceId}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
-              )
-            )}
+              ))}
 
-            {punchTab === "k40pro" && (() => {
-              const recent = admsStatus.data?.recentPunches ?? [];
-              if (!recent.length) return (
-                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 py-10 text-center text-muted-foreground text-xs">
-                  <p>لا توجد بصمات K40 Pro مسجلة</p>
-                </div>
-              );
-              if (isMobile) {
+            {punchTab === "k40pro" &&
+              (() => {
+                const recent = punches
+                  .filter(
+                    (punch) =>
+                      punch.timestamp.getTime() > clearedAt &&
+                      !String(punch.deviceId).toLowerCase().startsWith("fk") &&
+                      !["unknown", "manual"].includes(
+                        String(punch.deviceId).toLowerCase(),
+                      ),
+                  )
+                  .map((punch) => ({ ...punch, punchAt: punch.timestamp }));
+                if (!recent.length)
+                  return (
+                    <div className="rounded-xl border border-dashed border-border/60 bg-muted/40 py-10 text-center text-muted-foreground text-xs">
+                      <p>
+                        {punchesQuery.isLoading
+                          ? "جاري تحميل الحركات"
+                          : punchesQuery.isError
+                            ? "تعذر تحميل الحركات. حاول التحديث بعد قليل."
+                            : "لا توجد بصمات K40 Pro مسجلة"}
+                      </p>
+                    </div>
+                  );
+                if (isMobile) {
+                  return (
+                    <div className="max-h-[380px] space-y-2.5 overflow-y-auto ps-1">
+                      {recent.map((p: any, i: number) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/30 text-xs"
+                        >
+                          <div>
+                            <span className="font-mono font-bold text-foreground block">
+                              ID: {p.empCd}
+                            </span>
+                            <span className="text-xs text-muted-foreground block mt-0.5 font-mono">
+                              {new Date(p.punchAt).toLocaleString("ar-EG", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </span>
+                          </div>
+                          <div className="text-end">
+                            <span
+                              className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold ${p.direction === "in" ? "bg-success/10  text-success-text " : "bg-success/10  text-success-text "}`}
+                            >
+                              {p.direction === "in"
+                                ? "دخول"
+                                : p.direction === "out"
+                                  ? "خروج"
+                                  : "غير محدد"}
+                            </span>
+                            <span className="text-xs text-muted-foreground block mt-0.5 font-mono">
+                              {p.deviceId}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
                 return (
-                  <div className="max-h-[380px] space-y-2.5 overflow-y-auto pr-1">
-                    {recent.map((p: any, i: number) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-3 rounded-2xl border border-border/60 bg-muted/30 text-xs"
-                      >
-                        <div>
-                          <span className="font-mono font-bold text-foreground block">ID: {p.empCd}</span>
-                          <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">
-                            {new Date(p.punchAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}
-                          </span>
-                        </div>
-                        <div className="text-left">
-                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${p.direction === "in" ? "bg-emerald-50 text-emerald-700" : "bg-teal-50 text-teal-700"}`}>
-                            {p.direction === "in" ? "دخول" : "خروج"}
-                          </span>
-                          <span className="text-[9px] text-muted-foreground block mt-0.5 font-mono">{p.deviceId}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div role="region" aria-label="جدول بيانات" tabIndex={0} className="border border-border/60 rounded-xl max-h-[380px] overflow-auto">
+                    <table
+                      aria-label="البصمات المستلمة"
+                      className="w-full text-start text-xs"
+                    >
+                      <thead className="bg-muted border-b border-border/60 text-muted-foreground">
+                        <tr>
+                          <th scope="col" className="px-4 py-2.5 font-bold">
+                            الموظف
+                          </th>
+                          <th scope="col" className="px-4 py-2.5 font-bold">
+                            وقت الحضور
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-4 py-2.5 text-center font-bold"
+                          >
+                            الحالة
+                          </th>
+                          <th scope="col" className="px-4 py-2.5 font-bold">
+                            الجهاز
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60 text-foreground font-medium">
+                        {recent.map((p: any, i: number) => (
+                          <tr key={i} className="hover:bg-muted/30">
+                            <td className="px-4 py-2.5 font-mono">{p.empCd}</td>
+                            <td className="px-4 py-2.5 font-mono">
+                              {new Date(p.punchAt).toLocaleString("ar-EG", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </td>
+                            <td className="px-4 py-2.5 text-center">
+                              <span
+                                className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold ${p.direction === "in" ? "bg-success/10  text-success-text " : "bg-success/10  text-success-text "}`}
+                              >
+                                {p.direction === "in"
+                                  ? "دخول"
+                                  : p.direction === "out"
+                                    ? "خروج"
+                                    : "غير محدد"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 font-mono text-muted-foreground">
+                              {p.deviceId}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 );
-              }
-              return (
-                <div className="border border-border/60 rounded-2xl overflow-hidden max-h-[380px] overflow-y-auto">
-                  <table className="w-full text-right text-xs">
-                    <thead className="bg-muted border-b border-border/60 text-muted-foreground">
-                      <tr>
-                        <th className="px-4 py-2.5 font-bold">الموظف</th>
-                        <th className="px-4 py-2.5 font-bold">وقت الحضور</th>
-                        <th className="px-4 py-2.5 text-center font-bold">الحالة</th>
-                        <th className="px-4 py-2.5 font-bold">الجهاز</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60 text-foreground font-medium">
-                      {recent.map((p: any, i: number) => (
-                        <tr key={i} className="hover:bg-muted/30">
-                          <td className="px-4 py-2.5 font-mono">{p.empCd}</td>
-                          <td className="px-4 py-2.5 font-mono">{new Date(p.punchAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}</td>
-                          <td className="px-4 py-2.5 text-center">
-                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${p.direction === "in" ? "bg-emerald-50 text-emerald-700" : "bg-teal-50 text-teal-700"}`}>
-                              {p.direction === "in" ? "دخول" : "خروج"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 font-mono text-muted-foreground">{p.deviceId}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })()}
+              })()}
           </div>
         </div>
-
       </div>
 
-      {deviceStatus?.connectionError && (
+      {announcement && (
+        <div role="status" aria-live="polite" className="sr-only">
+          {announcement}
+        </div>
+      )}
+
+      {(deviceStatus.data?.connectionError ||
+        deviceStatus.isError ||
+        punchesQuery.isError ||
+        fkStatus.isError ||
+        admsStatus.isError) && (
         <div className="pt-2">
-          <Alert variant="destructive" className="border-rose-200 bg-rose-50 text-rose-800 rounded-2xl shadow-xs">
-            <AlertCircle className="h-4 w-4 text-rose-600" />
-            <AlertDescription className="text-xs font-bold">{deviceStatus.connectionError}</AlertDescription>
+          <Alert
+            variant="destructive"
+            className="rounded-md border border-destructive/30 bg-destructive/10 text-destructive-text"
+          >
+            <AlertCircle className="h-4 w-4 text-destructive-text" />
+            <AlertDescription className="text-xs font-bold">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>
+                  {deviceStatus.data?.connectionError ??
+                    "تعذر تحميل بعض بيانات البث."}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void punchesQuery.refetch();
+                    void fkStatus.refetch();
+                    void admsStatus.refetch();
+                    void deviceStatus.refetch();
+                  }}
+                >
+                  إعادة المحاولة
+                </Button>
+              </div>
+            </AlertDescription>
           </Alert>
         </div>
       )}
 
-      <div className="text-[10px] text-muted-foreground font-semibold pr-2">
+      <div className="text-xs text-muted-foreground font-semibold ps-2">
         * يتم تحديث سجل البث تلقائياً كل 30 ثانية أو عبر WebSocket بشكل لحظي.
       </div>
     </div>

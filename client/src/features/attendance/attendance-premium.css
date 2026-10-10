@@ -1,0 +1,295 @@
+@media screen {
+  html:not(.dark)
+    .selrs-mobile-brand-canvas:has([data-operational-module="attendance"]) {
+    --background: #ffffff;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --muted: #ffffff;
+    --mobile-content-surface: #ffffff;
+    --mobile-brand-gradient: #ffffff;
+    background: #ffffff !important;
+  }
+  html:not(.dark)
+    .selrs-mobile-brand-canvas:has([data-operational-module="attendance"])
+    .attendance-studio {
+    --attendance-surface: #ffffff;
+  }
+  html:not(.dark)
+    .selrs-mobile-brand-canvas:has([data-operational-module="attendance"])
+    :is(
+      [data-app-scroll-container],
+      .selrs-app-content,
+      [data-operational-module="attendance"],
+      #module-content
+    ) {
+    background: #ffffff !important;
+  }
+  .attendance-studio[data-operational-module="attendance"]:has(
+      .attendance-home-focused
+    ) {
+    --attendance-canvas: #ffffff;
+  }
+  .attendance-studio[data-operational-module="attendance"]:has(
+      .attendance-home-focused
+    )
+    #module-content {
+    border: 0;
+    background: #ffffff;
+  }
+  .dark
+    .attendance-studio[data-operational-module="attendance"]:has(
+      .attendance-home-focused
+    ) {
+    --attendance-canvas: #11151b;
+  }
+  .dark
+    .attendance-studio[data-operational-module="attendance"]:has(
+      .attendance-home-focused
+    )
+    #module-content {
+    background: var(--attendance-surface);
+  }
+  .attendance-studio .attendance-home-focused {
+    --day-ink: #233a39;
+    --day-muted: #526765;
+    --day-surface: #f7f7f7;
+    --day-tray: #ececec;
+    --day-accent: #246354;
+    --day-line: #e5e5e5;
+    font-family: var(--font-arabic);
+    color: var(--day-ink);
+    padding-block: 16px !important;
+  }
+  html:not(.dark)
+    .selrs-mobile-brand-canvas
+    .selrs-app-content
+    .attendance-home-focused
+    .attendance-today-register {
+    background: var(--day-surface) !important;
+  }
+  .dark .attendance-studio .attendance-home-focused {
+    --day-ink: #edf4f1;
+    --day-muted: #b2c4bf;
+    --day-surface: #202d2a;
+    --day-tray: #15231f;
+    --day-accent: #a4d9c5;
+    --day-line: #3d5048;
+  }
+  .attendance-studio .attendance-home-focused .attendance-day-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .attendance-studio #module-content .attendance-day-heading h1 {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    color: var(--day-ink);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1.4;
+    font-weight: 800;
+  }
+  .attendance-day-caption {
+    margin-top: 8px;
+    color: var(--day-muted);
+    font-size: 0.875rem;
+  }
+  .attendance-home-focused .attendance-home-actions {
+    position: static;
+    gap: 10px;
+    padding: 6px;
+    border-radius: 999px;
+    background: var(--day-tray);
+  }
+  .attendance-home-focused .attendance-home-actions button {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--day-surface);
+    color: var(--day-ink);
+    transition: background-color 150ms ease;
+  }
+  .attendance-home-focused .attendance-home-actions button:hover {
+    background: var(--day-line);
+  }
+  .attendance-home-focused svg {
+    stroke-width: 1.25;
+  }
+  .attendance-home-focused .attendance-home-ledger {
+    overflow: visible;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    background: transparent;
+    color: var(--day-ink);
+  }
+  .attendance-home-focused .attendance-home-pane {
+    padding: 6px;
+    border: 0;
+    border-radius: 32px;
+    background: var(--day-tray);
+    box-shadow: 0 20px 60px -36px rgb(25 57 46 / 0.25);
+  }
+  .attendance-home-pane-core {
+    padding: 24px;
+    border-radius: 26px;
+    background: var(--day-surface);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+  }
+  .attendance-home-focused .attendance-home-eyebrow {
+    color: var(--day-muted);
+    opacity: 1;
+    font-size: 0.875rem;
+  }
+  .attendance-home-focused .attendance-home-net {
+    margin-block: 16px 24px;
+    font-size: clamp(2rem, 5vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .attendance-home-focused .attendance-home-entries {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 16px;
+    margin: 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--day-line);
+  }
+  .attendance-home-focused .attendance-home-entries > div {
+    padding: 0;
+    border: 0;
+  }
+  .attendance-home-focused .attendance-home-entries dt {
+    color: var(--day-muted);
+    opacity: 1;
+    font-weight: 500;
+    line-height: 1.6;
+  }
+  .attendance-home-focused .attendance-home-entries dd {
+    margin-top: 6px;
+    font-size: 1.375rem;
+    overflow-wrap: anywhere;
+  }
+  .attendance-studio .attendance-home-focused .attendance-home-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    margin-top: 36px;
+    align-items: start;
+  }
+  .attendance-register-shell,
+  .attendance-studio .attendance-home-focused .attendance-home-device {
+    padding: 6px;
+    background: var(--day-tray);
+    border: 0;
+    border-radius: 32px;
+  }
+  .attendance-home-focused .attendance-today-register,
+  .attendance-device-core {
+    background: var(--day-surface);
+    border: 0;
+    border-radius: 26px;
+    color: var(--day-ink);
+  }
+  .attendance-device-core {
+    padding: 24px;
+    width: 100%;
+  }
+  .attendance-device-core > h2 {
+    margin-bottom: 24px;
+    color: var(--day-muted);
+  }
+  .attendance-device-core .text-muted-foreground {
+    color: var(--day-muted);
+  }
+  .attendance-device-core .text-foreground {
+    color: var(--day-ink);
+  }
+  .attendance-studio .attendance-home-focused .attendance-home-columns > aside {
+    padding: 0;
+    border: 0;
+  }
+  .attendance-home-focused .attendance-panel-heading {
+    padding: 20px 24px;
+    border-color: var(--day-line);
+  }
+  .attendance-home-focused .attendance-panel-heading h2 {
+    font-size: 1.125rem;
+  }
+  .attendance-home-focused .attendance-panel-heading a {
+    color: var(--day-accent) !important;
+  }
+  .attendance-studio .attendance-home-focused .attendance-register-filters {
+    padding: 20px 24px;
+    border-color: var(--day-line);
+  }
+  .attendance-home-focused .attendance-register-search,
+  .attendance-home-focused .attendance-register-filters select {
+    border-color: var(--day-muted) !important;
+    border-radius: 12px;
+    background: var(--day-surface);
+    color: var(--day-ink);
+  }
+  .attendance-home-focused .attendance-register-search input {
+    color: var(--day-ink);
+  }
+  .attendance-home-focused .attendance-register-search input::placeholder {
+    color: var(--day-muted);
+  }
+  .attendance-studio
+    #module-content
+    .attendance-home-focused
+    .attendance-register-table
+    th {
+    background: var(--day-tray);
+    color: var(--day-muted);
+    font-weight: 600;
+  }
+  .attendance-home-focused .attendance-register-table tbody tr + tr,
+  .attendance-home-focused .attendance-register-footer {
+    border-color: var(--day-line);
+  }
+  .attendance-home-focused .attendance-register-person small,
+  .attendance-home-focused .attendance-register-footer,
+  .attendance-home-focused .attendance-home-unassigned,
+  .attendance-home-focused .attendance-today-register > p {
+    color: var(--day-muted);
+  }
+  .attendance-studio
+    .attendance-home-focused
+    :is(button, a, input, select):focus-visible {
+    outline: 2px solid var(--day-accent);
+    outline-offset: 3px;
+  }
+}
+  @media screen and (min-width: 768px) {
+    .attendance-home-focused .attendance-home-ledger {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+    .attendance-home-pane-core {
+      padding: 32px;
+    }
+  }
+  @media screen and (min-width: 1200px) {
+    .attendance-studio .attendance-home-focused {
+      padding-block: 24px !important;
+    }
+    .attendance-studio .attendance-home-focused .attendance-home-columns {
+      grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr);
+    }
+    .attendance-home-focused .attendance-home-ledger {
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    }
+  }
+  @media screen and (prefers-reduced-motion: reduce) {
+    .attendance-home-focused .attendance-home-actions button {
+      transition: none;
+    }
+  }

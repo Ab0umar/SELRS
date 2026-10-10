@@ -78,14 +78,11 @@ export class ReportSchedulerService {
     }
   }
 
-  // Export report to CSV
   async exportToCSV(report: any, headers: string[]): Promise<string> {
     const lines: string[] = [];
 
-    // Add headers
     lines.push(headers.map((h) => `"${h}"`).join(","));
 
-    // Add data rows
     if (Array.isArray(report)) {
       for (const row of report) {
         const values = headers.map((h) => {

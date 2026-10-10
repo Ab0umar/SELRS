@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +16,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
+
+import { askConfirm } from "./askConfirm";
+const localDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 // weekdayMask: bit 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
 const DAYS_SH = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
@@ -36,14 +40,13 @@ function maskToDays(mask: number): Set<number> {
 }
 
 function maskLabel(mask: number): string {
-  if (!mask) return "—";
+  if (!mask) return "-";
   return Array.from(maskToDays(mask))
     .sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
     .map((d) => DAYS_SH[d])
     .join(" ");
 }
 
-// ── Assignment + Working Days Panel ─────────────────────────────────────────
 function AssignmentPanel({
   empCd,
   empName,
@@ -91,16 +94,16 @@ function AssignmentPanel({
       onSaved();
       toast.success("تم حفظ توزيع الورديات");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حفظ توزيع الورديات: " + e.message),
   });
 
   const addMut = (trpc as any).attendance.addShiftAssignment.useMutation({
     onSuccess: () => {
       onSaved();
       setAddShiftId(0);
-      toast.success("تم إضافة الوردية");
+      toast.success("تمت إضافة الوردية");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر إضافة التعيين: " + e.message),
   });
 
   const deleteMut = (trpc as any).attendance.deleteAssignment.useMutation({
@@ -108,10 +111,22 @@ function AssignmentPanel({
       onSaved();
       toast.success("تم حذف الوردية");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حذف التعيين: " + e.message),
   });
 
-  function save() {
+  async function save() {
+    // The day map holds one shift per weekday; saving replaces all open
+    // assignments, so a day that currently has two shifts would lose one.
+    const multiShiftDay = [0, 1, 2, 3, 4, 5, 6].some(
+      (bit) => assignments.filter((a) => (a.weekdayMask >> bit) & 1).length > 1,
+    );
+    if (
+      multiShiftDay &&
+      !(await askConfirm(
+        "هذا الموظف لديه أكثر من وردية في نفس اليوم. الحفظ سيبقي وردية واحدة لكل يوم ويحذف الإضافية. متابعة؟",
+      ))
+    )
+      return;
     const payload = Object.entries(dayShifts)
       .filter(([, shiftId]) => shiftId > 0)
       .map(([dow, shiftId]) => ({ dayOfWeek: parseInt(dow), shiftId }));
@@ -126,7 +141,7 @@ function AssignmentPanel({
     addMut.mutate({
       empCd,
       shiftId: addShiftId,
-      effectiveFrom: new Date().toISOString().split("T")[0],
+      effectiveFrom: localDateKey(new Date()),
       weekdayMask: addMask,
     });
   }
@@ -137,15 +152,15 @@ function AssignmentPanel({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">
-              توزيع الوردية — <span className="text-primary">{empName}</span>
+              توزيع الوردية: <span className="text-primary">{empName}</span>
             </p>
-            <button
+            <Button variant="bare"
               type="button"
               onClick={onClose}
               className="rounded-full p-1 text-muted-foreground hover:bg-muted/60 transition-colors"
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
@@ -165,7 +180,7 @@ function AssignmentPanel({
                       return next;
                     });
                   }}
-                  className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                  className="flex-1 bg-background text-sm rounded-md border border-border px-2 py-1.5"
                 >
                   <option value={0}>إجازة</option>
                   {shifts.map((s: any) => (
@@ -190,16 +205,17 @@ function AssignmentPanel({
                   className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-3 py-1.5 text-xs"
                 >
                   <span className="font-medium">
-                    {a.shiftName} — {maskLabel(a.weekdayMask)}
+                    {a.shiftName}: {maskLabel(a.weekdayMask)}
                   </span>
-                  <button
+                  <Button variant="bare"
+                    aria-label="حذف"
                     type="button"
                     onClick={() => deleteMut.mutate({ id: a.id })}
                     disabled={deleteMut.isPending}
                     className="text-destructive hover:text-destructive/80 transition-colors"
                   >
                     <Trash2 size={13} />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -214,7 +230,7 @@ function AssignmentPanel({
               <select
                 value={addShiftId}
                 onChange={(e) => setAddShiftId(parseInt(e.target.value))}
-                className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                className="bg-background text-sm rounded-md border border-border px-2 py-1.5"
               >
                 <option value={0}>-- اختر الوردية --</option>
                 {shifts.map((s: any) => (
@@ -225,43 +241,43 @@ function AssignmentPanel({
               </select>
               <div className="flex flex-wrap gap-1">
                 {WORKING_DAYS.map(({ dow }) => (
-                  <button
+                  <Button variant="bare"
                     key={dow}
                     type="button"
                     onClick={() => setAddMask((m) => m ^ (1 << dow))}
-                    className={`rounded px-2 py-1 text-[11px] font-semibold border transition-colors ${(addMask >> dow) & 1 ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+                    className={`rounded px-2 py-1 text-xs font-semibold border transition-colors ${(addMask >> dow) & 1 ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
                   >
                     {DAYS_SH[dow]}
-                  </button>
+                  </Button>
                 ))}
               </div>
-              <button
+              <Button variant="bare"
                 type="button"
                 onClick={addExtra}
                 disabled={addMut.isPending}
                 className="rounded-lg border border-success bg-success/10 px-4 py-1.5 text-xs font-semibold text-success hover:bg-success/20 disabled:opacity-50 transition-colors"
               >
                 إضافة
-              </button>
+              </Button>
             </div>
           </div>
 
           <div className="flex gap-2 pt-1 border-t border-border/30">
-            <button
+            <Button variant="bare"
               type="button"
               onClick={save}
               disabled={saveMut.isPending}
               className="rounded-lg border border-primary bg-primary px-5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              {saveMut.isPending ? "جاري الحفظ…" : "حفظ التوزيع"}
-            </button>
-            <button
+              {saveMut.isPending ? "جاري الحفظ" : "حفظ التوزيع"}
+            </Button>
+            <Button variant="bare"
               type="button"
               onClick={onClose}
               className="rounded-lg border border-border bg-background px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors"
             >
               إغلاق
-            </button>
+            </Button>
           </div>
         </div>
       </td>
@@ -269,7 +285,6 @@ function AssignmentPanel({
   );
 }
 
-// ── Temporary Shift Change Panel ────────────────────────────────────────────
 function TempSwapPanel({
   empCd,
   empName,
@@ -287,7 +302,7 @@ function TempSwapPanel({
   onSaved: () => void;
   onClose: () => void;
 }) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateKey(new Date());
   const [newShiftId, setNewShiftId] = useState<number>(0);
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
@@ -297,7 +312,7 @@ function TempSwapPanel({
       onSaved();
       toast.success("تم تبديل الوردية مؤقتاً");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر تبديل الوردية مؤقتاً: " + e.message),
   });
 
   function save() {
@@ -322,26 +337,25 @@ function TempSwapPanel({
     <tr className="border-b border-secondary/20 bg-secondary/5">
       <td colSpan={8} className="px-5 py-4" dir="rtl">
         <div className="space-y-4">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ArrowLeftRight size={14} className="text-primary" />
               <p className="text-sm font-semibold text-foreground">
-                تبديل مؤقت — <span className="text-primary">{empName}</span>
+                تبديل مؤقت: <span className="text-primary">{empName}</span>
               </p>
             </div>
-            <button
+            <Button variant="bare"
               type="button"
               onClick={onClose}
               className="rounded-full p-1 text-muted-foreground hover:bg-muted/60 transition-colors"
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
 
           {!assignment ? (
             <p className="text-sm text-destructive">
-              ⚠️ لا توجد وردية أساسية — عيّن وردية أولاً من زر ⚙
+              لا توجد وردية أساسية. عيّن وردية أولاً من زر ⚙
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -351,23 +365,24 @@ function TempSwapPanel({
                   الوردية الجديدة (مؤقتاً)
                 </label>
                 <select
+                  aria-label="الوردية الجديدة (مؤقتاً)"
                   value={newShiftId || ""}
                   onChange={(e) =>
                     setNewShiftId(e.target.value ? parseInt(e.target.value) : 0)
                   }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="">— اختر وردية —</option>
+                  <option value="">اختر وردية</option>
                   {otherShifts.map((s: any) => (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.startTime} – {s.endTime})
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   الوردية الحالية:{" "}
                   <span className="font-semibold">
-                    {currentShiftName ?? "—"}
+                    {currentShiftName ?? "-"}
                   </span>
                 </p>
               </div>
@@ -383,7 +398,7 @@ function TempSwapPanel({
                     setDateFrom(e.target.value);
                     if (dateTo < e.target.value) setDateTo(e.target.value);
                   }}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
+                  className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-lg border border-border px-3 py-2"
                 />
               </div>
 
@@ -396,7 +411,7 @@ function TempSwapPanel({
                   value={dateTo}
                   min={dateFrom}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full bg-background text-sm rounded-lg border border-border px-3 py-2"
                 />
               </div>
             </div>
@@ -404,21 +419,21 @@ function TempSwapPanel({
 
           {assignment && (
             <div className="flex gap-2 pt-1 border-t border-border/30">
-              <button
+              <Button variant="bare"
                 type="button"
                 onClick={save}
                 disabled={tempMut.isPending}
                 className="rounded-lg border border-secondary bg-secondary px-5 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-colors"
               >
-                {tempMut.isPending ? "جاري التبديل…" : "تأكيد التبديل"}
-              </button>
-              <button
+                {tempMut.isPending ? "جاري التبديل" : "تأكيد التبديل"}
+              </Button>
+              <Button variant="bare"
                 type="button"
                 onClick={onClose}
                 className="rounded-lg border border-border bg-background px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors"
               >
                 إلغاء
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -427,31 +442,30 @@ function TempSwapPanel({
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
 export default function EmployeesList() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompact();
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<"center" | "clinic">("center");
+  const [activeTab, setActiveTab] = useState<"center" | "clinic" | "other">(
+    "center",
+  );
   const [editingCd, setEditingCd] = useState<string | null>(null);
   const [panelCd, setPanelCd] = useState<string | null>(null);
   const [swapCd, setSwapCd] = useState<string | null>(null);
   const [terminationCd, setTerminationCd] = useState<string | null>(null);
-  const [terminationDate, setTerminationDate] = useState(
-    () => new Date().toISOString().split("T")[0],
+  const [terminationDate, setTerminationDate] = useState(() =>
+    localDateKey(new Date()),
   );
   const [editRow, setEditRow] = useState<{
     fullName: string;
     department: string;
     salaryType: string;
     jobTitle: string;
-    attendanceCommissionRate: string;
     active: boolean;
   }>({
     fullName: "",
     department: "",
     salaryType: "",
     jobTitle: "",
-    attendanceCommissionRate: "",
     active: true,
   });
 
@@ -467,14 +481,14 @@ export default function EmployeesList() {
       employeesQuery.refetch();
       toast.success("تم التعديل");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حفظ بيانات الموظف: " + e.message),
   });
   const deleteMutation = trpc.attendance.deleteEmployee.useMutation({
     onSuccess: () => {
       employeesQuery.refetch();
-      toast.success("تم الحذف");
+      toast.success("تم إيقاف الموظف (ترك العمل)");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر حذف الموظف: " + e.message),
   });
   const terminateMutation = trpc.attendance.terminateEmployee.useMutation({
     onSuccess: () => {
@@ -482,24 +496,24 @@ export default function EmployeesList() {
       employeesQuery.refetch();
       toast.success("تم تسجيل ترك العمل وإخفاء الموظف من النظام");
     },
-    onError: (e: any) => toast.error("خطأ: " + e.message),
+    onError: (e: any) => toast.error("تعذر تسجيل ترك العمل: " + e.message),
   });
 
   const startTermination = (empCd: string) => {
     setTerminationCd(empCd);
-    setTerminationDate(new Date().toISOString().split("T")[0]);
+    setTerminationDate(localDateKey(new Date()));
     setEditingCd(null);
     setPanelCd(null);
     setSwapCd(null);
   };
 
-  const confirmTermination = (emp: any) => {
+  const confirmTermination = async (emp: any) => {
     if (!terminationDate) {
       toast.error("اختر تاريخ ترك العمل");
       return;
     }
     if (
-      confirm(
+      await askConfirm(
         `تأكيد أن ${emp.fullName} ترك العمل بتاريخ ${terminationDate}؟ سيختفي من جميع القوائم والاختيارات مع الاحتفاظ بسجلاته القديمة.`,
       )
     ) {
@@ -516,10 +530,6 @@ export default function EmployeesList() {
       department: emp.department ?? "",
       salaryType: emp.salaryType ?? "",
       jobTitle: emp.jobTitle ?? "",
-      attendanceCommissionRate:
-        emp.attendanceCommissionRate != null
-          ? String(Math.round(Number(emp.attendanceCommissionRate) * 100))
-          : "",
       active: emp.active,
     });
   };
@@ -532,40 +542,87 @@ export default function EmployeesList() {
     string,
     { id: number; shiftId: number; shiftName: string; weekdayMask: number }[]
   >();
-  for (const a of allAssignments) {
+  const latestBranchWeekday = new Map<string, string>();
+  const shiftBranches = new Map(
+    allShifts.map((shift) => [shift.id, shift.branch ?? "__unassigned"]),
+  );
+  const orderedAssignments = [...allAssignments].sort((left, right) =>
+    String(right.effectiveFrom).localeCompare(String(left.effectiveFrom)),
+  );
+  for (const a of orderedAssignments) {
+    // Only current schedules describe the employee's working days.
+    if (
+      a.isExpired ||
+      String(a.effectiveFrom).slice(0, 10) > localDateKey(new Date())
+    )
+      continue;
+    let visibleMask = 0;
+    for (let weekday = 0; weekday < 7; weekday++) {
+      if (!((a.weekdayMask ?? 127) & (1 << weekday))) continue;
+      const branchDay = `${a.empCd}|${shiftBranches.get(a.shiftId) ?? "__unassigned"}|${weekday}`;
+      const newest = latestBranchWeekday.get(branchDay);
+      if (newest && newest > a.effectiveFrom) continue;
+      latestBranchWeekday.set(branchDay, a.effectiveFrom);
+      visibleMask |= 1 << weekday;
+    }
+    if (!visibleMask) continue;
     if (!assignmentsMap.has(a.empCd)) assignmentsMap.set(a.empCd, []);
     assignmentsMap.get(a.empCd)!.push({
       id: a.id,
       shiftId: a.shiftId,
       shiftName: a.shiftName,
-      weekdayMask: a.weekdayMask ?? 127,
+      weekdayMask: visibleMask,
     });
   }
 
   const centerEmployees = allEmployees.filter(
     (e: any) =>
       e.department === "مركز" ||
+      e.department === "المركز" ||
       e.department === "center" ||
       e.department === "المركز والعيادة",
   );
   const clinicEmployees = allEmployees.filter(
     (e: any) =>
       e.department === "عيادة" ||
+      e.department === "العيادة" ||
       e.department === "clinic" ||
       e.department === "المركز والعيادة",
   );
+  const knownDepartments = new Set([
+    "مركز",
+    "المركز",
+    "center",
+    "عيادة",
+    "العيادة",
+    "clinic",
+    "المركز والعيادة",
+  ]);
+  const otherEmployees = allEmployees.filter(
+    (employee: any) => !knownDepartments.has(employee.department ?? ""),
+  );
   const displayEmployees =
-    activeTab === "center" ? centerEmployees : clinicEmployees;
+    activeTab === "center"
+      ? centerEmployees
+      : activeTab === "clinic"
+        ? clinicEmployees
+        : otherEmployees;
   const filteredEmployees = displayEmployees.filter(
     (e: any) =>
       e.empCd.toLowerCase().includes(search.toLowerCase()) ||
       e.fullName.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const EmployeeTable = ({ employees, isLoading, isError }: any) => {
+  const renderEmployeeTable = ({
+    employees,
+    isLoading,
+    isError,
+    isFiltered,
+  }: any) => {
     if (isLoading)
       return (
-        <div className="space-y-2">
+        <div className="space-y-2" role="status" aria-live="polite">
+          <p className="text-sm text-muted-foreground">جارٍ تحميل الموظفين…</p>
           {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-12 w-full" />
           ))}
@@ -573,20 +630,28 @@ export default function EmployeesList() {
       );
     if (isError)
       return (
-        <div className="py-8 text-center text-destructive">
-          خطأ في تحميل الموظفين.
+        <div className="space-y-3 py-8 text-center" role="alert">
+          <p className="text-destructive">تعذر تحميل الموظفين. حاول مرة أخرى.</p>
+          <Button variant="outline" onClick={() => employeesQuery.refetch()}>
+            إعادة المحاولة
+          </Button>
         </div>
       );
     if (!employees.length)
       return (
         <div className="py-8 text-center text-muted-foreground">
-          لا توجد موظفين في هذا القسم
+          {isFiltered
+            ? "لا توجد نتائج تطابق البحث في هذا القسم. جرّب اسماً أو كوداً آخر."
+            : "لا يوجد موظفون في هذا القسم حالياً."}
         </div>
       );
 
     if (isMobile) {
       return (
-        <div className="space-y-2" dir="rtl">
+        <div
+          className="attendance-employee-cards space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+          dir="rtl"
+        >
           {employees.map((emp: any) => {
             const isEditing = editingCd === emp.empCd;
             const showPanel = panelCd === emp.empCd;
@@ -594,6 +659,7 @@ export default function EmployeesList() {
             const showTermination = terminationCd === emp.empCd;
             const isClinic =
               emp.department === "عيادة" ||
+              emp.department === "العيادة" ||
               emp.department === "clinic" ||
               emp.department === "المركز والعيادة";
             const empAssignments = assignmentsMap.get(emp.empCd) ?? [];
@@ -611,7 +677,7 @@ export default function EmployeesList() {
             return (
               <div
                 key={emp.empCd}
-                className={`rounded-2xl border border-border bg-background p-3 shadow-xs ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : ""}`}
+                className={`attendance-employee-card rounded-xl border border-border bg-background p-3 shadow-xs ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : ""}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -619,42 +685,42 @@ export default function EmployeesList() {
                       {emp.empCd}
                     </div>
                     {isEditing ? (
-                      <input
+                      <Input bare
+                        aria-label="اسم الموظف"
                         value={editRow.fullName}
                         onChange={(e) =>
                           setEditRow({ ...editRow, fullName: e.target.value })
                         }
-                        className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                        className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                       />
                     ) : (
-                      <Link href={`/attendance/employees/${emp.empCd}`}>
-                        <a className="font-semibold text-primary hover:underline">
-                          {emp.fullName}
-                        </a>
+                      <Link href={`/attendance/employees/${emp.empCd}`} className="font-semibold text-primary hover:underline">
+                        {emp.fullName}
                       </Link>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
                   <div>
                     <div className="text-muted-foreground">القسم</div>
                     {isEditing ? (
                       <select
+                        aria-label="قسم الموظف"
                         value={editRow.department}
                         onChange={(e) =>
                           setEditRow({ ...editRow, department: e.target.value })
                         }
-                        className="mt-1 w-full rounded-md border border-border bg-background px-1 py-1 text-xs"
+                        className="mt-1 w-full rounded-md border border-input bg-background px-1 py-1 text-xs"
                       >
-                        <option value="">—</option>
+                        <option value="">-</option>
                         <option value="مركز">مركز</option>
                         <option value="عيادة">عيادة</option>
                         <option value="المركز والعيادة">المركز والعيادة</option>
                       </select>
                     ) : (
                       <div className="font-medium text-foreground">
-                        {emp.department || "—"}
+                        {emp.department || "-"}
                       </div>
                     )}
                   </div>
@@ -666,33 +732,34 @@ export default function EmployeesList() {
                         onChange={(e) =>
                           setEditRow({ ...editRow, salaryType: e.target.value })
                         }
-                        className="mt-1 w-full rounded-md border border-border bg-background px-1 py-1 text-xs"
+                        className="mt-1 w-full rounded-md border border-input bg-background px-1 py-1 text-xs"
                       >
-                        <option value="">—</option>
+                        <option value="">-</option>
                         <option value="استشاري">استشاري</option>
                         <option value="أخصائي">أخصائي</option>
                         <option value="الاثنين">الاثنين</option>
                       </select>
                     ) : (
                       <div className="font-medium text-foreground">
-                        {isClinic ? emp.salaryType || "—" : "—"}
+                        {isClinic ? emp.salaryType || "-" : "-"}
                       </div>
                     )}
                   </div>
                   <div>
                     <div className="text-muted-foreground">الوظيفة</div>
                     {isEditing ? (
-                      <input
+                      <Input bare
+                        aria-label="وظيفة الموظف"
                         value={editRow.jobTitle}
                         onChange={(e) =>
                           setEditRow({ ...editRow, jobTitle: e.target.value })
                         }
-                        placeholder="طبيب، محاسب…"
-                        className="mt-1 w-full rounded-md border border-border bg-background px-1 py-1 text-xs"
+                        placeholder="طبيب أو محاسب"
+                        className="mt-1 w-full rounded-md border border-input bg-background px-1 py-1 text-xs"
                       />
                     ) : (
                       <div className="font-medium text-foreground">
-                        {emp.jobTitle || "—"}
+                        {emp.jobTitle || "-"}
                       </div>
                     )}
                   </div>
@@ -703,38 +770,33 @@ export default function EmployeesList() {
                     shiftNames.map((name, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-semibold text-foreground"
+                        className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs font-semibold text-foreground"
                       >
                         {name}
                       </span>
                     ))
                   ) : (
-                    <span className="text-[11px] italic text-destructive/60">
+                    <span className="text-xs italic text-destructive-text">
                       غير معيّن
                     </span>
                   )}
                   {combinedMask > 0 && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-[11px] font-mono text-muted-foreground">
+                    <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-xs font-mono text-muted-foreground">
                       {maskLabel(combinedMask)}
                     </span>
                   )}
                 </div>
 
-                <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
+                <div className="attendance-employee-actions mt-3 flex flex-wrap justify-end gap-1 border-t border-border/60 pt-2">
                   {!isEditing && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => startTermination(emp.empCd)}
                       title="تسجيل ترك العمل"
-                      className="h-10 gap-1 px-2 text-xs text-destructive"
+                      aria-pressed={showTermination}
+                      className="h-11 gap-1 px-2 text-xs text-destructive"
                     >
-                      <input
-                        type="checkbox"
-                        checked={showTermination}
-                        readOnly
-                        className="h-4 w-4 accent-destructive"
-                      />
                       ترك عمل
                     </Button>
                   )}
@@ -751,14 +813,10 @@ export default function EmployeesList() {
                             department: editRow.department || undefined,
                             salaryType: editRow.salaryType || undefined,
                             jobTitle: editRow.jobTitle || undefined,
-                            attendanceCommissionRate:
-                              editRow.attendanceCommissionRate !== ""
-                                ? parseFloat(editRow.attendanceCommissionRate) /
-                                  100
-                                : null,
                             active: editRow.active,
                           })
                         }
+                        aria-label="حفظ بيانات الموظف"
                         className="h-10 w-10 p-0"
                       >
                         <Check size={16} className="text-success" />
@@ -767,6 +825,7 @@ export default function EmployeesList() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setEditingCd(null)}
+                        aria-label="إلغاء التعديل"
                         className="h-10 w-10 p-0"
                       >
                         <X size={16} className="text-muted-foreground" />
@@ -779,6 +838,7 @@ export default function EmployeesList() {
                         size="sm"
                         onClick={() => startEdit(emp)}
                         title="تعديل بيانات الموظف"
+                        aria-label="تعديل بيانات الموظف"
                         className="h-10 w-10 p-0"
                       >
                         <Pencil size={15} className="text-primary" />
@@ -792,6 +852,7 @@ export default function EmployeesList() {
                           setSwapCd(null);
                         }}
                         title="توزيع الوردية وأيام الدوام"
+                        aria-label="توزيع الوردية وأيام الدوام"
                         className={`h-10 w-10 p-0 ${showPanel ? "text-primary" : "text-muted-foreground"}`}
                       >
                         <Settings2 size={15} />
@@ -805,6 +866,7 @@ export default function EmployeesList() {
                           setPanelCd(null);
                         }}
                         title="تبديل مؤقت للوردية"
+                        aria-label="تبديل مؤقت للوردية"
                         className={`h-10 w-10 p-0 ${showSwap ? "text-primary" : "text-muted-foreground"}`}
                       >
                         <ArrowLeftRight size={15} />
@@ -813,11 +875,16 @@ export default function EmployeesList() {
                         variant="ghost"
                         size="sm"
                         disabled={deleteMutation.isPending}
-                        onClick={() => {
-                          if (confirm(`هل تريد حذف ${emp.fullName}؟`))
+                        onClick={async () => {
+                          if (
+                            await askConfirm(
+                              `إيقاف ${emp.fullName} وتسجيل ترك العمل بتاريخ اليوم؟ ستبقى سجلاته القديمة.`,
+                            )
+                          )
                             deleteMutation.mutate({ empCd: emp.empCd });
                         }}
-                        title="حذف الموظف"
+                        title="إيقاف الموظف"
+                        aria-label="إيقاف الموظف"
                         className="h-10 w-10 p-0"
                       >
                         <Trash2 size={15} className="text-destructive" />
@@ -835,7 +902,7 @@ export default function EmployeesList() {
                       <DateInput
                         value={terminationDate}
                         onChange={(e) => setTerminationDate(e.target.value)}
-                        className="min-w-0 flex-1 h-11 w-[11rem] shrink-0"
+                        className="min-w-0 flex-1 h-11 w-full sm:w-[11rem] shrink-0"
                       />
                       <Button
                         size="sm"
@@ -906,31 +973,53 @@ export default function EmployeesList() {
     }
 
     return (
-      <div className="overflow-x-auto" dir="rtl">
-        <table className="w-full text-sm" dir="rtl">
+      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+        <table aria-label="قائمة الموظفين" className="w-full text-sm" dir="rtl">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-center font-semibold w-16">
+              <th
+                scope="col"
+                className="px-4 py-3 text-center font-semibold w-16"
+              >
                 الكود
               </th>
-              <th className="px-4 py-3 text-right font-semibold">الاسم</th>
-              <th className="px-4 py-3 text-center font-semibold w-20">
+              <th scope="col" className="px-4 py-3 text-start font-semibold">
+                الاسم
+              </th>
+              <th
+                scope="col"
+                className="px-4 py-3 text-center font-semibold w-20"
+              >
                 القسم
               </th>
-              <th className="px-4 py-3 text-center font-semibold w-20">
+              <th
+                scope="col"
+                className="px-4 py-3 text-center font-semibold w-20"
+              >
                 النوع
               </th>
-              <th className="px-4 py-3 text-center font-semibold w-24">
+              <th
+                scope="col"
+                className="px-4 py-3 text-center font-semibold w-24"
+              >
                 الوظيفة
               </th>
-              <th className="px-4 py-3 text-right font-semibold">الوردية</th>
-              <th className="px-4 py-3 text-center font-semibold">
+              <th scope="col" className="px-4 py-3 text-start font-semibold">
+                الوردية
+              </th>
+              <th scope="col" className="px-4 py-3 text-center font-semibold">
                 أيام الدوام
               </th>
-              <th className="px-4 py-3 text-center font-semibold w-28">
+              <th
+                scope="col"
+                className="px-4 py-3 text-center font-semibold w-28"
+              >
                 ترك العمل
               </th>
-              <th className="px-4 py-3 text-center font-semibold w-24">
+              <th
+                scope="col"
+                className="px-4 py-3 text-center font-semibold w-24"
+              >
                 الإجراءات
               </th>
             </tr>
@@ -943,6 +1032,7 @@ export default function EmployeesList() {
               const showTermination = terminationCd === emp.empCd;
               const isClinic =
                 emp.department === "عيادة" ||
+                emp.department === "العيادة" ||
                 emp.department === "clinic" ||
                 emp.department === "المركز والعيادة";
               const empAssignments = assignmentsMap.get(emp.empCd) ?? [];
@@ -953,9 +1043,8 @@ export default function EmployeesList() {
               );
 
               return (
-                <>
+                <Fragment key={emp.empCd}>
                   <tr
-                    key={emp.empCd}
                     className={`border-b transition-colors ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : "hover:bg-muted/30"}`}
                   >
                     {/* Code */}
@@ -964,20 +1053,19 @@ export default function EmployeesList() {
                     </td>
 
                     {/* Name */}
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-start">
                       {isEditing ? (
-                        <input
+                        <Input bare
+                          aria-label="اسم الموظف"
                           value={editRow.fullName}
                           onChange={(e) =>
                             setEditRow({ ...editRow, fullName: e.target.value })
                           }
-                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                         />
                       ) : (
-                        <Link href={`/attendance/employees/${emp.empCd}`}>
-                          <a className="text-primary hover:underline font-medium">
-                            {emp.fullName}
-                          </a>
+                        <Link href={`/attendance/employees/${emp.empCd}`} className="text-primary hover:underline font-medium">
+                          {emp.fullName}
                         </Link>
                       )}
                     </td>
@@ -986,6 +1074,7 @@ export default function EmployeesList() {
                     <td className="px-4 py-3 text-center">
                       {isEditing ? (
                         <select
+                          aria-label="قسم الموظف"
                           value={editRow.department}
                           onChange={(e) =>
                             setEditRow({
@@ -993,9 +1082,9 @@ export default function EmployeesList() {
                               department: e.target.value,
                             })
                           }
-                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                         >
-                          <option value="">—</option>
+                          <option value="">-</option>
                           <option value="مركز">مركز</option>
                           <option value="عيادة">عيادة</option>
                           <option value="المركز والعيادة">
@@ -1004,7 +1093,7 @@ export default function EmployeesList() {
                         </select>
                       ) : (
                         <span className="text-muted-foreground text-sm">
-                          {emp.department || "—"}
+                          {emp.department || "-"}
                         </span>
                       )}
                     </td>
@@ -1020,16 +1109,16 @@ export default function EmployeesList() {
                               salaryType: e.target.value,
                             })
                           }
-                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                         >
-                          <option value="">—</option>
+                          <option value="">-</option>
                           <option value="استشاري">استشاري</option>
                           <option value="أخصائي">أخصائي</option>
                           <option value="الاثنين">الاثنين</option>
                         </select>
                       ) : (
                         <span className="text-muted-foreground text-sm">
-                          {isClinic ? emp.salaryType || "—" : "—"}
+                          {isClinic ? emp.salaryType || "-" : "-"}
                         </span>
                       )}
                     </td>
@@ -1037,7 +1126,8 @@ export default function EmployeesList() {
                     {/* Job title */}
                     <td className="px-4 py-3 text-center">
                       {isEditing ? (
-                        <input
+                        <Input bare
+                          aria-label="وظيفة الموظف"
                           value={editRow.jobTitle}
                           onChange={(e) =>
                             setEditRow({
@@ -1045,12 +1135,12 @@ export default function EmployeesList() {
                               jobTitle: e.target.value,
                             })
                           }
-                          placeholder="طبيب، محاسب، تمريض…"
-                          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                          placeholder="طبيب، محاسب، تمريض"
+                          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                         />
                       ) : (
                         <span className="text-muted-foreground text-sm">
-                          {emp.jobTitle || "—"}
+                          {emp.jobTitle || "-"}
                         </span>
                       )}
                     </td>
@@ -1069,7 +1159,7 @@ export default function EmployeesList() {
                           ).map((name, i) => (
                             <span
                               key={i}
-                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border ${
                                 showPanel
                                   ? "border-primary/40 bg-primary/10 text-primary"
                                   : "border-border bg-muted/40 text-foreground"
@@ -1080,17 +1170,16 @@ export default function EmployeesList() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[11px] italic text-destructive/60">
+                        <span className="text-xs italic text-destructive-text">
                           غير معيّن
                         </span>
                       )}
                     </td>
 
-                    {/* Working days */}
                     <td className="px-4 py-3 text-center">
                       {combinedMask > 0 ? (
                         <span
-                          className={`inline-flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-[11px] font-mono border ${
+                          className={`inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-mono border ${
                             showPanel
                               ? "border-primary/40 bg-primary/10 text-primary"
                               : "border-border bg-muted/40 text-muted-foreground"
@@ -1099,8 +1188,8 @@ export default function EmployeesList() {
                           {maskLabel(combinedMask)}
                         </span>
                       ) : (
-                        <span className="text-[11px] italic text-muted-foreground/50">
-                          —
+                        <span className="text-xs italic text-muted-foreground">
+                          -
                         </span>
                       )}
                     </td>
@@ -1111,9 +1200,9 @@ export default function EmployeesList() {
                           <DateInput
                             value={terminationDate}
                             onChange={(e) => setTerminationDate(e.target.value)}
-                            className="h-8 min-w-32 text-xs h-11 w-[11rem] shrink-0"
+                            className="h-8 min-w-32 text-xs h-11 w-full sm:w-[11rem] shrink-0"
                           />
-                          <Button
+                          <Button aria-label="تأكيد إنهاء الخدمة" title="تأكيد إنهاء الخدمة"
                             size="sm"
                             variant="destructive"
                             disabled={terminateMutation.isPending}
@@ -1144,7 +1233,6 @@ export default function EmployeesList() {
                       )}
                     </td>
 
-                    {/* Actions */}
                     <td className="px-4 py-3 text-center">
                       {isEditing ? (
                         <div className="flex items-center justify-center gap-1">
@@ -1159,15 +1247,10 @@ export default function EmployeesList() {
                                 department: editRow.department || undefined,
                                 salaryType: editRow.salaryType || undefined,
                                 jobTitle: editRow.jobTitle || undefined,
-                                attendanceCommissionRate:
-                                  editRow.attendanceCommissionRate !== ""
-                                    ? parseFloat(
-                                        editRow.attendanceCommissionRate,
-                                      ) / 100
-                                    : null,
                                 active: editRow.active,
                               })
                             }
+                            aria-label="حفظ بيانات الموظف"
                             className="h-8 w-8 p-0"
                           >
                             <Check size={15} className="text-success" />
@@ -1176,6 +1259,7 @@ export default function EmployeesList() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setEditingCd(null)}
+                            aria-label="إلغاء التعديل"
                             className="h-8 w-8 p-0"
                           >
                             <X size={15} className="text-muted-foreground" />
@@ -1188,6 +1272,7 @@ export default function EmployeesList() {
                             size="sm"
                             onClick={() => startEdit(emp)}
                             title="تعديل بيانات الموظف"
+                            aria-label="تعديل بيانات الموظف"
                             className="h-8 w-8 p-0"
                           >
                             <Pencil size={14} className="text-primary" />
@@ -1201,6 +1286,7 @@ export default function EmployeesList() {
                               setSwapCd(null);
                             }}
                             title="توزيع الوردية وأيام الدوام"
+                            aria-label="توزيع الوردية وأيام الدوام"
                             className={`h-8 w-8 p-0 ${showPanel ? "text-primary" : "text-muted-foreground"}`}
                           >
                             <Settings2 size={14} />
@@ -1214,6 +1300,7 @@ export default function EmployeesList() {
                               setPanelCd(null);
                             }}
                             title="تبديل مؤقت للوردية"
+                            aria-label="تبديل مؤقت للوردية"
                             className={`h-8 w-8 p-0 ${showSwap ? "text-primary" : "text-muted-foreground"}`}
                           >
                             <ArrowLeftRight size={14} />
@@ -1222,11 +1309,16 @@ export default function EmployeesList() {
                             variant="ghost"
                             size="sm"
                             disabled={deleteMutation.isPending}
-                            onClick={() => {
-                              if (confirm(`هل تريد حذف ${emp.fullName}؟`))
+                            onClick={async () => {
+                              if (
+                                await askConfirm(
+                                  `إيقاف ${emp.fullName} وتسجيل ترك العمل بتاريخ اليوم؟ ستبقى سجلاته القديمة.`,
+                                )
+                              )
                                 deleteMutation.mutate({ empCd: emp.empCd });
                             }}
-                            title="حذف الموظف"
+                            title="إيقاف الموظف"
+                            aria-label="إيقاف الموظف"
                             className="h-8 w-8 p-0"
                           >
                             <Trash2 size={14} className="text-destructive" />
@@ -1266,7 +1358,7 @@ export default function EmployeesList() {
                       onClose={() => setSwapCd(null)}
                     />
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
@@ -1276,13 +1368,14 @@ export default function EmployeesList() {
   };
 
   return (
-    <div className="space-y-4" dir="rtl">
-      {/* Tabs */}
-      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-1 pt-1">
-        <div className="flex gap-1">
-          {(["center", "clinic"] as const).map((t) => (
-            <button
+    <div className="attendance-employees space-y-4" dir="rtl">
+      <div className="attendance-employee-toolbar">
+        <div className="attendance-employee-filters" role="group" aria-label="قسم الموظفين">
+          {(["center", "clinic", "other"] as const).map((t) => (
+            <Button variant="bare"
               key={t}
+              type="button"
+              aria-pressed={activeTab === t}
               onClick={() => setActiveTab(t)}
               className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === t
@@ -1292,32 +1385,37 @@ export default function EmployeesList() {
             >
               {t === "center"
                 ? `المركز (${centerEmployees.length})`
-                : `العيادة (${clinicEmployees.length})`}
-            </button>
+                : t === "clinic"
+                  ? `العيادة (${clinicEmployees.length})`
+                  : `غير مصنف (${otherEmployees.length})`}
+            </Button>
           ))}
         </div>
-        <div className="flex min-w-64 flex-1 items-center gap-3 pb-2 sm:max-w-md">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Input
-              id="attendance-employee-search"
-              placeholder="بحث بالكود أو الاسم…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1"
-            />
-            <span className="whitespace-nowrap text-sm text-muted-foreground">
-              {filteredEmployees.length} نتيجة
-            </span>
+        <div className="attendance-employee-search">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input
+            id="attendance-employee-search"
+            aria-label="بحث بالكود أو الاسم"
+            placeholder="بحث بالكود أو الاسم"
+            enterKeyHint="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1"
+          />
+          <span className="whitespace-nowrap text-sm text-muted-foreground" role="status" aria-live="polite">
+            {filteredEmployees.length} نتيجة
+          </span>
         </div>
       </div>
 
-      <Card>
+      <Card className="attendance-section">
         <CardContent>
-          <EmployeeTable
-            employees={filteredEmployees}
-            isLoading={employeesQuery.isLoading}
-            isError={employeesQuery.isError}
-          />
+          {renderEmployeeTable({
+            employees: filteredEmployees,
+            isLoading: employeesQuery.isLoading,
+            isError: employeesQuery.isError,
+            isFiltered: Boolean(search.trim()),
+          })}
         </CardContent>
       </Card>
     </div>

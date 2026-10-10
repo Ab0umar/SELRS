@@ -1,22 +1,18 @@
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Printer } from "lucide-react";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
 import { ReportToolbar } from "./ReportToolbar";
+import { handleTabListKeys } from "@/lib/tabKeys";
 
 type ReportTab =
-  | "summary"
-  | "late"
-  | "absent"
-  | "ot"
-  | "permissions"
-  | "leaves"
-  | "monthly";
+  "summary" | "late" | "absent" | "ot" | "permissions" | "leaves" | "monthly";
 
-const todayStr = new Date().toISOString().split("T")[0];
+const now = new Date();
+const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 export default function Reports({
   from,
   to,
@@ -26,8 +22,9 @@ export default function Reports({
   to: string;
   department?: string;
 }) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompact();
   const [activeTab, setActiveTab] = useState<ReportTab>("summary");
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
   const dates = useMemo(() => ({ from, to }), [from, to]);
   const balanceYear = Number(to.slice(0, 4));
 
@@ -55,27 +52,41 @@ export default function Reports({
       .replaceAll("'", "&#39;");
 
   const handleExportCSV = (data: any[], filename: string) => {
-    if (!data || data.length === 0) return;
-    const headers = Object.keys(data[0]);
-    const csv = [
-      headers.join(","),
-      ...data.map((row: any) =>
-        headers.map((h) => `"${row[h] ?? ""}"`).join(","),
-      ),
-    ].join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    if (!data || data.length === 0) {
+      setExportMsg("لا توجد بيانات لتصديرها في التقرير المحدد.");
+      return;
+    }
+    try {
+      const headers = Object.keys(data[0]);
+      const csv = [
+        headers.join(","),
+        ...data.map((row: any) =>
+          headers
+            .map((h) => `"${String(row[h] ?? "").replace(/"/g, '""')}"`)
+            .join(","),
+        ),
+      ].join("\n");
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setExportMsg("تم تنزيل ملف CSV.");
+    } catch (error) {
+      console.error("Failed to export attendance CSV", error);
+      setExportMsg("تعذر إنشاء ملف CSV. حاول مرة أخرى.");
+    }
   };
 
   const handlePrint = (rows: any[], title: string) => {
-    if (!rows.length) return;
+    if (!rows.length) {
+      setExportMsg("لا توجد بيانات لطباعتها في التقرير المحدد.");
+      return;
+    }
     const cols = Object.keys(rows[0]);
     const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"/>
       <title>${escapeHtml(title)}</title>
@@ -100,11 +111,17 @@ export default function Reports({
         .join("")}</tbody>
       </table></body></html>`;
     const win = window.open("", "_blank");
-    if (!win) return;
+    if (!win) {
+      setExportMsg(
+        "منع المتصفح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.",
+      );
+      return;
+    }
     win.document.write(html);
     win.document.close();
     win.focus();
     win.print();
+    setExportMsg("تم فتح نافذة الطباعة. اختر حفظ بصيغة PDF إذا لزم.");
   };
 
   const perms: any[] = (permQuery.data as any[]) ?? [];
@@ -128,6 +145,7 @@ export default function Reports({
       حاضر: r.presentDays,
       غائب: r.absentDays,
       إجازة: r.leaveDays,
+      عطلة: r.holidayDays ?? 0,
       "تأخير (د)": r.totalLateMins,
       "مبكر (د)": r.totalEarlyMins,
       "إضافي (د)": r.totalOTMins,
@@ -144,6 +162,7 @@ export default function Reports({
       حاضر: r.presentDays,
       غائب: r.absentDays,
       إجازة: r.leaveDays,
+      عطلة: r.holidayDays ?? 0,
       "تأخير (د)": r.totalLateMins,
       "مبكر (د)": r.totalEarlyMins,
       "إضافي (د)": r.totalOTMins,
@@ -205,18 +224,23 @@ export default function Reports({
   const renderTable = (rows: any[]) => {
     if (!rows.length)
       return (
-        <div className="text-center py-8 text-muted-foreground">لا توجد بيانات</div>
+        <div className="text-center py-8 text-muted-foreground">
+          لا توجد سجلات تطابق الفترة والفلاتر المحددة.
+        </div>
       );
     const cols = Object.keys(rows[0]);
 
     if (isMobile) {
       const [titleCol, ...restCols] = cols;
       return (
-        <div className="space-y-2" dir="rtl">
+        <div
+          className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+          dir="rtl"
+        >
           {rows.map((row: any, i: number) => (
             <div
               key={i}
-              className="rounded-2xl border border-border bg-background p-3 shadow-xs"
+              className="rounded-xl border border-border bg-background p-3 shadow-xs"
             >
               <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
                 <span className="text-sm font-semibold text-foreground">
@@ -246,8 +270,12 @@ export default function Reports({
     }
 
     return (
-      <div className="overflow-x-auto" dir="rtl">
-        <table dir="rtl" className="min-w-[42rem] w-full text-sm">
+      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+        <table
+          aria-label="جدول التقرير"
+          dir="rtl"
+          className="min-w-[42rem] w-full text-sm"
+        >
           <thead>
             <tr className="border-b bg-muted/50">
               {cols.map((c) => (
@@ -290,7 +318,7 @@ export default function Reports({
     summary: "border-primary/20 bg-primary/10 text-primary",
     monthly: "border-info/20 bg-info/10 text-info",
     late: "border-destructive/20 bg-destructive/10 text-destructive",
-    absent: "border-warning/30 bg-warning/10 text-warning",
+    absent: "border-warning/30 bg-warning/10 text-warning-text",
     ot: "border-success/20 bg-success/10 text-success",
     permissions: "border-secondary/20 bg-secondary/10 text-primary",
     leaves: "border-muted-foreground/20 bg-muted/70 text-foreground",
@@ -314,20 +342,41 @@ export default function Reports({
         ? permQuery.isLoading
         : rangeQuery.isLoading;
 
+  const loadError =
+    activeTab === "leaves"
+      ? balanceQuery.error
+      : activeTab === "permissions"
+        ? permQuery.error
+        : rangeQuery.error;
+
   const activeLabel = tabs.find((t) => t.key === activeTab)?.label ?? "";
   return (
-    <div className="p-6 w-full" dir="rtl">
+    <div className="w-full min-w-0" dir="rtl">
       <ReportToolbar>
         <div
           role="tablist"
           aria-label="أنواع التقارير"
-          className="flex flex-wrap gap-2"
+          onKeyDown={(event) =>
+            handleTabListKeys(
+              event,
+              tabs.map((tab) => tab.key),
+              activeTab,
+              setActiveTab,
+              (key) => `attendance-report-tab-${key}`,
+            )
+          }
+          className="attendance-tabs"
         >
           {tabs.map(({ key, label }) => (
             <button
               key={key}
               type="button"
+              id={`attendance-report-tab-${key}`}
+              role="tab"
+              tabIndex={activeTab === key ? 0 : -1}
               onClick={() => setActiveTab(key)}
+              aria-selected={activeTab === key}
+              aria-controls={`attendance-report-panel-${key}`}
               className={`h-10 rounded-lg border px-3 text-sm font-semibold ${
                 activeTab === key
                   ? tabToneClasses[key]
@@ -342,7 +391,10 @@ export default function Reports({
           variant="outline"
           size="sm"
           onClick={() =>
-            handleExportCSV(activeRows(), `${activeLabel}-${dates.from}-${dates.to}.csv`)
+            handleExportCSV(
+              activeRows(),
+              `${activeLabel}-${dates.from}-${dates.to}.csv`,
+            )
           }
           disabled={!activeRows().length}
         >
@@ -357,65 +409,17 @@ export default function Reports({
           <Printer className="w-4 h-4" /> طباعة / PDF
         </Button>
       </ReportToolbar>
-      <Card>
-        <CardHeader>
-          <div
-            role="tablist"
-            aria-label="أنواع التقارير"
-            className="hidden"
-          >
-            {tabs.map(({ key, label }) => (
-              <button
-                key={key}
-                id={`attendance-report-tab-${key}`}
-                role="tab"
-                aria-selected={activeTab === key}
-                aria-controls={`attendance-report-panel-${key}`}
-                tabIndex={activeTab === key ? 0 : -1}
-                onClick={() => setActiveTab(key)}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-t-xl border-b-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors ${
-                  activeTab === key
-                    ? tabToneClasses[key]
-                    : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
-                }`}
-              >
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    activeTab === key ? "bg-current" : "bg-muted-foreground/40"
-                  }`}
-                  aria-hidden
-                />
-                {label}
-              </button>
-            ))}
-          </div>
-        </CardHeader>
+      {exportMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-3 text-sm text-muted-foreground"
+        >
+          {exportMsg}
+        </div>
+      )}
+      <Card className="attendance-section">
         <CardContent className="pt-6">
-          <div className="hidden">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                handleExportCSV(
-                  activeRows(),
-                  `${activeLabel}-${dates.from}-${dates.to}.csv`,
-                )
-              }
-              disabled={!activeRows().length}
-              className="w-full gap-2 border-primary/20 text-primary hover:bg-primary/10 sm:w-auto"
-            >
-              <Download className="w-4 h-4" /> تصدير CSV
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePrint(activeRows(), activeLabel)}
-              disabled={!activeRows().length}
-              className="w-full gap-2 border-secondary/20 text-primary hover:bg-secondary/10 sm:w-auto"
-            >
-              <Printer className="w-4 h-4" /> طباعة / PDF
-            </Button>
-          </div>
           <div
             id={`attendance-report-panel-${activeTab}`}
             role="tabpanel"
@@ -426,6 +430,30 @@ export default function Reports({
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
+              </div>
+            ) : loadError ? (
+              <div
+                role="alert"
+                className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-foreground"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span>
+                    تعذر تحميل التقرير:{" "}
+                    {String((loadError as any).message ?? loadError)}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (activeTab === "leaves") balanceQuery.refetch();
+                      else if (activeTab === "permissions") permQuery.refetch();
+                      else rangeQuery.refetch();
+                    }}
+                  >
+                    إعادة المحاولة
+                  </Button>
+                </div>
               </div>
             ) : (
               renderTable(activeRows())

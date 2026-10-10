@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Download, Search } from "lucide-react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { getLocalToday } from "@/lib/localDate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
 import { ReportToolbar } from "./ReportToolbar";
 
 const directionTone = {
@@ -23,7 +25,7 @@ export default function RawLogs({
   to: string;
   department?: string;
 }) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompact();
   const [filters, setFilters] = useState({
     empNo: "",
     fromDate: "",
@@ -51,7 +53,7 @@ export default function RawLogs({
 
   const handleSearch = () => {
     if (!filters.fromDate && !filters.empNo) {
-      alert("أدخل كود موظف أو نطاق تاريخ للبحث");
+      toast.error("أدخل كود موظف أو نطاق تاريخ للبحث");
       return;
     }
     setOffset(0);
@@ -65,18 +67,26 @@ export default function RawLogs({
       ...rawPunchesQuery.data.punches.map((p: any) => [
         p.empCd,
         new Date(p.punchAt).toLocaleString(),
-        p.direction === "in" ? "دخول" : "خروج",
+        p.direction === "in"
+          ? "دخول"
+          : p.direction === "out"
+            ? "خروج"
+            : "غير محدد",
         p.deviceId || "-",
       ]),
     ]
-      .map((row) => row.map((cell: any) => `"${cell}"`).join(","))
+      .map((row) =>
+        row
+          .map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(","),
+      )
       .join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `raw-logs-${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `raw-logs-${getLocalToday()}-page-${Math.floor(offset / PAGE_SIZE) + 1}.csv`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -90,6 +100,7 @@ export default function RawLogs({
       <ReportToolbar>
         <Input
           placeholder="كود الموظف"
+          aria-label="كود الموظف"
           value={filters.empNo}
           onChange={(event) =>
             setFilters((current) => ({ ...current, empNo: event.target.value }))
@@ -108,35 +119,7 @@ export default function RawLogs({
         </span>
       </div>
 
-      <Card className="hidden">
-        <CardHeader>
-          <CardTitle className="text-lg text-foreground">البحث</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <Input
-              placeholder="كود الموظف"
-              value={filters.empNo}
-              onChange={(e) =>
-                setFilters({ ...filters, empNo: e.target.value })
-              }
-              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
-            />
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSearch}
-                disabled={rawPunchesQuery.isLoading}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Search className="h-4 w-4" />
-                بحث
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border bg-background">
+      <Card className="attendance-section">
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="text-foreground">
             النتائج
@@ -151,7 +134,7 @@ export default function RawLogs({
               className="gap-2 border-secondary/20 text-primary hover:bg-secondary/10"
             >
               <Download className="h-4 w-4" />
-              تصدير CSV
+              تصدير الصفحة الحالية CSV
             </Button>
           )}
         </CardHeader>
@@ -163,11 +146,14 @@ export default function RawLogs({
               ))}
             </div>
           ) : punches.length > 0 && isMobile ? (
-            <div className="space-y-2" dir="rtl">
+            <div
+              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              dir="rtl"
+            >
               {punches.map((punch: any, idx: number) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
+                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -185,7 +171,11 @@ export default function RawLogs({
                           : directionTone.out
                       }`}
                     >
-                      {punch.direction === "in" ? "دخول" : "خروج"}
+                      {punch.direction === "in"
+                        ? "دخول"
+                        : punch.direction === "out"
+                          ? "خروج"
+                          : "غير محدد"}
                     </span>
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
@@ -195,20 +185,36 @@ export default function RawLogs({
               ))}
             </div>
           ) : punches.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" dir="rtl">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+              <table
+                aria-label="السجلات الخام"
+                className="w-full text-sm"
+                dir="rtl"
+              >
                 <thead>
                   <tr className="border-b bg-muted/60">
-                    <th className="px-4 py-2 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-start font-semibold text-foreground"
+                    >
                       الموظف
                     </th>
-                    <th className="px-4 py-2 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-start font-semibold text-foreground"
+                    >
                       التاريخ والوقت
                     </th>
-                    <th className="px-4 py-2 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-start font-semibold text-foreground"
+                    >
                       الاتجاه
                     </th>
-                    <th className="px-4 py-2 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-start font-semibold text-foreground"
+                    >
                       الجهاز
                     </th>
                   </tr>
@@ -233,7 +239,11 @@ export default function RawLogs({
                               : directionTone.out
                           }`}
                         >
-                          {punch.direction === "in" ? "دخول" : "خروج"}
+                          {punch.direction === "in"
+                            ? "دخول"
+                            : punch.direction === "out"
+                              ? "خروج"
+                              : "غير محدد"}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-xs text-muted-foreground">
@@ -252,12 +262,17 @@ export default function RawLogs({
             </div>
           )}
           {rawPunchesQuery.data && rawPunchesQuery.data.total > PAGE_SIZE && (
-            <div className="mt-4 flex items-center justify-center gap-2" dir="rtl">
+            <div
+              className="mt-4 flex items-center justify-center gap-2"
+              dir="rtl"
+            >
               <Button
                 variant="outline"
                 size="sm"
                 disabled={offset === 0 || rawPunchesQuery.isFetching}
-                onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
+                onClick={() =>
+                  setOffset((current) => Math.max(0, current - PAGE_SIZE))
+                }
               >
                 السابق
               </Button>
@@ -267,7 +282,10 @@ export default function RawLogs({
               <Button
                 variant="outline"
                 size="sm"
-                disabled={offset + PAGE_SIZE >= rawPunchesQuery.data.total || rawPunchesQuery.isFetching}
+                disabled={
+                  offset + PAGE_SIZE >= rawPunchesQuery.data.total ||
+                  rawPunchesQuery.isFetching
+                }
                 onClick={() => setOffset((current) => current + PAGE_SIZE)}
               >
                 التالي

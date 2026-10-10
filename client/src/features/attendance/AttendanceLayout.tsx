@@ -1,5 +1,10 @@
 import { ReactNode } from "react";
-import OperationalModuleShell from "@/components/layout/OperationalModuleShell";
+import { Link, useLocation } from "wouter";
+import { useKeyboardScroll } from "@/hooks/useKeyboardScroll";
+import { ConfirmHost } from "./askConfirm";
+import "./attendance-workspace.css";
+import "./attendance-studio.css";
+import "./attendance-design.css";
 import {
   BarChart3,
   LayoutDashboard,
@@ -7,6 +12,7 @@ import {
   Activity,
   Clock,
   Settings,
+  UserRound,
 } from "lucide-react";
 
 interface AttendanceLayoutProps {
@@ -44,6 +50,12 @@ const navigationSections = [
         activeFor: ["/attendance/employees"],
       },
       {
+        href: "/attendance/my",
+        label: "ملف الحضور",
+        icon: UserRound,
+        activeFor: ["/attendance/my"],
+      },
+      {
         href: "/attendance/shift-schedule",
         label: "الروستر الشهري",
         icon: Clock,
@@ -77,17 +89,40 @@ const navigationSections = [
   },
 ];
 
-export default function AttendanceLayout({ children, fullWidth }: AttendanceLayoutProps) {
+export default function AttendanceLayout({
+  children,
+  fullWidth,
+}: AttendanceLayoutProps) {
+  const [location] = useLocation();
+  useKeyboardScroll();
+  const isActive = (href: string) => href === "/attendance"
+    ? location === href
+    : location === href || location.startsWith(`${href}/`);
+  const activeItem = navigationSections.flatMap(section => section.items)
+    .find(item => isActive(item.href));
   return (
-    <OperationalModuleShell
-      moduleName="attendance"
-      title="الحضور والانصراف"
-      description="متابعة الحضور، الروستر، والتقارير اليومية"
-      mark={<Activity className="h-5 w-5" />}
-      navigation={navigationSections.flatMap((section) => section.items)}
-      fullWidth={fullWidth}
-    >
-      {children}
-    </OperationalModuleShell>
+    <div className="attendance-studio" data-operational-module="attendance" dir="rtl">
+      <a className="attendance-skip" href="#module-content" onClick={event => {
+        event.preventDefault();
+        document.getElementById("module-content")?.focus();
+      }}>تخطي إلى المحتوى</a>
+      <div className={`attendance-studio-grid ${fullWidth ? "attendance-studio-wide" : ""}`}>
+        <div className="attendance-stage">
+          <nav className="attendance-topnav" aria-label="أقسام الوحدة">
+            {navigationSections.flatMap(section => section.items).map(item => {
+              const Icon = item.icon;
+              return <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined}>
+                <Icon aria-hidden="true" /><span>{item.label}</span>
+              </Link>;
+            })}
+          </nav>
+          <h2 className="sr-only">{activeItem?.label ?? "ملف الحضور"}</h2>
+          <div id="module-content" tabIndex={-1}>
+            <div className="attendance-touch attendance-workspace">{children}</div>
+          </div>
+        </div>
+      </div>
+      <ConfirmHost />
+    </div>
   );
 }

@@ -1,26 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Download,
-  Printer,
-  RefreshCw,
-  Search,
-} from "lucide-react";
+import { Download, Printer, RefreshCw, Search } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { toLocalDateKey } from "@/lib/localDate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReportToolbar } from "./ReportToolbar";
 
-const pad = (value: number) => String(value).padStart(2, "0");
-const formatDate = (date: Date) =>
-  `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
-
-const today = new Date();
-const defaultTo = formatDate(today);
-const defaultFromDate = new Date(today);
-defaultFromDate.setUTCDate(1);
-const defaultFrom = formatDate(defaultFromDate);
+const formatDate = toLocalDateKey;
 
 type PunchDay = {
   in: string[];
@@ -80,7 +68,7 @@ const renderTimes = (times: string[], tone: string) =>
       ))}
     </div>
   ) : (
-    <span className="text-muted-foreground/60">-</span>
+    <span className="text-muted-foreground">-</span>
   );
 
 export default function MonthlyFingerprints({
@@ -92,8 +80,8 @@ export default function MonthlyFingerprints({
   to: string;
   department?: string;
 }) {
-  const [fromDate, setFromDate] = useState(defaultFrom);
-  const [toDate, setToDate] = useState(defaultTo);
+  const [fromDate, setFromDate] = useState(from);
+  const [toDate, setToDate] = useState(to);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [appliedEmployee, setAppliedEmployee] = useState("");
   useEffect(() => {
@@ -172,12 +160,13 @@ export default function MonthlyFingerprints({
         date,
         formatTimes(day.in) || "-",
         formatTimes(day.out) || "-",
+        formatTimes(day.other) || "-",
       ]),
     );
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(
-      `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/><title>البصمات - ${escapeHtml(periodLabel)}</title><style>body{font-family:Arial,sans-serif;font-size:11px;direction:rtl}h2{font-size:17px;margin-bottom:4px}p{color:#555}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:6px;text-align:right}th{background:#e9eef5}@media print{@page{margin:10mm}}</style></head><body><h2>البصمات حسب الموظف والقسم</h2><p>الفترة: ${escapeHtml(periodLabel)}</p><table><thead><tr>${["القسم", "رقم الموظف", "اسم الموظف", "التاريخ", "دخول", "خروج"].map((header) => `<th>${header}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`,
+      `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/><title>البصمات - ${escapeHtml(periodLabel)}</title><style>body{font-family:Arial,sans-serif;font-size:11px;direction:rtl}h2{font-size:17px;margin-bottom:4px}p{color:#555}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:6px;text-align:right}th{background:#e9eef5}@media print{@page{margin:10mm}}</style></head><body><h2>البصمات حسب الموظف والقسم</h2><p>الفترة: ${escapeHtml(periodLabel)}</p><table><thead><tr>${["القسم", "رقم الموظف", "اسم الموظف", "التاريخ", "دخول", "خروج", "غير محدد"].map((header) => `<th>${header}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`,
     );
     win.document.close();
     win.focus();
@@ -189,9 +178,9 @@ export default function MonthlyFingerprints({
     label: string,
     sectionEmployees: MonthlyEmployee[],
   ) => (
-    <Card key={key} className="overflow-hidden border-border">
+    <Card key={key} className="attendance-section overflow-hidden">
       <CardHeader
-        className={key === "clinic" ? "bg-violet-50/70" : "bg-cyan-50/70"}
+        className={key === "clinic" ? "bg-primary/10 " : "bg-info/10 "}
       >
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span>{label}</span>
@@ -218,7 +207,8 @@ export default function MonthlyFingerprints({
               <>
                 <div className="hidden w-full sm:block">
                   <table
-                    className="w-full table-auto text-[9px] sm:text-xs"
+                    aria-label="البصمات حسب الموظف والقسم"
+                    className="w-full table-auto text-xs sm:text-xs"
                     dir="rtl"
                   >
                     <colgroup>
@@ -230,19 +220,34 @@ export default function MonthlyFingerprints({
                     </colgroup>
                     <thead className="bg-muted/60 text-foreground">
                       <tr className="border-b border-border">
-                        <th className="whitespace-nowrap px-1.5 py-2.5 text-right font-bold">
+                        <th
+                          scope="col"
+                          className="whitespace-nowrap px-1.5 py-2.5 text-start font-bold"
+                        >
                           الرقم
                         </th>
-                        <th className="whitespace-nowrap px-1.5 py-2.5 text-right font-bold">
+                        <th
+                          scope="col"
+                          className="whitespace-nowrap px-1.5 py-2.5 text-start font-bold"
+                        >
                           الاسم
                         </th>
-                        <th className="whitespace-nowrap px-1 py-2.5 text-center font-bold">
+                        <th
+                          scope="col"
+                          className="whitespace-nowrap px-1 py-2.5 text-center font-bold"
+                        >
                           الأيام
                         </th>
-                        <th className="whitespace-nowrap px-1 py-2.5 text-center font-bold">
+                        <th
+                          scope="col"
+                          className="whitespace-nowrap px-1 py-2.5 text-center font-bold"
+                        >
                           البصمات
                         </th>
-                        <th className="whitespace-nowrap px-1.5 py-2.5 text-right font-bold">
+                        <th
+                          scope="col"
+                          className="whitespace-nowrap px-1.5 py-2.5 text-start font-bold"
+                        >
                           تفاصيل الأيام
                         </th>
                       </tr>
@@ -253,10 +258,10 @@ export default function MonthlyFingerprints({
                           key={employee.empCd}
                           className="border-b border-border align-top last:border-0 hover:bg-muted/30"
                         >
-                          <td className="whitespace-nowrap px-1.5 py-2.5 text-right font-mono font-bold text-cyan-700">
+                          <td className="whitespace-nowrap px-1.5 py-2.5 text-start font-mono font-bold text-info">
                             {employee.empCd}
                           </td>
-                          <td className="whitespace-nowrap px-1.5 py-2.5 text-right font-medium text-foreground">
+                          <td className="whitespace-nowrap px-1.5 py-2.5 text-start font-medium text-foreground">
                             {employee.empName}
                           </td>
                           <td className="whitespace-nowrap px-1 py-2.5 text-center font-semibold tabular-nums text-foreground">
@@ -270,7 +275,7 @@ export default function MonthlyFingerprints({
                               {getDayRows(employee).map(({ date, day }) => (
                                 <div
                                   key={date}
-                                  className="min-w-0 rounded-md border border-border bg-background px-1 py-1 leading-4 text-[9px] sm:px-1.5 sm:py-1.5 sm:text-[11px]"
+                                  className="min-w-0 rounded-md border border-border bg-background px-1 py-1 leading-4 text-xs sm:px-1.5 sm:py-1.5 sm:text-xs"
                                 >
                                   <div
                                     className="mb-0.5 text-center font-bold text-foreground"
@@ -288,7 +293,7 @@ export default function MonthlyFingerprints({
                                     dir="ltr"
                                   >
                                     {day.in.length > 0 && (
-                                      <div className="break-words text-emerald-700">
+                                      <div className="break-words text-success-text">
                                         <span className="sm:hidden">
                                           د: {formatTimes(day.in)}
                                         </span>
@@ -298,7 +303,7 @@ export default function MonthlyFingerprints({
                                       </div>
                                     )}
                                     {day.out.length > 0 && (
-                                      <div className="break-words text-amber-700">
+                                      <div className="break-words text-warning-text">
                                         <span className="sm:hidden">
                                           خ: {formatTimes(day.out)}
                                         </span>
@@ -327,18 +332,18 @@ export default function MonthlyFingerprints({
                     {sectionEmployees.map((employee) => (
                       <article
                         key={employee.empCd}
-                        className="overflow-hidden rounded-2xl border border-border bg-background shadow-xs"
+                        className="overflow-hidden rounded-xl border border-border bg-background shadow-xs"
                       >
                         <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/40 px-3 py-3">
                           <div className="min-w-0">
                             <h3 className="truncate text-sm font-bold text-foreground">
                               {employee.empName}
                             </h3>
-                            <div className="mt-0.5 font-mono text-xs font-semibold text-cyan-700">
+                            <div className="mt-0.5 font-mono text-xs font-semibold text-info">
                               رقم الموظف: {employee.empCd}
                             </div>
                           </div>
-                          <div className="flex shrink-0 gap-1.5 text-center text-[10px]">
+                          <div className="flex shrink-0 gap-1.5 text-center text-xs">
                             <div className="rounded-lg bg-background px-2 py-1">
                               <div className="font-bold text-foreground">
                                 {Object.keys(employee.days).length}
@@ -363,25 +368,25 @@ export default function MonthlyFingerprints({
                                 <span className="text-xs font-bold text-foreground">
                                   {formatDisplayDate(date)}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-xs text-muted-foreground">
                                   تفاصيل البصمة
                                 </span>
                               </div>
-                              <div className="grid grid-cols-1 gap-1.5 text-[11px]">
-                                <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 px-2 py-1.5">
-                                  <span className="font-semibold text-emerald-700">
+                              <div className="grid grid-cols-1 gap-1.5 text-xs">
+                                <div className="flex items-center justify-between gap-2 rounded-lg bg-success/10 px-2 py-1.5">
+                                  <span className="font-semibold text-success-text">
                                     دخول
                                   </span>
                                   <div dir="ltr">
-                                    {renderTimes(day.in, "text-emerald-700")}
+                                    {renderTimes(day.in, "text-success-text ")}
                                   </div>
                                 </div>
-                                <div className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-2 py-1.5">
-                                  <span className="font-semibold text-amber-700">
+                                <div className="flex items-center justify-between gap-2 rounded-lg bg-warning/10 px-2 py-1.5">
+                                  <span className="font-semibold text-warning-text">
                                     خروج
                                   </span>
                                   <div dir="ltr">
-                                    {renderTimes(day.out, "text-amber-700")}
+                                    {renderTimes(day.out, "text-warning-text ")}
                                   </div>
                                 </div>
                                 {day.other.length > 0 && (
@@ -390,7 +395,10 @@ export default function MonthlyFingerprints({
                                       أخرى
                                     </span>
                                     <div dir="ltr">
-                                      {renderTimes(day.other, "text-muted-foreground")}
+                                      {renderTimes(
+                                        day.other,
+                                        "text-muted-foreground",
+                                      )}
                                     </div>
                                   </div>
                                 )}
@@ -418,7 +426,8 @@ export default function MonthlyFingerprints({
           onChange={(event) => setEmployeeSearch(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && applySearch()}
           placeholder="رقم الموظف"
-          className="h-10 w-44 bg-background"
+          aria-label="رقم الموظف"
+          className="h-10 w-full sm:w-44 bg-background"
         />
         <Button onClick={applySearch} className="gap-2">
           <Search className="h-4 w-4" /> بحث
@@ -428,49 +437,26 @@ export default function MonthlyFingerprints({
           onClick={() => monthlyQuery.refetch()}
           disabled={!isValidRange || monthlyQuery.isFetching}
         >
-          <RefreshCw className={`h-4 w-4 ${monthlyQuery.isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${monthlyQuery.isFetching ? "animate-spin" : ""}`}
+          />
           تحديث
         </Button>
-        <Button variant="outline" onClick={exportCsv} disabled={!employees.length}>
+        <Button
+          variant="outline"
+          onClick={exportCsv}
+          disabled={!employees.length}
+        >
           <Download className="h-4 w-4" /> تصدير CSV
         </Button>
-        <Button variant="outline" onClick={printReport} disabled={!employees.length}>
+        <Button
+          variant="outline"
+          onClick={printReport}
+          disabled={!employees.length}
+        >
           <Printer className="h-4 w-4" /> طباعة / PDF
         </Button>
       </ReportToolbar>
-      <Card className="hidden">
-        <CardContent className="flex flex-wrap items-end gap-3 pt-5">
-          <label className="min-w-[10rem] flex-1 space-y-1 sm:flex-none">
-            <span className="block text-xs font-semibold text-muted-foreground">
-              رقم الموظف
-            </span>
-            <Input
-              value={employeeSearch}
-              onChange={(event) => setEmployeeSearch(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && applySearch()}
-              placeholder="كل الموظفين"
-              className="bg-background"
-            />
-          </label>
-          <Button
-            onClick={applySearch}
-            className="gap-2 bg-cyan-600 text-white hover:bg-cyan-700"
-          >
-            <Search className="h-4 w-4" /> بحث
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => monthlyQuery.refetch()}
-            disabled={!isValidRange || monthlyQuery.isFetching}
-            className="gap-2"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${monthlyQuery.isFetching ? "animate-spin" : ""}`}
-            />{" "}
-            تحديث
-          </Button>
-        </CardContent>
-      </Card>
 
       {!isValidRange && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">

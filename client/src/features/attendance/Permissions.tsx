@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocalToday } from "@/hooks/useLocalToday";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, Clock, CheckCircle, Pencil, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
 
+import { askConfirm } from "./askConfirm";
+import { Input } from "@/components/ui/input";
 type PermType = "in" | "out" | "mission";
 
 interface PermForm {
@@ -39,13 +42,18 @@ const displayDate = (value: unknown) => {
   return `${day}/${month}/${year}`;
 };
 
-const today = toLocalIsoDate(new Date());
 const emptyForm = (): PermForm => ({
-  empCd: "", date: today, type: "out", durationMinutes: 60, notAffectSalary: false, note: "",
+  empCd: "",
+  date: toLocalIsoDate(new Date()),
+  type: "out",
+  durationMinutes: 60,
+  notAffectSalary: false,
+  note: "",
 });
 
 export default function Permissions() {
-  const isMobile = useIsMobile();
+  const today = useLocalToday();
+  const isMobile = useIsCompact();
   const [filter, setFilter] = useState({ empCd: "", from: today, to: today });
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -70,7 +78,7 @@ export default function Permissions() {
             : "تم إلغاء طلب إذن الدخول للمستخدمين",
         );
       },
-      onError: (e) => toast.error("خطأ: " + e.message),
+      onError: (e) => toast.error("تعذر تغيير إعداد إذن الدخول: " + e.message),
     });
 
   const onDone = () => {
@@ -81,23 +89,35 @@ export default function Permissions() {
   };
 
   const createMut = trpc.attendance.createPermission.useMutation({
-    onSuccess: () => { onDone(); toast.success("تم إضافة الإذن"); },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onSuccess: () => {
+      onDone();
+      toast.success("تمت إضافة الإذن");
+    },
+    onError: (e) => toast.error("تعذر إضافة الإذن: " + e.message),
   });
 
   const updateMut = trpc.attendance.updatePermission.useMutation({
-    onSuccess: () => { onDone(); toast.success("تم تعديل الإذن"); },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onSuccess: () => {
+      onDone();
+      toast.success("تم تعديل الإذن");
+    },
+    onError: (e) => toast.error("تعذر تعديل الإذن: " + e.message),
   });
 
   const deleteMut = trpc.attendance.deletePermission.useMutation({
-    onSuccess: () => { permsQuery.refetch(); toast.success("تم الحذف"); },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onSuccess: () => {
+      permsQuery.refetch();
+      toast.success("تم الحذف");
+    },
+    onError: (e) => toast.error("تعذر حذف الإذن: " + e.message),
   });
 
   const approveMut = trpc.attendance.approvePermission.useMutation({
-    onSuccess: () => { permsQuery.refetch(); toast.success("تم الاعتماد بنجاح"); },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onSuccess: () => {
+      permsQuery.refetch();
+      toast.success("تم الاعتماد");
+    },
+    onError: (e) => toast.error("تعذر اعتماد الإذن: " + e.message),
   });
 
   const openEdit = (p: any) => {
@@ -121,7 +141,8 @@ export default function Permissions() {
     }
   };
 
-  const employees: { empCd: string; fullName: string }[] = (empsQuery.data?.employees ?? []) as any;
+  const employees: { empCd: string; fullName: string }[] = (empsQuery.data
+    ?.employees ?? []) as any;
   const typeLabel = (t: string) =>
     t === "mission" ? "مأمورية" : t === "in" ? "دخول متأخر" : "خروج مبكر";
   const typeColorClass = (t: string) =>
@@ -134,23 +155,60 @@ export default function Permissions() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <Card className="mb-4">
+      <Card className="attendance-section mb-4">
         <CardContent className="pt-4">
-          <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+          <div
+            className="flex w-fit max-w-full flex-wrap items-end gap-2"
+            dir="rtl"
+          >
             <div>
-              <label htmlFor="attendance-perm-from" className="mb-1 block text-sm font-medium">من</label>
-              <DateInput id="attendance-perm-from" value={filter.from} onChange={(e) => setFilter({ ...filter, from: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
+              <label
+                htmlFor="attendance-perm-from"
+                className="mb-1 block text-sm font-medium"
+              >
+                من
+              </label>
+              <DateInput
+                id="attendance-perm-from"
+                value={filter.from}
+                onChange={(e) => setFilter({ ...filter, from: e.target.value })}
+                className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
+              />
             </div>
             <div>
-              <label htmlFor="attendance-perm-to" className="mb-1 block text-sm font-medium">إلى</label>
-              <DateInput id="attendance-perm-to" value={filter.to} onChange={(e) => setFilter({ ...filter, to: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
+              <label
+                htmlFor="attendance-perm-to"
+                className="mb-1 block text-sm font-medium"
+              >
+                إلى
+              </label>
+              <DateInput
+                id="attendance-perm-to"
+                value={filter.to}
+                onChange={(e) => setFilter({ ...filter, to: e.target.value })}
+                className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
+              />
             </div>
             <div>
-              <label htmlFor="attendance-perm-employee" className="mb-1 block text-sm font-medium">الموظف</label>
-              <select id="attendance-perm-employee" value={filter.empCd} onChange={(e) => setFilter({ ...filter, empCd: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+              <label
+                htmlFor="attendance-perm-employee"
+                className="mb-1 block text-sm font-medium"
+              >
+                الموظف
+              </label>
+              <select
+                id="attendance-perm-employee"
+                value={filter.empCd}
+                onChange={(e) =>
+                  setFilter({ ...filter, empCd: e.target.value })
+                }
+                className="w-full h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
                 <option value="">الكل</option>
                 {employees.map((emp) => (
-                  <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
+                  <option key={emp.empCd} value={emp.empCd}>
+                    {emp.fullName} ({emp.empCd})
+                  </option>
                 ))}
               </select>
             </div>
@@ -168,13 +226,28 @@ export default function Permissions() {
                   setEntryPermissionSetting.isPending
                 }
                 onChange={(event) =>
-                  setEntryPermissionSetting.mutate({ enabled: event.target.checked })
+                  setEntryPermissionSetting.mutate({
+                    enabled: event.target.checked,
+                  })
                 }
               />
             </label>
             <div className="flex gap-2 md:justify-end">
-              <Button onClick={() => permsQuery.refetch()} variant="outline" className="min-h-11 px-4">بحث</Button>
-              <Button onClick={() => { setEditId(null); setForm(emptyForm()); setShowForm(true); }} className="min-h-11 gap-2 px-4">
+              <Button
+                onClick={() => permsQuery.refetch()}
+                variant="outline"
+                className="min-h-11 px-4"
+              >
+                بحث
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditId(null);
+                  setForm(emptyForm());
+                  setShowForm(true);
+                }}
+                className="min-h-11 gap-2 px-4"
+              >
                 <Plus size={16} /> إضافة إذن
               </Button>
             </div>
@@ -185,25 +258,56 @@ export default function Permissions() {
       {showForm && (
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle>{editId !== null ? "تعديل الإذن" : "إضافة إذن جديد"}</CardTitle>
+            <CardTitle>
+              {editId !== null ? "تعديل الإذن" : "إضافة إذن جديد"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label htmlFor="attendance-perm-form-employee" className="block text-sm font-medium mb-1">الموظف</label>
-                <select id="attendance-perm-form-employee" value={form.empCd} onChange={(e) => setForm({ ...form, empCd: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" required disabled={editId !== null}>
+                <label
+                  htmlFor="attendance-perm-form-employee"
+                  className="block text-sm font-medium mb-1"
+                >
+                  الموظف
+                </label>
+                <select
+                  id="attendance-perm-form-employee"
+                  value={form.empCd}
+                  onChange={(e) => setForm({ ...form, empCd: e.target.value })}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  required
+                  disabled={editId !== null}
+                >
                   <option value="">اختر الموظف</option>
                   {employees.map((emp) => (
-                    <option key={emp.empCd} value={emp.empCd}>{emp.fullName} ({emp.empCd})</option>
+                    <option key={emp.empCd} value={emp.empCd}>
+                      {emp.fullName} ({emp.empCd})
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="attendance-perm-form-date" className="block text-sm font-medium mb-1">التاريخ</label>
-                <DateInput id="attendance-perm-form-date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0" />
+                <label
+                  htmlFor="attendance-perm-form-date"
+                  className="block text-sm font-medium mb-1"
+                >
+                  التاريخ
+                </label>
+                <DateInput
+                  id="attendance-perm-form-date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
+                />
               </div>
               <div>
-                <label htmlFor="attendance-perm-form-type" className="block text-sm font-medium mb-1">النوع</label>
+                <label
+                  htmlFor="attendance-perm-form-type"
+                  className="block text-sm font-medium mb-1"
+                >
+                  النوع
+                </label>
                 <select
                   id="attendance-perm-form-type"
                   value={form.type}
@@ -212,10 +316,11 @@ export default function Permissions() {
                     setForm({
                       ...form,
                       type,
-                      durationMinutes: type === "mission" ? 480 : form.durationMinutes,
+                      durationMinutes:
+                        type === "mission" ? 480 : form.durationMinutes,
                     });
                   }}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
                 >
                   <option value="out">خروج مبكر</option>
                   <option value="in">دخول متأخر</option>
@@ -224,53 +329,115 @@ export default function Permissions() {
               </div>
               {form.type === "mission" ? null : (
                 <div>
-                  <label htmlFor="attendance-perm-form-duration" className="block text-sm font-medium mb-1">المدة (دقيقة)</label>
-                  <input id="attendance-perm-form-duration" type="number" min={1} max={480} value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: parseInt(e.target.value) || 60 })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  <label
+                    htmlFor="attendance-perm-form-duration"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    المدة (دقيقة)
+                  </label>
+                  <Input bare
+                    id="attendance-perm-form-duration"
+                    type="number"
+                    min={1}
+                    max={480}
+                    value={form.durationMinutes}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        durationMinutes: parseInt(e.target.value) || 60,
+                      })
+                    }
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
                 </div>
               )}
               <div>
                 <label className="flex items-center gap-2 cursor-pointer select-none pt-6">
-                  <input type="checkbox" checked={form.notAffectSalary} onChange={(e) => setForm({ ...form, notAffectSalary: e.target.checked })} className="h-4 w-4 rounded border-border accent-secondary" />
-                  <span className="text-sm font-medium">لا يؤثر على الراتب</span>
+                  <input
+                    type="checkbox"
+                    checked={form.notAffectSalary}
+                    onChange={(e) =>
+                      setForm({ ...form, notAffectSalary: e.target.checked })
+                    }
+                    className="h-4 w-4 rounded border-border accent-secondary"
+                  />
+                  <span className="text-sm font-medium">
+                    لا يؤثر على الراتب
+                  </span>
                 </label>
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="attendance-perm-form-note" className="block text-sm font-medium mb-1">ملاحظة</label>
-                <input id="attendance-perm-form-note" type="text" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="اختياري" />
+                <label
+                  htmlFor="attendance-perm-form-note"
+                  className="block text-sm font-medium mb-1"
+                >
+                  ملاحظة
+                </label>
+                <Input bare
+                  id="attendance-perm-form-note"
+                  type="text"
+                  value={form.note}
+                  onChange={(e) => setForm({ ...form, note: e.target.value })}
+                  className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
+                  placeholder="اختياري"
+                />
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={handleSubmit} disabled={!form.empCd || isPending}>
-                {isPending ? "جاري الحفظ…" : editId !== null ? "حفظ التعديل" : "حفظ"}
+              <Button
+                onClick={handleSubmit}
+                disabled={!form.empCd || isPending}
+              >
+                {isPending
+                  ? "جاري الحفظ"
+                  : editId !== null
+                    ? "حفظ التعديل"
+                    : "حفظ"}
               </Button>
-              <Button variant="outline" onClick={onDone}>إلغاء</Button>
+              <Button variant="outline" onClick={onDone}>
+                إلغاء
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <Card>
+      <Card className="attendance-section">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" />سجل الأذونات</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            سجل الأذونات
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {permsQuery.isLoading ? (
-            <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
           ) : permsQuery.isError ? (
-            <div className="py-8 text-center text-destructive text-sm">خطأ: {(permsQuery.error as any)?.message ?? "تعذر تحميل الأذونات"}</div>
+            <div className="py-8 text-center text-destructive text-sm">
+              خطأ: {(permsQuery.error as any)?.message ?? "تعذر تحميل الأذونات"}
+            </div>
           ) : !permsQuery.data?.length ? (
-            <div className="py-8 text-center text-muted-foreground">لا توجد أذونات في هذه الفترة</div>
+            <div className="py-8 text-center text-muted-foreground">
+              لا توجد أذونات في هذه الفترة
+            </div>
           ) : isMobile ? (
-            <div className="space-y-2" dir="rtl">
+            <div
+              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              dir="rtl"
+            >
               {(permsQuery.data as any[]).map((p: any) => (
                 <div
                   key={p.id}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
+                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-mono text-xs text-muted-foreground">
-                        {p.empCd}
+                        {p.empCd} · {p.empName ?? "-"}
                       </div>
                       <div
                         className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeColorClass(p.type)}`}
@@ -284,13 +451,13 @@ export default function Permissions() {
                         معتمد
                       </span>
                     ) : (
-                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
+                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning-text">
                         انتظار الموافقة
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
                     <div>
                       <div className="text-muted-foreground">التاريخ</div>
                       <div className="font-medium text-foreground">
@@ -304,7 +471,9 @@ export default function Permissions() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-muted-foreground">يؤثر على الراتب</div>
+                      <div className="text-muted-foreground">
+                        يؤثر على الراتب
+                      </div>
                       <div className="font-medium">
                         {p.notAffectSalary ? (
                           <span className="text-muted-foreground">لا</span>
@@ -316,7 +485,9 @@ export default function Permissions() {
                   </div>
 
                   {p.note ? (
-                    <div className="mt-2 text-xs text-muted-foreground">{p.note}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {p.note}
+                    </div>
                   ) : null}
 
                   <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
@@ -324,7 +495,15 @@ export default function Permissions() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => approveMut.mutate({ id: p.id })}
+                        onClick={async () => {
+                          if (
+                            await askConfirm(
+                              `تأكيد اعتماد إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
+                            )
+                          ) {
+                            approveMut.mutate({ id: p.id });
+                          }
+                        }}
                         disabled={approveMut.isPending}
                         className="min-h-10 px-3 text-success border-success/30"
                       >
@@ -343,7 +522,15 @@ export default function Permissions() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => deleteMut.mutate({ id: p.id })}
+                      onClick={async () => {
+                        if (
+                          await askConfirm(
+                            `تأكيد حذف إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
+                          )
+                        ) {
+                          deleteMut.mutate({ id: p.id });
+                        }
+                      }}
                       disabled={deleteMut.isPending}
                       className="h-10 w-10 p-0"
                       aria-label={`حذف إذن ${p.empCd}`}
@@ -355,51 +542,131 @@ export default function Permissions() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto" dir="rtl">
-              <table dir="rtl" className="min-w-[50rem] w-full text-sm">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+              <table
+                aria-label="سجل الأذونات"
+                dir="rtl"
+                className="min-w-[50rem] w-full text-sm"
+              >
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-right py-3 px-4">الموظف</th>
-                    <th className="text-right py-3 px-4">التاريخ</th>
-                    <th className="text-right py-3 px-4">النوع</th>
-                    <th className="text-right py-3 px-4">المدة</th>
-                    <th className="text-right py-3 px-4">الحالة</th>
-                    <th className="text-right py-3 px-4">يؤثر على الراتب</th>
-                    <th className="text-right py-3 px-4">ملاحظة</th>
-                    <th className="text-right py-3 px-4">الإجراءات</th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      الموظف
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      التاريخ
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      النوع
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      المدة
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      الحالة
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      يؤثر على الراتب
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      ملاحظة
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      الإجراءات
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {(permsQuery.data as any[]).map((p: any) => (
                     <tr key={p.id} className="border-b hover:bg-muted/40">
-                      <td className="py-2 px-4 font-mono">{p.empCd}</td>
-                      <td className="py-2 px-4 tabular-nums" dir="ltr">{displayDate(p.date)}</td>
                       <td className="py-2 px-4">
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeColorClass(p.type)}`}>
+                        <span className="block font-mono text-xs text-muted-foreground">
+                          {p.empCd}
+                        </span>
+                        <span>{p.empName ?? "-"}</span>
+                      </td>
+                      <td className="py-2 px-4 tabular-nums" dir="ltr">
+                        {displayDate(p.date)}
+                      </td>
+                      <td className="py-2 px-4">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeColorClass(p.type)}`}
+                        >
                           {typeLabel(p.type)}
                         </span>
                       </td>
                       <td className="py-2 px-4">{p.durationMinutes} د</td>
                       <td className="py-2 px-4">
                         {p.approved ? (
-                          <span className="flex items-center gap-1 font-medium text-success"><CheckCircle size={14} />معتمد</span>
+                          <span className="flex items-center gap-1 font-medium text-success">
+                            <CheckCircle size={14} />
+                            معتمد
+                          </span>
                         ) : (
-                          <span className="font-medium text-warning">انتظار الموافقة</span>
+                          <span className="font-medium text-warning-text">
+                            انتظار الموافقة
+                          </span>
                         )}
                       </td>
                       <td className="py-2 px-4 text-sm">
-                        {p.notAffectSalary ? <span className="text-muted-foreground">لا</span> : <span className="text-destructive font-medium">نعم</span>}
+                        {p.notAffectSalary ? (
+                          <span className="text-muted-foreground">لا</span>
+                        ) : (
+                          <span className="text-destructive font-medium">
+                            نعم
+                          </span>
+                        )}
                       </td>
-                      <td className="py-2 px-4 text-muted-foreground text-xs">{p.note ?? "—"}</td>
+                      <td className="py-2 px-4 text-muted-foreground text-xs">
+                        {p.note ?? "-"}
+                      </td>
                       <td className="py-2 px-4">
                         <div className="flex gap-1">
                           {!p.approved && (
-                            <Button variant="outline" size="sm" onClick={() => approveMut.mutate({ id: p.id })} disabled={approveMut.isPending} className="min-h-10 px-3 text-success border-success/30">اعتماد</Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                if (
+                                  await askConfirm(
+                                    `تأكيد اعتماد إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
+                                  )
+                                )
+                                  approveMut.mutate({ id: p.id });
+                              }}
+                              disabled={approveMut.isPending}
+                              className="min-h-10 px-3 text-success border-success/30"
+                            >
+                              اعتماد
+                            </Button>
                           )}
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(p)} className="h-10 w-10 p-0" aria-label="تعديل">
-                            <Pencil size={14} className="text-muted-foreground" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(p)}
+                            className="h-10 w-10 p-0"
+                            aria-label="تعديل"
+                          >
+                            <Pencil
+                              size={14}
+                              className="text-muted-foreground"
+                            />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate({ id: p.id })} disabled={deleteMut.isPending} className="h-10 w-10 p-0" aria-label={`حذف إذن ${p.empCd}`}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              if (
+                                await askConfirm(
+                                  `تأكيد حذف إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
+                                )
+                              )
+                                deleteMut.mutate({ id: p.id });
+                            }}
+                            disabled={deleteMut.isPending}
+                            className="h-10 w-10 p-0"
+                            aria-label={`حذف إذن ${p.empCd}`}
+                          >
                             <Trash2 size={15} className="text-destructive" />
                           </Button>
                         </div>

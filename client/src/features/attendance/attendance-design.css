@@ -1,0 +1,275 @@
+@media screen {
+  .attendance-studio[data-operational-module="attendance"] {
+    --attendance-canvas: var(--card);
+    --attendance-surface: var(--card);
+    background: var(--card) !important;
+    padding: 12px;
+  }
+
+  .attendance-studio[data-operational-module="attendance"] .attendance-stage nav.attendance-topnav {
+    gap: 6px !important;
+    padding: 8px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--card) !important;
+    margin-bottom: 20px;
+  }
+
+  .attendance-studio[data-operational-module="attendance"] .attendance-stage nav.attendance-topnav > a {
+    min-height: 44px !important;
+    height: auto !important;
+    padding: 10px 12px !important;
+    border-radius: 8px !important;
+    color: var(--foreground) !important;
+    line-height: 1.5;
+  }
+
+  .attendance-studio[data-operational-module="attendance"] .attendance-stage nav.attendance-topnav > a[aria-current="page"] {
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+  }
+
+  .attendance-studio[data-operational-module="attendance"] #module-content {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card) !important;
+  }
+
+  .attendance-studio #module-content .attendance-home-focused {
+    --day-ink: var(--foreground);
+    --day-muted: var(--muted-foreground);
+    --day-surface: var(--card);
+    --day-tray: var(--muted);
+    --day-accent: var(--primary);
+    --day-line: var(--border);
+    padding-block: 0 !important;
+  }
+
+  .attendance-studio #module-content h1,
+  .attendance-studio #module-content .attendance-day-heading h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.5;
+    color: var(--foreground);
+  }
+
+  .attendance-studio #module-content .attendance-day-heading {
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .attendance-studio #module-content .attendance-home-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .attendance-studio #module-content .attendance-home-actions button {
+    width: auto;
+    height: auto;
+    min-height: 44px;
+    padding: 10px 12px;
+    gap: 8px;
+    border: 1px solid var(--input);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--foreground);
+  }
+
+  .attendance-studio #module-content .attendance-home-actions button:first-child {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    border-color: var(--secondary);
+  }
+
+  .attendance-studio #module-content .attendance-home-actions button:hover {
+    filter: brightness(0.95);
+  }
+
+  .attendance-studio #module-content .attendance-home-ledger {
+    gap: 16px;
+    background: transparent;
+  }
+
+  .attendance-studio #module-content .attendance-home-pane {
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.04);
+  }
+
+  .attendance-studio #module-content .attendance-home-pane-core {
+    padding: 20px;
+    background: transparent;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  .attendance-studio #module-content .attendance-home-net {
+    font-size: 2.25rem;
+    margin-block: 8px 16px;
+    color: var(--primary);
+  }
+
+  .attendance-studio #module-content .attendance-home-entries {
+    gap: 16px;
+    padding-top: 16px;
+  }
+
+  .attendance-studio #module-content .attendance-home-entries dt {
+    font-size: 0.8125rem;
+  }
+
+  .attendance-studio #module-content .attendance-home-entries dd {
+    font-size: 1.125rem;
+    margin-top: 4px;
+  }
+
+  .attendance-studio #module-content .attendance-home-columns {
+    gap: 20px;
+    margin-top: 24px;
+  }
+
+  .attendance-studio #module-content .attendance-register-shell,
+  .attendance-studio #module-content .attendance-home-device {
+    padding: 0;
+    border-radius: 12px;
+    background: var(--card);
+  }
+
+  .attendance-studio #module-content .attendance-today-register,
+  .attendance-studio #module-content .attendance-home-device,
+  .attendance-studio #module-content .attendance-section {
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+    background: var(--card) !important;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.04);
+  }
+
+  .attendance-studio #module-content .attendance-device-core {
+    padding: 20px;
+    background: transparent;
+    border-radius: 12px;
+  }
+
+  .attendance-studio #module-content .attendance-device-core > h2 {
+    margin-bottom: 16px;
+  }
+
+  .attendance-studio #module-content .attendance-panel-heading,
+  .attendance-studio #module-content .attendance-register-filters,
+  .attendance-studio #module-content .attendance-section > :is([data-slot="card-header"], [data-slot="card-content"]) {
+    padding: 16px;
+  }
+
+  .attendance-studio #module-content [role="tablist"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 6px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    background: var(--muted) !important;
+    overflow: visible !important;
+  }
+
+  .attendance-studio #module-content [role="tab"] {
+    height: auto !important;
+    min-height: 44px;
+    padding: 10px 12px !important;
+    border-radius: 7px !important;
+    white-space: normal !important;
+    color: var(--foreground) !important;
+  }
+
+  .attendance-studio #module-content [role="tab"]:is([aria-selected="true"], [data-state="active"]) {
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+  }
+
+  .attendance-studio #module-content table thead th {
+    background: var(--muted);
+    color: var(--foreground);
+    font-weight: 600;
+  }
+}
+
+@media screen and (min-width: 700px) {
+  .attendance-studio[data-operational-module="attendance"] {
+    padding: 20px;
+  }
+
+  .attendance-studio[data-operational-module="attendance"] .attendance-stage nav.attendance-topnav {
+    flex-wrap: wrap !important;
+  }
+
+  .attendance-studio[data-operational-module="attendance"] #module-content {
+    padding: 24px;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .attendance-studio #module-content .attendance-home-ledger {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-studio #module-content .attendance-home-entries {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.attendance-studio .attendance-employee-toolbar {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.attendance-studio .attendance-employee-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.attendance-studio .attendance-employee-filters button {
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-studio .attendance-employee-filters button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground) !important;
+  border-color: var(--primary);
+}
+
+.attendance-studio .attendance-employee-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.attendance-studio .attendance-employee-search input { min-width: 0; }
+.attendance-studio .attendance-employee-card { padding: 16px; box-shadow: none; }
+.attendance-studio .attendance-employee-cards { gap: 16px; }
+.attendance-studio .attendance-employee-actions { gap: 6px; padding-top: 12px; }
+.attendance-studio .attendance-employee-actions button { min-width: 44px; min-height: 44px; }
+
+@media (min-width: 1024px) {
+  .attendance-studio .attendance-employee-toolbar {
+    grid-template-columns: auto minmax(240px, 440px);
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+

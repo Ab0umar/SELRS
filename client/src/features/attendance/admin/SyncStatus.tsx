@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { getLocalToday } from "@/lib/localDate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ import { toast } from "sonner";
 const tRPC = trpc as any;
 
 function fmt(date: string | Date | null | undefined) {
-  if (!date) return "—";
+  if (!date) return "-";
   return new Date(date).toLocaleString("ar-EG", {
     year: "numeric",
     month: "2-digit",
@@ -44,7 +45,7 @@ export default function SyncStatus() {
   const [port, setPort] = useState("");
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
 
-  const runsQ = tRPC.attendance.listSyncRuns?.useQuery?.(
+  const runsQ = tRPC.attendance.syncStatus.useQuery(
     { limit: 8 },
     { refetchInterval: 15000, refetchOnWindowFocus: false },
   );
@@ -65,14 +66,14 @@ export default function SyncStatus() {
       const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const date = new Date().toISOString().slice(0, 10);
+      const date = getLocalToday();
       a.href = url;
       a.download = `punches_${date}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`تم تصدير ${result.count} بصمة بنجاح`);
+      toast.success(`تم تصدير ${result.count} بصمة`);
     },
-    onError: (e: any) => toast.error("خطأ في التصدير: " + e.message),
+    onError: (e: any) => toast.error("تعذر التصدير: " + e.message),
   });
 
   const syncMut = tRPC.attendance.syncFromFKDevice.useMutation({
@@ -86,7 +87,7 @@ export default function SyncStatus() {
       }
     },
     onError: (e: any) => {
-      toast.error("خطأ: " + e.message);
+      toast.error("تعذرت المزامنة: " + e.message);
     },
   });
 
@@ -101,7 +102,7 @@ export default function SyncStatus() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <Card className="border border-border/60 shadow-lg shadow-slate-100/80 bg-card rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
+      <Card className="border border-border/60 bg-card rounded-xl overflow-hidden transition-colors duration-300">
         <CardHeader className="pb-3 border-b border-border/60 bg-muted/40">
           <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-primary/5 text-primary shrink-0">
@@ -111,44 +112,51 @@ export default function SyncStatus() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-5 space-y-4">
-          <div className="flex gap-3">
-            <div className="flex-1 space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground block">عنوان IP (اختياري)</label>
+          <div className="flex flex-wrap gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <label className="text-xs font-bold text-muted-foreground block">
+                عنوان IP (اختياري)
+              </label>
               <Input
+                aria-label="عنوان IP (اختياري)"
                 value={ip}
                 onChange={(e) => setIp(e.target.value)}
                 placeholder="تلقائي من الإعدادات"
                 dir="ltr"
-                className="text-xs border-border/60 focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono py-1.5 h-auto rounded-lg"
+                className="h-11 min-w-0 text-xs border-input focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono rounded-lg"
               />
             </div>
-            <div className="w-24 space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground block">المنفذ</label>
+            <div className="w-full space-y-1 sm:w-24">
+              <label className="text-xs font-bold text-muted-foreground block">
+                المنفذ
+              </label>
               <Input
+                aria-label="المنفذ"
                 value={port}
                 onChange={(e) => setPort(e.target.value)}
                 placeholder="5005"
                 dir="ltr"
-                className="text-xs border-border/60 focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono py-1.5 h-auto rounded-lg"
+                className="h-11 min-w-0 text-xs border-input focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono rounded-lg"
               />
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            * اتركه فارغاً ليقوم النظام بالاتصال مباشرة بعنوان IP المثبت في نموذج الإعدادات.
+          <p className="text-xs text-muted-foreground">
+            * اتركه فارغاً ليقوم النظام بالاتصال مباشرة بعنوان IP المثبت في
+            نموذج الإعدادات.
           </p>
 
           <div className="flex gap-2 pt-2 border-t border-border/60">
             <Button
               onClick={handleSync}
               disabled={busy || exportMut.isPending}
-              className="text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto flex-1 gap-1.5 shadow-md  hover:shadow-lg transition-all"
+              className="text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto flex-1 gap-1.5 transition-colors"
             >
               {busy ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}
-              {busy ? "جاري السحب…" : "سحب البصمات"}
+              {busy ? "جاري السحب" : "سحب البصمات"}
             </Button>
             <Button
               variant="outline"
@@ -167,37 +175,40 @@ export default function SyncStatus() {
               ) : (
                 <FileDown className="h-3.5 w-3.5" />
               )}
-              {exportMut.isPending ? "جاري…" : "تصدير CSV"}
+              {exportMut.isPending ? "جاري" : "تصدير CSV"}
             </Button>
           </div>
 
           {lastResult && (
             <Alert
               variant="default"
-              className={`py-2.5 px-3 text-right animate-in fade-in slide-in-from-top-1 duration-200 ${
+              className={`py-2.5 px-3 text-start  ${
                 lastResult.success
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-md shadow-emerald-50/30"
-                  : "border-rose-200 bg-rose-50 text-rose-800 shadow-md shadow-rose-50/30"
+                  ? "border-success/30  bg-success/10  text-success-text  shadow-emerald-50/30"
+                  : "border-destructive/30  bg-destructive/10  text-destructive-text  shadow-rose-50/30"
               }`}
             >
               {lastResult.success ? (
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 float-right ml-2 mt-0.5" />
+                  <CheckCircle2 className="h-4 w-4 text-success-text float-right me-2 mt-0.5" />
                   <div className="text-xs">
                     <div className="font-bold">تم سحب البيانات بنجاح</div>
-                    <div className="mt-1 space-y-0.5 font-medium opacity-90 text-[11px]">
+                    <div className="mt-1 space-y-0.5 font-medium opacity-90 text-xs">
                       <div>سجلات مقروءة: {lastResult.recordsSeen}</div>
                       <div>سجلات جديدة: {lastResult.recordsInserted}</div>
                       <div>سجلات مكررة: {lastResult.recordsSkipped}</div>
                       {lastResult.duration != null && (
-                        <div>الزمن المستغرق: {(lastResult.duration / 1000).toFixed(1)} ثانية</div>
+                        <div>
+                          الزمن المستغرق:{" "}
+                          {(lastResult.duration / 1000).toFixed(1)} ثانية
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-start gap-2">
-                  <XCircle className="h-4 w-4 text-rose-600 float-right ml-2 mt-0.5" />
+                  <XCircle className="h-4 w-4 text-destructive-text float-right me-2 mt-0.5" />
                   <div className="text-xs">
                     <div className="font-bold">فشل عملية المزامنة</div>
                     <div className="mt-0.5 font-mono">{lastResult.error}</div>
@@ -210,8 +221,29 @@ export default function SyncStatus() {
       </Card>
 
       {/* Recent sync runs timeline */}
-      {runsQ?.data?.runs?.length > 0 && (
-        <Card className="border border-border/60 shadow-lg shadow-slate-100/80 bg-card rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
+      {runsQ?.isLoading ? (
+        <div
+          role="status"
+          className="py-6 text-center text-sm text-muted-foreground"
+        >
+          جارٍ تحميل سجل العمليات.
+        </div>
+      ) : runsQ?.isError ? (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>تعذر تحميل سجل العمليات.</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => runsQ.refetch()}
+            >
+              إعادة المحاولة
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : runsQ?.data?.runs?.length > 0 ? (
+        <Card className="border border-border/60 bg-card rounded-xl overflow-hidden transition-colors duration-300">
           <CardHeader className="pb-2 border-b border-border/60 bg-muted/40 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <div className="p-1 rounded bg-primary/5 text-primary shrink-0">
@@ -226,32 +258,35 @@ export default function SyncStatus() {
               {runsQ.data.runs.map((run: any, i: number) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-xs"
+                  className="flex flex-col gap-1.5 px-4 py-3 hover:bg-muted/40 transition-colors text-xs sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center gap-2">
                     {run.status === "ok" ? (
                       <span className="relative flex h-2 w-2">
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
                       </span>
                     ) : (
                       <span className="relative flex h-2 w-2">
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
                       </span>
                     )}
-                    <span className="text-muted-foreground font-mono text-[10px]">
+                    <span className="text-muted-foreground font-mono text-xs">
                       {fmt(run.startedAt)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 font-mono text-[10px]">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs">
                     <span className="text-muted-foreground">
-                      سجلات: {run.recordsSeen ?? 0}
+                      سجلات: {run.rowsSeen ?? 0}
                     </span>
-                    <span className="font-bold text-emerald-600">
-                      +{run.recordsInserted ?? 0}
+                    <span className="font-bold text-success-text">
+                      +{run.rowsInserted ?? 0}
                     </span>
-                    {run.errorMessage && (
-                      <span className="text-rose-500 truncate max-w-[120px]" title={run.errorMessage}>
-                        {run.errorMessage}
+                    {run.error && (
+                      <span
+                        className="min-w-0 break-words text-destructive-text sm:max-w-xs"
+                        title={run.error}
+                      >
+                        {run.error}
                       </span>
                     )}
                   </div>
@@ -260,6 +295,10 @@ export default function SyncStatus() {
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          لا توجد عمليات مزامنة بعد.
+        </p>
       )}
     </div>
   );

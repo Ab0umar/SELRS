@@ -41,6 +41,7 @@ import {
   attendanceSyncRuns,
   attendancePunches,
   attendanceDaily,
+  attendanceOvertimeDays,
   attendanceEmployees,
   attendanceLeaves,
   attendanceShifts,
@@ -55,7 +56,9 @@ import {
   attendanceShiftChangeRequests,
 } from "../../drizzle/schema";
 import { isNull } from "drizzle-orm";
-import { desc, eq, and, or, gte, lte, lt, max, count, sql } from "drizzle-orm";
+import { desc, eq, and, or, inArray, gte, lte, lt, max, count, sql } from "drizzle-orm";
+import { aggregateAttendanceDays } from "../services/attendance/dailyAggregation";
+import { getAttendanceDepartmentValues } from "../services/attendance/departmentFilter";
 
 export const attendanceReportsRoutes = {
   monthlyReport: makeAttProcedure("/attendance/reports")
@@ -140,7 +143,6 @@ export const attendanceReportsRoutes = {
         toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         empCd: z.string().optional(),
         department: z.string().optional(),
-        limit: z.number().int().min(1).max(50000).default(10000),
       }),
     )
     .query(async ({ input }) => {
@@ -158,9 +160,9 @@ export const attendanceReportsRoutes = {
         throw new Error("الفترة لا يمكن أن تتجاوز 366 يومًا");
       }
 
-      const fromDate = new Date(`${input.fromDate}T00:00:00.000Z`);
-      const toDateExclusive = new Date(`${input.toDate}T00:00:00.000Z`);
-      toDateExclusive.setUTCDate(toDateExclusive.getUTCDate() + 1);
+      const fromDate = new Date(`${input.fromDate}T00:00:00`);
+      const toDateExclusive = new Date(`${input.toDate}T00:00:00`);
+      toDateExclusive.setDate(toDateExclusive.getDate() + 1);
       const conditions: any[] = [
         gte(attendancePunches.punchAt, fromDate),
         lt(attendancePunches.punchAt, toDateExclusive),
@@ -171,29 +173,41 @@ export const attendanceReportsRoutes = {
       }
       if (input.department) {
         conditions.push(
-          or(
-            eq(attendanceEmployees.department, input.department),
-            eq(attendanceEmployees.department, "المركز والعيادة"),
+          inArray(
+            attendanceEmployees.department,
+            getAttendanceDepartmentValues(input.department),
           ),
         );
       }
 
-      const punches = await db
-        .select({
-          empCd: attendancePunches.empCd,
-          empName: attendanceEmployees.fullName,
-          department: attendanceEmployees.department,
-          punchAt: attendancePunches.punchAt,
-          direction: attendancePunches.direction,
-        })
-        .from(attendancePunches)
-        .leftJoin(
-          attendanceEmployees,
-          eq(attendancePunches.empCd, attendanceEmployees.empCd),
-        )
-        .where(and(...conditions))
-        .orderBy(attendancePunches.empCd, attendancePunches.punchAt)
-        .limit(input.limit);
+      const punches: any[] = [];
+      const pageSize = 5000;
+      for (let offset = 0; ; offset += pageSize) {
+        const page = await db
+          .select({
+            id: attendancePunches.id,
+            empCd: attendancePunches.empCd,
+            empName: attendanceEmployees.fullName,
+            department: attendanceEmployees.department,
+            punchAt: attendancePunches.punchAt,
+            direction: attendancePunches.direction,
+          })
+          .from(attendancePunches)
+          .leftJoin(
+            attendanceEmployees,
+            eq(attendancePunches.empCd, attendanceEmployees.empCd),
+          )
+          .where(and(...conditions))
+          .orderBy(
+            attendancePunches.empCd,
+            attendancePunches.punchAt,
+            attendancePunches.id,
+          )
+          .limit(pageSize)
+          .offset(offset);
+        punches.push(...page);
+        if (page.length < pageSize) break;
+      }
 
       type DayPunches = { in: string[]; out: string[]; other: string[] };
       type EmployeePunches = {
@@ -208,13 +222,14 @@ export const attendanceReportsRoutes = {
       const grouped = new Map<string, EmployeePunches>();
       for (const punch of punches) {
         const punchAt = new Date(punch.punchAt);
-        const dateKey = punchAt.toISOString().slice(0, 10);
+        const dateKey = `${punchAt.getFullYear()}-${String(punchAt.getMonth() + 1).padStart(2, "0")}-${String(punchAt.getDate()).padStart(2, "0")}`;
         const employee: EmployeePunches = grouped.get(punch.empCd) ?? {
           empCd: punch.empCd,
           empName: punch.empName ?? "-",
           department: punch.department ?? null,
           section:
             punch.department === "عيادة" ||
+            punch.department === "العيادة" ||
             punch.department === "clinic" ||
             punch.department === "المركز والعيادة"
               ? "clinic"
@@ -242,14 +257,14 @@ export const attendanceReportsRoutes = {
               86_400_000,
           ) + 1,
         totalPunches: punches.length,
-        truncated: punches.length >= input.limit,
+        truncated: false,
         employees: Array.from(grouped.values()).sort((a, b) =>
           a.empCd.localeCompare(b.empCd, undefined, { numeric: true }),
         ),
       };
     }),
 
-  rangeReport: makeAttProcedure("/attendance")
+  rangeReport: makeAttProcedure(["/attendance", "/attendance/reports"])
     .input(
       z.object({
         from: z.string(),
@@ -278,20 +293,25 @@ export const attendanceReportsRoutes = {
       ];
       if (input.department) {
         conditions.push(
-          or(
-            eq(attendanceEmployees.department, input.department),
-            eq(attendanceEmployees.department, "المركز والعيادة"),
+          inArray(
+            attendanceEmployees.department,
+            getAttendanceDepartmentValues(input.department),
           ),
         );
       }
-      const daily = await db
+      const shiftRows = await db
         .select({
           empCd: attendanceDaily.empCd,
           empName: attendanceEmployees.fullName,
+          shiftId: attendanceDaily.shiftId,
+          workDate: attendanceDaily.workDate,
           status: attendanceDaily.status,
           lateMinutes: attendanceDaily.lateMinutes,
           earlyLeaveMin: attendanceDaily.earlyLeaveMin,
-          overtimeMinutes: attendanceDaily.overtimeMinutes,
+          overtimeInMinutes: attendanceDaily.overtimeInMinutes,
+          overtimeOutMinutes: attendanceDaily.overtimeOutMinutes,
+          overtimeInEnabled: attendanceOvertimeDays.inEnabled,
+          overtimeOutEnabled: attendanceOvertimeDays.outEnabled,
           workedMinutes: attendanceDaily.workedMinutes,
         })
         .from(attendanceDaily)
@@ -299,19 +319,62 @@ export const attendanceReportsRoutes = {
           attendanceEmployees,
           eq(attendanceDaily.empCd, attendanceEmployees.empCd),
         )
+        .leftJoin(
+          attendanceOvertimeDays,
+          and(
+            eq(attendanceDaily.empCd, attendanceOvertimeDays.empCd),
+            eq(attendanceDaily.workDate, attendanceOvertimeDays.workDate),
+          ),
+        )
         .where(and(...conditions))
-        .limit(input.limit);
+        .orderBy(attendanceDaily.workDate, attendanceDaily.empCd, attendanceDaily.shiftId)
+        .then((rows: any[]) =>
+          // Overtime only counts where the day's toggle enables it (as payroll does).
+          rows.map((row) => ({
+            ...row,
+            overtimeMinutes:
+              (row.overtimeInEnabled ? Number(row.overtimeInMinutes ?? 0) : 0) +
+              (row.overtimeOutEnabled ? Number(row.overtimeOutMinutes ?? 0) : 0),
+          })),
+        );
+
+      const employeeNames = new Map(
+        shiftRows.map((row: any) => [row.empCd, row.empName]),
+      );
+      const daily = aggregateAttendanceDays(shiftRows as any[]);
+      const paidHolidayKeys = new Set(
+        (
+          await db
+            .select({ date: attendanceHolidays.date, paid: attendanceHolidays.paid })
+            .from(attendanceHolidays)
+            .where(
+              and(
+                gte(attendanceHolidays.date, input.from as any),
+                lte(attendanceHolidays.date, input.to as any),
+              ),
+            )
+        )
+          .filter((h: any) => h.paid)
+          .map((h: any) => fmtDate(h.date as any)),
+      );
 
       const grouped = new Map<string, any>();
       for (const d of daily) {
+        // A leave row on a rest day (no scheduled shift) is not a leave day.
+        if (d.status === "leave" && !d.scheduled) continue;
+        // A leave that spans an official holiday counts that day as the holiday.
+        if (d.status === "leave" && paidHolidayKeys.has(String(d.workDate))) {
+          d.status = "holiday";
+        }
         if (!grouped.has(d.empCd))
           grouped.set(d.empCd, {
             empCd: d.empCd,
-            empName: d.empName,
+            empName: employeeNames.get(d.empCd) ?? null,
             totalDays: 0,
             presentDays: 0,
             absentDays: 0,
             leaveDays: 0,
+            holidayDays: 0,
             totalLateMins: 0,
             totalEarlyMins: 0,
             totalOTMins: 0,
@@ -327,13 +390,14 @@ export const attendanceReportsRoutes = {
           a.presentDays++;
         else if (d.status === "absent") a.absentDays++;
         else if (d.status === "leave") a.leaveDays++;
+        else if (d.status === "holiday") a.holidayDays++;
         a.totalLateMins += d.lateMinutes ?? 0;
         a.totalEarlyMins += d.earlyLeaveMin ?? 0;
         a.totalOTMins += d.overtimeMinutes ?? 0;
         a.totalWorkedMins += d.workedMinutes ?? 0;
       }
-      return Array.from(grouped.values()).sort((a, b) =>
-        a.empCd.localeCompare(b.empCd),
-      );
+      return Array.from(grouped.values())
+        .sort((a, b) => a.empCd.localeCompare(b.empCd))
+        .slice(0, input.limit);
     }),
 };

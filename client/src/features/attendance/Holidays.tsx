@@ -6,12 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, CalendarDays, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
 
+import { askConfirm } from "./askConfirm";
+import { Input } from "@/components/ui/input";
 const EGYPT_HOLIDAYS_2026 = [
   { date: "2026-01-07", label: "عيد الميلاد المجيد (أقباط)" },
   { date: "2026-01-25", label: "عيد ثورة 25 يناير" },
-  { date: "2026-03-21", label: "عيد الأم" },
   { date: "2026-03-20", label: "عيد الفطر المبارك (يوم 1)" },
   { date: "2026-03-21", label: "عيد الفطر المبارك (يوم 2)" },
   { date: "2026-03-22", label: "عيد الفطر المبارك (يوم 3)" },
@@ -28,7 +29,7 @@ const EGYPT_HOLIDAYS_2026 = [
 ];
 
 export default function Holidays() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompact();
   const [year, setYear] = useState(new Date().getFullYear());
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ date: "", label: "", paid: true });
@@ -37,33 +38,36 @@ export default function Holidays() {
   const [editRow, setEditRow] = useState({ label: "", paid: true });
 
   const holidaysQuery = trpc.attendance.listHolidays.useQuery({ year });
+  const seedMut = trpc.attendance.seedHolidays.useMutation();
   const addMut = trpc.attendance.addHoliday.useMutation({
     onSuccess: () => {
       setShowForm(false);
       setEditingDate(null);
       setForm({ date: "", label: "", paid: true });
       holidaysQuery.refetch();
-      toast.success(editingDate ? "تم التعديل" : "تم إضافة العطلة");
+      toast.success(editingDate ? "تم التعديل" : "تمت إضافة العطلة");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر إضافة العطلة: " + e.message),
   });
   const deleteMut = trpc.attendance.deleteHoliday.useMutation({
     onSuccess: () => {
       holidaysQuery.refetch();
       toast.success("تم الحذف");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر حذف العطلة: " + e.message),
   });
 
   const seedEgyptHolidays = async () => {
     setSeeding(true);
     try {
-      for (const h of EGYPT_HOLIDAYS_2026) {
-        await addMut.mutateAsync({ date: h.date, label: h.label, paid: true });
-      }
-      toast.success("تم إضافة الإجازات الرسمية المصرية لعام 2026");
+      const seeded = await seedMut.mutateAsync({
+        holidays: EGYPT_HOLIDAYS_2026,
+      });
+      toast.success(
+        `تمت إضافة ${seeded.added} عطلة؛ العطلات الموجودة لم تتغير`,
+      );
     } catch (e: any) {
-      toast.error("خطأ أثناء الإضافة: " + e.message);
+      toast.error("تعذرت إضافة عطلات مصر: " + e.message);
     } finally {
       setSeeding(false);
       holidaysQuery.refetch();
@@ -73,15 +77,15 @@ export default function Holidays() {
   const holidays: any[] = (holidaysQuery.data as any[]) ?? [];
 
   return (
-    <div className="w-full p-6" dir="rtl">
-
+    <div className="w-full min-w-0" dir="rtl">
       {/* Controls */}
-      <Card className="mb-4">
+      <Card className="attendance-section mb-4">
         <CardContent className="pt-4">
           <div className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-sm font-medium mb-1">السنة</label>
-              <input
+              <Input bare
+                aria-label="السنة"
                 type="number"
                 min={2020}
                 max={2099}
@@ -100,9 +104,9 @@ export default function Holidays() {
               onClick={seedEgyptHolidays}
               variant="secondary"
               disabled={seeding}
-              className="mr-auto"
+              className="ms-auto"
             >
-              {seeding ? "جاري الإضافة…" : "إضافة إجازات مصر 2026"}
+              {seeding ? "جاري الإضافة" : "إضافة إجازات مصر 2026"}
             </Button>
           </div>
         </CardContent>
@@ -115,7 +119,10 @@ export default function Holidays() {
             <CardTitle>إضافة عطلة رسمية</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+            <div
+              className="flex w-fit max-w-full flex-wrap items-end gap-2"
+              dir="rtl"
+            >
               <div>
                 <label className="block text-sm font-medium mb-1">
                   التاريخ
@@ -123,12 +130,13 @@ export default function Holidays() {
                 <DateInput
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md h-11 w-[11rem] shrink-0"
+                  className="w-full px-3 py-2 border rounded-md h-11 w-full sm:w-[11rem] shrink-0"
                 />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">الاسم</label>
-                <input
+                <Input bare
+                  aria-label="الاسم"
                   type="text"
                   value={form.label}
                   onChange={(e) => setForm({ ...form, label: e.target.value })}
@@ -153,7 +161,7 @@ export default function Holidays() {
                 onClick={() => addMut.mutate(form)}
                 disabled={!form.date || !form.label || addMut.isPending}
               >
-                {addMut.isPending ? "جاري الحفظ…" : "حفظ"}
+                {addMut.isPending ? "جاري الحفظ" : "حفظ"}
               </Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>
                 إلغاء
@@ -164,7 +172,7 @@ export default function Holidays() {
       )}
 
       {/* Table */}
-      <Card>
+      <Card className="attendance-section">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarDays className="w-5 h-5" />
@@ -183,20 +191,23 @@ export default function Holidays() {
               لا توجد إجازات لهذا العام
             </div>
           ) : isMobile ? (
-            <div className="space-y-2" dir="rtl">
+            <div
+              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              dir="rtl"
+            >
               {holidays.map((h: any) => {
                 const isEditing = editingDate === h.date;
                 return (
                   <div
                     key={h.date}
-                    className={`rounded-2xl border p-3 shadow-xs ${isEditing ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                    className={`rounded-xl border p-3 shadow-xs ${isEditing ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
                   >
                     <div className="font-mono text-xs text-muted-foreground">
                       {h.date}
                     </div>
                     {isEditing ? (
                       <div className="mt-2 space-y-2">
-                        <input
+                        <Input bare
                           value={editRow.label}
                           onChange={(e) =>
                             setEditRow({ ...editRow, label: e.target.value })
@@ -217,7 +228,7 @@ export default function Holidays() {
                           <option value="0">غير مدفوعة</option>
                         </select>
                         <div className="flex justify-end gap-1">
-                          <Button
+                          <Button aria-label="حفظ العطلة" title="حفظ العطلة"
                             variant="ghost"
                             size="sm"
                             disabled={addMut.isPending}
@@ -247,11 +258,14 @@ export default function Holidays() {
                           {h.paid ? (
                             <span className="text-xs text-success">مدفوعة</span>
                           ) : (
-                            <span className="text-xs text-muted-foreground">غير مدفوعة</span>
+                            <span className="text-xs text-muted-foreground">
+                              غير مدفوعة
+                            </span>
                           )}
                         </div>
                         <div className="flex gap-1">
                           <Button
+                            aria-label="تعديل"
                             variant="ghost"
                             size="sm"
                             onClick={() => {
@@ -262,9 +276,18 @@ export default function Holidays() {
                             <Pencil size={15} className="text-primary" />
                           </Button>
                           <Button
+                            aria-label="حذف"
                             variant="ghost"
                             size="sm"
-                            onClick={() => deleteMut.mutate({ date: h.date })}
+                            onClick={async () => {
+                              if (
+                                await askConfirm(
+                                  `تأكيد حذف الإجازة الرسمية ${h.label} بتاريخ ${h.date}؟`,
+                                )
+                              ) {
+                                deleteMut.mutate({ date: h.date });
+                              }
+                            }}
                             disabled={deleteMut.isPending}
                           >
                             <Trash2 size={15} className="text-destructive" />
@@ -277,14 +300,24 @@ export default function Holidays() {
               })}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" dir="rtl">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+              <table
+                aria-label="العطلات الرسمية"
+                className="w-full text-sm"
+                dir="rtl"
+              >
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="text-right py-3 px-4">التاريخ</th>
-                    <th className="text-right py-3 px-4">اسم العطلة</th>
-                    <th className="text-right py-3 px-4">مدفوعة</th>
-                    <th className="text-right py-3 px-4"></th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      التاريخ
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      اسم العطلة
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      مدفوعة
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -299,7 +332,7 @@ export default function Holidays() {
                         {isEditing ? (
                           <>
                             <td className="py-2 px-2">
-                              <input
+                              <Input bare
                                 value={editRow.label}
                                 onChange={(e) =>
                                   setEditRow({
@@ -327,7 +360,7 @@ export default function Holidays() {
                             </td>
                             <td className="py-2 px-2">
                               <div className="flex gap-1">
-                                <Button
+                                <Button aria-label="حفظ العطلة" title="حفظ العطلة"
                                   variant="ghost"
                                   size="sm"
                                   disabled={addMut.isPending}
@@ -346,7 +379,10 @@ export default function Holidays() {
                                   size="sm"
                                   onClick={() => setEditingDate(null)}
                                 >
-                                  <X size={15} className="text-muted-foreground" />
+                                  <X
+                                    size={15}
+                                    className="text-muted-foreground"
+                                  />
                                 </Button>
                               </div>
                             </td>
@@ -358,12 +394,15 @@ export default function Holidays() {
                               {h.paid ? (
                                 <span className="text-success">نعم</span>
                               ) : (
-                                <span className="text-muted-foreground">لا</span>
+                                <span className="text-muted-foreground">
+                                  لا
+                                </span>
                               )}
                             </td>
                             <td className="py-2 px-4">
                               <div className="flex gap-1">
                                 <Button
+                                  aria-label="تعديل"
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
@@ -377,11 +416,18 @@ export default function Holidays() {
                                   <Pencil size={15} className="text-primary" />
                                 </Button>
                                 <Button
+                                  aria-label="حذف"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() =>
-                                    deleteMut.mutate({ date: h.date })
-                                  }
+                                  onClick={async () => {
+                                    if (
+                                      await askConfirm(
+                                        `تأكيد حذف الإجازة الرسمية ${h.label} بتاريخ ${h.date}؟`,
+                                      )
+                                    ) {
+                                      deleteMut.mutate({ date: h.date });
+                                    }
+                                  }}
                                   disabled={deleteMut.isPending}
                                 >
                                   <Trash2

@@ -42,7 +42,9 @@ export const AttendanceRoutes = (
         path={ROUTES.attendanceMy}
         component={() => (
           <ProtectedRoute>
-            <AttendanceMyProfile />
+            <AttendanceLayout>
+              <AttendanceMyProfile />
+            </AttendanceLayout>
           </ProtectedRoute>
         )}
       />

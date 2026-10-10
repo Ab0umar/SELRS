@@ -1,6 +1,8 @@
 import { useRoute } from "wouter";
+import { askNote } from "./askConfirm";
+import { AttendanceStatusBadge } from "./attendanceStatus";
 import { ROUTES } from "../../../../shared/routes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,17 +21,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
+import { toLocalDateKey } from "@/lib/localDate";
+import { useLocalToday } from "@/hooks/useLocalToday";
+import { Input } from "@/components/ui/input";
 
-const todayStr = new Date().toISOString().split("T")[0];
-const firstOfMonth = new Date(
-  new Date().getFullYear(),
-  new Date().getMonth(),
-  1,
-)
-  .toISOString()
-  .split("T")[0];
-const thisYear = new Date().getFullYear();
+const dateKey = toLocalDateKey;
 const DAYS_FULL = [
   "الأحد",
   "الاثنين",
@@ -40,25 +37,8 @@ const DAYS_FULL = [
   "السبت",
 ];
 
-const STATUS_AR: Record<string, string> = {
-  present: "حاضر",
-  absent: "غائب",
-  leave: "إجازة",
-  partial: "جزئي",
-  holiday: "عطلة",
-  missing_checkout: "بدون خروج",
-};
-const STATUS_CLS: Record<string, string> = {
-  present: "bg-success/10 text-success",
-  absent: "bg-destructive/10 text-destructive",
-  leave: "bg-primary/10 text-primary",
-  partial: "bg-warning/10 text-warning",
-  holiday: "bg-secondary/10 text-primary",
-  missing_checkout: "bg-muted text-muted-foreground",
-};
-
 function fmt(date: string | Date | null): string {
-  if (!date) return "—";
+  if (!date) return "-";
   return new Date(date).toLocaleTimeString("ar-EG", {
     hour: "2-digit",
     minute: "2-digit",
@@ -66,19 +46,20 @@ function fmt(date: string | Date | null): string {
 }
 
 export default function EmployeeDetail() {
-  const isMobile = useIsMobile();
+  const todayStr = useLocalToday();
+  const firstOfMonth = `${todayStr.slice(0, 7)}-01`;
+  const thisYear = Number(todayStr.slice(0, 4));
+  const isMobile = useIsCompact();
   const [, params] = useRoute("/attendance/employees/:empCd");
   const empCd = params?.empCd ?? "";
 
-  // Date range for attendance history
   const [dateRange, setDateRange] = useState({
-    fromDate: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
+    fromDate: dateKey(
+      new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
+    ),
     toDate: todayStr,
   });
 
-  // Permission request form
   const [permForm, setPermForm] = useState({
     date: todayStr,
     type: "out" as "in" | "out",
@@ -87,7 +68,6 @@ export default function EmployeeDetail() {
     note: "",
   });
 
-  // Leave request form
   const [leaveForm, setLeaveForm] = useState({
     dateFrom: todayStr,
     dateTo: todayStr,
@@ -98,11 +78,10 @@ export default function EmployeeDetail() {
   const [permMsg, setPermMsg] = useState<string | null>(null);
   const [leaveMsg, setLeaveMsg] = useState<string | null>(null);
 
-  // Shift change request form state
   const [shiftForm, setShiftForm] = useState({
     requestType: "daily" as "daily" | "weekly" | "monthly" | "swap",
     newShiftId: 0,
-    weekdayMask: 62, // default Sun-Thu
+    weekdayMask: 31, // bits 0-4: Sun-Thu
     cycleId: 0,
     swapEmpCd: "",
     dateFrom: todayStr,
@@ -128,8 +107,10 @@ export default function EmployeeDetail() {
     }));
   };
 
-  // Queries
-  const employeeQuery = (trpc as any).attendance.employeesList.useQuery();
+  // includeFormer: a terminated employee's page must still load.
+  const employeeQuery = (trpc as any).attendance.employeesList.useQuery({
+    includeFormer: true,
+  });
   const employee = employeeQuery.data?.employees?.find(
     (e: any) => e.empCd === empCd,
   );
@@ -138,14 +119,13 @@ export default function EmployeeDetail() {
     { empCd, ...dateRange },
     { enabled: !!empCd },
   );
-
-  const leaveBalanceQuery = (trpc as any).attendance.leaveBalance.useQuery(
-    { empCd, year: thisYear },
+  const currentMonthQuery = trpc.attendance.dailyByEmployee.useQuery(
+    { empCd, fromDate: firstOfMonth, toDate: todayStr },
     { enabled: !!empCd },
   );
 
-  const permReportQuery = (trpc as any).attendance.permissionReport.useQuery(
-    { from: firstOfMonth, to: todayStr },
+  const leaveBalanceQuery = (trpc as any).attendance.leaveBalance.useQuery(
+    { empCd, year: thisYear },
     { enabled: !!empCd },
   );
 
@@ -168,11 +148,9 @@ export default function EmployeeDetail() {
   const cycles = cyclesQuery.data ?? [];
   const employees = employeeQuery.data?.employees ?? [];
 
-  // Mutations
   const createPermMut = (trpc as any).attendance.createPermission.useMutation({
     onSuccess: () => {
       setPermMsg("✓ تم حفظ الإذن");
-      permReportQuery.refetch();
       permListQuery.refetch();
       setPermForm({
         date: todayStr,
@@ -210,7 +188,7 @@ export default function EmployeeDetail() {
       setShiftForm({
         requestType: "daily",
         newShiftId: 0,
-        weekdayMask: 62,
+        weekdayMask: 31,
         cycleId: 0,
         swapEmpCd: "",
         dateFrom: todayStr,
@@ -228,9 +206,9 @@ export default function EmployeeDetail() {
     onSuccess: () => {
       shiftRequestsQuery.refetch();
       dailyQuery.refetch();
-      toast.success("تم اعتماد تعديل الموعد بنجاح");
+      toast.success("تم اعتماد تعديل الموعد");
     },
-    onError: (err: any) => toast.error(`خطأ أثناء الاعتماد: ${err.message}`),
+    onError: (err: any) => toast.error(`تعذر اعتماد الطلب: ${err.message}`),
   });
 
   const rejectShiftMut = (
@@ -240,12 +218,11 @@ export default function EmployeeDetail() {
       shiftRequestsQuery.refetch();
       toast.success("تم رفض تعديل الموعد");
     },
-    onError: (err: any) => toast.error(`خطأ أثناء الرفض: ${err.message}`),
+    onError: (err: any) => toast.error(`تعذر رفض الطلب: ${err.message}`),
   });
 
-  // Compute current-month stats from daily records
   const thisMonthPrefix = firstOfMonth.slice(0, 7);
-  const monthlyRecords = (dailyQuery.data ?? []).filter((r: any) =>
+  const monthlyRecords = (currentMonthQuery.data ?? []).filter((r: any) =>
     String(r.workDate).startsWith(thisMonthPrefix),
   );
   const monthStats = {
@@ -259,15 +236,22 @@ export default function EmployeeDetail() {
     ),
   };
 
-  // Permission stats for current month
-  const empPermRow = (permReportQuery.data ?? []).find(
-    (r: any) => r.empCd === empCd,
+  // This month's approved permissions, from this employee's own list.
+  const monthPerms = ((permListQuery.data ?? []) as any[]).filter(
+    (p) =>
+      p.approved &&
+      String(p.date) >= firstOfMonth &&
+      String(p.date) <= todayStr,
   );
+  const sumMins = (type: string) =>
+    monthPerms
+      .filter((p) => p.type === type)
+      .reduce((s, p) => s + Number(p.durationMinutes ?? 0), 0);
   const permStats = {
-    inMins: empPermRow?.totalInMins ?? 0,
-    outMins: empPermRow?.totalOutMins ?? 0,
-    inCount: empPermRow?.inCount ?? 0,
-    outCount: empPermRow?.outCount ?? 0,
+    inMins: sumMins("in"),
+    outMins: sumMins("out"),
+    inCount: monthPerms.filter((p) => p.type === "in").length,
+    outCount: monthPerms.filter((p) => p.type === "out").length,
   };
 
   const leaveBalance = leaveBalanceQuery.data;
@@ -283,9 +267,48 @@ export default function EmployeeDetail() {
     );
   }
 
+  if (employeeQuery.isError) {
+    return (
+      <div
+        role="alert"
+        className="flex flex-col items-center gap-3 p-8 text-center"
+      >
+        <p className="font-bold text-foreground">تعذر تحميل بيانات الموظف.</p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => employeeQuery.refetch()}
+        >
+          إعادة المحاولة
+        </Button>
+      </div>
+    );
+  }
+
+  if (employeeQuery.isLoading) {
+    return (
+      <div
+        role="status"
+        aria-label="جارٍ تحميل بيانات الموظف"
+        className="space-y-4 p-6"
+      >
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <div role="alert" className="p-8 text-center text-muted-foreground">
+        لم يتم العثور على الموظف المطلوب.
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6" dir="rtl">
-      {/* Header */}
+    <div className="mx-auto min-w-0 max-w-6xl space-y-6" dir="rtl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link
@@ -296,7 +319,7 @@ export default function EmployeeDetail() {
           </Link>
           {employee ? (
             <>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-2xl font-semibold text-foreground">
                 {employee.fullName}
               </h1>
               <p className="text-sm text-muted-foreground font-mono">
@@ -316,7 +339,7 @@ export default function EmployeeDetail() {
         )}
       </div>
 
-      {/* ── Info Card ── */}
+      {/* Info Card */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Left column: stats */}
         <div className="space-y-4">
@@ -335,10 +358,10 @@ export default function EmployeeDetail() {
                 <>
                   {/* Annual */}
                   <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="mb-2 text-xs font-semibold text-muted-foreground">
                       إجازة سنوية
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
                       <div>
                         <div className="text-lg font-bold text-foreground">
                           {leaveBalance.annualAllocation}
@@ -367,7 +390,7 @@ export default function EmployeeDetail() {
                     {/* Progress bar */}
                     <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-primary transition-all"
+                        className="h-full rounded-full bg-primary transition-colors"
                         style={{
                           width: `${Math.min(100, (leaveBalance.usedDays / leaveBalance.annualAllocation) * 100)}%`,
                         }}
@@ -385,12 +408,12 @@ export default function EmployeeDetail() {
           <Card className="border-border">
             <CardHeader className="pb-2 pt-4">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <Clock className="h-4 w-4 text-warning" />
+                <Clock className="h-4 w-4 text-warning-text" />
                 إحصائيات هذا الشهر
               </CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <StatPill
                   icon={<TrendingUp className="h-3.5 w-3.5" />}
                   label="تأخير"
@@ -439,10 +462,9 @@ export default function EmployeeDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pb-4">
-              {/* Type toggle */}
               <div className="flex overflow-hidden rounded-md border border-border">
                 {(["out", "in"] as const).map((t) => (
-                  <button
+                  <Button variant="bare"
                     key={t}
                     type="button"
                     onClick={() => setPermForm({ ...permForm, type: t })}
@@ -453,11 +475,11 @@ export default function EmployeeDetail() {
                     }`}
                   >
                     {t === "out" ? "إذن خروج" : "إذن دخول"}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <label className="block text-xs font-medium text-muted-foreground">
                     التاريخ
@@ -474,7 +496,8 @@ export default function EmployeeDetail() {
                   <label className="block text-xs font-medium text-muted-foreground">
                     المدة (دقيقة)
                   </label>
-                  <input
+                  <Input bare
+                    aria-label="المدة (دقيقة)"
                     type="number"
                     min={1}
                     max={480}
@@ -494,7 +517,8 @@ export default function EmployeeDetail() {
                 <label className="block text-xs font-medium text-muted-foreground">
                   ملاحظة
                 </label>
-                <input
+                <Input bare
+                  aria-label="ملاحظة"
                   type="text"
                   value={permForm.note}
                   onChange={(e) =>
@@ -510,11 +534,16 @@ export default function EmployeeDetail() {
                   type="checkbox"
                   checked={permForm.notAffectSalary}
                   onChange={(e) =>
-                    setPermForm({ ...permForm, notAffectSalary: e.target.checked })
+                    setPermForm({
+                      ...permForm,
+                      notAffectSalary: e.target.checked,
+                    })
                   }
                   className="h-4 w-4 rounded border-border accent-secondary"
                 />
-                <span className="text-sm text-muted-foreground">لا يؤثر على الراتب</span>
+                <span className="text-sm text-muted-foreground">
+                  لا يؤثر على الراتب
+                </span>
               </label>
 
               <Button
@@ -526,12 +555,14 @@ export default function EmployeeDetail() {
                 disabled={createPermMut.isPending}
                 className="w-full"
               >
-                <CheckCircle2 className="ml-2 h-4 w-4" />
-                {createPermMut.isPending ? "جارٍ الحفظ…" : "حفظ الإذن"}
+                <CheckCircle2 className="me-2 h-4 w-4" />
+                {createPermMut.isPending ? "جارٍ الحفظ" : "حفظ الإذن"}
               </Button>
 
               {permMsg && (
                 <p
+                  role="status"
+                  aria-live="polite"
                   className={`text-center text-xs font-medium ${permMsg.startsWith("✓") ? "text-success" : "text-destructive"}`}
                 >
                   {permMsg}
@@ -550,80 +581,132 @@ export default function EmployeeDetail() {
             </CardHeader>
             <CardContent className="p-0">
               {permListQuery.isLoading ? (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">جارٍ التحميل…</p>
+                <p
+                  role="status"
+                  className="px-4 py-6 text-center text-sm text-muted-foreground"
+                >
+                  جارٍ التحميل
+                </p>
               ) : !permListQuery.data?.length ? (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">لا توجد أذونات مسجلة</p>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  لا توجد أذونات مسجلة
+                </p>
               ) : isMobile ? (
-                <div className="space-y-2 p-3">
+                <div className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0 p-3">
                   {(permListQuery.data as any[]).map((p: any) => (
                     <div
                       key={p.id}
-                      className="rounded-2xl border border-border bg-background p-3 shadow-xs"
+                      className="rounded-xl border border-border bg-background p-3 shadow-xs"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-xs text-muted-foreground">
-                          {p.date instanceof Date ? p.date.toLocaleDateString("ar-EG") : String(p.date ?? "")}
+                          {p.date instanceof Date
+                            ? p.date.toLocaleDateString("ar-EG")
+                            : String(p.date ?? "")}
                         </span>
                         <span
                           className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${
                             p.type === "mission"
                               ? "bg-info/15 text-info"
                               : p.type === "out"
-                                ? "bg-warning/15 text-warning"
+                                ? "bg-warning/15 text-warning-text"
                                 : "bg-primary/15 text-foreground"
                           }`}
                         >
-                          {p.type === "mission" ? "مأمورية" : p.type === "out" ? "خروج" : "دخول"}
+                          {p.type === "mission"
+                            ? "مأمورية"
+                            : p.type === "out"
+                              ? "خروج"
+                              : "دخول"}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{p.durationMinutes} د</span>
-                        {p.notAffectSalary
-                          ? <span className="text-muted-foreground">لا يؤثر على الراتب</span>
-                          : <span className="text-destructive">يؤثر على الراتب</span>}
+                        <span className="text-muted-foreground">
+                          {p.durationMinutes} د
+                        </span>
+                        {p.notAffectSalary ? (
+                          <span className="text-muted-foreground">
+                            لا يؤثر على الراتب
+                          </span>
+                        ) : (
+                          <span className="text-destructive">
+                            يؤثر على الراتب
+                          </span>
+                        )}
                       </div>
                       {p.note && (
-                        <div className="mt-1 text-xs text-muted-foreground">{p.note}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {p.note}
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+                  <table aria-label="أذونات الموظف" className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-                        <th className="px-3 py-2 text-right">التاريخ</th>
-                        <th className="px-3 py-2 text-right">النوع</th>
-                        <th className="px-3 py-2 text-right">المدة</th>
-                        <th className="px-3 py-2 text-right">يؤثر على الراتب</th>
-                        <th className="px-3 py-2 text-right">ملاحظة</th>
+                        <th scope="col" className="px-3 py-2 text-start">
+                          التاريخ
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-start">
+                          النوع
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-start">
+                          المدة
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-start">
+                          يؤثر على الراتب
+                        </th>
+                        <th scope="col" className="px-3 py-2 text-start">
+                          ملاحظة
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {(permListQuery.data as any[]).map((p: any) => (
-                        <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                          <td className="px-3 py-2 font-mono text-xs">{p.date instanceof Date ? p.date.toLocaleDateString("ar-EG") : String(p.date ?? "")}</td>
+                        <tr
+                          key={p.id}
+                          className="border-b border-border/50 hover:bg-muted/20"
+                        >
+                          <td className="px-3 py-2 font-mono text-xs">
+                            {p.date instanceof Date
+                              ? p.date.toLocaleDateString("ar-EG")
+                              : String(p.date ?? "")}
+                          </td>
                           <td className="px-3 py-2">
                             <span
                               className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${
                                 p.type === "mission"
                                   ? "bg-info/15 text-info"
                                   : p.type === "out"
-                                    ? "bg-warning/15 text-warning"
+                                    ? "bg-warning/15 text-warning-text"
                                     : "bg-primary/15 text-foreground"
                               }`}
                             >
-                              {p.type === "mission" ? "مأمورية" : p.type === "out" ? "خروج" : "دخول"}
+                              {p.type === "mission"
+                                ? "مأمورية"
+                                : p.type === "out"
+                                  ? "خروج"
+                                  : "دخول"}
                             </span>
                           </td>
                           <td className="px-3 py-2">{p.durationMinutes} د</td>
                           <td className="px-3 py-2">
-                            {p.notAffectSalary
-                              ? <span className="text-xs text-muted-foreground">لا</span>
-                              : <span className="text-xs text-destructive">نعم</span>}
+                            {p.notAffectSalary ? (
+                              <span className="text-xs text-muted-foreground">
+                                لا
+                              </span>
+                            ) : (
+                              <span className="text-xs text-destructive">
+                                نعم
+                              </span>
+                            )}
                           </td>
-                          <td className="px-3 py-2 text-muted-foreground">{p.note || "—"}</td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {p.note || "-"}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -642,10 +725,9 @@ export default function EmployeeDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pb-4">
-              {/* Type toggle */}
               <div className="flex overflow-hidden rounded-md border border-border">
                 {(["annual", "sick"] as const).map((t) => (
-                  <button
+                  <Button variant="bare"
                     key={t}
                     type="button"
                     onClick={() => setLeaveForm({ ...leaveForm, type: t })}
@@ -656,11 +738,11 @@ export default function EmployeeDetail() {
                     }`}
                   >
                     {t === "annual" ? "سنوية" : "مرضية"}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <label className="block text-xs font-medium text-muted-foreground">
                     من
@@ -692,7 +774,8 @@ export default function EmployeeDetail() {
                 <label className="block text-xs font-medium text-muted-foreground">
                   ملاحظة
                 </label>
-                <input
+                <Input bare
+                  aria-label="ملاحظة"
                   type="text"
                   value={leaveForm.note}
                   onChange={(e) =>
@@ -712,12 +795,14 @@ export default function EmployeeDetail() {
                 disabled={createLeaveMut.isPending}
                 className="w-full"
               >
-                <CheckCircle2 className="ml-2 h-4 w-4" />
-                {createLeaveMut.isPending ? "جارٍ الحفظ…" : "حفظ الإجازة"}
+                <CheckCircle2 className="me-2 h-4 w-4" />
+                {createLeaveMut.isPending ? "جارٍ الحفظ" : "حفظ الإجازة"}
               </Button>
 
               {leaveMsg && (
                 <p
+                  role="status"
+                  aria-live="polite"
                   className={`text-center text-xs font-medium ${leaveMsg.startsWith("✓") ? "text-success" : "text-destructive"}`}
                 >
                   {leaveMsg}
@@ -730,7 +815,7 @@ export default function EmployeeDetail() {
           <Card className="border-border">
             <CardHeader className="pb-2 pt-4">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <Clock className="h-4 w-4 text-warning" />
+                <Clock className="h-4 w-4 text-warning-text" />
                 طلب تغيير / تبديل موعد
               </CardTitle>
             </CardHeader>
@@ -740,6 +825,7 @@ export default function EmployeeDetail() {
                   نوع التغيير المطلوب
                 </label>
                 <select
+                  aria-label="نوع التغيير المطلوب"
                   value={shiftForm.requestType}
                   onChange={(e) =>
                     setShiftForm({
@@ -756,7 +842,7 @@ export default function EmployeeDetail() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">
                     من تاريخ
@@ -817,6 +903,7 @@ export default function EmployeeDetail() {
                       الوردية المطلوبة
                     </label>
                     <select
+                      aria-label="الوردية المطلوبة"
                       value={shiftForm.newShiftId || ""}
                       onChange={(e) =>
                         setShiftForm({
@@ -828,7 +915,7 @@ export default function EmployeeDetail() {
                       }
                       className={inputCls}
                     >
-                      <option value="">— اختر الوردية —</option>
+                      <option value="">اختر الوردية</option>
                       {shifts.map((s: any) => (
                         <option key={s.id} value={s.id}>
                           {s.name} ({s.startTime} - {s.endTime})
@@ -847,18 +934,18 @@ export default function EmployeeDetail() {
                       {DAYS_FULL.map((name, index) => {
                         const active = weeklyDays.has(index);
                         return (
-                          <button
+                          <Button variant="bare"
                             key={index}
                             type="button"
                             onClick={() => toggleWeeklyDay(index)}
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${
                               active
                                 ? "bg-primary border-primary text-primary-foreground shadow-xs"
                                 : "bg-background border-border text-muted-foreground hover:bg-muted"
                             }`}
                           >
                             {name}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -871,6 +958,7 @@ export default function EmployeeDetail() {
                       الدورة المطلوبة
                     </label>
                     <select
+                      aria-label="الدورة المطلوبة"
                       value={shiftForm.cycleId || ""}
                       onChange={(e) =>
                         setShiftForm({
@@ -882,7 +970,7 @@ export default function EmployeeDetail() {
                       }
                       className={inputCls}
                     >
-                      <option value="">— اختر الدورة —</option>
+                      <option value="">اختر الدورة</option>
                       {cycles.map((c: any) => (
                         <option key={c.id} value={c.id}>
                           {c.name} (
@@ -904,6 +992,7 @@ export default function EmployeeDetail() {
                       الزميل المراد التبادل معه
                     </label>
                     <select
+                      aria-label="الزميل المراد التبادل معه"
                       value={shiftForm.swapEmpCd}
                       onChange={(e) =>
                         setShiftForm({
@@ -913,7 +1002,7 @@ export default function EmployeeDetail() {
                       }
                       className={inputCls}
                     >
-                      <option value="">— اختر الزميل —</option>
+                      <option value="">اختر الزميل</option>
                       {employees
                         .filter((e: any) => e.empCd !== empCd)
                         .map((emp: any) => (
@@ -929,7 +1018,8 @@ export default function EmployeeDetail() {
                   <label className="text-xs font-medium text-muted-foreground">
                     ملاحظة أو سبب الطلب
                   </label>
-                  <input
+                  <Input bare
+                    aria-label="ملاحظة أو سبب الطلب"
                     type="text"
                     value={shiftForm.note}
                     placeholder="اختياري"
@@ -983,12 +1073,14 @@ export default function EmployeeDetail() {
                 disabled={createShiftMut.isPending}
                 className="w-full"
               >
-                <CheckCircle2 className="ml-2 h-4 w-4" />
-                {createShiftMut.isPending ? "جاري الحفظ…" : "حفظ الطلب"}
+                <CheckCircle2 className="me-2 h-4 w-4" />
+                {createShiftMut.isPending ? "جاري الحفظ" : "حفظ الطلب"}
               </Button>
 
               {shiftMsg && (
                 <p
+                  role="status"
+                  aria-live="polite"
                   className={`text-center text-xs font-medium ${shiftMsg.startsWith("✓") ? "text-success" : "text-destructive"}`}
                 >
                   {shiftMsg}
@@ -999,7 +1091,7 @@ export default function EmployeeDetail() {
         </div>
       </div>
 
-      {/* ── Shift Change Requests List ── */}
+      {/* Shift Change Requests List */}
       <Card className="border-border">
         <CardHeader className="pb-2 pt-4">
           <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
@@ -1015,7 +1107,7 @@ export default function EmployeeDetail() {
               لا توجد طلبات تغيير مواعيد مسجلة
             </p>
           ) : isMobile ? (
-            <div className="space-y-2">
+            <div className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0">
               {shiftRequestsQuery.data.map((r: any) => {
                 const typeAr =
                   r.requestType === "daily"
@@ -1028,7 +1120,7 @@ export default function EmployeeDetail() {
 
                 let details = "";
                 if (r.requestType === "daily" || r.requestType === "weekly") {
-                  details = `الوردية: ${r.newShiftName || "—"}`;
+                  details = `الوردية: ${r.newShiftName || "-"}`;
                   if (r.requestType === "weekly" && r.weekdayMask) {
                     const days = [];
                     for (let i = 0; i < 7; i++) {
@@ -1037,15 +1129,15 @@ export default function EmployeeDetail() {
                     details += ` (${days.join("، ")})`;
                   }
                 } else if (r.requestType === "monthly") {
-                  details = `الدورة: ${r.cycleName || "—"}`;
+                  details = `الدورة: ${r.cycleName || "-"}`;
                 } else if (r.requestType === "swap") {
-                  details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || "—"}`;
+                  details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || "-"}`;
                 }
 
                 return (
                   <div
                     key={r.id}
-                    className="rounded-2xl border border-border bg-background p-3 shadow-xs"
+                    className="rounded-xl border border-border bg-background p-3 shadow-xs"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -1062,7 +1154,7 @@ export default function EmployeeDetail() {
                             ? "bg-success/10 text-success"
                             : r.status === "rejected"
                               ? "bg-destructive/10 text-destructive"
-                              : "bg-warning/10 text-warning"
+                              : "bg-warning/10 text-warning-text"
                         }`}
                       >
                         {r.status === "approved"
@@ -1073,7 +1165,9 @@ export default function EmployeeDetail() {
                       </span>
                     </div>
                     {details && (
-                      <div className="mt-2 text-xs text-foreground">{details}</div>
+                      <div className="mt-2 text-xs text-foreground">
+                        {details}
+                      </div>
                     )}
                     {r.note && (
                       <div className="mt-1 text-xs text-muted-foreground">
@@ -1096,8 +1190,10 @@ export default function EmployeeDetail() {
                           size="sm"
                           variant="destructive"
                           className="h-9 px-3 text-xs"
-                          onClick={() => {
-                            const note = prompt("ملاحظة الرفض (اختياري):");
+                          onClick={async () => {
+                            const note = await askNote(
+                              "ملاحظة الرفض (اختياري)",
+                            );
                             if (note !== null) {
                               rejectShiftMut.mutate({ requestId: r.id, note });
                             }
@@ -1113,26 +1209,44 @@ export default function EmployeeDetail() {
               })}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+              <table aria-label="طلبات تغيير الموعد" className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       نوع الطلب
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       الفترة
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       التفاصيل
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       ملاحظات
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       الحالة
                     </th>
-                    <th className="px-4 py-3 text-center font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-center font-semibold text-foreground"
+                    >
                       الإجراءات
                     </th>
                   </tr>
@@ -1153,7 +1267,7 @@ export default function EmployeeDetail() {
                       r.requestType === "daily" ||
                       r.requestType === "weekly"
                     ) {
-                      details = `الوردية: ${r.newShiftName || "—"}`;
+                      details = `الوردية: ${r.newShiftName || "-"}`;
                       if (r.requestType === "weekly" && r.weekdayMask) {
                         const days = [];
                         for (let i = 0; i < 7; i++) {
@@ -1162,9 +1276,9 @@ export default function EmployeeDetail() {
                         details += ` (${days.join("، ")})`;
                       }
                     } else if (r.requestType === "monthly") {
-                      details = `الدورة: ${r.cycleName || "—"}`;
+                      details = `الدورة: ${r.cycleName || "-"}`;
                     } else if (r.requestType === "swap") {
-                      details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || "—"}`;
+                      details = `تبادل مع: ${r.swapEmpName || r.swapEmpCd || "-"}`;
                     }
 
                     return (
@@ -1182,7 +1296,7 @@ export default function EmployeeDetail() {
                           {details}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">
-                          {r.note || "—"}
+                          {r.note || "-"}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -1191,7 +1305,7 @@ export default function EmployeeDetail() {
                                 ? "bg-success/10 text-success"
                                 : r.status === "rejected"
                                   ? "bg-destructive/10 text-destructive"
-                                  : "bg-warning/10 text-warning"
+                                  : "bg-warning/10 text-warning-text"
                             }`}
                           >
                             {r.status === "approved"
@@ -1218,9 +1332,9 @@ export default function EmployeeDetail() {
                                 size="sm"
                                 variant="destructive"
                                 className="h-7 px-2.5 text-xs"
-                                onClick={() => {
-                                  const note = prompt(
-                                    "ملاحظة الرفض (اختياري):",
+                                onClick={async () => {
+                                  const note = await askNote(
+                                    "ملاحظة الرفض (اختياري)",
                                   );
                                   if (note !== null) {
                                     rejectShiftMut.mutate({
@@ -1236,7 +1350,7 @@ export default function EmployeeDetail() {
                             </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">
-                              —
+                              -
                             </span>
                           )}
                         </td>
@@ -1250,7 +1364,7 @@ export default function EmployeeDetail() {
         </CardContent>
       </Card>
 
-      {/* ── Attendance History ── */}
+      {/* Attendance History */}
       <Card className="border-border">
         <CardHeader className="pb-2 pt-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -1268,7 +1382,7 @@ export default function EmployeeDetail() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, fromDate: e.target.value })
                   }
-                  className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none h-11 w-[11rem] shrink-0"
+                  className="bg-background text-xs text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-2 py-1.5"
                 />
               </div>
               <div className="space-y-1">
@@ -1280,7 +1394,7 @@ export default function EmployeeDetail() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, toDate: e.target.value })
                   }
-                  className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none h-11 w-[11rem] shrink-0"
+                  className="bg-background text-xs text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-2 py-1.5"
                 />
               </div>
               <Button
@@ -1289,6 +1403,15 @@ export default function EmployeeDetail() {
                 onClick={() => dailyQuery.refetch()}
               >
                 تحديث
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => window.print()}
+                aria-label="طباعة سجل حضور الموظف أو حفظه بصيغة PDF"
+              >
+                طباعة / حفظ PDF
               </Button>
             </div>
           </div>
@@ -1300,47 +1423,66 @@ export default function EmployeeDetail() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
+          ) : dailyQuery.isError ? (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-3 py-6 text-sm"
+            >
+              <span>تعذر تحميل سجل الحضور لهذه الفترة.</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => dailyQuery.refetch()}
+              >
+                إعادة المحاولة
+              </Button>
+            </div>
           ) : !dailyQuery.data?.length ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               لا توجد سجلات في هذه الفترة
             </p>
           ) : isMobile ? (
-            <div className="space-y-2">
+            <div className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0">
               {dailyQuery.data.map((r: any) => (
                 <div
-                  key={r.workDate}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
+                  key={`${r.workDate}-${r.shiftId}`}
+                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs text-muted-foreground">
                       {r.workDate}
                     </span>
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_CLS[r.status] ?? "bg-muted text-muted-foreground"}`}
-                    >
-                      {STATUS_AR[r.status] ?? r.status}
-                    </span>
+                    <AttendanceStatusBadge status={r.status} />
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
                     <div>
                       <div className="text-muted-foreground">دخول</div>
-                      <div className="font-medium text-foreground">{fmt(r.firstIn)}</div>
+                      <div className="font-medium text-foreground">
+                        {fmt(r.firstIn)}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">خروج</div>
-                      <div className="font-medium text-foreground">{fmt(r.lastOut)}</div>
+                      <div className="font-medium text-foreground">
+                        {fmt(r.lastOut)}
+                      </div>
                     </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">
-                      عمل: {r.workedMinutes ?? "—"} د
+                      عمل: {r.workedMinutes ?? "-"} د
                     </span>
                     <span className="flex items-center gap-2">
                       {r.lateMinutes > 0 && (
-                        <span className="font-semibold text-destructive">تأخير {r.lateMinutes} د</span>
+                        <span className="font-semibold text-destructive">
+                          تأخير {r.lateMinutes} د
+                        </span>
                       )}
                       {r.earlyLeaveMin > 0 && (
-                        <span className="font-semibold text-warning">مبكر {r.earlyLeaveMin} د</span>
+                        <span className="font-semibold text-warning-text">
+                          مبكر {r.earlyLeaveMin} د
+                        </span>
                       )}
                     </span>
                   </div>
@@ -1348,29 +1490,50 @@ export default function EmployeeDetail() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+              <table aria-label="سجل حضور الموظف" className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       التاريخ
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       دخول
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       خروج
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       عمل (د)
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-destructive">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-destructive"
+                    >
                       تأخير
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-warning">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-warning-text"
+                    >
                       مبكر
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-start font-semibold text-foreground"
+                    >
                       الحالة
                     </th>
                   </tr>
@@ -1378,7 +1541,7 @@ export default function EmployeeDetail() {
                 <tbody>
                   {dailyQuery.data.map((r: any) => (
                     <tr
-                      key={r.workDate}
+                      key={`${r.workDate}-${r.shiftId}`}
                       className="border-b transition-colors hover:bg-muted/20"
                     >
                       <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
@@ -1391,7 +1554,7 @@ export default function EmployeeDetail() {
                         {fmt(r.lastOut)}
                       </td>
                       <td className="px-4 py-2 text-foreground">
-                        {r.workedMinutes ?? "—"}
+                        {r.workedMinutes ?? "-"}
                       </td>
                       <td className="px-4 py-2">
                         {r.lateMinutes > 0 ? (
@@ -1399,24 +1562,20 @@ export default function EmployeeDetail() {
                             {r.lateMinutes} د
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </td>
                       <td className="px-4 py-2">
                         {r.earlyLeaveMin > 0 ? (
-                          <span className="font-semibold text-warning">
+                          <span className="font-semibold text-warning-text">
                             {r.earlyLeaveMin} د
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </td>
                       <td className="px-4 py-2">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_CLS[r.status] ?? "bg-muted text-muted-foreground"}`}
-                        >
-                          {STATUS_AR[r.status] ?? r.status}
-                        </span>
+                        <AttendanceStatusBadge status={r.status} />
                       </td>
                     </tr>
                   ))}
@@ -1444,7 +1603,7 @@ function StatPill({
   const cls = {
     primary: "border-primary/20 bg-primary/5 text-primary",
     secondary: "border-secondary/20 bg-secondary/5 text-primary",
-    warning: "border-warning/30 bg-warning/5 text-warning",
+    warning: "border-warning/30 bg-warning/5 text-warning-text",
     destructive: "border-destructive/20 bg-destructive/5 text-destructive",
     muted: "border-border bg-muted/30 text-muted-foreground",
   }[tone];
