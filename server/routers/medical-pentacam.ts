@@ -43,7 +43,8 @@ import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
 import { assertPentacamViewPermission } from "./_medical/service-helpers";
 import { getBuildInfo } from "../_core/buildInfo";
-import { copyObjectInS3, deleteFromS3, listObjectsInS3 } from "../_core/s3";
+import { copyObjectInS3, listObjectsInS3 } from "../_core/s3";
+import { deleteDuplicateUploadRecords } from "./_medical/delete-duplicate-uploads";
 import {
   backfillPapatSrvNamesInMssql,
   deletePatientFromMssqlByCode,
@@ -990,49 +991,23 @@ export const medicalPentacamRoutes = {
   deleteSrv100UploadsByIds: adminProcedure
     .input(
       z.object({
-        ids: z.array(z.number()),
+        ids: z.array(z.number().int().positive()),
         deleteFromS3: z.boolean().optional(),
         deleteLocalFile: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input }) => {
-      if (!input.ids.length) return { deleted: 0, s3Deleted: 0 };
-
-      // Fetch file info before deleting
-      const rows = await db.getSrv100UploadsByIds(input.ids);
-
-      // Delete from S3
-      let s3Deleted = 0;
-      if (input.deleteFromS3) {
-        for (const row of rows) {
-          const key = String(row.s3_key ?? row.file_name ?? "").trim();
-          if (!key) continue;
-          try {
-            await deleteFromS3(key);
-            s3Deleted++;
-          } catch {
-            // best-effort
-          }
+      try {
+        return await deleteDuplicateUploadRecords(input.ids, {
+          findDuplicates: db.findDuplicateSrv100Uploads,
+          deleteRecords: db.deleteSrv100UploadsByIds,
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("يمكن حذف السجلات")) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
         }
+        throw error;
       }
-
-      // Delete local file
-      if (input.deleteLocalFile) {
-        const fs = await import("fs/promises");
-        for (const row of rows) {
-          const filePath = String(row.file_name ?? "").trim();
-          if (!filePath) continue;
-          try {
-            await fs.unlink(filePath);
-          } catch {
-            // best-effort
-          }
-        }
-      }
-
-      // Delete from DB
-      const deleted = await db.deleteSrv100UploadsByIds(input.ids);
-      return { deleted, s3Deleted };
     }),
 };
 

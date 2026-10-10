@@ -4828,9 +4828,16 @@ export async function findDuplicateSrv100Uploads() {
         FROM srv100_uploads a
         JOIN srv100_uploads b
           ON a.id < b.id
-          AND LOWER(SUBSTRING_INDEX(a.file_name, '/', -1)) = LOWER(SUBSTRING_INDEX(b.file_name, '/', -1))
+          AND BINARY a.s3_key = BINARY b.s3_key
+          AND a.patient_id <=> b.patient_id
         LEFT JOIN patients p ON a.patient_id = p.id
-        WHERE a.file_name IS NOT NULL AND b.file_name IS NOT NULL
+        WHERE a.s3_key IS NOT NULL AND TRIM(a.s3_key) <> ''
+          AND NOT EXISTS (
+            SELECT 1 FROM srv100_uploads earlier
+            WHERE earlier.id < a.id
+              AND BINARY earlier.s3_key = BINARY a.s3_key
+              AND earlier.patient_id <=> a.patient_id
+          )
         ORDER BY a.file_name, a.id`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
