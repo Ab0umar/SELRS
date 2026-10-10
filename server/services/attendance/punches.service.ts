@@ -7,7 +7,7 @@
 import * as crypto from "crypto";
 import { getDb } from "../../db";
 import { attendancePunches } from "../../../drizzle/schema";
-import { eq, and, gte, lt, sql, asc } from "drizzle-orm";
+import { eq, and, gte, lt, sql, asc, inArray } from "drizzle-orm";
 import { RawPunch } from "./sources/AttendanceSource";
 
 export class PunchesService {
@@ -58,7 +58,7 @@ export class PunchesService {
         code: err?.code,
         errno: err?.errno,
       });
-      return false;
+      throw err;
     }
   }
 
@@ -87,7 +87,7 @@ export class PunchesService {
       direction: punch.direction ?? "unknown",
       deviceId: null,
       source: "manual",
-      sourceRowId: null,
+      sourceRowId: punch.sourceRowId ?? null,
       sourceHash,
       insertedBy,
       note,
@@ -106,14 +106,26 @@ export class PunchesService {
   static async getPunchesByRange(
     fromDate: Date,
     toDate: Date,
-    empCd?: string,
+    empCd?: string | string[],
     source?: "access" | "tcp" | "manual",
     dbOverride?: any,
   ): Promise<any[]> {
     const db = dbOverride ?? (await getDb());
     if (!db) throw new Error("Database not available");
 
-    const endDate = new Date(toDate.getTime() + 24 * 60 * 60 * 1000);
+    const endDate = new Date(toDate);
+    // Existing callers use either the same date for an inclusive one-day
+    // range or an exclusive next-day boundary for multi-day ranges.
+    if (
+      fromDate.getFullYear() === endDate.getFullYear() &&
+      fromDate.getMonth() === endDate.getMonth() &&
+      fromDate.getDate() === endDate.getDate()
+    ) {
+      endDate.setHours(0, 0, 0, 0);
+      endDate.setDate(endDate.getDate() + 1);
+    } else {
+      endDate.setHours(0, 0, 0, 0);
+    }
 
     const conditions = [
       gte(attendancePunches.punchAt, fromDate),
@@ -121,7 +133,10 @@ export class PunchesService {
     ];
 
     if (empCd) {
-      conditions.push(eq(attendancePunches.empCd, empCd));
+      if (Array.isArray(empCd)) {
+        if (empCd.length === 0) return [];
+        conditions.push(inArray(attendancePunches.empCd, empCd));
+      } else conditions.push(eq(attendancePunches.empCd, empCd));
     }
 
     if (source) {

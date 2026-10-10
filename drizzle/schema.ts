@@ -15,6 +15,7 @@ import {
   index,
 } from "drizzle-orm/mysql-core";
 import { uniqueIndex } from "drizzle-orm/mysql-core";
+import { attendanceTimestamp } from "./attendanceTimestamp";
 /**
  * Core user table with local authentication (username/password)
  */
@@ -1635,7 +1636,7 @@ export const attendancePunches = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     empCd: varchar("emp_cd", { length: 32 }).notNull(),
-    punchAt: timestamp("punch_at").notNull(),
+    punchAt: attendanceTimestamp("punch_at").notNull(),
     direction: mysqlEnum("direction", ["in", "out", "unknown"])
       .default("unknown")
       .notNull(),
@@ -1655,6 +1656,10 @@ export const attendancePunches = mysqlTable(
     ),
     idxEmpTime: index("idx_emp_time").on(table.empCd, table.punchAt),
     idxPunchAt: index("idx_punch_at").on(table.punchAt),
+    idxDevicePunchAt: index("idx_punch_device_at").on(
+      table.deviceId,
+      table.punchAt,
+    ),
     idxSource: index("idx_source").on(table.source),
   }),
 );
@@ -1823,8 +1828,8 @@ export const attendanceDaily = mysqlTable(
     empCd: varchar("emp_cd", { length: 32 }).notNull(),
     workDate: date("work_date").notNull(),
     shiftId: int("shift_id").default(0).notNull(),
-    firstIn: timestamp("first_in"),
-    lastOut: timestamp("last_out"),
+    firstIn: attendanceTimestamp("first_in"),
+    lastOut: attendanceTimestamp("last_out"),
     workedMinutes: int("worked_minutes"),
     lateMinutes: int("late_minutes").default(0).notNull(),
     earlyLeaveMin: int("early_leave_min").default(0).notNull(),
@@ -1978,6 +1983,7 @@ export const attendanceDeviceSettings = mysqlTable(
     commPassword: int("comm_password").default(0).notNull(),
     admsEnabled: boolean("adms_enabled").default(true).notNull(),
     admsDetectedOffsetHours: int("adms_detected_offset_hours"),
+    admsDetectedOffsetsByDevice: text("adms_detected_offsets_by_device"),
   },
 );
 

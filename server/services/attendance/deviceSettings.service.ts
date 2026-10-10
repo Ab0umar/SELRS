@@ -28,15 +28,14 @@ export interface DeviceSettings {
   commPassword?: number; // Comm Key / Net Pwd on the device
   admsEnabled?: boolean; // accept ADMS push for this device
   admsDetectedOffsetHours?: number | null; // auto-detected ADMS clock drift (K40 only)
+  admsDetectedOffsetsByDevice?: Record<string, number>; // serial -> auto-detected clock drift
 }
 
 // Verified working LAN address for the EF10K device (FK_DLL_DISCOVERY.md) — used
 // as the fallback when ATTENDANCE_DEVICE_IP isn't set.
 const EF10K_DEFAULT_IP = "41.199.252.107";
 
-// Connection fields (ip, port, comm key) come from environment variables only —
-// never from the DB — so device wiring lives in one place (.env) and can't drift
-// out of sync with what's actually reachable on the LAN.
+// Connection fields (ip, port, comm key) come from .env only, never the DB.
 function ef10kEnvConfig() {
   return {
     ip: process.env.ATTENDANCE_DEVICE_IP || EF10K_DEFAULT_IP,
@@ -72,18 +71,59 @@ let k40Settings: DeviceSettings = {
   zk40Protocol: "tcp",
   fkProtocol: 0,
   admsEnabled: true,
+  admsDetectedOffsetsByDevice: {},
 };
 
 let settingsLoaded = false;
+let fkLastAttempt: Date | null = null;
+let fkLastConnected: Date | null = null;
+let fkOnline = false;
+let k40Connection = {
+  connected: false,
+  lastConnected: null as Date | null,
+  connectionError: null as string | null,
+};
 
 export class DeviceSettingsService {
+  static reportFKConnection(connected: boolean): void {
+    fkLastAttempt = new Date();
+    fkOnline = connected;
+    if (connected) fkLastConnected = fkLastAttempt;
+  }
+
+  static getFKLastConnected(): Date | null {
+    return fkLastConnected;
+  }
+  static reportK40Connection(
+    connected: boolean,
+    connectionError: string | null = null,
+  ): void {
+    k40Connection = {
+      connected,
+      lastConnected: connected ? new Date() : k40Connection.lastConnected,
+      connectionError,
+    };
+  }
+
+  static getK40ConnectionStatus() {
+    return {
+      ...k40Connection,
+      connected:
+        k40Settings.enabled &&
+        k40Connection.connected &&
+        !!k40Connection.lastConnected &&
+        Date.now() - k40Connection.lastConnected.getTime() < 30 * 60_000,
+    };
+  }
   static async initializeSettings(): Promise<void> {
     if (settingsLoaded) return;
 
     try {
       const db = await getDb();
       if (!db) {
-        console.warn("[DeviceSettings] Database not available, using environment defaults");
+        console.warn(
+          "[DeviceSettings] Database not available, using environment defaults",
+        );
         settingsLoaded = true;
         return;
       }
@@ -110,7 +150,8 @@ export class DeviceSettingsService {
           fallbackToAccess: dbEF10K.fallbackToAccess,
           realTimeSync: dbEF10K.realTimeSync,
           lastConfigUpdate: dbEF10K.lastConfigUpdate || undefined,
-          zk40Protocol: ((dbEF10K as any).zk40Protocol ?? "tcp") as "adms" | "tcp",
+          zk40Protocol: ((dbEF10K as any).zk40Protocol ?? "tcp") as
+            "adms" | "tcp",
           fkProtocol: (dbEF10K as any).fkProtocol ?? 0,
           admsEnabled: (dbEF10K as any).admsEnabled ?? true,
         };
@@ -128,23 +169,28 @@ export class DeviceSettingsService {
 
       if (dbK40) {
         k40Settings = {
-          enabled: process.env.ZK_DEVICE_ENABLED === "true" || dbK40.enabled,
+          enabled: dbK40.enabled,
           ...k40EnvConfig(),
           protocol: dbK40.protocol as "tcp" | "udp",
           fallbackToAccess: dbK40.fallbackToAccess,
           realTimeSync: dbK40.realTimeSync,
           lastConfigUpdate: dbK40.lastConfigUpdate || undefined,
-          zk40Protocol: ((dbK40 as any).zk40Protocol ?? "tcp") as "adms" | "tcp",
+          zk40Protocol: ((dbK40 as any).zk40Protocol ?? "tcp") as
+            "adms" | "tcp",
           fkProtocol: (dbK40 as any).fkProtocol ?? 0,
           admsEnabled: (dbK40 as any).admsEnabled ?? true,
-          admsDetectedOffsetHours: (dbK40 as any).admsDetectedOffsetHours ?? null,
+          admsDetectedOffsetHours:
+            (dbK40 as any).admsDetectedOffsetHours ?? null,
+          admsDetectedOffsetsByDevice: parseAdmsOffsets(
+            (dbK40 as any).admsDetectedOffsetsByDevice,
+          ),
         };
       } else {
         // Migrate from old single-row: copy zk40_* columns from id=1 into id=2
         const src = dbEF10K as any;
         await db.insert(attendanceDeviceSettings).values({
           id: 2,
-          enabled: src?.zk40Enabled ?? false,
+          enabled: src?.zk40Enabled ?? k40Settings.enabled,
           ip: k40Settings.ip,
           port: k40Settings.port,
           protocol: "tcp",
@@ -164,7 +210,12 @@ export class DeviceSettingsService {
         };
       }
 
-      console.log("[DeviceSettings] Loaded — EF10K:", ef10kSettings.ip, "K40:", k40Settings.ip);
+      console.log(
+        "[DeviceSettings] Loaded — EF10K:",
+        ef10kSettings.ip,
+        "K40:",
+        k40Settings.ip,
+      );
       settingsLoaded = true;
     } catch (err) {
       console.error("[DeviceSettings] Failed to initialize settings:", err);
@@ -188,30 +239,68 @@ export class DeviceSettingsService {
     await this.persistRow(2, k40Settings);
   }
 
+  static getAdmsDetectedOffset(deviceId: string): number | null {
+    const offsets = k40Settings.admsDetectedOffsetsByDevice ?? {};
+    const value = offsets[deviceId];
+    return typeof value === "number" && Number.isFinite(value) ? value : null;
+  }
+
+  static async setAdmsDetectedOffset(
+    deviceId: string,
+    hours: number,
+  ): Promise<void> {
+    const offsets = {
+      ...(k40Settings.admsDetectedOffsetsByDevice ?? {}),
+      [deviceId]: hours,
+    };
+    k40Settings = { ...k40Settings, admsDetectedOffsetsByDevice: offsets };
+    await this.persistRow(2, k40Settings);
+  }
+
   static async updateSettings(
     updates: Partial<DeviceSettings> & { deviceId?: number },
   ): Promise<DeviceSettings> {
     const deviceId = updates.deviceId ?? 1;
     // ip/port/commPassword are env-only (see ef10kEnvConfig/k40EnvConfig) and are
     // not editable through this API — silently ignored if passed.
-    const { deviceId: _, ip: _ip, port: _port, commPassword: _cp, ...rest } =
-      updates as any;
+    const {
+      deviceId: _,
+      ip: _ip,
+      port: _port,
+      commPassword: _cp,
+      ...rest
+    } = updates as any;
 
     if (deviceId === 2) {
-      k40Settings = { ...k40Settings, ...rest, ...k40EnvConfig(), lastConfigUpdate: new Date() };
-      await this.persistRow(2, k40Settings);
+      const nextSettings = {
+        ...k40Settings,
+        ...rest,
+        ...k40EnvConfig(),
+        lastConfigUpdate: new Date(),
+      };
+      await this.persistRow(2, nextSettings);
+      k40Settings = nextSettings;
       return { ...k40Settings };
     } else {
-      ef10kSettings = { ...ef10kSettings, ...rest, ...ef10kEnvConfig(), lastConfigUpdate: new Date() };
-      await this.persistRow(1, ef10kSettings);
+      const nextSettings = {
+        ...ef10kSettings,
+        ...rest,
+        ...ef10kEnvConfig(),
+        lastConfigUpdate: new Date(),
+      };
+      await this.persistRow(1, nextSettings);
+      ef10kSettings = nextSettings;
       return { ...ef10kSettings };
     }
   }
 
-  private static async persistRow(id: number, s: DeviceSettings): Promise<void> {
+  private static async persistRow(
+    id: number,
+    s: DeviceSettings,
+  ): Promise<void> {
     try {
       const db = await getDb();
-      if (!db) return;
+      if (!db) throw new Error("Database not available");
       const row: any = {
         id,
         enabled: s.enabled,
@@ -226,14 +315,20 @@ export class DeviceSettingsService {
         commPassword: s.commPassword ?? 0,
         admsEnabled: s.admsEnabled ?? true,
         admsDetectedOffsetHours: s.admsDetectedOffsetHours ?? null,
+        admsDetectedOffsetsByDevice: JSON.stringify(
+          s.admsDetectedOffsetsByDevice ?? {},
+        ),
       };
       await db
         .insert(attendanceDeviceSettings)
         .values(row)
         .onDuplicateKeyUpdate({ set: row } as any);
-      console.log(`[DeviceSettings] Saved device ${id}: ip=${s.ip} port=${s.port}`);
+      console.log(
+        `[DeviceSettings] Saved device ${id}: ip=${s.ip} port=${s.port}`,
+      );
     } catch (err) {
       console.error("[DeviceSettings] Failed to persist settings:", err);
+      throw err;
     }
   }
 
@@ -243,7 +338,8 @@ export class DeviceSettingsService {
   }
 
   static async connectDevice(): Promise<boolean> {
-    if (!ef10kSettings.enabled) throw new Error("Device is disabled in settings");
+    if (!ef10kSettings.enabled)
+      throw new Error("Device is disabled in settings");
     const device = getDefaultDevice();
     return device.connect();
   }
@@ -253,6 +349,12 @@ export class DeviceSettingsService {
   }
 
   static isDeviceOnline(): boolean {
+    if (fkLastAttempt)
+      return (
+        ef10kSettings.enabled &&
+        fkOnline &&
+        Date.now() - fkLastAttempt.getTime() < 30 * 60_000
+      );
     return getDefaultDevice().isHealthy();
   }
 
@@ -274,5 +376,22 @@ export class DeviceSettingsService {
 
   static getConnectionUrl(): string {
     return `${ef10kSettings.protocol}://${ef10kSettings.ip}:${ef10kSettings.port}`;
+  }
+}
+
+function parseAdmsOffsets(value: unknown): Record<string, number> {
+  if (!value) return {};
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, number] =>
+          typeof entry[1] === "number" && Number.isFinite(entry[1]),
+      ),
+    );
+  } catch {
+    return {};
   }
 }
