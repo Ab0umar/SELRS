@@ -2812,6 +2812,9 @@ export const marketingPosts = mysqlTable(
 export type MarketingPost = typeof marketingPosts.$inferSelect;
 export type InsertMarketingPost = typeof marketingPosts.$inferInsert;
 
+export const marketingGenerationJobs = mysqlTable(
+    taskId: varchar("task_id", { length: 64 }),
+    postVersion: timestamp("post_version"),
 export const marketingSettings = mysqlTable("marketing_settings", {
   id: int("id").autoincrement().primaryKey(),
   autoPublish: boolean("auto_publish").default(false).notNull(),

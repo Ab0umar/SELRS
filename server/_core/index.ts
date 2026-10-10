@@ -29,6 +29,7 @@ import { registerWsServer } from "./ws";
 import { startMssqlSyncScheduler } from "./mssqlSyncScheduler";
 import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
 import { initMarketingScheduler } from "../services/marketing/scheduler.service";
+import { initManusGenerationWorker } from "../services/marketing/manusGeneration.service";
 import { startOpReminderScheduler } from "./opReminderScheduler";
 import { startAccSyncScheduler } from "./accSyncScheduler";
 import { startPunchReception } from "../services/attendance/punchReception.service";
@@ -2618,6 +2619,7 @@ async function startServer() {
   startAttendanceSyncScheduler();
   startPunchReception();
   initMarketingScheduler();
+  initManusGenerationWorker();
   // Pentacam/Srv100 import+OCR loops now run as a standalone service
   // (server/services/pentacam.ts, `pnpm pentacam:service`), not in the web server.
   startOpReminderScheduler();
