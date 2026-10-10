@@ -49,6 +49,9 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-error: var(--error);
   --color-error-foreground: var(--error-foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
 }
 
 /* screen-only: min-width/max-width/orientation media features are also
@@ -733,7 +736,7 @@
 }
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
 
   h1,
@@ -777,7 +780,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", "Noto Sans Arabic", "Segoe UI", system-ui, sans-serif;
+    font-family: "Inter", "Cairo", "Segoe UI", system-ui, sans-serif;
     font-size: 15px;
     font-weight: 400;
     direction: rtl;
@@ -809,56 +812,56 @@
 
 @layer utilities {
   .dark [data-slot="card"] {
-    background-color: #000000 !important;
+    background-color: var(--card) !important;
     color: var(--card-foreground) !important;
-    border-color: transparent !important;
+    border-color: var(--border) !important;
     box-shadow: none !important;
   }
 
   .dark [data-slot="tabs-list"] {
-    background-color: #000000 !important;
-    color: #d0d2d6 !important;
-    border-color: transparent !important;
+    background-color: var(--card) !important;
+    color: var(--foreground) !important;
+    border-color: var(--border) !important;
   }
 
   .dark [data-slot="tabs-trigger"] {
-    color: #d0d2d6 !important;
+    color: var(--foreground) !important;
   }
 
   .dark [data-slot="tabs-trigger"][data-state="active"] {
-    background-color: #1f8fff !important;
-    color: #ffffff !important;
-    border-color: #1f8fff !important;
-    box-shadow: 0 8px 20px rgba(31, 143, 255, 0.22) !important;
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+    border-color: var(--primary) !important;
+    box-shadow: none !important;
   }
 
   .dark [class~="bg-white"] {
-    background-color: #000000 !important;
+    background-color: var(--card) !important;
   }
 
   .dark [class*="bg-white/"] {
-    background-color: #000000 !important;
+    background-color: var(--card) !important;
   }
 
   .dark [class*="bg-slate-50"],
   .dark [class*="bg-slate-100"],
   .dark [class*="bg-slate-200"] {
-    background-color: #000000 !important;
+    background-color: var(--card) !important;
   }
 
   .dark [class*="bg-card"] {
-    background-color: #000000 !important;
+    background-color: var(--card) !important;
   }
 
   .dark [class*="bg-muted"] {
-    background-color: #000000 !important;
+    background-color: var(--card) !important;
   }
 
   .dark [class*="border-slate-100"],
   .dark [class*="border-slate-200"],
   .dark [class*="border-slate-300"],
   .dark [class*="border-white/80"] {
-    border-color: transparent !important;
+    border-color: var(--border) !important;
   }
 
   .dark [class*="text-slate-950"],
@@ -870,11 +873,11 @@
   .dark [class*="text-slate-700"],
   .dark [class*="text-slate-600"],
   .dark [class*="text-slate-500"] {
-    color: #d0d2d6 !important;
+    color: var(--foreground) !important;
   }
 
   .dark [class*="text-muted-foreground"] {
-    color: #b0b3b8 !important;
+    color: var(--muted-foreground) !important;
   }
 
   .dark [class*="text-[#10234f]"],
@@ -884,11 +887,7 @@
 
   .dark [class*="bg-[radial-gradient"],
   .dark [class*="bg-[linear-gradient"] {
-    background-image: linear-gradient(
-      180deg,
-      #000000 0%,
-      #000000 100%
-    ) !important;
+    background-image: none !important;
   }
 
   .dark [class*="shadow-sm"],
@@ -896,17 +895,17 @@
     box-shadow: none !important;
   }
 
-  .dark [class*="bg-[#F4F8FB]"],
-  .dark [class*="bg-[#f4f8fb]"],
-  .dark [class*="bg-[#f8fbff]"],
-  .dark [class*="bg-[#F8FBFF]"],
-  .dark [class*="bg-[#f7fbfe]"],
-  .dark [class*="bg-[#f7faff]"],
-  .dark [class*="bg-[#F7FAFF]"],
-  .dark [class*="bg-[#f8f9fb]"],
-  .dark [class*="bg-[#F8F9FB]"],
-  .dark [class*="bg-[#f7f9fc]"],
-  .dark [class*="bg-[#F7F9FC]"] {
+  .dark [class*="bg-[#F4F8FB]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#f4f8fb]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#f8fbff]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#F8FBFF]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#f7fbfe]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#f7faff]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#F7FAFF]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#f8f9fb]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#F8F9FB]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#f7f9fc]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
+  .dark [class*="bg-[#F7F9FC]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *) {
     background-color: #000000 !important;
   }
 
@@ -1080,8 +1079,8 @@
 
 /* Web light mode: utility-app surfaces matched to the reference mobile style. */
 html:not(.dark) :where(body, .selrs-page-bg) {
-  color: #23252d !important;
-  background-color: #fdfcff !important;
+  color: var(--foreground) !important;
+  background-color: var(--background) !important;
 }
 
 html:not(.dark)
@@ -1094,9 +1093,9 @@ html:not(.dark)
     .patient-guest-content,
     .salary-table-redesign :where(.overflow-x-auto, .overflow-auto):has(> table)
   ) {
-  border: 1px solid #e8e8f2 !important;
-  background: #fefeff !important;
-  color: #23252d !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  color: var(--foreground) !important;
   box-shadow: 0 1px 2px rgba(17, 23, 84, 0.04) !important;
 }
 
@@ -1107,7 +1106,7 @@ html:not(.dark)
     [class*="bg-slate-50"],
     [class*="bg-slate-100"]
   ) {
-  background-color: #fefeff !important;
+  background-color: var(--card) !important;
 }
 
 html:not(.dark)
@@ -1116,7 +1115,7 @@ html:not(.dark)
     [class*="text-slate-900"],
     [class*="text-slate-800"]
   ) {
-  color: #23252d !important;
+  color: var(--foreground) !important;
 }
 
 html:not(.dark)
@@ -1125,11 +1124,11 @@ html:not(.dark)
     [class*="text-slate-600"],
     [class*="text-muted-foreground"]
   ) {
-  color: #747481 !important;
+  color: var(--muted-foreground) !important;
 }
 
-html:not(.dark) :where(.text-primary, strong, b) {
-  color: #12178a !important;
+html:not(.dark) :where(.text-primary) {
+  color: var(--primary) !important;
 }
 
 html:not(.dark)
@@ -1141,30 +1140,30 @@ html:not(.dark)
     select,
     [data-slot="tabs-trigger"]
   ) {
-  border-color: #e8e8f2 !important;
+  border-color: var(--border) !important;
   font-family: inherit;
   letter-spacing: 0;
 }
 
 html:not(.dark) :where(input, textarea, select) {
-  background-color: #fefeff !important;
-  color: #23252d !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
 }
 
 html:not(.dark)
   :where([data-slot="tabs-trigger"][data-state="active"], .bg-primary) {
-  background-color: #12178a !important;
-  color: #fbfbff !important;
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
 }
 @media (max-width: 640px) {
   html {
-    font-size: 15px;
+    font-size: 16px;
   }
   body {
     line-height: 1.45;
   }
   h1 {
-    font-size: 1.42rem;
+    font-size: 1.5rem;
     font-weight: 700;
   }
   h2 {
@@ -1527,7 +1526,7 @@ select {
 
 .auto-air-grid input[data-slot="input"]:focus-visible {
   border-color: #003d82 !important;
-  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent) !important;
 }
 
 /* Compact inputs for Lasik tables to fit A4 */
@@ -1820,7 +1819,7 @@ select {
 
 .examination-plain-grid input[data-slot="input"]:focus-visible {
   border-color: #003d82 !important;
-  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent) !important;
 }
 
 .examination-plain-grid > .grid {
@@ -1885,7 +1884,7 @@ select {
 }
 
 .examination-page .sheet-layout input[data-slot="input"]:focus-visible {
-  border-color: var(--ring) !important;
+  border-color: #003d82 !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
 }
 
@@ -1939,14 +1938,14 @@ select {
   ) {
     width: 100% !important;
     max-width: 100% !important;
-    overflow-x: clip !important;
+    overflow-x: auto !important;
   }
 
   table {
     width: 100% !important;
-    min-width: 0 !important;
+    min-width: 40rem !important;
     max-width: 100% !important;
-    table-layout: fixed !important;
+    table-layout: auto !important;
   }
 
   table :is(th, td) {
@@ -1956,7 +1955,7 @@ select {
     white-space: normal !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
-    font-size: clamp(0.56rem, 2.25vw, 0.72rem) !important;
+    font-size: 0.875rem !important;
     line-height: 1.25 !important;
   }
 

@@ -145,6 +145,20 @@ export function AppSidebar({
     }));
   };
 
+  // Escape closes the panel and focus returns to the control that opened it.
+  useEffect(() => {
+    if (!(isMobile && mobileOpen)) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onMobileOpenChange(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previous?.focus?.();
+    };
+  }, [isMobile, mobileOpen, onMobileOpenChange]);
+
   useEffect(() => {
     const locBase = location.split("?")[0];
     if (locBase.startsWith("/accounting")) {
@@ -167,7 +181,7 @@ export function AppSidebar({
     isActive: boolean,
     isMainItem?: boolean,
   ) => (
-    <button
+    <Button variant="bare"
       key={sub.path}
       type="button"
       title={collapsed && !isMobile ? sub.label : undefined}
@@ -177,7 +191,7 @@ export function AppSidebar({
       }}
       className={cn(
         "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors",
-        collapsed && !isMobile ? "justify-center px-0 py-2.5" : "text-right",
+        collapsed && !isMobile ? "justify-center px-0 py-2.5" : "text-start",
         isActive
           ? "bg-primary text-primary-foreground font-semibold"
           : "font-medium text-muted-foreground hover:bg-muted text-muted-foreground",
@@ -189,7 +203,7 @@ export function AppSidebar({
       <sub.icon
         className={cn("shrink-0", isMainItem ? "h-6 w-6" : "h-[18px] w-[18px]")}
       />
-    </button>
+    </Button>
   );
 
   const sidebarInner = (
@@ -222,7 +236,7 @@ export function AppSidebar({
                 <div className="truncate text-sm font-black text-foreground">
                   {BRAND_NAME_AR}
                 </div>
-                <div className="truncate text-[11px] text-muted-foreground">
+                <div className="truncate text-[13px] text-muted-foreground">
                   {BRAND_TAGLINE_AR}
                 </div>
               </div>
@@ -296,7 +310,7 @@ export function AppSidebar({
                         role="group"
                         aria-expanded={sectionOpen}
                       >
-                        <button
+                        <Button variant="bare"
                           type="button"
                           disabled={headerNavDisabled}
                           onClick={() => {
@@ -313,7 +327,7 @@ export function AppSidebar({
                             }
                           }}
                           className={cn(
-                            "flex min-w-0 flex-1 items-center rounded-lg px-2 py-1.5 text-right text-sm transition-colors hover:bg-muted/50",
+                            "flex min-w-0 flex-1 items-center rounded-lg px-2 py-1.5 text-start text-sm transition-colors hover:bg-muted/50",
                             headerNavDisabled &&
                               "cursor-not-allowed opacity-50 hover:bg-transparent",
                             headerActive
@@ -322,8 +336,8 @@ export function AppSidebar({
                           )}
                         >
                           <span className="min-w-0 truncate">{item.label}</span>
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="bare"
                           type="button"
                           aria-label={sectionOpen ? "طي القسم" : "توسيع القسم"}
                           title={sectionOpen ? "طي القسم" : "توسيع القسم"}
@@ -339,7 +353,7 @@ export function AppSidebar({
                               sectionOpen ? "rotate-0" : "-rotate-90",
                             )}
                           />
-                        </button>
+                        </Button>
                       </div>
                     ) : null}
                     {sectionOpen ? (
@@ -381,7 +395,7 @@ export function AppSidebar({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button variant="bare"
               type="button"
               className={cn(
                 "flex w-full items-center gap-2 rounded-2xl border border-border/80 bg-card/90 px-2 py-2 transition-colors hover:bg-muted/50",
@@ -394,7 +408,7 @@ export function AppSidebar({
                 </AvatarFallback>
               </Avatar>
               {(!collapsed || isMobile) && (
-                <div className="min-w-0 flex-1 text-right">
+                <div className="min-w-0 flex-1 text-start">
                   <p className="truncate text-sm font-medium leading-none">
                     {user?.name || "—"}
                   </p>
@@ -403,7 +417,7 @@ export function AppSidebar({
                   </p>
                 </div>
               )}
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
@@ -472,7 +486,7 @@ export function AppSidebar({
         />
         <aside
           dir="rtl"
-          className="fixed inset-y-0 right-0 z-[210] flex w-max min-w-[10.25rem] max-w-[min(88vw,14rem)] flex-col overflow-hidden border-s border-border bg-sidebar pt-[env(safe-area-inset-top)] text-sidebar-foreground shadow-2xl print:hidden"
+          className="fixed inset-y-0 start-0 z-[210] flex w-max min-w-[10.25rem] max-w-[min(88vw,14rem)] flex-col overflow-hidden border-s border-border bg-sidebar pt-[env(safe-area-inset-top)] text-sidebar-foreground shadow-2xl print:hidden"
           role="dialog"
           aria-modal="true"
         >

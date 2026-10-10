@@ -18,6 +18,7 @@ import {
 import {
   Activity,
   Archive,
+  ArrowRight,
   Banknote,
   CalendarCheck,
   CalendarDays,
@@ -33,6 +34,7 @@ import {
   Megaphone,
   MessageCircle,
   Network,
+  RefreshCw,
   ScrollText,
   Search,
   Settings,
@@ -86,6 +88,10 @@ type AppTopNavProps = {
   onOpenPassword: () => void;
   onLogout: () => void;
   hideShortcuts?: boolean;
+  onBack?: () => void;
+  onRefresh?: () => void;
+  showRefresh?: boolean;
+  mobileHidden?: boolean;
 };
 
 function DashboardAppbarIndicators() {
@@ -110,7 +116,7 @@ function DashboardAppbarIndicators() {
       label: "غياب اليوم",
       value: attQ.data?.absentToday ?? 0,
       icon: UserX,
-      cls: "bg-warning/15 text-warning",
+      cls: "bg-warning/15 text-warning-text",
     },
     {
       label: "تنبيهات المخزن",
@@ -129,7 +135,7 @@ function DashboardAppbarIndicators() {
         <span
           key={label}
           className={cn(
-            "inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2 text-[11px] font-semibold tabular-nums",
+            "inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2 text-[13px] font-semibold tabular-nums",
             cls,
           )}
           title={label}
@@ -150,6 +156,10 @@ export function AppTopNav({
   onOpenPassword,
   onLogout,
   hideShortcuts = false,
+  onBack,
+  onRefresh,
+  showRefresh = false,
+  mobileHidden = false,
 }: AppTopNavProps) {
   const { user } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
@@ -495,30 +505,34 @@ export function AppTopNav({
     <header
       data-app-top-nav
       dir="rtl"
-      className="relative z-40 shrink-0 border-b border-border/60 bg-background/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-xl print:hidden"
+      className={cn(
+        "absolute inset-x-0 top-0 z-40 shrink-0 border-b border-border bg-card pt-[env(safe-area-inset-top)] transition-transform duration-200 ease-out motion-reduce:transition-none print:hidden md:relative md:translate-y-0 md:pointer-events-auto",
+        mobileHidden
+          ? "pointer-events-none -translate-y-full"
+          : "translate-y-0",
+      )}
     >
-      <div className="selrs-gradient-bar h-1 w-full" aria-hidden />
 
       <div
         data-app-top-nav-row
         className={cn(
-          "flex h-[4.5rem] w-full items-center gap-3 px-3 sm:px-4 lg:px-5",
+          "flex h-14 w-full items-center gap-2 px-2 sm:px-4 md:h-[4.5rem] md:gap-3 lg:px-5",
           hideShortcuts && "justify-between",
         )}
         dir="rtl"
       >
         {/* Logo */}
-        <button
+        <Button variant="bare"
           type="button"
           onClick={() => onNavigate(logoTarget)}
-          className="flex h-11 shrink-0 items-center gap-2.5 rounded-2xl border border-border/60 bg-card px-2.5 shadow-xs transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm md:px-3.5"
+          className="flex h-11 shrink-0 items-center gap-2 rounded-md px-2 transition-colors hover:bg-muted md:gap-2.5 md:px-3"
           aria-label="الرئيسية"
         >
-          <BrandLogo className="h-8 w-8 shrink-0 rounded-xl border border-border/60 bg-muted/40" />
+          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-muted/40 md:h-8 md:w-8 md:rounded-xl" />
           <span className="hidden text-sm font-black text-foreground 2xl:block">
             {BRAND_NAME_AR}
           </span>
-        </button>
+        </Button>
 
         {/* Main tabs, desktop only */}
         {!hideShortcuts && <nav
@@ -537,15 +551,15 @@ export function AppTopNav({
                         tabActive(location, child.path),
                       );
                 const triggerClassName = cn(
-                  "my-1 flex h-10 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary xl:px-2 xl:text-[11px] 2xl:text-xs",
+                  "my-1 flex h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-3",
                   active
-                    ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                    ? "border-secondary bg-secondary text-secondary-foreground"
                     : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                 );
 
                 if (item.type === "link") {
                   return (
-                    <button
+                    <Button variant="bare"
                       key={item.path}
                       type="button"
                       onClick={() => onNavigate(item.path)}
@@ -557,14 +571,14 @@ export function AppTopNav({
                         aria-hidden
                       />
                       <span>{item.label}</span>
-                    </button>
+                    </Button>
                   );
                 }
 
                 return (
                   <DropdownMenu key={item.key}>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className={triggerClassName}>
+                      <Button variant="bare" type="button" className={triggerClassName}>
                         <Icon
                           className="h-3.5 w-3.5 shrink-0"
                           strokeWidth={active ? 2.2 : 1.8}
@@ -575,7 +589,7 @@ export function AppTopNav({
                           className="h-3 w-3 shrink-0 opacity-70"
                           aria-hidden
                         />
-                      </button>
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="start"
@@ -606,14 +620,14 @@ export function AppTopNav({
                 });
                 const Icon = tab.icon;
                 return (
-                  <button
+                  <Button variant="bare"
                     key={tab.key}
                     type="button"
                     onClick={() => onNavigate(tab.path)}
                     className={cn(
-                      "my-1 flex h-10 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[10px] font-semibold transition-colors xl:px-2 xl:text-[11px] 2xl:text-xs",
+                      "my-1 flex h-10 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[13px] font-semibold transition-colors xl:px-2 xl:text-[13px] 2xl:text-xs",
                       active
-                        ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                        ? "border-secondary/20 bg-secondary text-secondary-foreground shadow-sm"
                         : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                     )}
                   >
@@ -623,7 +637,7 @@ export function AppTopNav({
                       aria-hidden
                     />
                     <span className="whitespace-nowrap">{tab.label}</span>
-                  </button>
+                  </Button>
                 );
               })}
 
@@ -632,26 +646,26 @@ export function AppTopNav({
             accountingItems.length > 0 &&
             !mainNavTabs.some((t) => t.key === "accounting") && (
               <div className="flex h-full items-stretch whitespace-nowrap">
-                <button
+                <Button variant="bare"
                   type="button"
                   onClick={() => onNavigate("/accounting")}
                   className={cn(
-                    "my-1 flex h-10 min-w-0 items-center whitespace-nowrap rounded-s-xl border px-1.5 text-[10px] font-semibold transition-colors focus-visible:outline-none xl:text-[11px] 2xl:text-xs",
+                    "my-1 flex h-10 min-w-0 items-center whitespace-nowrap rounded-s-xl border px-1.5 text-[13px] font-semibold transition-colors focus-visible:outline-none xl:text-[13px] 2xl:text-xs",
                     accountingActive
-                      ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                      ? "border-secondary/20 bg-secondary text-secondary-foreground shadow-sm"
                       : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                   )}
                 >
                   <span className="whitespace-nowrap">الحسابات</span>
-                </button>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button
+                    <Button variant="bare"
                       type="button"
                       className={cn(
                         "my-1 flex h-10 items-center rounded-e-xl border px-1 text-xs transition-colors focus-visible:outline-none",
                         accountingActive
-                          ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                          ? "border-secondary/20 bg-secondary text-secondary-foreground shadow-sm"
                           : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
                       )}
                       aria-label="فتح قائمة الحسابات"
@@ -660,7 +674,7 @@ export function AppTopNav({
                         className="h-3.5 w-3.5 opacity-70"
                         aria-hidden
                       />
-                    </button>
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="start"
@@ -710,7 +724,7 @@ export function AppTopNav({
                         items.length > 0 ? (
                           <>
                             {sep && <DropdownMenuSeparator />}
-                            <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <DropdownMenuLabel className="text-[13px] font-semibold uppercase text-muted-foreground">
                               {label}
                             </DropdownMenuLabel>
                             {items.map((item) => (
@@ -743,11 +757,39 @@ export function AppTopNav({
         {/* Controls */}
         <div
           className={cn(
-            "flex shrink-0 items-center gap-1 rounded-2xl border border-border/60 bg-card/75 p-1 shadow-xs",
+            "flex shrink-0 items-center gap-0.5 rounded-xl border border-border/60 bg-card/75 p-0.5 shadow-xs md:gap-1 md:rounded-2xl md:p-1",
             hideShortcuts && "order-last",
           )}
           dir="rtl"
         >
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-lg border border-border bg-background/70 md:hidden"
+              title="رجوع"
+              aria-label="رجوع"
+              onClick={onBack}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
+
+          {showRefresh && onRefresh && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-lg border border-border bg-background/70 text-foreground md:hidden"
+              title="تحديث الصفحة"
+              aria-label="تحديث الصفحة"
+              onClick={onRefresh}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+
           {isDashboardRoute && <DashboardAppbarIndicators />}
 
           {/* المزيد popover, desktop only, accordion sections closed by default */}
@@ -764,7 +806,7 @@ export function AppTopNav({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="hidden h-9 shrink-0 gap-0.5 whitespace-nowrap rounded-xl border border-border bg-background/70 px-2 text-[10px] font-semibold md:flex xl:text-xs"
+                  className="hidden h-9 shrink-0 gap-0.5 whitespace-nowrap rounded-xl border border-border bg-background/70 px-2 text-[13px] font-semibold md:flex xl:text-xs"
                 >
                   <span>المزيد</span>
                   <ChevronDown
@@ -790,7 +832,7 @@ export function AppTopNav({
                       key={key}
                       className={cn(gi > 0 && "border-t border-border/50")}
                     >
-                      <button
+                      <Button variant="bare"
                         type="button"
                         onClick={() => {
                           if (isSingle) {
@@ -813,11 +855,11 @@ export function AppTopNav({
                             aria-hidden
                           />
                         )}
-                      </button>
+                      </Button>
                       {!isSingle && isOpen && (
                         <div className="pb-1">
                           {group.items.map((item) => (
-                            <button
+                            <Button variant="bare"
                               key={item.path}
                               type="button"
                               className="flex w-full items-center gap-2 px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted text-muted-foreground"
@@ -829,7 +871,7 @@ export function AppTopNav({
                             >
                               <item.icon className="h-4 w-4 shrink-0" />
                               {item.label}
-                            </button>
+                            </Button>
                           ))}
                         </div>
                       )}
@@ -845,7 +887,7 @@ export function AppTopNav({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-2xl border border-border bg-background/70"
+            className="h-10 w-10 shrink-0 rounded-lg border border-border bg-background/70 md:h-9 md:w-9 md:rounded-2xl"
             title="بحث (⌘K)"
             aria-label="فتح لوحة البحث"
             onClick={dispatchOpenCommandPalette}
@@ -856,9 +898,8 @@ export function AppTopNav({
           {/* Date badge, hidden on small screens */}
           <Badge
             variant="outline"
-            className="hidden rounded-2xl bg-background/70 py-1 text-[10px] font-semibold 2xl:inline-flex"
+            className="hidden rounded-2xl bg-background/70 py-1 text-[13px] font-semibold 2xl:inline-flex"
           >
-            <span className="me-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success/100" />
             {dateStr || "…"}
           </Badge>
 
@@ -867,7 +908,8 @@ export function AppTopNav({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-9 shrink-0 gap-1.5 rounded-2xl border border-border bg-background/70 px-1.5"
+                aria-label={`الحساب: ${userName}`}
+                className="h-10 shrink-0 gap-1.5 rounded-lg border border-border bg-background/70 px-1.5 md:h-9 md:rounded-2xl"
               >
                 <Avatar className="h-7 w-7">
                   <AvatarFallback className="bg-secondary text-secondary-foreground">

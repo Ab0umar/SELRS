@@ -1,0 +1,106 @@
+/* Shared ledger look for back-office modules (opt in with the shell's `ledger` prop). */
+@media screen {
+  html:not(.dark) [data-app-scroll-container]:has([data-ledger]),
+  html:not(.dark) [data-app-scroll-container]:has([data-ledger]) .selrs-app-content,
+  div[data-ledger] {
+    background-color: color-mix(in srgb, var(--primary) 8%, var(--canvas, var(--background)));
+  }
+  [data-ledger] nav[aria-label="أقسام الوحدة"] {
+    border: 0;
+    border-bottom: 2px solid var(--primary);
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none;
+    padding: 0;
+  }
+  [data-ledger] nav[aria-label="أقسام الوحدة"] {
+    flex-wrap: nowrap;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  [data-ledger] nav[aria-label="أقسام الوحدة"] a {
+    flex-shrink: 0;
+    border-radius: 0;
+    box-shadow: none;
+    white-space: nowrap;
+    padding-inline: 10px;
+  }
+  [data-ledger] #module-content {
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+    border-radius: 8px;
+    background: var(--card);
+    box-shadow: none;
+  }
+  [data-ledger] #module-content :is(.rounded-xl, .rounded-2xl) {
+    border-radius: 8px;
+  }
+  [data-ledger] #module-content [class*="shadow-"] {
+    box-shadow: none;
+  }
+
+  [data-ledger] #module-content table thead th {
+    background: var(--primary);
+    color: var(--primary-foreground) !important;
+    font-weight: 800;
+  }
+  .dark [data-ledger] #module-content table thead th {
+    background: var(--muted);
+    color: var(--foreground) !important;
+  }
+  [data-ledger] #module-content table tbody tr {
+    border-bottom: 1px solid var(--border);
+  }
+  [data-ledger] #module-content table td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  [data-ledger] #module-content [role="tablist"] {
+    height: auto;
+    padding: 0;
+    border-bottom: 2px solid var(--primary);
+    border-radius: 0;
+    background: transparent;
+    gap: 0;
+  }
+  [data-ledger] #module-content [role="tab"] {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  [data-ledger] #module-content [role="tab"][data-state="active"] {
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+  }
+  div[data-ledger] {
+    padding: 16px;
+  }
+  @media (max-width: 699px) {
+    div[data-ledger] {
+      padding-inline: 10px;
+    }
+  }
+  [data-ledger] > div > :is(.rounded-2xl):not(#module-content) {
+    border-radius: 8px;
+    box-shadow: none;
+  }
+  [data-ledger] nav[aria-label="أقسام الوحدة"] label {
+    flex-shrink: 0;
+    border-radius: 0;
+  }
+  [data-ledger] nav[aria-label="أقسام الوحدة"] label select {
+    background-color: transparent !important;
+    border: 0 !important;
+    color: inherit !important;
+  }
+  /* The nav already names the page; inner titles stay for screen readers only. */
+  [data-ledger] #module-content h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

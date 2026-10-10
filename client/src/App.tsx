@@ -705,7 +705,7 @@ function App() {
           </div>
           {/* Unified bottom sheet actions are disabled to keep actions within each page header. */}
           {qaEnabled && (
-            <div className="fixed bottom-3 right-3 z-[1000] rounded-md border border-warning bg-warning/10 px-3 py-1 text-xs font-semibold text-warning shadow-sm">
+            <div className="fixed bottom-3 start-3 z-[1000] rounded-md border border-warning bg-warning/10 px-3 py-1 text-xs font-semibold text-warning-text shadow-sm">
               Overflow: {overflowCount}
             </div>
           )}

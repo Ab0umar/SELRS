@@ -1,0 +1,184 @@
+@media screen and (max-width: 767px) {
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content .patient-hub-mobile-canvas.patient-hub-mobile-canvas > :is(header, main) {
+    background: transparent !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content .patient-hub-mobile-canvas > header {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .selrs-mobile-brand-canvas .mobile-summary-cards {
+    display: none !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content [data-summary-card]:not([role="dialog"] *),
+  .selrs-mobile-brand-canvas .selrs-app-content div:has(> [data-summary-card]):not(:has(> :not([data-summary-card])), [role="dialog"] *),
+  .selrs-mobile-brand-canvas .selrs-app-content [data-admin-page-header] > [data-page-header-actions]:not(:has([data-page-commands])),
+  .selrs-mobile-brand-canvas .selrs-app-content [data-admin-page-header] > [data-page-header-actions] > button {
+    display: none !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content [data-page-heading],
+  .selrs-mobile-brand-canvas .selrs-app-content .attendance-workspace h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content [data-admin-page-header]:not(:has([data-page-commands])) {
+    margin: 0 !important;
+    gap: 0;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content div:has(> [data-admin-page-header]:only-child:not(:has([data-page-commands]))) {
+    padding: 0 !important;
+    margin-block: 0 !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content div:has(> [data-admin-page-header]:only-child:not(:has([data-page-commands]))) + * {
+    margin-top: 0 !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content :is([data-slot="card"], section.bg-card, div.bg-card.border, div:has(> [data-admin-page-header]), .clinical-workspace [role="tabpanel"] > div):not([role="dialog"], [role="dialog"] *, [data-print-document], [data-print-document] *, .medical-report-brand, .medical-report-brand *, .prescription-root, .prescription-root *) {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .selrs-mobile-brand-canvas .mobile-compact-header > div:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .selrs-mobile-brand-canvas .mobile-compact-header button:is([aria-label="الصفحة الرئيسية"], [aria-label="تسجيل الخروج"]) {
+    display: none;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content :is(.mobile-unframed-content, .mobile-stock-category, .mobile-flat-clinical [role="tabpanel"] > div, .mobile-flat-marketing > div.rounded-xl) {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .selrs-mobile-brand-canvas .mobile-report-toolbar {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .selrs-mobile-brand-canvas .records-page-header {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .selrs-mobile-brand-canvas .records-page-header button {
+    display: none;
+  }
+  .selrs-mobile-brand-canvas .records-page-header + div {
+    margin-top: 0 !important;
+  }
+  /* Unified white canvas (DESIGN.md): solid surfaces, navy app bar, no gradient. */
+  html:not(.dark) .selrs-mobile-brand-canvas {
+    --background: #ffffff;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --muted: #ffffff;
+    --mobile-content-surface: #ffffff;
+    background: var(--background) !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas [data-app-scroll-container],
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content,
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content > :not([aria-hidden="true"]) {
+    background: transparent !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] {
+    background: var(--primary) !important;
+    color: var(--primary-foreground);
+    border-color: transparent;
+    box-shadow: none;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] :is(button, [role="button"]) {
+    background: rgb(255 255 255 / 0.14) !important;
+    color: var(--primary-foreground) !important;
+    border-color: rgb(255 255 255 / 0.32) !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] [class*="bg-card"] {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] :is([class*="text-muted-foreground"], [class*="text-foreground"]) {
+    color: var(--primary-foreground) !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas [data-operational-module] #module-content {
+    background: var(--mobile-content-surface) !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas [data-slot="card"],
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content :is(.bg-white, .bg-card, .bg-muted, section.bg-background, article.bg-background, .attendance-panel),
+  html:not(.dark) .selrs-mobile-brand-canvas .main-home-focused .home-section-item {
+    background: var(--mobile-content-surface) !important;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas .attendance-studio {
+    --attendance-surface: #ffffff;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content > :not([aria-hidden="true"]),
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content [data-operational-module] #module-content,
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content main[id^="dashboard-panel-"],
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content section.accounting-entry-workspace {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content :is(nav[aria-label="أقسام الوحدة"], [role="tablist"]) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start;
+    gap: 0 !important;
+    height: auto;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0 !important;
+    border: 0 !important;
+    border-bottom: 2px solid var(--primary) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+  }
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content :is(nav[aria-label="أقسام الوحدة"], [role="tablist"]) {
+    background: transparent !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content :is(nav[aria-label="أقسام الوحدة"] > a, nav[aria-label="أقسام الوحدة"] > label, [role="tablist"] > [role="tab"], [role="tablist"] > button) {
+    flex: 0 0 auto !important;
+    min-height: 44px !important;
+    min-width: 0;
+    height: 44px !important;
+    padding: 0 14px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    white-space: nowrap !important;
+    background: transparent !important;
+    color: var(--foreground) !important;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content nav[aria-label="أقسام الوحدة"] > label > select {
+    min-height: 44px !important;
+    height: 100% !important;
+    padding-block: 0 !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content :is(nav[aria-label="أقسام الوحدة"] > a[aria-current="page"], nav[aria-label="أقسام الوحدة"] > label.bg-primary, [role="tablist"] > [aria-selected="true"], [role="tablist"] > [data-state="active"]) {
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content :is(nav[aria-label="أقسام الوحدة"], [role="tablist"]) :is(a, button, select):focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: -3px;
+  }
+}

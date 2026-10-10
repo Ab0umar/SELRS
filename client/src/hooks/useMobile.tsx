@@ -19,3 +19,20 @@ export function useIsMobile() {
 
   return !!isMobile;
 }
+
+const COMPACT_BREAKPOINT = 1024;
+
+/** True below 1024px: phones and tablets, where wide tables switch to cards. */
+export function useIsCompact() {
+  const [compact, setCompact] = React.useState<boolean | undefined>(undefined);
+
+  React.useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${COMPACT_BREAKPOINT - 1}px)`);
+    const onChange = () => setCompact(window.innerWidth < COMPACT_BREAKPOINT);
+    mql.addEventListener("change", onChange);
+    setCompact(window.innerWidth < COMPACT_BREAKPOINT);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return !!compact;
+}

@@ -6,7 +6,8 @@ import {
   ChevronDown,
   Clock,
   DollarSign,
-  GripVertical,
+  ArrowUp,
+  ArrowDown,
   Hospital,
   LayoutDashboard,
   LayoutGrid,
@@ -22,7 +23,7 @@ import {
   normalizeNavPath,
   pathGrantedByRoots,
 } from "@/lib/nav-permission-utils";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sheet,
   SheetContent,
@@ -31,11 +32,16 @@ import {
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import {
+  moveBottomNavKey,
+  normalizeBottomNavKeys,
+} from "@/lib/bottomNavPreferences";
+import {
   adminNavGroups,
   staffNavGroups,
   type NavGroupSection,
   type NavLeaf,
 } from "./AppNav";
+import { Button } from "@/components/ui/button";
 
 // All possible tabs per role
 const ALL_ADMIN_TABS = [
@@ -160,15 +166,19 @@ function getStorageKey(isAdmin: boolean, userRole: string): string {
   return STORAGE_KEY_STAFF;
 }
 
-function loadKeys<T extends string>(storageKey: string, defaults: T[]): T[] {
+function loadKeys(
+  storageKey: string,
+  defaults: readonly string[],
+  allowed: readonly string[],
+): string[] {
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed as T[];
+      const parsed = normalizeBottomNavKeys(JSON.parse(raw), allowed);
+      if (parsed) return parsed;
     }
   } catch {}
-  return defaults;
+  return [...defaults];
 }
 
 function saveKeys(storageKey: string, keys: string[]) {
@@ -212,11 +222,42 @@ export function AppBottomNav({
       ? DEFAULT_STAFF_KEYS_DR
       : DEFAULT_STAFF_KEYS;
 
-  const [enabledKeys, setEnabledKeys] = useState<string[]>(() =>
-    loadKeys(storageKey, defaultKeys as unknown as string[]),
+  const [preferences, setPreferences] = useState(() => ({
+    storageKey,
+    keys: loadKeys(
+      storageKey,
+      defaultKeys,
+      allTabs.map((tab) => tab.key),
+    ),
+  }));
+  const enabledKeys =
+    preferences.storageKey === storageKey
+      ? preferences.keys
+      : loadKeys(
+          storageKey,
+          defaultKeys,
+          allTabs.map((tab) => tab.key),
+        );
+  const setEnabledKeys = useCallback(
+    (update: (keys: string[]) => string[]) => {
+      setPreferences((previous) => ({
+        storageKey,
+        keys: update(
+          previous.storageKey === storageKey
+            ? previous.keys
+            : loadKeys(
+                storageKey,
+                defaultKeys,
+                allTabs.map((tab) => tab.key),
+              ),
+        ),
+      }));
+    },
+    [storageKey, allTabs, defaultKeys],
   );
   const [sheetOpen, setSheetOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [navHidden, setNavHidden] = useState(false);
 
@@ -263,7 +304,7 @@ export function AppBottomNav({
     setEnabledKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
-  }, []);
+  }, [setEnabledKeys]);
 
   const leafVisible = useCallback(
     (leaf: NavLeaf): boolean => {
@@ -279,18 +320,40 @@ export function AppBottomNav({
   );
 
   // Filter tabs: enabled + permission check for staff
-  const visibleTabs = allTabs.filter((tab) => {
-    if (
-      !enabledKeys.includes(tab.key) &&
-      !(tab.key === "roster" && isRosterRole)
-    )
-      return false;
+  const availableTabs = allTabs.filter((tab) => {
     if (isAdmin) return true;
     if (tab.key === "roster") return isRosterRole;
     if (!permissionsLoaded) return false;
     const cleanPath = normalizeNavPath(tab.paths[0]?.split("?")[0] ?? "");
     return pathGrantedByRoots(cleanPath, allowedRoots as any);
   });
+  const orderedKeys = [...enabledKeys];
+  if (isRosterRole && !orderedKeys.includes("roster"))
+    orderedKeys.push("roster");
+  const visibleTabs = orderedKeys.flatMap((key) =>
+    availableTabs.filter((tab) => tab.key === key),
+  );
+  const customizableTabs = [
+    ...visibleTabs,
+    ...availableTabs.filter((tab) => !orderedKeys.includes(tab.key)),
+  ];
+  const moveKey = (key: string, direction: -1 | 1) => {
+    const reordered = moveBottomNavKey(
+      visibleTabs.map((tab) => tab.key),
+      key,
+      direction,
+    );
+    setEnabledKeys((previous) => [
+      ...reordered,
+      ...previous.filter((item) => !reordered.includes(item)),
+    ]);
+  };
+  const mobilePrimaryTabs = visibleTabs.slice(0, 4);
+  const mobileOverflowItems: NavLeaf[] = visibleTabs.slice(4).map((tab) => ({
+    icon: tab.icon,
+    label: tab.label,
+    path: tab.paths[0],
+  }));
 
   const moreGroups = useMemo(() => {
     const navGroups = isAdmin ? adminNavGroups : staffNavGroups;
@@ -337,6 +400,16 @@ export function AppBottomNav({
         ),
       }))
       .filter((section) => section.items.length > 0);
+    const mobileOverflowGroup =
+      mobileOverflowItems.length > 0
+        ? [
+            {
+              label: "روابط الشريط",
+              navKey: "mobile-primary",
+              items: mobileOverflowItems,
+            },
+          ]
+        : [];
 
     return [
       {
@@ -345,9 +418,10 @@ export function AppBottomNav({
         groupPath: "/patients-hub",
         items: recordItems,
       },
+      ...mobileOverflowGroup,
       ...remainingSections,
     ].filter((section) => section.items.length > 0);
-  }, [isAdmin, leafVisible]);
+  }, [isAdmin, leafVisible, mobileOverflowItems]);
 
   const handleMoreNavigate = (path: string) => {
     setMoreSheetOpen(false);
@@ -362,10 +436,11 @@ export function AppBottomNav({
   return (
     <>
       <nav
+        data-app-bottom-nav
         aria-label="التنقل الرئيسي"
         dir="rtl"
         className={cn(
-          "md:hidden shrink-0 overflow-hidden bg-background transition-[max-height,transform,padding,border-color] duration-200 ease-out print:hidden",
+          "md:hidden shrink-0 overflow-hidden bg-primary text-primary-foreground transition-[max-height,transform,padding,border-color] duration-200 ease-out print:hidden",
           navHidden && !sheetOpen && !moreSheetOpen
             ? "pointer-events-none max-h-0 translate-y-full border-transparent"
             : "max-h-24 translate-y-0 border-t border-border",
@@ -377,27 +452,27 @@ export function AppBottomNav({
               : "env(safe-area-inset-bottom)",
         }}
       >
-        <div className="flex h-14 items-stretch overflow-x-auto">
-          {visibleTabs.map((tab) => {
+        <div className="flex h-16 items-stretch gap-1 overflow-hidden px-1">
+          {mobilePrimaryTabs.map((tab) => {
             const Icon = tab.icon;
             const active = isTabActive(location, tab.paths);
             return (
-              <button
+              <Button variant="bare"
                 key={tab.key}
                 type="button"
                 aria-label={tab.label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors shrink-0",
+                  "relative flex min-w-16 flex-1 shrink-0 flex-col items-center justify-center gap-1 px-2 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary",
                   active
-                    ? "text-primary"
-                    : "text-muted-foreground/70 hover:text-muted-foreground",
+                    ? "text-secondary dark:text-primary-foreground"
+                    : "text-primary-foreground/80 hover:text-primary-foreground",
                 )}
                 onClick={() => onNavigate(tab.paths[0])}
               >
                 {active && (
                   <span
-                    className="absolute inset-x-3 top-0 h-0.5 rounded-b-full bg-primary"
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-b-full bg-secondary"
                     aria-hidden
                   />
                 )}
@@ -407,25 +482,26 @@ export function AppBottomNav({
                 />
                 <span
                   className={cn(
-                    "whitespace-nowrap text-[10px] leading-none",
+                    "whitespace-nowrap text-xs leading-tight",
                     active ? "font-semibold" : "font-medium",
                   )}
                 >
                   {tab.label}
                 </span>
-              </button>
+              </Button>
             );
           })}
 
           {/* More button */}
-          <button
+          <Button variant="bare"
+            ref={moreButtonRef}
             type="button"
             aria-label="المزيد"
             className={cn(
-              "relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors shrink-0",
+              "relative flex min-w-16 flex-1 shrink-0 flex-col items-center justify-center gap-1 px-2 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary",
               moreSheetOpen || moreOpen
-                ? "text-primary"
-                : "text-muted-foreground/70 hover:text-muted-foreground",
+                ? "text-secondary dark:text-primary-foreground"
+                : "text-primary-foreground/80 hover:text-primary-foreground",
             )}
             onClick={() => {
               setMoreSheetOpen(true);
@@ -438,13 +514,13 @@ export function AppBottomNav({
             />
             <span
               className={cn(
-                "whitespace-nowrap text-[10px] leading-none",
+                "whitespace-nowrap text-xs leading-tight",
                 moreSheetOpen || moreOpen ? "font-semibold" : "font-medium",
               )}
             >
               المزيد
             </span>
-          </button>
+          </Button>
         </div>
       </nav>
 
@@ -457,11 +533,15 @@ export function AppBottomNav({
       >
         <SheetContent
           side="bottom"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            moreButtonRef.current?.focus();
+          }}
           className="max-h-[82vh] overflow-y-auto rounded-t-xl p-0"
           dir="rtl"
         >
           <SheetHeader className="border-b border-border px-4 py-3">
-            <SheetTitle className="text-right text-base">المزيد</SheetTitle>
+            <SheetTitle className="text-start text-base">المزيد</SheetTitle>
           </SheetHeader>
           <div className="divide-y divide-border/70 pb-[env(safe-area-inset-bottom)]">
             {moreGroups.map((group, index) => {
@@ -470,8 +550,9 @@ export function AppBottomNav({
               const isOpen = openSections[key] ?? false;
               return (
                 <section key={key}>
-                  <button
+                  <Button variant="bare"
                     type="button"
+                    aria-expanded={isSingle ? undefined : isOpen}
                     className="flex min-h-12 w-full items-center justify-between gap-3 bg-muted/40 px-4 py-3 text-start text-sm font-semibold text-foreground"
                     onClick={() => {
                       if (isSingle) {
@@ -491,14 +572,14 @@ export function AppBottomNav({
                         aria-hidden
                       />
                     )}
-                  </button>
+                  </Button>
                   {!isSingle && isOpen && (
                     <div className="grid grid-cols-2 gap-2 p-3">
                       {group.items.map((item) => {
                         const Icon = item.icon;
                         const active = isTabActive(location, [item.path]);
                         return (
-                          <button
+                          <Button variant="bare"
                             key={item.path}
                             type="button"
                             className={cn(
@@ -510,10 +591,10 @@ export function AppBottomNav({
                             onClick={() => handleMoreNavigate(item.path)}
                           >
                             <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                            <span className="min-w-0 truncate">
+                            <span className="min-w-0 break-words">
                               {item.label}
                             </span>
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -522,7 +603,7 @@ export function AppBottomNav({
               );
             })}
             <div className="p-3">
-              <button
+              <Button variant="bare"
                 type="button"
                 className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-start text-sm font-semibold text-foreground transition-colors hover:bg-muted"
                 onClick={() => {
@@ -536,7 +617,7 @@ export function AppBottomNav({
                   aria-hidden
                 />
                 <span>تخصيص شريط التنقل</span>
-              </button>
+              </Button>
             </div>
           </div>
         </SheetContent>
@@ -549,35 +630,57 @@ export function AppBottomNav({
           dir="rtl"
         >
           <SheetHeader className="mb-4">
-            <SheetTitle className="text-right">تخصيص شريط التنقل</SheetTitle>
+            <SheetTitle className="text-start">تخصيص شريط التنقل</SheetTitle>
           </SheetHeader>
-          <p className="text-xs text-muted-foreground mb-4">
-            اختر الصفحات التي تظهر في شريط التنقل السفلي
-          </p>
           <div className="space-y-2">
-            {allTabs.map((tab) => {
+            {customizableTabs.map((tab) => {
               const Icon = tab.icon;
               const rosterLocked = tab.key === "roster" && isRosterRole;
               const enabled = rosterLocked || enabledKeys.includes(tab.key);
+              const position = visibleTabs.findIndex(
+                (item) => item.key === tab.key,
+              );
               return (
                 <div
                   key={tab.key}
-                  className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm font-medium">{tab.label}</span>
                   </div>
-                  <Switch
-                    checked={enabled}
-                    disabled={rosterLocked}
-                    onCheckedChange={() => toggleKey(tab.key)}
-                    aria-label={
-                      rosterLocked
-                        ? "الروستر متاح دائما لهذا الحساب"
-                        : undefined
-                    }
-                  />
+                  <div className="flex items-center gap-1">
+                    <Button variant="bare"
+                      type="button"
+                      title={`تقديم ${tab.label}`}
+                      aria-label={`تقديم ${tab.label}`}
+                      disabled={!enabled || position <= 0}
+                      onClick={() => moveKey(tab.key, -1)}
+                      className="flex size-11 items-center justify-center rounded-md hover:bg-muted disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      <ArrowUp className="size-4" aria-hidden />
+                    </Button>
+                    <Button variant="bare"
+                      type="button"
+                      title={`تأخير ${tab.label}`}
+                      aria-label={`تأخير ${tab.label}`}
+                      disabled={!enabled || position === visibleTabs.length - 1}
+                      onClick={() => moveKey(tab.key, 1)}
+                      className="flex size-11 items-center justify-center rounded-md hover:bg-muted disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      <ArrowDown className="size-4" aria-hidden />
+                    </Button>
+                    <Switch
+                      checked={enabled}
+                      disabled={rosterLocked}
+                      onCheckedChange={() => toggleKey(tab.key)}
+                      aria-label={
+                        rosterLocked
+                          ? "الروستر متاح دائما لهذا الحساب"
+                          : `إظهار ${tab.label}`
+                      }
+                    />
+                  </div>
                 </div>
               );
             })}

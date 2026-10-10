@@ -74,7 +74,7 @@ export function ModuleNavigation({
               <div className="flex items-center gap-2">
                 <SectionIcon className="h-4 w-4 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                  <h3 className="text-xs font-semibold text-foreground uppercase">
                     {section.label}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -134,7 +134,7 @@ export function ModuleSidebar({
 }) {
   return (
     <aside
-      className={`w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-r p-3 sm:p-4 ${className}`}
+      className={`w-full border-b border-border bg-card/50 lg:w-64 lg:border-b-0 lg:border-s p-3 sm:p-4 ${className}`}
     >
       {children}
     </aside>
@@ -185,11 +185,11 @@ export function ModuleHeader({
 }: ModuleHeaderProps) {
   const borderColor =
     colorScheme === "primary"
-      ? "border-primary/15 from-primary/5"
-      : "border-secondary/15 from-secondary/5";
+      ? "border-primary/15 bg-primary/5"
+      : "border-secondary/15 bg-secondary/5";
 
   return (
-    <div className={`border-b ${borderColor} bg-gradient-to-b to-transparent`}>
+    <div className={`border-b ${borderColor}`}>
       <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
         <div className="flex flex-col gap-4 sm:gap-6">
           {badge ? (

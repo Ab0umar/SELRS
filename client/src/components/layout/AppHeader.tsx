@@ -137,14 +137,14 @@ export function AppHeader({
         <div className="flex min-w-0 flex-1 justify-center px-1 sm:px-3">
           <div className="relative hidden w-full max-w-xl sm:block">
             <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <button
+            <Button variant="bare"
               type="button"
               onClick={dispatchOpenCommandPalette}
               dir="rtl"
               className="flex h-9 w-full cursor-text items-center rounded-lg border border-border bg-muted/50 ps-10 pe-4 text-end text-sm text-muted-foreground transition-[background-color,border-color,box-shadow] hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-ring"
             >
               بحث عن مرضى، أطباء، مواعيد… (⌘K)
-            </button>
+            </Button>
           </div>
           <Button
             type="button"
@@ -162,7 +162,7 @@ export function AppHeader({
         <div className="flex shrink-0 items-center gap-2">
           <Badge
             variant="outline"
-            className="inline-flex gap-1.5 whitespace-nowrap py-1 text-[10px] font-normal sm:text-xs"
+            className="inline-flex gap-1.5 whitespace-nowrap py-1 text-[13px] font-normal sm:text-xs"
           >
             <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success/100" />
             {dateStr || "…"}

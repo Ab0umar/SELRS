@@ -30,6 +30,7 @@
     table {
     width: max-content !important;
     min-width: 100% !important;
+    max-width: none !important;
     table-layout: auto !important;
   }
 
@@ -47,7 +48,7 @@
     white-space: nowrap !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
-    font-size: 0.75rem !important;
+    font-size: 0.875rem !important;
     line-height: 1.35 !important;
   }
 

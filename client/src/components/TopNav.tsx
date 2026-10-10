@@ -18,7 +18,7 @@ export default function TopNav() {
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between px-4 py-2">
         {/* Brand/logo */}
-        <Link href="/" className="text-2xl font-bold tracking-tight">
+        <Link href="/" className="text-2xl font-bold">
           مركز عيون الشروق
         </Link>
         {/* Navigation items */}
@@ -29,7 +29,7 @@ export default function TopNav() {
               href={item.href}
               className={cn(
                 "text-sm font-medium hover:text-primary-foreground/80 transition-colors",
-                "relative after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:scale-x-0 after:bg-primary-foreground after:transition-transform after:duration-200 after:ease-out hover:after:scale-x-100"
+                "relative after:absolute after:end-0 after:-bottom-1 after:h-0.5 after:w-full after:scale-x-0 after:bg-primary-foreground after:transition-transform after:duration-200 after:ease-out hover:after:scale-x-100"
               )}
             >
               {item.label}

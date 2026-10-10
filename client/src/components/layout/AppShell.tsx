@@ -12,14 +12,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  type UIEvent as ReactUIEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import type { User } from "@shared/types";
 
 import { AppBottomNav } from "./AppBottomNav";
 import { AppTopNav } from "./AppTopNav";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import "./mobile-brand-canvas.css";
 
 import {
   normalizeNavPath,
@@ -27,6 +34,8 @@ import {
   permissionsToAllowedRoots,
 } from "@/lib/nav-permission-utils";
 import { requestAppReload } from "@/lib/appRuntime";
+import { RouteTitleFallback } from "./RouteTitleFallback";
+import { extractHubPatientId } from "@/lib/patientHubNavigation";
 
 type AppShellProps = {
   children: ReactNode;
@@ -78,6 +87,9 @@ export function AppShell({
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [topNavHidden, setTopNavHidden] = useState(false);
+  const previousScrollTopRef = useRef(0);
+  const scrollTravelRef = useRef(0);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -138,6 +150,37 @@ export function AppShell({
     }
     setLocation("/home");
   };
+
+  const handleContentScroll = (event: ReactUIEvent<HTMLElement>) => {
+    const scrollContainer = event.currentTarget;
+    const maxScrollTop = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+    const nextScrollTop = Math.max(0, Math.min(scrollContainer.scrollTop, maxScrollTop));
+    const delta = nextScrollTop - previousScrollTopRef.current;
+    previousScrollTopRef.current = nextScrollTop;
+    if (nextScrollTop <= 12) {
+      setTopNavHidden(false);
+      scrollTravelRef.current = 0;
+      return;
+    }
+    // Ignore edge bounce and require sustained travel in one direction.
+    if (Math.abs(delta) < 1 || nextScrollTop >= maxScrollTop - 12) return;
+    scrollTravelRef.current = Math.sign(delta) === Math.sign(scrollTravelRef.current)
+      ? scrollTravelRef.current + delta
+      : delta;
+    if (scrollTravelRef.current <= -24) {
+      setTopNavHidden(false);
+      scrollTravelRef.current = 0;
+    } else if (scrollTravelRef.current >= 24 && nextScrollTop > 48) {
+      setTopNavHidden(true);
+      scrollTravelRef.current = 0;
+    }
+  };
+
+  useEffect(() => {
+    previousScrollTopRef.current = 0;
+    scrollTravelRef.current = 0;
+    setTopNavHidden(false);
+  }, [location]);
 
 
 
@@ -225,7 +268,7 @@ export function AppShell({
 
   return (
     <div
-      className="flex h-dvh min-h-0 w-full max-w-[100vw] flex-col overflow-hidden selrs-page-bg print:h-auto print:overflow-visible print:max-w-none"
+      className="selrs-mobile-brand-canvas relative flex h-dvh min-h-0 w-full max-w-[100vw] flex-col overflow-hidden selrs-page-bg print:h-auto print:overflow-visible print:max-w-none"
       dir="rtl"
     >
       {!hideSidebar && !hideTopNav && (
@@ -242,47 +285,30 @@ export function AppShell({
           onOpenPassword={() => setIsPasswordDialogOpen(true)}
           onLogout={() => void handleSignOut()}
           hideShortcuts={hideTopShortcuts}
+          onBack={handleBack}
+          onRefresh={() => requestAppReload("manual-refresh")}
+          showRefresh={isNativeMobileApp}
+          mobileHidden={topNavHidden}
         />
       )}
 
-      <div className="pointer-events-none fixed bottom-[5.5rem] left-3 z-50 flex items-center gap-2 print:hidden sm:bottom-4" dir="rtl">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleBack}
-          className="pointer-events-auto h-10 gap-2 rounded-xl border-border/80 bg-card/95 px-3 text-xs font-bold text-foreground shadow-sm backdrop-blur hover:bg-muted"
-          aria-label="رجوع"
-        >
-          <ArrowRight className="h-4 w-4" />
-          <span className="hidden sm:inline">رجوع</span>
-        </Button>
-        {isNativeMobileApp && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => requestAppReload("manual-refresh")}
-            className="pointer-events-auto h-10 gap-2 rounded-xl border-border/80 bg-card/95 px-3 text-xs font-bold text-primary shadow-sm backdrop-blur hover:bg-muted"
-            aria-label="تحديث الصفحة"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span className="hidden sm:inline">تحديث</span>
-          </Button>
-        )}
-      </div>
-
       <main
         data-app-scroll-container
-
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto print:h-auto print:min-h-0 print:overflow-visible ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} print:overflow-x-visible ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} ${isShiftScheduleRoute ? "p-0" : "px-1 pt-2 pb-2 sm:px-4 sm:py-3 md:px-4 md:py-4"}`}
+        onScroll={handleContentScroll}
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto print:h-auto print:min-h-0 print:overflow-visible ${isAdminPatientsRoute ? "overflow-x-auto" : "overflow-x-hidden"} print:overflow-x-visible ${isDashboardLikeRoute ? "bg-transparent" : "bg-background"} ${isShiftScheduleRoute ? "p-0" : "px-1 pt-0 pb-2 sm:px-4 sm:pb-3 md:px-4 md:pb-4"}`}
       >
         <div
           className="selrs-app-content mx-auto min-h-0 w-full flex-1 max-w-none"
         >
+          {!hideSidebar && !hideTopNav && (
+            <div className="h-[calc(3.5rem+1px+env(safe-area-inset-top))] shrink-0 md:hidden print:hidden" aria-hidden />
+          )}
+          <RouteTitleFallback location={location} />
           {children}
         </div>
       </main>
 
-      {!hideSidebar && (
+      {!hideSidebar && !extractHubPatientId(location) && (
         <AppBottomNav
           location={location}
           onNavigate={setLocation}
@@ -396,7 +422,7 @@ export function AppShell({
           </DialogHeader>
           <div className="space-y-4">
             {mustForcePasswordChange ? (
-              <div className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning">
+              <div className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning-text">
                 For Security, You Must Change Your Password Before Continuing.
               </div>
             ) : null}

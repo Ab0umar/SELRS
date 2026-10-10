@@ -78,10 +78,10 @@ export function AppShellStatus({
       ) : null}
 
       {showConnectivityBanner ? (
-        <div className="fixed inset-x-0 top-0 z-[1200] border-b border-warning bg-[linear-gradient(90deg,rgba(255,251,235,0.96),rgba(255,247,237,0.96))] backdrop-blur print:hidden">
-          <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
+        <div className="fixed inset-x-0 top-0 z-[1200] border-b border-warning bg-warning/15 print:hidden">
+          <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 text-sm text-warning-text sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-warning/20 p-2 text-warning/90">
+              <div className="mt-0.5 rounded-full bg-warning/20 p-2 text-warning-text/90">
                 {!online ? (
                   <WifiOff className="h-4 w-4" />
                 ) : (
@@ -90,9 +90,9 @@ export function AppShellStatus({
               </div>
               <div>
                 <div className="font-semibold">{connectivityTitle}</div>
-                <div className="text-warning">{connectivityBody}</div>
+                <div className="text-warning-text">{connectivityBody}</div>
                 {offlineCacheCount > 0 ? (
-                  <div className="mt-1 text-xs text-warning/90">
+                  <div className="mt-1 text-xs text-warning-text/90">
                     Cached setup data available
                     {offlineCacheTimeLabel
                       ? ` from ${offlineCacheTimeLabel}`
@@ -126,7 +126,7 @@ export function AppShellStatus({
 
       {apiIssue ? (
         <div
-          className={`fixed bottom-3 left-3 z-[1100] w-[min(92vw,28rem)] border-primary/25 ${cardClassName} print:hidden`}
+          className={`fixed bottom-3 end-3 z-[1100] w-[min(92vw,28rem)] border-primary/25 ${cardClassName} print:hidden`}
         >
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-primary text-primary-foreground">
@@ -207,7 +207,7 @@ export function AppShellStatus({
 
       {runtimeIssue ? (
         <div
-          className={`fixed bottom-3 right-3 z-[1100] w-[min(92vw,30rem)] border-destructive/40 ${cardClassName} print:hidden`}
+          className={`fixed bottom-3 start-3 z-[1100] w-[min(92vw,30rem)] border-destructive/40 ${cardClassName} print:hidden`}
         >
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-destructive/10 p-2 text-destructive">
@@ -227,7 +227,7 @@ export function AppShellStatus({
             </div>
           </div>
           {runtimeIssue.stack ? (
-            <pre className="mt-3 max-h-28 overflow-auto rounded-xl bg-muted p-3 text-[11px] leading-relaxed text-card-foreground">
+            <pre className="mt-3 max-h-28 overflow-auto rounded-xl bg-muted p-3 text-[13px] leading-relaxed text-card-foreground">
               {runtimeIssue.stack}
             </pre>
           ) : null}
