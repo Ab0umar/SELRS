@@ -54,19 +54,19 @@ A receptionist-daily-driver page for managing LASIK/corneal surgery operations a
 
 ## 6. Key States
 
-| State | What the user sees |
-|-------|--------------------|
-| **Default** | Today's date, first doctor selected, list table (empty or populated) |
-| **Loading** | Skeleton rows in the table area, no spinners |
-| **Empty list** | Helpful empty state: "لا توجد عمليات مسجلة لهذا التاريخ" with quick-add prompt |
-| **Empty bookings** | Subtle "لا توجد حجوزات" message in bookings section |
-| **Active editing** | Inline editable rows with clear focus states |
-| **Saving** | Button loading state, no full-page blocking |
-| **Auto-save on** | Visual indicator (small dot or label) that auto-save is active |
-| **Accounts expanded** | Financial summary slides open below the table |
-| **History browsing** | History section replaces or overlays the main list |
-| **Error/offline** | Inline error banner with retry, matches dashboard's OfflinePageState |
-| **Print mode** | Clean print stylesheet (already exists via reportStyles) |
+| State                 | What the user sees                                                             |
+| --------------------- | ------------------------------------------------------------------------------ |
+| **Default**           | Today's date, first doctor selected, list table (empty or populated)           |
+| **Loading**           | Skeleton rows in the table area, no spinners                                   |
+| **Empty list**        | Helpful empty state: "لا توجد عمليات مسجلة لهذا التاريخ" with quick-add prompt |
+| **Empty bookings**    | Subtle "لا توجد حجوزات" message in bookings section                            |
+| **Active editing**    | Inline editable rows with clear focus states                                   |
+| **Saving**            | Button loading state, no full-page blocking                                    |
+| **Auto-save on**      | Visual indicator (small dot or label) that auto-save is active                 |
+| **Accounts expanded** | Financial summary slides open below the table                                  |
+| **History browsing**  | History section replaces or overlays the main list                             |
+| **Error/offline**     | Inline error banner with retry, matches dashboard's OfflinePageState           |
+| **Print mode**        | Clean print stylesheet (already exists via reportStyles)                       |
 
 ## 7. Interaction Model
 
@@ -82,6 +82,7 @@ A receptionist-daily-driver page for managing LASIK/corneal surgery operations a
 ## 8. Content Requirements
 
 ### Labels (Arabic primary)
+
 - Page title: "العمليات" (keep current)
 - Doctor pills: "د. محمد السعدني" | "د. احمد الصواف" | "خارجي"
 - Toolbar: date input, time input, operation type selector
@@ -92,6 +93,7 @@ A receptionist-daily-driver page for managing LASIK/corneal surgery operations a
 - Empty states: Arabic messages as noted in Key States
 
 ### Dynamic content
+
 - Operation types: PRK, Lasik, Moria, Metal, Femto, Cataract, Yag, Other (from operationsPricing.ts)
 - Doctor names vary per tab
 - Hospital column appears only for cataract operations

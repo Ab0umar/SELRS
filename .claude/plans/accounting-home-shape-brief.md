@@ -29,7 +29,7 @@ The `/accounting` landing page is a **navigation hub** for the accounting sectio
 **Top-down hierarchy, two zones:**
 
 **Zone 1: Metric ribbon (full width)**
-A single horizontal strip with 4 metric pairs. Not cards. Not a grid of boxes. A thin, dense ribbon: "إيراد اليوم: ٤,٥٠٠.٠٠  |  إيصالات: ١٢  |  إيراد الشهر: ٨٥,٠٠٠.٠٠  |  إيصالات: ٢٤٠". Each number is clickable (navigates to relevant report). This should feel like a stock ticker strip, not a card grid. Subtle background tint to separate it from the content below.
+A single horizontal strip with 4 metric pairs. Not cards. Not a grid of boxes. A thin, dense ribbon: "إيراد اليوم: ٤,٥٠٠.٠٠ | إيصالات: ١٢ | إيراد الشهر: ٨٥,٠٠٠.٠٠ | إيصالات: ٢٤٠". Each number is clickable (navigates to relevant report). This should feel like a stock ticker strip, not a card grid. Subtle background tint to separate it from the content below.
 
 **Zone 2: Two-column layout (activity feed + report list)**
 
@@ -41,13 +41,13 @@ On mobile: single column, metrics ribbon wraps, activity feed first, reports bel
 
 ## 6. Key States
 
-| State | What user sees |
-|-------|---------------|
-| **Loading** | Metric ribbon shows skeleton bars. Activity feed shows centered spinner. Reports list is visible immediately (static config). |
-| **Has data** | Full metric ribbon with real numbers. Activity feed with receipt rows. Reports list. |
+| State                         | What user sees                                                                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Loading**                   | Metric ribbon shows skeleton bars. Activity feed shows centered spinner. Reports list is visible immediately (static config).                   |
+| **Has data**                  | Full metric ribbon with real numbers. Activity feed with receipt rows. Reports list.                                                            |
 | **Empty (no receipts today)** | Metric ribbon shows 0s. Activity feed shows "لا توجد حركات اليوم" with subtle note "ستظهر الإيصالات هنا تلقائياً". Reports list always visible. |
-| **Error** | Metric ribbon shows dashes. Activity feed shows inline error with retry button. Reports list always visible (it's static). |
-| **Fetching (background)** | Small spinner or refresh icon near the activity feed header. Metrics remain showing stale data until fresh data arrives. |
+| **Error**                     | Metric ribbon shows dashes. Activity feed shows inline error with retry button. Reports list always visible (it's static).                      |
+| **Fetching (background)**     | Small spinner or refresh icon near the activity feed header. Metrics remain showing stale data until fresh data arrives.                        |
 
 ## 7. Interaction Model
 
@@ -60,6 +60,7 @@ On mobile: single column, metrics ribbon wraps, activity feed first, reports bel
 ## 8. Content Requirements
 
 **Metric ribbon labels** (Arabic):
+
 - إيراد اليوم (today's revenue, money)
 - إيصالات اليوم (today's count, number)
 - إيراد الشهر (month revenue, money)
@@ -74,6 +75,7 @@ On mobile: single column, metrics ribbon wraps, activity feed first, reports bel
 **Error state**: "تعذر تحميل البيانات" + retry link
 
 **Report items** (existing 7):
+
 1. الإيراد اليومي - مراجعة الإيرادات حسب اليوم
 2. إيراد الخدمات - إجماليات الطبيب والخدمة
 3. استعلام الإيصالات - البحث عن رؤوس الإيصالات
