@@ -118,7 +118,7 @@ function RefractionReportTable({
         </span>
         {metrics.length > 0 && (
           <div
-            className="flex flex-1 items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-xs font-bold uppercase tracking-wide text-primary"
+            className="flex flex-1 items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-xs font-bold uppercase text-primary"
             dir="ltr"
           >
             {metrics.includes("ucva") && (
@@ -142,11 +142,11 @@ function RefractionReportTable({
         )}
       </div>
 
-      <div
-        className="overflow-hidden rounded border border-border/60"
+      <div role="region" aria-label="جدول بيانات" tabIndex={0}
+        className="overflow-x-auto rounded border border-border/60 print:overflow-visible"
         dir="ltr"
       >
-        <table className="w-full table-fixed border-collapse text-center text-sm">
+        <table className="w-full min-w-[620px] table-fixed border-collapse text-center text-sm print:min-w-0">
           <thead>
             <tr className="border-b border-border/60 bg-muted/40 text-primary">
               <th className="w-[18%] border-e border-border/60 px-3 py-2">
@@ -255,7 +255,7 @@ function PentacamReportTable({
       <p className="mb-2 text-xs font-semibold text-muted-foreground" dir="rtl">
         {visitDate}
       </p>
-      <div
+      <div role="region" aria-label="جدول بيانات" tabIndex={0}
         className="overflow-x-auto rounded border border-border/60"
         dir="ltr"
       >
@@ -327,6 +327,68 @@ function SectionHeading({ id, label }: { id: string; label: string }) {
   );
 }
 
+type SummaryQuery = {
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => unknown;
+};
+
+function ReportEmptyState({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground"
+    >
+      لا توجد سجلات محفوظة في قسم {label}.
+    </div>
+  );
+}
+
+function SummaryQueryNotice({
+  loadingLabels,
+  errorLabels,
+  onRetry,
+}: {
+  loadingLabels: string[];
+  errorLabels: string[];
+  onRetry: () => void;
+}) {
+  if (loadingLabels.length === 0 && errorLabels.length === 0) return null;
+  const hasErrors = errorLabels.length > 0;
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm",
+        hasErrors
+          ? "border-destructive/50 bg-destructive/5 text-destructive"
+          : "border-primary/30 bg-primary/5 text-primary",
+      )}
+      role={hasErrors ? "alert" : "status"}
+    >
+      <div>
+        <p className="font-semibold">
+          {hasErrors
+            ? "تعذر تحميل بعض أقسام التقرير"
+            : "جارٍ تحميل بيانات التقرير"}
+        </p>
+        {loadingLabels.length > 0 && (
+          <p className="mt-1 text-xs">
+            قيد التحميل: {loadingLabels.join("، ")}
+          </p>
+        )}
+        {errorLabels.length > 0 && (
+          <p className="mt-1 text-xs">تعذر تحميل: {errorLabels.join("، ")}</p>
+        )}
+      </div>
+      {hasErrors && (
+        <Button type="button" variant="outline" onClick={onRetry}>
+          إعادة المحاولة
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function DataTable({
   headers,
   rows,
@@ -335,7 +397,7 @@ function DataTable({
   rows: (string | number)[][];
 }) {
   return (
-    <div
+    <div role="region" aria-label="جدول بيانات" tabIndex={0}
       className="patient-summary-data-table overflow-x-auto rounded-xl border border-border/60 shadow-2xs bg-card my-1"
       dir="ltr"
     >
@@ -345,7 +407,7 @@ function DataTable({
             {headers.map((h, idx) => (
               <th
                 key={`${h}-${idx}`}
-                className="border-x border-border/60 px-3 py-2.5 text-center text-xs font-bold tracking-wide first:border-l-0 last:border-r-0 whitespace-nowrap"
+                className="border-x border-border/60 px-3 py-2.5 text-center text-xs font-bold first:border-l-0 last:border-r-0 whitespace-nowrap"
               >
                 {h}
               </th>
@@ -379,7 +441,7 @@ function DataTable({
                       dir="ltr"
                     >
                       {isEyeOD || isEyeOS ? (
-                        <span className="inline-block rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        <span className="inline-block rounded bg-primary/10 px-2 py-0.5 text-[13px] font-bold text-primary">
                           {isEyeOD ? "OD" : "OS"}
                         </span>
                       ) : (
@@ -479,14 +541,34 @@ export default function PatientSummary() {
     testRequestsQuery?.refetch?.();
   }, [patientId]);
 
-  if (!isAuthenticated) return null;
-  if (new URL(location.href).pathname === "/offline")
-    return (
-      <OfflinePageState
-        title="Offline Mode"
-        body="Patient summary is not available in offline mode"
-      />
+  const summaryQueries: Array<{ label: string; query: SummaryQuery }> = [
+    { label: "بيانات المريض", query: patientQuery },
+    { label: "الزيارات", query: visitsQuery },
+    { label: "الفحوصات", query: examinationsQuery },
+    { label: "Autoref", query: autorefractometryQuery },
+    { label: "مقاس النظارة", query: glassesRecordsQuery },
+    { label: "After", query: afterRefractionQuery },
+    { label: "الوصفات", query: prescriptionsQuery },
+    { label: "Pentacam", query: pentacamQuery },
+    { label: "صور Pentacam", query: pentacamFilesQuery },
+    { label: "التاريخ المرضي", query: medicalHistoryQuery },
+    { label: "قوائم الفحص", query: examinationChecklistsQuery },
+    ...(testRequestsQuery
+      ? [{ label: "الفحوصات المطلوبة", query: testRequestsQuery }]
+      : []),
+  ];
+  const loadingSummaryLabels = summaryQueries
+    .filter(({ query }) => query.isLoading)
+    .map(({ label }) => label);
+  const failedSummaryQueries = summaryQueries.filter(
+    ({ query }) => query.isError,
+  );
+  const failedSummaryLabels = failedSummaryQueries.map(({ label }) => label);
+  const retryFailedSummaryQueries = () => {
+    void Promise.all(
+      failedSummaryQueries.map(({ query }) => Promise.resolve(query.refetch())),
     );
+  };
 
   const patient = patientQuery.data as any;
   const examinations = examinationsQuery.data ?? [];
@@ -1062,7 +1144,43 @@ export default function PatientSummary() {
       if (el) observer.observe(el);
     }
     return () => observer.disconnect();
-  }, [tocSections]);
+  }, [tocSections, patientQuery.data, patientQuery.isLoading, isAuthenticated]);
+
+  if (!isAuthenticated) return null;
+  if (new URL(location.href).pathname === "/offline")
+    return (
+      <OfflinePageState
+        title="Offline Mode"
+        body="Patient summary is not available in offline mode"
+      />
+    );
+
+  if (patientQuery.isLoading && !patientQuery.data)
+    return (
+      <div className="min-h-screen bg-background px-4 py-8" dir="rtl">
+        <div className="mx-auto max-w-3xl rounded-lg border border-border bg-card px-4 py-6 text-sm text-muted-foreground">
+          جارٍ تحميل بيانات المريض والتقرير…
+        </div>
+      </div>
+    );
+  if (patientQuery.isError && !patientQuery.data)
+    return (
+      <div className="min-h-screen bg-background px-4 py-8" dir="rtl">
+        <div
+          className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-5 text-sm text-destructive"
+          role="alert"
+        >
+          <span>تعذر تحميل بيانات المريض، لذلك لا يمكن عرض التقرير.</span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={retryFailedSummaryQueries}
+          >
+            إعادة المحاولة
+          </Button>
+        </div>
+      </div>
+    );
 
   return (
     <div
@@ -1184,7 +1302,7 @@ export default function PatientSummary() {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="text-lg font-bold leading-tight text-foreground">
+                <h1 className="text-2xl font-bold leading-tight text-foreground">
                   التقرير الملخص
                 </h1>
                 <span
@@ -1250,7 +1368,7 @@ export default function PatientSummary() {
                 >
                   <span
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded font-mono text-[10px]",
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded font-mono text-[13px]",
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted",
@@ -1266,25 +1384,30 @@ export default function PatientSummary() {
           </nav>
         </aside>
 
-        <main
-          ref={contentRef}
-          className="flex-1 scroll-smooth overflow-y-auto"
-        >
+        <main ref={contentRef} className="flex-1 scroll-smooth overflow-y-auto">
           <article className="patient-summary-print-root mx-auto w-full space-y-8 bg-background px-4 py-6 pb-16 sm:px-6 lg:my-5 lg:border lg:border-border lg:px-8 print:space-y-5">
             <div className="hidden border-b-2 border-primary pb-3 print:flex print:items-end print:justify-between">
               <div>
-                <h1 className="text-xl font-black text-primary">
+                <h1 className="text-2xl font-black text-primary">
                   التقرير الملخص | Patient Summary
                 </h1>
                 <p className="mt-1 text-xs text-muted-foreground">
                   سجل الزيارات والقياسات الطبية
                 </p>
               </div>
-              <div className="text-left text-xs text-muted-foreground" dir="rtl">
+              <div
+                className="text-end text-xs text-muted-foreground"
+                dir="rtl"
+              >
                 <p className="font-bold text-primary">{patientName}</p>
                 <p dir="ltr">{patient?.patientCode ?? "—"}</p>
               </div>
             </div>
+            <SummaryQueryNotice
+              loadingLabels={loadingSummaryLabels}
+              errorLabels={failedSummaryLabels}
+              onRetry={retryFailedSummaryQueries}
+            />
             {/* البيانات الأساسية */}
             <section id="sum-basic" className="scroll-mt-4">
               <SectionHeading id="basic" label="البيانات الأساسية" />
@@ -1343,7 +1466,7 @@ export default function PatientSummary() {
                 id="history"
                 label="التاريخ المرضي (Medical History)"
               />
-              {medicalHistoryRows.length > 0 && (
+              {medicalHistoryRows.length > 0 ? (
                 <DataTable
                   headers={[
                     "التاريخ",
@@ -1362,24 +1485,33 @@ export default function PatientSummary() {
                   ]}
                   rows={medicalHistoryRows}
                 />
+              ) : (
+                <ReportEmptyState label="التاريخ المرضي" />
               )}
             </section>
 
             {/* القياسات */}
             {
               <section id="sum-examinations" className="scroll-mt-4">
-                <SectionHeading id="examinations" label="الأوتوريف وضغط العين" />
+                <SectionHeading
+                  id="examinations"
+                  label="الأوتوريف وضغط العين"
+                />
                 <div className="space-y-5">
-                  {parsedExamSources.map((source, index) => (
-                    <RefractionReportTable
-                      key={`autoref-${formatDate(source.visitDate)}-${index}`}
-                      title="Autoref"
-                      visitDate={formatDate(source.visitDate)}
-                      od={source.autorefraction?.od ?? {}}
-                      os={source.autorefraction?.os ?? {}}
-                      metrics={["ucva", "iop"]}
-                    />
-                  ))}
+                  {parsedExamSources.length > 0 ? (
+                    parsedExamSources.map((source, index) => (
+                      <RefractionReportTable
+                        key={`autoref-${formatDate(source.visitDate)}-${index}`}
+                        title="Autoref"
+                        visitDate={formatDate(source.visitDate)}
+                        od={source.autorefraction?.od ?? {}}
+                        os={source.autorefraction?.os ?? {}}
+                        metrics={["ucva", "iop"]}
+                      />
+                    ))
+                  ) : (
+                    <ReportEmptyState label="الأوتوريف وضغط العين" />
+                  )}
                 </div>
               </section>
             }
@@ -1388,17 +1520,21 @@ export default function PatientSummary() {
               <section id="sum-after" className="scroll-mt-4">
                 <SectionHeading id="after" label="بعد الضبط" />
                 <div className="space-y-5">
-                  {parsedExamSources
-                    .filter((source) => source.after?.od || source.after?.os)
-                    .map((source, index) => (
-                      <RefractionReportTable
-                        key={`after-${formatDate(source.visitDate)}-${index}`}
-                        title="After"
-                        visitDate={formatDate(source.visitDate)}
-                        od={source.after?.od ?? {}}
-                        os={source.after?.os ?? {}}
-                      />
-                    ))}
+                  {afterData.length > 0 ? (
+                    parsedExamSources
+                      .filter((source) => source.after?.od || source.after?.os)
+                      .map((source, index) => (
+                        <RefractionReportTable
+                          key={`after-${formatDate(source.visitDate)}-${index}`}
+                          title="After"
+                          visitDate={formatDate(source.visitDate)}
+                          od={source.after?.od ?? {}}
+                          os={source.after?.os ?? {}}
+                        />
+                      ))
+                  ) : (
+                    <ReportEmptyState label="After Refraction" />
+                  )}
                 </div>
               </section>
             }
@@ -1408,32 +1544,36 @@ export default function PatientSummary() {
               <section id="sum-glasses" className="scroll-mt-4">
                 <SectionHeading id="glasses" label="قياس النظر (Refraction)" />
                 <div className="space-y-5">
-                  {glassesRows.map((row, index) => (
-                    <RefractionReportTable
-                      key={`glasses-${row.visit}-${index}`}
-                      title="Refraction"
-                      visitDate={row.visit}
-                      od={{
-                        s: row.odS,
-                        c: row.odC,
-                        axis: row.odAx,
-                        bcva: row.odBcva,
-                        pd: row.odPd,
-                        add: row.odAdd,
-                      }}
-                      os={{
-                        s: row.osS,
-                        c: row.osC,
-                        axis: row.osAx,
-                        bcva: row.osBcva,
-                        pd: row.osPd,
-                        add: row.osAdd,
-                      }}
-                      showReading
-                      metrics={["bcva"]}
-                      showIpd
-                    />
-                  ))}
+                  {glassesRows.length > 0 ? (
+                    glassesRows.map((row, index) => (
+                      <RefractionReportTable
+                        key={`glasses-${row.visit}-${index}`}
+                        title="Refraction"
+                        visitDate={row.visit}
+                        od={{
+                          s: row.odS,
+                          c: row.odC,
+                          axis: row.odAx,
+                          bcva: row.odBcva,
+                          pd: row.odPd,
+                          add: row.odAdd,
+                        }}
+                        os={{
+                          s: row.osS,
+                          c: row.osC,
+                          axis: row.osAx,
+                          bcva: row.osBcva,
+                          pd: row.osPd,
+                          add: row.osAdd,
+                        }}
+                        showReading
+                        metrics={["bcva"]}
+                        showIpd
+                      />
+                    ))
+                  ) : (
+                    <ReportEmptyState label="مقاس النظارة" />
+                  )}
                 </div>
               </section>
             }
@@ -1476,7 +1616,7 @@ export default function PatientSummary() {
             {
               <section id="sum-prescriptions" className="scroll-mt-4">
                 <SectionHeading id="prescriptions" label="الروشتة والعلاج" />
-                {treatmentPlanRows.length > 0 && (
+                {treatmentPlanRows.length > 0 ? (
                   <DataTable
                     headers={[
                       "التاريخ",
@@ -1488,6 +1628,8 @@ export default function PatientSummary() {
                     ]}
                     rows={treatmentPlanRows}
                   />
+                ) : (
+                  <ReportEmptyState label="الخطة العلاجية" />
                 )}
               </section>
             }
