@@ -125,10 +125,10 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-primary leading-tight">
+              <h1 className="text-2xl font-bold text-primary leading-tight">
                 مركز عيون الشروق
               </h1>
-              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+              <p className="text-[13px] font-semibold text-primary uppercase">
                 بوابة المرضى الإلكترونية
               </p>
             </div>
@@ -136,17 +136,17 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
 
           {/* User profile & action tools */}
           <div className="flex items-center gap-2">
-            <div className="hidden md:flex flex-col text-left pl-2 border-l border-border/60">
-              <span className="text-xs font-bold text-foreground text-right">
+            <div className="hidden md:flex flex-col text-end pe-2 border-e border-border/60">
+              <span className="text-xs font-bold text-foreground text-start">
                 {name}
               </span>
-              <span className="text-[10px] text-muted-foreground text-right">
+              <span className="text-[13px] text-muted-foreground text-start">
                 كود: {patientCode}
               </span>
             </div>
 
             {/* Notification Bell */}
-            <Button
+            <Button aria-label="الإشعارات" title="الإشعارات"
               variant="ghost"
               size="icon"
               className="relative rounded-xl hover:bg-muted/50 cursor-pointer size-10"
@@ -154,7 +154,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
             >
               <Bell className="size-5 text-muted-foreground" />
               {notificationCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground ring-2 ring-background">
+                <span className="absolute top-1.5 start-1.5 flex size-4 items-center justify-center rounded-full bg-secondary text-[13px] font-bold text-secondary-foreground ring-2 ring-background">
                   {notificationCount}
                 </span>
               )}
@@ -207,7 +207,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                 <h3 className="text-sm font-bold text-foreground">
                   آخر التحديثات والإشعارات
                 </h3>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[13px] text-muted-foreground">
                   تحديثات حالة الحجوزات والملف
                 </p>
               </div>
@@ -227,7 +227,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                   {pushState === "denied" ? (
                     <BellOff className="size-4 text-muted-foreground shrink-0" />
                   ) : (
-                    <BellRing className="size-4 text-primary shrink-0 animate-pulse" />
+                    <BellRing className="size-4 text-primary shrink-0" />
                   )}
                   <div className="min-w-0 text-xs">
                     <p className="font-bold text-foreground">
@@ -235,7 +235,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                         ? "الإشعارات محظورة"
                         : "تفعيل الإشعارات الفورية"}
                     </p>
-                    <p className="text-[10px] text-muted-foreground truncate">
+                    <p className="text-[13px] text-muted-foreground truncate">
                       {pushState === "denied"
                         ? "يرجى السماح بالإشعارات من المتصفح"
                         : "احصل على تنبيه فوري لتأكيد المواعيد"}
@@ -293,7 +293,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                             }
                           />
                         </div>
-                        <p className="text-muted-foreground text-[11px]">
+                        <p className="text-muted-foreground text-[13px]">
                           {item.status === "confirmed"
                             ? "تم تأكيد موعدك بنجاح من قبل الاستقبال."
                             : item.status === "cancelled"
@@ -303,14 +303,14 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                                 : "طلب الموعد قيد المراجعة حالياً."}
                         </p>
                       </div>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                      <span className="text-[13px] text-muted-foreground whitespace-nowrap">
                         {formatArabicDateTime(
                           item.confirmedDate ?? item.requestedDate,
                         )}
                       </span>
                     </div>
                     {item.staffNotes && (
-                      <p className="mt-2 rounded-lg bg-muted/60 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+                      <p className="mt-2 rounded-lg bg-muted/60 px-2.5 py-1.5 text-[13px] text-muted-foreground">
                         {item.staffNotes}
                       </p>
                     )}
@@ -332,7 +332,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile Fixed Bottom Navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border/60 bg-card px-2 shadow-lg md:hidden">
+      <nav className="fixed bottom-0 end-0 start-0 z-40 flex h-16 items-center justify-around border-t border-border/60 bg-card px-2 shadow-lg md:hidden">
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = location.startsWith(item.href);
@@ -352,7 +352,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 />
-                <span className="text-[9px] tracking-tight">
+                <span className="text-[13px]">
                   {item.label.split(" ")[0]}
                 </span>
               </span>

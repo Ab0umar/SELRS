@@ -43,7 +43,7 @@ export default function PatientScans() {
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-primary">
-              أشعتي وفحوصاتي 🔬
+              أشعتي وفحوصاتي
             </h2>
             <p className="text-xs text-muted-foreground">
               تقارير الأشعة وصور العين والتحاليل المرفوعة بملفك الطبي.
@@ -108,7 +108,7 @@ export default function PatientScans() {
                   </p>
                 </div>
                 <div className="bg-muted/40 border border-border/60 rounded-xl px-5 py-3 text-center min-w-[120px]">
-                  <p className="text-[10px] text-muted-foreground font-semibold">
+                  <p className="text-[13px] text-muted-foreground font-semibold">
                     الملفات المرفوعة
                   </p>
                   <p className="text-sm font-bold text-foreground mt-0.5">
@@ -135,7 +135,7 @@ export default function PatientScans() {
                         <p className="truncate text-sm font-bold text-foreground">
                           {scan.fileName || `أشعة وفحص #${scan.id}`}
                         </p>
-                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
                           <span className="rounded-lg bg-muted/40 border border-border/60 px-2 py-0.5">
                             {scan.mimeType.split("/")[1].toUpperCase()}
                           </span>

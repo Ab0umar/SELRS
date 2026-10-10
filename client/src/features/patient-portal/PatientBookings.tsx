@@ -54,7 +54,7 @@ export default function PatientBookings() {
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-primary">
-              مواعيدي وحجوزاتي 🗓️
+              مواعيدي وحجوزاتي
             </h2>
             <p className="text-xs text-muted-foreground">
               تابع حالة طلبات الحجز الحالية وتاريخ زياراتك السابقة للمركز.
@@ -83,7 +83,7 @@ export default function PatientBookings() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-primary/8 border border-primary/15 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-primary font-bold">
+                  <p className="text-[13px] text-primary font-bold">
                     الحجوزات المؤكدة
                   </p>
                   <p className="text-xl font-black text-foreground mt-1">
@@ -91,7 +91,7 @@ export default function PatientBookings() {
                   </p>
                 </div>
                 <div className="bg-secondary/8 border border-secondary/15 rounded-xl p-3 text-center">
-                  <p className="text-[10px] text-primary font-bold">
+                  <p className="text-[13px] text-primary font-bold">
                     قيد الانتظار
                   </p>
                   <p className="text-xl font-black text-foreground mt-1">
@@ -99,7 +99,7 @@ export default function PatientBookings() {
                   </p>
                 </div>
                 <div className="bg-muted/40 border border-border/60 rounded-xl p-3 text-center col-span-2">
-                  <p className="text-[10px] text-muted-foreground font-semibold">
+                  <p className="text-[13px] text-muted-foreground font-semibold">
                     إجمالي الزيارات والطلبات
                   </p>
                   <p className="text-lg font-black text-foreground mt-0.5">
@@ -181,7 +181,7 @@ export default function PatientBookings() {
                           <h4 className="text-sm font-bold text-foreground">
                             {item.typeLabel}
                           </h4>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-[13px] text-muted-foreground">
                             طلب حجز رقم #{item.id}
                           </p>
                         </div>
@@ -194,7 +194,7 @@ export default function PatientBookings() {
                       {/* Booking dates info grid */}
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="bg-muted/40 border border-border/60 rounded-xl p-3 space-y-0.5">
-                          <p className="text-[10px] text-muted-foreground font-semibold">
+                          <p className="text-[13px] text-muted-foreground font-semibold">
                             تاريخ الطلب المفضل
                           </p>
                           <p className="text-xs font-bold text-foreground">
@@ -204,7 +204,7 @@ export default function PatientBookings() {
 
                         {item.confirmedDate ? (
                           <div className="bg-primary/8 border border-primary/15 rounded-xl p-3 space-y-0.5">
-                            <p className="text-[10px] text-primary font-bold">
+                            <p className="text-[13px] text-primary font-bold">
                               الموعد المؤكد النهائي
                             </p>
                             <p className="text-xs font-black text-foreground">
@@ -213,7 +213,7 @@ export default function PatientBookings() {
                           </div>
                         ) : (
                           <div className="bg-secondary/8 border border-secondary/15 rounded-xl p-3 space-y-0.5">
-                            <p className="text-[10px] text-primary font-bold">
+                            <p className="text-[13px] text-primary font-bold">
                               تأكيد الموعد
                             </p>
                             <p className="text-xs font-bold text-foreground font-sans">
@@ -242,7 +242,7 @@ export default function PatientBookings() {
                               <ClipboardList className="size-4 shrink-0" />
                               <span>ملاحظة موظف الاستقبال:</span>
                             </div>
-                            <p className="text-[#995C00] pr-6">
+                            <p className="text-warning-text ps-6">
                               {item.staffNotes}
                             </p>
                           </div>

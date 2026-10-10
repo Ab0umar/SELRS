@@ -47,7 +47,7 @@ const InfoLine = ({
   <div
     dir={align === "left" ? "ltr" : "rtl"}
     className={cn(
-      "flex items-start gap-1.5 text-[11px] font-bold leading-5 text-foreground",
+      "flex items-start gap-1.5 text-[13px] font-bold leading-5 text-foreground",
       align === "left" ? "justify-start text-left" : "justify-start text-right",
     )}
   >
@@ -70,7 +70,7 @@ const InfoBlock = ({
 }) => (
   <div
     dir="rtl"
-    className="flex items-start gap-1.5 text-right text-[11px] font-bold leading-5 text-foreground"
+    className="flex items-start gap-1.5 text-start text-[13px] font-bold leading-5 text-foreground"
   >
     <Icon className="mt-0.5 size-3.5 shrink-0 text-primary" />
     <span dir="rtl" className="min-w-0 [unicode-bidi:isolate]">
@@ -117,29 +117,15 @@ export default function PatientLogin() {
       className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-primary/10 selection:text-primary"
       dir="rtl"
     >
-      <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-gradient-to-br from-[#15296a] via-[#0f2050] to-[#0c1840] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
-        <div
-          className="absolute top-[-120px] left-[-80px] w-[360px] h-[360px] rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(211, 156, 42, 0.18), transparent 70%)",
-          }}
-        />
-        <div
-          className="absolute bottom-[-140px] right-[-100px] w-[420px] h-[420px] rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(37, 99, 235, 0.30), transparent 70%)",
-          }}
-        />
+      <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-[#003d82] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
 
         <div className="relative z-10 flex flex-1 flex-row items-center justify-center gap-5 lg:gap-7">
           <BrandLogo className="size-32 lg:size-44 object-contain select-none shrink-0" />
-          <div className="flex flex-col items-start text-right">
-            <span className="whitespace-nowrap text-[32px] sm:text-[42px] lg:text-[56px] font-extrabold text-white leading-none">
+          <div className="flex flex-col items-start text-start">
+            <h1 className="whitespace-nowrap text-[32px] sm:text-[42px] lg:text-[56px] font-extrabold text-white leading-none">
               مركز عيون الشروق
-            </span>
-            <span className="text-base lg:text-2xl font-bold text-[#FC9918] mt-2">
+            </h1>
+            <span className="text-base lg:text-2xl font-bold text-secondary mt-2">
               لامراض القرنيه و تصحيح الابصار
             </span>
           </div>
@@ -151,7 +137,7 @@ export default function PatientLogin() {
               key={label}
               className="flex h-20 flex-col items-center justify-center gap-2 text-center"
             >
-              <span className="flex items-center justify-center text-[#e8b54a] shrink-0">
+              <span className="flex items-center justify-center text-secondary shrink-0">
                 <Icon className="size-7" />
               </span>
               <span className="text-white/85 text-sm font-bold leading-tight">
@@ -167,10 +153,10 @@ export default function PatientLogin() {
               key={label}
               className="flex h-16 flex-col items-center justify-center gap-1.5 text-center"
             >
-              <span className="text-[#e8b54a]">
+              <span className="text-secondary">
                 <Icon className="size-5" />
               </span>
-              <span className="text-white/85 text-[9px] sm:text-[10px] font-bold leading-tight">
+              <span className="text-white/85 text-[13px] sm:text-[13px] font-bold leading-tight">
                 {label}
               </span>
             </div>
@@ -182,7 +168,7 @@ export default function PatientLogin() {
         <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-muted" />
 
         <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight m-0">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground m-0">
             دخول المريض
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-4 sm:mb-8 leading-relaxed">
@@ -191,7 +177,7 @@ export default function PatientLogin() {
           </p>
 
           <div className="grid grid-cols-2 p-1.5 bg-muted/40 rounded-xl border border-border/60 mb-4 sm:mb-6">
-            <button
+            <Button variant="bare"
               type="button"
               onClick={() => setActiveTab("login")}
               className={cn(
@@ -203,8 +189,8 @@ export default function PatientLogin() {
             >
               <UserCheck className="size-4" />
               <span>تسجيل الدخول</span>
-            </button>
-            <button
+            </Button>
+            <Button variant="bare"
               type="button"
               onClick={() => setActiveTab("guest")}
               className={cn(
@@ -216,7 +202,7 @@ export default function PatientLogin() {
             >
               <UserPlus className="size-4" />
               <span>زائر جديد</span>
-            </button>
+            </Button>
           </div>
 
           {activeTab === "login" ? (
@@ -228,13 +214,13 @@ export default function PatientLogin() {
                 <label className="block text-xs sm:text-sm font-bold text-foreground">
                   رقم الموبايل
                 </label>
-                <Input
+                <Input aria-label="01XXXXXXXXX"
                   type="tel"
                   placeholder="01XXXXXXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   dir="ltr"
-                  className="h-12 text-left font-medium tracking-wide border-border/60 bg-muted/40 focus-visible:ring-primary/10 rounded-xl"
+                  className="h-12 text-left font-medium border-border/60 bg-muted/40 focus-visible:ring-primary/10 rounded-xl"
                   autoComplete="tel"
                   disabled={loginMutation.isPending}
                 />
@@ -244,13 +230,13 @@ export default function PatientLogin() {
                 <label className="block text-xs sm:text-sm font-bold text-foreground">
                   كود المريض
                 </label>
-                <Input
+                <Input aria-label="مثال: 0093"
                   type="text"
                   placeholder="مثال: 0093"
                   value={patientCode}
                   onChange={(e) => setPatientCode(e.target.value)}
                   dir="rtl"
-                  className="h-12 text-right font-medium border-border/60 bg-muted/40 focus-visible:ring-primary/10 rounded-xl"
+                  className="h-12 text-start font-medium border-border/60 bg-muted/40 focus-visible:ring-primary/10 rounded-xl"
                   disabled={loginMutation.isPending}
                 />
               </div>
@@ -258,7 +244,7 @@ export default function PatientLogin() {
               <div className="pt-2">
                 <Button
                   type="submit"
-                  className="h-12 w-full text-base font-bold bg-primary text-white hover:bg-primary/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 cursor-pointer"
+                  className="h-12 w-full text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-xl shadow-md cursor-pointer"
                   disabled={
                     phone.length < 8 || !patientCode || loginMutation.isPending
                   }
@@ -303,7 +289,7 @@ export default function PatientLogin() {
 
               <div className="rounded-xl border border-border/60 bg-muted/40 p-3 sm:p-4 space-y-2 sm:space-y-3.5">
                 <div className="flex items-start gap-2.5 text-xs leading-5">
-                  <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#d39c2a]/15 text-[#d39c2a] font-bold text-[10px]">
+                  <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-foreground font-bold text-[13px]">
                     ✓
                   </div>
                   <div className="font-semibold text-foreground">
@@ -311,7 +297,7 @@ export default function PatientLogin() {
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5 text-xs leading-5">
-                  <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#d39c2a]/15 text-[#d39c2a] font-bold text-[10px]">
+                  <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-foreground font-bold text-[13px]">
                     ✓
                   </div>
                   <div className="font-semibold text-foreground">
@@ -319,7 +305,7 @@ export default function PatientLogin() {
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5 text-xs leading-5">
-                  <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#d39c2a]/15 text-[#d39c2a] font-bold text-[10px]">
+                  <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-foreground font-bold text-[13px]">
                     ✓
                   </div>
                   <div className="font-semibold text-foreground">
@@ -330,7 +316,7 @@ export default function PatientLogin() {
 
               <div className="pt-2">
                 <Link href="/my/book-guest" className="w-full">
-                  <Button className="h-12 w-full text-base font-bold bg-primary text-white hover:bg-primary/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 gap-2 cursor-pointer">
+                  <Button className="h-12 w-full text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-xl shadow-md gap-2 cursor-pointer">
                     <CalendarPlus2 className="size-5" />
                     <span>البدء في حجز موعد كزائر</span>
                   </Button>
@@ -375,7 +361,7 @@ export default function PatientLogin() {
             />
             <div
               dir="rtl"
-              className="mt-2 flex items-center justify-center gap-1.5 border-t border-border/60 pt-2 text-center text-[11px] font-bold text-foreground"
+              className="mt-2 flex items-center justify-center gap-1.5 border-t border-border/60 pt-2 text-center text-[13px] font-bold text-foreground"
             >
               <Clock3 className="size-3.5 shrink-0 text-primary" />
               <p className="m-0">
@@ -385,7 +371,7 @@ export default function PatientLogin() {
           </div>
         </div>
 
-        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-border/60 flex flex-row items-center justify-between text-[11px] sm:text-xs text-muted-foreground w-full">
+        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-border/60 flex flex-row items-center justify-between text-[13px] sm:text-xs text-muted-foreground w-full">
           <Link
             href="/login"
             className="font-bold text-primary hover:underline"

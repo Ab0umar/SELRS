@@ -268,7 +268,7 @@ export function PortalMetric({
     <div className="rounded-xl border border-border bg-background p-3">
       <div
         className={cn(
-          "mb-2 inline-flex rounded-lg px-2 py-1 text-[11px] font-medium",
+          "mb-2 inline-flex rounded-lg px-2 py-1 text-[13px] font-medium",
           toneClass,
         )}
       >

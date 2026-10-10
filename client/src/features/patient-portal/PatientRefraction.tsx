@@ -71,7 +71,7 @@ function EyeCard({
             key={l}
             className="rounded-xl border border-white bg-card/90 p-2 text-center shadow-xs"
           >
-            <div className="text-[11px] font-bold text-muted-foreground">
+            <div className="text-[13px] font-bold text-muted-foreground">
               {l}
             </div>
             <div className="mt-1 text-base font-black text-foreground">
@@ -85,7 +85,7 @@ function EyeCard({
           className="mt-3 rounded-xl border border-white bg-card/90 px-3 py-1.5 flex justify-between items-center"
           dir="ltr"
         >
-          <span className="text-[10px] font-bold text-muted-foreground">
+          <span className="text-[13px] font-bold text-muted-foreground">
             V/A
           </span>
           <span className="text-sm font-black text-foreground">{va}</span>
@@ -109,7 +109,7 @@ function RefractionRecord({ row }: { row: any }) {
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <div className="space-y-0.5">
           <h3 className="text-sm font-bold text-foreground">{visitDate}</h3>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             قياسات بصرية مسجلة بالعيادة
           </p>
         </div>
@@ -181,7 +181,7 @@ export default function PatientRefraction() {
         {/* Title bar */}
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-primary">قياسات نظارتي 👓</h2>
+            <h2 className="text-xl font-bold text-primary">قياسات نظارتي</h2>
             <p className="text-xs text-muted-foreground">
               سجل تاريخي كامل بمقاسات النظارة الطبية الخاصة بك.
             </p>
@@ -246,7 +246,7 @@ export default function PatientRefraction() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
-                    <p className="text-[10px] text-muted-foreground font-semibold">
+                    <p className="text-[13px] text-muted-foreground font-semibold">
                       إجمالي القراءات
                     </p>
                     <p className="text-sm font-bold text-foreground mt-0.5">
@@ -254,7 +254,7 @@ export default function PatientRefraction() {
                     </p>
                   </div>
                   <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
-                    <p className="text-[10px] text-muted-foreground font-semibold">
+                    <p className="text-[13px] text-muted-foreground font-semibold">
                       تاريخ الفحص الأخير
                     </p>
                     <p className="text-xs font-bold text-foreground mt-1">

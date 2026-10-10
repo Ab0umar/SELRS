@@ -160,7 +160,7 @@ export default function PatientBook() {
         {/* Title bar */}
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-primary">حجز موعد جديد 📅</h2>
+            <h2 className="text-xl font-bold text-primary">حجز موعد جديد</h2>
             <p className="text-xs text-muted-foreground">
               اختر الخدمة واليوم المفضل لطلب الحجز بالمركز.
             </p>
@@ -190,7 +190,7 @@ export default function PatientBook() {
                 {BRANCHES.map((b) => {
                   const active = branch === b.value;
                   return (
-                    <button
+                    <Button variant="bare"
                       key={b.value}
                       type="button"
                       onClick={() => { setBranch(b.value); setSelectedDate(""); }}
@@ -202,7 +202,7 @@ export default function PatientBook() {
                       ].join(" ")}
                     >
                       {b.label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -219,7 +219,7 @@ export default function PatientBook() {
                 {TYPES.map((item) => {
                   const active = bookingType === item.value;
                   return (
-                    <button
+                    <Button variant="bare"
                       key={item.value}
                       type="button"
                       onClick={() => {
@@ -227,7 +227,7 @@ export default function PatientBook() {
                         setSelectedDate("");
                       }}
                       className={[
-                        "rounded-xl border px-3.5 py-3 text-right transition-all duration-200 cursor-pointer",
+                        "rounded-xl border px-3.5 py-3 text-start transition-all duration-200 cursor-pointer",
                         active
                           ? "border-primary bg-primary/5 text-foreground shadow-xs"
                           : "border-border bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground",
@@ -238,7 +238,7 @@ export default function PatientBook() {
                           <p className="text-xs font-bold text-foreground">
                             {item.label}
                           </p>
-                          <p className="text-[10px] text-muted-foreground leading-normal">
+                          <p className="text-[13px] text-muted-foreground leading-normal">
                             {TYPE_HELP[item.value]}
                           </p>
                         </div>
@@ -246,11 +246,11 @@ export default function PatientBook() {
                           <PortalStatusBadge
                             status="confirmed"
                             label="محدد"
-                            className="bg-primary text-primary-foreground text-[10px]"
+                            className="bg-primary text-primary-foreground text-[13px]"
                           />
                         )}
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -358,7 +358,7 @@ export default function PatientBook() {
                   4. ملاحظات وتوجيهات إضافية
                 </h3>
               </div>
-              <Textarea
+              <Textarea aria-label="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ العيادة بها…"
                 rows={4}
                 value={notes}
                 placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ العيادة بها…"

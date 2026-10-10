@@ -33,7 +33,7 @@ function PrescriptionCard({ row }: { row: any }) {
       {/* Clinic Header Stamp on Prescription */}
       <div className="flex items-center justify-between border-b border-border/40 pb-4">
         <div className="space-y-1">
-          <span className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 rounded-lg uppercase">
+          <span className="bg-primary/10 text-primary text-[13px] font-bold px-2.5 py-0.5 rounded-lg uppercase">
             روشتة طبية
           </span>
           <h3 className="text-base font-bold text-foreground">{dateStr}</h3>
@@ -67,12 +67,12 @@ function PrescriptionCard({ row }: { row: any }) {
                       {valueText(item.medicationName)}
                     </p>
                   </div>
-                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[13px] font-bold text-primary">
                     {valueText(item.duration)}
                   </span>
                 </div>
 
-                <div className="text-xs text-muted-foreground leading-normal pr-10">
+                <div className="text-xs text-muted-foreground leading-normal ps-10">
                   <span className="font-semibold text-foreground">
                     الجرعة:{" "}
                   </span>
@@ -81,7 +81,7 @@ function PrescriptionCard({ row }: { row: any }) {
                 </div>
 
                 {item.instructions && (
-                  <div className="mt-2 pr-10">
+                  <div className="mt-2 ps-10">
                     <p className="rounded-lg bg-card border border-border/40 px-3 py-2 text-xs leading-5 text-muted-foreground">
                       <span className="font-semibold text-foreground">
                         تعليمات:{" "}
@@ -140,7 +140,7 @@ export default function PatientPrescription() {
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-primary">
-              روشتاتي الدوائية 💊
+              روشتاتي الدوائية
             </h2>
             <p className="text-xs text-muted-foreground">
               قائمة بالوصفات الطبية والعلاجات الصادرة لك من الأطباء بالمركز.
@@ -206,7 +206,7 @@ export default function PatientPrescription() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
-                    <p className="text-[10px] text-muted-foreground font-semibold">
+                    <p className="text-[13px] text-muted-foreground font-semibold">
                       عدد الروشتات
                     </p>
                     <p className="text-sm font-bold text-foreground mt-0.5">
@@ -214,7 +214,7 @@ export default function PatientPrescription() {
                     </p>
                   </div>
                   <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
-                    <p className="text-[10px] text-muted-foreground font-semibold">
+                    <p className="text-[13px] text-muted-foreground font-semibold">
                       تاريخ آخر روشتة
                     </p>
                     <p className="text-xs font-bold text-foreground mt-1">

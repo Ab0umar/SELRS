@@ -224,10 +224,10 @@ export default function PatientGuestBook() {
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-primary leading-tight">
+              <h1 className="text-2xl font-bold text-primary leading-tight">
                 مركز عيون الشروق
               </h1>
-              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+              <p className="text-[13px] font-semibold text-primary uppercase">
                 بوابة المرضى الإلكترونية
               </p>
             </div>
@@ -247,12 +247,12 @@ export default function PatientGuestBook() {
       </header>
 
       {/* Committed Cover Banner */}
-      <div className="w-full bg-gradient-to-r from-[#003D82] via-[#0b4e96] to-secondary/80 text-white py-6 px-4 shadow-xs">
+      <div className="w-full bg-primary text-primary-foreground py-6 px-4 shadow-xs">
         <div className="max-w-xl mx-auto text-center space-y-1">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-            طلب حجز موعد كزائر جديد 📅
+          <h2 className="text-xl font-bold sm:text-2xl">
+            طلب حجز موعد كزائر جديد
           </h2>
-          <p className="text-[11px] text-white/80 max-w-md mx-auto leading-relaxed">
+          <p className="text-[13px] text-white/80 max-w-md mx-auto leading-relaxed">
             لمن لا يملك ملفاً طبياً مسجلاً حالياً بالمركز، يمكنك حجز موعدك
             بسهولة.
           </p>
@@ -266,10 +266,10 @@ export default function PatientGuestBook() {
           <div className="space-y-2 bg-card border border-border/60 rounded-2xl p-4 shadow-xs">
             <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
               <span>
-                {step === 1 && "الخطوة 1 من 4: البيانات 👤"}
-                {step === 2 && "الخطوة 2 من 4: الخدمة 🩺"}
-                {step === 3 && "الخطوة 3 من 4: اليوم والوقت 📅"}
-                {step === 4 && "الخطوة 4 من 4: مراجعة وملاحظات وإرسال 📝"}
+                {step === 1 && "الخطوة 1 من 4: البيانات"}
+                {step === 2 && "الخطوة 2 من 4: الخدمة"}
+                {step === 3 && "الخطوة 3 من 4: اليوم والوقت"}
+                {step === 4 && "الخطوة 4 من 4: مراجعة وملاحظات وإرسال"}
               </span>
               <span
                 className={step === 4 ? "text-success" : "text-primary"}
@@ -312,7 +312,7 @@ export default function PatientGuestBook() {
                   <label className="text-xs font-bold text-foreground">
                     الاسم الكامل للزائر
                   </label>
-                  <Input
+                  <Input aria-label="الاسم ثلاثي أو رباعي كما بالبطاقة"
                     value={guestName}
                     onChange={(e) => {
                       setGuestName(e.target.value);
@@ -343,7 +343,7 @@ export default function PatientGuestBook() {
                   <label className="text-xs font-bold text-foreground">
                     رقم الموبايل للتواصل
                   </label>
-                  <Input
+                  <Input aria-label="01XXXXXXXXX"
                     type="tel"
                     value={guestPhone}
                     onChange={(e) => {
@@ -355,7 +355,7 @@ export default function PatientGuestBook() {
                         }));
                     }}
                     placeholder="01XXXXXXXXX"
-                    className={`h-11 rounded-xl border-border/60 focus-visible:ring-primary/10 text-left font-medium tracking-wide transition-all ${
+                    className={`h-11 rounded-xl border-border/60 focus-visible:ring-primary/10 text-left font-medium transition-all ${
                       errors.guestPhone
                         ? "border-destructive focus-visible:ring-destructive/10 bg-destructive/5"
                         : /^01\d{9}$/.test(guestPhone.trim())
@@ -375,7 +375,7 @@ export default function PatientGuestBook() {
                   <label className="text-xs font-bold text-foreground">
                     البريد الإلكتروني <span className="font-normal text-muted-foreground">(اختياري)</span>
                   </label>
-                  <Input
+                  <Input aria-label="name@example.com"
                     type="email"
                     value={guestEmail}
                     onChange={(e) => {
@@ -425,7 +425,7 @@ export default function PatientGuestBook() {
                   {BRANCHES.map((b) => {
                     const active = branch === b.value;
                     return (
-                      <button
+                      <Button variant="bare"
                         key={b.value}
                         type="button"
                         onClick={() => { setBranch(b.value); setSelectedDate(""); }}
@@ -437,7 +437,7 @@ export default function PatientGuestBook() {
                         ].join(" ")}
                       >
                         {b.label}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -447,7 +447,7 @@ export default function PatientGuestBook() {
                 {TYPES.map((item) => {
                   const active = bookingType === item.value;
                   return (
-                    <button
+                    <Button variant="bare"
                       key={item.value}
                       type="button"
                       onClick={() => {
@@ -455,7 +455,7 @@ export default function PatientGuestBook() {
                         setSelectedDate("");
                       }}
                       className={[
-                        "rounded-xl border px-4 py-3 text-right transition-all duration-200 cursor-pointer w-full",
+                        "rounded-xl border px-4 py-3 text-start transition-all duration-200 cursor-pointer w-full",
                         active
                           ? "border-primary bg-primary/5 text-foreground shadow-xs font-bold"
                           : "border-border bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground",
@@ -466,7 +466,7 @@ export default function PatientGuestBook() {
                           <p className="text-xs font-bold text-foreground">
                             {item.label}
                           </p>
-                          <p className="text-[10px] text-muted-foreground leading-normal">
+                          <p className="text-[13px] text-muted-foreground leading-normal">
                             {TYPE_HINTS[item.value]}
                           </p>
                         </div>
@@ -474,11 +474,11 @@ export default function PatientGuestBook() {
                           <PortalStatusBadge
                             status="confirmed"
                             label="محدد"
-                            className="bg-primary text-primary-foreground text-[10px]"
+                            className="bg-primary text-primary-foreground text-[13px]"
                           />
                         )}
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -671,7 +671,7 @@ export default function PatientGuestBook() {
                 <label className="text-xs font-bold text-foreground">
                   ملاحظات أو شكاوى إضافية (اختياري)
                 </label>
-                <Textarea
+                <Textarea aria-label="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ الاستقبال بها…"
                   rows={3}
                   value={notes}
                   placeholder="أكتب أي تفاصيل أخرى أو شكوى طبية تريد إبلاغ الاستقبال بها…"

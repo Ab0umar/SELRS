@@ -56,7 +56,7 @@ function DetailItem({
           {label}
         </span>
       </div>
-      <span className="text-sm font-bold text-foreground text-left">
+      <span className="text-sm font-bold text-foreground text-end">
         {String(value)}
       </span>
     </div>
@@ -118,7 +118,7 @@ export default function PatientFile() {
             {/* Friendly Top Welcome greeting */}
             <div className="space-y-1">
               <h2 className="text-xl font-bold text-primary">
-                أهلاً بك، {data.fullName.split(" ")[0]} 👋
+                أهلاً بك، {data.fullName.split(" ")[0]}
               </h2>
               <p className="text-xs text-muted-foreground">
                 مرحباً بك في بوابتك الطبية الإلكترونية لمتابعة ملفك وحجوزاتك.
@@ -139,7 +139,7 @@ export default function PatientFile() {
                         {data.fullName}
                       </h3>
                       {data.status && (
-                        <Badge className="bg-secondary/15 text-primary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[10px]">
+                        <Badge className="bg-secondary/15 text-primary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[13px]">
                           {STATUS_LABEL[data.status] ?? data.status}
                         </Badge>
                       )}
@@ -156,7 +156,7 @@ export default function PatientFile() {
                 {/* Info parameters stamps */}
                 <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:min-w-[360px]">
                   <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
-                    <p className="text-[10px] font-semibold text-muted-foreground">
+                    <p className="text-[13px] font-semibold text-muted-foreground">
                       الجنس
                     </p>
                     <p className="text-xs font-bold text-foreground mt-0.5">
@@ -166,7 +166,7 @@ export default function PatientFile() {
                     </p>
                   </div>
                   <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
-                    <p className="text-[10px] font-semibold text-muted-foreground">
+                    <p className="text-[13px] font-semibold text-muted-foreground">
                       العمر
                     </p>
                     <p className="text-xs font-bold text-foreground mt-0.5">
@@ -174,7 +174,7 @@ export default function PatientFile() {
                     </p>
                   </div>
                   <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
-                    <p className="text-[10px] font-semibold text-muted-foreground">
+                    <p className="text-[13px] font-semibold text-muted-foreground">
                       آخر زيارة
                     </p>
                     <p className="text-xs font-bold text-foreground mt-0.5">
@@ -187,7 +187,7 @@ export default function PatientFile() {
 
             {/* Quick Actions Grid for Patients */}
             <div className="space-y-2.5">
-              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase">
                 الوصول السريع للخدمات
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
@@ -200,7 +200,7 @@ export default function PatientFile() {
                       <p className="text-xs font-bold text-foreground">
                         مقاس النظارة
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         آخر قياسات البصر
                       </p>
                     </div>
@@ -216,7 +216,7 @@ export default function PatientFile() {
                       <p className="text-xs font-bold text-foreground">
                         روشتاتي الدوائية
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         العلاجات والجرعات
                       </p>
                     </div>
@@ -232,7 +232,7 @@ export default function PatientFile() {
                       <p className="text-xs font-bold text-foreground">
                         الأشعة والفحوصات
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         تقارير وصور العين
                       </p>
                     </div>
@@ -248,7 +248,7 @@ export default function PatientFile() {
                       <p className="text-xs font-bold text-foreground">
                         حجز موعد جديد
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         اختيار موعد بالعيادة
                       </p>
                     </div>
@@ -264,7 +264,7 @@ export default function PatientFile() {
                       <p className="text-xs font-bold text-foreground">
                         مواعيدي السابقة
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         قائمة الحجوزات وحالتها
                       </p>
                     </div>
@@ -281,7 +281,7 @@ export default function PatientFile() {
                   <h4 className="text-sm font-bold text-foreground">
                     البيانات الشخصية والاتصال
                   </h4>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[13px] text-muted-foreground">
                     المسجلة في استقبال المركز
                   </p>
                 </div>
@@ -319,7 +319,7 @@ export default function PatientFile() {
                   <h4 className="text-sm font-bold text-foreground">
                     التاريخ المرضي والحساسية
                   </h4>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[13px] text-muted-foreground">
                     معلومات طبية هامة لسلامتك
                   </p>
                 </div>
