@@ -6,17 +6,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, CheckCircle, CalendarCheck, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { DateInput } from "@/components/ui/date-input";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
+import { useLocalToday } from "@/hooks/useLocalToday";
 
-type LeaveType = "annual" | "sick" | "unpaid" | "other";
-
-const today = new Date().toISOString().split("T")[0];
-const firstOfYear = `${new Date().getFullYear()}-01-01`;
+import { askConfirm } from "./askConfirm";
+import { Input } from "@/components/ui/input";
+type LeaveType = "annual" | "sick" | "salary" | "unpaid" | "other";
 
 const TYPE_LABELS: Record<LeaveType, string> = {
   annual: "سنوية",
   sick: "مرضية",
-  unpaid: "بدون أجر",
+  salary: "من الراتب",
+  unpaid: "من الراتب",
   other: "أخرى",
 };
 
@@ -30,7 +31,9 @@ interface NewLeave {
 }
 
 export default function LeaveManagement() {
-  const isMobile = useIsMobile();
+  const today = useLocalToday();
+  const firstOfYear = `${today.slice(0, 4)}-01-01`;
+  const isMobile = useIsCompact();
   const [filter, setFilter] = useState({
     empCd: "",
     from: firstOfYear,
@@ -59,7 +62,14 @@ export default function LeaveManagement() {
   const resetForm = () => {
     setShowForm(false);
     setEditId(null);
-    setForm({ empCd: "", dateFrom: today, dateTo: today, type: "annual", note: "", notAffectCommission: false });
+    setForm({
+      empCd: "",
+      dateFrom: today,
+      dateTo: today,
+      type: "annual",
+      note: "",
+      notAffectCommission: false,
+    });
   };
 
   const openEdit = (l: any) => {
@@ -79,9 +89,9 @@ export default function LeaveManagement() {
     onSuccess: () => {
       resetForm();
       leavesQuery.refetch();
-      toast.success("تم إضافة الإجازة");
+      toast.success("تمت إضافة الإجازة");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر إضافة الإجازة: " + e.message),
   });
 
   const updateMut = trpc.attendance.updateLeave.useMutation({
@@ -90,7 +100,7 @@ export default function LeaveManagement() {
       leavesQuery.refetch();
       toast.success("تم تعديل الإجازة");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر تعديل الإجازة: " + e.message),
   });
 
   const approveMut = trpc.attendance.approveLeave.useMutation({
@@ -98,7 +108,7 @@ export default function LeaveManagement() {
       leavesQuery.refetch();
       toast.success("تم الاعتماد");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر اعتماد الإجازة: " + e.message),
   });
 
   const deleteMut = trpc.attendance.deleteLeave.useMutation({
@@ -106,7 +116,7 @@ export default function LeaveManagement() {
       leavesQuery.refetch();
       toast.success("تم الحذف");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر حذف الإجازة: " + e.message),
   });
 
   const leaves: any[] = (leavesQuery.data ?? []) as any;
@@ -121,9 +131,12 @@ export default function LeaveManagement() {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <Card className="mb-4">
+      <Card className="attendance-section mb-4">
         <CardContent className="pt-4">
-          <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+          <div
+            className="flex w-fit max-w-full flex-wrap items-end gap-2"
+            dir="rtl"
+          >
             <div>
               <label
                 htmlFor="attendance-leave-from"
@@ -135,7 +148,7 @@ export default function LeaveManagement() {
                 id="attendance-leave-from"
                 value={filter.from}
                 onChange={(e) => setFilter({ ...filter, from: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
+                className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
               />
             </div>
             <div>
@@ -149,7 +162,7 @@ export default function LeaveManagement() {
                 id="attendance-leave-to"
                 value={filter.to}
                 onChange={(e) => setFilter({ ...filter, to: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
+                className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
               />
             </div>
             <div>
@@ -165,7 +178,7 @@ export default function LeaveManagement() {
                 onChange={(e) =>
                   setFilter({ ...filter, empCd: e.target.value })
                 }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
               >
                 <option value="">الكل</option>
                 {employees.map((e) => (
@@ -197,7 +210,9 @@ export default function LeaveManagement() {
       {showForm && (
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle>{editId !== null ? "تعديل الإجازة" : "إضافة إجازة جديدة"}</CardTitle>
+            <CardTitle>
+              {editId !== null ? "تعديل الإجازة" : "إضافة إجازة جديدة"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -212,7 +227,7 @@ export default function LeaveManagement() {
                   id="attendance-leave-form-employee"
                   value={form.empCd}
                   onChange={(e) => setForm({ ...form, empCd: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
                   required
                   disabled={editId !== null}
                 >
@@ -237,13 +252,15 @@ export default function LeaveManagement() {
                   onChange={(e) =>
                     setForm({ ...form, type: e.target.value as LeaveType })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  {Object.entries(TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
+                  {Object.entries(TYPE_LABELS)
+                    .filter(([key]) => key !== "unpaid" || editId !== null)
+                    .map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
@@ -259,7 +276,7 @@ export default function LeaveManagement() {
                   onChange={(e) =>
                     setForm({ ...form, dateFrom: e.target.value })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
+                  className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
                 />
               </div>
               <div>
@@ -273,9 +290,15 @@ export default function LeaveManagement() {
                   id="attendance-leave-form-to"
                   value={form.dateTo}
                   onChange={(e) => setForm({ ...form, dateTo: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm h-11 w-[11rem] shrink-0"
+                  className="w-full bg-background text-sm h-11 w-full sm:w-[11rem] shrink-0 rounded-md border border-border px-3 py-2"
                 />
               </div>
+              {form.type === "other" && (
+                <p className="md:col-span-2 text-sm text-muted-foreground">
+                  تُخصم أيام «أخرى» من رصيد الإجازات المتاح أولًا، وتُخصم الأيام
+                  الزائدة من الراتب.
+                </p>
+              )}
               <div className="md:col-span-2">
                 <label
                   htmlFor="attendance-leave-form-note"
@@ -283,12 +306,12 @@ export default function LeaveManagement() {
                 >
                   ملاحظة
                 </label>
-                <input
+                <Input bare
                   id="attendance-leave-form-note"
                   type="text"
                   value={form.note}
                   onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full bg-background text-sm rounded-md border border-border px-3 py-2"
                   placeholder="اختياري"
                 />
               </div>
@@ -331,9 +354,13 @@ export default function LeaveManagement() {
                     createMut.mutate(form);
                   }
                 }}
-                disabled={!form.empCd || createMut.isPending || updateMut.isPending}
+                disabled={
+                  !form.empCd || createMut.isPending || updateMut.isPending
+                }
               >
-                {(createMut.isPending || updateMut.isPending) ? "جاري الحفظ…" : "حفظ"}
+                {createMut.isPending || updateMut.isPending
+                  ? "جاري الحفظ"
+                  : "حفظ"}
               </Button>
               <Button variant="outline" onClick={resetForm}>
                 إلغاء
@@ -343,7 +370,7 @@ export default function LeaveManagement() {
         </Card>
       )}
 
-      <Card>
+      <Card className="attendance-section">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarCheck className="w-5 h-5" />
@@ -362,16 +389,19 @@ export default function LeaveManagement() {
               لا توجد إجازات
             </div>
           ) : isMobile ? (
-            <div className="space-y-2" dir="rtl">
+            <div
+              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              dir="rtl"
+            >
               {leaves.map((l: any) => (
                 <div
                   key={l.id}
-                  className="rounded-2xl border border-border bg-background p-3 shadow-xs"
+                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-semibold text-foreground">
-                        {l.empName ?? "—"}
+                        {l.empName ?? "-"}
                       </div>
                       <div className="font-mono text-xs text-muted-foreground">
                         {l.empCd}
@@ -383,20 +413,24 @@ export default function LeaveManagement() {
                         معتمدة
                       </span>
                     ) : (
-                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
+                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning-text">
                         انتظار
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
                     <div>
                       <div className="text-muted-foreground">من</div>
-                      <div className="font-medium text-foreground">{l.dateFrom}</div>
+                      <div className="font-medium text-foreground">
+                        {l.dateFrom}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">إلى</div>
-                      <div className="font-medium text-foreground">{l.dateTo}</div>
+                      <div className="font-medium text-foreground">
+                        {l.dateTo}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">أيام</div>
@@ -411,16 +445,27 @@ export default function LeaveManagement() {
                       {TYPE_LABELS[l.type as LeaveType] ?? l.type}
                     </span>
                     {l.note ? (
-                      <span className="truncate text-muted-foreground">{l.note}</span>
+                      <span className="truncate text-muted-foreground">
+                        {l.note}
+                      </span>
                     ) : null}
                   </div>
 
                   <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
                     {!l.approved && (
                       <Button
+                        aria-label="تعديل"
                         variant="outline"
                         size="sm"
-                        onClick={() => approveMut.mutate({ leaveId: l.id })}
+                        onClick={async () => {
+                          if (
+                            await askConfirm(
+                              `تأكيد اعتماد إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
+                            )
+                          ) {
+                            approveMut.mutate({ leaveId: l.id });
+                          }
+                        }}
                         disabled={approveMut.isPending}
                         className="min-h-10 px-3 text-success border-success/30"
                       >
@@ -428,6 +473,7 @@ export default function LeaveManagement() {
                       </Button>
                     )}
                     <Button
+                      aria-label={`تعديل إجازة ${l.empName ?? l.empCd}`}
                       variant="ghost"
                       size="sm"
                       onClick={() => openEdit(l)}
@@ -436,9 +482,18 @@ export default function LeaveManagement() {
                       <Pencil size={15} className="text-primary" />
                     </Button>
                     <Button
+                      aria-label="حذف"
                       variant="ghost"
                       size="sm"
-                      onClick={() => deleteMut.mutate({ leaveId: l.id })}
+                      onClick={async () => {
+                        if (
+                          await askConfirm(
+                            `تأكيد حذف إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
+                          )
+                        ) {
+                          deleteMut.mutate({ leaveId: l.id });
+                        }
+                      }}
                       disabled={deleteMut.isPending}
                       className="h-10 w-10 p-0"
                     >
@@ -449,18 +504,36 @@ export default function LeaveManagement() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto" dir="rtl">
-              <table dir="rtl" className="min-w-[52rem] w-full text-sm">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+              <table
+                aria-label="طلبات الإجازة"
+                dir="rtl"
+                className="min-w-[52rem] w-full text-sm"
+              >
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-right py-3 px-4">الموظف</th>
-                    <th className="text-right py-3 px-4">من</th>
-                    <th className="text-right py-3 px-4">إلى</th>
-                    <th className="text-right py-3 px-4">أيام</th>
-                    <th className="text-right py-3 px-4">النوع</th>
-                    <th className="text-right py-3 px-4">الحالة</th>
-                    <th className="text-right py-3 px-4">ملاحظة</th>
-                    <th className="text-right py-3 px-4"></th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      الموظف
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      من
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      إلى
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      أيام
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      النوع
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      الحالة
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4">
+                      ملاحظة
+                    </th>
+                    <th scope="col" className="text-start py-3 px-4"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -470,7 +543,7 @@ export default function LeaveManagement() {
                         <span className="block font-mono text-xs text-muted-foreground">
                           {l.empCd}
                         </span>
-                        <span>{l.empName ?? "—"}</span>
+                        <span>{l.empName ?? "-"}</span>
                       </td>
                       <td className="py-2 px-4">{l.dateFrom}</td>
                       <td className="py-2 px-4">{l.dateTo}</td>
@@ -487,31 +560,39 @@ export default function LeaveManagement() {
                             معتمدة
                           </span>
                         ) : (
-                          <span className="font-medium text-warning">
+                          <span className="font-medium text-warning-text">
                             انتظار
                           </span>
                         )}
                       </td>
                       <td className="py-2 px-4 text-xs text-muted-foreground">
-                        {l.note ?? "—"}
+                        {l.note ?? "-"}
                       </td>
                       <td className="py-2 px-4">
                         <div className="flex gap-1">
                           {!l.approved && (
                             <Button
+                              aria-label="تعديل"
                               variant="outline"
                               size="sm"
-                              onClick={() =>
-                                approveMut.mutate({ leaveId: l.id })
-                              }
+                              onClick={async () => {
+                                if (
+                                  await askConfirm(
+                                    `تأكيد اعتماد إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
+                                  )
+                                ) {
+                                  approveMut.mutate({ leaveId: l.id });
+                                }
+                              }}
                               disabled={approveMut.isPending}
                               className="min-h-10 px-3 text-success border-success/30"
                             >
                               اعتماد
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
+                    <Button
+                      aria-label={`تعديل إجازة ${l.empName ?? l.empCd}`}
+                      variant="ghost"
                             size="sm"
                             onClick={() => openEdit(l)}
                             className="h-10 w-10 p-0"
@@ -519,9 +600,18 @@ export default function LeaveManagement() {
                             <Pencil size={15} className="text-primary" />
                           </Button>
                           <Button
+                            aria-label="حذف"
                             variant="ghost"
                             size="sm"
-                            onClick={() => deleteMut.mutate({ leaveId: l.id })}
+                            onClick={async () => {
+                              if (
+                                await askConfirm(
+                                  `تأكيد حذف إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
+                                )
+                              ) {
+                                deleteMut.mutate({ leaveId: l.id });
+                              }
+                            }}
                             disabled={deleteMut.isPending}
                             className="h-10 w-10 p-0"
                           >

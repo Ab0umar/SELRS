@@ -1747,7 +1747,13 @@ export const attendanceLeaves = mysqlTable(
     empCd: varchar("emp_cd", { length: 32 }).notNull(),
     dateFrom: date("date_from").notNull(),
     dateTo: date("date_to").notNull(),
-    type: mysqlEnum("type", ["annual", "sick", "unpaid", "other"]).notNull(),
+    type: mysqlEnum("type", [
+      "annual",
+      "sick",
+      "salary",
+      "unpaid",
+      "other",
+    ]).notNull(),
     approved: boolean("approved").default(false).notNull(),
     notAffectCommission: boolean("not_affect_commission")
       .default(false)

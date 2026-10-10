@@ -1,6 +1,12 @@
 import { getDb } from "../../db";
-import { attendanceLeaves, attendanceEmployees } from "../../../drizzle/schema";
+import {
+  attendanceLeaves,
+  attendanceEmployees,
+  attendanceLeaveBalances,
+} from "../../../drizzle/schema";
 import { eq, and, gte, lte, or } from "drizzle-orm";
+import { accountLeaveDays } from "./leaveAccounting";
+import { loadLeaveDayExclusions } from "./leaveDayExclusions";
 
 function fmtDate(d: Date | string | null | undefined): string {
   if (!d) return "";
@@ -11,7 +17,7 @@ function fmtDate(d: Date | string | null | undefined): string {
   return `${y}-${m}-${day}`;
 }
 
-export type LeaveType = "annual" | "sick" | "unpaid" | "other";
+export type LeaveType = "annual" | "sick" | "salary" | "unpaid" | "other";
 
 export interface LeaveRequest {
   empCd: string;
@@ -55,13 +61,11 @@ export class LeaveManagementService {
     const conditions = [eq(attendanceLeaves.empCd, empCd)];
 
     if (fromDate) {
-      conditions.push(lte(attendanceLeaves.dateTo, toDate || new Date()));
+      conditions.push(gte(attendanceLeaves.dateTo, fromDate as any));
     }
 
     if (toDate) {
-      conditions.push(
-        gte(attendanceLeaves.dateFrom, fromDate || new Date(2020, 0, 1)),
-      );
+      conditions.push(lte(attendanceLeaves.dateFrom, toDate as any));
     }
 
     const leaves = await db
@@ -140,30 +144,51 @@ export class LeaveManagementService {
     const yearStartStr = `${year}-01-01`;
     const yearEndStr = `${year}-12-31`;
 
-    // Sick leave deducts from annual balance (does not affect commission rate)
+    // Annual, sick, and available "other" leave all consume the configured balance.
     const leaves = await db
       .select()
       .from(attendanceLeaves)
       .where(
         and(
           eq(attendanceLeaves.empCd, empCd),
-          or(eq(attendanceLeaves.type, "annual"), eq(attendanceLeaves.type, "sick")),
+          or(
+            eq(attendanceLeaves.type, "annual"),
+            eq(attendanceLeaves.type, "sick"),
+            eq(attendanceLeaves.type, "other"),
+          ),
           eq(attendanceLeaves.approved, true),
-          gte(attendanceLeaves.dateFrom, yearStartStr as any),
-          lte(attendanceLeaves.dateTo, yearEndStr as any),
+          lte(attendanceLeaves.dateFrom, yearEndStr as any),
+          gte(attendanceLeaves.dateTo, yearStartStr as any),
         ),
       );
 
-    const usedDays = leaves.reduce((sum: any, l: any) => {
-      return sum + this.calculateLeaveDays(l.dateFrom, l.dateTo);
-    }, 0);
+    const balanceRows = await db
+      .select()
+      .from(attendanceLeaveBalances)
+      .where(
+        and(
+          eq(attendanceLeaveBalances.empCd, empCd),
+          eq(attendanceLeaveBalances.year, year),
+        ),
+      )
+      .limit(1);
+    const annualAllocation = balanceRows[0]?.annualAllocation ?? 21;
+    const carryOver = balanceRows[0]?.carryOver ?? 0;
+    const isRestOrHoliday = await loadLeaveDayExclusions(db, [empCd], year);
+    const usedDays = accountLeaveDays(
+      leaves as any[],
+      annualAllocation + carryOver,
+      year,
+      (key) => isRestOrHoliday(empCd, key),
+    ).balanceDays;
 
     return {
       empCd,
       year,
-      annualAllocation: 21, // Standard in many countries
+      annualAllocation,
+      carryOver,
       usedDays,
-      remainingDays: Math.max(0, 21 - usedDays),
+      remainingDays: Math.max(0, annualAllocation + carryOver - usedDays),
     };
   }
 }

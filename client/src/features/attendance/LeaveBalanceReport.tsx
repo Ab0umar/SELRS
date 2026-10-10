@@ -13,8 +13,9 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsMobile } from "@/hooks/useMobile";
+import { useIsCompact } from "@/hooks/useMobile";
 import { ReportToolbar } from "./ReportToolbar";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 interface EditRow {
   empCd: string;
@@ -27,7 +28,7 @@ const toneForBalance = (remaining: number, total: number) => {
     return "border-muted-foreground/20 bg-muted/70 text-foreground";
   const pct = remaining / total;
   if (pct >= 0.5) return "border-success/20 bg-success/10 text-success";
-  if (pct >= 0.25) return "border-warning/30 bg-warning/10 text-warning";
+  if (pct >= 0.25) return "border-warning/30 bg-warning/10 text-warning-text";
   return "border-destructive/20 bg-destructive/10 text-destructive";
 };
 
@@ -39,7 +40,7 @@ export default function LeaveBalanceReport({
   to: string;
   department?: string;
 }) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompact();
   const year = Number(to.slice(0, 4));
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -62,7 +63,7 @@ export default function LeaveBalanceReport({
       setForm({ empCd: "", annualAllocation: 21, carryOver: 0 });
       toast.success("تم حفظ الرصيد");
     },
-    onError: (e) => toast.error("خطأ: " + e.message),
+    onError: (e) => toast.error("تعذر حفظ الرصيد: " + e.message),
   });
 
   const totalAlloc = rows.reduce(
@@ -91,8 +92,8 @@ export default function LeaveBalanceReport({
       headers.join(","),
       ...rows.map((row) =>
         [
-          `"${row.empCd}"`,
-          `"${row.empName ?? ""}"`,
+          `"${String(row.empCd).replace(/"/g, '""')}"`,
+          `"${String(row.empName ?? "").replace(/"/g, '""')}"`,
           row.annualAllocation,
           row.carryOver,
           row.total,
@@ -128,15 +129,15 @@ export default function LeaveBalanceReport({
         @media print{@page{margin:15mm;}}
       </style>
       </head><body>
-      <h2>رصيد الإجازات السنوية</h2><p>السنة: ${year}</p>
+      <h2>رصيد الإجازات السنوية</h2><p>السنة: ${escapeHtml(year)}</p>
       <table><thead><tr><th>الكود</th><th>الاسم</th><th>الرصيد</th><th>مرحّل</th><th>الإجمالي</th><th>المستخدم</th><th>المتبقي</th></tr></thead>
       <tbody>${rows
         .map(
           (row) =>
-            `<tr><td>${row.empCd}</td><td>${row.empName ?? ""}</td><td>${row.annualAllocation}</td><td>${row.carryOver}</td><td>${row.total}</td><td>${row.usedDays}</td><td>${row.remainingDays}</td></tr>`,
+            `<tr><td>${escapeHtml(row.empCd)}</td><td>${escapeHtml(row.empName)}</td><td>${escapeHtml(row.annualAllocation)}</td><td>${escapeHtml(row.carryOver)}</td><td>${escapeHtml(row.total)}</td><td>${escapeHtml(row.usedDays)}</td><td>${escapeHtml(row.remainingDays)}</td></tr>`,
         )
         .join("")}</tbody>
-      <tfoot><tr><td colspan="2">الإجمالي</td><td>${totalAlloc}</td><td>${totalCarry}</td><td>${totalAlloc + totalCarry}</td><td>${totalUsed}</td><td>${totalRemain}</td></tr></tfoot>
+      <tfoot><tr><td colspan="2">الإجمالي</td><td>${escapeHtml(totalAlloc)}</td><td>${escapeHtml(totalCarry)}</td><td>${escapeHtml(totalAlloc + totalCarry)}</td><td>${escapeHtml(totalUsed)}</td><td>${escapeHtml(totalRemain)}</td></tr></tfoot>
       </table></body></html>`;
     const win = window.open("", "_blank");
     if (!win) return;
@@ -152,45 +153,17 @@ export default function LeaveBalanceReport({
         <Button onClick={() => setShowForm(!showForm)}>
           <Plus size={16} /> تعيين رصيد موظف
         </Button>
-        <Button variant="outline" onClick={handleExport} disabled={!rows.length}>
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          disabled={!rows.length}
+        >
           <Download className="h-4 w-4" /> CSV
         </Button>
         <Button variant="outline" onClick={handlePrint} disabled={!rows.length}>
           <Printer className="h-4 w-4" /> طباعة
         </Button>
       </ReportToolbar>
-      <Card className="hidden">
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <Button
-              onClick={() => setShowForm(!showForm)}
-              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus size={16} /> تعيين رصيد موظف
-            </Button>
-            <div className="mr-auto flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                disabled={!rows.length}
-                className="gap-2 border-info/20 text-info hover:bg-info/10"
-              >
-                <Download className="h-4 w-4" /> CSV
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                disabled={!rows.length}
-                className="gap-2 border-secondary/20 text-primary hover:bg-secondary/10"
-              >
-                <Printer className="h-4 w-4" /> طباعة
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {showForm && (
         <Card className="mb-4 border-border bg-background">
@@ -204,9 +177,10 @@ export default function LeaveBalanceReport({
                   الموظف
                 </label>
                 <select
+                  aria-label="الموظف"
                   value={form.empCd}
                   onChange={(e) => setForm({ ...form, empCd: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
                 >
                   <option value="">اختر الموظف</option>
                   {employees.map((employee) => (
@@ -221,6 +195,7 @@ export default function LeaveBalanceReport({
                   الرصيد السنوي (أيام)
                 </label>
                 <input
+                  aria-label="الرصيد السنوي (أيام)"
                   type="number"
                   min={0}
                   max={365}
@@ -231,7 +206,7 @@ export default function LeaveBalanceReport({
                       annualAllocation: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
                 />
               </div>
               <div className="space-y-1">
@@ -239,6 +214,7 @@ export default function LeaveBalanceReport({
                   مرحّل من السنة السابقة
                 </label>
                 <input
+                  aria-label="مرحّل من السنة السابقة"
                   type="number"
                   min={0}
                   max={365}
@@ -249,7 +225,7 @@ export default function LeaveBalanceReport({
                       carryOver: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
                 />
               </div>
             </div>
@@ -273,7 +249,7 @@ export default function LeaveBalanceReport({
                 disabled={!form.empCd || setBalanceMut.isPending}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {setBalanceMut.isPending ? "جاري الحفظ…" : "حفظ"}
+                {setBalanceMut.isPending ? "جاري الحفظ" : "حفظ"}
               </Button>
               <Button
                 variant="outline"
@@ -287,7 +263,7 @@ export default function LeaveBalanceReport({
         </Card>
       )}
 
-      <Card>
+      <Card className="attendance-section">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <CalendarCheck className="h-5 w-5 text-success" />
@@ -310,7 +286,10 @@ export default function LeaveBalanceReport({
               </span>
             </div>
           ) : isMobile ? (
-            <div className="space-y-2" dir="rtl">
+            <div
+              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              dir="rtl"
+            >
               {rows.map((row: any) => {
                 const pct =
                   row.total > 0
@@ -320,7 +299,7 @@ export default function LeaveBalanceReport({
                 return (
                   <div
                     key={row.empCd}
-                    className={`rounded-2xl border p-3 shadow-xs ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                    className={`rounded-xl border p-3 shadow-xs ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div>
@@ -358,6 +337,7 @@ export default function LeaveBalanceReport({
                               الرصيد السنوي
                             </label>
                             <input
+                              aria-label="الرصيد السنوي"
                               type="number"
                               min={0}
                               max={365}
@@ -369,7 +349,7 @@ export default function LeaveBalanceReport({
                                     parseInt(e.target.value) || 0,
                                 })
                               }
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
+                              className="w-full rounded border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
                             />
                           </div>
                           <div>
@@ -377,6 +357,7 @@ export default function LeaveBalanceReport({
                               مرحّل
                             </label>
                             <input
+                              aria-label="مرحّل"
                               type="number"
                               min={0}
                               max={365}
@@ -387,7 +368,7 @@ export default function LeaveBalanceReport({
                                   carryOver: parseInt(e.target.value) || 0,
                                 })
                               }
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
+                              className="w-full rounded border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
                             />
                           </div>
                         </div>
@@ -422,7 +403,7 @@ export default function LeaveBalanceReport({
                       </div>
                     ) : (
                       <>
-                        <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
                           <div>
                             <div className="text-muted-foreground">الرصيد</div>
                             <div className="font-medium text-primary">
@@ -437,7 +418,7 @@ export default function LeaveBalanceReport({
                           </div>
                           <div>
                             <div className="text-muted-foreground">مستخدم</div>
-                            <div className="font-medium text-warning">
+                            <div className="font-medium text-warning-text">
                               {row.usedDays}
                             </div>
                           </div>
@@ -472,7 +453,7 @@ export default function LeaveBalanceReport({
                   </div>
                 );
               })}
-              <div className="rounded-2xl border-2 border-info/20 bg-info/5 p-3 text-sm font-bold">
+              <div className="rounded-xl border-2 border-info/20 bg-info/5 p-3 text-sm font-bold">
                 <div className="flex items-center justify-between">
                   <span>الإجمالي</span>
                   <span>{totalAlloc + totalCarry}</span>
@@ -484,35 +465,66 @@ export default function LeaveBalanceReport({
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto" dir="rtl">
-              <table dir="rtl" className="w-full text-sm">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+              <table
+                aria-label="أرصدة الإجازات"
+                dir="rtl"
+                className="w-full text-sm"
+              >
                 <thead>
                   <tr className="border-b bg-muted/60">
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-foreground"
+                    >
                       الكود
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-foreground"
+                    >
                       الاسم
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-primary">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-primary"
+                    >
                       الرصيد
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-info">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-info"
+                    >
                       مرحّل
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-foreground"
+                    >
                       الإجمالي
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-warning">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-warning-text"
+                    >
                       مستخدم
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-success">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-success"
+                    >
                       متبقي
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground">
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-foreground"
+                    >
                       %
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-foreground"></th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right font-semibold text-foreground"
+                    ></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -552,7 +564,7 @@ export default function LeaveBalanceReport({
                                       parseInt(e.target.value) || 0,
                                   })
                                 }
-                                className="w-16 rounded border border-border bg-background px-2 py-1 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
+                                className="w-16 rounded border border-input bg-background px-2 py-1 text-sm text-foreground focus:border-success focus:ring-2 focus:ring-success/15"
                               />
                             </td>
                             <td className="px-2 py-2">
@@ -567,13 +579,13 @@ export default function LeaveBalanceReport({
                                     carryOver: parseInt(e.target.value) || 0,
                                   })
                                 }
-                                className="w-16 rounded border border-border bg-background px-2 py-1 text-sm text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
+                                className="w-16 rounded border border-input bg-background px-2 py-1 text-sm text-foreground focus:border-info focus:ring-2 focus:ring-info/15"
                               />
                             </td>
                             <td className="px-4 py-2 font-semibold text-foreground">
                               {editing!.annualAllocation + editing!.carryOver}
                             </td>
-                            <td className="px-4 py-2 text-warning">
+                            <td className="px-4 py-2 text-warning-text">
                               {row.usedDays}
                             </td>
                             <td className="px-4 py-2 text-success">
@@ -628,7 +640,7 @@ export default function LeaveBalanceReport({
                             <td className="px-4 py-2 font-semibold text-foreground">
                               {row.total}
                             </td>
-                            <td className="px-4 py-2 text-warning font-medium">
+                            <td className="px-4 py-2 text-warning-text font-medium">
                               {row.usedDays}
                             </td>
                             <td
@@ -686,7 +698,7 @@ export default function LeaveBalanceReport({
                     <td className="px-4 py-2 text-primary">{totalAlloc}</td>
                     <td className="px-4 py-2 text-info">{totalCarry}</td>
                     <td className="px-4 py-2">{totalAlloc + totalCarry}</td>
-                    <td className="px-4 py-2 text-warning">{totalUsed}</td>
+                    <td className="px-4 py-2 text-warning-text">{totalUsed}</td>
                     <td className="px-4 py-2 text-success">{totalRemain}</td>
                     <td colSpan={2}></td>
                   </tr>

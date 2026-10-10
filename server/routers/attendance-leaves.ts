@@ -31,6 +31,8 @@ import {
 } from "../services/attendance/deviceSyncEngine";
 import { ZKTecoDevice } from "../services/attendance/zktecoDevice";
 import { dailyMaterializer } from "../services/attendance/dailyMaterializer";
+import { accountLeaveDays } from "../services/attendance/leaveAccounting";
+import { loadLeaveDayExclusions } from "../services/attendance/leaveDayExclusions";
 import { getDb, getAllUsers } from "../db";
 import { fmtDate } from "./_attendance/schedule-helpers";
 import {
@@ -56,10 +58,48 @@ import {
   attendanceShiftChangeRequests,
 } from "../../drizzle/schema";
 import { isNull } from "drizzle-orm";
-import { desc, eq, and, or, gte, lte, lt, max, count, sql } from "drizzle-orm";
+import {
+  desc,
+  eq,
+  and,
+  or,
+  inArray,
+  gte,
+  lte,
+  lt,
+  max,
+  count,
+  sql,
+} from "drizzle-orm";
+import { getAttendanceDepartmentValues } from "../services/attendance/departmentFilter";
+
+async function recomputeLeaveRangeAndMonthly(
+  empCd: string,
+  fromDate: string,
+  toDate: string,
+): Promise<void> {
+  const from = new Date(`${fromDate}T12:00:00`);
+  const to = new Date(`${toDate}T12:00:00`);
+  await dailyMaterializer.recomputeRange(from, to, { empCd }, undefined, {
+    recomputeMonthly: true,
+  });
+}
+
+async function recomputePermissionDayAndMonthly(
+  empCd: string,
+  workDate: Date,
+): Promise<void> {
+  await dailyMaterializer.recomputeRange(workDate, workDate, { empCd });
+  await PermissionAdjustmentService.recomputeRange(empCd, workDate, workDate);
+  await MonthlyComputeService.saveEmployeeMonth(
+    empCd,
+    workDate.getFullYear(),
+    workDate.getMonth() + 1,
+  );
+}
 
 export const attendanceLeavesRoutes = {
-  employeeLeaves: makeAttProcedure("/attendance")
+  employeeLeaves: makeAttProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
@@ -77,7 +117,7 @@ export const attendanceLeavesRoutes = {
       );
     }),
 
-  leaveBalance: makeAttProcedure("/attendance")
+  leaveBalance: makeAttProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
@@ -93,13 +133,13 @@ export const attendanceLeavesRoutes = {
     return LeaveManagementService.getPendingLeaves();
   }),
 
-  createLeave: makeAttWriteProcedure("/attendance")
+  createLeave: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
-        dateFrom: z.string(), // YYYY-MM-DD
-        dateTo: z.string(), // YYYY-MM-DD
-        type: z.enum(["annual", "sick", "unpaid", "other"]),
+        dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        type: z.enum(["annual", "sick", "salary", "unpaid", "other"]),
         note: z.string().optional(),
         notAffectCommission: z.boolean().optional(),
       }),
@@ -118,6 +158,9 @@ export const attendanceLeavesRoutes = {
         .where(
           and(
             eq(attendanceLeaves.empCd, input.empCd),
+            // Pending self-service requests don't block the admin; approving
+            // one that overlaps is rejected in approveLeave instead.
+            eq(attendanceLeaves.approved, true),
             lte(attendanceLeaves.dateFrom, input.dateTo as any),
             gte(attendanceLeaves.dateTo, input.dateFrom as any),
           ),
@@ -142,24 +185,29 @@ export const attendanceLeavesRoutes = {
       });
 
       // Recompute daily records immediately since leave is auto-approved
-      await PermissionAdjustmentService.recomputeRange(
+      await recomputeLeaveRangeAndMonthly(
         input.empCd,
-        new Date(input.dateFrom + "T12:00:00"),
-        new Date(input.dateTo + "T12:00:00"),
+        input.dateFrom,
+        input.dateTo,
       );
 
-      AuditLogService.log({
+      await AuditLogService.log({
         action: "leave_created",
-        details: { empCd: input.empCd, dateFrom: input.dateFrom, dateTo: input.dateTo, type: input.type },
+        details: {
+          empCd: input.empCd,
+          dateFrom: input.dateFrom,
+          dateTo: input.dateTo,
+          type: input.type,
+        },
         status: "success",
       });
 
       return { success: true };
     }),
 
-  approveLeave: makeAttWriteProcedure("/attendance")
+  approveLeave: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(z.object({ leaveId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -174,18 +222,45 @@ export const attendanceLeavesRoutes = {
         throw new Error("Leave record not found");
       }
 
+      const approvedOverlapRange = await db
+        .select({ id: attendanceLeaves.id })
+        .from(attendanceLeaves)
+        .where(
+          and(
+            eq(attendanceLeaves.empCd, leave[0].empCd),
+            eq(attendanceLeaves.approved, true),
+            lte(attendanceLeaves.dateFrom, leave[0].dateTo as any),
+            gte(attendanceLeaves.dateTo, leave[0].dateFrom as any),
+            sql`${attendanceLeaves.id} <> ${input.leaveId}`,
+          ),
+        )
+        .limit(1);
+      if (approvedOverlapRange.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "توجد إجازة معتمدة متداخلة مع هذه الفترة",
+        });
+      }
+
       // Approve the leave
       await LeaveManagementService.approveLeave(input.leaveId);
+      await AuditLogService.log({
+        action: "leave_approved",
+        empCd: leave[0].empCd,
+        userId: ctx.user.id,
+        details: { leaveId: input.leaveId },
+        status: "success",
+      });
 
       // Recompute daily records for the leave date range
       const toDateKey = (value: unknown): string => {
-        if (value instanceof Date) return value.toISOString().slice(0, 10);
+        if (value instanceof Date) return fmtDate(value);
         return String(value).slice(0, 10);
       };
-      await PermissionAdjustmentService.recomputeRange(
+      await recomputeLeaveRangeAndMonthly(
         leave[0].empCd,
-        new Date(toDateKey(leave[0].dateFrom) + "T12:00:00"),
-        new Date(toDateKey(leave[0].dateTo) + "T12:00:00"),
+        toDateKey(leave[0].dateFrom),
+        toDateKey(leave[0].dateTo),
       );
 
       // Notify the employee whose leave was approved
@@ -199,16 +274,22 @@ export const attendanceLeavesRoutes = {
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
         if (ns.attendance.enabled) {
-          const typeAr =
-            String(leave[0].type ?? "") === "annual" ? "سنوية" : "مرضية";
+          const typeArByValue: Record<string, string> = {
+            annual: "سنوية",
+            sick: "مرضية",
+            salary: "من الراتب",
+            unpaid: "غير مدفوعة",
+            other: "أخرى",
+          };
+          const typeAr = typeArByValue[String(leave[0].type ?? "")] ?? "إجازة";
           pushAppNotification({
             title: "تمت الموافقة على طلب الإجازة",
-            message: `تمت الموافقة على إجازتك ${typeAr} من ${leave[0].dateFrom} إلى ${leave[0].dateTo}`,
+            message: `تمت الموافقة على إجازتك ${typeAr} من ${fmtDate(leave[0].dateFrom as any)} إلى ${fmtDate(leave[0].dateTo as any)}`,
             kind: "success",
             targetUserIds: [empMapping[0].userId],
             source: "attendance",
             entityType: "leave_approved",
-            meta: { empCd: leave[0].empCd, path: "/attendance/me" },
+            meta: { empCd: leave[0].empCd, path: "/attendance/my" },
             channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
           }).catch(() => {});
         }
@@ -217,11 +298,31 @@ export const attendanceLeavesRoutes = {
       return { success: true, leaveId: input.leaveId };
     }),
 
-  deleteLeave: makeAttWriteProcedure("/attendance")
+  deleteLeave: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(z.object({ leaveId: z.number() }))
     .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const leaveRows = await db
+        .select({
+          empCd: attendanceLeaves.empCd,
+          dateFrom: attendanceLeaves.dateFrom,
+          dateTo: attendanceLeaves.dateTo,
+        })
+        .from(attendanceLeaves)
+        .where(eq(attendanceLeaves.id, input.leaveId))
+        .limit(1);
       await LeaveManagementService.deleteLeave(input.leaveId);
-      AuditLogService.log({
+      if (leaveRows[0]) {
+        const dateKey = (value: unknown) =>
+          value instanceof Date ? fmtDate(value) : String(value).slice(0, 10);
+        await recomputeLeaveRangeAndMonthly(
+          leaveRows[0].empCd,
+          dateKey(leaveRows[0].dateFrom),
+          dateKey(leaveRows[0].dateTo),
+        );
+      }
+      await AuditLogService.log({
         action: "leave_deleted",
         details: { leaveId: input.leaveId },
         status: "success",
@@ -229,13 +330,13 @@ export const attendanceLeavesRoutes = {
       return { success: true };
     }),
 
-  updateLeave: makeAttWriteProcedure("/attendance")
+  updateLeave: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         leaveId: z.number().int(),
-        dateFrom: z.string(),
-        dateTo: z.string(),
-        type: z.enum(["annual", "sick", "unpaid", "other"]),
+        dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        type: z.enum(["annual", "sick", "salary", "unpaid", "other"]),
         note: z.string().optional(),
         notAffectCommission: z.boolean().optional(),
       }),
@@ -262,18 +363,37 @@ export const attendanceLeavesRoutes = {
       }
 
       const toDateKeyEdit = (value: unknown): string => {
-        if (value instanceof Date) return value.toISOString().slice(0, 10);
+        if (value instanceof Date) return fmtDate(value);
         return String(value).slice(0, 10);
       };
       const oldDateFrom = toDateKeyEdit(existing[0].dateFrom);
       const oldDateTo = toDateKeyEdit(existing[0].dateTo);
       const empCd = existing[0].empCd;
 
+      const overlappingLeave = await db
+        .select({ id: attendanceLeaves.id })
+        .from(attendanceLeaves)
+        .where(
+          and(
+            eq(attendanceLeaves.empCd, empCd),
+            lte(attendanceLeaves.dateFrom, input.dateTo as any),
+            gte(attendanceLeaves.dateTo, input.dateFrom as any),
+            sql`${attendanceLeaves.id} <> ${input.leaveId}`,
+          ),
+        )
+        .limit(1);
+      if (overlappingLeave.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "توجد إجازة متداخلة مع هذه الفترة",
+        });
+      }
+
       await db
         .update(attendanceLeaves)
         .set({
-          dateFrom: sql.raw(`'${input.dateFrom}'`) as any,
-          dateTo: sql.raw(`'${input.dateTo}'`) as any,
+          dateFrom: input.dateFrom as any,
+          dateTo: input.dateTo as any,
           type: input.type,
           note: input.note ?? null,
           notAffectCommission: input.notAffectCommission ?? false,
@@ -281,30 +401,31 @@ export const attendanceLeavesRoutes = {
         .where(eq(attendanceLeaves.id, input.leaveId));
 
       // Recompute old range
-      await PermissionAdjustmentService.recomputeRange(
-        empCd,
-        new Date(oldDateFrom + "T12:00:00"),
-        new Date(oldDateTo + "T12:00:00"),
-      );
+      await recomputeLeaveRangeAndMonthly(empCd, oldDateFrom, oldDateTo);
       // Recompute new range if dates changed
       if (input.dateFrom !== oldDateFrom || input.dateTo !== oldDateTo) {
-        await PermissionAdjustmentService.recomputeRange(
+        await recomputeLeaveRangeAndMonthly(
           empCd,
-          new Date(input.dateFrom + "T12:00:00"),
-          new Date(input.dateTo + "T12:00:00"),
+          input.dateFrom,
+          input.dateTo,
         );
       }
 
-      AuditLogService.log({
+      await AuditLogService.log({
         action: "leave_updated",
-        details: { leaveId: input.leaveId, empCd, dateFrom: input.dateFrom, dateTo: input.dateTo },
+        details: {
+          leaveId: input.leaveId,
+          empCd,
+          dateFrom: input.dateFrom,
+          dateTo: input.dateTo,
+        },
         status: "success",
       });
 
       return { success: true };
     }),
 
-  listLeaves: makeAttProcedure("/attendance")
+  listLeaves: makeAttProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string().optional(),
@@ -317,10 +438,21 @@ export const attendanceLeavesRoutes = {
       if (!db) throw new Error("Database not available");
       const conditions: any[] = [];
       if (input.empCd) conditions.push(eq(attendanceLeaves.empCd, input.empCd));
-      if (input.from)
-        conditions.push(gte(attendanceLeaves.dateFrom, input.from as any));
-      if (input.to)
-        conditions.push(lte(attendanceLeaves.dateTo, input.to as any));
+      // Include any leave overlapping the requested interval, including leaves
+      // that begin before or end after it.
+      if (input.from || input.to) {
+        const from = input.from ?? input.to!;
+        const to = input.to ?? input.from!;
+        conditions.push(
+          or(
+            and(
+              lte(attendanceLeaves.dateFrom, to as any),
+              gte(attendanceLeaves.dateTo, from as any),
+            ),
+            eq(attendanceLeaves.approved, false),
+          ),
+        );
+      }
       const rows = await db
         .select({
           id: attendanceLeaves.id,
@@ -349,11 +481,25 @@ export const attendanceLeavesRoutes = {
 
   recomputeDaily: makeAttWriteProcedure("/attendance")
     .input(
-      z.object({
-        empCd: z.string(),
-        fromDate: z.string(), // YYYY-MM-DD
-        toDate: z.string(), // YYYY-MM-DD
-      }),
+      z
+        .object({
+          empCd: z.string(),
+          fromDate: z.string(), // YYYY-MM-DD
+          toDate: z.string(), // YYYY-MM-DD
+        })
+        .refine(
+          ({ fromDate, toDate }) => {
+            const from = Date.parse(`${fromDate}T00:00:00Z`);
+            const to = Date.parse(`${toDate}T00:00:00Z`);
+            return (
+              Number.isFinite(from) &&
+              Number.isFinite(to) &&
+              to >= from &&
+              (to - from) / 86_400_000 < 366
+            );
+          },
+          { message: "الفترة لازم تكون صحيحة ولا تتجاوز 366 يومًا" },
+        ),
     )
     .mutation(async ({ input }) => {
       const fromDate = new Date(input.fromDate);
@@ -387,7 +533,7 @@ export const attendanceLeavesRoutes = {
       );
     }),
 
-  setLeaveBalance: makeAttWriteProcedure("/attendance")
+  setLeaveBalance: makeAttWriteProcedure(["/attendance", "/attendance/reports"])
     .input(
       z.object({
         empCd: z.string(),
@@ -416,37 +562,46 @@ export const attendanceLeavesRoutes = {
       return { success: true };
     }),
 
-  allLeaveBalances: makeAttProcedure("/attendance")
-    .input(z.object({ year: z.number().int().optional(), department: z.string().optional() }))
+  allLeaveBalances: makeAttProcedure(["/attendance", "/attendance/reports"])
+    .input(
+      z.object({
+        year: z.number().int().optional(),
+        department: z.string().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const year = input.year ?? new Date().getFullYear();
-      const balanceConditions: any[] = [eq(attendanceLeaveBalances.year, year)];
+      const employeeConditions: any[] = [eq(attendanceEmployees.active, true)];
       if (input.department) {
-        balanceConditions.push(
-          or(
-            eq(attendanceEmployees.department, input.department),
-            eq(attendanceEmployees.department, "المركز والعيادة"),
+        employeeConditions.push(
+          inArray(
+            attendanceEmployees.department,
+            getAttendanceDepartmentValues(input.department),
           ),
         );
       }
       const balances = await db
         .select({
-          empCd: attendanceLeaveBalances.empCd,
+          empCd: attendanceEmployees.empCd,
           empName: attendanceEmployees.fullName,
           annualAllocation: attendanceLeaveBalances.annualAllocation,
           carryOver: attendanceLeaveBalances.carryOver,
         })
-        .from(attendanceLeaveBalances)
+        .from(attendanceEmployees)
         .leftJoin(
-          attendanceEmployees,
-          eq(attendanceLeaveBalances.empCd, attendanceEmployees.empCd),
+          attendanceLeaveBalances,
+          and(
+            eq(attendanceLeaveBalances.empCd, attendanceEmployees.empCd),
+            eq(attendanceLeaveBalances.year, year),
+          ),
         )
-        .where(and(...balanceConditions));
+        .where(
+          employeeConditions.length ? and(...employeeConditions) : undefined,
+        );
 
       // Count used days per employee from approved leaves
-      const mm = String(year).padStart(4, "0");
       // Sick leave deducts from annual balance; unpaid/other do not
       const usedRows = await db
         .select()
@@ -454,27 +609,34 @@ export const attendanceLeavesRoutes = {
         .where(
           and(
             eq(attendanceLeaves.approved, true),
-            or(eq(attendanceLeaves.type, "annual"), eq(attendanceLeaves.type, "sick")),
-            gte(attendanceLeaves.dateFrom, `${year}-01-01` as any),
-            lte(attendanceLeaves.dateTo, `${year}-12-31` as any),
+            or(
+              eq(attendanceLeaves.type, "annual"),
+              eq(attendanceLeaves.type, "sick"),
+              eq(attendanceLeaves.type, "other"),
+            ),
+            lte(attendanceLeaves.dateFrom, `${year}-12-31` as any),
+            gte(attendanceLeaves.dateTo, `${year}-01-01` as any),
           ),
         );
 
+      const isRestOrHoliday = await loadLeaveDayExclusions(
+        db,
+        balances.map((b: any) => b.empCd),
+        year,
+      );
       return balances.map((b: any) => {
         const empLeaves = usedRows.filter((l: any) => l.empCd === b.empCd);
-        const usedDays = empLeaves.reduce((acc: any, l: any) => {
-          const from = new Date(l.dateFrom as any);
-          const to = new Date(l.dateTo as any);
-          const days =
-            Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
-          return acc + days;
-        }, 0);
-        const total = b.annualAllocation + b.carryOver;
+        const annualAllocation = Number(b.annualAllocation ?? 21);
+        const carryOver = Number(b.carryOver ?? 0);
+        const total = annualAllocation + carryOver;
+        const usedDays = accountLeaveDays(empLeaves, total, year, (key) =>
+          isRestOrHoliday(b.empCd, key),
+        ).balanceDays;
         return {
           empCd: b.empCd,
           empName: b.empName,
-          annualAllocation: b.annualAllocation,
-          carryOver: b.carryOver,
+          annualAllocation,
+          carryOver,
           total,
           usedDays,
           remainingDays: Math.max(0, total - usedDays),
@@ -482,7 +644,7 @@ export const attendanceLeavesRoutes = {
       });
     }),
 
-  listPermissions: makeAttProcedure("/attendance")
+  listPermissions: makeAttProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string().optional(),
@@ -496,13 +658,36 @@ export const attendanceLeavesRoutes = {
       const conditions: any[] = [];
       if (input.empCd)
         conditions.push(eq(attendancePermissions.empCd, input.empCd));
+      const dateConditions: any[] = [];
       if (input.from)
-        conditions.push(gte(attendancePermissions.date, input.from as any));
+        dateConditions.push(gte(attendancePermissions.date, input.from as any));
       if (input.to)
-        conditions.push(lte(attendancePermissions.date, input.to as any));
+        dateConditions.push(lte(attendancePermissions.date, input.to as any));
+      // Pending requests stay visible for approval whatever the date filter,
+      // matching listLeaves.
+      if (dateConditions.length)
+        conditions.push(
+          or(and(...dateConditions), eq(attendancePermissions.approved, false)),
+        );
       const permissions = await db
-        .select()
+        .select({
+          id: attendancePermissions.id,
+          empCd: attendancePermissions.empCd,
+          empName: attendanceEmployees.fullName,
+          date: attendancePermissions.date,
+          type: attendancePermissions.type,
+          durationMinutes: attendancePermissions.durationMinutes,
+          approved: attendancePermissions.approved,
+          notAffectSalary: attendancePermissions.notAffectSalary,
+          note: attendancePermissions.note,
+          createdAt: attendancePermissions.createdAt,
+          updatedAt: attendancePermissions.updatedAt,
+        })
         .from(attendancePermissions)
+        .leftJoin(
+          attendanceEmployees,
+          eq(attendancePermissions.empCd, attendanceEmployees.empCd),
+        )
         .where(conditions.length ? and(...conditions) : undefined)
         .orderBy(desc(attendancePermissions.date));
       return permissions.map((permission: any) => ({
@@ -511,7 +696,7 @@ export const attendanceLeavesRoutes = {
       }));
     }),
 
-  createPermission: makeAttWriteProcedure("/attendance")
+  createPermission: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         empCd: z.string(),
@@ -534,6 +719,17 @@ export const attendanceLeavesRoutes = {
         notAffectSalary: input.notAffectSalary ?? false,
         note: input.note ?? null,
       });
+
+      const permissionDate = new Date(`${input.date}T12:00:00`);
+      await dailyMaterializer.recomputeRange(
+        permissionDate,
+        permissionDate,
+        {
+          empCd: input.empCd,
+        },
+        undefined,
+        { recomputeMonthly: true },
+      );
 
       // Notify the employee that a permission was granted for them
       const empMapping = await db
@@ -559,7 +755,7 @@ export const attendanceLeavesRoutes = {
             targetUserIds: [empMapping[0].userId],
             source: "attendance",
             entityType: "permission_granted",
-            meta: { empCd: input.empCd, path: "/attendance/me" },
+            meta: { empCd: input.empCd, path: "/attendance/my" },
             channels: { inApp: ns.attendance.inApp, push: ns.attendance.push },
           }).catch(() => {});
         }
@@ -568,7 +764,7 @@ export const attendanceLeavesRoutes = {
       return { success: true, id: (result as any)?.[0]?.insertId };
     }),
 
-  updatePermission: makeAttWriteProcedure("/attendance")
+  updatePermission: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(
       z.object({
         id: z.number().int(),
@@ -607,24 +803,29 @@ export const attendanceLeavesRoutes = {
       const oldDate = new Date(fmtDate(perm.date) + "T12:00:00");
       const newDate = new Date(input.date + "T12:00:00");
       const datesToRecompute = [oldDate];
-      if (oldDate.toDateString() !== newDate.toDateString()) datesToRecompute.push(newDate);
+      if (oldDate.toDateString() !== newDate.toDateString())
+        datesToRecompute.push(newDate);
 
       for (const d of datesToRecompute) {
         try {
-          await dailyMaterializer.recomputeRange(d, d, { empCd: perm.empCd });
-          await PermissionAdjustmentService.recomputeRange(perm.empCd, d, d);
-          await MonthlyComputeService.saveMonthlyReports(d.getFullYear(), d.getMonth() + 1);
+          await recomputePermissionDayAndMonthly(perm.empCd, d);
         } catch (err) {
           console.error("Failed to recompute after permission update:", err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "تم حفظ الإذن لكن تعذرت إعادة حساب الحضور والراتب؛ أعد المحاولة",
+            cause: err,
+          });
         }
       }
 
       return { success: true };
     }),
 
-  approvePermission: makeAttWriteProcedure("/attendance")
+  approvePermission: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(z.object({ id: z.number().int() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -635,48 +836,47 @@ export const attendanceLeavesRoutes = {
         .limit(1);
       const perm = permRows[0];
       if (!perm) throw new Error("الإذن غير موجود");
-      if (perm.approved) throw new Error("الإذن معتمد بالفعل");
+      const wasApproved = Boolean(perm.approved);
 
-      // 1. Mark as approved
-      await db
-        .update(attendancePermissions)
-        .set({ approved: true, updatedAt: new Date() })
-        .where(eq(attendancePermissions.id, input.id));
+      // Mark it approved once; retries still recompute but do not notify twice.
+      if (!wasApproved) {
+        await db
+          .update(attendancePermissions)
+          .set({ approved: true, updatedAt: new Date() })
+          .where(eq(attendancePermissions.id, input.id));
+      }
+      await AuditLogService.log({
+        action: "permission_approved",
+        empCd: perm.empCd,
+        userId: ctx.user.id,
+        details: { permissionId: input.id },
+        status: "success",
+      });
 
       // 2. Recompute daily records immediately to propagate permission
       try {
-        const dateObj = new Date(String(perm.date) + "T12:00:00");
-
-        // Recompute daily records (recomputes lateMinutes, earlyLeaveMin, etc.)
-        await dailyMaterializer.recomputeRange(dateObj, dateObj, {
-          empCd: perm.empCd,
-        });
-
-        // Update leave/permission status in daily records
-        await PermissionAdjustmentService.recomputeRange(
-          perm.empCd,
-          dateObj,
-          dateObj,
-        );
-
-        // Also generate monthly report for the affected month
-        const monthNum = dateObj.getMonth() + 1;
-        const year = dateObj.getFullYear();
-        await MonthlyComputeService.saveMonthlyReports(year, monthNum);
+        const dateObj = new Date(`${fmtDate(perm.date)}T12:00:00`);
+        await recomputePermissionDayAndMonthly(perm.empCd, dateObj);
       } catch (err: any) {
         console.error(
           "Failed to recompute daily/monthly attendance after permission approval:",
           err,
         );
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "تم اعتماد الإذن لكن تعذرت إعادة حساب الحضور والراتب؛ أعد المحاولة",
+          cause: err,
+        });
       }
 
-      // Notify the employee that a permission was approved for them
+      // Notify only on the transition to approved; retries may still recompute.
       const empMapping = await db
         .select()
         .from(employeeAttendanceMapping)
         .where(eq(employeeAttendanceMapping.machineUserId, perm.empCd))
         .limit(1);
-      if (empMapping[0]?.userId) {
+      if (!wasApproved && empMapping[0]?.userId) {
         const ns = await getAppNotificationSettings().catch(
           () => DEFAULT_APP_NOTIFICATION_SETTINGS,
         );
@@ -704,7 +904,7 @@ export const attendanceLeavesRoutes = {
       return { success: true };
     }),
 
-  deletePermission: makeAttWriteProcedure("/attendance")
+  deletePermission: makeAttWriteProcedure(["/attendance", "/attendance/employees"])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -724,34 +924,24 @@ export const attendanceLeavesRoutes = {
       if (perm && perm.approved) {
         try {
           const dateObj = new Date(`${fmtDate(perm.date)}T12:00:00`);
-          // Recompute daily records (recomputes lateMinutes, earlyLeaveMin, etc.)
-          await dailyMaterializer.recomputeRange(dateObj, dateObj, {
-            empCd: perm.empCd,
-          });
-
-          // Update leave/permission status in daily records
-          await PermissionAdjustmentService.recomputeRange(
-            perm.empCd,
-            dateObj,
-            dateObj,
-          );
-
-          // Also generate monthly report for the affected month
-          const monthNum = dateObj.getMonth() + 1;
-          const year = dateObj.getFullYear();
-          await MonthlyComputeService.saveMonthlyReports(year, monthNum);
+          await recomputePermissionDayAndMonthly(perm.empCd, dateObj);
         } catch (err: any) {
           console.error(
             "Failed to recompute daily/monthly attendance after permission deletion:",
             err,
           );
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "تم حذف الإذن لكن تعذرت إعادة حساب الحضور والراتب",
+            cause: err,
+          });
         }
       }
 
       return { success: true };
     }),
 
-  permissionReport: makeAttProcedure("/attendance")
+  permissionReport: makeAttProcedure(["/attendance", "/attendance/reports"])
     .input(
       z.object({
         from: z.string(), // YYYY-MM-DD
@@ -770,9 +960,9 @@ export const attendanceLeavesRoutes = {
       ];
       if (input.department) {
         conditions.push(
-          or(
-            eq(attendanceEmployees.department, input.department),
-            eq(attendanceEmployees.department, "المركز والعيادة"),
+          inArray(
+            attendanceEmployees.department,
+            getAttendanceDepartmentValues(input.department),
           ),
         );
       }
@@ -819,7 +1009,7 @@ export const attendanceLeavesRoutes = {
       );
     }),
 
-  listHolidays: makeAttProcedure("/attendance")
+  listHolidays: makeAttProcedure(["/attendance", "/attendance/settings"])
     .input(z.object({ year: z.number().int().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -845,7 +1035,65 @@ export const attendanceLeavesRoutes = {
       }));
     }),
 
-  addHoliday: makeAttWriteProcedure("/attendance")
+  seedHolidays: makeAttWriteProcedure(["/attendance", "/attendance/settings"])
+    .input(
+      z.object({
+        holidays: z
+          .array(
+            z.object({
+              date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+              label: z.string().min(1).max(255),
+            }),
+          )
+          .min(1)
+          .max(50),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const existing = await db
+        .select({ date: attendanceHolidays.date })
+        .from(attendanceHolidays);
+      const existingDates = new Set(
+        existing.map((holiday: any) => fmtDate(holiday.date)),
+      );
+      const missing = input.holidays.filter(
+        (holiday) => !existingDates.has(holiday.date),
+      );
+      if (missing.length === 0) return { success: true, added: 0 };
+      const sortedDates = missing.map((holiday) => holiday.date).sort();
+      const from = new Date(`${sortedDates[0]}T12:00:00`);
+      const to = new Date(`${sortedDates[sortedDates.length - 1]}T12:00:00`);
+      if ((to.getTime() - from.getTime()) / 86400000 > 365)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "اختر عطلات سنة واحدة",
+        });
+      const inserted = await db
+        .insert(attendanceHolidays)
+        .ignore()
+        .values(
+          missing.map((holiday) => ({
+            ...holiday,
+            date: holiday.date as any,
+            paid: true,
+          })),
+        );
+      await dailyMaterializer.recomputeRange(from, to, undefined, undefined, {
+        recomputeMonthly: true,
+      });
+      const added = (inserted as any)[0].affectedRows as number;
+      await AuditLogService.log({
+        action: "holidays_seeded",
+        userId: ctx.user?.id,
+        details: { added },
+        status: "success",
+      });
+      return { success: true, added };
+    }),
+
+  addHoliday: makeAttWriteProcedure(["/attendance", "/attendance/settings"])
     .input(
       z.object({
         date: z.string(),
@@ -866,7 +1114,15 @@ export const attendanceLeavesRoutes = {
         .onDuplicateKeyUpdate({
           set: { label: input.label, paid: input.paid },
         });
-      AuditLogService.log({
+      const holidayDate = new Date(`${input.date}T12:00:00`);
+      await dailyMaterializer.recomputeRange(
+        holidayDate,
+        holidayDate,
+        undefined,
+        undefined,
+        { recomputeMonthly: true },
+      );
+      await AuditLogService.log({
         action: "holiday_added",
         details: { date: input.date, label: input.label },
         status: "success",
@@ -874,7 +1130,7 @@ export const attendanceLeavesRoutes = {
       return { success: true };
     }),
 
-  deleteHoliday: makeAttWriteProcedure("/attendance")
+  deleteHoliday: makeAttWriteProcedure(["/attendance", "/attendance/settings"])
     .input(z.object({ date: z.string() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -882,11 +1138,19 @@ export const attendanceLeavesRoutes = {
       await db
         .delete(attendanceHolidays)
         .where(eq(attendanceHolidays.date, input.date as any));
-      AuditLogService.log({
+      const holidayDate = new Date(`${input.date}T12:00:00`);
+      await dailyMaterializer.recomputeRange(
+        holidayDate,
+        holidayDate,
+        undefined,
+        undefined,
+        { recomputeMonthly: true },
+      );
+      await AuditLogService.log({
         action: "holiday_deleted",
         details: { date: input.date },
         status: "success",
       });
       return { success: true };
-    })
+    }),
 };

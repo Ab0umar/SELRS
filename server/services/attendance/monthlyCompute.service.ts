@@ -4,7 +4,7 @@ import {
   attendanceEmployees,
   attendanceMonthlyReport,
 } from "../../../drizzle/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { aggregateAttendanceDays } from "./dailyAggregation";
 
 export class MonthlyComputeService {
@@ -98,18 +98,27 @@ export class MonthlyComputeService {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
-    const enriched = [];
+    if (monthly.length === 0) return [];
+    const employeeRows = await db
+      .select({ empCd: attendanceEmployees.empCd, fullName: attendanceEmployees.fullName, department: attendanceEmployees.department })
+      .from(attendanceEmployees)
+      .where(inArray(attendanceEmployees.empCd, monthly.map((row) => row.empCd)));
+    const employeeByCode = new Map<
+      string,
+      { fullName: string | null; department: string | null }
+    >(
+      employeeRows.map(
+        (employee: {
+          empCd: string;
+          fullName: string | null;
+          department: string | null;
+        }) => [employee.empCd, employee] as const,
+      ),
+    );
 
-    for (const m of monthly) {
-      const empRows = await db
-        .select()
-        .from(attendanceEmployees)
-        .where(eq(attendanceEmployees.empCd, m.empCd))
-        .limit(1);
-
-      const emp = empRows[0];
-
-      enriched.push({
+    return monthly.map((m) => {
+      const emp = employeeByCode.get(m.empCd);
+      return {
         ...m,
         empCd: m.empCd,
         empName: emp?.fullName || "UNKNOWN",
@@ -126,10 +135,8 @@ export class MonthlyComputeService {
         earlyLeaveCount: m.earlyLeaveCount,
         totalOTMins: m.totalOTMins,
         lastUpdated: new Date(),
-      });
-    }
-
-    return enriched;
+      };
+    });
   }
 
   static async generateMonthly(year: number, month: number): Promise<any[]> {
@@ -179,7 +186,7 @@ export class MonthlyComputeService {
       .map((m) => ({
         empCd: m.empCd,
         empName: m.empName,
-        departId: m.departId,
+        department: m.department ?? null,
         yyyymm: m.yyyymm,
         presentDays: m.presentDays,
         absentDays: m.absentDays,
@@ -189,6 +196,95 @@ export class MonthlyComputeService {
         totalOTHours: (m.totalOTMins / 60).toFixed(2),
       }))
       .sort((a, b) => a.empName.localeCompare(b.empName));
+  }
+
+  static async saveEmployeeMonth(
+    empCd: string,
+    year: number,
+    month: number,
+  ): Promise<void> {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const [dateFrom, dateTo] = this.getMonthRange(year, month);
+    const rows = await db
+      .select()
+      .from(attendanceDaily)
+      .where(
+        and(
+          eq(attendanceDaily.empCd, empCd),
+          gte(attendanceDaily.workDate, dateFrom as any),
+          lte(attendanceDaily.workDate, dateTo as any),
+        ),
+      );
+    const days = aggregateAttendanceDays(rows as any[]);
+    if (days.length === 0) {
+      await db
+        .delete(attendanceMonthlyReport)
+        .where(
+          and(
+            eq(attendanceMonthlyReport.empCd, empCd),
+            eq(attendanceMonthlyReport.year, year),
+            eq(attendanceMonthlyReport.month, month),
+          ),
+        );
+      return;
+    }
+    const partialDays = days.filter((d) => d.status === "partial").length;
+    const missingCheckoutDays = days.filter(
+      (d) => d.status === "missing_checkout",
+    ).length;
+    const now = new Date();
+    await db
+      .insert(attendanceMonthlyReport)
+      .values({
+        empCd,
+        year,
+        month,
+        totalDays: days.length,
+        presentDays: days.filter((d) =>
+          ["present", "partial", "missing_checkout"].includes(d.status),
+        ).length,
+        absentDays: days.filter((d) => d.status === "absent").length,
+        leaveDays: days.filter((d) => d.status === "leave").length,
+        holidayDays: days.filter((d) => d.status === "holiday").length,
+        partialDays,
+        missingCheckoutDays,
+        totalLateMins: days.reduce((sum, d) => sum + (d.lateMinutes ?? 0), 0),
+        lateCount: days.filter((d) => (d.lateMinutes ?? 0) > 0).length,
+        totalEarlyLeaveMins: days.reduce(
+          (sum, d) => sum + (d.earlyLeaveMin ?? 0),
+          0,
+        ),
+        earlyLeaveCount: days.filter((d) => (d.earlyLeaveMin ?? 0) > 0).length,
+        totalOTMins: days.reduce((sum, d) => sum + (d.overtimeMinutes ?? 0), 0),
+        computedAt: now,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          totalDays: days.length,
+          presentDays: days.filter((d) =>
+            ["present", "partial", "missing_checkout"].includes(d.status),
+          ).length,
+          absentDays: days.filter((d) => d.status === "absent").length,
+          leaveDays: days.filter((d) => d.status === "leave").length,
+          holidayDays: days.filter((d) => d.status === "holiday").length,
+          partialDays,
+          missingCheckoutDays,
+          totalLateMins: days.reduce((sum, d) => sum + (d.lateMinutes ?? 0), 0),
+          lateCount: days.filter((d) => (d.lateMinutes ?? 0) > 0).length,
+          totalEarlyLeaveMins: days.reduce(
+            (sum, d) => sum + (d.earlyLeaveMin ?? 0),
+            0,
+          ),
+          earlyLeaveCount: days.filter((d) => (d.earlyLeaveMin ?? 0) > 0)
+            .length,
+          totalOTMins: days.reduce(
+            (sum, d) => sum + (d.overtimeMinutes ?? 0),
+            0,
+          ),
+          computedAt: now,
+        },
+      });
   }
 
   static async saveMonthlyReports(
@@ -202,23 +298,24 @@ export class MonthlyComputeService {
     const now = new Date();
     let savedCount = 0;
 
-    for (const m of monthly) {
-      const [saveFrom, saveTo] = MonthlyComputeService.getMonthRange(
-        year,
-        month,
-      );
-      const allDailyRecords = await db
-        .select()
-        .from(attendanceDaily)
-        .where(
-          and(
-            eq(attendanceDaily.empCd, m.empCd),
-            gte(attendanceDaily.workDate, saveFrom as any),
-            lte(attendanceDaily.workDate, saveTo as any),
-          ),
-        );
+    const [saveFrom, saveTo] = MonthlyComputeService.getMonthRange(year, month);
+    const allDailyRecords = await db
+      .select()
+      .from(attendanceDaily)
+      .where(and(
+        gte(attendanceDaily.workDate, saveFrom as any),
+        lte(attendanceDaily.workDate, saveTo as any),
+        inArray(attendanceDaily.empCd, monthly.map((row) => row.empCd)),
+      ));
+    const dailyByEmployee = new Map<string, any[]>();
+    for (const row of allDailyRecords) {
+      const rows = dailyByEmployee.get(row.empCd) ?? [];
+      rows.push(row);
+      dailyByEmployee.set(row.empCd, rows);
+    }
 
-      const employeeDays = aggregateAttendanceDays(allDailyRecords as any[]);
+    for (const m of monthly) {
+      const employeeDays = aggregateAttendanceDays(dailyByEmployee.get(m.empCd) ?? []);
       const partialDays = employeeDays.filter(
         (d: any) => d.status === "partial",
       ).length;
