@@ -62,7 +62,7 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { cellDates: true });
       const parsed = wb.SheetNames.map((name) => {
-        const rows2d = XLSX.utils.sheet_to_json < unknown[] > (wb.Sheets[name], {
+        const rows2d = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[name], {
           header: 1,
           raw: true,
           defval: null,
@@ -73,15 +73,17 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
       const withRows = parsed.filter((s) => s.rows.length > 0 || s.invalid > 0);
       if (withRows.length === 0) {
         toast.error(
-          "لم يتم التعرف على أعمدة الملف — لازم عمود تاريخ وعمود مبلغ (أو داخل/خارج)",
+          "لم يتم التعرف على أعمدة الملف. يلزم عمود تاريخ وعمود مبلغ أو عمودا داخل وخارج",
         );
         return;
       }
       setFileName(file.name);
       setSheets(withRows);
-      setSelected(Object.fromEntries(withRows.map((s, i) => [s.name, i === 0])));
+      setSelected(
+        Object.fromEntries(withRows.map((s, i) => [s.name, i === 0])),
+      );
     } catch {
-      toast.error("تعذر قراءة الملف — تأكد أنه ملف Excel سليم");
+      toast.error("تعذر قراءة الملف. تأكد من سلامة ملف Excel");
     } finally {
       setParsing(false);
     }
@@ -90,7 +92,7 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
   async function handleApply() {
     if (merged.rows.length === 0) return;
     if (merged.rows.length > MAX_ROWS) {
-      toast.error(`عدد الصفوف أكبر من ${MAX_ROWS} — قسّم الملف`);
+      toast.error(`عدد الصفوف أكبر من ${MAX_ROWS}. قسّم الملف قبل الاستيراد`);
       return;
     }
     setBusy(true);
@@ -98,7 +100,9 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
       const res = await importMut.mutateAsync({ rows: merged.rows });
       toast.success(
         `تم استيراد ${res.inserted.toLocaleString("ar-EG")} حركة` +
-          (res.skipped ? ` · تم تخطي ${res.skipped.toLocaleString("ar-EG")}` : ""),
+          (res.skipped
+            ? ` · تم تخطي ${res.skipped.toLocaleString("ar-EG")}`
+            : ""),
       );
       setOpen(false);
       setSheets([]);
@@ -127,11 +131,13 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
         dir="rtl"
       >
         <DialogHeader>
-          <DialogTitle className="text-right">استيراد حركات من Excel</DialogTitle>
-          <DialogDescription className="text-right">
+          <DialogTitle className="text-start">
+            استيراد حركات من Excel
+          </DialogTitle>
+          <DialogDescription className="text-start">
             ارفع كشف الحساب (xlsx). عمود التاريخ + عمود المبلغ بالإشارة (موجب =
-            منه، سالب = معاه) أو عمودي داخل/خارج. الحركات المكررة بتتخطى تلقائيًا
-            بالرقم المرجعي.
+            منه، سالب = معاه) أو عمودي داخل/خارج. الحركات المكررة بتتخطى
+            تلقائيًا بالرقم المرجعي.
           </DialogDescription>
         </DialogHeader>
 
@@ -172,31 +178,39 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
         {sheets.length > 0 && (
           <>
             {sheets.length > 1 && (
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div
+                className="flex flex-wrap items-center gap-1.5"
+                role="group"
+                aria-label="أوراق العمل المشمولة في الاستيراد"
+              >
                 <span className="text-xs text-muted-foreground">الشيتات:</span>
                 {sheets.map((s) => (
-                  <button
+                  <Button variant="bare"
                     key={s.name}
                     type="button"
+                    aria-pressed={Boolean(selected[s.name])}
                     onClick={() =>
-                      setSelected((prev) => ({ ...prev, [s.name]: !prev[s.name] }))
+                      setSelected((prev) => ({
+                        ...prev,
+                        [s.name]: !prev[s.name],
+                      }))
                     }
                     className={
-                      "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                      "min-h-11 rounded-full border px-3 py-2 text-xs font-medium transition-colors " +
                       (selected[s.name]
                         ? "border-primary/40 bg-primary/10 text-primary"
                         : "border-border bg-muted text-muted-foreground")
                     }
                   >
                     {s.name} ({s.rows.length.toLocaleString("ar-EG")})
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-xl border border-border bg-muted px-3 py-2">
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[13px] text-muted-foreground">
                   صالح للاستيراد
                 </div>
                 <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
@@ -204,33 +218,37 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
                 </div>
               </div>
               <div className="rounded-xl border border-border bg-success/5 px-3 py-2">
-                <div className="text-[10px] text-success">إجمالي منه</div>
+                <div className="text-[13px] text-success">إجمالي منه</div>
                 <div className="mt-0.5 text-sm font-bold tabular-nums text-success">
                   {fmt(merged.totalIn)}
                 </div>
               </div>
               <div className="rounded-xl border border-border bg-destructive/5 px-3 py-2">
-                <div className="text-[10px] text-destructive">إجمالي معاه</div>
+                <div className="text-[13px] text-destructive">إجمالي معاه</div>
                 <div className="mt-0.5 text-sm font-bold tabular-nums text-destructive">
                   {fmt(merged.totalOut)}
                 </div>
               </div>
               <div className="rounded-xl border border-border bg-muted px-3 py-2">
-                <div className="text-[10px] text-muted-foreground">صفوف متجاهلة</div>
+                <div className="text-[13px] text-muted-foreground">
+                  صفوف متجاهلة
+                </div>
                 <div className="mt-0.5 text-sm font-bold tabular-nums text-muted-foreground">
                   {merged.invalid.toLocaleString("ar-EG")}
                 </div>
               </div>
             </div>
 
-            <div className="max-h-[300px] overflow-auto rounded-md border border-border">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="max-h-[300px] overflow-auto rounded-md border border-border">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-muted text-muted-foreground">
                   <tr>
-                    <th className="p-2 text-right font-medium">التاريخ</th>
-                    <th className="p-2 text-right font-medium">البيان</th>
-                    <th className="p-2 text-left font-medium text-success">منه</th>
-                    <th className="p-2 text-left font-medium text-destructive">
+                    <th className="p-2 text-start font-medium">التاريخ</th>
+                    <th className="p-2 text-start font-medium">البيان</th>
+                    <th className="p-2 text-end font-medium text-success">
+                      منه
+                    </th>
+                    <th className="p-2 text-end font-medium text-destructive">
                       معاه
                     </th>
                   </tr>
@@ -242,13 +260,13 @@ export function AccEntityImportDialog({ entity, onDone }: Props) {
                         {r.txDate}
                       </td>
                       <td className="max-w-[260px] truncate p-2 text-foreground">
-                        {r.notes || "—"}
+                        {r.notes || "غير متاح"}
                       </td>
-                      <td className="p-2 text-left tabular-nums text-success">
-                        {r.inAmount ? fmt(r.inAmount) : "—"}
+                      <td className="p-2 text-end tabular-nums text-success">
+                        {r.inAmount ? fmt(r.inAmount) : "غير متاح"}
                       </td>
-                      <td className="p-2 text-left tabular-nums text-destructive">
-                        {r.outAmount ? fmt(r.outAmount) : "—"}
+                      <td className="p-2 text-end tabular-nums text-destructive">
+                        {r.outAmount ? fmt(r.outAmount) : "غير متاح"}
                       </td>
                     </tr>
                   ))}

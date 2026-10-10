@@ -1,5 +1,4 @@
-// Parser for Excel account exports (bank / InstaPay app statements) into
-// accInstapay / accHome ledger rows. Pure functions — shared with tests.
+// Parser for Excel account exports into accInstapay and accHome ledger rows.
 
 export type AccImportRow = {
   txDate: string;
@@ -35,14 +34,8 @@ type ColumnMap = {
 
 const HEADER_TESTS: Array<[keyof ColumnMap, RegExp]> = [
   ["date", /^(date|التاريخ|تاريخ)$/],
-  [
-    "amount",
-    /^(amount|المبلغ|القيمة|القيمه|value|netamount|الصافي)$/,
-  ],
-  [
-    "in",
-    /^(in|income|credit|deposit|داخلة|داخله|داخل|منه|إيداع|ايداع|وارد)$/,
-  ],
+  ["amount", /^(amount|المبلغ|القيمة|القيمه|value|netamount|الصافي)$/],
+  ["in", /^(in|income|credit|deposit|داخلة|داخله|داخل|منه|إيداع|ايداع|وارد)$/],
   [
     "out",
     /^(out|expense|debit|withdrawal|خارجة|خارجه|خارج|معاه|سحب|مدفوع|منصرف)$/,
@@ -71,24 +64,46 @@ function detectColumns(header: unknown[]): ColumnMap {
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
+function calendarDate(year: number, month: number, day: number): string | null {
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  )
+    return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  )
+    return null;
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
 export function parseAccDate(v: unknown): string | null {
   if (v == null || v === "") return null;
   if (v instanceof Date) {
     return Number.isNaN(v.getTime())
       ? null
-      : `${v.getFullYear()}-${pad2(v.getMonth() + 1)}-${pad2(v.getDate())}`;
+      : calendarDate(v.getFullYear(), v.getMonth() + 1, v.getDate());
   }
   if (typeof v === "number" && Number.isFinite(v) && v > 20000 && v < 80000) {
     // Excel serial day (epoch 1899-12-30), resolved in UTC to avoid tz shifts
-    return new Date(Math.round((v - 25569) * 86400000))
-      .toISOString()
-      .slice(0, 10);
+    const serialDate = new Date(Math.round((v - 25569) * 86400000));
+    return Number.isNaN(serialDate.getTime())
+      ? null
+      : calendarDate(
+          serialDate.getUTCFullYear(),
+          serialDate.getUTCMonth() + 1,
+          serialDate.getUTCDate(),
+        );
   }
   const s = String(v).trim();
   let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-  if (m) return `${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}`;
+  if (m) return calendarDate(+m[1], +m[2], +m[3]);
   m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-  if (m) return `${m[3]}-${pad2(+m[2])}-${pad2(+m[1])}`; // dd/mm/yyyy
+  if (m) return calendarDate(+m[3], +m[2], +m[1]);
   const d = new Date(s);
   return Number.isNaN(d.getTime())
     ? null
@@ -126,7 +141,7 @@ export function buildAccNotes(desc: unknown, hint: unknown): string {
     parts.push(extra);
   }
   if (ref) parts.push(`مرجع ${ref}`);
-  return parts.filter(Boolean).join(" — ").slice(0, 500);
+  return parts.filter(Boolean).join(" | ").slice(0, 500);
 }
 
 export function parseAccSheet(rows2d: unknown[][]): AccImportSheetParse {
@@ -135,7 +150,12 @@ export function parseAccSheet(rows2d: unknown[][]): AccImportSheetParse {
   let cols: ColumnMap = {};
   for (let i = 0; i < Math.min(10, rows2d.length); i++) {
     const map = detectColumns(rows2d[i] ?? []);
-    if (map.date !== undefined && (map.amount !== undefined || map.in !== undefined || map.out !== undefined)) {
+    if (
+      map.date !== undefined &&
+      (map.amount !== undefined ||
+        map.in !== undefined ||
+        map.out !== undefined)
+    ) {
       headerIdx = i;
       cols = map;
       break;
@@ -154,7 +174,9 @@ export function parseAccSheet(rows2d: unknown[][]): AccImportSheetParse {
 
   for (let i = headerIdx + 1; i < rows2d.length; i++) {
     const row = rows2d[i] ?? [];
-    const txDate = parseAccDate(cols.date !== undefined ? row[cols.date] : null);
+    const txDate = parseAccDate(
+      cols.date !== undefined ? row[cols.date] : null,
+    );
     let inAmount = 0;
     let outAmount = 0;
 

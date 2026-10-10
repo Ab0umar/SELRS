@@ -82,6 +82,7 @@ export const ROUTES = {
   accountingReceiptDetail: "/accounting/receipts/:secCd/:trTy/:trNo",
   accountingReceipts: "/accounting/receipts",
   accountingServices: "/accounting/services",
+  accountingServiceEntry: "/accounting/service-entry",
   accountingPatientsInquiry: "/accounting/patients-inquiry",
   accountingPatients: "/accounting/patients",
   accountingPatient: "/accounting/patient",

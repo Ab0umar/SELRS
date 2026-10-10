@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildAccNotes,
-  parseAccDate,
-  parseAccSheet,
-} from "./accImportParse";
+import { buildAccNotes, parseAccDate, parseAccSheet } from "./accImportParse";
 
 describe("parseAccDate", () => {
   it("parses ISO date strings with time", () => {
@@ -57,7 +53,16 @@ describe("buildAccNotes", () => {
 describe("parseAccSheet", () => {
   it("parses bank export with signed amount column", () => {
     const sheet = [
-      ["Date", "Description", "Amount", "Currency", "Account", "Category", "Type", "Hint"],
+      [
+        "Date",
+        "Description",
+        "Amount",
+        "Currency",
+        "Account",
+        "Category",
+        "Type",
+        "Hint",
+      ],
       [
         "2024-10-26 13:25",
         "InstaPay",
@@ -97,7 +102,16 @@ describe("parseAccSheet", () => {
 
   it("parses serial-date sheet with in/out split by sign", () => {
     const sheet = [
-      ["Date", "Description", "Amount", "Currency", "Account", "Category", "Type", "Hint"],
+      [
+        "Date",
+        "Description",
+        "Amount",
+        "Currency",
+        "Account",
+        "Category",
+        "Type",
+        "Hint",
+      ],
       [
         45865,
         "Instant Transfer To",
