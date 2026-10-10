@@ -5,6 +5,7 @@ import {
   type SavedSummary,
 } from "@/hooks/operations/operationsShared";
 import { OperationTotals } from "./OperationTotals";
+import { Button } from "@/components/ui/button";
 
 type OperationsSettlementRailProps = {
   open: boolean;
@@ -81,7 +82,7 @@ export function OperationsSettlementRail({
       {railOpen ? (
         <div className="space-y-4 px-4 py-4">
           <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-3">
-            <div className="flex min-w-0 items-center gap-2 text-right">
+            <div className="flex min-w-0 items-center gap-2 text-start">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <Calculator className="h-4 w-4" aria-hidden />
               </div>
@@ -90,7 +91,7 @@ export function OperationsSettlementRail({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button variant="bare"
                 type="button"
                 className="flex h-11 w-11 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-8 sm:w-8"
                 onClick={() => onOpenChange(false)}
@@ -98,7 +99,7 @@ export function OperationsSettlementRail({
                 aria-expanded={railOpen}
               >
                 <PanelRightClose className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -126,18 +127,18 @@ export function OperationsSettlementRail({
         </div>
       ) : (
         <div className="flex h-full min-h-[220px] items-stretch justify-center xl:min-h-[calc(100vh-2rem)]">
-          <button
+          <Button variant="bare"
             type="button"
-            className="flex w-full flex-col items-center justify-center gap-2 border-r border-border/50 px-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex w-full flex-col items-center justify-center gap-2 border-s border-border/50 px-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => onOpenChange(true)}
             aria-label="إظهار تسوية اليوم"
             aria-expanded={railOpen}
           >
             <PanelRightOpen className="h-5 w-5" />
-            <span className="text-[10px] leading-none whitespace-nowrap [writing-mode:vertical-rl] rotate-180">
+            <span className="text-[13px] leading-none whitespace-nowrap [writing-mode:vertical-rl] rotate-180">
               تسوية اليوم
             </span>
-          </button>
+          </Button>
         </div>
       )}
     </aside>

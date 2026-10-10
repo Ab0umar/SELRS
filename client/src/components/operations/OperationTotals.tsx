@@ -361,9 +361,9 @@ export function OperationTotals({
 
       {filteredSavedSummaries.length > 0 && (
         <div className="mt-6 rounded-2xl border border-border/60 bg-muted/30 p-4 md:p-5 print:hidden" dir="rtl">
-          <button
+          <Button variant="bare"
             type="button"
-            className={`flex w-full items-center justify-between gap-2 text-right ${savedSummariesExpanded ? "border-b border-border/60 pb-3" : ""}`}
+            className={`flex w-full items-center justify-between gap-2 text-start ${savedSummariesExpanded ? "border-b border-border/60 pb-3" : ""}`}
             onClick={() => setSavedSummariesExpanded((expanded) => !expanded)}
             aria-expanded={savedSummariesExpanded}
             aria-controls="saved-operation-summaries"
@@ -380,7 +380,7 @@ export function OperationTotals({
                 className={`h-5 w-5 text-muted-foreground transition-transform ${savedSummariesExpanded ? "rotate-180" : ""}`}
               />
             </div>
-          </button>
+          </Button>
 
           {savedSummariesExpanded && (
             <div id="saved-operation-summaries" className="mt-5 space-y-4">
@@ -388,7 +388,7 @@ export function OperationTotals({
                 const isCollapsed = collapsedGroups[opGroupTitle];
                 return (
                   <div key={opGroupTitle} className="space-y-2.5">
-                    <button
+                    <Button variant="bare"
                       type="button"
                       onClick={() => toggleGroup(opGroupTitle)}
                       className="flex w-full items-center justify-between gap-2 text-xs font-bold text-foreground bg-muted/80 hover:bg-muted px-3 py-2 rounded-lg border border-border transition-colors"
@@ -400,7 +400,7 @@ export function OperationTotals({
                       <ChevronDown
                         className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${!isCollapsed ? "rotate-180" : ""}`}
                       />
-                    </button>
+                    </Button>
 
                     {!isCollapsed && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 items-start">
@@ -416,27 +416,27 @@ export function OperationTotals({
                                   <span>{item.date}</span>
                                 </div>
                                 {item.names?.length ? (
-                                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                                  <span className="text-[13px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.2 rounded flex items-center gap-0.5">
                                     <Users className="h-2.5 w-2.5" />
                                     {item.names.length}
                                   </span>
                                 ) : null}
                               </div>
 
-                              <div className="text-[11px] text-muted-foreground">
+                              <div className="text-[13px] text-muted-foreground">
                                 {item.names.length > 0 ? (
                                   <div className="flex flex-wrap gap-0.5 mt-0.5">
                                     {item.names.map((name, idx) => (
                                       <span
                                         key={idx}
-                                        className="inline-block rounded bg-muted/50 border border-border/60 px-1.5 py-0.2 text-[10px] font-medium text-foreground"
+                                        className="inline-block rounded bg-muted/50 border border-border/60 px-1.5 py-0.2 text-[13px] font-medium text-foreground"
                                       >
                                         {name}
                                       </span>
                                     ))}
                                   </div>
                                 ) : (
-                                  <span className="text-muted-foreground italic text-[10px]">لا توجد أسماء</span>
+                                  <span className="text-muted-foreground italic text-[13px]">لا توجد أسماء</span>
                                 )}
                               </div>
                             </div>
@@ -445,7 +445,7 @@ export function OperationTotals({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-6 text-[10px] font-medium rounded px-2 text-foreground border-border hover:bg-muted/50 gap-1"
+                                className="h-6 text-[13px] font-medium rounded px-2 text-foreground border-border hover:bg-muted/50 gap-1"
                                 onClick={() => onEditSavedSummary(item)}
                               >
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
@@ -454,7 +454,7 @@ export function OperationTotals({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 px-1.5 text-[10px] font-medium rounded text-destructive hover:bg-destructive/10 hover:text-destructive gap-0.5"
+                                className="h-6 px-1.5 text-[13px] font-medium rounded text-destructive hover:bg-destructive/10 hover:text-destructive gap-0.5"
                                 onClick={() => onDeleteSavedSummary(item.key, item.listId)}
                                 disabled={!canManageList}
                               >

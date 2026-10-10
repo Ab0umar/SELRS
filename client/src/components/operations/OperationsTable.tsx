@@ -66,7 +66,7 @@ export function OperationsTable({
                   <div className="text-xs font-semibold text-foreground">
                     حالة {index + 1}
                   </div>
-                  <div className="truncate text-[11px] text-muted-foreground">
+                  <div className="truncate text-[13px] text-muted-foreground">
                     {appointment.name || "بدون اسم"}
                   </div>
                 </div>
@@ -249,7 +249,7 @@ export function OperationsTable({
           )}
         </div>
 
-        <div className="hidden overflow-x-auto md:block">
+        <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden overflow-x-auto md:block">
           <table
             className="w-full table-fixed border-collapse border border-border text-center text-xs"
             dir="rtl"

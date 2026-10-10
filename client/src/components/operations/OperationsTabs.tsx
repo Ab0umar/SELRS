@@ -1,5 +1,6 @@
 import { TAB_CONFIG } from "@/lib/operationsPricing";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 type OperationsTabsProps = {
   activeTab: string;
@@ -15,7 +16,7 @@ export function OperationsTabs({
       {TAB_CONFIG.map((tab) => {
         const isActive = activeTab === tab.key;
         return (
-          <button
+          <Button variant="bare"
             key={tab.key}
             type="button"
             onClick={() => onActiveTabChange(tab.key)}
@@ -27,7 +28,7 @@ export function OperationsTabs({
             )}
           >
             {tab.label}
-          </button>
+          </Button>
         );
       })}
     </div>

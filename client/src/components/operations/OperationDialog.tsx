@@ -126,7 +126,7 @@ export function OperationDialog({
             aria-label="تاريخ قائمة العمليات"
             className="h-11 w-[150px] rounded-md border border-border/60 bg-background px-2 text-sm tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:text-xs"
           />
-          <input
+          <Input bare
             type="time"
             value={listTime}
             onChange={(e) => onListTimeChange(e.target.value)}
@@ -274,11 +274,11 @@ export function OperationDialog({
               value={patientSearchTerm}
               onChange={(e) => onPatientSearchTermChange(e.target.value)}
               placeholder="ابحث بالكود أو الاسم أو الموبايل"
-              className="h-11 flex-1 text-right text-sm sm:h-8 sm:text-xs"
+              className="h-11 flex-1 text-start text-sm sm:h-8 sm:text-xs"
               aria-label="بحث عن مريض لإضافته إلى قائمة العمليات"
               autoFocus
             />
-            <button
+            <Button variant="bare"
               type="button"
               onClick={() => {
                 setSearchOpen(false);
@@ -288,10 +288,10 @@ export function OperationDialog({
               aria-label="إغلاق البحث"
             >
               <X className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
           {debouncedPatientSearch.trim().length >= 1 && (
-            <div className="overflow-x-auto rounded-lg border border-border/50 bg-background">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded-lg border border-border/50 bg-background">
               <table className="w-full min-w-[480px] border-collapse text-center text-xs">
                 <thead>
                   <tr className="bg-muted/50">

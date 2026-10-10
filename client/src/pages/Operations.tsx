@@ -88,7 +88,7 @@ export default function Operations() {
             <h1 className="sr-only">
               العمليات
             </h1>
-            <div className="text-[11px] text-muted-foreground">
+            <div className="text-[13px] text-muted-foreground">
               {formatDayDate(String(operations.listDate))} |{" "}
               {operations.currentList.length} حالة
             </div>
@@ -114,7 +114,7 @@ export default function Operations() {
       {/* View Sub-Tabs Selection */}
       <div className="mb-6 flex border-b border-border/50 pb-px print:hidden" dir="rtl">
         <div className="flex gap-2">
-          <button
+          <Button variant="bare"
             type="button"
             onClick={() => setViewTab("list")}
             className={cn(
@@ -128,7 +128,7 @@ export default function Operations() {
             <span>قائمة الحالات اليومية</span>
             {operations.currentList.length > 0 && (
               <span className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-200",
+                "rounded-full px-1.5 py-0.5 text-[13px] font-bold tabular-nums transition-colors duration-200",
                 viewTab === "list" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               )}>
                 {operations.currentList.length}
@@ -137,9 +137,9 @@ export default function Operations() {
             {viewTab === "list" && (
               <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
             )}
-          </button>
+          </Button>
 
-          <button
+          <Button variant="bare"
             type="button"
             onClick={() => setViewTab("booking")}
             className={cn(
@@ -153,7 +153,7 @@ export default function Operations() {
             <span>حجز وجدولة العمليات</span>
             {((operations.operationBookingsQuery.data ?? []).length > 0) && (
               <span className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums transition-colors duration-200",
+                "rounded-full px-1.5 py-0.5 text-[13px] font-bold tabular-nums transition-colors duration-200",
                 viewTab === "booking" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               )}>
                 {operations.operationBookingsQuery.data?.reduce((acc, b) => acc + (b.casesCount || 0), 0) || 0}
@@ -162,9 +162,9 @@ export default function Operations() {
             {viewTab === "booking" && (
               <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
             )}
-          </button>
+          </Button>
 
-          <button
+          <Button variant="bare"
             type="button"
             onClick={() => setViewTab("financials")}
             className={cn(
@@ -179,7 +179,7 @@ export default function Operations() {
             {viewTab === "financials" && (
               <span className="absolute inset-x-0 -top-px h-[2px] bg-primary rounded-t-full" />
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -203,25 +203,25 @@ export default function Operations() {
                   <h2 className="text-sm font-semibold text-foreground">
                     حجوزات العمليات
                   </h2>
-                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                  <span className="text-[13px] text-muted-foreground tabular-nums">
                     {formatDayDate(String(operations.listDate))}
                   </span>
                 </div>
                 <div className="px-4 py-3">
                   {operations.operationBookingsQuery.isLoading ? (
-                    <p className="text-[11px] text-muted-foreground animate-pulse">
+                    <p className="text-[13px] text-muted-foreground animate-pulse">
                       جاري تحميل الحجوزات...
                     </p>
                   ) : (operations.operationBookingsQuery.data ?? []).length ===
                     0 ? (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       لا توجد حجوزات مسجلة لهذا التاريخ.
                     </p>
                   ) : (
                     <table className="w-full text-xs border-collapse" dir="rtl">
                       <thead>
                         <tr className="border-b border-border/50 text-muted-foreground">
-                          <th className="py-1.5 text-right font-medium">
+                          <th className="py-1.5 text-start font-medium">
                             نوع العملية
                           </th>
                           <th className="py-1.5 text-center w-20 font-medium">
@@ -248,7 +248,7 @@ export default function Operations() {
                               <tr>
                                 <td
                                   colSpan={4}
-                                  className="pt-2 pb-0.5 font-semibold text-primary text-[11px]"
+                                  className="pt-2 pb-0.5 font-semibold text-primary text-[13px]"
                                 >
                                   {doctor}
                                 </td>
@@ -258,7 +258,7 @@ export default function Operations() {
                                   key={booking.id}
                                   className="border-b border-border/30 last:border-0 hover:bg-muted/20"
                                 >
-                                  <td className="py-1 pr-3 text-muted-foreground">
+                                  <td className="py-1 ps-3 text-muted-foreground">
                                     {operationTypeLabel(booking.operationType)}
                                   </td>
                                   <td
@@ -273,7 +273,7 @@ export default function Operations() {
                                   <td className="py-1 text-center">
                                     {delConfirm === booking.id ? (
                                       <div className="flex items-center gap-1">
-                                        <button
+                                        <Button variant="bare"
                                           type="button"
                                           aria-label="تأكيد الحذف"
                                           className="min-h-11 rounded bg-destructive px-2 text-xs text-destructive-foreground hover:bg-destructive/80 sm:min-h-8"
@@ -285,18 +285,18 @@ export default function Operations() {
                                           }}
                                         >
                                           تأكيد
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button variant="bare"
                                           type="button"
                                           aria-label="إلغاء الحذف"
                                           className="min-h-11 rounded bg-muted px-2 text-xs text-muted-foreground hover:bg-muted/80 sm:min-h-8"
                                           onClick={() => setDelConfirm(null)}
                                         >
                                           ✕
-                                        </button>
+                                        </Button>
                                       </div>
                                     ) : (
-                                      <button
+                                      <Button variant="bare"
                                         type="button"
                                         aria-label="حذف الحجز"
                                         className="inline-flex h-11 w-11 items-center justify-center rounded bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground sm:h-9 sm:w-9"
@@ -304,7 +304,7 @@ export default function Operations() {
                                         onClick={() => setDelConfirm(booking.id)}
                                       >
                                         <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
+                                      </Button>
                                     )}
                                   </td>
                                 </tr>

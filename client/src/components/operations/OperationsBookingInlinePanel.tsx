@@ -77,9 +77,9 @@ export function OperationsBookingInlinePanel({
   return (
     <section className="rounded-lg border border-border/50 bg-background shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
-        <button
+        <Button variant="bare"
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-2 text-right"
+          className="flex min-w-0 flex-1 items-center gap-2 text-start"
           onClick={() => setPanelOpen((prev) => !prev)}
           aria-expanded={panelOpen}
         >
@@ -90,11 +90,11 @@ export function OperationsBookingInlinePanel({
             <h2 className="text-sm font-semibold text-foreground">
               حجز عملية جديدة
             </h2>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[13px] text-muted-foreground">
               المدخل المباشر للحجز اليومي
             </p>
           </div>
-        </button>
+        </Button>
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -111,7 +111,7 @@ export function OperationsBookingInlinePanel({
             <RotateCcw className="h-3.5 w-3.5" />
             ضبط
           </Button>
-          <button
+          <Button variant="bare"
             type="button"
             className="flex h-11 w-11 items-center justify-center rounded-md border border-border/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-8 sm:w-8"
             onClick={() => setPanelOpen((prev) => !prev)}
@@ -125,7 +125,7 @@ export function OperationsBookingInlinePanel({
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -61,7 +61,7 @@ export function OperationsBookingFormContent({
             <div style={topFieldStyle}>
               <Label
                 htmlFor="operation-booking-doctor"
-                className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+                className="font-semibold text-[13px] mb-1 block text-muted-foreground"
               >
                 الطبيب المعالج
               </Label>
@@ -78,7 +78,7 @@ export function OperationsBookingFormContent({
             <div style={topFieldStyle}>
               <Label
                 htmlFor="operation-booking-date"
-                className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+                className="font-semibold text-[13px] mb-1 block text-muted-foreground"
               >
                 تاريخ العملية
               </Label>
@@ -95,7 +95,7 @@ export function OperationsBookingFormContent({
           <div>
             <Label
               htmlFor="operation-booking-weekday"
-              className="font-semibold text-[11px] mb-1 block text-muted-foreground"
+              className="font-semibold text-[13px] mb-1 block text-muted-foreground"
             >
               اليوم (اختياري)
             </Label>
@@ -114,7 +114,7 @@ export function OperationsBookingFormContent({
           <div>
             <Label
               htmlFor="operation-booking-type"
-              className="font-bold text-[11px] text-foreground mb-1 block"
+              className="font-bold text-[13px] text-foreground mb-1 block"
             >
               نوع العملية
             </Label>
@@ -141,7 +141,7 @@ export function OperationsBookingFormContent({
             <div>
               <Label
                 htmlFor="operation-booking-time"
-                className="font-bold text-[11px] text-foreground mb-1 block"
+                className="font-bold text-[13px] text-foreground mb-1 block"
               >
                 الوقت
               </Label>
@@ -158,7 +158,7 @@ export function OperationsBookingFormContent({
             <div>
               <Label
                 htmlFor="operation-booking-count"
-                className="font-bold text-[11px] text-foreground mb-1 block"
+                className="font-bold text-[13px] text-foreground mb-1 block"
               >
                 عدد الحالات
               </Label>
@@ -176,7 +176,7 @@ export function OperationsBookingFormContent({
           </div>
 
           <div className="pt-2">
-            <p className="text-[10px] text-success leading-tight">
+            <p className="text-[13px] text-success leading-tight">
               * سيتم حجز غرفة العمليات للطبيب في الموعد المحدد.
             </p>
           </div>
