@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { desc, eq, count as drizzleCount, and, gte } from "drizzle-orm";
+import { desc, eq, count as drizzleCount, and, inArray } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { nanoid } from "nanoid";
 import { randomBytes } from "node:crypto";
 import { router, adminProcedure } from "../_core/procedures";
@@ -13,16 +12,24 @@ import {
   marketingLogs,
   marketingReferenceDesigns,
   marketingBrandProfile,
+  marketingGenerationJobs,
+  marketingFacebookPages,
+  type MarketingReferenceDesign,
 } from "../../drizzle/schema";
-import { generateMarketingContent } from "../services/marketing/contentGenerator.service";
-import { pickTopic, type PostDay } from "../services/marketing/topicRotation";
 import {
-  generateMarketingImage,
-  MarketingImageConfigError,
-} from "../services/marketing/imageGenerator.service";
+  startManusGeneration,
+  listManusGenerationJobs,
+} from "../services/marketing/manusGeneration.service";
+import { pickTopic, type PostDay } from "../services/marketing/topicRotation";
+import { publishMarketingPost } from "../services/marketing/publish.service";
+import {
+  getMarketingPageTarget,
+  type MarketingPageRole,
+} from "../services/marketing/page.service";
 import {
   analyzeDesignImage,
   buildBrandProfile,
+  parseStyleAttributes,
   type StyleAttributes,
 } from "../services/marketing/brandStyleAnalyzer.service";
 import { ENV } from "../_core/env";
@@ -30,6 +37,85 @@ import {
   marketingSummary,
   sendMarketingBatch,
 } from "../services/whatsappMarketing.service";
+
+const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_PROFILE_ANALYSES = 12;
+
+function decodeReferenceImage(base64Data: string, mimeType: string): Buffer {
+  if (base64Data.length > 14_000_000 || base64Data.length % 4 === 1) {
+    throw new Error("ملف الصورة أكبر من الحد المسموح");
+  }
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
+    throw new Error("بيانات الصورة غير صالحة");
+  }
+  const buffer = Buffer.from(base64Data, "base64");
+  if (buffer.length === 0 || buffer.length > MAX_REFERENCE_IMAGE_BYTES) {
+    throw new Error("ملف الصورة أكبر من الحد المسموح أو فارغ");
+  }
+  const isPng = buffer
+    .subarray(0, 8)
+    .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  const isWebp =
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP";
+  const valid =
+    (mimeType === "image/png" && isPng) ||
+    (mimeType === "image/jpeg" && isJpeg) ||
+    (mimeType === "image/webp" && isWebp);
+  if (!valid) throw new Error("نوع الصورة لا يطابق محتواها");
+  return buffer;
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return (error instanceof Error ? error.message : fallback).slice(0, 2000);
+}
+
+async function analyzeReferenceDesign(
+  designId: number,
+): Promise<StyleAttributes | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [design] = await db
+    .select()
+    .from(marketingReferenceDesigns)
+    .where(eq(marketingReferenceDesigns.id, designId))
+    .limit(1);
+  if (!design) return null;
+
+  await db
+    .update(marketingReferenceDesigns)
+    .set({ analysisStatus: "analyzing", analysisError: null })
+    .where(eq(marketingReferenceDesigns.id, designId));
+  try {
+    const attrs = await analyzeDesignImage(design.filePath, design.mimeType);
+    if (!attrs) throw new Error("تعذر تحليل الصورة؛ تحقق من إعداد Gemini");
+    await db
+      .update(marketingReferenceDesigns)
+      .set({
+        styleAttributes: JSON.stringify(attrs),
+        analysisStatus: "analyzed",
+        analysisError: null,
+        analyzedAt: new Date(),
+      })
+      .where(eq(marketingReferenceDesigns.id, designId));
+    await addLog(
+      null,
+      "analyze_design",
+      "success",
+      `Analyzed design: ${design.filename}`,
+    );
+    return attrs;
+  } catch (error) {
+    const message = errorMessage(error, "فشل تحليل التصميم");
+    await db
+      .update(marketingReferenceDesigns)
+      .set({ analysisStatus: "failed", analysisError: message })
+      .where(eq(marketingReferenceDesigns.id, designId));
+    await addLog(null, "analyze_design", "error", message);
+    return null;
+  }
+}
 
 async function addLog(
   postId: number | null,
@@ -42,10 +128,14 @@ async function addLog(
   await db.insert(marketingLogs).values({ postId, action, status, message });
 }
 
-async function getActiveBrandProfile() {
+async function getActiveBrandProfile(pageRole: MarketingPageRole = "center") {
   const db = await getDb();
   if (!db) return null;
-  const [row] = await db.select().from(marketingBrandProfile).limit(1);
+  const [row] = await db
+    .select()
+    .from(marketingBrandProfile)
+    .where(eq(marketingBrandProfile.pageRole, pageRole))
+    .limit(1);
   return row ?? null;
 }
 
@@ -55,26 +145,6 @@ function getReferenceDesignDir(): string {
       ? path.join(ENV.marketingImageDir, "reference-designs")
       : path.join(process.cwd(), "uploads", "marketing", "reference-designs"),
   );
-}
-
-function resolveReferenceDesignPath(filePath: string): string {
-  const configuredDir = getReferenceDesignDir();
-  const currentProjectDir = path.join(
-    process.cwd(),
-    "uploads",
-    "marketing",
-    "reference-designs",
-  );
-  const candidates = [
-    filePath,
-    path.join(configuredDir, path.basename(filePath)),
-  ];
-
-  if (path.resolve(configuredDir) !== path.resolve(currentProjectDir)) {
-    candidates.push(path.join(currentProjectDir, path.basename(filePath)));
-  }
-
-  return candidates.find(existsSync) ?? filePath;
 }
 
 export const marketingRouter = router({
@@ -124,7 +194,14 @@ export const marketingRouter = router({
     .input(
       z.object({
         status: z
-          .enum(["draft", "published", "failed", "scheduled", "all"])
+          .enum([
+            "draft",
+            "publishing",
+            "published",
+            "failed",
+            "scheduled",
+            "all",
+          ])
           .default("all"),
         limit: z.number().int().min(1).max(200).default(50),
         offset: z.number().int().min(0).default(0),
@@ -137,7 +214,8 @@ export const marketingRouter = router({
         input.status !== "all"
           ? eq(
               marketingPosts.status,
-              input.status as "draft" | "published" | "failed" | "scheduled",
+              input.status as
+                "draft" | "publishing" | "published" | "failed" | "scheduled",
             )
           : undefined;
       const rows = await db
@@ -175,6 +253,7 @@ export const marketingRouter = router({
         imagePrompt: z.string().optional(),
         imageUrl: z.string().max(1000).optional(),
         platform: z.enum(["facebook", "instagram", "both"]).default("facebook"),
+        pageRole: z.enum(["center", "doctor"]).default("center"),
         postDay: z.enum(["saturday", "tuesday", "thursday"]).optional(),
         status: z.enum(["draft", "scheduled"]).default("draft"),
         scheduledAt: z.string().optional(),
@@ -193,6 +272,7 @@ export const marketingRouter = router({
         imagePrompt: input.imagePrompt ?? null,
         imageUrl: input.imageUrl ?? null,
         platform: input.platform,
+        pageRole: input.pageRole,
         postDay: input.postDay ?? null,
         status: input.status,
         scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
@@ -229,10 +309,14 @@ export const marketingRouter = router({
       if (scheduledAt !== undefined) {
         updates.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
       }
-      await db
+      const [updated] = await db
         .update(marketingPosts)
         .set(updates)
-        .where(eq(marketingPosts.id, id));
+        .where(
+          and(eq(marketingPosts.id, id), eq(marketingPosts.status, "draft")),
+        );
+      if (!updated.affectedRows)
+        throw new Error("المسودة غير موجودة أو تغيرت حالتها");
       await addLog(id, "update_post", "info", `Post updated: ${id}`);
       return { ok: true };
     }),
@@ -248,84 +332,24 @@ export const marketingRouter = router({
     }),
 
   publishPost: adminProcedure
-    .input(z.object({ id: z.number().int().positive() }))
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        pageRole: z.enum(["center", "doctor"]),
+      }),
+    )
     .mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-
-      const [post] = await db
-        .select()
-        .from(marketingPosts)
-        .where(eq(marketingPosts.id, input.id))
-        .limit(1);
-      if (!post) throw new Error("Post not found");
-
-      // Try to publish to Facebook if connected
-      const [settings] = await db.select().from(marketingSettings).limit(1);
-      let fbResult: string | null = null;
-
-      if (
-        settings?.fbConnected &&
-        settings.fbPageId &&
-        settings.fbAccessToken
-      ) {
-        try {
-          const { publishPostToFacebook } =
-            await import("../services/marketing/facebookPublisher.service");
-          const message = [
-            post.content ?? post.title,
-            post.cta ? `\n\n${post.cta}` : "",
-            post.hashtags ? `\n\n${post.hashtags}` : "",
-          ]
-            .join("")
-            .trim();
-          const appOrigin = ENV.fbAppOrigin || "https://selrs.cc";
-          const { fbPostId } = await publishPostToFacebook(
-            settings.fbPageId,
-            settings.fbAccessToken,
-            message,
-            post.imageUrl ?? null,
-            appOrigin,
-          );
-          fbResult = fbPostId;
-          await addLog(
-            input.id,
-            "publish_post",
-            "success",
-            `Published to Facebook: ${fbPostId}`,
-          );
-        } catch (err) {
-          await addLog(
-            input.id,
-            "publish_post",
-            "error",
-            `Facebook publish failed: ${String(err)}`,
-          );
-          throw new Error(`فشل النشر على Facebook: ${String(err)}`);
-        }
-      }
-
-      await db
-        .update(marketingPosts)
-        .set({ status: "published", publishedAt: new Date() })
-        .where(eq(marketingPosts.id, input.id));
-
-      if (!fbResult) {
-        await addLog(
-          input.id,
-          "publish_post",
-          "info",
-          `Post marked published locally (FB not connected)`,
-        );
-      }
-      return { ok: true, fbPostId: fbResult };
+      const result = await publishMarketingPost(input.id, input.pageRole);
+      return { ok: true, fbPostId: result.fbPostId };
     }),
 
   generatePost: adminProcedure
     .input(
       z.object({
         postDay: z.enum(["saturday", "tuesday", "thursday"]),
-        topic: z.string().optional(),
+        topic: z.string().trim().min(1).max(255).optional(),
+        requestId: z.string().uuid(),
+        pageRole: z.enum(["center", "doctor"]).default("center"),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -336,87 +360,41 @@ export const marketingRouter = router({
 
       // Determine topic: explicit override or round-robin from list
       let selectedTopic = input.topic;
-      // postIndex drives style rotation — always random so every generation is different
-      const postIndex = Math.floor(Math.random() * 10000);
       if (!selectedTopic) {
         const [countRow] = await db
           .select({ total: drizzleCount() })
           .from(marketingPosts)
-          .where(eq(marketingPosts.postDay, day));
+          .where(
+            and(
+              eq(marketingPosts.postDay, day),
+              eq(marketingPosts.pageRole, input.pageRole),
+            ),
+          );
         const topicIndex = countRow?.total ?? 0;
-        selectedTopic = pickTopic(day, topicIndex);
-      }
-
-      // Read brand profile (if available) to guide image prompt generation
-      const brandProfile = await getActiveBrandProfile();
-
-      // Load clinic name from settings
-      const [settingsRow] = await db
-        .select({ clinicName: marketingSettings.clinicName })
-        .from(marketingSettings)
-        .limit(1);
-      const clinicName = settingsRow?.clinicName ?? "مركزك لطب العيون";
-
-      // Generate AI content
-      let generated;
-      try {
-        generated = await generateMarketingContent(
-          selectedTopic,
+        const pageTarget = await getMarketingPageTarget(input.pageRole);
+        selectedTopic = pickTopic(
           day,
-          brandProfile,
-          clinicName,
-          postIndex,
+          topicIndex,
+          pageTarget?.topicDirection ?? "forward",
         );
-      } catch (err) {
-        const detail = String(err);
-        await addLog(
-          null,
-          "generate_post",
-          "error",
-          `Content generation failed: ${detail}`,
-        );
-        throw new Error(`فشل توليد المحتوى: ${detail}`);
       }
 
-      const [result] = await db.insert(marketingPosts).values({
-        title: generated.title,
-        content: generated.content,
+      return startManusGeneration({
+        requestId: input.requestId,
         topic: selectedTopic,
-        idea: generated.idea,
-        cta: generated.cta,
-        hashtags: generated.hashtags,
-        imagePrompt: generated.imagePrompt,
-        platform: "facebook",
         postDay: day,
-        status: "draft",
+        pageRole: input.pageRole,
         createdBy: ctx.user.id,
       });
-      const id = (result as { insertId?: number }).insertId ?? 0;
-
-      await addLog(
-        id,
-        "generate_post",
-        "success",
-        `Generated AI post — topic: ${selectedTopic}`,
-      );
-
-      return {
-        id,
-        title: generated.title,
-        content: generated.content,
-        topic: selectedTopic,
-        idea: generated.idea,
-        cta: generated.cta,
-        hashtags: generated.hashtags,
-        imagePrompt: generated.imagePrompt,
-      };
     }),
+
+  generationJobs: adminProcedure.query(() => listManusGenerationJobs()),
 
   // ─── Image Generation ─────────────────────────────────────
 
   generateImageForPost: adminProcedure
     .input(z.object({ postId: z.number().int().positive() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -425,6 +403,10 @@ export const marketingRouter = router({
           id: marketingPosts.id,
           imagePrompt: marketingPosts.imagePrompt,
           status: marketingPosts.status,
+          topic: marketingPosts.topic,
+          title: marketingPosts.title,
+          postDay: marketingPosts.postDay,
+          pageRole: marketingPosts.pageRole,
         })
         .from(marketingPosts)
         .where(eq(marketingPosts.id, input.postId))
@@ -432,51 +414,13 @@ export const marketingRouter = router({
 
       if (!post) throw new Error("Post not found");
 
-      const prompt = post.imagePrompt?.trim();
-      if (!prompt)
-        throw new Error("Post has no imagePrompt — generate content first");
-
-      // Load ALL reference designs so gpt-image-1 can match brand style from all samples
-      const refDesigns = await db
-        .select({ filePath: marketingReferenceDesigns.filePath })
-        .from(marketingReferenceDesigns);
-      const refPaths = refDesigns
-        .map((r: { filePath: string }) =>
-          resolveReferenceDesignPath(r.filePath),
-        )
-        .filter(Boolean);
-
-      try {
-        const imageUrl = await generateMarketingImage(
-          prompt,
-          input.postId,
-          refPaths,
-        );
-        await db
-          .update(marketingPosts)
-          .set({ imageUrl })
-          .where(eq(marketingPosts.id, input.postId));
-        await addLog(
-          input.postId,
-          "generate_image",
-          "success",
-          `Image saved: ${imageUrl}`,
-        );
-        return { imageUrl };
-      } catch (err) {
-        const isConfig = err instanceof MarketingImageConfigError;
-        await addLog(
-          input.postId,
-          "generate_image",
-          "error",
-          isConfig ? "No image API configured" : String(err),
-        );
-        if (isConfig)
-          throw new Error(
-            "لم يتم تكوين خدمة توليد الصور — أضف GEMINI_API_KEY في إعدادات الخادم",
-          );
-        throw err; // surface actual error so it's visible in logs and UI
-      }
+      return startManusGeneration({
+        postId: post.id,
+        topic: post.topic || post.title,
+        postDay: post.postDay ?? "thursday",
+        pageRole: post.pageRole,
+        createdBy: ctx.user.id,
+      });
     }),
 
   // ─── Settings ─────────────────────────────────────────────
@@ -559,6 +503,7 @@ export const marketingRouter = router({
       .from(marketingPosts);
     const counts = {
       draft: 0,
+      publishing: 0,
       published: 0,
       failed: 0,
       scheduled: 0,
@@ -582,8 +527,14 @@ export const marketingRouter = router({
       z.object({
         filename: z.string().min(1).max(255),
         mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-        base64Data: z.string().min(1),
-        fileSize: z.number().int().positive().optional(),
+        base64Data: z.string().min(1).max(14_000_000),
+        pageRole: z.enum(["center", "doctor"]).default("center"),
+        fileSize: z
+          .number()
+          .int()
+          .positive()
+          .max(MAX_REFERENCE_IMAGE_BYTES)
+          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -603,43 +554,33 @@ export const marketingRouter = router({
       const filePath = path.join(dir, safeFilename);
       const fileUrl = `/uploads/marketing/reference-designs/${safeFilename}`;
 
-      const buffer = Buffer.from(input.base64Data, "base64");
+      const buffer = decodeReferenceImage(input.base64Data, input.mimeType);
       await fs.writeFile(filePath, buffer);
 
-      const [result] = await db.insert(marketingReferenceDesigns).values({
-        filename: safeFilename,
-        originalName: input.filename,
-        filePath,
-        fileUrl,
-        mimeType: input.mimeType,
-        fileSize: input.fileSize ?? buffer.length,
-        uploadedBy: ctx.user.id,
-      });
-      const id = (result as { insertId?: number }).insertId ?? 0;
+      let id = 0;
+      try {
+        const [result] = await db.insert(marketingReferenceDesigns).values({
+          filename: safeFilename,
+          originalName: input.filename,
+          filePath,
+          fileUrl,
+          mimeType: input.mimeType,
+          pageRole: input.pageRole,
+          fileSize: buffer.length,
+          analysisStatus: "pending",
+          uploadedBy: ctx.user.id,
+        });
+        id = (result as { insertId?: number }).insertId ?? 0;
+      } catch (error) {
+        await fs.unlink(filePath).catch(() => {});
+        throw error;
+      }
+      if (!id) {
+        await fs.unlink(filePath).catch(() => {});
+        throw new Error("تعذر حفظ التصميم المرجعي");
+      }
 
-      // Run async analysis — don't block upload response
-      void (async () => {
-        try {
-          const attrs = await analyzeDesignImage(filePath, input.mimeType);
-          if (attrs) {
-            await db
-              .update(marketingReferenceDesigns)
-              .set({
-                styleAttributes: JSON.stringify(attrs),
-                analyzedAt: new Date(),
-              })
-              .where(eq(marketingReferenceDesigns.id, id));
-            await addLog(
-              null,
-              "analyze_design",
-              "success",
-              `Analyzed design: ${safeFilename}`,
-            );
-          }
-        } catch (err) {
-          await addLog(null, "analyze_design", "error", String(err));
-        }
-      })();
+      void analyzeReferenceDesign(id);
 
       await addLog(
         null,
@@ -650,15 +591,25 @@ export const marketingRouter = router({
       return { id, fileUrl };
     }),
 
-  listReferenceDesigns: adminProcedure.query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const rows = await db
-      .select()
-      .from(marketingReferenceDesigns)
-      .orderBy(desc(marketingReferenceDesigns.createdAt));
-    return rows;
-  }),
+  listReferenceDesigns: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const rows = await db
+        .select()
+        .from(marketingReferenceDesigns)
+        .where(eq(marketingReferenceDesigns.pageRole, input.pageRole))
+        .orderBy(desc(marketingReferenceDesigns.createdAt));
+      return rows.map((row: MarketingReferenceDesign) => {
+        const {
+          filePath: _filePath,
+          styleAttributes: _styleAttributes,
+          ...publicRow
+        } = row;
+        return publicRow;
+      });
+    }),
 
   deleteReferenceDesign: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
@@ -666,201 +617,302 @@ export const marketingRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const [row] = await db
-        .select({ filePath: marketingReferenceDesigns.filePath })
+        .select({
+          filePath: marketingReferenceDesigns.filePath,
+          pageRole: marketingReferenceDesigns.pageRole,
+        })
         .from(marketingReferenceDesigns)
         .where(eq(marketingReferenceDesigns.id, input.id))
         .limit(1);
-      if (row?.filePath) {
-        await fs.unlink(row.filePath).catch(() => {});
+      if (!row) throw new Error("التصميم المرجعي غير موجود");
+      let fileCleanupFailed = false;
+      try {
+        await fs.unlink(row.filePath);
+      } catch {
+        fileCleanupFailed = true;
       }
       await db
         .delete(marketingReferenceDesigns)
         .where(eq(marketingReferenceDesigns.id, input.id));
+      await db
+        .delete(marketingBrandProfile)
+        .where(eq(marketingBrandProfile.pageRole, row.pageRole));
       await addLog(
         null,
         "delete_reference_design",
-        "info",
-        `Deleted design id: ${input.id}`,
+        fileCleanupFailed ? "error" : "info",
+        fileCleanupFailed
+          ? `Deleted design id: ${input.id}; file cleanup failed`
+          : `Deleted design id: ${input.id}; brand profile invalidated`,
       );
-      return { ok: true };
+      return { ok: true, fileCleanupFailed };
     }),
 
-  getBrandProfile: adminProcedure.query(async () => {
-    const profile = await getActiveBrandProfile();
-    return profile;
-  }),
+  retryReferenceDesignAnalysis: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [design] = await db
+        .select({
+          id: marketingReferenceDesigns.id,
+          analysisStatus: marketingReferenceDesigns.analysisStatus,
+        })
+        .from(marketingReferenceDesigns)
+        .where(eq(marketingReferenceDesigns.id, input.id))
+        .limit(1);
+      if (!design) throw new Error("التصميم المرجعي غير موجود");
+      if (design.analysisStatus === "analyzing") {
+        return { started: false, alreadyRunning: true };
+      }
+      void analyzeReferenceDesign(input.id);
+      return { started: true, alreadyRunning: false };
+    }),
 
-  rebuildBrandProfile: adminProcedure.mutation(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  getBrandProfile: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }))
+    .query(async ({ input }) => {
+      const profile = await getActiveBrandProfile(input.pageRole);
+      if (!profile) return null;
+      const { rawProfile: _rawProfile, ...safeProfile } = profile;
+      return safeProfile;
+    }),
 
-    const designs = await db
-      .select()
-      .from(marketingReferenceDesigns)
-      .orderBy(desc(marketingReferenceDesigns.createdAt));
+  rebuildBrandProfile: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
 
-    if (designs.length === 0) {
-      throw new Error("لا توجد تصاميم مرجعية — ارفع بعض التصاميم أولاً");
-    }
+      const designs = await db
+        .select()
+        .from(marketingReferenceDesigns)
+        .where(eq(marketingReferenceDesigns.pageRole, input.pageRole))
+        .orderBy(desc(marketingReferenceDesigns.createdAt));
 
-    // Run the heavy Gemini work in background — return immediately to avoid 524
-    void (async () => {
-      try {
-        const cached: StyleAttributes[] = [];
-        const pending: typeof designs = [];
-        for (const design of designs) {
-          if (design.styleAttributes) {
-            try {
-              cached.push(
-                JSON.parse(design.styleAttributes) as StyleAttributes,
-              );
-            } catch {}
-          } else if (design.filePath) {
-            pending.push(design);
-          }
-        }
+      if (designs.length === 0) {
+        throw new Error("لا توجد تصاميم مرجعية — ارفع بعض التصاميم أولاً");
+      }
+      const profileDesigns = designs.slice(0, MAX_PROFILE_ANALYSES);
 
-        const BATCH = 2;
-        const newAttrs: (StyleAttributes | null)[] = [];
-        for (let i = 0; i < pending.length; i += BATCH) {
-          const batch = pending.slice(i, i + BATCH);
-          const batchResults = await Promise.all(
-            batch.map(async (design: any) => {
-              const attrs = await analyzeDesignImage(
-                design.filePath!,
-                design.mimeType,
-              );
-              if (attrs) {
-                await db
-                  .update(marketingReferenceDesigns)
-                  .set({
-                    styleAttributes: JSON.stringify(attrs),
-                    analyzedAt: new Date(),
-                  })
-                  .where(eq(marketingReferenceDesigns.id, design.id));
+      const [existing] = await db
+        .select()
+        .from(marketingBrandProfile)
+        .where(eq(marketingBrandProfile.pageRole, input.pageRole))
+        .limit(1);
+      if (existing?.rebuildStatus === "running") {
+        return {
+          started: false,
+          alreadyRunning: true,
+          startedAt: existing.rebuildStartedAt?.toISOString() ?? null,
+        };
+      }
+
+      const startedAt = new Date();
+      if (existing) {
+        await db
+          .update(marketingBrandProfile)
+          .set({
+            rebuildStatus: "running",
+            rebuildError: null,
+            rebuildStartedAt: startedAt,
+          })
+          .where(eq(marketingBrandProfile.id, existing.id));
+      } else {
+        await db.insert(marketingBrandProfile).values({
+          pageRole: input.pageRole,
+          rebuildStatus: "running",
+          rebuildStartedAt: startedAt,
+        });
+      }
+
+      void (async () => {
+        try {
+          const cached: StyleAttributes[] = [];
+          const pending: number[] = [];
+          for (const design of profileDesigns) {
+            let attrs: StyleAttributes | null = null;
+            if (design.styleAttributes) {
+              try {
+                attrs = parseStyleAttributes(
+                  JSON.parse(design.styleAttributes),
+                );
+              } catch {
+                attrs = null;
               }
-              return attrs;
-            }),
-          );
-          newAttrs.push(...batchResults);
-        }
+            }
+            if (attrs) cached.push(attrs);
+            else pending.push(design.id);
+          }
 
-        const analyses: StyleAttributes[] = [
-          ...cached,
-          ...(newAttrs.filter(Boolean) as StyleAttributes[]),
-        ];
+          const BATCH = 2;
+          const newAttrs: (StyleAttributes | null)[] = [];
+          for (let i = 0; i < pending.length; i += BATCH) {
+            const batch = pending.slice(i, i + BATCH);
+            const batchResults = await Promise.all(
+              batch.map(analyzeReferenceDesign),
+            );
+            newAttrs.push(...batchResults);
+          }
 
-        if (analyses.length === 0) {
+          const analyses: StyleAttributes[] = [
+            ...cached,
+            ...(newAttrs.filter(Boolean) as StyleAttributes[]),
+          ].slice(0, MAX_PROFILE_ANALYSES);
+
+          if (analyses.length === 0)
+            throw new Error("لم يتم تحليل أي تصميم — تحقق من إعداد Gemini");
+
+          const profile = await buildBrandProfile(analyses, analyses.length);
+          if (!profile) throw new Error("تعذر بناء ملف العلامة التجارية");
+
+          const [current] = await db
+            .select()
+            .from(marketingBrandProfile)
+            .where(eq(marketingBrandProfile.pageRole, input.pageRole))
+            .limit(1);
+          if (current) {
+            await db
+              .update(marketingBrandProfile)
+              .set({
+                ...profile,
+                pageRole: input.pageRole,
+                builtAt: new Date(),
+                rebuildStatus: "completed",
+                rebuildError: null,
+                rebuildStartedAt: startedAt,
+              })
+              .where(eq(marketingBrandProfile.id, current.id));
+          } else {
+            await db.insert(marketingBrandProfile).values({
+              pageRole: input.pageRole,
+              ...profile,
+              builtAt: new Date(),
+              rebuildStatus: "completed",
+              rebuildStartedAt: startedAt,
+            });
+          }
+
           await addLog(
             null,
             "rebuild_brand_profile",
-            "error",
-            "No designs analyzed — check GEMINI_API_KEY",
+            "success",
+            `Profile built from ${analyses.length} designs`,
           );
-          return;
-        }
-
-        const profile = await buildBrandProfile(analyses, designs.length);
-        if (!profile) {
-          await addLog(
-            null,
-            "rebuild_brand_profile",
-            "error",
-            "buildBrandProfile returned null",
-          );
-          return;
-        }
-
-        const [existing] = await db
-          .select()
-          .from(marketingBrandProfile)
-          .limit(1);
-        if (existing) {
+        } catch (error) {
+          const message = errorMessage(error, "فشل بناء ملف العلامة التجارية");
           await db
             .update(marketingBrandProfile)
-            .set({ ...profile, builtAt: new Date() })
-            .where(eq(marketingBrandProfile.id, existing.id));
-        } else {
-          await db
-            .insert(marketingBrandProfile)
-            .values({ ...profile, builtAt: new Date() });
+            .set({ rebuildStatus: "failed", rebuildError: message })
+            .where(eq(marketingBrandProfile.pageRole, input.pageRole));
+          await addLog(null, "rebuild_brand_profile", "error", message);
         }
+      })();
 
-        await addLog(
-          null,
-          "rebuild_brand_profile",
-          "success",
-          `Profile built from ${analyses.length} designs`,
-        );
-      } catch (err) {
-        await addLog(null, "rebuild_brand_profile", "error", String(err));
-      }
-    })();
-
-    return { started: true };
-  }),
+      return {
+        started: true,
+        alreadyRunning: false,
+        startedAt: startedAt.toISOString(),
+      };
+    }),
 
   // ─── Facebook Connect ─────────────────────────────────────────────────────
 
   getFacebookStatus: adminProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
+    type FacebookPageStatus = {
+      pageRole: "center" | "doctor";
+      pageId: string;
+      pageName: string;
+      contentName: string | null;
+      connected: boolean;
+      autoPublish: boolean;
+      saturdayEnabled: boolean;
+      tuesdayEnabled: boolean;
+      thursdayEnabled: boolean;
+      publishHour: number;
+      topicDirection: "forward" | "reverse";
+    };
+    const pages = (await db
+      .select({
+        pageRole: marketingFacebookPages.pageRole,
+        pageId: marketingFacebookPages.pageId,
+        pageName: marketingFacebookPages.pageName,
+        contentName: marketingFacebookPages.contentName,
+        connected: marketingFacebookPages.connected,
+        autoPublish: marketingFacebookPages.autoPublish,
+        saturdayEnabled: marketingFacebookPages.saturdayEnabled,
+        tuesdayEnabled: marketingFacebookPages.tuesdayEnabled,
+        thursdayEnabled: marketingFacebookPages.thursdayEnabled,
+        publishHour: marketingFacebookPages.publishHour,
+        topicDirection: marketingFacebookPages.topicDirection,
+      })
+      .from(marketingFacebookPages)) as FacebookPageStatus[];
     const [row] = await db
       .select({
         fbConnected: marketingSettings.fbConnected,
         fbPageId: marketingSettings.fbPageId,
         fbPageName: marketingSettings.fbPageName,
+        fbOauthRole: marketingSettings.fbOauthRole,
       })
       .from(marketingSettings)
       .limit(1);
     const { isFbConfigured } =
       await import("../services/marketing/facebookOAuth.service");
+    const legacyCenter = pages.find((page) => page.pageRole === "center");
     return {
-      connected: row?.fbConnected ?? false,
-      pageId: row?.fbPageId ?? null,
-      pageName: row?.fbPageName ?? null,
+      connected: legacyCenter?.connected ?? row?.fbConnected ?? false,
+      pageId: legacyCenter?.pageId ?? row?.fbPageId ?? null,
+      pageName: legacyCenter?.pageName ?? row?.fbPageName ?? null,
       appConfigured: isFbConfigured(),
+      pages,
+      pendingRole: row?.fbOauthRole ?? null,
     };
   }),
 
-  getOAuthUrl: adminProcedure.mutation(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const { isFbConfigured, buildOAuthUrl } =
-      await import("../services/marketing/facebookOAuth.service");
-    if (!isFbConfigured()) {
-      throw new Error(
-        "FB_APP_ID و FB_APP_SECRET غير مهيأين — أضفهما في إعدادات الخادم",
+  getOAuthUrl: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const { isFbConfigured, buildOAuthUrl } =
+        await import("../services/marketing/facebookOAuth.service");
+      if (!isFbConfigured()) {
+        throw new Error(
+          "FB_APP_ID و FB_APP_SECRET غير مهيأين — أضفهما في إعدادات الخادم",
+        );
+      }
+
+      const state = randomBytes(24).toString("hex");
+      const [existing] = await db
+        .select({ id: marketingSettings.id })
+        .from(marketingSettings)
+        .limit(1);
+      if (!existing) {
+        await db
+          .insert(marketingSettings)
+          .values({ fbOauthState: state, fbOauthRole: input.pageRole });
+      } else {
+        await db
+          .update(marketingSettings)
+          .set({ fbOauthState: state, fbOauthRole: input.pageRole })
+          .where(eq(marketingSettings.id, existing.id));
+      }
+
+      const ENV = (await import("../_core/env")).ENV;
+      const redirectUri =
+        ENV.fbRedirectUri ||
+        `${ENV.fbAppOrigin || ""}/api/marketing/facebook/callback`;
+      const url = buildOAuthUrl(state, redirectUri);
+      await addLog(
+        null,
+        "fb_oauth_start",
+        "info",
+        `OAuth initiated by user ${ctx.user.id}`,
       );
-    }
-
-    const state = randomBytes(24).toString("hex");
-    const [existing] = await db
-      .select({ id: marketingSettings.id })
-      .from(marketingSettings)
-      .limit(1);
-    if (!existing) {
-      await db.insert(marketingSettings).values({ fbOauthState: state });
-    } else {
-      await db
-        .update(marketingSettings)
-        .set({ fbOauthState: state })
-        .where(eq(marketingSettings.id, existing.id));
-    }
-
-    const ENV = (await import("../_core/env")).ENV;
-    const redirectUri =
-      ENV.fbRedirectUri ||
-      `${ENV.fbAppOrigin || ""}/api/marketing/facebook/callback`;
-    const url = buildOAuthUrl(state, redirectUri);
-    await addLog(
-      null,
-      "fb_oauth_start",
-      "info",
-      `OAuth initiated by user ${ctx.user.id}`,
-    );
-    return { url };
-  }),
+      return { url };
+    }),
 
   getPendingPages: adminProcedure.query(async () => {
     const db = await getDb();
@@ -886,7 +938,12 @@ export const marketingRouter = router({
   }),
 
   selectFacebookPage: adminProcedure
-    .input(z.object({ pageId: z.string().min(1) }))
+    .input(
+      z.object({
+        pageId: z.string().min(1),
+        pageRole: z.enum(["center", "doctor"]).default("center"),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -917,15 +974,49 @@ export const marketingRouter = router({
       const selected = pages.find((p) => p.id === input.pageId);
       if (!selected) throw new Error("الصفحة المحددة غير موجودة في القائمة");
 
+      const [existingPage] = await db
+        .select({ id: marketingFacebookPages.id })
+        .from(marketingFacebookPages)
+        .where(eq(marketingFacebookPages.pageRole, input.pageRole))
+        .limit(1);
+      const pageValues = {
+        pageRole: input.pageRole,
+        pageId: selected.id,
+        pageName: selected.name,
+        contentName: selected.name,
+        accessToken: selected.token,
+        category: selected.category ?? null,
+        connected: true,
+      };
+      if (existingPage) {
+        await db
+          .update(marketingFacebookPages)
+          .set({
+            pageId: pageValues.pageId,
+            pageName: pageValues.pageName,
+            accessToken: pageValues.accessToken,
+            category: pageValues.category,
+            connected: pageValues.connected,
+          })
+          .where(eq(marketingFacebookPages.id, existingPage.id));
+      } else {
+        await db.insert(marketingFacebookPages).values(pageValues);
+      }
+
       await db
         .update(marketingSettings)
         .set({
-          fbPageId: selected.id,
-          fbPageName: selected.name,
-          fbAccessToken: selected.token,
-          fbConnected: true,
+          ...(input.pageRole === "center"
+            ? {
+                fbPageId: selected.id,
+                fbPageName: selected.name,
+                fbAccessToken: selected.token,
+                fbConnected: true,
+              }
+            : {}),
           fbPendingPages: null,
           fbOauthState: null,
+          fbOauthRole: null,
         })
         .where(eq(marketingSettings.id, row.id));
 
@@ -935,75 +1026,142 @@ export const marketingRouter = router({
         "success",
         `Connected page: ${selected.name} (${selected.id})`,
       );
-      return { ok: true, pageName: selected.name };
+      return { ok: true, pageName: selected.name, pageRole: input.pageRole };
     }),
 
-  disconnectFacebook: adminProcedure.mutation(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const [row] = await db
-      .select({ id: marketingSettings.id })
-      .from(marketingSettings)
-      .limit(1);
-    if (!row) return { ok: true };
-    await db
-      .update(marketingSettings)
-      .set({
-        fbPageId: null,
-        fbPageName: null,
-        fbAccessToken: null,
-        fbConnected: false,
-        fbPendingPages: null,
-        fbOauthState: null,
-      })
-      .where(eq(marketingSettings.id, row.id));
-    await addLog(
-      null,
-      "fb_disconnect",
-      "info",
-      `Disconnected by user ${ctx.user.id}`,
-    );
-    return { ok: true };
-  }),
-
-  testFacebookConnection: adminProcedure.mutation(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const [row] = await db
-      .select({
-        fbPageId: marketingSettings.fbPageId,
-        fbAccessToken: marketingSettings.fbAccessToken,
-        fbPageName: marketingSettings.fbPageName,
-      })
-      .from(marketingSettings)
-      .limit(1);
-
-    if (!row?.fbPageId || !row.fbAccessToken) {
-      throw new Error("لم يتم ربط صفحة Facebook بعد");
-    }
-
-    const { testPageToken } =
-      await import("../services/marketing/facebookOAuth.service");
-    const result = await testPageToken(row.fbPageId, row.fbAccessToken);
-
-    if (result.ok) {
+  disconnectFacebook: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db
+        .delete(marketingFacebookPages)
+        .where(eq(marketingFacebookPages.pageRole, input.pageRole));
+      const [row] = await db
+        .select({ id: marketingSettings.id })
+        .from(marketingSettings)
+        .limit(1);
+      if (!row) return { ok: true };
+      if (input.pageRole === "center") {
+        await db
+          .update(marketingSettings)
+          .set({
+            fbPageId: null,
+            fbPageName: null,
+            fbAccessToken: null,
+            fbConnected: false,
+            fbPendingPages: null,
+            fbOauthState: null,
+          })
+          .where(eq(marketingSettings.id, row.id));
+      }
       await addLog(
         null,
-        "fb_test_connection",
-        "success",
-        `Connection OK — page: ${result.pageName ?? row.fbPageName}`,
+        "fb_disconnect",
+        "info",
+        `Disconnected by user ${ctx.user.id}`,
       );
-      return { ok: true, pageName: result.pageName ?? row.fbPageName };
-    } else {
-      await addLog(
-        null,
-        "fb_test_connection",
-        "error",
-        `Connection failed: ${result.error}`,
-      );
-      throw new Error(`فشل الاتصال: ${result.error}`);
-    }
-  }),
+      return { ok: true };
+    }),
+
+  testFacebookConnection: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [page] = await db
+        .select({
+          pageId: marketingFacebookPages.pageId,
+          accessToken: marketingFacebookPages.accessToken,
+          pageName: marketingFacebookPages.pageName,
+        })
+        .from(marketingFacebookPages)
+        .where(eq(marketingFacebookPages.pageRole, input.pageRole))
+        .limit(1);
+      const [row] = await db
+        .select({
+          fbPageId: marketingSettings.fbPageId,
+          fbAccessToken: marketingSettings.fbAccessToken,
+          fbPageName: marketingSettings.fbPageName,
+        })
+        .from(marketingSettings)
+        .limit(1);
+
+      const pageId =
+        page?.pageId ?? (input.pageRole === "center" ? row?.fbPageId : null);
+      const accessToken =
+        page?.accessToken ??
+        (input.pageRole === "center" ? row?.fbAccessToken : null);
+      const pageName =
+        page?.pageName ??
+        (input.pageRole === "center" ? row?.fbPageName : null);
+      if (!pageId || !accessToken) {
+        throw new Error(
+          input.pageRole === "doctor"
+            ? "لم يتم ربط صفحة الدكتور بعد"
+            : "لم يتم ربط صفحة المركز بعد",
+        );
+      }
+
+      const { testPageToken } =
+        await import("../services/marketing/facebookOAuth.service");
+      const result = await testPageToken(pageId, accessToken);
+
+      if (result.ok) {
+        await addLog(
+          null,
+          "fb_test_connection",
+          "success",
+          `Connection OK — page: ${result.pageName ?? pageName}`,
+        );
+        return { ok: true, pageName: result.pageName ?? pageName };
+      } else {
+        await addLog(
+          null,
+          "fb_test_connection",
+          "error",
+          `Connection failed: ${result.error}`,
+        );
+        throw new Error(`فشل الاتصال: ${result.error}`);
+      }
+    }),
+
+  updateFacebookPageSettings: adminProcedure
+    .input(
+      z.object({
+        pageRole: z.enum(["center", "doctor"]),
+        contentName: z.string().trim().min(1).max(255),
+        autoPublish: z.boolean(),
+        saturdayEnabled: z.boolean(),
+        tuesdayEnabled: z.boolean(),
+        thursdayEnabled: z.boolean(),
+        publishHour: z.number().int().min(0).max(23),
+        topicDirection: z.enum(["forward", "reverse"]),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [page] = await db
+        .select({ id: marketingFacebookPages.id })
+        .from(marketingFacebookPages)
+        .where(eq(marketingFacebookPages.pageRole, input.pageRole))
+        .limit(1);
+      if (!page) throw new Error("اربط الصفحة أولاً قبل حفظ جدولها");
+      await db
+        .update(marketingFacebookPages)
+        .set({
+          contentName: input.contentName,
+          autoPublish: input.autoPublish,
+          saturdayEnabled: input.saturdayEnabled,
+          tuesdayEnabled: input.tuesdayEnabled,
+          thursdayEnabled: input.thursdayEnabled,
+          publishHour: input.publishHour,
+          topicDirection: input.topicDirection,
+        })
+        .where(eq(marketingFacebookPages.id, page.id));
+      return { ok: true };
+    }),
 
   // ─── Scheduler ───────────────────────────────────────────────────────────────
 
