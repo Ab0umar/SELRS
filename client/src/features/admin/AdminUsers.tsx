@@ -4,13 +4,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Sheet,
   SheetContent,
@@ -49,10 +43,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Edit2, Shield, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Edit2, Shield, RotateCcw, Search } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { SearchBar } from "@/components/shared/SearchBar";
-import { FilterBar } from "@/components/shared/FilterBar";
 import { toast } from "sonner";
 import { cn, formatDateLabel, getTrpcErrorMessage } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
@@ -147,11 +139,11 @@ function roleBadgeClass(role: UserRole): string {
     doctor: "bg-primary/10 text-primary border-0",
     reception: "bg-success/15 text-foreground border-0",
     nurse: "bg-secondary/15 text-primary border-0",
-    technician: "bg-warning/20 text-warning border-0",
+    technician: "bg-warning/20 text-warning-text border-0",
     accountant: "bg-primary/15 text-primary border-0",
     admin: "bg-border text-foreground border-0",
     worker: "bg-muted text-muted-foreground border-0",
-    supervisor: "bg-warning/20 text-warning border-0",
+    supervisor: "bg-warning/20 text-warning-text border-0",
   };
   return map[role] ?? "bg-muted text-muted-foreground border-0";
 }
@@ -249,14 +241,14 @@ export default function AdminUsers() {
 
   const createUserMutation = trpc.medical.createUser.useMutation({
     onSuccess: () => {
-      toast.success("User added successfully.");
+      toast.success("تمت إضافة المستخدم بنجاح.");
       utils.medical.getAllUsers.invalidate();
     },
   });
 
   const updateUserMutation = trpc.medical.updateUser.useMutation({
     onSuccess: () => {
-      toast.success("User updated successfully.");
+      toast.success("تم تحديث المستخدم بنجاح.");
       utils.medical.getAllUsers.invalidate();
     },
   });
@@ -264,7 +256,7 @@ export default function AdminUsers() {
   const setUserPermissionsMutation =
     trpc.medical.setUserPermissions.useMutation({
       onSuccess: () => {
-        toast.success("Permissions updated successfully.");
+        toast.success("تم تحديث الصلاحيات بنجاح.");
         // Invalidate all users' permission caches so they get updated permissions on next query
         utils.medical.getMyPermissions.invalidate();
         utils.medical.getUserPermissionState.invalidate();
@@ -275,7 +267,7 @@ export default function AdminUsers() {
 
   const deleteUserMutation = trpc.medical.deleteUser.useMutation({
     onSuccess: () => {
-      toast.success("User deleted successfully.");
+      toast.success("تم حذف المستخدم بنجاح.");
       utils.medical.getAllUsers.invalidate();
     },
   });
@@ -400,12 +392,12 @@ export default function AdminUsers() {
   if (user?.role !== "admin") {
     return (
       <div
-        className="mx-auto w-full max-w-[1440px] space-y-4 px-2 py-6 text-right sm:px-0"
+        className="mx-auto w-full max-w-[1440px] space-y-4 px-2 py-6 text-start sm:px-0"
         dir="rtl"
       >
         <Card className="border-destructive/30 bg-destructive/10">
           <CardHeader>
-            <CardTitle className="text-destructive">Access Denied</CardTitle>
+            <CardTitle className="text-destructive">لا يمكن الوصول</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-destructive">
@@ -424,11 +416,11 @@ export default function AdminUsers() {
     const name = newUser.name.trim();
 
     if (!username || !password || !name) {
-      toast.error("Please fill all required fields.");
+      toast.error("يرجى تعبئة الحقول المطلوبة.");
       return;
     }
     if (username.length < 3) {
-      toast.error("Username must be at least 3 characters.");
+      toast.error("يجب أن يتكون اسم المستخدم من 3 أحرف على الأقل.");
       return;
     }
 
@@ -456,7 +448,7 @@ export default function AdminUsers() {
       });
       setIsCreateOpen(false);
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to save user."));
+      toast.error(getTrpcErrorMessage(error, "تعذر حفظ المستخدم."));
     }
   };
 
@@ -481,7 +473,7 @@ export default function AdminUsers() {
     try {
       await deleteUserMutation.mutateAsync({ userId: id });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to delete user."));
+      toast.error(getTrpcErrorMessage(error, "تعذر حذف المستخدم."));
     }
   };
 
@@ -492,7 +484,7 @@ export default function AdminUsers() {
         updates: { isActive: !u.isActive },
       });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to update user status."));
+      toast.error(getTrpcErrorMessage(error, "تعذر تحديث حالة المستخدم."));
     }
   };
 
@@ -503,13 +495,11 @@ export default function AdminUsers() {
         pageIds: [],
         whenEmpty: "inherit",
       });
-      toast.success("User permissions were reset to role defaults.");
+      toast.success("تمت استعادة صلاحيات الدور الافتراضية لهذا المستخدم.");
       await utils.medical.getUserPermissionState.invalidate();
       await utils.medical.getMyPermissions.invalidate();
     } catch (error) {
-      toast.error(
-        getTrpcErrorMessage(error, "Failed to reset user permissions."),
-      );
+      toast.error(getTrpcErrorMessage(error, "تعذر استعادة صلاحيات المستخدم."));
     }
   };
 
@@ -637,11 +627,11 @@ export default function AdminUsers() {
     const username = editUser.username.trim();
     const name = editUser.name.trim();
     if (!username || !name) {
-      toast.error("Please fill all required fields.");
+      toast.error("يرجى تعبئة الحقول المطلوبة.");
       return;
     }
     if (username.length < 3) {
-      toast.error("Username must be at least 3 characters.");
+      toast.error("يجب أن يتكون اسم المستخدم من 3 أحرف على الأقل.");
       return;
     }
 
@@ -718,7 +708,7 @@ export default function AdminUsers() {
       });
       setEditPermissions([]);
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed to save changes."));
+      toast.error(getTrpcErrorMessage(error, "تعذر حفظ التغييرات."));
     }
   };
 
@@ -756,10 +746,62 @@ export default function AdminUsers() {
         isActive: pendingRiskAction.user.isActive,
       })
     : null;
+  const usersListState = usersQuery.isLoading
+    ? "loading"
+    : usersQuery.isError
+      ? "error"
+      : filteredUsers.length === 0
+        ? "empty"
+        : "ready";
+  const renderUsersFeedback = () => {
+    if (usersListState === "loading") {
+      return (
+        <div className="space-y-2" role="status" aria-live="polite">
+          <span className="sr-only">جار تحميل قائمة المستخدمين</span>
+          {[0, 1, 2, 3, 4].map((item) => (
+            <div
+              key={item}
+              aria-hidden="true"
+              className="h-10 animate-pulse rounded-md bg-muted"
+            />
+          ))}
+        </div>
+      );
+    }
+    if (usersListState === "error") {
+      return (
+        <div
+          className="flex flex-col items-center gap-3 py-6 text-center"
+          role="alert"
+        >
+          <p className="text-sm text-destructive">
+            تعذر تحميل قائمة المستخدمين. تحقق من الاتصال ثم أعد المحاولة.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 gap-2"
+            onClick={() => void usersQuery.refetch()}
+            disabled={usersQuery.isFetching}
+          >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            {usersQuery.isFetching ? "جار المحاولة…" : "إعادة المحاولة"}
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="py-10 text-center text-sm text-muted-foreground">
+        {usersTotal === 0
+          ? "لا توجد حسابات مستخدمين بعد."
+          : "لا توجد حسابات مطابقة للفلاتر الحالية."}
+      </div>
+    );
+  };
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-right"
+      className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-start"
       dir="rtl"
     >
       <PageHeader
@@ -770,7 +812,7 @@ export default function AdminUsers() {
           <Button
             type="button"
             size="sm"
-            className="selrs-gradient-btn gap-2 text-primary-foreground"
+            className="selrs-gradient-btn min-h-11 gap-2 text-primary-foreground"
             onClick={() => setIsCreateOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -806,18 +848,34 @@ export default function AdminUsers() {
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--bento-shadow-soft)]">
         <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="w-full lg:max-w-sm">
-            <SearchBar
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="بحث بالاسم أو اسم الدخول…"
-            />
+            <label htmlFor="admin-users-search" className="sr-only">
+              البحث في المستخدمين
+            </label>
+            <div className="relative" dir="rtl">
+              <Search
+                className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                id="admin-users-search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="بحث بالاسم أو اسم الدخول…"
+                className="h-11 bg-muted/50 ps-9 text-start"
+              />
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={roleFilter}
-              onValueChange={(value) => setRoleFilter(value as UserRole | "all")}
+              onValueChange={(value) =>
+                setRoleFilter(value as UserRole | "all")
+              }
             >
-              <SelectTrigger className="h-10 w-[150px] bg-background">
+              <SelectTrigger
+                className="h-11 w-[150px] bg-background"
+                aria-label="تصفية حسب الدور"
+              >
                 <SelectValue placeholder="الدور" />
               </SelectTrigger>
               <SelectContent>
@@ -834,7 +892,10 @@ export default function AdminUsers() {
                 setStatusFilter(value as "all" | "active" | "inactive")
               }
             >
-              <SelectTrigger className="h-10 w-[140px] bg-background">
+              <SelectTrigger
+                className="h-11 w-[140px] bg-background"
+                aria-label="تصفية حسب الحالة"
+              >
                 <SelectValue placeholder="الحالة" />
               </SelectTrigger>
               <SelectContent>
@@ -846,23 +907,23 @@ export default function AdminUsers() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table className="min-w-[900px] text-right">
+        <div className="hidden overflow-x-auto lg:block">
+          <Table className="min-w-[900px] text-start">
             <TableHeader>
               <TableRow className="border-b-border/60 hover:bg-transparent">
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   المستخدم
                 </TableHead>
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   الدور
                 </TableHead>
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   الفرع
                 </TableHead>
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   الوردية
                 </TableHead>
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   آخر دخول
                 </TableHead>
                 <TableHead className="h-11 text-center font-semibold text-muted-foreground">
@@ -872,79 +933,142 @@ export default function AdminUsers() {
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border/50">
-              {usersQuery.isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-10">
-                    <div className="space-y-2">
-                      {[0, 1, 2, 3, 4].map((item) => (
-                        <div
-                          key={item}
-                          className="h-8 animate-pulse rounded-md bg-muted"
-                        />
-                      ))}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : null}
-              {!usersQuery.isLoading && filteredUsers.length === 0 ? (
+              {usersListState !== "ready" ? (
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="py-14 text-center text-sm text-muted-foreground"
+                    className="py-10 text-center text-sm text-muted-foreground"
                   >
-                    لا توجد حسابات مطابقة.
+                    {renderUsersFeedback()}
                   </TableCell>
                 </TableRow>
               ) : null}
-              {filteredUsers.map((account) => {
+              {usersListState === "ready"
+                ? filteredUsers.map((account) => {
+                    const lastKey = toDateKey(account.lastSignedIn);
+                    return (
+                      <TableRow
+                        key={account.id}
+                        role="button"
+                        onClick={() => setSelectedUserId(account.id)}
+                        tabIndex={0}
+                        aria-label={`عرض تفاصيل ${getUserDisplayName(account)}`}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedUserId(account.id);
+                          }
+                        }}
+                        className="cursor-pointer transition-colors hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                      >
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                              {initialsFromUser(account.name, account.username)}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold text-foreground">
+                                {account.name ?? account.username}
+                              </span>
+                              <span
+                                className="block truncate text-xs text-muted-foreground"
+                                dir="ltr"
+                              >
+                                @{account.username}
+                              </span>
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "text-[13px] font-semibold",
+                              roleBadgeClass(account.role),
+                            )}
+                          >
+                            {roleLabelAr(account.role)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {branchLabelAr(account.branch)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {shiftLabelAr(account.shift)}
+                        </TableCell>
+                        <TableCell className="text-sm tabular-nums text-muted-foreground">
+                          {lastKey ? formatDateLabel(lastKey) : "غير محدد"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                              account.isActive
+                                ? "bg-success/10 text-success"
+                                : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full",
+                                account.isActive
+                                  ? "bg-success"
+                                  : "bg-muted-foreground/50",
+                              )}
+                            />
+                            {account.isActive ? "نشط" : "موقوف"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-11 w-11 p-0"
+                            aria-label={`إدارة ${account.name ?? account.username}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedUserId(account.id);
+                            }}
+                          >
+                            <Edit2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                : null}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="space-y-2 p-3 lg:hidden">
+          {usersListState !== "ready"
+            ? renderUsersFeedback()
+            : filteredUsers.map((account) => {
                 const lastKey = toDateKey(account.lastSignedIn);
                 return (
-                  <TableRow
+                  <article
                     key={account.id}
-                    onClick={() => setSelectedUserId(account.id)}
-                    className="cursor-pointer transition-colors hover:bg-primary/5"
+                    className="rounded-xl border border-border/70 bg-background p-4"
                   >
-                    <TableCell className="py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                           {initialsFromUser(account.name, account.username)}
                         </span>
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-foreground">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">
                             {account.name ?? account.username}
-                          </span>
-                          <span
-                            className="block truncate text-xs text-muted-foreground"
+                          </p>
+                          <p
+                            className="truncate text-xs text-muted-foreground"
                             dir="ltr"
                           >
                             @{account.username}
-                          </span>
-                        </span>
+                          </p>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          "text-[10px] font-semibold",
-                          roleBadgeClass(account.role),
-                        )}
-                      >
-                        {roleLabelAr(account.role)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {branchLabelAr(account.branch)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {shiftLabelAr(account.shift)}
-                    </TableCell>
-                    <TableCell className="text-sm tabular-nums text-muted-foreground">
-                      {lastKey ? formatDateLabel(lastKey) : "—"}
-                    </TableCell>
-                    <TableCell className="text-center">
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
                           account.isActive
                             ? "bg-success/10 text-success"
                             : "bg-muted text-muted-foreground",
@@ -960,27 +1084,49 @@ export default function AdminUsers() {
                         />
                         {account.isActive ? "نشط" : "موقوف"}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0"
-                        aria-label={`إدارة ${account.name ?? account.username}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSelectedUserId(account.id);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">الدور</dt>
+                        <dd className="mt-1 font-medium">
+                          {roleLabelAr(account.role)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">الفرع</dt>
+                        <dd className="mt-1 font-medium">
+                          {branchLabelAr(account.branch)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">
+                          الوردية
+                        </dt>
+                        <dd className="mt-1 font-medium">
+                          {shiftLabelAr(account.shift)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">
+                          آخر دخول
+                        </dt>
+                        <dd className="mt-1 font-medium tabular-nums">
+                          {lastKey ? formatDateLabel(lastKey) : "غير محدد"}
+                        </dd>
+                      </div>
+                    </dl>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-4 min-h-11 w-full"
+                      aria-label={`عرض تفاصيل ${getUserDisplayName(account)}`}
+                      onClick={() => setSelectedUserId(account.id)}
+                    >
+                      عرض التفاصيل
+                    </Button>
+                  </article>
                 );
               })}
-            </TableBody>
-          </Table>
         </div>
       </div>
 
@@ -996,7 +1142,7 @@ export default function AdminUsers() {
         >
           {selectedUser ? (
             <>
-              <SheetHeader className="space-y-3 border-b border-border/60 px-6 pb-5 pt-6 text-right">
+              <SheetHeader className="space-y-3 border-b border-border/60 px-6 pb-5 pt-6 text-start">
                 <div className="flex items-center gap-3">
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                     {initialsFromUser(selectedUser.name, selectedUser.username)}
@@ -1016,7 +1162,7 @@ export default function AdminUsers() {
                 <div className="flex items-center gap-2">
                   <Badge
                     className={cn(
-                      "text-[10px] font-semibold",
+                      "text-[13px] font-semibold",
                       roleBadgeClass(selectedUser.role),
                     )}
                   >
@@ -1081,7 +1227,9 @@ export default function AdminUsers() {
                       </dt>
                       <dd className="mt-1 text-sm font-medium">
                         {toDateKey(selectedUser.lastSignedIn)
-                          ? formatDateLabel(toDateKey(selectedUser.lastSignedIn))
+                          ? formatDateLabel(
+                              toDateKey(selectedUser.lastSignedIn),
+                            )
                           : "لم يدخل بعد"}
                       </dd>
                     </div>
@@ -1109,7 +1257,7 @@ export default function AdminUsers() {
                   <h3 className="mb-1 text-sm font-bold">إجراءات</h3>
                   <Button
                     type="button"
-                    className="w-full gap-2"
+                    className="min-h-11 w-full gap-2"
                     onClick={() => handleEdit(selectedUser)}
                   >
                     <Edit2 className="h-4 w-4" /> تعديل الحساب
@@ -1117,15 +1265,17 @@ export default function AdminUsers() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
-                    onClick={() => requestRiskAction("toggle-active", selectedUser)}
+                    className="min-h-11 w-full"
+                    onClick={() =>
+                      requestRiskAction("toggle-active", selectedUser)
+                    }
                   >
                     {selectedUser.isActive ? "إيقاف الحساب" : "تفعيل الحساب"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-start gap-2"
+                    className="min-h-11 w-full justify-start gap-2"
                     onClick={() =>
                       requestRiskAction("reset-permissions", selectedUser)
                     }
@@ -1136,7 +1286,7 @@ export default function AdminUsers() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    className="min-h-11 w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => requestRiskAction("delete", selectedUser)}
                   >
                     <Trash2 className="h-4 w-4" /> حذف الحساب
@@ -1166,155 +1316,236 @@ export default function AdminUsers() {
           }
         }}
       >
-        <DialogContent className="max-w-xl text-right sm:max-w-2xl" dir="rtl">
+        <DialogContent className="max-w-xl text-start sm:max-w-2xl" dir="rtl">
           <DialogHeader>
             <DialogTitle>مستخدم جديد</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2 md:col-span-1">
-              <label className="text-sm font-semibold">اسم المستخدم</label>
-              <Input
-                placeholder="اسم الدخول (إنجليزي)"
-                value={newUser.username}
-                className="text-right"
-                onChange={(e) =>
-                  setNewUser({ ...newUser, username: e.target.value })
-                }
-              />
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSaveUser();
+            }}
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                <label
+                  htmlFor="new-user-username"
+                  className="text-sm font-semibold"
+                >
+                  اسم المستخدم
+                </label>
+                <Input
+                  id="new-user-username"
+                  placeholder="اسم الدخول (إنجليزي)"
+                  value={newUser.username}
+                  className="text-start"
+                  required
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, username: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                <label
+                  htmlFor="new-user-password"
+                  className="text-sm font-semibold"
+                >
+                  كلمة المرور
+                </label>
+                <Input
+                  id="new-user-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={newUser.password}
+                  className="text-start"
+                  required
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                <label
+                  htmlFor="new-user-name"
+                  className="text-sm font-semibold"
+                >
+                  الاسم الكامل
+                </label>
+                <Input
+                  id="new-user-name"
+                  placeholder="اسم الموظف"
+                  value={newUser.name}
+                  className="text-start"
+                  required
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                <label
+                  htmlFor="new-user-email"
+                  className="text-sm font-semibold"
+                >
+                  البريد (اختياري)
+                </label>
+                <Input
+                  id="new-user-email"
+                  type="email"
+                  placeholder="name@domain.com"
+                  value={newUser.email}
+                  className="text-right"
+                  dir="ltr"
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, email: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                <label
+                  htmlFor="new-user-role"
+                  className="text-sm font-semibold"
+                >
+                  الدور
+                </label>
+                <Select
+                  value={newUser.role}
+                  onValueChange={(value) =>
+                    setNewUser({ ...newUser, role: value as UserRole })
+                  }
+                >
+                  <SelectTrigger id="new-user-role" aria-label="دور المستخدم">
+                    <SelectValue placeholder="اختر الدور" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">مسؤول</SelectItem>
+                    <SelectItem value="manager">مدير</SelectItem>
+                    <SelectItem value="doctor">طبيب</SelectItem>
+                    <SelectItem value="nurse">ممرض</SelectItem>
+                    <SelectItem value="technician">فني</SelectItem>
+                    <SelectItem value="reception">استقبال</SelectItem>
+                    <SelectItem value="accountant">محاسب</SelectItem>
+                    <SelectItem value="worker">عامل</SelectItem>
+                    <SelectItem value="supervisor">مشرف</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                <label
+                  htmlFor="new-user-branch"
+                  className="text-sm font-semibold"
+                >
+                  الفرع
+                </label>
+                <Select
+                  value={newUser.branch}
+                  onValueChange={(value) =>
+                    setNewUser({ ...newUser, branch: value as UserBranch })
+                  }
+                >
+                  <SelectTrigger id="new-user-branch" aria-label="فرع المستخدم">
+                    <SelectValue placeholder="اختر الفرع" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="examinations">طنطا</SelectItem>
+                    <SelectItem value="surgery">كفرالشيخ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
+                <label
+                  htmlFor="new-user-shift"
+                  className="text-sm font-semibold"
+                >
+                  الوردية
+                </label>
+                <Select
+                  value={String(newUser.shift)}
+                  onValueChange={(value) =>
+                    setNewUser({
+                      ...newUser,
+                      shift: Number(value) === 2 ? 2 : 1,
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    id="new-user-shift"
+                    aria-label="وردية المستخدم"
+                  >
+                    <SelectValue placeholder="اختر الوردية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">{shiftLabelAr(1)}</SelectItem>
+                    <SelectItem value="2">{shiftLabelAr(2)}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <Checkbox
+                  id="new-user-mssql"
+                  checked={newUser.writeToMssql}
+                  onCheckedChange={(checked) =>
+                    setNewUser({ ...newUser, writeToMssql: Boolean(checked) })
+                  }
+                />
+                <label htmlFor="new-user-mssql" className="text-sm font-medium">
+                  كتابة على MSSQL
+                </label>
+              </div>
             </div>
-            <div className="space-y-2 sm:col-span-2 md:col-span-1">
-              <label className="text-sm font-semibold">كلمة المرور</label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={newUser.password}
-                className="text-right"
-                onChange={(e) =>
-                  setNewUser({ ...newUser, password: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2 md:col-span-1">
-              <label className="text-sm font-semibold">الاسم الكامل</label>
-              <Input
-                placeholder="اسم الموظف"
-                value={newUser.name}
-                className="text-right"
-                onChange={(e) =>
-                  setNewUser({ ...newUser, name: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2 md:col-span-1">
-              <label className="text-sm font-semibold">البريد (اختياري)</label>
-              <Input
-                type="email"
-                placeholder="name@domain.com"
-                value={newUser.email}
-                className="text-right"
-                dir="ltr"
-                onChange={(e) =>
-                  setNewUser({ ...newUser, email: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2 md:col-span-1">
-              <label className="text-sm font-semibold">الدور</label>
-              <Select
-                value={newUser.role}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, role: value as UserRole })
-                }
+            <p className="text-xs text-muted-foreground">
+              الصلاحيات الافتراضية للدور{" "}
+              <strong>{roleLabelAr(newUser.role)}</strong>: عدد الشاشات{" "}
+              {getRoleDefaults(newUser.role).length}
+            </p>
+            {teamPermissionsQuery.isError ? (
+              <div
+                className="flex flex-wrap items-center gap-2 text-xs text-destructive"
+                role="alert"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الدور" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">مسؤول</SelectItem>
-                  <SelectItem value="manager">مدير</SelectItem>
-                  <SelectItem value="doctor">طبيب</SelectItem>
-                  <SelectItem value="nurse">ممرض</SelectItem>
-                  <SelectItem value="technician">فني</SelectItem>
-                  <SelectItem value="reception">استقبال</SelectItem>
-                  <SelectItem value="accountant">محاسب</SelectItem>
-                  <SelectItem value="worker">عامل</SelectItem>
-                  <SelectItem value="supervisor">مشرف</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-2 md:col-span-1">
-              <label className="text-sm font-semibold">الفرع</label>
-              <Select
-                value={newUser.branch}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, branch: value as UserBranch })
-                }
+                <span>تعذر تحميل صلاحيات الأدوار.</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => void teamPermissionsQuery.refetch()}
+                  disabled={teamPermissionsQuery.isFetching}
+                >
+                  {teamPermissionsQuery.isFetching
+                    ? "جار المحاولة…"
+                    : "إعادة المحاولة"}
+                </Button>
+              </div>
+            ) : teamPermissionsQuery.isLoading ? (
+              <p className="text-xs text-muted-foreground" role="status">
+                جار تحميل صلاحيات الأدوار…
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                type="submit"
+                className="selrs-gradient-btn text-primary-foreground gap-2"
+                disabled={isSaving}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الفرع" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="examinations">طنطا</SelectItem>
-                  <SelectItem value="surgery">كفرالشيخ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-2 md:col-span-1">
-              <label className="text-sm font-semibold">الوردية</label>
-              <Select
-                value={String(newUser.shift)}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, shift: Number(value) === 2 ? 2 : 1 })
-                }
+                <Plus className="h-4 w-4" />
+                إضافة
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateOpen(false)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الوردية" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">{shiftLabelAr(1)}</SelectItem>
-                  <SelectItem value="2">{shiftLabelAr(2)}</SelectItem>
-                </SelectContent>
-              </Select>
+                إلغاء
+              </Button>
             </div>
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <Checkbox
-                checked={newUser.writeToMssql}
-                onCheckedChange={(checked) =>
-                  setNewUser({ ...newUser, writeToMssql: Boolean(checked) })
-                }
-              />
-              <label className="text-sm font-medium">كتابة على MSSQL</label>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            الصلاحيات الافتراضية للدور{" "}
-            <strong>{roleLabelAr(newUser.role)}</strong>: عدد الشاشات{" "}
-            {getRoleDefaults(newUser.role).length}
-          </p>
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button
-              type="button"
-              className="selrs-gradient-btn text-primary-foreground gap-2"
-              disabled={isSaving}
-              onClick={() => void handleSaveUser()}
-            >
-              <Plus className="h-4 w-4" />
-              إضافة
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsCreateOpen(false)}
-            >
-              إلغاء
-            </Button>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent
-          className="max-h-[92vh] max-w-[1100px] overflow-y-auto text-right"
+          className="max-h-[92vh] max-w-[1100px] overflow-y-auto text-start"
           dir="rtl"
         >
           <DialogHeader>
@@ -1322,224 +1553,300 @@ export default function AdminUsers() {
               تعديل الحساب والصلاحيات
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-            <section>
-              <div className="mb-3 text-sm font-bold">بيانات الحساب</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    اسم المستخدم
-                  </label>
-                  <Input
-                    placeholder="اسم الدخول"
-                    value={editUser.username}
-                    className="text-right"
-                    onChange={(e) =>
-                      setEditUser({ ...editUser, username: e.target.value })
-                    }
-                  />
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSaveEdit();
+            }}
+          >
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+              <section>
+                <div className="mb-3 text-sm font-bold">بيانات الحساب</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label
+                      htmlFor="edit-user-username"
+                      className="block text-sm font-semibold mb-2"
+                    >
+                      اسم المستخدم
+                    </label>
+                    <Input
+                      id="edit-user-username"
+                      placeholder="اسم الدخول"
+                      value={editUser.username}
+                      required
+                      className="text-start"
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, username: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="edit-user-password"
+                      className="block text-sm font-semibold mb-2"
+                    >
+                      كلمة المرور
+                    </label>
+                    <Input
+                      id="edit-user-password"
+                      type="password"
+                      placeholder="اتركها فارغة إن لم يتغير"
+                      value={editUser.password}
+                      className="text-start"
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, password: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label
+                      htmlFor="edit-user-name"
+                      className="block text-sm font-semibold mb-2"
+                    >
+                      الاسم الكامل
+                    </label>
+                    <Input
+                      id="edit-user-name"
+                      placeholder="اسم الموظف"
+                      value={editUser.name}
+                      required
+                      className="text-start"
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label
+                      htmlFor="edit-user-email"
+                      className="block text-sm font-semibold mb-2"
+                    >
+                      البريد
+                    </label>
+                    <Input
+                      id="edit-user-email"
+                      type="email"
+                      placeholder="name@domain.com"
+                      value={editUser.email}
+                      className="text-right"
+                      dir="ltr"
+                      onChange={(e) =>
+                        setEditUser({ ...editUser, email: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="edit-user-role"
+                      className="block text-sm font-semibold mb-2"
+                    >
+                      الدور
+                    </label>
+                    <Select
+                      value={editUser.role}
+                      onValueChange={(value) => {
+                        const nextRole = value as UserRole;
+                        setEditUser({ ...editUser, role: nextRole });
+                        setEditPermissions(getRoleDefaults(nextRole));
+                      }}
+                    >
+                      <SelectTrigger
+                        id="edit-user-role"
+                        aria-label="دور المستخدم"
+                      >
+                        <SelectValue placeholder="اختر الدور" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">مسؤول</SelectItem>
+                        <SelectItem value="manager">مدير</SelectItem>
+                        <SelectItem value="doctor">طبيب</SelectItem>
+                        <SelectItem value="nurse">ممرض</SelectItem>
+                        <SelectItem value="technician">فني</SelectItem>
+                        <SelectItem value="reception">استقبال</SelectItem>
+                        <SelectItem value="accountant">محاسب</SelectItem>
+                        <SelectItem value="worker">عامل</SelectItem>
+                        <SelectItem value="supervisor">مشرف</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="edit-user-branch"
+                      className="block text-sm font-semibold mb-2"
+                    >
+                      الفرع
+                    </label>
+                    <Select
+                      value={editUser.branch}
+                      onValueChange={(value) =>
+                        setEditUser({
+                          ...editUser,
+                          branch: value as UserBranch,
+                        })
+                      }
+                    >
+                      <SelectTrigger
+                        id="edit-user-branch"
+                        aria-label="فرع المستخدم"
+                      >
+                        <SelectValue placeholder="اختر الفرع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="examinations">طنطا</SelectItem>
+                        <SelectItem value="surgery">كفرالشيخ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="edit-user-shift"
+                      className="block text-sm font-semibold mb-2"
+                    >
+                      الوردية
+                    </label>
+                    <Select
+                      value={String(editUser.shift)}
+                      onValueChange={(value) =>
+                        setEditUser({
+                          ...editUser,
+                          shift: Number(value) === 2 ? 2 : 1,
+                        })
+                      }
+                    >
+                      <SelectTrigger
+                        id="edit-user-shift"
+                        aria-label="وردية المستخدم"
+                      >
+                        <SelectValue placeholder="اختر الوردية" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">{shiftLabelAr(1)}</SelectItem>
+                        <SelectItem value="2">{shiftLabelAr(2)}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2 pt-8">
+                    <Checkbox
+                      id="edit-user-mssql"
+                      checked={editUser.writeToMssql}
+                      onCheckedChange={(checked) =>
+                        setEditUser({
+                          ...editUser,
+                          writeToMssql: Boolean(checked),
+                        })
+                      }
+                    />
+                    <label
+                      htmlFor="edit-user-mssql"
+                      className="text-sm font-medium"
+                    >
+                      كتابة على MSSQL
+                    </label>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    كلمة المرور
-                  </label>
-                  <Input
-                    type="password"
-                    placeholder="اتركها فارغة إن لم يتغير"
-                    value={editUser.password}
-                    className="text-right"
-                    onChange={(e) =>
-                      setEditUser({ ...editUser, password: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold mb-2">
-                    الاسم الكامل
-                  </label>
-                  <Input
-                    placeholder="اسم الموظف"
-                    value={editUser.name}
-                    className="text-right"
-                    onChange={(e) =>
-                      setEditUser({ ...editUser, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold mb-2">
-                    البريد
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="name@domain.com"
-                    value={editUser.email}
-                    className="text-right"
-                    dir="ltr"
-                    onChange={(e) =>
-                      setEditUser({ ...editUser, email: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    الدور
-                  </label>
-                  <Select
-                    value={editUser.role}
-                    onValueChange={(value) => {
-                      const nextRole = value as UserRole;
-                      setEditUser({ ...editUser, role: nextRole });
-                      setEditPermissions(getRoleDefaults(nextRole));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الدور" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">مسؤول</SelectItem>
-                      <SelectItem value="manager">مدير</SelectItem>
-                      <SelectItem value="doctor">طبيب</SelectItem>
-                      <SelectItem value="nurse">ممرض</SelectItem>
-                      <SelectItem value="technician">فني</SelectItem>
-                      <SelectItem value="reception">استقبال</SelectItem>
-                      <SelectItem value="accountant">محاسب</SelectItem>
-                      <SelectItem value="worker">عامل</SelectItem>
-                      <SelectItem value="supervisor">مشرف</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    الفرع
-                  </label>
-                  <Select
-                    value={editUser.branch}
-                    onValueChange={(value) =>
-                      setEditUser({ ...editUser, branch: value as UserBranch })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الفرع" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="examinations">طنطا</SelectItem>
-                      <SelectItem value="surgery">كفرالشيخ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    الوردية
-                  </label>
-                  <Select
-                    value={String(editUser.shift)}
-                    onValueChange={(value) =>
-                      setEditUser({
-                        ...editUser,
-                        shift: Number(value) === 2 ? 2 : 1,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الوردية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">{shiftLabelAr(1)}</SelectItem>
-                      <SelectItem value="2">{shiftLabelAr(2)}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-2 pt-8">
-                  <Checkbox
-                    checked={editUser.writeToMssql}
-                    onCheckedChange={(checked) =>
-                      setEditUser({
-                        ...editUser,
-                        writeToMssql: Boolean(checked),
-                      })
-                    }
-                  />
-                  <label className="text-sm font-medium">كتابة على MSSQL</label>
-                </div>
-              </div>
-            </section>
+              </section>
 
-            <section className="min-w-0 border-t border-border pt-5 lg:border-t-0 lg:border-r lg:pr-7 lg:pt-0">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <label className="block text-sm font-semibold">
-                  الصلاحيات (الشاشات)
-                </label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {permissionStateQuery.isLoading
-                      ? "…"
-                      : editPermissions.length}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-1 text-xs"
-                    disabled={
-                      setUserPermissionsMutation.isPending || !editUserId
-                    }
-                    onClick={() => void handleRestoreRolePermissions()}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    استعادة افتراضيات الدور
-                  </Button>
+              <section className="min-w-0 border-t border-border pt-5 lg:border-t-0 lg:border-s lg:ps-7 lg:pt-0">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <label className="block text-sm font-semibold">
+                    الصلاحيات (الشاشات)
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className="text-xs text-muted-foreground tabular-nums"
+                      role={
+                        permissionStateQuery.isLoading ? "status" : undefined
+                      }
+                      aria-live="polite"
+                    >
+                      {permissionStateQuery.isLoading
+                        ? "جار تحميل الصلاحيات…"
+                        : `${editPermissions.length} شاشة`}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="min-h-11 gap-1 text-xs"
+                      disabled={
+                        setUserPermissionsMutation.isPending || !editUserId
+                      }
+                      onClick={() => void handleRestoreRolePermissions()}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      استعادة افتراضيات الدور
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className="grid max-h-[520px] grid-cols-1 gap-2 overflow-y-auto rounded-md border border-border p-3 sm:grid-cols-2">
-                {PAGE_PERMISSIONS.map((page, idx) => {
-                  const prevEntry =
-                    idx > 0 ? PAGE_PERMISSIONS[idx - 1] : undefined;
-                  const prevGroup = prevEntry
-                    ? getPagePermissionGroup(prevEntry)
-                    : undefined;
-                  const groupLabel = getPagePermissionGroup(page);
-                  const showGroupHeader = Boolean(
-                    groupLabel && groupLabel !== prevGroup,
-                  );
-                  return (
-                    <Fragment key={page.id}>
-                      {showGroupHeader ? (
-                        <div className="col-span-full sticky top-0 z-10 border-b border-border bg-background py-2 text-xs font-bold text-foreground">
-                          {groupLabel}
-                        </div>
-                      ) : null}
-                      <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[13px] leading-tight hover:bg-muted/30">
-                        <Checkbox
-                          checked={editPermissions.includes(page.id)}
-                          onCheckedChange={() => togglePermission(page.id)}
-                        />
-                        <span>{page.label}</span>
-                      </label>
-                    </Fragment>
-                  );
-                })}
-              </div>
-              {permissionStateQuery.isError && (
-                <p className="text-xs text-destructive mt-2">
-                  تعذر تحميل الصلاحيات.
-                </p>
-              )}
-            </section>
-          </div>
+                <div className="grid max-h-[520px] grid-cols-1 gap-2 overflow-y-auto rounded-md border border-border p-3 sm:grid-cols-2">
+                  {PAGE_PERMISSIONS.map((page, idx) => {
+                    const prevEntry =
+                      idx > 0 ? PAGE_PERMISSIONS[idx - 1] : undefined;
+                    const prevGroup = prevEntry
+                      ? getPagePermissionGroup(prevEntry)
+                      : undefined;
+                    const groupLabel = getPagePermissionGroup(page);
+                    const showGroupHeader = Boolean(
+                      groupLabel && groupLabel !== prevGroup,
+                    );
+                    return (
+                      <Fragment key={page.id}>
+                        {showGroupHeader ? (
+                          <div className="col-span-full sticky top-0 z-10 border-b border-border bg-background py-2 text-xs font-bold text-foreground">
+                            {groupLabel}
+                          </div>
+                        ) : null}
+                        <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[13px] leading-tight hover:bg-muted/30">
+                          <Checkbox
+                            checked={editPermissions.includes(page.id)}
+                            onCheckedChange={() => togglePermission(page.id)}
+                          />
+                          <span>{page.label}</span>
+                        </label>
+                      </Fragment>
+                    );
+                  })}
+                </div>
+                {permissionStateQuery.isError ? (
+                  <div
+                    className="mt-2 flex flex-wrap items-center gap-2 text-xs text-destructive"
+                    role="alert"
+                  >
+                    <span>تعذر تحميل الصلاحيات.</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      onClick={() => void permissionStateQuery.refetch()}
+                      disabled={permissionStateQuery.isFetching}
+                    >
+                      {permissionStateQuery.isFetching
+                        ? "جار المحاولة…"
+                        : "إعادة المحاولة"}
+                    </Button>
+                  </div>
+                ) : null}
+              </section>
+            </div>
 
-          <div className="sticky bottom-0 -mx-6 flex gap-2 border-t border-border bg-background px-6 pt-4">
-            <Button
-              onClick={() => void handleSaveEdit()}
-              className="selrs-gradient-btn text-primary-foreground"
-              disabled={isSaving}
-            >
-              حفظ
-            </Button>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
-              إلغاء
-            </Button>
-          </div>
+            <div className="sticky bottom-0 -mx-6 flex gap-2 border-t border-border bg-background px-6 pt-4">
+              <Button
+                type="submit"
+                className="selrs-gradient-btn text-primary-foreground"
+                disabled={isSaving}
+              >
+                حفظ
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+              >
+                إلغاء
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -1549,8 +1856,8 @@ export default function AdminUsers() {
           if (!open) setPendingRiskAction(null);
         }}
       >
-        <AlertDialogContent className="text-right" dir="rtl">
-          <AlertDialogHeader className="text-right">
+        <AlertDialogContent className="text-start" dir="rtl">
+          <AlertDialogHeader className="text-start">
             <AlertDialogTitle>{pendingRiskCopy?.title}</AlertDialogTitle>
             <AlertDialogDescription className="leading-relaxed">
               {pendingRiskCopy?.description}

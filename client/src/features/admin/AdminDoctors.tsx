@@ -9,16 +9,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -53,19 +45,15 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import {
-  Activity,
-  CheckCircle2,
+  AlertCircle,
   Edit2,
-  MoreVertical,
   Plus,
   RefreshCw,
+  Search,
   Stethoscope,
   Trash2,
-  XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
-import { SearchBar } from "@/components/shared/SearchBar";
 import { cn } from "@/lib/utils";
 
 type DoctorEntry = {
@@ -83,6 +71,8 @@ type NewDoctorDraft = {
   locationType: "center" | "external";
   doctorType: "consultant" | "specialist" | "external";
 };
+
+type DoctorStatusFilter = "all" | "active" | "inactive";
 
 const makeId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -134,7 +124,7 @@ function doctorTypeLabel(t: DoctorEntry["doctorType"]) {
 
 function doctorTypeBadgeClass(t: DoctorEntry["doctorType"]) {
   if (t === "specialist")
-    return "bg-warning/10 text-warning/90 border-0 font-bold";
+    return "bg-warning/10 text-warning-text/90 border-0 font-bold";
   if (t === "external")
     return "bg-muted text-muted-foreground border-0 font-bold";
   return "bg-primary/10 text-primary border-0 font-bold";
@@ -158,9 +148,9 @@ export default function AdminDoctors() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [delConfirmDoctor, setDelConfirmDoctor] = useState<string | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<DoctorStatusFilter>("all");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
@@ -206,8 +196,6 @@ export default function AdminDoctors() {
     setDoctors(normalized);
   }, [doctorsQuery.data]);
 
-  if (!isAuthenticated || user?.role !== "admin") return null;
-
   const sortedDoctors = useMemo(
     () =>
       [...doctors].sort((a, b) => {
@@ -222,17 +210,21 @@ export default function AdminDoctors() {
   );
   const filteredDoctors = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return sortedDoctors;
     return sortedDoctors.filter((doctor) => {
       const code = String(doctor.code ?? "").toLowerCase();
       const name = String(doctor.name ?? "").toLowerCase();
-      return code.includes(term) || name.includes(term);
+      const matchesSearch = !term || code.includes(term) || name.includes(term);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" ? doctor.isActive : !doctor.isActive);
+      return matchesSearch && matchesStatus;
     });
-  }, [sortedDoctors, searchTerm]);
+  }, [sortedDoctors, searchTerm, statusFilter]);
   const selectedDoctor =
-    filteredDoctors.find((doctor) => doctor.id === selectedDoctorId) ??
-    filteredDoctors[0] ??
-    null;
+    doctors.find((doctor) => doctor.id === selectedDoctorId) ?? null;
+  const hasActiveFilters = Boolean(searchTerm.trim()) || statusFilter !== "all";
+
+  if (!isAuthenticated || user?.role !== "admin") return null;
 
   const addDoctor = () => {
     const typedCode = newDoctor.code.trim();
@@ -367,6 +359,27 @@ export default function AdminDoctors() {
   };
 
   const saveDoctors = async () => {
+    const incompleteDoctor = doctors.find(
+      (doctor) => !doctor.name.trim() || !doctor.code.trim(),
+    );
+    if (incompleteDoctor) {
+      toast.error("يرجى إكمال اسم الطبيب والكود قبل الحفظ.");
+      return;
+    }
+    const seenCodes = new Set<string>();
+    const seenNames = new Set<string>();
+    const hasDuplicate = doctors.some((doctor) => {
+      const code = doctor.code.trim().toLowerCase();
+      const name = doctor.name.trim().toLowerCase();
+      if (seenCodes.has(code) || seenNames.has(name)) return true;
+      seenCodes.add(code);
+      seenNames.add(name);
+      return false;
+    });
+    if (hasDuplicate) {
+      toast.error("لا يمكن حفظ أطباء متكررين في الكود أو الاسم.");
+      return;
+    }
     try {
       const normalized = doctors.map((doctor) => ({
         ...doctor,
@@ -393,8 +406,10 @@ export default function AdminDoctors() {
 
   const removeDoctor = (id: string) => {
     setDoctors((prev) => prev.filter((d) => d.id !== id));
-    if (expandedId === id) setExpandedId(null);
     if (selectedDoctorId === id) setSelectedDoctorId(null);
+    toast.success(
+      "تمت إزالة الطبيب من القائمة المحلية — احفظ التغييرات للمزامنة.",
+    );
   };
 
   const updateDoctor = (id: string, patch: Partial<DoctorEntry>) => {
@@ -414,7 +429,7 @@ export default function AdminDoctors() {
       <div className="space-y-1.5">
         <label
           htmlFor={`${idPrefix}-code`}
-          className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider"
+          className="text-[13px] font-bold text-muted-foreground uppercase"
         >
           الكود (اختياري)
         </label>
@@ -432,7 +447,7 @@ export default function AdminDoctors() {
       <div className="space-y-1.5 sm:col-span-2">
         <label
           htmlFor={`${idPrefix}-name`}
-          className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider"
+          className="text-[13px] font-bold text-muted-foreground uppercase"
         >
           اسم الطبيب
         </label>
@@ -444,12 +459,17 @@ export default function AdminDoctors() {
             setDraft((prev) => ({ ...prev, name: e.target.value }))
           }
           className="h-9 text-sm font-medium"
+          required
+          aria-required="true"
         />
       </div>
       <div className="space-y-1.5">
-        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+        <Label
+          htmlFor={`${idPrefix}-location`}
+          className="text-[13px] font-bold text-muted-foreground uppercase"
+        >
           المقر
-        </span>
+        </Label>
         <Select
           value={draft.locationType}
           onValueChange={(value) =>
@@ -459,7 +479,11 @@ export default function AdminDoctors() {
             }))
           }
         >
-          <SelectTrigger className="h-9 text-xs bg-background">
+          <SelectTrigger
+            id={`${idPrefix}-location`}
+            aria-label="مقر الطبيب"
+            className="h-9 w-full text-xs bg-background"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -473,9 +497,12 @@ export default function AdminDoctors() {
         </Select>
       </div>
       <div className="space-y-1.5">
-        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+        <Label
+          htmlFor={`${idPrefix}-type`}
+          className="text-[13px] font-bold text-muted-foreground uppercase"
+        >
           النوع
-        </span>
+        </Label>
         <Select
           value={draft.doctorType}
           onValueChange={(value) =>
@@ -485,7 +512,11 @@ export default function AdminDoctors() {
             }))
           }
         >
-          <SelectTrigger className="h-9 text-xs bg-background">
+          <SelectTrigger
+            id={`${idPrefix}-type`}
+            aria-label="نوع الطبيب"
+            className="h-9 w-full text-xs bg-background"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -506,7 +537,7 @@ export default function AdminDoctors() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-right"
+      className="mx-auto w-full max-w-[1440px] space-y-5 pb-4 text-start"
       dir="rtl"
     >
       <PageHeader
@@ -529,7 +560,7 @@ export default function AdminDoctors() {
                   syncRegistrationCatalogMutation.isPending && "animate-spin",
                 )}
               />
-              <span className="text-[11px] font-bold uppercase tracking-tight">
+              <span className="text-[13px] font-bold uppercase">
                 {syncRegistrationCatalogMutation.isPending
                   ? "جاري…"
                   : "مزامنة السجل"}
@@ -576,13 +607,38 @@ export default function AdminDoctors() {
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--bento-shadow-soft)]">
         <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="w-full lg:max-w-sm">
-            <SearchBar
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="بحث عن طبيب أو كود…"
-            />
+            <label htmlFor="doctor-search" className="relative block">
+              <span className="sr-only">بحث عن طبيب أو كود</span>
+              <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="doctor-search"
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="بحث عن طبيب أو كود…"
+                className="h-11 w-full rounded-lg bg-muted/50 ps-9 text-start"
+              />
+            </label>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as DoctorStatusFilter)
+              }
+            >
+              <SelectTrigger
+                aria-label="تصفية الأطباء حسب الحالة"
+                className="h-9 w-full text-xs sm:w-[150px]"
+              >
+                <SelectValue placeholder="كل الحالات" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الحالات</SelectItem>
+                <SelectItem value="active">النشطون</SelectItem>
+                <SelectItem value="inactive">المعطّلون</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               type="button"
               variant="outline"
@@ -590,7 +646,9 @@ export default function AdminDoctors() {
               onClick={() => void saveDoctors()}
               disabled={updateDoctorsMutation.isPending}
             >
-              {updateDoctorsMutation.isPending ? "جاري الحفظ…" : "حفظ التغييرات"}
+              {updateDoctorsMutation.isPending
+                ? "جاري الحفظ…"
+                : "حفظ التغييرات"}
             </Button>
             <input
               ref={fileInputRef}
@@ -611,7 +669,7 @@ export default function AdminDoctors() {
               disabled={isImporting}
               onClick={() => fileInputRef.current?.click()}
             >
-              استيراد CSV
+              {isImporting ? "جاري الاستيراد…" : "استيراد CSV"}
             </Button>
             {confirmClearAll ? (
               <div className="flex items-center gap-1">
@@ -622,6 +680,9 @@ export default function AdminDoctors() {
                   onClick={() => {
                     setDoctors([]);
                     setConfirmClearAll(false);
+                    toast.success(
+                      "تم مسح القائمة المحلية — احفظ التغييرات لتطبيقها.",
+                    );
                   }}
                 >
                   تأكيد المسح
@@ -650,20 +711,23 @@ export default function AdminDoctors() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table className="min-w-[860px] text-right" dir="rtl">
+        <div
+          className="hidden overflow-x-auto md:block"
+          aria-busy={doctorsQuery.isLoading || doctorsQuery.isFetching}
+        >
+          <Table className="min-w-[860px] text-start" dir="rtl">
             <TableHeader>
               <TableRow className="border-b-border/60 hover:bg-transparent">
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   الطبيب
                 </TableHead>
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   الكود
                 </TableHead>
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   النوع
                 </TableHead>
-                <TableHead className="h-11 text-right font-semibold text-muted-foreground">
+                <TableHead className="h-11 text-start font-semibold text-muted-foreground">
                   المقر
                 </TableHead>
                 <TableHead className="h-11 text-center font-semibold text-muted-foreground">
@@ -676,24 +740,80 @@ export default function AdminDoctors() {
               {doctorsQuery.isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="py-16 text-center">
-                    <div className="mx-auto max-w-sm space-y-2">
-                      {[0, 1, 2, 3].map((row) => (
-                        <div
-                          key={row}
-                          className="h-8 animate-pulse rounded-md bg-muted"
-                        />
-                      ))}
+                    <div
+                      className="mx-auto flex max-w-sm flex-col items-center gap-3 text-sm text-muted-foreground"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <RefreshCw className="size-5 animate-spin text-primary" />
+                      <span>جاري تحميل دليل الأطباء…</span>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : null}
-              {!doctorsQuery.isLoading && filteredDoctors.length === 0 ? (
+              {doctorsQuery.isError ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-14 text-center">
+                    <div
+                      className="mx-auto flex max-w-sm flex-col items-center gap-3"
+                      role="alert"
+                    >
+                      <AlertCircle className="size-6 text-destructive" />
+                      <p className="text-sm font-semibold text-foreground">
+                        تعذر تحميل دليل الأطباء.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void doctorsQuery.refetch()}
+                        disabled={doctorsQuery.isFetching}
+                      >
+                        {doctorsQuery.isFetching
+                          ? "جاري المحاولة…"
+                          : "إعادة المحاولة"}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {!doctorsQuery.isLoading &&
+              !doctorsQuery.isError &&
+              filteredDoctors.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
-                    لا توجد نتائج مطابقة لبحثك.
+                    <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
+                      <p>
+                        {hasActiveFilters
+                          ? "لا توجد نتائج مطابقة للفلاتر الحالية."
+                          : "لم تتم إضافة أطباء بعد."}
+                      </p>
+                      {hasActiveFilters ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setStatusFilter("all");
+                          }}
+                        >
+                          مسح الفلاتر
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAddOpen(true)}
+                        >
+                          إضافة طبيب
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -701,8 +821,17 @@ export default function AdminDoctors() {
                 <TableRow
                   key={doctor.id}
                   onClick={() => setSelectedDoctorId(doctor.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedDoctorId(doctor.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`فتح بيانات ${doctor.name}`}
                   className={cn(
-                    "cursor-pointer transition-colors hover:bg-primary/5",
+                    "cursor-pointer transition-colors hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
                     !doctor.isActive && "opacity-60",
                   )}
                 >
@@ -724,7 +853,7 @@ export default function AdminDoctors() {
                   <TableCell>
                     <Badge
                       className={cn(
-                        "border-0 text-[10px] font-bold",
+                        "border-0 text-[13px] font-bold",
                         doctorTypeBadgeClass(doctor.doctorType),
                       )}
                     >
@@ -758,8 +887,7 @@ export default function AdminDoctors() {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="h-9 w-9 p-0"
+                      size="icon-sm"
                       aria-label={`تعديل ${doctor.name}`}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -773,6 +901,147 @@ export default function AdminDoctors() {
               ))}
             </TableBody>
           </Table>
+        </div>
+        <div
+          className="space-y-3 p-4 md:hidden"
+          aria-busy={doctorsQuery.isLoading || doctorsQuery.isFetching}
+        >
+          {doctorsQuery.isLoading ? (
+            <div
+              className="flex flex-col items-center gap-3 py-12 text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <RefreshCw className="size-5 animate-spin text-primary" />
+              جاري تحميل دليل الأطباء…
+            </div>
+          ) : doctorsQuery.isError ? (
+            <div
+              className="flex flex-col items-center gap-3 py-12"
+              role="alert"
+            >
+              <AlertCircle className="size-6 text-destructive" />
+              <p className="text-sm font-semibold">تعذر تحميل دليل الأطباء.</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void doctorsQuery.refetch()}
+                disabled={doctorsQuery.isFetching}
+              >
+                {doctorsQuery.isFetching ? "جاري المحاولة…" : "إعادة المحاولة"}
+              </Button>
+            </div>
+          ) : filteredDoctors.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center text-sm text-muted-foreground">
+              <p>
+                {hasActiveFilters
+                  ? "لا توجد نتائج مطابقة للفلاتر الحالية."
+                  : "لم تتم إضافة أطباء بعد."}
+              </p>
+              {hasActiveFilters ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                  }}
+                >
+                  مسح الفلاتر
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAddOpen(true)}
+                >
+                  إضافة طبيب
+                </Button>
+              )}
+            </div>
+          ) : (
+            filteredDoctors.map((doctor) => (
+              <article
+                key={doctor.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`فتح بيانات ${doctor.name}`}
+                onClick={() => setSelectedDoctorId(doctor.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedDoctorId(doctor.id);
+                  }
+                }}
+                className={cn(
+                  "rounded-xl border border-border/70 bg-background p-4 text-start transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  !doctor.isActive && "opacity-70",
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar className="size-10 shrink-0 border border-border/60">
+                      <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                        {doctorArabicInitials(doctor.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {doctor.name}
+                      </p>
+                      <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                        {doctor.code}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`تعديل ${doctor.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedDoctorId(doctor.id);
+                    }}
+                  >
+                    <Edit2 className="size-4 text-muted-foreground" />
+                  </Button>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge
+                    className={cn(
+                      "border-0 text-[13px] font-bold",
+                      doctorTypeBadgeClass(doctor.doctorType),
+                    )}
+                  >
+                    {doctorTypeLabel(doctor.doctorType)}
+                  </Badge>
+                  <span>{locationLabel(doctor.locationType)}</span>
+                  <span
+                    className={cn(
+                      "ms-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold",
+                      doctor.isActive
+                        ? "bg-success/10 text-success"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        doctor.isActive
+                          ? "bg-success"
+                          : "bg-muted-foreground/50",
+                      )}
+                    />
+                    {doctor.isActive ? "نشط" : "معطّل"}
+                  </span>
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </div>
 
@@ -788,7 +1057,7 @@ export default function AdminDoctors() {
         >
           {selectedDoctor ? (
             <>
-              <SheetHeader className="space-y-3 border-b border-border/60 px-6 pb-5 pt-6 text-right">
+              <SheetHeader className="space-y-3 border-b border-border/60 px-6 pb-5 pt-6 text-start">
                 <div className="flex items-center gap-3">
                   <Avatar className="size-12 border border-border/60">
                     <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
@@ -807,7 +1076,7 @@ export default function AdminDoctors() {
                 <div className="flex items-center gap-2">
                   <Badge
                     className={cn(
-                      "border-0 text-[10px] font-bold",
+                      "border-0 text-[13px] font-bold",
                       doctorTypeBadgeClass(selectedDoctor.doctorType),
                     )}
                   >
@@ -850,7 +1119,7 @@ export default function AdminDoctors() {
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label>النوع</Label>
+                      <Label htmlFor="sheet-doctor-type">النوع</Label>
                       <Select
                         value={selectedDoctor.doctorType}
                         onValueChange={(value) =>
@@ -859,7 +1128,10 @@ export default function AdminDoctors() {
                           })
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger
+                          id="sheet-doctor-type"
+                          aria-label="نوع الطبيب"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -870,7 +1142,7 @@ export default function AdminDoctors() {
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>المقر</Label>
+                      <Label htmlFor="sheet-doctor-location">المقر</Label>
                       <Select
                         value={selectedDoctor.locationType}
                         onValueChange={(value) =>
@@ -879,7 +1151,10 @@ export default function AdminDoctors() {
                           })
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger
+                          id="sheet-doctor-location"
+                          aria-label="مقر الطبيب"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -898,7 +1173,7 @@ export default function AdminDoctors() {
                         })
                       }
                     />
-                    {selectedDoctor.isActive ? "الحساب نشط" : "الحساب معطّل"}
+                    {selectedDoctor.isActive ? "الطبيب نشط" : "الطبيب معطّل"}
                   </label>
                 </section>
 
@@ -974,7 +1249,7 @@ export default function AdminDoctors() {
         }}
       >
         <DialogContent
-          className="max-w-lg text-right sm:max-w-xl p-0 overflow-hidden border-none shadow-2xl"
+          className="max-w-lg text-start sm:max-w-xl p-0 overflow-hidden border-none shadow-2xl"
           dir="rtl"
         >
           <DialogHeader className="p-5 border-b bg-muted/10">
@@ -982,16 +1257,23 @@ export default function AdminDoctors() {
               إضافة طبيب جديد
             </DialogTitle>
           </DialogHeader>
-          <div className="p-6 bg-background space-y-5">
+          <form
+            id="add-doctor-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              addDoctor();
+            }}
+            className="p-6 bg-background space-y-5"
+          >
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
               {formFieldsUi(newDoctor, setNewDoctor, "add")}
             </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed italic bg-muted/20 p-2 rounded-lg border border-dashed">
+            <p className="text-[13px] text-muted-foreground leading-relaxed italic bg-muted/20 p-2 rounded-lg border border-dashed">
               * ملاحظة: بعد الإضافة إلى القائمة المحلية، يجب الضغط على «حفظ
               التغييرات» في الصفحة الرئيسية لمزامنة البيانات مع السيرفر بشكل
               دائم.
             </p>
-          </div>
+          </form>
           <DialogFooter className="p-4 bg-muted/5 border-t flex flex-col-reverse gap-2 sm:flex-row sm:justify-between sm:items-center">
             <Button
               type="button"
@@ -1002,9 +1284,9 @@ export default function AdminDoctors() {
               إلغاء
             </Button>
             <Button
-              type="button"
+              type="submit"
+              form="add-doctor-form"
               className="selrs-gradient-btn text-primary-foreground gap-2 h-9 px-6 rounded-lg font-bold"
-              onClick={addDoctor}
             >
               <Plus className="h-4 w-4" />
               إدراج في القائمة

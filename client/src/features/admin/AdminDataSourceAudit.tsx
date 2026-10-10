@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { getTrpcErrorMessage } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -15,13 +16,22 @@ import { Spinner } from "@/components/ui/spinner";
 
 export default function AdminDataSourceAudit() {
   const { user } = useAuth();
-  const [patientId, setPatientId] = useState<number | "">("");
+  const [patientIdInput, setPatientIdInput] = useState("");
+  const [patientId, setPatientId] = useState<number | null>(null);
+  const [patientIdError, setPatientIdError] = useState<string | null>(null);
+  const auditQuery = trpc.medical.getDataSourceAuditStatus.useQuery(
+    { patientId: patientId ?? undefined },
+    {
+      enabled: user?.role === "admin" && patientId !== null,
+      refetchOnWindowFocus: false,
+    },
+  );
 
   // Admin guard
   if (user?.role !== "admin") {
     return (
       <div
-        className="w-full space-y-5 px-2 pb-2 text-right sm:px-3 lg:px-4"
+        className="w-full space-y-5 px-2 pb-2 text-start sm:px-3 lg:px-4"
         dir="rtl"
       >
         <Alert className="border-destructive/30 bg-destructive/10 text-destructive">
@@ -33,31 +43,49 @@ export default function AdminDataSourceAudit() {
     );
   }
 
-  const auditQuery = trpc.medical.getDataSourceAuditStatus.useQuery(
-    {
-      patientId:
-        patientId && typeof patientId === "number" ? patientId : undefined,
-    },
-    { enabled: Boolean(patientId), refetchOnWindowFocus: false },
-  );
+  const submitPatientId = () => {
+    const nextPatientId = Number(patientIdInput);
+    if (Number.isInteger(nextPatientId) && nextPatientId > 0) {
+      setPatientIdError(null);
+      setPatientId(nextPatientId);
+      return;
+    }
+    setPatientIdError("أدخل معرّفًا صحيحًا أكبر من صفر.");
+  };
+
+  const handleExport = () => {
+    if (!auditQuery.data || patientId === null) return;
+    const exportBlob = new Blob([JSON.stringify(auditQuery.data, null, 2)], {
+      type: "application/json",
+    });
+    const downloadUrl = URL.createObjectURL(exportBlob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `تدقيق-مصادر-البيانات-${patientId}.json`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+  };
 
   return (
     <div
-      className="w-full space-y-5 px-2 pb-2 text-right sm:px-3 lg:px-4"
+      className="w-full space-y-5 px-2 pb-2 text-start sm:px-3 lg:px-4"
       dir="rtl"
     >
       {/* Header */}
-      <div className="space-y-2 border-b border-border pb-4">
-        <h1 className="sr-only">مصدر البيانات — تدقيق</h1>
+      <div className="space-y-3 border-b border-border pb-4">
+        <h1 className="text-2xl font-semibold sm:text-2xl">
+          تدقيق مصادر البيانات
+        </h1>
         <p className="text-sm text-muted-foreground">
-          تحقق من أن البيانات الديموغرافية والسريرية تأتي من الجداول الصحيحة
+          راجع مصدر البيانات الديموغرافية والسريرية، ثم نفّذ تحققًا مباشرًا
+          لمريض محدد.
         </p>
       </div>
 
       {/* Section 1: Patient Data Sources */}
       <Card
         dir="rtl"
-        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+        className="rounded-lg border-border/90 bg-card text-start shadow-none"
       >
         <CardHeader>
           <CardTitle>جداول مصادر بيانات المريض</CardTitle>
@@ -66,11 +94,16 @@ export default function AdminDataSourceAudit() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-sm">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+            <table className="w-full text-start text-sm">
+              <caption className="sr-only">
+                مصادر بيانات الحقول الديموغرافية للمريض
+              </caption>
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-3 py-2 font-semibold">الحالة</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">
+                    الحالة
+                  </th>
                   <th className="px-3 py-2 font-semibold">جدول العرض</th>
                   <th className="px-3 py-2 font-semibold">واجهة العرض</th>
                   <th className="px-3 py-2 font-semibold">جدول الحفظ</th>
@@ -141,7 +174,7 @@ export default function AdminDataSourceAudit() {
                   <tr key={idx} className="border-b border-border">
                     <td className="px-3 py-2">
                       <span className="inline-flex items-center rounded bg-success/15 px-2 py-1 text-success">
-                        ✅ مطابق
+                        مطابق
                       </span>
                     </td>
                     <td className="px-3 py-2 font-mono text-xs">{row[5]}</td>
@@ -161,21 +194,26 @@ export default function AdminDataSourceAudit() {
       {/* Section 2: Medical Data Sources */}
       <Card
         dir="rtl"
-        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+        className="rounded-lg border-border/90 bg-card text-start shadow-none"
       >
         <CardHeader>
           <CardTitle>جداول مصادر البيانات الطبية</CardTitle>
           <CardDescription>
-            قائمة المراجعة الطبية تستخدم fallback مؤقت من patientPageStates —
-            تحت الفحص
+            قائمة المراجعة الطبية تستخدم fallback مؤقتًا من patientPageStates،
+            وما زال هذا الاستخدام تحت الفحص.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-sm">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+            <table className="w-full text-start text-sm">
+              <caption className="sr-only">
+                مصادر البيانات الطبية لكل حقل في الفحص
+              </caption>
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-3 py-2 font-semibold">الحالة</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">
+                    الحالة
+                  </th>
                   <th className="px-3 py-2 font-semibold">
                     يستخدم patientPageStates؟
                   </th>
@@ -305,11 +343,11 @@ export default function AdminDataSourceAudit() {
                       <span
                         className={`inline-flex items-center rounded px-2 py-1 text-xs ${
                           row.status === "⚠️ تحقق"
-                            ? "bg-warning/20 text-warning"
+                            ? "bg-warning/20 text-warning-text"
                             : "bg-success/15 text-success"
                         }`}
                       >
-                        {row.status}
+                        {row.status.replace(/[✅⚠️❌]/g, "").trim()}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-xs">{row.usesPageState}</td>
@@ -334,7 +372,7 @@ export default function AdminDataSourceAudit() {
       {/* Section 3: patientPageStates Usage */}
       <Card
         dir="rtl"
-        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+        className="rounded-lg border-border/90 bg-card text-start shadow-none"
       >
         <CardHeader>
           <CardTitle>استخدام patientPageStates</CardTitle>
@@ -343,11 +381,16 @@ export default function AdminDataSourceAudit() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-sm">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+            <table className="w-full text-start text-sm">
+              <caption className="sr-only">
+                استخدام حالة الصفحة ومصادر الاستبدال المسموح بها
+              </caption>
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-3 py-2 font-semibold">حالة التنظيف</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">
+                    حالة التنظيف
+                  </th>
                   <th className="px-3 py-2 font-semibold">جدول الاستبدال</th>
                   <th className="px-3 py-2 font-semibold">السبب</th>
                   <th className="px-3 py-2 font-semibold">مسموح؟</th>
@@ -370,7 +413,7 @@ export default function AdminDataSourceAudit() {
                     purpose: "اختيار الورقة",
                     allowed: "✅ نعم",
                     reason: "حالة UI فقط",
-                    replacement: "—",
+                    replacement: "غير متوفر",
                     cleanup: "مسموح",
                   },
                   {
@@ -431,12 +474,16 @@ export default function AdminDataSourceAudit() {
                   },
                 ].map((row, idx) => (
                   <tr key={idx} className="border-b border-border">
-                    <td className="px-3 py-2 text-xs">{row.cleanup}</td>
+                    <td className="px-3 py-2 text-xs">
+                      {row.cleanup.replace(/[✅⚠️❌]/g, "").trim()}
+                    </td>
                     <td className="px-3 py-2 font-mono text-xs">
                       {row.replacement}
                     </td>
                     <td className="px-3 py-2 text-xs">{row.reason}</td>
-                    <td className="px-3 py-2 text-xs">{row.allowed}</td>
+                    <td className="px-3 py-2 text-xs">
+                      {row.allowed.replace(/[✅⚠️❌]/g, "").trim()}
+                    </td>
                     <td className="px-3 py-2 text-xs">{row.purpose}</td>
                     <td className="px-3 py-2 font-mono text-xs">{row.key}</td>
                   </tr>
@@ -450,47 +497,136 @@ export default function AdminDataSourceAudit() {
       {/* Section 4: Live Spot Check */}
       <Card
         dir="rtl"
-        className="rounded-lg border-border/90 bg-card text-right shadow-none"
+        className="rounded-lg border-border/90 bg-card text-start shadow-none"
       >
         <CardHeader>
           <CardTitle>التحقق المباشر</CardTitle>
           <CardDescription>
-            أدخل معرّف المريض للتحقق من مصادر البيانات الفعلية
+            أدخل معرّف المريض للتحقق من مصادر البيانات الفعلية. لا يبدأ الفحص
+            قبل الضغط على زر التحقق.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Input */}
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <form
+            className="flex flex-col gap-3 sm:flex-row"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitPatientId();
+            }}
+          >
+            <label className="sr-only" htmlFor="audit-patient-id">
+              معرّف المريض
+            </label>
             <Input
+              id="audit-patient-id"
               type="number"
               placeholder="معرّف المريض"
-              value={patientId}
-              onChange={(e) =>
-                setPatientId(e.target.value ? Number(e.target.value) : "")
-              }
-              className="text-right"
+              value={patientIdInput}
+              onChange={(event) => {
+                setPatientIdInput(event.target.value);
+                setPatientIdError(null);
+              }}
+              className="text-start"
               min={1}
+              step={1}
+              inputMode="numeric"
+              aria-describedby={
+                patientIdError
+                  ? "audit-patient-id-help audit-patient-id-error"
+                  : "audit-patient-id-help"
+              }
+              aria-invalid={patientIdError ? "true" : undefined}
             />
             <Button
-              onClick={() => setPatientId(patientId)}
-              disabled={!patientId || auditQuery.isLoading}
+              type="submit"
+              disabled={!patientIdInput || auditQuery.isFetching}
             >
-              {auditQuery.isLoading ? <Spinner className="h-4 w-4" /> : "تحقق"}
+              {auditQuery.isFetching ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  جاري التحقق…
+                </>
+              ) : (
+                "تحقق"
+              )}
             </Button>
-          </div>
+          </form>
+          <p
+            id="audit-patient-id-help"
+            className="text-xs text-muted-foreground"
+          >
+            استخدم رقمًا صحيحًا أكبر من صفر.
+          </p>
+          {patientIdError && (
+            <p
+              id="audit-patient-id-error"
+              className="text-sm text-destructive"
+              role="alert"
+            >
+              {patientIdError}
+            </p>
+          )}
+
+          {patientId !== null && auditQuery.data && !auditQuery.isFetching && (
+            <div className="flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                آخر فحص للمعرّف {patientId}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => auditQuery.refetch()}
+                  disabled={auditQuery.isFetching}
+                >
+                  {auditQuery.isFetching ? "جاري التحديث…" : "تحديث الفحص"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={auditQuery.data.checked !== true}
+                >
+                  تصدير JSON
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Results */}
-          {auditQuery.isLoading && (
-            <div className="flex justify-end gap-2">
+          {auditQuery.isFetching && (
+            <div
+              className="flex justify-end gap-2"
+              role="status"
+              aria-live="polite"
+            >
               <Spinner className="h-4 w-4" />
               <span className="text-sm">جاري التحقق…</span>
             </div>
           )}
 
-          {auditQuery.data?.checked &&
+          {patientId === null && !auditQuery.isFetching && (
+            <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+              أدخل معرّف المريض لبدء التحقق من مصادر البيانات.
+            </div>
+          )}
+
+          {patientId !== null &&
+            auditQuery.data &&
+            auditQuery.data.checked === false &&
+            !auditQuery.isFetching && (
+              <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+                لم تُرجع عملية التحقق بيانات لهذا المعرّف.
+              </div>
+            )}
+
+          {!auditQuery.isFetching &&
+            auditQuery.data?.checked &&
             auditQuery.data.checked === true &&
             (() => {
               const data = auditQuery.data;
+              const missingValue = "غير متوفر";
               return (
                 <div className="space-y-6">
                   {/* Patient Data */}
@@ -524,13 +660,13 @@ export default function AdminDataSourceAudit() {
                             </div>
                             <div className="flex justify-between">
                               <span className="font-mono text-xs text-muted-foreground">
-                                {data.patient.doctorCode || "—"}
+                                {data.patient.doctorCode || missingValue}
                               </span>
                               <span className="text-xs">رمز الطبيب</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="font-mono text-xs text-muted-foreground">
-                                {data.patient.serviceCode || "—"}
+                                {data.patient.serviceCode || missingValue}
                               </span>
                               <span className="text-xs">رمز الخدمة</span>
                             </div>
@@ -555,7 +691,8 @@ export default function AdminDataSourceAudit() {
                             <div className="flex justify-between">
                               <span className="font-mono text-xs text-muted-foreground">
                                 {String(
-                                  data.pageStateSessionFields.doctorName || "—",
+                                  data.pageStateSessionFields.doctorName ||
+                                    missingValue,
                                 )}
                               </span>
                               <span className="text-xs">اسم الطبيب</span>
@@ -567,7 +704,7 @@ export default function AdminDataSourceAudit() {
                                   ? new Date(
                                       data.pageStateSessionFields.visitDate,
                                     ).toLocaleDateString("ar-EG")
-                                  : "—"}
+                                  : missingValue}
                               </span>
                               <span className="text-xs">تاريخ الزيارة</span>
                             </div>
@@ -575,7 +712,7 @@ export default function AdminDataSourceAudit() {
                               <span className="font-mono text-xs text-muted-foreground">
                                 {String(
                                   data.pageStateSessionFields.sheetSelection ||
-                                    "—",
+                                    missingValue,
                                 ).substring(0, 30)}
                               </span>
                               <span className="text-xs">اختيار الورقة</span>
@@ -584,7 +721,7 @@ export default function AdminDataSourceAudit() {
                               <span className="font-mono text-xs text-muted-foreground">
                                 {String(
                                   data.pageStateSessionFields.serviceCode ||
-                                    "—",
+                                    missingValue,
                                 )}
                               </span>
                               <span className="text-xs">رمز الخدمة</span>
@@ -605,11 +742,19 @@ export default function AdminDataSourceAudit() {
                       مقارنة قائمة المراجعة الطبية
                     </h3>
                     {data.checklistNormalized ? (
-                      <div className="overflow-x-auto rounded border border-border">
-                        <table className="w-full text-right text-xs">
+                      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded border border-border">
+                        <table className="w-full text-start text-xs">
+                          <caption className="sr-only">
+                            مقارنة قيم قائمة المراجعة الطبية بين المصدرين
+                          </caption>
                           <thead>
                             <tr className="border-b border-border bg-muted/50">
-                              <th className="px-2 py-2 font-semibold">تطابق</th>
+                              <th
+                                scope="col"
+                                className="px-2 py-2 font-semibold"
+                              >
+                                تطابق
+                              </th>
                               <th className="px-2 py-2 font-semibold">
                                 قيمة patientPageStates
                               </th>
@@ -644,23 +789,23 @@ export default function AdminDataSourceAudit() {
                                             ? "bg-success/15 text-success"
                                             : pageStateValue !== undefined &&
                                                 pageStateValue !== null
-                                              ? "bg-warning/20 text-warning"
+                                              ? "bg-warning/20 text-warning-text"
                                               : "bg-muted text-muted-foreground"
                                         }`}
                                       >
                                         {match
-                                          ? "✅"
+                                          ? "مطابق"
                                           : pageStateValue !== undefined &&
                                               pageStateValue !== null
-                                            ? "⚠️"
-                                            : "—"}
+                                            ? "يحتاج مراجعة"
+                                            : "غير متوفر"}
                                       </span>
                                     </td>
                                     <td className="px-2 py-2 font-mono">
-                                      {String(pageStateValue ?? "—")}
+                                      {String(pageStateValue ?? missingValue)}
                                     </td>
                                     <td className="px-2 py-2 font-mono">
-                                      {String(normalizedValue ?? "—")}
+                                      {String(normalizedValue ?? missingValue)}
                                     </td>
                                     <td className="px-2 py-2 font-semibold">
                                       {key}
@@ -673,7 +818,7 @@ export default function AdminDataSourceAudit() {
                         </table>
                       </div>
                     ) : (
-                      <Alert className="border-warning/30 bg-warning/10 text-warning">
+                      <Alert className="border-warning/30 bg-warning/10 text-warning-text">
                         <AlertDescription>
                           لا يوجد سجل checklist معياري
                           (examination_checklist_items) لهذا المريض
@@ -700,49 +845,49 @@ export default function AdminDataSourceAudit() {
                         <div className="flex justify-between">
                           <span>OD Sphere</span>
                           <span className="font-mono">
-                            {data.autoref.sphereOD || "—"}
+                            {data.autoref.sphereOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OD Cylinder</span>
                           <span className="font-mono">
-                            {data.autoref.cylinderOD || "—"}
+                            {data.autoref.cylinderOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OD Axis</span>
                           <span className="font-mono">
-                            {data.autoref.axisOD || "—"}
+                            {data.autoref.axisOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Sphere</span>
                           <span className="font-mono">
-                            {data.autoref.sphereOS || "—"}
+                            {data.autoref.sphereOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Cylinder</span>
                           <span className="font-mono">
-                            {data.autoref.cylinderOS || "—"}
+                            {data.autoref.cylinderOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Axis</span>
                           <span className="font-mono">
-                            {data.autoref.axisOS || "—"}
+                            {data.autoref.axisOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>IOP OD</span>
                           <span className="font-mono">
-                            {data.autoref.iopOD || "—"}
+                            {data.autoref.iopOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>IOP OS</span>
                           <span className="font-mono">
-                            {data.autoref.iopOS || "—"}
+                            {data.autoref.iopOS || missingValue}
                           </span>
                         </div>
                       </div>
@@ -759,37 +904,37 @@ export default function AdminDataSourceAudit() {
                         <div className="flex justify-between">
                           <span>OD Sphere</span>
                           <span className="font-mono">
-                            {data.afterRef.sphereOD || "—"}
+                            {data.afterRef.sphereOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OD Cylinder</span>
                           <span className="font-mono">
-                            {data.afterRef.cylinderOD || "—"}
+                            {data.afterRef.cylinderOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OD Axis</span>
                           <span className="font-mono">
-                            {data.afterRef.axisOD || "—"}
+                            {data.afterRef.axisOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Sphere</span>
                           <span className="font-mono">
-                            {data.afterRef.sphereOS || "—"}
+                            {data.afterRef.sphereOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Cylinder</span>
                           <span className="font-mono">
-                            {data.afterRef.cylinderOS || "—"}
+                            {data.afterRef.cylinderOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Axis</span>
                           <span className="font-mono">
-                            {data.afterRef.axisOS || "—"}
+                            {data.afterRef.axisOS || missingValue}
                           </span>
                         </div>
                       </div>
@@ -806,49 +951,49 @@ export default function AdminDataSourceAudit() {
                         <div className="flex justify-between">
                           <span>OD Sphere</span>
                           <span className="font-mono">
-                            {data.glasses.sOD || "—"}
+                            {data.glasses.sOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OD Cylinder</span>
                           <span className="font-mono">
-                            {data.glasses.cOD || "—"}
+                            {data.glasses.cOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OD Axis</span>
                           <span className="font-mono">
-                            {data.glasses.axisOD || "—"}
+                            {data.glasses.axisOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Sphere</span>
                           <span className="font-mono">
-                            {data.glasses.sOS || "—"}
+                            {data.glasses.sOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Cylinder</span>
                           <span className="font-mono">
-                            {data.glasses.cOS || "—"}
+                            {data.glasses.cOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>OS Axis</span>
                           <span className="font-mono">
-                            {data.glasses.axisOS || "—"}
+                            {data.glasses.axisOS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>PD OD</span>
                           <span className="font-mono">
-                            {data.glasses.pdOD || "—"}
+                            {data.glasses.pdOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>ADD OD</span>
                           <span className="font-mono">
-                            {data.glasses.addOD || "—"}
+                            {data.glasses.addOD || missingValue}
                           </span>
                         </div>
                       </div>
@@ -865,37 +1010,37 @@ export default function AdminDataSourceAudit() {
                         <div className="flex justify-between">
                           <span>K1 OD</span>
                           <span className="font-mono">
-                            {data.pentacam.k1OD || "—"}
+                            {data.pentacam.k1OD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>K2 OD</span>
                           <span className="font-mono">
-                            {data.pentacam.k2OD || "—"}
+                            {data.pentacam.k2OD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>K1 OS</span>
                           <span className="font-mono">
-                            {data.pentacam.k1OS || "—"}
+                            {data.pentacam.k1OS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>K2 OS</span>
                           <span className="font-mono">
-                            {data.pentacam.k2OS || "—"}
+                            {data.pentacam.k2OS || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Thinnest OD</span>
                           <span className="font-mono">
-                            {data.pentacam.thinnestPointOD || "—"}
+                            {data.pentacam.thinnestPointOD || missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Thinnest OS</span>
                           <span className="font-mono">
-                            {data.pentacam.thinnestPointOS || "—"}
+                            {data.pentacam.thinnestPointOS || missingValue}
                           </span>
                         </div>
                       </div>
@@ -912,19 +1057,19 @@ export default function AdminDataSourceAudit() {
                         <div>
                           <div className="font-semibold">التشخيص</div>
                           <div className="font-mono text-muted-foreground line-clamp-2">
-                            {data.doctorReport.diagnosis || "—"}
+                            {data.doctorReport.diagnosis || missingValue}
                           </div>
                         </div>
                         <div>
                           <div className="font-semibold">العلاج</div>
                           <div className="font-mono text-muted-foreground line-clamp-2">
-                            {data.doctorReport.treatment || "—"}
+                            {data.doctorReport.treatment || missingValue}
                           </div>
                         </div>
                         <div>
                           <div className="font-semibold">التوصيات</div>
                           <div className="font-mono text-muted-foreground line-clamp-2">
-                            {data.doctorReport.recommendations || "—"}
+                            {data.doctorReport.recommendations || missingValue}
                           </div>
                         </div>
                       </div>
@@ -945,13 +1090,13 @@ export default function AdminDataSourceAudit() {
                               ? new Date(
                                   String(data.testRequest.requestDate),
                                 ).toLocaleDateString("ar-EG")
-                              : "—"}
+                              : missingValue}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>الحالة</span>
                           <span className="font-mono">
-                            {data.testRequest.status || "—"}
+                            {data.testRequest.status || missingValue}
                           </span>
                         </div>
                       </div>
@@ -962,9 +1107,24 @@ export default function AdminDataSourceAudit() {
             })()}
 
           {auditQuery.error && (
-            <Alert className="border-destructive/30 bg-destructive/10 text-destructive">
-              <AlertDescription>
-                خطأ: {auditQuery.error.message}
+            <Alert
+              className="border-destructive/30 bg-destructive/10 text-destructive"
+              role="alert"
+            >
+              <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  تعذّر تحميل نتيجة التدقيق:{" "}
+                  {getTrpcErrorMessage(auditQuery.error, "حدث خطأ غير متوقع")}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => auditQuery.refetch()}
+                  disabled={auditQuery.isFetching}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                >
+                  {auditQuery.isFetching ? "جاري المحاولة…" : "إعادة المحاولة"}
+                </Button>
               </AlertDescription>
             </Alert>
           )}

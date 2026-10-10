@@ -27,36 +27,99 @@ const FOLLOWUP_TEXT_FIELDS: Array<{
   key: keyof FollowupTemplateConfig;
   label: string;
 }> = [
-  { key: "rtLabel", label: "RT Label" },
-  { key: "ltLabel", label: "LT Label" },
-  { key: "operationTypeLabel", label: "Operation Type Label" },
-  { key: "operationDateLabel", label: "Operation Date Label" },
-  { key: "nextFollowupLabel", label: "Next Follow-up Label" },
-  { key: "followupDateLabel", label: "Follow-up Date Label" },
-  { key: "vaLabel", label: "V.A Label" },
-  { key: "refractionLabel", label: "Refraction Label" },
-  { key: "flapLabel", label: "Flap Label" },
-  { key: "edgesLabel", label: "Edges Label" },
-  { key: "bedLabel", label: "Bed Label" },
-  { key: "iopLabel", label: "IOP Label" },
-  { key: "treatmentLabel", label: "Treatment Label" },
-  { key: "receptionLabel", label: "Reception Signature Label" },
-  { key: "nurseLabel", label: "Nurse Signature Label" },
-  { key: "doctorLabel", label: "Doctor Signature Label" },
+  { key: "rtLabel", label: "تسمية RT" },
+  { key: "ltLabel", label: "تسمية LT" },
+  { key: "operationTypeLabel", label: "تسمية نوع العملية" },
+  { key: "operationDateLabel", label: "تسمية تاريخ العملية" },
+  { key: "nextFollowupLabel", label: "تسمية المتابعة القادمة" },
+  { key: "followupDateLabel", label: "تسمية تاريخ المتابعة" },
+  { key: "vaLabel", label: "تسمية V.A" },
+  { key: "refractionLabel", label: "تسمية الانكسار" },
+  { key: "flapLabel", label: "تسمية Flap" },
+  { key: "edgesLabel", label: "تسمية الحواف" },
+  { key: "bedLabel", label: "تسمية Bed" },
+  { key: "iopLabel", label: "تسمية I.O.P" },
+  { key: "treatmentLabel", label: "تسمية العلاج" },
+  { key: "receptionLabel", label: "تسمية توقيع الاستقبال" },
+  { key: "nurseLabel", label: "تسمية توقيع التمريض" },
+  { key: "doctorLabel", label: "تسمية توقيع الطبيب" },
 ];
 
 const SHEET_TEMPLATE_FIELDS: Array<{
   key: keyof BaseSheetTemplateConfig;
   label: string;
 }> = [
-  { key: "sheetTitle", label: "Sheet Title" },
-  { key: "patientInfoTitle", label: "Patient Info Title" },
-  { key: "doctorLabel", label: "Doctor Label" },
-  { key: "examinationDateLabel", label: "Examination Date Label" },
-  { key: "notesLabel", label: "Notes Label" },
-  { key: "signatureLabel", label: "Signature Label" },
+  { key: "sheetTitle", label: "عنوان النموذج" },
+  { key: "patientInfoTitle", label: "عنوان بيانات المريض" },
+  { key: "doctorLabel", label: "تسمية الطبيب" },
+  { key: "examinationDateLabel", label: "تسمية تاريخ الفحص" },
+  { key: "notesLabel", label: "تسمية الملاحظات" },
+  { key: "signatureLabel", label: "تسمية التوقيع" },
 ];
 type FollowupKey = "followupConsultant" | "followupLasik";
+
+function validateConfig(config: SheetDesignerConfig): string | null {
+  const textFields = [
+    ...Object.values(config.templates).flatMap((template) =>
+      Object.values(template),
+    ),
+    ...[config.followupConsultant, config.followupLasik].flatMap((followup) =>
+      FOLLOWUP_TEXT_FIELDS.map(({ key }) => followup[key]),
+    ),
+    ...config.followupConsultant.followupNames,
+    ...config.followupLasik.followupNames,
+  ];
+
+  if (textFields.some((value) => !String(value).trim())) {
+    return "أكمل الحقول النصية قبل الحفظ.";
+  }
+
+  const numericFields = [
+    ...Object.entries(config.layout).flatMap(([sheet, layout]) => [
+      { label: `إزاحة X — ${sheet}`, value: layout.offsetXmm },
+      { label: `إزاحة Y — ${sheet}`, value: layout.offsetYmm },
+      { label: `المقياس — ${sheet}`, value: layout.scale },
+    ]),
+    {
+      label: "إزاحة X لمتابعة الاستشاري",
+      value: config.followupConsultant.offsetXmm,
+    },
+    {
+      label: "إزاحة Y لمتابعة الاستشاري",
+      value: config.followupConsultant.offsetYmm,
+    },
+    { label: "مقياس متابعة الاستشاري", value: config.followupConsultant.scale },
+    {
+      label: "فاصل جداول متابعة الاستشاري",
+      value: config.followupConsultant.tableGapMm,
+    },
+    { label: "إزاحة X لمتابعة الليزك", value: config.followupLasik.offsetXmm },
+    { label: "إزاحة Y لمتابعة الليزك", value: config.followupLasik.offsetYmm },
+    { label: "مقياس متابعة الليزك", value: config.followupLasik.scale },
+    {
+      label: "فاصل جداول متابعة الليزك",
+      value: config.followupLasik.tableGapMm,
+    },
+  ];
+
+  const invalidNumber = numericFields.find(
+    ({ value }) => !Number.isFinite(value),
+  );
+  if (invalidNumber) return `تحقق من قيمة ${invalidNumber.label}.`;
+
+  const invalidScale = numericFields.find(
+    ({ label, value }) => label.includes("مقياس") && value <= 0,
+  );
+  if (invalidScale)
+    return `يجب أن تكون قيمة ${invalidScale.label} أكبر من صفر.`;
+
+  const invalidGap = numericFields.find(
+    ({ label, value }) => label.includes("فاصل") && value < 0,
+  );
+  if (invalidGap) return `لا يمكن أن تكون قيمة ${invalidGap.label} سالبة.`;
+
+  return null;
+}
 
 export default function AdminSheetDesigner() {
   const { user, isAuthenticated } = useAuth();
@@ -67,6 +130,8 @@ export default function AdminSheetDesigner() {
   const [activeDesignerTab, setActiveDesignerTab] = useState(
     "consultant-followup",
   );
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<"saved" | "error" | "">("");
   const settingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "sheet_designer_config" },
     { enabled: isAuthenticated, refetchOnWindowFocus: false },
@@ -82,15 +147,52 @@ export default function AdminSheetDesigner() {
   }, []);
 
   useEffect(() => {
-    if (!settingsQuery.data?.value) return;
+    if (!settingsQuery.data?.value || hasUnsavedChanges) return;
     const merged = coerceSheetDesignerConfig(settingsQuery.data.value);
     setConfig(merged);
     saveSheetDesignerConfig(merged);
+    setHasUnsavedChanges(false);
+    setSaveFeedback("");
   }, [settingsQuery.data]);
 
   if (!isAuthenticated || user?.role !== "admin") return null;
 
+  if (settingsQuery.isLoading) {
+    return (
+      <div
+        className="mx-auto flex min-h-48 w-full max-w-[1440px] items-center justify-center rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground"
+        role="status"
+        aria-live="polite"
+      >
+        جارٍ تحميل إعدادات مصمّم النماذج…
+      </div>
+    );
+  }
+
+  if (settingsQuery.isError) {
+    return (
+      <div
+        className="mx-auto flex min-h-48 w-full max-w-[1440px] flex-col items-center justify-center gap-3 rounded-lg border border-destructive/40 bg-card p-6 text-center"
+        role="alert"
+      >
+        <p className="text-sm text-destructive">
+          تعذّر تحميل إعدادات مصمّم النماذج. لم يتم فتح المحرر لتجنب الكتابة فوق
+          إعدادات محفوظة.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => settingsQuery.refetch()}
+        >
+          إعادة المحاولة
+        </Button>
+      </div>
+    );
+  }
+
   const updateCss = (key: SheetCssKey, value: string) => {
+    setHasUnsavedChanges(true);
+    setSaveFeedback("");
     setConfig((prev) => ({ ...prev, css: { ...prev.css, [key]: value } }));
   };
 
@@ -99,6 +201,8 @@ export default function AdminSheetDesigner() {
     key: K,
     value: BaseSheetTemplateConfig[K],
   ) => {
+    setHasUnsavedChanges(true);
+    setSaveFeedback("");
     setConfig((prev) => ({
       ...prev,
       templates: {
@@ -113,6 +217,8 @@ export default function AdminSheetDesigner() {
     key: K,
     value: SheetLayoutConfig[K],
   ) => {
+    setHasUnsavedChanges(true);
+    setSaveFeedback("");
     setConfig((prev) => ({
       ...prev,
       layout: {
@@ -127,6 +233,8 @@ export default function AdminSheetDesigner() {
     key: K,
     value: FollowupTemplateConfig[K],
   ) => {
+    setHasUnsavedChanges(true);
+    setSaveFeedback("");
     setConfig((prev) => ({
       ...prev,
       [section]: { ...prev[section], [key]: value },
@@ -134,11 +242,17 @@ export default function AdminSheetDesigner() {
   };
 
   const renderFollowupTextFields = (section: FollowupKey) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {FOLLOWUP_TEXT_FIELDS.map((field) => (
         <div key={String(field.key)}>
-          <label className="text-sm font-medium">{field.label}</label>
+          <label
+            htmlFor={`followup-${section}-${String(field.key)}`}
+            className="text-sm font-medium"
+          >
+            {field.label}
+          </label>
           <Input
+            id={`followup-${section}-${String(field.key)}`}
             value={String(config[section][field.key])}
             onChange={(e) =>
               updateFollowup(section, field.key, e.target.value as any)
@@ -150,10 +264,16 @@ export default function AdminSheetDesigner() {
   );
 
   const renderFollowupNameFields = (section: FollowupKey) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
-        <label className="text-sm font-medium">Follow-up Name 1</label>
+        <label
+          htmlFor={`followup-${section}-name-1`}
+          className="text-sm font-medium"
+        >
+          اسم المتابعة 1
+        </label>
         <Input
+          id={`followup-${section}-name-1`}
           value={config[section].followupNames[0]}
           onChange={(e) =>
             updateFollowup(section, "followupNames", [
@@ -166,8 +286,14 @@ export default function AdminSheetDesigner() {
         />
       </div>
       <div>
-        <label className="text-sm font-medium">Follow-up Name 2</label>
+        <label
+          htmlFor={`followup-${section}-name-2`}
+          className="text-sm font-medium"
+        >
+          اسم المتابعة 2
+        </label>
         <Input
+          id={`followup-${section}-name-2`}
           value={config[section].followupNames[1]}
           onChange={(e) =>
             updateFollowup(section, "followupNames", [
@@ -180,8 +306,14 @@ export default function AdminSheetDesigner() {
         />
       </div>
       <div>
-        <label className="text-sm font-medium">Follow-up Name 3</label>
+        <label
+          htmlFor={`followup-${section}-name-3`}
+          className="text-sm font-medium"
+        >
+          اسم المتابعة 3
+        </label>
         <Input
+          id={`followup-${section}-name-3`}
           value={config[section].followupNames[2]}
           onChange={(e) =>
             updateFollowup(section, "followupNames", [
@@ -194,8 +326,14 @@ export default function AdminSheetDesigner() {
         />
       </div>
       <div>
-        <label className="text-sm font-medium">Follow-up Name 4</label>
+        <label
+          htmlFor={`followup-${section}-name-4`}
+          className="text-sm font-medium"
+        >
+          اسم المتابعة 4
+        </label>
         <Input
+          id={`followup-${section}-name-4`}
           value={config[section].followupNames[3]}
           onChange={(e) =>
             updateFollowup(section, "followupNames", [
@@ -214,12 +352,16 @@ export default function AdminSheetDesigner() {
     section: FollowupKey,
     labelPrefix = "",
   ) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
-        <label className="text-sm font-medium">
-          {labelPrefix}Offset X (mm)
+        <label
+          htmlFor={`followup-${section}-offset-x`}
+          className="text-sm font-medium"
+        >
+          {labelPrefix}الإزاحة الأفقية (مم)
         </label>
         <Input
+          id={`followup-${section}-offset-x`}
           type="number"
           step="1"
           value={config[section].offsetXmm}
@@ -229,10 +371,14 @@ export default function AdminSheetDesigner() {
         />
       </div>
       <div>
-        <label className="text-sm font-medium">
-          {labelPrefix}Offset Y (mm)
+        <label
+          htmlFor={`followup-${section}-offset-y`}
+          className="text-sm font-medium"
+        >
+          {labelPrefix}الإزاحة الرأسية (مم)
         </label>
         <Input
+          id={`followup-${section}-offset-y`}
           type="number"
           step="1"
           value={config[section].offsetYmm}
@@ -242,10 +388,17 @@ export default function AdminSheetDesigner() {
         />
       </div>
       <div>
-        <label className="text-sm font-medium">{labelPrefix}Scale</label>
+        <label
+          htmlFor={`followup-${section}-scale`}
+          className="text-sm font-medium"
+        >
+          {labelPrefix}المقياس
+        </label>
         <Input
+          id={`followup-${section}-scale`}
           type="number"
           step="0.01"
+          min="0.01"
           value={config[section].scale}
           onChange={(e) =>
             updateFollowup(section, "scale", Number(e.target.value) || 1)
@@ -253,12 +406,17 @@ export default function AdminSheetDesigner() {
         />
       </div>
       <div>
-        <label className="text-sm font-medium">
-          Gap Between Follow-up Tables (mm)
+        <label
+          htmlFor={`followup-${section}-table-gap`}
+          className="text-sm font-medium"
+        >
+          {labelPrefix}الفاصل بين جداول المتابعة (مم)
         </label>
         <Input
+          id={`followup-${section}-table-gap`}
           type="number"
           step="1"
+          min="0"
           value={config[section].tableGapMm}
           onChange={(e) =>
             updateFollowup(section, "tableGapMm", Number(e.target.value) || 0)
@@ -269,28 +427,48 @@ export default function AdminSheetDesigner() {
   );
 
   const handleSave = async () => {
+    const validationError = validateConfig(config);
+    if (validationError) {
+      setSaveFeedback("error");
+      toast.error(validationError);
+      return;
+    }
+
     try {
       await updateSettingMutation.mutateAsync({
         key: "sheet_designer_config",
         value: config,
       });
       saveSheetDesignerConfig(config);
+      setHasUnsavedChanges(false);
+      setSaveFeedback("saved");
       toast.success("تم حفظ إعدادات مصمّم النماذج.");
     } catch {
+      setSaveFeedback("error");
       toast.error("تعذّر حفظ إعدادات مصمّم النماذج.");
     }
   };
 
   const handleReset = async () => {
+    if (
+      !window.confirm(
+        "سيؤدي هذا إلى استبدال التعديلات الحالية بالقيم الافتراضية. هل تريد المتابعة؟",
+      )
+    )
+      return;
+
     try {
-      setConfig(DEFAULT_SHEET_DESIGNER_CONFIG);
       await updateSettingMutation.mutateAsync({
         key: "sheet_designer_config",
         value: DEFAULT_SHEET_DESIGNER_CONFIG,
       });
+      setConfig(DEFAULT_SHEET_DESIGNER_CONFIG);
       saveSheetDesignerConfig(DEFAULT_SHEET_DESIGNER_CONFIG);
+      setHasUnsavedChanges(false);
+      setSaveFeedback("saved");
       toast.success("تمت إعادة الإعدادات إلى الافتراضي.");
     } catch {
+      setSaveFeedback("error");
       toast.error("تعذّرت إعادة الإعدادات إلى الافتراضي.");
     }
   };
@@ -378,6 +556,7 @@ export default function AdminSheetDesigner() {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveDesignerTab(item.id)}
+                aria-pressed={activeDesignerTab === item.id}
                 className={`flex w-full items-center justify-between gap-3 rounded-md border p-3 text-right transition-colors ${
                   activeDesignerTab === item.id
                     ? "border-primary/40 bg-primary/[0.06] shadow-sm"
@@ -437,21 +616,40 @@ export default function AdminSheetDesigner() {
           <p className="text-sm text-muted-foreground">
             بعد الحفظ تُحدَّث المعاينة لهذا الجهاز؛ راجع الطباعة قبل التوزيع.
           </p>
+          <p
+            className="text-xs text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            {hasUnsavedChanges
+              ? "توجد تعديلات غير محفوظة."
+              : saveFeedback === "saved"
+                ? "تم حفظ آخر تعديل."
+                : saveFeedback === "error"
+                  ? "لم يتم حفظ آخر تعديل."
+                  : "كل التعديلات الحالية محفوظة."}
+          </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button
+            type="button"
             className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
             onClick={handleSave}
             disabled={updateSettingMutation.isPending}
+            aria-busy={updateSettingMutation.isPending}
           >
             {updateSettingMutation.isPending ? "جاري الحفظ…" : "حفظ الكل"}
           </Button>
           <Button
+            type="button"
             variant="outline"
             onClick={handleReset}
             disabled={updateSettingMutation.isPending}
+            aria-busy={updateSettingMutation.isPending}
           >
-            إعادة افتراضي
+            {updateSettingMutation.isPending
+              ? "جاري إعادة الضبط…"
+              : "إعادة الضبط"}
           </Button>
         </CardContent>
       </Card>
@@ -462,7 +660,7 @@ export default function AdminSheetDesigner() {
         persistKey="admin-sheet-designer"
         className="w-full"
       >
-        <TabsList className="flex h-auto min-h-[2.75rem] w-full flex-wrap gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1.5 [scrollbar-width:none]">
+        <TabsList className="flex h-auto min-h-[2.75rem] w-full flex-nowrap gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1.5 [scrollbar-width:none]">
           <TabsTrigger
             value="consultant-followup"
             className="shrink-0 rounded-lg text-xs sm:text-sm"
@@ -550,11 +748,18 @@ export default function AdminSheetDesigner() {
               <CardTitle>القالب — استشاري</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {SHEET_TEMPLATE_FIELDS.map((field) => (
                   <div key={`consultant-${String(field.key)}`}>
-                    <label className="text-sm font-medium">{field.label}</label>
+                    <label
+                      htmlFor={`template-consultant-${String(field.key)}`}
+                      className="text-sm font-medium"
+                    >
+                      {field.label}
+                    </label>
                     <Input
+                      id={`template-consultant-${String(field.key)}`}
+                      aria-label={field.label}
                       value={String(config.templates.consultant[field.key])}
                       onChange={(e) =>
                         updateTemplate(
@@ -567,12 +772,15 @@ export default function AdminSheetDesigner() {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                 <div>
-                  <label className="text-sm font-medium">Offset X (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الأفقية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الأفقية (مم)"
                     value={config.layout.consultant.offsetXmm}
                     onChange={(e) =>
                       updateLayout(
@@ -584,10 +792,13 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Offset Y (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الرأسية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الرأسية (مم)"
                     value={config.layout.consultant.offsetYmm}
                     onChange={(e) =>
                       updateLayout(
@@ -599,10 +810,12 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Scale</label>
+                  <label className="text-sm font-medium">المقياس</label>
                   <Input
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    aria-label="المقياس"
                     value={config.layout.consultant.scale}
                     onChange={(e) =>
                       updateLayout(
@@ -624,11 +837,12 @@ export default function AdminSheetDesigner() {
               <CardTitle>القالب — متخصص</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {SHEET_TEMPLATE_FIELDS.map((field) => (
                   <div key={`specialist-${String(field.key)}`}>
                     <label className="text-sm font-medium">{field.label}</label>
                     <Input
+                      aria-label={field.label}
                       value={String(config.templates.specialist[field.key])}
                       onChange={(e) =>
                         updateTemplate(
@@ -641,12 +855,15 @@ export default function AdminSheetDesigner() {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                 <div>
-                  <label className="text-sm font-medium">Offset X (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الأفقية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الأفقية (مم)"
                     value={config.layout.specialist.offsetXmm}
                     onChange={(e) =>
                       updateLayout(
@@ -658,10 +875,13 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Offset Y (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الرأسية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الرأسية (مم)"
                     value={config.layout.specialist.offsetYmm}
                     onChange={(e) =>
                       updateLayout(
@@ -673,10 +893,12 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Scale</label>
+                  <label className="text-sm font-medium">المقياس</label>
                   <Input
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    aria-label="المقياس"
                     value={config.layout.specialist.scale}
                     onChange={(e) =>
                       updateLayout(
@@ -699,13 +921,14 @@ export default function AdminSheetDesigner() {
                 <CardTitle>القالب — ليزك</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {SHEET_TEMPLATE_FIELDS.map((field) => (
                     <div key={`lasik-${String(field.key)}`}>
                       <label className="text-sm font-medium">
                         {field.label}
                       </label>
                       <Input
+                        aria-label={field.label}
                         value={String(config.templates.lasik[field.key])}
                         onChange={(e) =>
                           updateTemplate(
@@ -718,12 +941,15 @@ export default function AdminSheetDesigner() {
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                   <div>
-                    <label className="text-sm font-medium">Offset X (mm)</label>
+                    <label className="text-sm font-medium">
+                      الإزاحة الأفقية (مم)
+                    </label>
                     <Input
                       type="number"
                       step="1"
+                      aria-label="الإزاحة الأفقية (مم)"
                       value={config.layout.lasik.offsetXmm}
                       onChange={(e) =>
                         updateLayout(
@@ -735,10 +961,13 @@ export default function AdminSheetDesigner() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Offset Y (mm)</label>
+                    <label className="text-sm font-medium">
+                      الإزاحة الرأسية (مم)
+                    </label>
                     <Input
                       type="number"
                       step="1"
+                      aria-label="الإزاحة الرأسية (مم)"
                       value={config.layout.lasik.offsetYmm}
                       onChange={(e) =>
                         updateLayout(
@@ -750,10 +979,12 @@ export default function AdminSheetDesigner() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Scale</label>
+                    <label className="text-sm font-medium">المقياس</label>
                     <Input
                       type="number"
                       step="0.01"
+                      min="0.01"
+                      aria-label="المقياس"
                       value={config.layout.lasik.scale}
                       onChange={(e) =>
                         updateLayout(
@@ -777,7 +1008,7 @@ export default function AdminSheetDesigner() {
                 </p>
                 {renderFollowupTextFields("followupLasik")}
                 {renderFollowupNameFields("followupLasik")}
-                {renderFollowupLayoutFields("followupLasik", "Follow-up ")}
+                {renderFollowupLayoutFields("followupLasik", "متابعة ")}
               </CardContent>
             </Card>
           </div>
@@ -789,11 +1020,12 @@ export default function AdminSheetDesigner() {
               <CardTitle>القالب — خارجي</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {SHEET_TEMPLATE_FIELDS.map((field) => (
                   <div key={`external-${String(field.key)}`}>
                     <label className="text-sm font-medium">{field.label}</label>
                     <Input
+                      aria-label={field.label}
                       value={String(config.templates.external[field.key])}
                       onChange={(e) =>
                         updateTemplate(
@@ -806,12 +1038,15 @@ export default function AdminSheetDesigner() {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                 <div>
-                  <label className="text-sm font-medium">Offset X (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الأفقية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الأفقية (مم)"
                     value={config.layout.external.offsetXmm}
                     onChange={(e) =>
                       updateLayout(
@@ -823,10 +1058,13 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Offset Y (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الرأسية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الرأسية (مم)"
                     value={config.layout.external.offsetYmm}
                     onChange={(e) =>
                       updateLayout(
@@ -838,10 +1076,12 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Scale</label>
+                  <label className="text-sm font-medium">المقياس</label>
                   <Input
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    aria-label="المقياس"
                     value={config.layout.external.scale}
                     onChange={(e) =>
                       updateLayout(
@@ -863,11 +1103,12 @@ export default function AdminSheetDesigner() {
               <CardTitle>القالب — Pentacam</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {SHEET_TEMPLATE_FIELDS.map((field) => (
                   <div key={`pentacam-${String(field.key)}`}>
                     <label className="text-sm font-medium">{field.label}</label>
                     <Input
+                      aria-label={field.label}
                       value={String(config.templates.pentacam[field.key])}
                       onChange={(e) =>
                         updateTemplate(
@@ -880,10 +1121,13 @@ export default function AdminSheetDesigner() {
                   </div>
                 ))}
                 <div>
-                  <label className="text-sm font-medium">Offset X (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الأفقية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الأفقية (مم)"
                     value={config.layout.pentacam.offsetXmm}
                     onChange={(e) =>
                       updateLayout(
@@ -895,10 +1139,13 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Offset Y (mm)</label>
+                  <label className="text-sm font-medium">
+                    الإزاحة الرأسية (مم)
+                  </label>
                   <Input
                     type="number"
                     step="1"
+                    aria-label="الإزاحة الرأسية (مم)"
                     value={config.layout.pentacam.offsetYmm}
                     onChange={(e) =>
                       updateLayout(
@@ -910,10 +1157,12 @@ export default function AdminSheetDesigner() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Scale</label>
+                  <label className="text-sm font-medium">المقياس</label>
                   <Input
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    aria-label="المقياس"
                     value={config.layout.pentacam.scale}
                     onChange={(e) =>
                       updateLayout(
@@ -932,11 +1181,19 @@ export default function AdminSheetDesigner() {
         <TabsContent value="consultant-css" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Consultant Sheet Custom CSS</CardTitle>
+              <CardTitle>CSS مخصّص — كشف استشاري</CardTitle>
             </CardHeader>
             <CardContent>
+              <label
+                htmlFor="css-consultant"
+                className="mb-2 block text-sm font-medium"
+              >
+                أنماط CSS المخصّصة
+              </label>
               <Textarea
-                className="min-h-[320px] font-mono text-xs"
+                id="css-consultant"
+                aria-label="CSS مخصّص — كشف استشاري"
+                className="min-h-[240px] font-mono text-xs sm:min-h-[320px]"
                 value={config.css.consultant}
                 onChange={(e) => updateCss("consultant", e.target.value)}
                 placeholder=".sheet-layout .some-class { font-size: 12px; }"
@@ -952,8 +1209,16 @@ export default function AdminSheetDesigner() {
               <CardTitle>CSS مخصّص — متخصص</CardTitle>
             </CardHeader>
             <CardContent>
+              <label
+                htmlFor="css-specialist"
+                className="mb-2 block text-sm font-medium"
+              >
+                أنماط CSS المخصّصة
+              </label>
               <Textarea
-                className="min-h-[320px] font-mono text-xs"
+                id="css-specialist"
+                aria-label="CSS مخصّص — متخصص"
+                className="min-h-[240px] font-mono text-xs sm:min-h-[320px]"
                 value={config.css.specialist}
                 onChange={(e) => updateCss("specialist", e.target.value)}
                 placeholder=".sheet-layout .some-class { font-size: 12px; }"
@@ -969,8 +1234,16 @@ export default function AdminSheetDesigner() {
               <CardTitle>CSS مخصّص — ليزك</CardTitle>
             </CardHeader>
             <CardContent>
+              <label
+                htmlFor="css-lasik"
+                className="mb-2 block text-sm font-medium"
+              >
+                أنماط CSS المخصّصة
+              </label>
               <Textarea
-                className="min-h-[320px] font-mono text-xs"
+                id="css-lasik"
+                aria-label="CSS مخصّص — ليزك"
+                className="min-h-[240px] font-mono text-xs sm:min-h-[320px]"
                 value={config.css.lasik}
                 onChange={(e) => updateCss("lasik", e.target.value)}
                 placeholder=".sheet-layout .some-class { font-size: 12px; }"
@@ -986,8 +1259,16 @@ export default function AdminSheetDesigner() {
               <CardTitle>CSS مخصّص — خارجي</CardTitle>
             </CardHeader>
             <CardContent>
+              <label
+                htmlFor="css-external"
+                className="mb-2 block text-sm font-medium"
+              >
+                أنماط CSS المخصّصة
+              </label>
               <Textarea
-                className="min-h-[320px] font-mono text-xs"
+                id="css-external"
+                aria-label="CSS مخصّص — خارجي"
+                className="min-h-[240px] font-mono text-xs sm:min-h-[320px]"
                 value={config.css.external}
                 onChange={(e) => updateCss("external", e.target.value)}
                 placeholder=".sheet-layout .some-class { font-size: 12px; }"
@@ -1003,8 +1284,16 @@ export default function AdminSheetDesigner() {
               <CardTitle>CSS مخصّص — Pentacam</CardTitle>
             </CardHeader>
             <CardContent>
+              <label
+                htmlFor="css-pentacam"
+                className="mb-2 block text-sm font-medium"
+              >
+                أنماط CSS المخصّصة
+              </label>
               <Textarea
-                className="min-h-[320px] font-mono text-xs"
+                id="css-pentacam"
+                aria-label="CSS مخصّص — Pentacam"
+                className="min-h-[240px] font-mono text-xs sm:min-h-[320px]"
                 value={config.css.pentacam}
                 onChange={(e) => updateCss("pentacam", e.target.value)}
                 placeholder=".pentacam-template-shell { transform: scale(0.98); }"

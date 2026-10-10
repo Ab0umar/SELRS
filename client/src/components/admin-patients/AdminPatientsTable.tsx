@@ -111,7 +111,7 @@ function AdminPatientTransactions({
     return <div className="text-xs text-muted-foreground">لا توجد تعاملات</div>;
 
   return (
-    <div className="space-y-1 text-right text-xs" dir="rtl">
+    <div className="space-y-1 text-start text-xs" dir="rtl">
       {rows.map((entry) => {
         const rawEntry = entry as unknown as {
           id?: string | number;
@@ -338,12 +338,12 @@ const AdminPatientCard = memo(function AdminPatientCard({
               )}
             </Button>
           </div>
-          <Input
+          <Input aria-label="الاسم"
             value={draft.fullName}
             onChange={(event) =>
               onSetDraftField(patient, "fullName", event.target.value)
             }
-            className="rounded-lg text-right text-sm"
+            className="rounded-lg text-start text-sm"
             placeholder="الاسم"
           />
         </div>
@@ -351,7 +351,7 @@ const AdminPatientCard = memo(function AdminPatientCard({
       <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-2 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs">
         <div className="text-muted-foreground">الطبيب</div>
         <div className="text-foreground">
-          <Input
+          <Input aria-label="اسم الطبيب"
             value={draft.treatingDoctor}
             onChange={(event) =>
               onSetDraftField(patient, "treatingDoctor", event.target.value)
@@ -417,7 +417,7 @@ const AdminPatientCard = memo(function AdminPatientCard({
           className={
             manualLockEnabled
               ? "rounded-lg border-secondary/50 bg-secondary text-xs font-bold text-secondary-foreground shadow-sm hover:bg-secondary/80"
-              : "rounded-lg border-warning/50 bg-warning/20 text-xs font-bold text-warning hover:bg-warning/30"
+              : "rounded-lg border-warning/50 bg-warning/20 text-xs font-bold text-warning-text hover:bg-warning/30"
           }
           onClick={() => onToggleManualLock(patient)}
           disabled={savePatientPageStatePending}
@@ -541,7 +541,7 @@ const AdminPatientRow = memo(function AdminPatientRow({
                 onChange={(event) =>
                   onSetDraftField(patient, "fullName", event.target.value)
                 }
-                className="min-w-0 rounded-lg text-right"
+                className="min-w-0 rounded-lg text-start"
               />
             </div>
             {expanded ? (
@@ -577,12 +577,12 @@ const AdminPatientRow = memo(function AdminPatientRow({
           </div>
         </TableCell>
         <TableCell className="min-w-[210px]">
-          <Input
+          <Input aria-label="اسم الطبيب"
             value={draft.treatingDoctor}
             onChange={(event) =>
               onSetDraftField(patient, "treatingDoctor", event.target.value)
             }
-            className="rounded-lg text-right"
+            className="rounded-lg text-start"
             placeholder="اسم الطبيب"
           />
         </TableCell>
@@ -610,7 +610,7 @@ const AdminPatientRow = memo(function AdminPatientRow({
             className={
               manualLockEnabled
                 ? "rounded-lg border-secondary/50 bg-secondary font-bold text-secondary-foreground shadow-sm hover:bg-secondary/80"
-                : "rounded-lg border-warning/50 bg-warning/20 font-bold text-warning hover:bg-warning/30"
+                : "rounded-lg border-warning/50 bg-warning/20 font-bold text-warning-text hover:bg-warning/30"
             }
             onClick={() => onToggleManualLock(patient)}
             disabled={savePatientPageStatePending}
@@ -878,7 +878,7 @@ function AdminPatientsTableComponent({
           className="w-full rounded-xl border border-border"
           dir="rtl"
         >
-          <Table className="w-full table-auto text-right">
+          <Table className="w-full table-auto text-start">
             <TableHeader>
               <TableRow className="sticky top-0 z-10 border-b bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-10 py-4 text-center">
@@ -911,7 +911,7 @@ function AdminPatientsTableComponent({
           </Table>
 
           <div className="w-full overflow-x-auto">
-            <Table className="w-full table-auto text-right">
+            <Table className="w-full table-auto text-start">
               <TableBody>
                 {patientsLoading ? (
                   <TableRow>

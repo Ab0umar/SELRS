@@ -27,6 +27,7 @@ import {
   UserCheck,
   Hospital,
   Search,
+  X,
   Zap,
 } from "lucide-react";
 import AdminUsers from "./AdminUsers";
@@ -60,6 +61,8 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import "./AdminHubShell.css";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type HubCategory = "all" | "staff" | "services" | "portal" | "system";
 
@@ -81,7 +84,6 @@ const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
 ];
 
 const ALL_MODULES: HubModuleCard[] = [
-  // 1. Staff & Permissions
   {
     href: "/admin-hub/users",
     label: "المستخدمين",
@@ -123,7 +125,6 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
 
-  // 2. Services & Sheets
   {
     href: "/admin-hub/services",
     label: "ربط الخدمات",
@@ -157,7 +158,7 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/pentacam",
+    href: "/admin-hub/pentacam-linking",
     label: "البنتاكام",
     helper: "شيت وصور الأشعة وربط الملفات وتدقيق التكرار",
     icon: Hospital,
@@ -165,7 +166,6 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
 
-  // 3. Patients & Portal
   {
     href: "/admin-hub/patients",
     label: "سجل المرضى الكلي",
@@ -199,7 +199,6 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "portal",
   },
 
-  // 4. System & Dev
   {
     href: "/admin-hub/status",
     label: "حالة السيرفر",
@@ -278,13 +277,36 @@ type AdminHubShellProps = {
   basePath?: string;
 };
 
+const HUB_ROUTE_ALIASES: Record<string, string> = {
+  "/admin-hub/forms": "/admin-hub/sheets",
+  "/admin-hub/sheet-copies": "/admin-hub/sheets",
+  "/admin-hub/pentacam": "/admin-hub/pentacam-linking",
+};
+
+const normalizeHubRoute = (path: string) => {
+  const cleanPath = path.replace(/\/+$/, "") || "/admin-hub";
+  const alias = Object.entries(HUB_ROUTE_ALIASES).find(
+    ([source]) => cleanPath === source || cleanPath.startsWith(`${source}/`),
+  );
+  if (!alias) return cleanPath;
+  return `${alias[1]}${cleanPath.slice(alias[0].length)}`;
+};
+
+const getRoutePermissionPath = (path: string) => normalizeHubRoute(path);
+
 export default function AdminHubShell({
   basePath = "/admin-hub",
 }: AdminHubShellProps) {
   const [location, setLocation] = useLocation();
   const [activeCategory, setActiveCategory] = useState<HubCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const { canAccess } = usePermissions();
+  const {
+    canAccess,
+    isLoaded: permissionsLoaded,
+    isLoading: permissionsLoading,
+    isError: permissionsError,
+    refetch: refetchPermissions,
+  } = usePermissions();
 
   const hubLocation =
     basePath === "/admin-hub"
@@ -295,10 +317,11 @@ export default function AdminHubShell({
           ? `/admin-hub${location.slice(basePath.length)}`
           : location;
 
-  const isHubHome =
-    hubLocation === "/admin-hub" || hubLocation === "/admin-hub/";
+  const normalizedHubLocation = normalizeHubRoute(hubLocation);
+  const isHubHome = normalizedHubLocation === "/admin-hub";
 
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
+    enabled: isHubHome,
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
@@ -306,8 +329,11 @@ export default function AdminHubShell({
   const opsHealth = opsHealthQuery.data;
 
   const accessibleModules = useMemo(
-    () => ALL_MODULES.filter((item) => canAccess(item.href)),
-    [canAccess],
+    () =>
+      permissionsLoaded
+        ? ALL_MODULES.filter((item) => canAccess(item.href))
+        : [],
+    [canAccess, permissionsLoaded],
   );
 
   const filteredModules = useMemo(() => {
@@ -323,27 +349,31 @@ export default function AdminHubShell({
   }, [accessibleModules, activeCategory, searchQuery]);
 
   const currentModule = useMemo(() => {
-    return ALL_MODULES.find((m) => m.href === hubLocation);
-  }, [hubLocation]);
+    return ALL_MODULES.find(
+      (m) =>
+        normalizedHubLocation === m.href ||
+        normalizedHubLocation.startsWith(`${m.href}/`),
+    );
+  }, [normalizedHubLocation]);
 
   const renderComponent = () => {
-    const loc = hubLocation.replace(/\/$/, "");
+    const loc = normalizedHubLocation;
     if (loc === "/admin-hub/users") return <AdminUsers />;
     if (loc === "/admin-hub/migrations") return <AdminMigrations />;
     if (loc === "/admin-hub/api") return <AdminApiTools />;
     if (loc === "/admin-hub/status") return <AdminStatus />;
     if (loc === "/admin-hub/settings/pricing-rules")
       return <AdminSettings pricingOnly />;
-    if (loc === "/admin-hub/settings") return <AdminStatus />;
+    if (loc === "/admin-hub/settings") return <AdminSettings />;
     if (loc === "/admin-hub/permissions") return <AdminPermissions />;
-    if (
-      loc === "/admin-hub/sheets" ||
-      loc === "/admin-hub/forms" ||
-      loc === "/admin-hub/sheet-copies"
-    )
-      return <AdminSheets />;
+    if (loc === "/admin-hub/sheets") return <AdminSheets />;
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
     if (loc === "/admin-hub/doctors") return <AdminDoctors />;
+    if (
+      loc === "/admin-hub/pentacam-linking" ||
+      loc.startsWith("/admin-hub/pentacam-linking/")
+    )
+      return <PentacamPage defaultTab="linking" embeddedInHub />;
     if (loc === "/admin-hub/pentacam-failed")
       return <PentacamPage defaultTab="failed" embeddedInHub />;
     if (loc === "/admin-hub/patients") return <AdminPatients />;
@@ -352,11 +382,6 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/whatsapp-inbox") return <AdminWhatsAppInbox />;
     if (loc === "/admin-hub/op-history")
       return <PatientsRecordsPage defaultTab="op" embeddedInHub />;
-    if (
-      loc === "/admin-hub/pentacam-linking" ||
-      loc.startsWith("/admin-hub/pentacam-linking/")
-    )
-      return <PentacamPage defaultTab="linking" embeddedInHub />;
     if (loc === "/admin-hub/pentacam-duplicates")
       return <PentacamPage defaultTab="duplicates" embeddedInHub />;
     if (loc === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
@@ -373,62 +398,117 @@ export default function AdminHubShell({
     return null;
   };
 
+  const renderedComponent = isHubHome ? null : renderComponent();
+  const isKnownAdminRoute = renderedComponent !== null;
+  const currentRouteAllowed =
+    isHubHome ||
+    !isKnownAdminRoute ||
+    (permissionsLoaded &&
+      !permissionsError &&
+      canAccess(getRoutePermissionPath(normalizedHubLocation)));
+
   const cardClassName =
-    "group flex min-h-[116px] w-full flex-col justify-between rounded-xl border border-border/60 bg-card p-3 text-right transition-colors hover:border-primary/40 hover:bg-muted/30 active:bg-muted sm:min-h-[138px] sm:rounded-2xl sm:p-4";
+    "group flex min-h-20 w-full items-start gap-3 border-b border-border px-2 py-4 text-start transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+  const hasHomeFilters =
+    activeCategory !== "all" || Boolean(searchQuery.trim());
 
   return (
-    <div className="min-h-screen bg-background pb-16 text-foreground" dir="rtl">
-      <main className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <div
+      data-admin-hub
+      className="exact-admin-hub min-h-screen min-w-0 bg-background text-foreground"
+      dir="rtl"
+    >
+      <main className="w-full px-2 py-3 sm:px-4 sm:py-4">
         {isHubHome ? (
           <section className="space-y-6">
-            {/* Header & Live System Status */}
             <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="mb-1.5 text-[10px] font-black tracking-[0.16em] text-primary">
-                  ADMINISTRATION HUB
-                </div>
-                <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
+                <h1 className="text-2xl font-semibold text-foreground">
                   مركز الإدارة والتحكم
-                </h2>
-                <p className="mt-1 text-xs font-bold text-muted-foreground sm:text-sm">
-                  أدوات التحكم والإعدادات المتقدمة وصيانة المنظومة في مكان واحد
-                </p>
+                </h1>
               </div>
 
-              {/* Status Capsules */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground">
+              <div
+                className="flex flex-wrap items-center gap-2"
+                aria-label="حالة النظام"
+              >
+                <div
+                  className="flex min-h-11 items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   <span
                     className={cn(
-                      "size-2.5 rounded-full shadow-xs",
-                      opsHealth?.dbConnected ? "bg-emerald-500" : "bg-rose-500",
+                      "size-2.5 rounded-full",
+                      !opsHealth
+                        ? "bg-muted-foreground"
+                        : opsHealth.dbConnected
+                          ? "bg-success"
+                          : "bg-destructive",
                     )}
                   />
                   <span>
                     قاعدة البيانات:{" "}
-                    {opsHealth?.dbConnected ? "متصلة" : "منفصلة"}
+                    {opsHealthQuery.isError
+                      ? "تعذر التحقق"
+                      : !opsHealth
+                        ? "جارٍ التحقق"
+                        : opsHealth.dbConnected
+                          ? "متصلة"
+                          : "منفصلة"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground">
+                <div
+                  className="flex min-h-11 items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   <Zap className="size-3.5 text-emerald-600" />
                   <span>
                     النفق الآمن:{" "}
-                    {opsHealth?.tunnelConnected ? "نشط" : "غير نشط"}
+                    {opsHealthQuery.isError
+                      ? "تعذر التحقق"
+                      : !opsHealth
+                        ? "جارٍ التحقق"
+                        : opsHealth.tunnelConnected
+                          ? "نشط"
+                          : "غير نشط"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground font-mono">
+                <div
+                  className="flex min-h-11 items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground font-mono"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   <span>
                     مرضى اليوم:{" "}
-                    {(opsHealth?.patientsCount ?? 0).toLocaleString("ar-EG")}
+                    {opsHealthQuery.isError
+                      ? "تعذر تحميل العدد"
+                      : (opsHealth?.patientsCount?.toLocaleString("ar-EG") ??
+                        "جارٍ تحميل العدد")}
                   </span>
                 </div>
+                {opsHealthQuery.isError && (
+                  <Button variant="bare"
+                    type="button"
+                    onClick={() => void opsHealthQuery.refetch()}
+                    className="min-h-11 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    إعادة المحاولة
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Filter Pills & Quick Search */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
-              {/* Category Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
+              <div
+                className="flex flex-wrap items-center gap-1.5 max-w-full"
+                role="group"
+                aria-label="تصفية أقسام الإدارة"
+              >
                 {CATEGORIES.map((cat) => {
                   const CatIcon = cat.icon;
                   const active = activeCategory === cat.id;
@@ -438,12 +518,13 @@ export default function AdminHubShell({
                       : accessibleModules.filter((m) => m.category === cat.id)
                           .length;
                   return (
-                    <button
+                    <Button variant="bare"
                       key={cat.id}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => setActiveCategory(cat.id)}
                       className={cn(
-                        "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 border whitespace-nowrap",
+                        "min-h-11 px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         active
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -453,83 +534,142 @@ export default function AdminHubShell({
                       <span>{cat.label}</span>
                       <span
                         className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                          "px-2 py-0.5 rounded-full text-[13px] font-bold",
                           active
-                            ? "bg-white/20 text-white"
+                            ? "bg-primary-foreground/10 text-primary-foreground"
                             : "bg-muted text-muted-foreground",
                         )}
                       >
                         {count}
                       </span>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
 
-              {/* Quick Search Input */}
-              <div className="relative min-w-[240px]">
-                <Search className="size-4 text-muted-foreground absolute right-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="بحث سريع في البطاقات والأدوات…"
+              <div className="relative w-full sm:w-64 sm:shrink-0">
+                <Search
+                  aria-hidden="true"
+                  className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input bare
+                  type="search"
+                  aria-label="بحث في أدوات الإدارة"
+                  placeholder="بحث في أدوات الإدارة"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-border/60 bg-card py-2 pl-3 pr-9 text-xs font-bold text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="min-h-11 w-full rounded-md border border-input bg-card py-2 pe-3 ps-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
+                {searchQuery && (
+                  <Button variant="bare"
+                    type="button"
+                    aria-label="مسح البحث"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute end-0 top-0 flex min-h-11 min-w-11 items-center justify-center text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <X aria-hidden="true" className="size-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Grid of Branded Cards matching main home */}
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-6">
-              {filteredModules.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <Link
-                    key={card.href}
-                    href={card.href}
-                    className={cardClassName}
+            {permissionsLoading ? (
+              <p
+                role="status"
+                aria-live="polite"
+                className="py-6 text-sm text-muted-foreground"
+              >
+                جارٍ تحميل أدوات الإدارة…
+              </p>
+            ) : permissionsError ? (
+              <div
+                role="alert"
+                className="space-y-3 py-6 text-sm text-destructive"
+              >
+                <p>تعذر تحميل صلاحيات أدوات الإدارة.</p>
+                <Button variant="bare"
+                  type="button"
+                  onClick={() => void refetchPermissions()}
+                  className="min-h-11 rounded-md border border-destructive/40 px-3 py-2 font-medium transition hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  إعادة تحميل الصلاحيات
+                </Button>
+              </div>
+            ) : filteredModules.length === 0 ? (
+              <div
+                role="status"
+                className="space-y-3 py-6 text-sm text-muted-foreground"
+              >
+                <p>
+                  {hasHomeFilters
+                    ? "لا توجد أدوات مطابقة للتصفية الحالية."
+                    : "لا توجد أدوات متاحة لحسابك."}
+                </p>
+                {hasHomeFilters && (
+                  <Button variant="bare"
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory("all");
+                      setSearchQuery("");
+                    }}
+                    className="min-h-11 rounded-md border border-border px-3 py-2 font-medium text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <span
-                        className={`flex size-9 items-center justify-center rounded-xl ${card.tone} sm:size-10`}
-                      >
-                        <Icon className="size-4.5 sm:size-5" strokeWidth={2} />
-                      </span>
-                      <ArrowUpLeft className="size-4 text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:text-primary" />
-                    </div>
-                    <div className="mt-2">
-                      <h3 className="text-xs font-black leading-snug text-foreground sm:text-sm">
-                        {card.label}
-                      </h3>
-                      <p className="mt-1 text-[10px] font-bold leading-normal text-muted-foreground line-clamp-2">
-                        {card.helper}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+                    مسح التصفية
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredModules.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <Link
+                      key={card.href}
+                      href={card.href}
+                      className={cardClassName}
+                    >
+                      <div className="shrink-0">
+                        <span className="flex size-10 items-center justify-center text-primary">
+                          <Icon
+                            className="size-4.5 sm:size-5"
+                            strokeWidth={2}
+                          />
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold leading-normal text-foreground">
+                          {card.label}
+                        </h3>
+                        <p className="mt-1 text-sm leading-normal text-muted-foreground">
+                          {card.helper}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </section>
         ) : (
-          <section className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
-              <div className="flex items-center gap-3">
+          <section className="admin-detail space-y-5">
+            <div className="flex flex-col gap-3 border-b border-border/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
                 <Link
                   href="/admin-hub"
-                  className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground transition hover:bg-muted"
+                  className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <ArrowUpLeft className="size-3.5 rotate-90" />
                   <span>العودة لمركز الإدارة</span>
                 </Link>
                 <div className="h-4 w-px bg-border" />
-                <span className="text-xs font-bold text-muted-foreground">
+                <span className="truncate text-xs font-bold text-muted-foreground">
                   {currentModule?.label || "صفحة الإدارة"}
                 </span>
               </div>
 
               <select
-                className="cursor-pointer rounded-xl border border-border/60 bg-card px-4 py-2 text-xs font-bold text-foreground outline-none transition hover:border-primary/40"
-                value={hubLocation}
+                className="min-h-11 w-full min-w-0 cursor-pointer rounded-xl border border-border/60 bg-card px-4 py-2 text-xs font-bold text-foreground outline-none transition hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-auto"
+                value={currentModule?.href ?? ""}
                 onChange={(e) => {
                   if (e.target.value) setLocation(e.target.value);
                 }}
@@ -544,10 +684,73 @@ export default function AdminHubShell({
               </select>
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-6">
-              <Suspense fallback={<AppShellSkeleton />}>
-                {renderComponent()}
-              </Suspense>
+            <div className="min-w-0 py-2">
+              {permissionsLoading ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="space-y-3 py-8 text-center text-sm text-muted-foreground"
+                >
+                  <p>جارٍ التحقق من صلاحيات القسم…</p>
+                </div>
+              ) : permissionsError ? (
+                <div
+                  role="alert"
+                  className="space-y-3 py-8 text-center text-sm text-destructive"
+                >
+                  <p>تعذر التحقق من صلاحيات هذا القسم.</p>
+                  <Button variant="bare"
+                    type="button"
+                    onClick={() => void refetchPermissions()}
+                    className="min-h-11 rounded-md border border-destructive/40 px-3 py-2 font-medium transition hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    إعادة المحاولة
+                  </Button>
+                </div>
+              ) : !currentRouteAllowed ? (
+                <div role="alert" className="space-y-4 py-8 text-center">
+                  <h1 className="text-2xl font-semibold text-foreground">
+                    لا تملك صلاحية الوصول
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    اطلب من مسؤول النظام منحك صلاحية هذا القسم.
+                  </p>
+                  <Link
+                    href="/admin-hub"
+                    className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    العودة إلى مركز الإدارة
+                  </Link>
+                </div>
+              ) : (
+                <Suspense
+                  fallback={
+                    <div role="status" aria-live="polite" className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        جارٍ تحميل القسم…
+                      </p>
+                      <AppShellSkeleton />
+                    </div>
+                  }
+                >
+                  {renderedComponent ?? (
+                    <div className="space-y-4 py-8 text-center" role="alert">
+                      <h1 className="text-2xl font-semibold text-foreground">
+                        الصفحة غير موجودة
+                      </h1>
+                      <p className="text-sm text-muted-foreground">
+                        لا يوجد قسم إداري بهذا العنوان.
+                      </p>
+                      <Link
+                        href="/admin-hub"
+                        className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        العودة إلى مركز الإدارة
+                      </Link>
+                    </div>
+                  )}
+                </Suspense>
+              )}
             </div>
           </section>
         )}

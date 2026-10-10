@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { getApiUrl } from "@/const";
-import { EyeOff, RefreshCw, ScanLine } from "lucide-react";
+import { Eye, RefreshCw, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
 import AuthenticatedImage from "@/components/AuthenticatedImage";
@@ -96,7 +96,7 @@ export default function AdminPentacamFailed({
 
   const reviewMutation = trpc.medical.reviewFailedPentacamFile.useMutation({
     onSuccess: async (result) => {
-      toast.success(`Renamed to ${result.finalFileName}`);
+      toast.success(`تمت إعادة تسمية الملف إلى ${result.finalFileName}`);
       setManualIds((prev) => {
         const next = { ...prev };
         delete next[result.fileName];
@@ -105,22 +105,22 @@ export default function AdminPentacamFailed({
       await filesQuery.refetch();
     },
     onError: (error) =>
-      toast.error(getTrpcErrorMessage(error, "Failed to rename file")),
+      toast.error(getTrpcErrorMessage(error, "تعذرت إعادة تسمية الملف")),
   });
 
   const reviewGroupMutation =
     trpc.medical.reviewFailedPentacamGroup.useMutation({
       onSuccess: async (result) => {
-        toast.success(`Updated ${result.count} files with ID ${result.idCode}`);
+        toast.success(`تم تحديث ${result.count} ملفات بالرمز ${result.idCode}`);
         await filesQuery.refetch();
       },
       onError: (error) =>
-        toast.error(getTrpcErrorMessage(error, "Failed to rename group")),
+        toast.error(getTrpcErrorMessage(error, "تعذرت إعادة تسمية المجموعة")),
     });
 
   const releaseMutation = trpc.medical.releaseFailedPentacamFile.useMutation({
     onSuccess: async (result) => {
-      toast.success(`Moved back as ${result.finalFileName}`);
+      toast.success(`تم نقل الملف كما هو باسم ${result.finalFileName}`);
       setManualIds((prev) => {
         const next = { ...prev };
         delete next[result.fileName];
@@ -129,12 +129,12 @@ export default function AdminPentacamFailed({
       await filesQuery.refetch();
     },
     onError: (error) =>
-      toast.error(getTrpcErrorMessage(error, "Failed to move file")),
+      toast.error(getTrpcErrorMessage(error, "تعذر نقل الملف")),
   });
 
   const previewMutation = trpc.medical.previewFailedPentacamRename.useMutation({
     onError: (error) =>
-      toast.error(getTrpcErrorMessage(error, "Failed to preview rename")),
+      toast.error(getTrpcErrorMessage(error, "تعذر معاينة إعادة التسمية")),
   });
 
   const retryOcrMutation = trpc.medical.retryFailedPentacamOcr.useMutation({
@@ -146,12 +146,12 @@ export default function AdminPentacamFailed({
       toast.success(
         result.detectedId
           ? `OCR detected ${result.detectedId}`
-          : "OCR retry completed with no ID",
+          : "اكتملت إعادة قراءة OCR دون العثور على رمز",
       );
       await filesQuery.refetch();
     },
     onError: (error) =>
-      toast.error(getTrpcErrorMessage(error, "Failed to retry OCR")),
+      toast.error(getTrpcErrorMessage(error, "تعذرت إعادة قراءة OCR")),
   });
 
   const rows: FailedPentacamRow[] = filesQuery.data ?? [];
@@ -209,16 +209,17 @@ export default function AdminPentacamFailed({
       counts.set(row.detectedId, (counts.get(row.detectedId) ?? 0) + 1);
     }
     const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0];
-    if (!top) return { label: "No OCR consensus", tone: "muted" as const };
+    if (!top)
+      return { label: "لا يوجد توافق في قراءة OCR", tone: "muted" as const };
     if (top[1] === group.rows.length)
-      return { label: `Full match ${top[0]}`, tone: "good" as const };
+      return { label: `تطابق كامل ${top[0]}`, tone: "good" as const };
     if (top[1] >= Math.max(2, Math.ceil(group.rows.length / 2)))
       return {
-        label: `Majority ${top[0]} (${top[1]}/${group.rows.length})`,
+        label: `أغلبية ${top[0]} (${top[1]}/${group.rows.length})`,
         tone: "warn" as const,
       };
     return {
-      label: `Weak OCR match ${top[0]} (${top[1]}/${group.rows.length})`,
+      label: `تطابق OCR ضعيف ${top[0]} (${top[1]}/${group.rows.length})`,
       tone: "muted" as const,
     };
   };
@@ -227,7 +228,7 @@ export default function AdminPentacamFailed({
     tone === "good"
       ? "border-secondary/40 bg-secondary text-secondary-foreground"
       : tone === "warn"
-        ? "border-warning bg-warning/10 text-warning"
+        ? "border-warning bg-warning/10 text-warning-text"
         : "border-border bg-muted text-muted-foreground";
 
   const loadPreview = async (
@@ -270,13 +271,13 @@ export default function AdminPentacamFailed({
     <div className="space-y-4" dir="rtl">
       <Card className="rounded-lg border-border/80 bg-background shadow-none">
         <CardHeader>
-          <CardTitle>مراجعة ملفات Pentacam غير المرتبطة</CardTitle>
+          <CardTitle>مراجعة ملفات البنتاكام غير المرتبطة</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="text-sm text-muted-foreground">
-              الملفات مجمعة حسب الاسم المتوقع للمريض. راجع الكود للمجموعة أو صحح
-              كل ملف منفردًا.
+              جُمعت الملفات حسب الاسم المتوقع للمريض. راجع الرمز للمجموعة أو صحح
+              كل ملف على حدة.
             </div>
             <Button
               variant="outline"
@@ -291,27 +292,37 @@ export default function AdminPentacamFailed({
             </Button>
           </div>
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-            <Input
+            <Input aria-label="بحث بالاسم أو الملف أو كود المريض"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="بحث بالاسم أو الملف أو كود المريض"
             />
             <div className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
               {filesQuery.isLoading
-                ? "Loading…"
-                : `${filteredGroups.length} groups / ${rows.length} files`}
+                ? "جارٍ تحميل الملفات…"
+                : `${filteredGroups.length} مجموعات / ${rows.length} ملفات`}
             </div>
           </div>
         </CardContent>
       </Card>
 
       {filesQuery.isError ? (
-        <Card className="border-destructive/30 bg-destructive/80">
-          <CardContent className="py-6 text-sm text-destructive">
-            {getTrpcErrorMessage(
-              filesQuery.error,
-              "Failed to load Pentacam failed files",
-            )}
+        <Card className="border-destructive/30 bg-destructive/10">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-6 text-sm text-destructive">
+            <span>
+              {getTrpcErrorMessage(
+                filesQuery.error,
+                "تعذر تحميل ملفات البنتاكام غير المرتبطة",
+              )}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => filesQuery.refetch()}
+              disabled={filesQuery.isFetching}
+            >
+              إعادة المحاولة
+            </Button>
           </CardContent>
         </Card>
       ) : null}
@@ -332,8 +343,8 @@ export default function AdminPentacamFailed({
                 </CardTitle>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="text-muted-foreground">
-                    {group.rows.length} files | latest{" "}
-                    {new Date(group.latestModifiedAt).toLocaleString()}
+                    {group.rows.length} ملفات | آخر تعديل{" "}
+                    {new Date(group.latestModifiedAt).toLocaleString("ar-EG")}
                   </span>
                   <span
                     className={`rounded-full border px-2 py-0.5 ${badgeClass(confidence.tone)}`}
@@ -347,7 +358,7 @@ export default function AdminPentacamFailed({
                   <div className="space-y-3">
                     <div className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto]">
                       <div className="rounded-xl border border-border bg-muted/70 px-3 py-2 text-sm">
-                        Suggested ID:{" "}
+                        الرمز المقترح:{" "}
                         <span className="font-semibold">
                           {group.suggestedId || "-"}
                         </span>
@@ -360,9 +371,10 @@ export default function AdminPentacamFailed({
                             [group.key]: e.target.value,
                           }))
                         }
-                        placeholder="Enter one ID for the full group"
+                        aria-label={`الرمز الصحيح للمجموعة ${group.label}`}
+                        placeholder="أدخل رمزًا واحدًا للمجموعة كاملة"
                       />
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
                           variant="outline"
@@ -379,7 +391,7 @@ export default function AdminPentacamFailed({
                           className="gap-2 border-border bg-background"
                         >
                           <ScanLine className="h-4 w-4" />
-                          Preview Rename
+                          معاينة إعادة التسمية
                         </Button>
                         <Button
                           onClick={() =>
@@ -395,7 +407,7 @@ export default function AdminPentacamFailed({
                             releaseMutation.isPending
                           }
                         >
-                          Apply To Group
+                          تطبيق على المجموعة
                         </Button>
                       </div>
                     </div>
@@ -403,7 +415,7 @@ export default function AdminPentacamFailed({
                     {group.suggestions.length > 0 ? (
                       <div className="rounded-2xl border border-border bg-muted/70 p-3">
                         <div className="mb-2 text-sm font-medium">
-                          Patient suggestions
+                          اقتراحات المرضى
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {group.suggestions.map((suggestion) => (
@@ -411,7 +423,7 @@ export default function AdminPentacamFailed({
                               key={suggestion.patientId}
                               type="button"
                               variant="outline"
-                              className="h-auto whitespace-normal px-3 py-2 text-left"
+                              className="h-auto whitespace-normal px-3 py-2 text-end"
                               onClick={() =>
                                 setManualIds((prev) => ({
                                   ...prev,
@@ -429,14 +441,14 @@ export default function AdminPentacamFailed({
                     {groupPreview.length > 0 ? (
                       <div className="rounded-2xl border border-border bg-muted/70 p-3 text-sm">
                         <div className="mb-2 font-medium">
-                          Rename preview
+                          معاينة إعادة التسمية
                           {groupPreview.some((row) => row.willDuplicate) ? (
-                            <span className="ml-2 rounded-full border border-warning bg-warning/10 px-2 py-0.5 text-warning">
+                            <span className="me-2 rounded-full border border-warning bg-warning/10 px-2 py-0.5 text-warning-text">
                               {
                                 groupPreview.filter((row) => row.willDuplicate)
                                   .length
                               }{" "}
-                              duplicates
+                              ملفات مكررة
                             </span>
                           ) : null}
                         </div>
@@ -446,7 +458,7 @@ export default function AdminPentacamFailed({
                               key={`${group.key}-${item.fileName}`}
                               className="break-all"
                             >
-                              {item.willDuplicate ? "dup" : "ok"} |{" "}
+                              {item.willDuplicate ? "مكرر" : "جديد"} |{" "}
                               {item.proposedFileName}
                             </div>
                           ))}
@@ -456,8 +468,8 @@ export default function AdminPentacamFailed({
                   </div>
 
                   <div className="rounded-2xl border border-dashed border-border bg-muted/60 p-3 text-sm text-muted-foreground">
-                    Applying a group ID updates all files in this set and keeps
-                    the rest of each file name unchanged.
+                    تطبيق رمز المجموعة يحدّث كل ملفاتها ويحافظ على بقية اسم كل
+                    ملف.
                   </div>
                 </div>
 
@@ -479,8 +491,8 @@ export default function AdminPentacamFailed({
                           </CardTitle>
                           <div className="flex flex-wrap gap-2 text-xs">
                             <span className="text-muted-foreground">
-                              score {row.score} | {formatFileSize(row.size)} |{" "}
-                              {new Date(row.modifiedAt).toLocaleString()}
+                              الدرجة {row.score} | {formatFileSize(row.size)} |{" "}
+                              {new Date(row.modifiedAt).toLocaleString("ar-EG")}
                             </span>
                             <span className="rounded-full border border-border bg-muted text-muted-foreground">
                               {row.pageType}
@@ -499,7 +511,7 @@ export default function AdminPentacamFailed({
 
                           <div className="grid gap-3 md:grid-cols-[140px_minmax(0,1fr)]">
                             <div className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
-                              OCR ID:{" "}
+                              رمز OCR:{" "}
                               <span className="font-semibold">
                                 {row.detectedId || "-"}
                               </span>
@@ -512,7 +524,8 @@ export default function AdminPentacamFailed({
                                   [row.fileName]: e.target.value,
                                 }))
                               }
-                              placeholder="Enter correct ID"
+                              aria-label={`الرمز الصحيح للملف ${row.fileName}`}
+                              placeholder="أدخل الرمز الصحيح"
                             />
                           </div>
 
@@ -541,6 +554,7 @@ export default function AdminPentacamFailed({
                           <Textarea
                             value={buildTraceText(row)}
                             readOnly
+                            aria-label={`تفاصيل محاولات قراءة OCR للملف ${row.fileName}`}
                             className="min-h-[160px] border-border bg-background font-mono text-xs"
                           />
 
@@ -559,7 +573,7 @@ export default function AdminPentacamFailed({
                                 releaseMutation.isPending
                               }
                             >
-                              Rename One File
+                              إعادة تسمية ملف واحد
                             </Button>
                             <Button
                               type="button"
@@ -573,7 +587,7 @@ export default function AdminPentacamFailed({
                               className="gap-2 border-border bg-background"
                             >
                               <ScanLine className="h-4 w-4" />
-                              Preview
+                              معاينة
                             </Button>
                             <Button
                               type="button"
@@ -589,7 +603,7 @@ export default function AdminPentacamFailed({
                                 reviewGroupMutation.isPending
                               }
                             >
-                              Retry OCR
+                              إعادة قراءة OCR
                             </Button>
                             <Button
                               variant="outline"
@@ -604,18 +618,20 @@ export default function AdminPentacamFailed({
                                 releaseMutation.isPending
                               }
                             >
-                              Move As-Is
+                              نقل كما هو
                             </Button>
-                            <Button asChild variant="ghost" className="gap-2">
-                              <a
-                                href={previewUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <EyeOff className="h-4 w-4" />
-                                Open Image
-                              </a>
-                            </Button>
+                            {previewUrl ? (
+                              <Button asChild variant="ghost" className="gap-2">
+                                <a
+                                  href={previewUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  فتح الصورة
+                                </a>
+                              </Button>
+                            ) : null}
                           </div>
                           {(renamePreview[row.fileName] ?? []).length > 0 ? (
                             <div className="rounded-xl border border-border bg-background p-3 text-sm">
@@ -625,7 +641,7 @@ export default function AdminPentacamFailed({
                                     key={`${row.fileName}-${item.proposedFileName}`}
                                     className="break-all"
                                   >
-                                    {item.willDuplicate ? "dup" : "ok"} |{" "}
+                                    {item.willDuplicate ? "مكرر" : "جديد"} |{" "}
                                     {item.proposedFileName}
                                   </div>
                                 ),
@@ -643,10 +659,12 @@ export default function AdminPentacamFailed({
         })}
       </div>
 
-      {!filesQuery.isLoading && filteredGroups.length === 0 ? (
+      {!filesQuery.isLoading &&
+      !filesQuery.isError &&
+      filteredGroups.length === 0 ? (
         <Card className="border-border bg-muted/70">
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No failed Pentacam files found.
+            لا توجد ملفات بنتاكام غير مرتبطة.
           </CardContent>
         </Card>
       ) : null}
@@ -654,7 +672,9 @@ export default function AdminPentacamFailed({
       {!hideDuplicates ? (
         <Card className="border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">المكررات في قاعدة البيانات</CardTitle>
+            <CardTitle className="text-sm">
+              المكررات في قاعدة البيانات
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <AdminPentacamDuplicates />

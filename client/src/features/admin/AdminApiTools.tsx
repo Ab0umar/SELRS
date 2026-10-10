@@ -33,103 +33,103 @@ const TRPC_API_REFERENCE = [
     method: "query" as const,
     path: "medical.getAppointments",
     description: "جلب جميع المواعيد",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "query" as const,
     path: "medical.getAppointmentsByPatient",
     description: "مواعيد مريض محدد",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "mutation" as const,
     path: "medical.createAppointment",
     description: "إنشاء موعد",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "query" as const,
     path: "medical.getAllExaminations",
     description: "جميع الفحوصات",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "mutation" as const,
     path: "medical.createExamination",
     description: "إنشاء فحص",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "mutation" as const,
     path: "medical.updateExamination",
     description: "تحديث فحص",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "query" as const,
     path: "medical.getRuntimeDbInfo",
     description: "معلومات اتصال قاعدة التشغيل",
-    status: "صلاحية admin",
+    status: "للمشرف",
   },
   {
     method: "mutation" as const,
     path: "medical.createPentacamResult",
     description: "إنشاء سجل بنتاكام",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "query" as const,
     path: "medical.getPentacamResultsByVisit",
     description: "بنتاكام حسب الزيارة",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "mutation" as const,
     path: "medical.createDoctorReport",
     description: "تقرير طبيب",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "query" as const,
     path: "medical.getDoctorReportsByVisit",
     description: "تقارير حسب الزيارة",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "query" as const,
     path: "medical.getMssqlSyncStatus",
     description: "حالة مزامنة MSSQL",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "query" as const,
     path: "medical.getMssqlSyncRuntimeConfig",
     description: "إعداد تشغيل المزامنة التلقائية",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "mutation" as const,
     path: "medical.updateMssqlSyncRuntimeConfig",
     description: "حفظ إعداد المزامنة التلقائية",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "mutation" as const,
     path: "medical.syncPatientsFromMssql",
     description: "مزامنة مرضى من MSSQL",
-    status: "فعال",
+    status: "مسجل",
   },
   {
     method: "mutation" as const,
     path: "medical.resetMssqlSyncCodes",
     description: "إعادة ضبط رموز المزامنة",
-    status: "خطر",
+    status: "حساس",
   },
   {
     method: "mutation" as const,
     path: "medical.resetPatientsAutoIncrement",
     description: "AUTO_INCREMENT للمرضى",
-    status: "خطر",
+    status: "حساس",
   },
 ] as const;
 
@@ -192,6 +192,28 @@ export default function AdminApiTools() {
   const [previewResponse, setPreviewResponse] = useState(
     "// لا توجد استجابة بعد",
   );
+  const [successAnnouncement, setSuccessAnnouncement] = useState("");
+  const [errorAnnouncement, setErrorAnnouncement] = useState("");
+
+  const announceSuccess = (message: string) => {
+    setSuccessAnnouncement(message);
+    setErrorAnnouncement("");
+  };
+
+  const announceError = (message: string) => {
+    setErrorAnnouncement(message);
+    setSuccessAnnouncement("");
+  };
+
+  const announceQueryResult = (label: string, result: { error: unknown }) => {
+    if (result.error) {
+      const message = getTrpcErrorMessage(result.error, `فشل تحميل ${label}`);
+      announceError(message);
+      toast.error(message);
+      return;
+    }
+    announceSuccess(`تم تحميل ${label}`);
+  };
 
   const capturePreview = (
     procedure: string,
@@ -204,30 +226,32 @@ export default function AdminApiTools() {
 
   const appointmentsQuery = trpc.medical.getAppointments.useQuery(undefined, {
     enabled: false,
+    retry: 1,
   });
   const appointmentsByPatientQuery =
     trpc.medical.getAppointmentsByPatient.useQuery(
       { patientId: Number(patientId || 0) },
-      { enabled: false },
+      { enabled: false, retry: 1 },
     );
   const examinationsQuery = trpc.medical.getAllExaminations.useQuery(
     undefined,
-    { enabled: false },
+    { enabled: false, retry: 1 },
   );
   const pentacamByVisitQuery = trpc.medical.getPentacamResultsByVisit.useQuery(
     { visitId: Number(visitId || 0) },
-    { enabled: false },
+    { enabled: false, retry: 1 },
   );
   const doctorReportsByVisitQuery =
     trpc.medical.getDoctorReportsByVisit.useQuery(
       { visitId: Number(visitId || 0) },
-      { enabled: false },
+      { enabled: false, retry: 1 },
     );
   const mssqlSyncStatusQuery = trpc.medical.getMssqlSyncStatus.useQuery(
     undefined,
     {
       refetchOnWindowFocus: false,
       refetchInterval: 5000,
+      retry: 1,
     },
   );
   const mssqlSyncRuntimeQuery = trpc.medical.getMssqlSyncRuntimeConfig.useQuery(
@@ -235,52 +259,92 @@ export default function AdminApiTools() {
     {
       refetchOnWindowFocus: false,
       refetchInterval: 10000,
+      retry: 1,
     },
   );
   const runtimeDbInfoQuery = trpc.medical.getRuntimeDbInfo.useQuery(undefined, {
     refetchOnWindowFocus: false,
     enabled: false,
+    retry: 1,
   });
 
   const createAppointmentMutation = trpc.medical.createAppointment.useMutation({
-    onSuccess: () => toast.success("تم إنشاء الموعد"),
-    onError: (error: unknown) =>
-      toast.error(getTrpcErrorMessage(error, "فشل إنشاء الموعد")),
+    onSuccess: () => {
+      announceSuccess("تم إنشاء الموعد");
+      toast.success("تم إنشاء الموعد");
+    },
+    onError: (error: unknown) => {
+      const message = getTrpcErrorMessage(error, "فشل إنشاء الموعد");
+      announceError(message);
+      toast.error(message);
+    },
   });
 
   const createExaminationMutation = trpc.medical.createExamination.useMutation({
-    onSuccess: () => toast.success("تم إنشاء الفحص"),
-    onError: (error: unknown) =>
-      toast.error(getTrpcErrorMessage(error, "فشل إنشاء الفحص")),
+    onSuccess: () => {
+      announceSuccess("تم إنشاء الفحص");
+      toast.success("تم إنشاء الفحص");
+    },
+    onError: (error: unknown) => {
+      const message = getTrpcErrorMessage(error, "فشل إنشاء الفحص");
+      announceError(message);
+      toast.error(message);
+    },
   });
 
   const updateExaminationMutation = trpc.medical.updateExamination.useMutation({
-    onSuccess: () => toast.success("تم تحديث الفحص"),
-    onError: (error: unknown) =>
-      toast.error(getTrpcErrorMessage(error, "فشل تحديث الفحص")),
+    onSuccess: () => {
+      announceSuccess("تم تحديث الفحص");
+      toast.success("تم تحديث الفحص");
+    },
+    onError: (error: unknown) => {
+      const message = getTrpcErrorMessage(error, "فشل تحديث الفحص");
+      announceError(message);
+      toast.error(message);
+    },
   });
 
   const createPentacamMutation = trpc.medical.createPentacamResult.useMutation({
-    onSuccess: () => toast.success("تم حفظ بنتاكام"),
-    onError: (error: unknown) =>
-      toast.error(getTrpcErrorMessage(error, "فشل حفظ بنتاكام")),
+    onSuccess: () => {
+      announceSuccess("تم حفظ بنتاكام");
+      toast.success("تم حفظ بنتاكام");
+    },
+    onError: (error: unknown) => {
+      const message = getTrpcErrorMessage(error, "فشل حفظ بنتاكام");
+      announceError(message);
+      toast.error(message);
+    },
   });
 
   const createDoctorReportMutation =
     trpc.medical.createDoctorReport.useMutation({
-      onSuccess: () => toast.success("تم حفظ تقرير الطبيب"),
-      onError: (error: unknown) =>
-        toast.error(getTrpcErrorMessage(error, "فشل حفظ التقرير")),
+      onSuccess: () => {
+        announceSuccess("تم حفظ تقرير الطبيب");
+        toast.success("تم حفظ تقرير الطبيب");
+      },
+      onError: (error: unknown) => {
+        const message = getTrpcErrorMessage(error, "فشل حفظ التقرير");
+        announceError(message);
+        toast.error(message);
+      },
     });
 
   const resetMssqlSyncCodesMutation =
     trpc.medical.resetMssqlSyncCodes.useMutation({
       onSuccess: (result) => {
         capturePreview("medical.resetMssqlSyncCodes", {}, result);
-        toast.success(`Reset ${result.affected} patients — now run full sync`);
+        const message = `تمت إعادة ضبط ${result.affected} مريض؛ شغّل المزامنة الكاملة الآن`;
+        announceSuccess(message);
+        toast.success(message);
       },
-      onError: (error: unknown) =>
-        toast.error(getTrpcErrorMessage(error, "Failed to reset sync codes")),
+      onError: (error: unknown) => {
+        const message = getTrpcErrorMessage(
+          error,
+          "فشل إعادة ضبط رموز المزامنة",
+        );
+        announceError(message);
+        toast.error(message);
+      },
     });
 
   const [autoIncrementValue, setAutoIncrementValue] = useState("1128");
@@ -288,12 +352,18 @@ export default function AdminApiTools() {
     trpc.medical.resetPatientsAutoIncrement.useMutation({
       onSuccess: (result, variables) => {
         capturePreview("medical.resetPatientsAutoIncrement", variables, result);
-        toast.success(`AUTO_INCREMENT set to ${result.value}`);
+        const message = `تم ضبط AUTO_INCREMENT على ${result.value}`;
+        announceSuccess(message);
+        toast.success(message);
       },
-      onError: (error: unknown) =>
-        toast.error(
-          getTrpcErrorMessage(error, "Failed to reset AUTO_INCREMENT"),
-        ),
+      onError: (error: unknown) => {
+        const message = getTrpcErrorMessage(
+          error,
+          "فشل إعادة ضبط AUTO_INCREMENT",
+        );
+        announceError(message);
+        toast.error(message);
+      },
     });
 
   const syncMssqlPatientsMutation =
@@ -310,10 +380,14 @@ export default function AdminApiTools() {
         });
         capturePreview("medical.syncPatientsFromMssql", variables, result);
         void mssqlSyncStatusQuery.refetch();
-        toast.success("MSSQL patient sync completed");
+        announceSuccess("اكتملت مزامنة مرضى MSSQL");
+        toast.success("اكتملت مزامنة مرضى MSSQL");
       },
-      onError: (error: unknown) =>
-        toast.error(getTrpcErrorMessage(error, "MSSQL sync failed")),
+      onError: (error: unknown) => {
+        const message = getTrpcErrorMessage(error, "فشلت مزامنة MSSQL");
+        announceError(message);
+        toast.error(message);
+      },
     });
   const updateMssqlSyncRuntimeMutation =
     trpc.medical.updateMssqlSyncRuntimeConfig.useMutation({
@@ -323,13 +397,18 @@ export default function AdminApiTools() {
           variables,
           result ?? { ok: true },
         );
-        toast.success("Auto sync config saved");
+        announceSuccess("تم حفظ إعداد المزامنة التلقائية");
+        toast.success("تم حفظ إعداد المزامنة التلقائية");
         await mssqlSyncRuntimeQuery.refetch();
       },
-      onError: (error: unknown) =>
-        toast.error(
-          getTrpcErrorMessage(error, "Failed to save auto sync config"),
-        ),
+      onError: (error: unknown) => {
+        const message = getTrpcErrorMessage(
+          error,
+          "فشل حفظ إعداد المزامنة التلقائية",
+        );
+        announceError(message);
+        toast.error(message);
+      },
     });
 
   useEffect(() => {
@@ -362,18 +441,27 @@ export default function AdminApiTools() {
   const examIdNum = Number(examinationId || 0);
 
   return (
-    <div dir="rtl" className="mx-auto w-full max-w-[1440px] space-y-6 pb-2">
+    <div
+      dir="rtl"
+      className="admin-detail mx-auto w-full max-w-[1440px] space-y-6 pb-2"
+    >
       <PageHeader
         title="أدوات API"
         subtitle="أدوات tRPC للمشرفين: استدعاءات مباشرة، مزامنة MSSQL، وتشخيص قاعدة البيانات — الواجهة العامة للتطبيق تستخدم نفس المسار عبر /trpc"
         icon={<Plug className="h-5 w-5" />}
       />
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {successAnnouncement}
+      </div>
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">
+        {errorAnnouncement}
+      </div>
 
       <Card className="rounded-lg border-border/80 bg-card shadow-none">
         <CardHeader>
           <CardTitle className="text-base">معاينة الطلب والاستجابة</CardTitle>
           <p className="text-sm text-muted-foreground">
-            تُحدَّث تلقائياً عند تنفيذ الأزرار في الصفحة (آخر عملية ناجحة أو
+            تُحدَّث تلقائياً عند تنفيذ الأزرار في الصفحة (آخر عملية منفذة أو
             بيانات جلب).
           </p>
         </CardHeader>
@@ -409,7 +497,8 @@ export default function AdminApiTools() {
             مرجع إجراءات tRPC (هذه الصفحة)
           </CardTitle>
           <span className="text-xs text-muted-foreground">
-            زمن الاستجابة غير مُقاس تلقائياً — استخدم أدوات المتصفح أو الشبكة
+            هذا المرجع يوضح الإجراءات المتاحة؛ زمن الاستجابة يُفحص من أدوات
+            المتصفح أو الشبكة
           </span>
         </CardHeader>
         <CardContent className="pt-4">
@@ -417,15 +506,15 @@ export default function AdminApiTools() {
             <Table dir="rtl">
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="text-right font-bold">
+                  <TableHead className="text-start font-bold">
                     الطريقة
                   </TableHead>
-                  <TableHead className="min-w-[220px] text-right font-bold">
+                  <TableHead className="min-w-[220px] text-start font-bold">
                     المسار
                   </TableHead>
-                  <TableHead className="text-right font-bold">الوصف</TableHead>
+                  <TableHead className="text-start font-bold">الوصف</TableHead>
                   <TableHead className="text-center font-bold">
-                    الحالة
+                    التسجيل
                   </TableHead>
                   <TableHead className="text-center font-bold w-28">
                     زمن الاستجابة
@@ -449,12 +538,12 @@ export default function AdminApiTools() {
                         {row.method === "query" ? "query" : "mutation"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-xs break-all dir-ltr text-right">
+                    <TableCell className="font-mono text-xs break-all dir-ltr text-start">
                       {row.path}
                     </TableCell>
                     <TableCell className="text-sm">{row.description}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="text-[13px]">
                         {row.status}
                       </Badge>
                     </TableCell>
@@ -474,21 +563,48 @@ export default function AdminApiTools() {
           <CardTitle>المعرفات الأساسية</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input
-            value={patientId}
-            onChange={(e) => setPatientId(e.target.value)}
-            placeholder="patientId"
-          />
-          <Input
-            value={visitId}
-            onChange={(e) => setVisitId(e.target.value)}
-            placeholder="visitId"
-          />
-          <Input
-            value={examinationId}
-            onChange={(e) => setExaminationId(e.target.value)}
-            placeholder="examinationId"
-          />
+          <div className="space-y-2">
+            <label htmlFor="admin-patient-id" className="text-sm font-medium">
+              معرّف المريض
+            </label>
+            <Input
+              id="admin-patient-id"
+              className="min-h-11"
+              inputMode="numeric"
+              value={patientId}
+              onChange={(e) => setPatientId(e.target.value)}
+              placeholder="مثال: 123"
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="admin-visit-id" className="text-sm font-medium">
+              معرّف الزيارة
+            </label>
+            <Input
+              id="admin-visit-id"
+              className="min-h-11"
+              inputMode="numeric"
+              value={visitId}
+              onChange={(e) => setVisitId(e.target.value)}
+              placeholder="مثال: 456"
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="admin-examination-id"
+              className="text-sm font-medium"
+            >
+              معرّف الفحص
+            </label>
+            <Input
+              id="admin-examination-id"
+              className="min-h-11"
+              inputMode="numeric"
+              value={examinationId}
+              onChange={(e) => setExaminationId(e.target.value)}
+              placeholder="مثال: 789"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -498,15 +614,22 @@ export default function AdminApiTools() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <DateInput
-              value={appointmentDate}
-              onChange={(e) => setAppointmentDate(e.target.value)}
-            />
+            <div className="space-y-2">
+              <label htmlFor="appointment-date" className="text-sm font-medium">
+                تاريخ الموعد
+              </label>
+              <DateInput
+                id="appointment-date"
+                className="min-h-11"
+                value={appointmentDate}
+                onChange={(e) => setAppointmentDate(e.target.value)}
+              />
+            </div>
             <Select
               value={appointmentType}
               onValueChange={(v) => setAppointmentType(v as any)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-h-11" aria-label="نوع الموعد">
                 <SelectValue placeholder="نوع الموعد" />
               </SelectTrigger>
               <SelectContent>
@@ -519,7 +642,7 @@ export default function AdminApiTools() {
               value={appointmentBranch}
               onValueChange={(v) => setAppointmentBranch(v as any)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-h-11" aria-label="فرع الموعد">
                 <SelectValue placeholder="الفرع" />
               </SelectTrigger>
               <SelectContent>
@@ -528,9 +651,12 @@ export default function AdminApiTools() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 [&>button]:min-h-11">
             <Button
               className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
+              disabled={
+                createAppointmentMutation.isPending || patientIdNum <= 0
+              }
               onClick={async () => {
                 const input = {
                   patientId: patientIdNum,
@@ -549,12 +675,16 @@ export default function AdminApiTools() {
                 }
               }}
             >
-              إنشاء موعد
+              {createAppointmentMutation.isPending
+                ? "جارٍ إنشاء الموعد…"
+                : "إنشاء موعد"}
             </Button>
             <Button
               variant="outline"
+              disabled={appointmentsQuery.isFetching}
               onClick={async () => {
                 const r = await appointmentsQuery.refetch();
+                announceQueryResult("جميع المواعيد", r);
                 capturePreview(
                   "medical.getAppointments",
                   {},
@@ -564,13 +694,19 @@ export default function AdminApiTools() {
                 );
               }}
             >
-              جميع المواعيد
+              {appointmentsQuery.isFetching
+                ? "جارٍ تحميل المواعيد…"
+                : "جميع المواعيد"}
             </Button>
             <Button
               variant="outline"
+              disabled={
+                appointmentsByPatientQuery.isFetching || patientIdNum <= 0
+              }
               onClick={async () => {
                 const input = { patientId: patientIdNum };
                 const r = await appointmentsByPatientQuery.refetch();
+                announceQueryResult("مواعيد المريض", r);
                 capturePreview(
                   "medical.getAppointmentsByPatient",
                   input,
@@ -580,16 +716,28 @@ export default function AdminApiTools() {
                 );
               }}
             >
-              مواعيد المريض
+              {appointmentsByPatientQuery.isFetching
+                ? "جارٍ تحميل مواعيد المريض…"
+                : "مواعيد المريض"}
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
             عدد (جميع المواعيد):{" "}
-            {appointmentsQuery.data ? appointmentsQuery.data.length : "-"} | عدد
-            (مواعيد المريض):{" "}
-            {appointmentsByPatientQuery.data
-              ? appointmentsByPatientQuery.data.length
-              : "-"}
+            {appointmentsQuery.isError
+              ? "تعذر التحميل؛ أعد المحاولة."
+              : appointmentsQuery.isFetching
+                ? "جارٍ التحميل…"
+                : appointmentsQuery.data
+                  ? appointmentsQuery.data.length
+                  : "لم تُحمّل بعد"}{" "}
+            | عدد (مواعيد المريض):{" "}
+            {appointmentsByPatientQuery.isError
+              ? "تعذر التحميل؛ أعد المحاولة."
+              : appointmentsByPatientQuery.isFetching
+                ? "جارٍ التحميل…"
+                : appointmentsByPatientQuery.data
+                  ? appointmentsByPatientQuery.data.length
+                  : "لم تُحمّل بعد"}
           </div>
         </CardContent>
       </Card>
@@ -599,9 +747,14 @@ export default function AdminApiTools() {
           <CardTitle>الفحوصات (Examinations)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 [&>button]:min-h-11">
             <Button
               className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
+              disabled={
+                createExaminationMutation.isPending ||
+                visitIdNum <= 0 ||
+                patientIdNum <= 0
+              }
               onClick={async () => {
                 const input = {
                   visitId: visitIdNum,
@@ -619,10 +772,13 @@ export default function AdminApiTools() {
                 }
               }}
             >
-              إنشاء فحص
+              {createExaminationMutation.isPending
+                ? "جارٍ إنشاء الفحص…"
+                : "إنشاء فحص"}
             </Button>
             <Button
               variant="outline"
+              disabled={updateExaminationMutation.isPending || examIdNum <= 0}
               onClick={async () => {
                 const input = {
                   examinationId: examIdNum,
@@ -639,12 +795,16 @@ export default function AdminApiTools() {
                 }
               }}
             >
-              تحديث فحص
+              {updateExaminationMutation.isPending
+                ? "جارٍ تحديث الفحص…"
+                : "تحديث فحص"}
             </Button>
             <Button
               variant="outline"
+              disabled={examinationsQuery.isFetching}
               onClick={async () => {
                 const r = await examinationsQuery.refetch();
+                announceQueryResult("جميع الفحوصات", r);
                 capturePreview(
                   "medical.getAllExaminations",
                   {},
@@ -654,12 +814,20 @@ export default function AdminApiTools() {
                 );
               }}
             >
-              جميع الفحوصات
+              {examinationsQuery.isFetching
+                ? "جارٍ تحميل الفحوصات…"
+                : "جميع الفحوصات"}
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
             عدد السجلات المعروضة:{" "}
-            {examinationsQuery.data ? examinationsQuery.data.length : "-"}
+            {examinationsQuery.isError
+              ? "تعذر تحميل الفحوصات؛ أعد المحاولة."
+              : examinationsQuery.isFetching
+                ? "جارٍ تحميل الفحوصات…"
+                : examinationsQuery.data
+                  ? examinationsQuery.data.length
+                  : "لم تُحمّل بعد"}
           </div>
         </CardContent>
       </Card>
@@ -671,8 +839,11 @@ export default function AdminApiTools() {
         <CardContent className="space-y-3">
           <Button
             variant="outline"
+            className="min-h-11"
+            disabled={runtimeDbInfoQuery.isFetching}
             onClick={async () => {
               const r = await runtimeDbInfoQuery.refetch();
+              announceQueryResult("معلومات قاعدة التشغيل", r);
               capturePreview(
                 "medical.getRuntimeDbInfo",
                 {},
@@ -682,14 +853,22 @@ export default function AdminApiTools() {
               );
             }}
           >
-            فحص قاعدة التشغيل النشطة
-          </Button>
-          <div className="text-sm text-muted-foreground">
             {runtimeDbInfoQuery.isFetching
-              ? "Checking…"
-              : runtimeDbInfoQuery.data
-                ? `Host: ${runtimeDbInfoQuery.data.host ?? "-"} | Port: ${runtimeDbInfoQuery.data.port ?? "-"} | DB: ${runtimeDbInfoQuery.data.database ?? "-"} | URL: ${runtimeDbInfoQuery.data.maskedUrl ?? "-"}`
-                : "No runtime DB info loaded yet"}
+              ? "جارٍ فحص قاعدة التشغيل…"
+              : "فحص قاعدة التشغيل النشطة"}
+          </Button>
+          <div
+            className="text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            {runtimeDbInfoQuery.isFetching
+              ? "جارٍ فحص قاعدة التشغيل…"
+              : runtimeDbInfoQuery.isError
+                ? "تعذر فحص قاعدة التشغيل؛ أعد المحاولة."
+                : runtimeDbInfoQuery.data
+                  ? `Host: ${runtimeDbInfoQuery.data.host ?? "-"} | Port: ${runtimeDbInfoQuery.data.port ?? "-"} | DB: ${runtimeDbInfoQuery.data.database ?? "-"} | URL: ${runtimeDbInfoQuery.data.maskedUrl ?? "-"}`
+                  : "لم تُحمّل معلومات قاعدة التشغيل بعد"}
           </div>
         </CardContent>
       </Card>
@@ -699,14 +878,26 @@ export default function AdminApiTools() {
           <CardTitle>البنتاكام (Pentacam)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Input
-            value={pentacamLtK1}
-            onChange={(e) => setPentacamLtK1(e.target.value)}
-            placeholder="ltK1"
-          />
-          <div className="flex gap-2">
+          <div className="space-y-2">
+            <label htmlFor="pentacam-ltk1" className="text-sm font-medium">
+              قيمة ltK1 للعين اليسرى
+            </label>
+            <Input
+              id="pentacam-ltk1"
+              className="min-h-11"
+              value={pentacamLtK1}
+              onChange={(e) => setPentacamLtK1(e.target.value)}
+              placeholder="اختياري"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 [&>button]:min-h-11">
             <Button
               className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
+              disabled={
+                createPentacamMutation.isPending ||
+                visitIdNum <= 0 ||
+                patientIdNum <= 0
+              }
               onClick={async () => {
                 const input = {
                   visitId: visitIdNum,
@@ -723,13 +914,17 @@ export default function AdminApiTools() {
                 }
               }}
             >
-              إنشاء بنتاكام
+              {createPentacamMutation.isPending
+                ? "جارٍ إنشاء بنتاكام…"
+                : "إنشاء بنتاكام"}
             </Button>
             <Button
               variant="outline"
+              disabled={pentacamByVisitQuery.isFetching || visitIdNum <= 0}
               onClick={async () => {
                 const input = { visitId: visitIdNum };
                 const r = await pentacamByVisitQuery.refetch();
+                announceQueryResult("نتائج بنتاكام", r);
                 capturePreview(
                   "medical.getPentacamResultsByVisit",
                   input,
@@ -739,12 +934,20 @@ export default function AdminApiTools() {
                 );
               }}
             >
-              بنتاكام حسب الزيارة
+              {pentacamByVisitQuery.isFetching
+                ? "جارٍ تحميل نتائج بنتاكام…"
+                : "بنتاكام حسب الزيارة"}
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
             عدد السجلات:{" "}
-            {pentacamByVisitQuery.data ? pentacamByVisitQuery.data.length : "-"}
+            {pentacamByVisitQuery.isError
+              ? "تعذر تحميل النتائج؛ أعد المحاولة."
+              : pentacamByVisitQuery.isFetching
+                ? "جارٍ تحميل النتائج…"
+                : pentacamByVisitQuery.data
+                  ? pentacamByVisitQuery.data.length
+                  : "لم تُحمّل بعد"}
           </div>
         </CardContent>
       </Card>
@@ -755,25 +958,51 @@ export default function AdminApiTools() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-              placeholder="التشخيص"
-            />
-            <Input
-              value={clinicalOpinion}
-              onChange={(e) => setClinicalOpinion(e.target.value)}
-              placeholder="الرأي الطبي"
-            />
-            <Input
-              value={recommendedTreatment}
-              onChange={(e) => setRecommendedTreatment(e.target.value)}
-              placeholder="العلاج المقترح"
-            />
+            <div className="space-y-2">
+              <label htmlFor="doctor-diagnosis" className="text-sm font-medium">
+                التشخيص
+              </label>
+              <Input
+                id="doctor-diagnosis"
+                className="min-h-11"
+                value={diagnosis}
+                onChange={(e) => setDiagnosis(e.target.value)}
+                placeholder="أدخل التشخيص"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="doctor-opinion" className="text-sm font-medium">
+                الرأي الطبي
+              </label>
+              <Input
+                id="doctor-opinion"
+                className="min-h-11"
+                value={clinicalOpinion}
+                onChange={(e) => setClinicalOpinion(e.target.value)}
+                placeholder="اختياري"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="doctor-treatment" className="text-sm font-medium">
+                العلاج المقترح
+              </label>
+              <Input
+                id="doctor-treatment"
+                className="min-h-11"
+                value={recommendedTreatment}
+                onChange={(e) => setRecommendedTreatment(e.target.value)}
+                placeholder="اختياري"
+              />
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 [&>button]:min-h-11">
             <Button
               className="selrs-gradient-btn text-primary-foreground hover:opacity-95"
+              disabled={
+                createDoctorReportMutation.isPending ||
+                visitIdNum <= 0 ||
+                patientIdNum <= 0
+              }
               onClick={async () => {
                 const input = {
                   visitId: visitIdNum,
@@ -793,13 +1022,17 @@ export default function AdminApiTools() {
                 }
               }}
             >
-              إنشاء تقرير طبيب
+              {createDoctorReportMutation.isPending
+                ? "جارٍ إنشاء التقرير…"
+                : "إنشاء تقرير طبيب"}
             </Button>
             <Button
               variant="outline"
+              disabled={doctorReportsByVisitQuery.isFetching || visitIdNum <= 0}
               onClick={async () => {
                 const input = { visitId: visitIdNum };
                 const r = await doctorReportsByVisitQuery.refetch();
+                announceQueryResult("تقارير الطبيب", r);
                 capturePreview(
                   "medical.getDoctorReportsByVisit",
                   input,
@@ -809,14 +1042,20 @@ export default function AdminApiTools() {
                 );
               }}
             >
-              تقارير حسب الزيارة
+              {doctorReportsByVisitQuery.isFetching
+                ? "جارٍ تحميل التقارير…"
+                : "تقارير حسب الزيارة"}
             </Button>
           </div>
           <div className="text-sm text-muted-foreground">
             عدد التقارير:{" "}
-            {doctorReportsByVisitQuery.data
-              ? doctorReportsByVisitQuery.data.length
-              : "-"}
+            {doctorReportsByVisitQuery.isError
+              ? "تعذر تحميل التقارير؛ أعد المحاولة."
+              : doctorReportsByVisitQuery.isFetching
+                ? "جارٍ تحميل التقارير…"
+                : doctorReportsByVisitQuery.data
+                  ? doctorReportsByVisitQuery.data.length
+                  : "لم تُحمّل بعد"}
           </div>
         </CardContent>
       </Card>
@@ -826,26 +1065,45 @@ export default function AdminApiTools() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              value={syncLimit}
-              onChange={(e) => setSyncLimit(e.target.value)}
-              placeholder="Sync limit (e.g. 500)"
-            />
-            <Input
-              value={autoSyncIntervalMs}
-              onChange={(e) => setAutoSyncIntervalMs(e.target.value)}
-              placeholder="Auto interval ms (min 5000)"
-            />
+            <div className="space-y-2">
+              <label htmlFor="sync-limit" className="text-sm font-medium">
+                حد المزامنة
+              </label>
+              <Input
+                id="sync-limit"
+                className="min-h-11"
+                inputMode="numeric"
+                value={syncLimit}
+                onChange={(e) => setSyncLimit(e.target.value)}
+                placeholder="مثال: 500"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="sync-interval" className="text-sm font-medium">
+                فاصل المزامنة بالمللي ثانية
+              </label>
+              <Input
+                id="sync-interval"
+                className="min-h-11"
+                inputMode="numeric"
+                value={autoSyncIntervalMs}
+                onChange={(e) => setAutoSyncIntervalMs(e.target.value)}
+                placeholder="الحد الأدنى 5000"
+              />
+            </div>
             <Select
               value={autoSyncEnabled ? "on" : "off"}
               onValueChange={(v) => setAutoSyncEnabled(v === "on")}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Auto Sync" />
+              <SelectTrigger
+                className="min-h-11"
+                aria-label="حالة المزامنة التلقائية"
+              >
+                <SelectValue placeholder="المزامنة التلقائية" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="on">Auto Sync ON</SelectItem>
-                <SelectItem value="off">Auto Sync OFF</SelectItem>
+                <SelectItem value="on">المزامنة التلقائية: مفعلة</SelectItem>
+                <SelectItem value="off">المزامنة التلقائية: متوقفة</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -854,21 +1112,25 @@ export default function AdminApiTools() {
               value={autoSyncIncremental ? "incremental" : "full"}
               onValueChange={(v) => setAutoSyncIncremental(v === "incremental")}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Auto Sync Mode" />
+              <SelectTrigger
+                className="min-h-11"
+                aria-label="وضع المزامنة التلقائية"
+              >
+                <SelectValue placeholder="وضع المزامنة التلقائية" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="incremental">Incremental</SelectItem>
-                <SelectItem value="full">Full</SelectItem>
+                <SelectItem value="incremental">تدريجية</SelectItem>
+                <SelectItem value="full">كاملة</SelectItem>
               </SelectContent>
             </Select>
             <Button
               variant="outline"
+              className="min-h-11"
               disabled={updateMssqlSyncRuntimeMutation.isPending}
               onClick={() => {
                 if (autoSyncOverwriteExisting) {
                   const ok = window.confirm(
-                    "WARNING: Overwrite mode can update existing patient records from MSSQL sync.\nOnly enable if you are sure. Continue?",
+                    "تحذير: قد يحدّث وضع الاستبدال سجلات المرضى الحالية من مزامنة MSSQL.\nلا تفعّله إلا إذا كنت متأكداً. هل تريد المتابعة؟",
                   );
                   if (!ok) return;
                 }
@@ -889,7 +1151,9 @@ export default function AdminApiTools() {
                 });
               }}
             >
-              Save Auto Sync Config
+              {updateMssqlSyncRuntimeMutation.isPending
+                ? "جارٍ حفظ الإعداد…"
+                : "حفظ إعداد المزامنة التلقائية"}
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -897,15 +1161,18 @@ export default function AdminApiTools() {
               value={autoSyncOverwriteExisting ? "on" : "off"}
               onValueChange={(v) => setAutoSyncOverwriteExisting(v === "on")}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Overwrite Existing" />
+              <SelectTrigger
+                className="min-h-11"
+                aria-label="استبدال السجلات الحالية"
+              >
+                <SelectValue placeholder="استبدال السجلات الحالية" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="off">
-                  Overwrite Existing: OFF (Safe)
+                  استبدال السجلات الحالية: متوقف (آمن)
                 </SelectItem>
                 <SelectItem value="on">
-                  Overwrite Existing: ON (Danger)
+                  استبدال السجلات الحالية: مفعّل (خطر)
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -913,14 +1180,19 @@ export default function AdminApiTools() {
               value={autoSyncPreserveManualEdits ? "on" : "off"}
               onValueChange={(v) => setAutoSyncPreserveManualEdits(v === "on")}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Preserve Manual Edits" />
+              <SelectTrigger
+                className="min-h-11"
+                aria-label="الحفاظ على التعديلات اليدوية"
+              >
+                <SelectValue placeholder="الحفاظ على التعديلات اليدوية" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="on">
-                  Preserve Manual Edits: ON (Recommended)
+                  الحفاظ على التعديلات اليدوية: مفعّل (موصى به)
                 </SelectItem>
-                <SelectItem value="off">Preserve Manual Edits: OFF</SelectItem>
+                <SelectItem value="off">
+                  الحفاظ على التعديلات اليدوية: متوقف
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -929,21 +1201,34 @@ export default function AdminApiTools() {
               value={autoSyncLinkServices ? "on" : "off"}
               onValueChange={(v) => setAutoSyncLinkServices(v === "on")}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Link Services For Existing" />
+              <SelectTrigger
+                className="min-h-11"
+                aria-label="ربط الخدمات بالسجلات الحالية"
+              >
+                <SelectValue placeholder="ربط الخدمات بالسجلات الحالية" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="on">Link Services: ON</SelectItem>
-                <SelectItem value="off">Link Services: OFF</SelectItem>
+                <SelectItem value="on">ربط الخدمات: مفعّل</SelectItem>
+                <SelectItem value="off">ربط الخدمات: متوقف</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {mssqlSyncStatusQuery.data
-              ? `State: ${(mssqlSyncStatusQuery.data as any).running ? "Running" : "Idle"} | Last Sync: ${mssqlSyncStatusQuery.data.lastSuccessAt ? new Date(mssqlSyncStatusQuery.data.lastSuccessAt).toLocaleString() : "Never"} | Last Mode: ${mssqlSyncStatusQuery.data.lastMode ?? "-"} | Marker: ${mssqlSyncStatusQuery.data.lastMarker ?? "-"} | Last Changes: ${String((mssqlSyncStatusQuery.data as any).lastChangeCount ?? "-")} | Next Run: ${(mssqlSyncStatusQuery.data as any).nextRunAt ? new Date((mssqlSyncStatusQuery.data as any).nextRunAt).toLocaleString() : "-"}${(mssqlSyncStatusQuery.data as any).lastError ? ` | Last Error: ${String((mssqlSyncStatusQuery.data as any).lastError)}` : ""}`
-              : "Loading sync status…"}
+          <div
+            className="text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            {mssqlSyncStatusQuery.isFetching && !mssqlSyncStatusQuery.data
+              ? "جارٍ تحميل حالة المزامنة…"
+              : mssqlSyncStatusQuery.isError
+                ? "تعذر تحميل حالة المزامنة؛ أعد المحاولة."
+                : mssqlSyncStatusQuery.data
+                  ? `الحالة: ${(mssqlSyncStatusQuery.data as any).running ? "قيد التشغيل" : "متوقفة"} | آخر مزامنة: ${mssqlSyncStatusQuery.data.lastSuccessAt ? new Date(mssqlSyncStatusQuery.data.lastSuccessAt).toLocaleString("ar-EG") : "لم تتم"} | آخر وضع: ${mssqlSyncStatusQuery.data.lastMode ?? "-"} | العلامة: ${mssqlSyncStatusQuery.data.lastMarker ?? "-"} | آخر تغييرات: ${String((mssqlSyncStatusQuery.data as any).lastChangeCount ?? "-")} | التشغيل التالي: ${(mssqlSyncStatusQuery.data as any).nextRunAt ? new Date((mssqlSyncStatusQuery.data as any).nextRunAt).toLocaleString("ar-EG") : "-"}${(mssqlSyncStatusQuery.data as any).lastError ? ` | آخر خطأ: ${String((mssqlSyncStatusQuery.data as any).lastError)}` : ""}`
+                  : mssqlSyncRuntimeQuery.isError
+                    ? "تعذر تحميل إعداد المزامنة التلقائية؛ أعد المحاولة."
+                    : "لم تُحمّل حالة المزامنة بعد"}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 [&>button]:min-h-11">
             <Button
               variant="outline"
               disabled={syncMssqlPatientsMutation.isPending}
@@ -954,7 +1239,9 @@ export default function AdminApiTools() {
                 })
               }
             >
-              Dry Run MSSQL Sync
+              {syncMssqlPatientsMutation.isPending
+                ? "جارٍ تنفيذ التجربة…"
+                : "تجربة مزامنة MSSQL"}
             </Button>
             <Button
               variant="outline"
@@ -967,7 +1254,9 @@ export default function AdminApiTools() {
                 })
               }
             >
-              Run Incremental Sync
+              {syncMssqlPatientsMutation.isPending
+                ? "جارٍ تشغيل المزامنة…"
+                : "تشغيل المزامنة التدريجية"}
             </Button>
             <Button
               disabled={syncMssqlPatientsMutation.isPending}
@@ -979,7 +1268,9 @@ export default function AdminApiTools() {
                 })
               }
             >
-              Run MSSQL Sync
+              {syncMssqlPatientsMutation.isPending
+                ? "جارٍ تشغيل المزامنة…"
+                : "تشغيل مزامنة MSSQL"}
             </Button>
             <Button
               variant="destructive"
@@ -989,15 +1280,21 @@ export default function AdminApiTools() {
               }
               onClick={() => resetMssqlSyncCodesMutation.mutate()}
             >
-              Reset Sync Codes
+              {resetMssqlSyncCodesMutation.isPending
+                ? "جارٍ إعادة الضبط…"
+                : "إعادة ضبط رموز المزامنة"}
             </Button>
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div
+            className="text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
             {syncMssqlPatientsMutation.isPending
-              ? "Sync running…"
+              ? "المزامنة قيد التشغيل…"
               : lastSyncResult
-                ? `Fetched: ${lastSyncResult.fetched} | Inserted: ${lastSyncResult.inserted} | Updated: ${lastSyncResult.updated} | Skipped: ${lastSyncResult.skipped} | Mode: ${lastSyncResult.dryRun ? "Dry Run" : "Live"}`
-                : "No sync result yet"}
+                ? `تم الجلب: ${lastSyncResult.fetched} | أُضيف: ${lastSyncResult.inserted} | حُدّث: ${lastSyncResult.updated} | تم التخطي: ${lastSyncResult.skipped} | الوضع: ${lastSyncResult.dryRun ? "تجربة" : "فعلي"}`
+                : "لا توجد نتيجة مزامنة بعد"}
           </div>
         </CardContent>
       </Card>
@@ -1007,25 +1304,37 @@ export default function AdminApiTools() {
           <CardTitle>AUTO_INCREMENT — جدول المرضى</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2 items-center">
-            <Input
-              value={autoIncrementValue}
-              onChange={(e) => setAutoIncrementValue(e.target.value)}
-              placeholder="e.g. 1128"
-              className="w-40"
-            />
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end [&>button]:min-h-11">
+            <div className="space-y-2">
+              <label
+                htmlFor="auto-increment-value"
+                className="text-sm font-medium"
+              >
+                القيمة الجديدة للعداد
+              </label>
+              <Input
+                id="auto-increment-value"
+                value={autoIncrementValue}
+                onChange={(e) => setAutoIncrementValue(e.target.value)}
+                placeholder="مثال: 1128"
+                className="min-h-11 w-full sm:w-40"
+                inputMode="numeric"
+              />
+            </div>
             <Button
               variant="destructive"
               disabled={resetAutoIncrementMutation.isPending}
               onClick={() => {
                 const val = Number(autoIncrementValue);
-                if (!val || val < 1) return toast.error("Enter a valid number");
-                if (!window.confirm(`Set patients AUTO_INCREMENT to ${val}?`))
+                if (!val || val < 1) return toast.error("أدخل رقماً صحيحاً");
+                if (!window.confirm(`ضبط AUTO_INCREMENT للمرضى على ${val}؟`))
                   return;
                 resetAutoIncrementMutation.mutate({ value: val });
               }}
             >
-              Set AUTO_INCREMENT
+              {resetAutoIncrementMutation.isPending
+                ? "جارٍ الضبط…"
+                : "ضبط AUTO_INCREMENT"}
             </Button>
           </div>
         </CardContent>

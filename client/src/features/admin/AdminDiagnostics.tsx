@@ -19,35 +19,61 @@ import {
   Activity,
   Info,
   Play,
+  RefreshCw,
   ShieldAlert,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
+
+type DiagnosticResult = {
+  status: string;
+  durationMs?: number;
+  output?: string;
+};
 
 export default function AdminDiagnostics() {
   const { user } = useAuth();
   const autoFixAllMutation = trpc.medical.autoFixAllDataIssues.useMutation();
   const checksQuery = trpc.system.diagnosticChecks.useQuery();
   const runMutation = trpc.system.runDiagnostic.useMutation();
-  const [results, setResults] = useState<
-    Record<string, { status: string; durationMs?: number; output?: string }>
-  >({});
+  const [results, setResults] = useState<Record<string, DiagnosticResult>>({});
+  const [announcement, setAnnouncement] = useState("");
 
   const availableChecks = Object.entries(checksQuery.data ?? {}) as Array<
     [string, { label: string; command: string; safe: boolean }]
   >;
+  const safeChecks = availableChecks.filter(([, check]) => check.safe);
 
   const runCheck = async (checkId: string) => {
+    const checkLabel =
+      availableChecks.find(([id]) => id === checkId)?.[1].label ?? checkId;
     setResults((current) => ({ ...current, [checkId]: { status: "running" } }));
-    const result = await runMutation.mutateAsync({ checkId });
-    setResults((current) => ({ ...current, [checkId]: result }));
+    setAnnouncement(`جاري تشغيل الفحص: ${checkLabel}`);
+
+    try {
+      const result = await runMutation.mutateAsync({ checkId });
+      setResults((current) => ({ ...current, [checkId]: result }));
+      setAnnouncement(`اكتمل الفحص: ${checkLabel}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "تعذر تشغيل الفحص.";
+      setResults((current) => ({
+        ...current,
+        [checkId]: { status: "failed", output: message },
+      }));
+      setAnnouncement(`تعذر تشغيل الفحص: ${checkLabel}`);
+    }
   };
 
   const handleAutoFixAll = async () => {
-    if (
-      confirm("⚠️ هذا سيصلح جميع مشاكل البيانات تلقائياً. هل تريد المتابعة؟")
-    ) {
-      await autoFixAllMutation.mutateAsync();
+    if (confirm("سيتم تشغيل إصلاحات البيانات المعروفة. هل تريد المتابعة؟")) {
+      setAnnouncement("جاري تنفيذ إصلاحات البيانات.");
+      try {
+        await autoFixAllMutation.mutateAsync();
+        setAnnouncement("اكتملت إصلاحات البيانات.");
+      } catch {
+        setAnnouncement("تعذر تنفيذ إصلاحات البيانات.");
+      }
     }
   };
 
@@ -69,34 +95,36 @@ export default function AdminDiagnostics() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right"
+      className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-start"
       dir="rtl"
     >
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </div>
       <PageHeader
         title="التشخيص والإصلاح"
-        subtitle="أدوات ذكية لفحص ومعالجة مشاكل سلامة البيانات وتكامل السجلات تلقائياً."
+        subtitle="أدوات لفحص مشاكل سلامة البيانات وتكامل السجلات ومعالجتها."
         icon={<Activity className="h-5 w-5 text-primary" />}
       />
 
       {/* AUTO-FIX ALL */}
       <Card className="overflow-hidden rounded-lg border-success/30 bg-success/5 shadow-none">
-        <CardHeader className="border-b border-success/20 bg-success/10/40 py-5 px-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-1">
+        <CardHeader className="border-b border-success/20 bg-success/10 py-5 px-6">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="min-w-0 space-y-1">
               <CardTitle className="flex items-center gap-2 text-foreground font-black">
                 <Zap className="h-5 w-5 text-success" />
                 إصلاح شامل فوري
               </CardTitle>
               <CardDescription className="text-success/80 font-medium">
-                معالجة ذكية لجميع التناقضات المعروفة في قاعدة البيانات بضغطة زر
-                واحدة.
+                تشغيل إصلاحات البيانات المعروفة بعد تأكيدك.
               </CardDescription>
             </div>
             <Badge
               variant="outline"
-              className="border-success/30 bg-success/15/50 text-success font-bold"
+              className="shrink-0 border-success/30 bg-success/15 text-success font-bold"
             >
-              موصى به دورياً
+              يتطلب تأكيداً
             </Badge>
           </div>
         </CardHeader>
@@ -106,20 +134,22 @@ export default function AdminDiagnostics() {
             disabled={autoFixAllMutation.isPending}
             size="lg"
             className="h-11 w-full bg-success text-sm font-black hover:bg-success/80"
+            aria-busy={autoFixAllMutation.isPending}
           >
             {autoFixAllMutation.isPending ? (
-              <Loader2 className="ml-3 h-6 w-6 animate-spin" />
+              <Loader2 className="me-3 h-6 w-6 animate-spin" />
             ) : (
-              "بدء الإصلاح التلقائي"
+              "بدء إصلاح البيانات"
             )}
+            {autoFixAllMutation.isPending && "جاري التنفيذ…"}
           </Button>
 
-          {autoFixAllMutation.data && (
+          {autoFixAllMutation.data && !autoFixAllMutation.error && (
             <div className="space-y-4 rounded-2xl bg-background/60 p-5 border border-success/20 shadow-inner">
               <div className="flex items-center gap-3 text-success">
                 <CheckCircle2 className="h-6 w-6" />
                 <span className="text-base font-black">
-                  اكتملت عملية الإصلاح الشامل بنجاح!
+                  اكتمل إصلاح البيانات
                 </span>
               </div>
 
@@ -148,7 +178,7 @@ export default function AdminDiagnostics() {
                     key={stat.label}
                     className="rounded-xl border border-border/50 bg-background p-4 shadow-sm"
                   >
-                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                    <p className="text-xs font-bold text-muted-foreground uppercase mb-1">
                       {stat.label}
                     </p>
                     <p
@@ -180,8 +210,22 @@ export default function AdminDiagnostics() {
               className="rounded-xl border-destructive/30"
             >
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="font-bold">
-                فشلت العملية: {autoFixAllMutation.error.message}
+              <AlertDescription className="flex flex-wrap items-center gap-3 font-bold">
+                <span>
+                  تعذر تنفيذ إصلاحات البيانات:{" "}
+                  {autoFixAllMutation.error.message}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleAutoFixAll()}
+                  disabled={autoFixAllMutation.isPending}
+                  className="shrink-0"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  إعادة المحاولة
+                </Button>
               </AlertDescription>
             </Alert>
           )}
@@ -198,27 +242,80 @@ export default function AdminDiagnostics() {
             شغّل الفحوصات الآمنة وتابع آخر نتيجة لكل فحص.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 p-6 md:grid-cols-2">
-          <div className="md:col-span-2 flex justify-end">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={runMutation.isPending || availableChecks.length === 0}
-              onClick={async () => {
-                for (const [checkId, check] of availableChecks) {
-                  if (check.safe) await runCheck(checkId);
-                }
-              }}
+        <CardContent
+          className="grid gap-3 p-4 sm:p-6 md:grid-cols-2"
+          aria-busy={checksQuery.isPending}
+        >
+          {checksQuery.isPending && (
+            <div
+              className="flex items-center gap-2 py-3 text-sm text-muted-foreground md:col-span-2"
+              role="status"
             >
-              <Play className="ml-2 h-4 w-4" /> تشغيل كل الآمن
-            </Button>
-          </div>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              جاري تحميل الفحوصات…
+            </div>
+          )}
+
+          {checksQuery.error && (
+            <Alert variant="destructive" className="md:col-span-2" role="alert">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex flex-wrap items-center gap-3">
+                <span>تعذر تحميل الفحوصات: {checksQuery.error.message}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAnnouncement("جاري إعادة تحميل الفحوصات.");
+                    void checksQuery.refetch();
+                  }}
+                  className="shrink-0"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  إعادة المحاولة
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!checksQuery.isPending &&
+            !checksQuery.error &&
+            availableChecks.length === 0 && (
+              <div
+                className="py-3 text-sm text-muted-foreground md:col-span-2"
+                role="status"
+              >
+                لا توجد فحوصات متاحة حالياً.
+              </div>
+            )}
+
+          {!checksQuery.isPending &&
+            !checksQuery.error &&
+            safeChecks.length > 0 && (
+              <div className="flex justify-end md:col-span-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={runMutation.isPending}
+                  aria-busy={runMutation.isPending}
+                  aria-label="تشغيل جميع الفحوصات الآمنة"
+                  onClick={async () => {
+                    for (const [checkId] of safeChecks) {
+                      await runCheck(checkId);
+                    }
+                  }}
+                >
+                  <Play className="me-2 h-4 w-4" /> تشغيل جميع الفحوصات الآمنة
+                </Button>
+              </div>
+            )}
           {availableChecks.map(([checkId, check]) => {
             const result = results[checkId];
+            const isRunning = result?.status === "running";
             return (
               <div
                 key={checkId}
-                className="space-y-3 rounded-lg border border-border/60 bg-background p-4"
+                className="min-w-0 space-y-3 rounded-lg border border-border/60 bg-background p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -234,26 +331,42 @@ export default function AdminDiagnostics() {
                     size="icon"
                     variant="ghost"
                     title={
-                      check.safe ? "تشغيل الاختبار" : "يحتاج تأكيداً منفصلاً"
+                      check.safe
+                        ? result?.status === "failed"
+                          ? "إعادة المحاولة"
+                          : "تشغيل الاختبار"
+                        : "يحتاج تأكيداً منفصلاً"
+                    }
+                    aria-label={
+                      check.safe
+                        ? result?.status === "failed"
+                          ? `إعادة تشغيل الفحص: ${check.label}`
+                          : `تشغيل الفحص: ${check.label}`
+                        : `الفحص ${check.label} يحتاج تأكيداً منفصلاً`
                     }
                     disabled={!check.safe || runMutation.isPending}
                     onClick={() => void runCheck(checkId)}
                   >
-                    {result?.status === "running" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {isRunning ? (
+                      <Loader2
+                        className="h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
+                    ) : result?.status === "failed" ? (
+                      <RefreshCw className="h-4 w-4" aria-hidden="true" />
                     ) : check.safe ? (
-                      <Play className="h-4 w-4" />
+                      <Play className="h-4 w-4" aria-hidden="true" />
                     ) : (
-                      <ShieldAlert className="h-4 w-4" />
+                      <ShieldAlert className="h-4 w-4" aria-hidden="true" />
                     )}
                   </Button>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <code
-                    className="block truncate text-xs text-muted-foreground"
+                    className="block min-w-0 truncate text-xs text-muted-foreground"
                     dir="ltr"
                   >
-                    {result?.durationMs
+                    {result?.durationMs !== undefined
                       ? `${result.durationMs}ms`
                       : "لم يُشغّل بعد"}
                   </code>
@@ -269,7 +382,7 @@ export default function AdminDiagnostics() {
                 </div>
                 {result?.output && (
                   <pre
-                    className="max-h-32 overflow-auto rounded-md bg-muted/50 p-3 text-left text-[11px] leading-relaxed"
+                    className="max-h-32 max-w-full overflow-auto rounded-md bg-muted/50 p-3 text-left text-xs leading-relaxed whitespace-pre-wrap break-words"
                     dir="ltr"
                   >
                     {result.output}
@@ -313,7 +426,7 @@ export default function AdminDiagnostics() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 font-bold text-primary">
-                <div className="h-2 w-2 rounded-full bg-secondary/[0.07]0" />
+                <div className="h-2 w-2 rounded-full bg-primary/50" />
                 توافق المواعيد
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">

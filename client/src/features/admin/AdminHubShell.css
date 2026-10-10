@@ -1,7 +1,3 @@
-/* =========================================================================
-   "عيون الشروق" Admin Hub - Exact Layout
-   ========================================================================= */
-
 @layer components {
   [data-admin-hub].exact-admin-hub {
     font-family: var(--font-arabic), "Cairo", system-ui, sans-serif;
@@ -14,5 +10,15 @@
   [data-admin-hub].exact-admin-hub .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  [data-admin-hub].exact-admin-hub
+    :is(a, button, input, select, [role="combobox"]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .admin-detail :is(button, input, select, [role="combobox"]) {
+    min-height: 44px;
   }
 }

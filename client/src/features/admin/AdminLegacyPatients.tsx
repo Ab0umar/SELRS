@@ -1,9 +1,5 @@
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Search,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +48,7 @@ export default function AdminLegacyPatients() {
   const [pageSize, setPageSize] =
     useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
 
-  const { data, isLoading, isFetching, error } =
+  const { data, isLoading, isFetching, error, refetch } =
     trpc.legacyPatients.search.useQuery({
       year,
       query: query || undefined,
@@ -81,10 +77,10 @@ export default function AdminLegacyPatients() {
   const hasMore = rows.length === pageSize;
 
   return (
-    <div className="w-full space-y-4 pb-6 text-right" dir="rtl">
+    <div className="w-full space-y-4 pb-6 text-start" dir="rtl">
       <Card
         dir="rtl"
-        className="overflow-hidden rounded-lg border-border text-right shadow-none"
+        className="overflow-hidden rounded-lg border-border text-start shadow-none"
       >
         <CardContent className="p-4 sm:p-5">
           <form
@@ -93,17 +89,24 @@ export default function AdminLegacyPatients() {
             className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(18rem,1fr)_10rem_11rem_auto]"
           >
             <div className="relative col-span-2 lg:col-span-1">
-              <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <label htmlFor="legacy-patients-search" className="sr-only">
+                البحث في سجل المرضى
+              </label>
+              <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                id="legacy-patients-search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="الاسم أو كود المريض"
-                className="h-10 pr-9"
+                className="h-10 ps-9"
               />
             </div>
 
             <Select value={year} onValueChange={handleYearChange}>
-              <SelectTrigger className="h-10 w-full">
+              <SelectTrigger
+                aria-label="تصفية حسب السنة"
+                className="h-10 w-full"
+              >
                 <SelectValue placeholder="السنة" />
               </SelectTrigger>
               <SelectContent>
@@ -119,7 +122,10 @@ export default function AdminLegacyPatients() {
               value={String(pageSize)}
               onValueChange={handlePageSizeChange}
             >
-              <SelectTrigger className="h-10 w-full">
+              <SelectTrigger
+                aria-label="عدد المرضى في الصفحة"
+                className="h-10 w-full"
+              >
                 <SelectValue placeholder="عدد النتائج" />
               </SelectTrigger>
               <SelectContent>
@@ -145,7 +151,7 @@ export default function AdminLegacyPatients() {
 
       <Card
         dir="rtl"
-        className="overflow-hidden rounded-lg border-border text-right shadow-none"
+        className="overflow-hidden rounded-lg border-border text-start shadow-none"
       >
         <CardContent className="p-0">
           {error ? (
@@ -153,7 +159,16 @@ export default function AdminLegacyPatients() {
               className="m-4 rounded-lg border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive"
               role="alert"
             >
-              تعذر تحميل المرضى: {error.message}
+              <div>تعذر تحميل المرضى: {error.message}</div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => void refetch()}
+              >
+                إعادة المحاولة
+              </Button>
             </div>
           ) : isLoading ? (
             <div className="space-y-2 p-4">
@@ -167,9 +182,15 @@ export default function AdminLegacyPatients() {
                 <Search className="h-5 w-5" aria-hidden />
               </div>
               <div>
-                <p className="font-semibold text-foreground">لا توجد نتائج</p>
+                <p className="font-semibold text-foreground">
+                  {query
+                    ? "لا توجد سجلات مطابقة للبحث"
+                    : "لا توجد سجلات مرضى لهذه السنة"}
+                </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  جرّب اسمًا أو كودًا مختلفًا، أو غيّر السنة
+                  {query
+                    ? "جرّب اسمًا أو كودًا مختلفًا، أو غيّر السنة"
+                    : "اختر سنة أخرى لعرض سجلاتها"}
                 </p>
               </div>
             </div>
@@ -181,23 +202,23 @@ export default function AdminLegacyPatients() {
               >
                 <TableHeader className="bg-muted/50">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead dir="rtl" className="w-28 text-right">
+                    <TableHead dir="rtl" className="w-28 text-start">
                       كود المريض
                     </TableHead>
-                    <TableHead className="min-w-48 text-right">الاسم</TableHead>
-                    <TableHead className="w-32 text-right">الهاتف</TableHead>
-                    <TableHead className="w-32 text-right">
+                    <TableHead className="min-w-48 text-start">الاسم</TableHead>
+                    <TableHead className="w-32 text-start">الهاتف</TableHead>
+                    <TableHead className="w-32 text-start">
                       تاريخ الميلاد
                     </TableHead>
-                    <TableHead className="w-20 text-right">الجنس</TableHead>
-                    <TableHead className="min-w-36 text-right">
+                    <TableHead className="w-20 text-start">الجنس</TableHead>
+                    <TableHead className="min-w-36 text-start">
                       الطبيب
                     </TableHead>
-                    <TableHead className="w-28 text-right">آخر زيارة</TableHead>
-                    <TableHead className="w-28 text-right">
+                    <TableHead className="w-28 text-start">آخر زيارة</TableHead>
+                    <TableHead className="w-28 text-start">
                       تاريخ الإضافة
                     </TableHead>
-                    <TableHead className="min-w-72 text-right">
+                    <TableHead className="min-w-72 text-start">
                       الخدمات المرتبطة
                     </TableHead>
                   </TableRow>
@@ -208,7 +229,7 @@ export default function AdminLegacyPatients() {
                       key={patient.id}
                       className={index % 2 === 1 ? "bg-muted/20" : undefined}
                     >
-                      <TableCell dir="rtl" className="text-right">
+                      <TableCell dir="rtl" className="text-start">
                         <Badge
                           dir="rtl"
                           variant="outline"
@@ -269,7 +290,7 @@ export default function AdminLegacyPatients() {
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/20 px-4 py-3">
             <Button
               type="button"
               variant="outline"
@@ -278,13 +299,19 @@ export default function AdminLegacyPatients() {
               onClick={() =>
                 setPage((currentPage) => Math.max(1, currentPage - 1))
               }
-              className="gap-1"
+              className="min-h-11 gap-1"
             >
               <ChevronRight className="h-4 w-4" aria-hidden />
               السابق
             </Button>
-            <span className="text-sm font-medium text-foreground">
-              صفحة {page}
+            <span
+              className="text-center text-sm font-medium text-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              {isFetching && !isLoading
+                ? "جاري تحديث النتائج…"
+                : `صفحة ${page}`}
             </span>
             <Button
               type="button"
@@ -292,7 +319,7 @@ export default function AdminLegacyPatients() {
               size="sm"
               disabled={!hasMore || isFetching}
               onClick={() => setPage((currentPage) => currentPage + 1)}
-              className="gap-1"
+              className="min-h-11 gap-1"
             >
               التالي
               <ChevronLeft className="h-4 w-4" aria-hidden />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,20 +16,16 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { getMobileQaEnabled, setMobileQaEnabled } from "@/lib/mobileQa";
-import { getApiOrigin, getApiUrl } from "@/const";
+import { getApiUrl } from "@/const";
 import {
   Activity,
   CheckCircle2,
-  Database,
-  HardDrive,
   RefreshCw,
-  Server,
   Timer,
   XCircle,
   Settings,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { requestAppReload } from "@/lib/appRuntime";
 import { cn } from "@/lib/utils";
 import AdminSettings from "./AdminSettings";
@@ -47,6 +43,38 @@ type HealthState = {
   latestBackupFile?: string;
   latestBackupAt?: string;
 };
+
+type HealthSignal = "ok" | "error" | "loading" | "unknown";
+
+type ActivityRow = {
+  at: string;
+  label: string;
+  signal: HealthSignal;
+};
+
+const HEALTH_SIGNAL_LABELS: Record<HealthSignal, string> = {
+  ok: "يعمل",
+  error: "تعذر التحقق",
+  loading: "جارٍ التحقق",
+  unknown: "غير متاح",
+};
+
+const HEALTH_SIGNAL_BADGES: Record<
+  HealthSignal,
+  "success" | "destructive" | "secondary" | "outline"
+> = {
+  ok: "success",
+  error: "destructive",
+  loading: "secondary",
+  unknown: "outline",
+};
+
+function healthSignalClass(signal: HealthSignal) {
+  if (signal === "ok") return "bg-success";
+  if (signal === "error") return "bg-destructive";
+  if (signal === "loading") return "bg-muted-foreground";
+  return "bg-muted-foreground/60";
+}
 
 const APP_VERSION =
   typeof __APP_VERSION__ !== "undefined"
@@ -69,20 +97,27 @@ function formatSessionDuration(ms: number) {
 
 export default function AdminStatus() {
   const { user, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const isSettingsRoute = location.replace(/\/$/, "") === "/admin-hub/settings";
   const [qaEnabled, setQaEnabled] = useState(false);
   const [probeResult, setProbeResult] = useState<string>("-");
   const [nativeProbeResult, setNativeProbeResult] = useState<string>("-");
   const [healthLatencyMs, setHealthLatencyMs] = useState<number | null>(null);
+  const [isHealthLatencyLoading, setIsHealthLatencyLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isProbing, setIsProbing] = useState(false);
   const [sessionMs, setSessionMs] = useState(0);
 
   const migrationsQuery = trpc.system.listMigrations.useQuery(undefined, {
+    enabled: !isSettingsRoute,
     refetchOnWindowFocus: false,
   });
   const opsHealthQuery = trpc.medical.getOpsHealth.useQuery(undefined, {
+    enabled: !isSettingsRoute,
     refetchOnWindowFocus: false,
   });
   const serverBuildQuery = trpc.medical.getBuildInfo.useQuery(undefined, {
+    enabled: !isSettingsRoute,
     refetchOnWindowFocus: false,
   });
   const health = (opsHealthQuery.data ?? null) as HealthState | null;
@@ -123,29 +158,35 @@ export default function AdminStatus() {
     return () => window.clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const measureHealthLatency = useCallback(async () => {
+    if (isSettingsRoute) return;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    setIsHealthLatencyLoading(true);
+    try {
       const t0 = performance.now();
-      try {
-        const r = await fetch(getApiUrl("/healthz"), {
-          cache: "no-store",
-          credentials: "include",
-          headers: { Accept: "application/json" },
-        });
-        const t1 = performance.now();
-        if (!cancelled)
-          setHealthLatencyMs(r.ok ? Math.max(0, Math.round(t1 - t0)) : null);
-      } catch {
-        if (!cancelled) setHealthLatencyMs(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [opsHealthQuery.dataUpdatedAt]);
+      const response = await fetch(getApiUrl("/healthz"), {
+        cache: "no-store",
+        credentials: "include",
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      });
+      const t1 = performance.now();
+      setHealthLatencyMs(response.ok ? Math.max(0, Math.round(t1 - t0)) : null);
+    } catch {
+      setHealthLatencyMs(null);
+    } finally {
+      window.clearTimeout(timeoutId);
+      setIsHealthLatencyLoading(false);
+    }
+  }, [isSettingsRoute]);
+
+  useEffect(() => {
+    void measureHealthLatency();
+  }, [measureHealthLatency, opsHealthQuery.dataUpdatedAt]);
 
   const runApiProbe = async () => {
+    setIsProbing(true);
     try {
       const controller = new AbortController();
       const timeoutId = window.setTimeout(
@@ -165,14 +206,19 @@ export default function AdminStatus() {
       setProbeResult(
         `HTTP ${response.status} ${response.statusText} | ${body.slice(0, 180)}`,
       );
-    } catch (error: any) {
-      const name = String(error?.name ?? "Error");
-      const message = String(error?.message ?? error ?? "Unknown fetch error");
+    } catch (error: unknown) {
+      const name = error instanceof Error ? error.name : "Error";
+      const message = String(
+        error instanceof Error
+          ? error.message
+          : (error ?? "Unknown fetch error"),
+      );
       setProbeResult(`${name}: ${message}`);
     }
 
     if (!Capacitor.isNativePlatform()) {
       setNativeProbeResult("web-only");
+      setIsProbing(false);
       return;
     }
 
@@ -190,12 +236,16 @@ export default function AdminStatus() {
           ? response.data
           : JSON.stringify(response.data);
       setNativeProbeResult(`HTTP ${response.status} | ${body.slice(0, 180)}`);
-    } catch (error: any) {
-      const name = String(error?.name ?? "Error");
+    } catch (error: unknown) {
+      const name = error instanceof Error ? error.name : "Error";
       const message = String(
-        error?.message ?? error ?? "Unknown native HTTP error",
+        error instanceof Error
+          ? error.message
+          : (error ?? "Unknown native HTTP error"),
       );
       setNativeProbeResult(`${name}: ${message}`);
+    } finally {
+      setIsProbing(false);
     }
   };
 
@@ -241,370 +291,540 @@ export default function AdminStatus() {
     }
   };
 
-  const serverOk = Boolean(health?.ok);
-  const dbOk = Boolean(health?.dbConnected);
-  const backupOk = Boolean(health?.latestBackupAt || health?.latestBackupFile);
-  const apiLineOk = serverOk && healthLatencyMs != null;
+  const refreshStatus = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        migrationsQuery.refetch(),
+        opsHealthQuery.refetch(),
+        serverBuildQuery.refetch(),
+        measureHealthLatency(),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
-  const activityRows: { at: string; label: string; ok: boolean }[] = [];
+  const healthQuerySignal: HealthSignal = opsHealthQuery.isLoading
+    ? "loading"
+    : opsHealthQuery.isError
+      ? "error"
+      : health
+        ? "ok"
+        : "unknown";
+  const serverSignal: HealthSignal =
+    healthQuerySignal === "ok"
+      ? health?.ok
+        ? "ok"
+        : "error"
+      : healthQuerySignal;
+  const dbSignal: HealthSignal =
+    healthQuerySignal === "ok"
+      ? health?.dbConnected
+        ? "ok"
+        : "error"
+      : healthQuerySignal;
+  const backupOk = Boolean(health?.latestBackupAt || health?.latestBackupFile);
+  const backupSignal: HealthSignal =
+    healthQuerySignal === "ok"
+      ? backupOk
+        ? "ok"
+        : "error"
+      : healthQuerySignal;
+  const latencySignal: HealthSignal = isHealthLatencyLoading
+    ? "loading"
+    : healthLatencyMs != null
+      ? "ok"
+      : "unknown";
+  const apiLineSignal: HealthSignal =
+    serverSignal === "error"
+      ? "error"
+      : serverSignal === "loading" || latencySignal === "loading"
+        ? "loading"
+        : serverSignal === "ok" && latencySignal === "ok"
+          ? "ok"
+          : "unknown";
+  const migrationSignal: HealthSignal = migrationsQuery.isLoading
+    ? "loading"
+    : migrationsQuery.isError
+      ? "error"
+      : "ok";
+  const tunnelSignal: HealthSignal =
+    healthQuerySignal === "ok"
+      ? health?.tunnelConnected
+        ? "ok"
+        : "error"
+      : healthQuerySignal;
+
+  const activityRows: ActivityRow[] = [];
   if (health?.latestBackupAt) {
     activityRows.push({
       at: String(health.latestBackupAt),
       label: health.latestBackupFile
         ? `نسخ احتياطي: ${health.latestBackupFile}`
         : "تم تسجيل نسخة احتياطية",
-      ok: true,
+      signal: "ok",
     });
   }
   activityRows.push({
     at: new Date().toLocaleString("ar"),
-    label: `فحص صحة الخادم (${serverOk ? "نجاح" : "فشل أو غير مكتمل"})`,
-    ok: serverOk,
+    label: `فحص صحة الخادم: ${HEALTH_SIGNAL_LABELS[serverSignal]}`,
+    signal: serverSignal,
   });
   activityRows.push({
-    at: migrationsQuery.isLoading ? "…" : new Date().toLocaleString("ar"),
-    label: `ترحيلات قاعدة البيانات المسجّلة: ${migrationCount}`,
-    ok: !migrationsQuery.isError,
+    at: migrationsQuery.isLoading ? "—" : new Date().toLocaleString("ar"),
+    label:
+      migrationSignal === "loading"
+        ? "جارٍ تحميل ترحيلات قاعدة البيانات"
+        : `ترحيلات قاعدة البيانات المسجّلة: ${migrationCount}`,
+    signal: migrationSignal,
   });
-
-  const tunnelOk = Boolean(health?.tunnelConnected);
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-right"
+      className="mx-auto w-full max-w-[1440px] space-y-6 pb-12 text-start"
       dir="rtl"
     >
       <PageHeader
-        title="حالة النظام"
-        subtitle="مراقبة الاتصال، زمن الاستجابة، وصحة الخدمات الحيوية."
-        icon={<Activity className="h-5 w-5 text-primary" />}
+        title={isSettingsRoute ? "إعدادات المركز" : "حالة النظام"}
+        subtitle={
+          isSettingsRoute
+            ? "إعدادات الاتصال ووضع النماذج التي تحفظها هذه الواجهة."
+            : "مراقبة الاتصال، زمن الاستجابة، وصحة الخدمات الحيوية."
+        }
+        icon={
+          isSettingsRoute ? (
+            <Settings className="h-5 w-5 text-primary" />
+          ) : (
+            <Activity className="h-5 w-5 text-primary" />
+          )
+        }
         action={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2 h-9 border-border/60 hover:bg-background shadow-sm font-bold"
-            onClick={() => requestAppReload("admin-status")}
-          >
-            <RefreshCw className="h-4 w-4" />
-            تحديث البيانات
-          </Button>
+          !isSettingsRoute ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 border-border/60 bg-background font-bold shadow-sm"
+              onClick={() => void refreshStatus()}
+              disabled={isRefreshing}
+              aria-busy={isRefreshing}
+            >
+              <RefreshCw
+                className={cn("h-4 w-4", isRefreshing && "animate-spin")}
+                aria-hidden="true"
+              />
+              {isRefreshing ? "جارٍ تحديث البيانات" : "تحديث البيانات"}
+            </Button>
+          ) : undefined
         }
       />
 
-      <div className="grid overflow-hidden rounded-lg border border-border bg-background sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            label: "خادم التطبيق",
-            value: opsHealthQuery.isLoading
-              ? "…"
-              : serverOk
-                ? "متصل"
-                : "غير متصل",
-            ok: serverOk,
-          },
-          {
-            label: "زمن الاستجابة",
-            value: healthLatencyMs != null ? `${healthLatencyMs} ms` : "—",
-            ok: healthLatencyMs != null,
-          },
-          {
-            label: "قاعدة البيانات",
-            value: opsHealthQuery.isLoading
-              ? "…"
-              : dbOk
-                ? "مستقرة"
-                : "خطأ اتصال",
-            ok: dbOk,
-          },
-          {
-            label: "النسخ الاحتياطي",
-            value: backupOk ? "مفعل" : "معطل",
-            ok: backupOk,
-          },
-        ].map((item) => (
+      {isSettingsRoute ? (
+        <section aria-labelledby="admin-settings-title">
+          <h2 id="admin-settings-title" className="sr-only">
+            إعدادات المركز
+          </h2>
+          <AdminSettings />
+        </section>
+      ) : (
+        <>
           <div
-            key={item.label}
-            className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 last:border-b-0 sm:border-l lg:border-b-0"
+            className="grid overflow-hidden rounded-lg border border-border bg-background sm:grid-cols-2 lg:grid-cols-4"
+            role="status"
+            aria-live="polite"
+            aria-label="ملخص حالة الخدمات"
           >
-            <div>
-              <p className="text-[11px] font-bold text-muted-foreground">
-                {item.label}
-              </p>
-              <p className="mt-1 text-sm font-black">{item.value}</p>
-            </div>
-            <span
-              className={cn(
-                "size-2.5 rounded-full",
-                item.ok ? "bg-success" : "bg-destructive",
-              )}
-            />
+            {[
+              {
+                label: "خادم التطبيق",
+                value: HEALTH_SIGNAL_LABELS[serverSignal],
+                signal: serverSignal,
+              },
+              {
+                label: "زمن الاستجابة",
+                value:
+                  latencySignal === "ok"
+                    ? `${healthLatencyMs} ms`
+                    : latencySignal === "loading"
+                      ? "جارٍ القياس"
+                      : "لم يُقَس",
+                signal: latencySignal,
+              },
+              {
+                label: "قاعدة البيانات",
+                value:
+                  dbSignal === "ok"
+                    ? "متصلة"
+                    : dbSignal === "error"
+                      ? "خطأ اتصال"
+                      : HEALTH_SIGNAL_LABELS[dbSignal],
+                signal: dbSignal,
+              },
+              {
+                label: "النسخ الاحتياطي",
+                value:
+                  backupSignal === "ok"
+                    ? "تتوفر نسخة حديثة"
+                    : backupSignal === "error"
+                      ? "لا توجد نسخة حديثة"
+                      : HEALTH_SIGNAL_LABELS[backupSignal],
+                signal: backupSignal,
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 last:border-b-0 sm:border-e lg:border-b-0"
+              >
+                <div>
+                  <p className="text-[13px] font-bold text-muted-foreground">
+                    {item.label}
+                  </p>
+                  <p className="mt-1 text-sm font-black">{item.value}</p>
+                </div>
+                <span
+                  className={cn(
+                    "size-2.5 rounded-full",
+                    healthSignalClass(item.signal),
+                  )}
+                  aria-hidden="true"
+                />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Service Health Checklist */}
-        <div className="lg:col-span-8 space-y-6">
-          <Card className="overflow-hidden rounded-lg border-border/60 bg-card shadow-none">
-            <CardHeader className="border-b bg-muted/5 py-4">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                فحص تكامل الخدمات
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              {[
-                {
-                  id: "api",
-                  label: "خادم API",
-                  ok: apiLineOk,
-                  desc: serverOk
-                    ? "الخدمة تستجيب بشكل سليم للطلبات الخارجية."
-                    : "تعذر الحصول على استجابة من الخادم.",
-                  latency: healthLatencyMs,
-                  variant: apiLineOk ? "secondary" : ("destructive" as const),
-                },
-                {
-                  id: "db",
-                  label: "قاعدة البيانات (Local)",
-                  ok: dbOk,
-                  desc: dbOk
-                    ? "اتصال Drizzle/MySQL نشط ومستقر حالياً."
-                    : "فشل الاتصال بقاعدة البيانات المحلية.",
-                  error: health?.dbError,
-                  variant: dbOk ? "secondary" : ("destructive" as const),
-                },
-                {
-                  id: "backup",
-                  label: "نظام الأرشفة والنسخ",
-                  ok: backupOk,
-                  desc: backupOk
-                    ? "تقارير النسخ الاحتياطي تشير إلى توفر ملفات الأرشفة."
-                    : "لا تتوفر تقارير حديثة عن النسخ الاحتياطي.",
-                  tunnel: tunnelOk,
-                  variant: backupOk ? "secondary" : ("outline" as const),
-                },
-              ].map((s) => (
-                <div
-                  key={s.id}
-                  className="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/10 p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex items-start gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Service Health Checklist */}
+            <div className="lg:col-span-8 space-y-6">
+              <Card className="overflow-hidden rounded-lg border-border/60 bg-card shadow-none">
+                <CardHeader className="border-b bg-muted/5 py-4">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    فحص تكامل الخدمات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 p-4" aria-live="polite">
+                  {[
+                    {
+                      id: "api",
+                      label: "خادم API",
+                      signal: apiLineSignal,
+                      desc:
+                        apiLineSignal === "ok"
+                          ? "الخدمة تستجيب بشكل سليم للطلبات الخارجية."
+                          : apiLineSignal === "loading"
+                            ? "جارٍ فحص استجابة الخادم وزمنها."
+                            : "تعذر الحصول على استجابة مؤكدة من الخادم.",
+                      latency: healthLatencyMs,
+                      tunnel: "unknown" as HealthSignal,
+                    },
+                    {
+                      id: "db",
+                      label: "قاعدة البيانات المحلية",
+                      signal: dbSignal,
+                      desc:
+                        dbSignal === "ok"
+                          ? "اتصال Drizzle/MySQL نشط ومستقر حالياً."
+                          : dbSignal === "loading"
+                            ? "جارٍ التحقق من اتصال قاعدة البيانات."
+                            : "تعذر تأكيد الاتصال بقاعدة البيانات المحلية.",
+                      error: health?.dbError,
+                      tunnel: "unknown" as HealthSignal,
+                    },
+                    {
+                      id: "backup",
+                      label: "نظام الأرشفة والنسخ",
+                      signal: backupSignal,
+                      desc:
+                        backupSignal === "ok"
+                          ? "تتوفر بيانات عن نسخة احتياطية حديثة."
+                          : backupSignal === "loading"
+                            ? "جارٍ التحقق من سجل النسخ الاحتياطي."
+                            : "لا تتوفر بيانات مؤكدة عن نسخة احتياطية حديثة.",
+                      tunnel: tunnelSignal,
+                    },
+                  ].map((s) => (
                     <div
-                      className={cn(
-                        "p-2 rounded-lg bg-background shadow-sm border",
-                        s.ok
-                          ? "text-success border-success/20"
-                          : "text-destructive border-destructive/20",
-                      )}
+                      key={s.id}
+                      className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/60 bg-muted/10 p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      {s.ok ? (
-                        <CheckCircle2 className="h-5 w-5" />
-                      ) : (
-                        <XCircle className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-bold text-sm text-foreground/90">
-                        {s.label}
+                      <div className="flex items-start gap-4">
+                        <div
+                          className={cn(
+                            "shrink-0 rounded-lg border bg-background p-2 shadow-sm",
+                            s.signal === "ok"
+                              ? "border-success/20 text-success"
+                              : s.signal === "loading" || s.signal === "unknown"
+                                ? "border-border text-muted-foreground"
+                                : "border-destructive/20 text-destructive",
+                          )}
+                        >
+                          {s.signal === "ok" ? (
+                            <CheckCircle2
+                              className="h-5 w-5"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <XCircle className="h-5 w-5" aria-hidden="true" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-sm text-foreground/90">
+                            {s.label}
+                          </div>
+                          <p className="max-w-md break-words text-[13px] leading-relaxed text-muted-foreground">
+                            {s.desc}{" "}
+                            {s.latency != null &&
+                              `زمن الاستجابة: ${s.latency} ms.`}
+                            {s.error && (
+                              <span className="mt-1 block break-all font-mono text-destructive/80">
+                                {s.error}
+                              </span>
+                            )}
+                            {s.id === "backup" && (
+                              <span className="block mt-1">
+                                نفق المزامنة: {HEALTH_SIGNAL_LABELS[s.tunnel]}
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[11px] leading-relaxed text-muted-foreground max-w-md">
-                        {s.desc}{" "}
-                        {s.latency && `زمن الاستجابة: ${s.latency} ms.`}
-                        {s.error && (
-                          <span className="block mt-1 font-mono text-destructive/80">
-                            {s.error}
-                          </span>
-                        )}
-                        {s.id === "backup" && (
-                          <span className="block mt-1">
-                            نفق المزامنة: {s.tunnel ? "متصل" : "غير متصل"}
-                          </span>
-                        )}
+                      <Badge
+                        variant={HEALTH_SIGNAL_BADGES[s.signal]}
+                        className="shrink-0 px-3 py-0.5 text-[13px] font-bold"
+                      >
+                        {HEALTH_SIGNAL_LABELS[s.signal]}
+                      </Badge>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
+                <CardHeader className="border-b bg-muted/5 py-4">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Timer className="h-4 w-4 text-primary" />
+                    سجل مختصر للأحداث
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div
+                    className="space-y-2 p-3 sm:hidden"
+                    aria-label="سجل الأحداث"
+                  >
+                    {activityRows.map((row) => (
+                      <div
+                        key={`${row.at}-${row.label}`}
+                        className="flex min-w-0 items-start justify-between gap-3 rounded-lg border border-border/60 bg-muted/10 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="break-words text-[13px] text-muted-foreground tabular-nums">
+                            {row.at}
+                          </p>
+                          <p className="mt-1 break-words text-xs font-medium">
+                            {row.label}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={HEALTH_SIGNAL_BADGES[row.signal]}
+                          className="shrink-0 text-[13px]"
+                        >
+                          {HEALTH_SIGNAL_LABELS[row.signal]}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden sm:block">
+                    <Table
+                      dir="rtl"
+                      className="text-start"
+                      aria-label="سجل الأحداث"
+                    >
+                      <TableHeader className="bg-primary/5">
+                        <TableRow className="h-10 hover:bg-transparent">
+                          <TableHead className="text-start text-xs font-bold text-primary">
+                            التوقيت
+                          </TableHead>
+                          <TableHead className="text-start text-xs font-bold text-primary">
+                            الحدث
+                          </TableHead>
+                          <TableHead className="w-24 text-center text-xs font-bold text-primary">
+                            الحالة
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {activityRows.map((row) => (
+                          <TableRow
+                            key={`${row.at}-${row.label}`}
+                            className="hover:bg-primary/[0.02]"
+                          >
+                            <TableCell className="max-w-[140px] text-[13px] text-muted-foreground tabular-nums">
+                              {row.at}
+                            </TableCell>
+                            <TableCell className="text-xs font-medium">
+                              {row.label}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge
+                                variant={HEALTH_SIGNAL_BADGES[row.signal]}
+                                className="px-2 text-[13px]"
+                              >
+                                {HEALTH_SIGNAL_LABELS[row.signal]}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Info Sidebar */}
+            <div className="lg:col-span-4 space-y-6">
+              <Card className="border-border/60 bg-card shadow-sm h-fit">
+                <CardHeader className="border-b bg-muted/5 py-4">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    بيانات البناء
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      {
+                        label: "إصدار الواجهة",
+                        value: buildInfo.version,
+                        mono: true,
+                      },
+                      {
+                        label: "إصدار السيرفر",
+                        value: serverBuild?.version ?? "—",
+                        mono: true,
+                      },
+                      {
+                        label: "الجلسة",
+                        value: formatSessionDuration(sessionMs),
+                      },
+                      { label: "الترحيلات", value: migrationCount },
+                      { label: "البيئة", value: health?.env ?? "—" },
+                    ].map((i) => (
+                      <div
+                        key={i.label}
+                        className="bg-muted/20 p-2.5 rounded-lg border border-border/40"
+                      >
+                        <div className="text-[13px] text-muted-foreground font-bold mb-0.5">
+                          {i.label}
+                        </div>
+                        <div
+                          className={cn(
+                            "text-xs font-bold truncate",
+                            i.mono && "font-mono",
+                          )}
+                        >
+                          {i.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                    <div className="text-[13px] text-muted-foreground font-bold mb-0.5">
+                      وقت البناء
+                    </div>
+                    <div className="text-xs font-mono break-all">
+                      {serverBuild?.buildTime ?? buildInfo.buildTime}
+                    </div>
+                  </div>
+                  <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                    <div className="text-[13px] text-muted-foreground font-bold mb-0.5">
+                      Commit
+                    </div>
+                    <div className="text-xs font-mono break-all">
+                      {serverBuild?.commit ?? "—"}
+                    </div>
+                  </div>
+                  <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                    <div className="text-[13px] text-muted-foreground font-bold mb-0.5">
+                      المنشأ / API
+                    </div>
+                    <div className="text-[13px] font-mono break-all" dir="ltr">
+                      {buildInfo.origin}
+                    </div>
+                  </div>
+                  <div className="pt-2 flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="h-8 flex-1 text-[13px] font-bold"
+                      onClick={() => void runApiProbe()}
+                      disabled={isProbing}
+                      aria-busy={isProbing}
+                    >
+                      {isProbing ? "جارٍ فحص API" : "فحص API يدوياً"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 flex-1 text-[13px] font-bold"
+                      onClick={() => void copyBuildInfo()}
+                    >
+                      نسخ التقرير
+                    </Button>
+                  </div>
+                  {probeResult !== "-" || nativeProbeResult !== "-" ? (
+                    <div
+                      className="space-y-1 rounded-lg border border-border/60 bg-muted/20 p-2 text-[13px]"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <p className="break-all" dir="ltr">
+                        نتيجة فحص الويب: {probeResult}
+                      </p>
+                      <p className="break-all" dir="ltr">
+                        نتيجة فحص التطبيق: {nativeProbeResult}
                       </p>
                     </div>
-                  </div>
-                  <Badge
-                    variant={s.variant as any}
-                    className="shrink-0 font-bold px-3 py-0.5 text-[10px]"
-                  >
-                    {s.ok ? "مستقر" : "تنبيه"}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                  ) : null}
+                </CardContent>
+              </Card>
 
-          <Card className="border-border/60 bg-card shadow-sm overflow-hidden">
-            <CardHeader className="border-b bg-muted/5 py-4">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Timer className="h-4 w-4 text-primary" />
-                سجل مختصر للأحداث
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table dir="rtl" className="text-right">
-                <TableHeader className="bg-primary/5">
-                  <TableRow className="hover:bg-transparent h-10">
-                    <TableHead className="text-right font-bold text-primary text-xs">
-                      التوقيت
-                    </TableHead>
-                    <TableHead className="text-right font-bold text-primary text-xs">
-                      الحدث
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-primary text-xs w-24">
-                      الحالة
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activityRows.map((row, i) => (
-                    <TableRow key={i} className="hover:bg-primary/[0.02]">
-                      <TableCell className="max-w-[140px] text-[10px] text-muted-foreground tabular-nums">
-                        {row.at}
-                      </TableCell>
-                      <TableCell className="text-xs font-medium">
-                        {row.label}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={row.ok ? "secondary" : "destructive"}
-                          className="h-5 text-[9px] px-2"
-                        >
-                          {row.ok ? "نجاح" : "فشل"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Info Sidebar */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="border-border/60 bg-card shadow-sm h-fit">
-            <CardHeader className="border-b bg-muted/5 py-4">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                بيانات البناء
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  {
-                    label: "إصدار الواجهة",
-                    value: buildInfo.version,
-                    mono: true,
-                  },
-                  {
-                    label: "إصدار السيرفر",
-                    value: serverBuild?.version ?? "—",
-                    mono: true,
-                  },
-                  { label: "الجلسة", value: formatSessionDuration(sessionMs) },
-                  { label: "الترحيلات", value: migrationCount },
-                  { label: "البيئة", value: health?.env ?? "—" },
-                ].map((i) => (
-                  <div
-                    key={i.label}
-                    className="bg-muted/20 p-2.5 rounded-lg border border-border/40"
-                  >
-                    <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
-                      {i.label}
+              <Card className="border-border/60 bg-card shadow-sm h-fit">
+                <CardHeader className="border-b bg-muted/5 py-4">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    تحكم الأدوات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-4">
+                  <div className="flex items-center justify-between gap-4 rounded-lg p-2 transition-colors hover:bg-muted/30">
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-bold">وضع فحص الموبايل</div>
+                      <div className="text-[13px] text-muted-foreground">
+                        تمييز التجاوزات في النماذج.
+                      </div>
                     </div>
-                    <div
-                      className={cn(
-                        "text-xs font-bold truncate",
-                        i.mono && "font-mono",
-                      )}
-                    >
-                      {i.value}
-                    </div>
+                    <Switch
+                      checked={qaEnabled}
+                      onCheckedChange={toggleQa}
+                      aria-label="تشغيل وضع فحص الموبايل"
+                    />
                   </div>
-                ))}
-              </div>
-              <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
-                <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
-                  وقت البناء
-                </div>
-                <div className="text-xs font-mono break-all">
-                  {serverBuild?.buildTime ?? buildInfo.buildTime}
-                </div>
-              </div>
-              <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
-                <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
-                  Commit
-                </div>
-                <div className="text-xs font-mono break-all">
-                  {serverBuild?.commit ?? "—"}
-                </div>
-              </div>
-              <div className="bg-muted/20 p-2.5 rounded-lg border border-border/40">
-                <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
-                  المنشأ / API
-                </div>
-                <div className="text-[10px] font-mono break-all" dir="ltr">
-                  {buildInfo.origin}
-                </div>
-              </div>
-              <div className="pt-2 flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="flex-1 h-8 text-[11px] font-bold"
-                  onClick={() => void runApiProbe()}
-                >
-                  فحص API يدوياً
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 h-8 text-[11px] font-bold"
-                  onClick={() => void copyBuildInfo()}
-                >
-                  نسخ التقرير
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60 bg-card shadow-sm h-fit">
-            <CardHeader className="border-b bg-muted/5 py-4">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                تحكم الأدوات
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-bold">وضع فحص الموبايل</div>
-                  <div className="text-[10px] text-muted-foreground">
-                    تمييز التجاوزات في النماذج.
-                  </div>
-                </div>
-                <Switch checked={qaEnabled} onCheckedChange={toggleQa} />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-9 text-xs font-bold border-dashed text-warning border-warning/50 bg-warning/10 hover:bg-warning/20"
-                onClick={() => void resetAppCache()}
-              >
-                إعادة ضبط ذاكرة الكاش
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      <section className="space-y-3 border-t border-border/60 pt-6">
-        <h2 className="text-base font-black text-foreground">إعدادات المركز</h2>
-        <AdminSettings />
-      </section>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full border-dashed border-warning/50 bg-warning/10 text-xs font-bold text-warning-text hover:bg-warning/20"
+                    onClick={() => void resetAppCache()}
+                  >
+                    إعادة ضبط ذاكرة التخزين المؤقت
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -188,7 +188,7 @@ export function AdminPatientsToolbar({
             <span className="text-sm text-muted-foreground">من:</span>
             <div className="relative w-full max-w-full sm:w-auto">
               <Calendar
-                className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40"
+                className="pointer-events-none absolute end-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40"
                 aria-hidden
               />
               <Input
@@ -207,7 +207,7 @@ export function AdminPatientsToolbar({
             <span className="text-sm text-muted-foreground">إلى:</span>
             <div className="relative w-full max-w-full sm:w-auto">
               <Calendar
-                className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40"
+                className="pointer-events-none absolute end-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40"
                 aria-hidden
               />
               <Input

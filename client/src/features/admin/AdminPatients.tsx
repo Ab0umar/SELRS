@@ -19,6 +19,7 @@ import {
 import { useAdminPatientsBulk } from "@/hooks/admin-patients/useAdminPatientsBulk";
 import { useAdminPatientsList } from "@/hooks/admin-patients/useAdminPatientsList";
 import { trpc } from "@/lib/trpc";
+import { getTrpcErrorMessage } from "@/lib/utils";
 
 const MONTHS_AR = [
   "يناير",
@@ -74,6 +75,36 @@ export default function AdminPatients() {
     toast.success("تم تحديث القائمة والإحصائيات.");
   }, [list.utils]);
 
+  const handleRetryPatients = useCallback(() => {
+    void list.patientsQuery.refetch();
+  }, [list.patientsQuery]);
+
+  const hasActivePatientFilters = Boolean(
+    list.searchTerm.trim() ||
+    list.dateFrom ||
+    list.dateTo ||
+    list.doctorFilter !== "all" ||
+    list.serviceTypeFilter !== "all" ||
+    list.locationFilter !== "all",
+  );
+
+  const handleClearPatientFilters = useCallback(() => {
+    list.setSearchTerm("");
+    list.setDateFrom("");
+    list.setDateTo("");
+    list.setDoctorFilter("all");
+    list.setServiceTypeFilter("all");
+    list.setLocationFilter("all");
+    toast.info("تم مسح فلاتر المرضى.");
+  }, [list]);
+
+  const hasPatientQueryData = list.patientsQuery.data !== undefined;
+  const isInitialPatientsLoading =
+    list.patientsQuery.isLoading && !hasPatientQueryData;
+  const patientQueryErrorMessage = list.patientsQuery.error
+    ? getTrpcErrorMessage(list.patientsQuery.error, "تعذر تحميل قائمة المرضى")
+    : "تعذر تحميل قائمة المرضى";
+
   const monthLabelShort =
     MONTHS_AR[Math.max(0, Math.min(11, Number(list.statsMonth) - 1))] ??
     list.statsMonth;
@@ -96,15 +127,23 @@ export default function AdminPatients() {
   ];
 
   return (
-    <div className="w-full space-y-6 pb-4 text-right" dir="rtl">
+    <div className="w-full space-y-6 pb-4 text-start" dir="rtl">
       <Card
         dir="rtl"
-        className="rounded-lg border-border bg-card text-right shadow-none"
+        className="rounded-lg border-border bg-card text-start shadow-none"
       >
         <CardHeader className="flex flex-col gap-4 space-y-0 border-b border-border py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
             <div className="flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
               <Users className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-foreground">
+                إدارة المرضى
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                البحث عن المرضى وتحديث بياناتهم وخدماتهم
+              </p>
             </div>
             <Badge variant="secondary" className="tabular-nums">
               {list.patientDashboardRollup.totalUnique}
@@ -126,7 +165,10 @@ export default function AdminPatients() {
                     value={list.statsMonth}
                     onValueChange={list.setStatsMonth}
                   >
-                    <SelectTrigger className="h-9 w-24 rounded-lg text-sm">
+                    <SelectTrigger
+                      className="h-11 min-h-11 w-24 rounded-lg text-sm"
+                      aria-label="الشهر للإحصائيات الشهرية"
+                    >
                       <SelectValue>{monthLabelShort}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -144,7 +186,10 @@ export default function AdminPatients() {
                     value={list.statsYear}
                     onValueChange={list.setStatsYear}
                   >
-                    <SelectTrigger className="h-9 w-20 rounded-lg text-sm">
+                    <SelectTrigger
+                      className="h-11 min-h-11 w-20 rounded-lg text-sm"
+                      aria-label="السنة للإحصائيات"
+                    >
                       <SelectValue placeholder="السنة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -157,7 +202,7 @@ export default function AdminPatients() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border text-center lg:grid-cols-6 [&>*]:rounded-none [&>*]:border-0 [&>*]:border-l">
+              <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border text-center lg:grid-cols-6 [&>*]:rounded-none [&>*]:border-0 [&>*]:border-e">
                 {monthlyBannerStats.map((item) => (
                   <StatCard
                     key={item.label}
@@ -181,21 +226,22 @@ export default function AdminPatients() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-2 rounded-lg text-sm"
+                    className="min-h-11 gap-2 rounded-lg text-sm"
                     onClick={() => syncRegistrationCatalogMutation.mutate()}
                     disabled={syncRegistrationCatalogMutation.isPending}
-                    aria-label="مزامنة قائمة الخدمات والأطباء من MSSQL"
+                    aria-label="مزامنة دليل الخدمات والأطباء من MSSQL"
+                    aria-busy={syncRegistrationCatalogMutation.isPending}
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className="h-4 w-4" aria-hidden />
                     {syncRegistrationCatalogMutation.isPending
-                      ? "جاري…"
-                      : "مزامنة"}
+                      ? "جاري مزامنة الدليل…"
+                      : "مزامنة الدليل"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-lg text-sm"
+                    className="min-h-11 rounded-lg text-sm"
                     disabled={resetPatientServiceTypesMutation.isPending}
                     onClick={async () => {
                       try {
@@ -212,27 +258,33 @@ export default function AdminPatients() {
                         );
                       }
                     }}
-                    aria-label="فحص (بدون تعديل) لتحديث serviceType حسب آخر كود خدمة"
+                    aria-label="فحص نوع الخدمة دون تعديل حسب آخر كود خدمة"
+                    aria-busy={resetPatientServiceTypesMutation.isPending}
                   >
-                    فحص التصحيح
+                    {resetPatientServiceTypesMutation.isPending
+                      ? "جاري الفحص…"
+                      : "فحص نوع الخدمة"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 rounded-lg text-sm border-warning text-card-foreground hover:bg-warning/10 focus-visible:ring-2 focus-visible:ring-warning focus-visible:ring-offset-2"
+                    className="min-h-11 rounded-lg border-warning text-sm text-card-foreground hover:bg-warning/10 focus-visible:ring-2 focus-visible:ring-warning focus-visible:ring-offset-2"
                     disabled={resetPatientServiceTypesMutation.isPending}
                     onClick={() => {
                       setConfirmAction("reset-service-type");
                       setConfirmDialogOpen(true);
                     }}
-                    aria-label="تطبيق التصحيح الفعلي"
+                    aria-label="تطبيق تصحيح نوع الخدمة فعليًا"
+                    aria-busy={resetPatientServiceTypesMutation.isPending}
                   >
-                    تطبيق التصحيح
+                    {resetPatientServiceTypesMutation.isPending
+                      ? "جاري التطبيق…"
+                      : "تطبيق تصحيح النوع"}
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border text-center lg:grid-cols-6 [&>*]:rounded-none [&>*]:border-0 [&>*]:border-l">
+              <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border text-center lg:grid-cols-6 [&>*]:rounded-none [&>*]:border-0 [&>*]:border-e">
                 {yearlyBannerStats.map((item) => (
                   <StatCard
                     key={item.label}
@@ -297,47 +349,165 @@ export default function AdminPatients() {
             onUndoLastBulkAction={bulk.handleUndoLastBulkAction}
           />
 
-          <AdminPatientsTable
-            allVisibleSelected={list.allVisibleSelected}
-            currentPage={list.currentPage}
-            deletePatientPending={list.deletePatientMutation.isPending}
-            deletePatientFromMssqlPending={
-              list.deletePatientFromMssqlMutation.isPending
-            }
-            deleteAllServicesPending={
-              list.deleteAllPatientServicesMutation.isPending
-            }
-            updatePatientCodePending={list.updatePatientCodeMutation.isPending}
-            getDraft={list.getDraft}
-            hasMore={list.hasMore}
-            isExpanded={list.isExpanded}
-            isManualLockEnabled={list.isManualLockEnabled}
-            nextCursor={list.nextCursor}
-            onDeleteFromMssql={list.handleDeleteFromMssql}
-            onDeletePatient={list.handleDeletePatient}
-            onDeleteAllServices={list.handleDeleteAllServices}
-            onEditPatientCode={list.handleEditPatientCode}
-            onNextPage={list.goToNextPage}
-            onPreviousPage={list.goToPreviousPage}
-            onSavePatientRow={list.savePatientRow}
-            onSetDraftField={list.setDraftField}
-            onToggleExpanded={list.toggleExpanded}
-            onToggleManualLock={list.handleToggleManualLock}
-            onToggleSelectAllVisible={list.toggleSelectAllVisible}
-            onToggleSelectedPatient={list.toggleSelectedPatient}
-            pageSize={list.pageSize}
-            patientsLoading={list.patientsQuery.isLoading}
-            rowSaveState={list.rowSaveState}
-            savePatientPageStatePending={
-              list.savePatientPageStateMutation.isPending
-            }
-            selectedPatients={list.selectedPatients}
-            serviceCodeToLabel={list.serviceCodeToLabel}
-            serviceCodeToType={list.serviceCodeToType}
-            setPageSize={list.setPageSize}
-            updatePatientPending={list.updatePatientMutation.isPending}
-            visiblePatients={list.visiblePatients}
-          />
+          {list.patientsQuery.isError ? (
+            <div
+              className="flex flex-col gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-start sm:flex-row sm:items-center sm:justify-between"
+              role="alert"
+              aria-live="assertive"
+            >
+              <div className="flex min-w-0 items-start gap-3">
+                <AlertCircle
+                  className="mt-0.5 h-5 w-5 shrink-0 text-destructive"
+                  aria-hidden
+                />
+                <div>
+                  <p className="font-semibold text-foreground">
+                    تعذر تحميل قائمة المرضى
+                  </p>
+                  <p className="mt-1 break-words text-sm text-muted-foreground">
+                    {patientQueryErrorMessage}. أعد المحاولة أو تحقّق من
+                    الاتصال.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 shrink-0 gap-2 rounded-lg"
+                onClick={handleRetryPatients}
+                disabled={list.patientsQuery.isFetching}
+                aria-busy={list.patientsQuery.isFetching}
+              >
+                <RefreshCw
+                  className={
+                    list.patientsQuery.isFetching
+                      ? "h-4 w-4 animate-spin"
+                      : "h-4 w-4"
+                  }
+                  aria-hidden
+                />
+                {list.patientsQuery.isFetching
+                  ? "جاري إعادة المحاولة…"
+                  : "إعادة المحاولة"}
+              </Button>
+            </div>
+          ) : null}
+
+          {isInitialPatientsLoading ? (
+            <div
+              className="rounded-lg border border-border bg-muted/20 px-4 py-10 text-center text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              جاري تحميل قائمة المرضى…
+            </div>
+          ) : null}
+
+          {!isInitialPatientsLoading &&
+          !list.patientsQuery.isError &&
+          list.patientsQuery.isFetching ? (
+            <div
+              className="text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              جاري تحديث نتائج المرضى…
+            </div>
+          ) : null}
+
+          {!isInitialPatientsLoading &&
+          !list.patientsQuery.isError &&
+          !list.patientsQuery.isFetching &&
+          hasPatientQueryData &&
+          list.visiblePatients.length === 0 ? (
+            <div
+              className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-4 py-10 text-center"
+              role="status"
+              aria-live="polite"
+            >
+              <Users className="h-6 w-6 text-muted-foreground" aria-hidden />
+              <div>
+                <p className="font-semibold text-foreground">
+                  {hasActivePatientFilters
+                    ? "لا توجد نتائج مطابقة للفلاتر الحالية"
+                    : "لا يوجد مرضى لعرضهم"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {hasActivePatientFilters
+                    ? "غيّر البحث أو الفلاتر لعرض سجلات أخرى."
+                    : "ستظهر سجلات المرضى هنا بعد تحميلها."}
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {hasActivePatientFilters ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 rounded-lg"
+                    onClick={handleClearPatientFilters}
+                  >
+                    مسح الفلاتر
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 gap-2 rounded-lg"
+                  onClick={handleRetryPatients}
+                  disabled={list.patientsQuery.isFetching}
+                >
+                  <RefreshCw className="h-4 w-4" aria-hidden />
+                  تحديث القائمة
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {!isInitialPatientsLoading && list.visiblePatients.length > 0 ? (
+            <AdminPatientsTable
+              allVisibleSelected={list.allVisibleSelected}
+              currentPage={list.currentPage}
+              deletePatientPending={list.deletePatientMutation.isPending}
+              deletePatientFromMssqlPending={
+                list.deletePatientFromMssqlMutation.isPending
+              }
+              deleteAllServicesPending={
+                list.deleteAllPatientServicesMutation.isPending
+              }
+              updatePatientCodePending={
+                list.updatePatientCodeMutation.isPending
+              }
+              getDraft={list.getDraft}
+              hasMore={list.hasMore}
+              isExpanded={list.isExpanded}
+              isManualLockEnabled={list.isManualLockEnabled}
+              nextCursor={list.nextCursor}
+              onDeleteFromMssql={list.handleDeleteFromMssql}
+              onDeletePatient={list.handleDeletePatient}
+              onDeleteAllServices={list.handleDeleteAllServices}
+              onEditPatientCode={list.handleEditPatientCode}
+              onNextPage={list.goToNextPage}
+              onPreviousPage={list.goToPreviousPage}
+              onSavePatientRow={list.savePatientRow}
+              onSetDraftField={list.setDraftField}
+              onToggleExpanded={list.toggleExpanded}
+              onToggleManualLock={list.handleToggleManualLock}
+              onToggleSelectAllVisible={list.toggleSelectAllVisible}
+              onToggleSelectedPatient={list.toggleSelectedPatient}
+              pageSize={list.pageSize}
+              patientsLoading={list.patientsQuery.isLoading}
+              rowSaveState={list.rowSaveState}
+              savePatientPageStatePending={
+                list.savePatientPageStateMutation.isPending
+              }
+              selectedPatients={list.selectedPatients}
+              serviceCodeToLabel={list.serviceCodeToLabel}
+              serviceCodeToType={list.serviceCodeToType}
+              setPageSize={list.setPageSize}
+              updatePatientPending={list.updatePatientMutation.isPending}
+              visiblePatients={list.visiblePatients}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

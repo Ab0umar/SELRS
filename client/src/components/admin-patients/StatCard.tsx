@@ -7,6 +7,7 @@ interface StatCardProps {
 export function StatCard({ label, value, isTotal = false }: StatCardProps) {
   return (
     <div
+      data-summary-card
       className={`rounded-lg border px-2 py-3 sm:px-3 sm:py-3 ${
         isTotal
           ? "border-secondary bg-secondary/8"
@@ -14,7 +15,7 @@ export function StatCard({ label, value, isTotal = false }: StatCardProps) {
       }`}
     >
       <p
-        className={`text-xs sm:text-sm font-medium leading-tight tracking-tight ${
+        className={`text-xs sm:text-sm font-medium leading-tight ${
           isTotal ? "text-primary font-semibold" : "text-muted-foreground"
         }`}
       >

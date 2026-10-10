@@ -64,10 +64,10 @@ export function ImportDialog({
         dir="rtl"
       >
         <DialogHeader>
-          <DialogTitle className="text-right">
+          <DialogTitle className="text-start">
             Staged Import Preview
           </DialogTitle>
-          <DialogDescription className="text-right">
+          <DialogDescription className="text-start">
             {importSummary
               ? `Total: ${importSummary.total}, Valid: ${importSummary.valid}, Invalid: ${importSummary.invalid}`
               : "Upload an Excel workbook, validate it, then apply the valid rows."}
@@ -111,17 +111,17 @@ export function ImportDialog({
           </Button>
         </div>
 
-        <div className="max-h-[420px] overflow-auto rounded-md border">
+        <div role="region" aria-label="جدول بيانات" tabIndex={0} className="max-h-[420px] overflow-auto rounded-md border">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-muted">
               <tr>
-                <th className="p-2 text-right">Row</th>
-                <th className="p-2 text-right">Code</th>
-                <th className="p-2 text-right">Name</th>
-                <th className="p-2 text-right">Service</th>
-                <th className="p-2 text-right">Location</th>
-                <th className="p-2 text-right">Status</th>
-                <th className="p-2 text-right">Errors</th>
+                <th className="p-2 text-start">Row</th>
+                <th className="p-2 text-start">Code</th>
+                <th className="p-2 text-start">Name</th>
+                <th className="p-2 text-start">Service</th>
+                <th className="p-2 text-start">Location</th>
+                <th className="p-2 text-start">Status</th>
+                <th className="p-2 text-start">Errors</th>
               </tr>
             </thead>
             <tbody>

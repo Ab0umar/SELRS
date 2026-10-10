@@ -28,15 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Activity,
-  CheckCircle2,
-  Edit2,
-  Plus,
-  Settings,
-  Trash2,
-  XCircle,
-} from "lucide-react";
+import { Edit2, Plus, Settings, Trash2, Upload } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
 import { SearchBar } from "@/components/shared/SearchBar";
@@ -295,6 +287,7 @@ export default function AdminServices({
   );
   const [showMappingsSection, setShowMappingsSection] = useState(false);
   const [confirmDeleteMatches, setConfirmDeleteMatches] = useState(false);
+  const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
   const servicesQuery = trpc.medical.getServicesFromDb.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -311,7 +304,10 @@ export default function AdminServices({
   );
   const utils = trpc.useUtils();
   const updateServiceInDbMutation = trpc.medical.updateServiceInDb.useMutation({
-    onError: (err) => toast.error("فشل حفظ الخدمة: " + (err.message || "خطأ")),
+    onError: (err) => {
+      toast.error("فشل حفظ الخدمة: " + (err.message || "خطأ"));
+      void utils.medical.getServicesFromDb.invalidate();
+    },
   });
   const saveMappingsMutation = trpc.medical.updateSystemSetting.useMutation({
     onSuccess: async () => {
@@ -362,10 +358,6 @@ export default function AdminServices({
   // Load services from DB table
   useEffect(() => {
     if (servicesQuery.error) {
-      toast.error(
-        "خطأ في تحميل الخدمات: " +
-          (servicesQuery.error.message || "خطأ غير معروف"),
-      );
       setIsInitialized(true);
       return;
     }
@@ -539,42 +531,44 @@ export default function AdminServices({
 
   const addServiceInDbMutation = trpc.medical.addServiceInDb.useMutation({
     onSuccess: () => utils.medical.getServicesFromDb.invalidate(),
-    onError: (err) =>
-      toast.error("فشل إضافة الخدمة: " + (err.message || "خطأ")),
   });
 
-  const addService = () => {
+  const addService = async () => {
     const code = newService.code.trim();
     const name = newService.name.trim();
     if (!code || !name) {
-      toast.error("Code and name are required");
+      toast.error("أدخل كود الخدمة واسمها");
       return;
     }
     if (
       services.some((s) => s.code.trim().toLowerCase() === code.toLowerCase())
     ) {
-      toast.error("Service code already exists");
+      toast.error("كود الخدمة موجود بالفعل");
       return;
     }
     const id = makeId();
-    addServiceInDbMutation.mutate({
-      id,
-      code,
-      name,
-      category: newService.category,
-      serviceType: newService.serviceType,
-      srvTyp: "1",
-      defaultSheet: newService.defaultSheet,
-    });
-    setNewService({
-      code: "",
-      name: "",
-      category: "examination",
-      serviceType: "consultant",
-      defaultSheet: "consultant",
-    });
-    setAddOpen(false);
-    toast.success("تم إضافة الخدمة");
+    try {
+      await addServiceInDbMutation.mutateAsync({
+        id,
+        code,
+        name,
+        category: newService.category,
+        serviceType: newService.serviceType,
+        srvTyp: "1",
+        defaultSheet: newService.defaultSheet,
+      });
+      setNewService({
+        code: "",
+        name: "",
+        category: "examination",
+        serviceType: "consultant",
+        defaultSheet: "consultant",
+      });
+      setAddOpen(false);
+      toast.success("تمت إضافة الخدمة");
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "فشل إضافة الخدمة"));
+    }
   };
 
   const updateService = (id: string, updates: Partial<ServiceEntry>) => {
@@ -597,15 +591,25 @@ export default function AdminServices({
     }
   };
 
-  const deleteService = (id: string) => {
-    updateServiceInDbMutation.mutate({ id, isActive: false });
-    setServices((prev) => prev.filter((s) => s.id !== id));
-    setSelectedIds((prev) => prev.filter((sid) => sid !== id));
-    toast.success("تم حذف الخدمة");
+  const deleteService = async (id: string) => {
+    try {
+      await updateServiceInDbMutation.mutateAsync({ id, isActive: false });
+      setServices((prev) => prev.filter((s) => s.id !== id));
+      setSelectedIds((prev) => prev.filter((sid) => sid !== id));
+      setSelectedServiceId((current) => (current === id ? null : current));
+      setDeleteServiceId(null);
+      toast.success("تم تعطيل الخدمة");
+    } catch {
+      // The mutation handler reports the server error and refreshes the query.
+    }
   };
 
-  const saveServices = async () => {
-    toast.success("التغييرات تحفظ تلقائياً في الجدول ✓");
+  const saveServices = () => {
+    if (updateServiceInDbMutation.isPending) {
+      toast.info("جاري حفظ التغييرات");
+      return;
+    }
+    toast.success("تم حفظ التغييرات تلقائياً");
   };
 
   const saveDoctorServiceMatches = async () => {
@@ -827,16 +831,6 @@ export default function AdminServices({
     return labels[cat];
   };
 
-  const getCategoryEmoji = (cat: ServiceCategory): string => {
-    const emojis: Record<ServiceCategory, string> = {
-      examination: "🏥",
-      radiology: "📹",
-      operations: "⚕️",
-      miscellaneous: "💼",
-    };
-    return emojis[cat];
-  };
-
   if (!isAuthenticated || user?.role !== "admin") return null;
 
   const doctorNameByCode = new Map(
@@ -848,6 +842,9 @@ export default function AdminServices({
   const servicesTotal = sortedServices.length;
   const servicesActive = sortedServices.filter((s) => s.isActive).length;
   const servicesInactive = servicesTotal - servicesActive;
+  const serviceToDelete = deleteServiceId
+    ? services.find((service) => service.id === deleteServiceId)
+    : null;
 
   const newServiceFields = (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
@@ -857,6 +854,8 @@ export default function AdminServices({
         </span>
         <Input
           placeholder="كود الخدمة"
+          aria-label="كود الخدمة"
+          aria-required="true"
           value={newService.code}
           onChange={(e) =>
             setNewService((prev) => ({ ...prev, code: e.target.value }))
@@ -870,6 +869,8 @@ export default function AdminServices({
         </span>
         <Input
           placeholder="اسم الخدمة"
+          aria-label="اسم الخدمة"
+          aria-required="true"
           value={newService.name}
           onChange={(e) =>
             setNewService((prev) => ({ ...prev, name: e.target.value }))
@@ -887,7 +888,7 @@ export default function AdminServices({
             }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="فئة الخدمة">
             <SelectValue placeholder="الفئة" />
           </SelectTrigger>
           <SelectContent>
@@ -911,7 +912,7 @@ export default function AdminServices({
             }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="نوع الخدمة">
             <SelectValue placeholder="النوع" />
           </SelectTrigger>
           <SelectContent>
@@ -933,7 +934,7 @@ export default function AdminServices({
             setNewService((prev) => ({ ...prev, defaultSheet: v as SheetType }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="الشيت الافتراضي">
             <SelectValue placeholder="الشيت" />
           </SelectTrigger>
           <SelectContent>
@@ -950,7 +951,7 @@ export default function AdminServices({
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-6 px-2 pb-4 text-right sm:px-4 lg:px-6"
+      className="mx-auto w-full max-w-[1440px] space-y-6 px-2 pb-4 text-start sm:px-4 lg:px-6"
       dir="rtl"
     >
       {!embeddedInHub && (
@@ -975,7 +976,7 @@ export default function AdminServices({
         <span className="font-black text-foreground">ملخص الخدمات</span>
         <span className="text-muted-foreground">
           الإجمالي{" "}
-          <strong className="mr-1 text-foreground">{servicesTotal}</strong>
+          <strong className="ms-1 text-foreground">{servicesTotal}</strong>
         </span>
         <span className="flex items-center gap-1.5 text-muted-foreground">
           <span className="size-2 rounded-full bg-success" />
@@ -1123,7 +1124,8 @@ export default function AdminServices({
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
             >
-              📥 استيراد CSV
+              <Upload className="h-4 w-4" />
+              استيراد CSV
             </Button>
           </div>
 
@@ -1150,7 +1152,7 @@ export default function AdminServices({
 
             {selectedIds.length > 0 && (
               <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2 pr-6">
+                <div className="flex flex-wrap items-center gap-2 ps-6">
                   <Select
                     value={moveTarget}
                     onValueChange={(v) => setMoveTarget(v as ServiceCategory)}
@@ -1159,11 +1161,11 @@ export default function AdminServices({
                       <SelectValue placeholder="نقل إلى" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="examination">🏥 كشف</SelectItem>
-                      <SelectItem value="radiology">📹 اشعه</SelectItem>
-                      <SelectItem value="operations">⚕️ عمليات</SelectItem>
+                      <SelectItem value="examination">كشف</SelectItem>
+                      <SelectItem value="radiology">أشعة</SelectItem>
+                      <SelectItem value="operations">عمليات</SelectItem>
                       <SelectItem value="miscellaneous">
-                        💼 ايرادات متنوعه
+                        إيرادات متنوعة
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -1172,13 +1174,13 @@ export default function AdminServices({
                     size="sm"
                     variant="default"
                   >
-                    ➡️ نقل المحدد
+                    نقل المحدد
                   </Button>
                   <span className="text-xs text-muted-foreground">
                     ({selectedIds.length} محدد)
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 pr-6">
+                <div className="flex flex-wrap items-center gap-2 ps-6">
                   <Select
                     value={sheetTarget}
                     onValueChange={(v) => setSheetTarget(v as SheetType)}
@@ -1199,7 +1201,7 @@ export default function AdminServices({
                     size="sm"
                     variant="default"
                   >
-                    📋 تغيير الشيت
+                    تغيير الشيت
                   </Button>
                 </div>
               </div>
@@ -1209,67 +1211,117 @@ export default function AdminServices({
       </Card>
 
       <div className="grid min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-l">
+        <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-e">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
               <h2 className="text-sm font-black">دليل الخدمات</h2>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
                 {hubFilteredServices.length} خدمة مطابقة
               </p>
             </div>
             <Settings className="size-4 text-primary" />
           </div>
-          <div className="max-h-[560px] overflow-y-auto p-2">
-            {hubFilteredServices.map((service) => {
-              const active = selectedService?.id === service.id;
-              return (
-                <button
-                  key={service.id}
+          <div
+            className="max-h-[560px] overflow-y-auto p-2"
+            aria-busy={servicesQuery.isLoading || servicesQuery.isFetching}
+          >
+            {servicesQuery.isLoading || !isInitialized ? (
+              <div
+                className="px-3 py-10 text-center text-sm text-muted-foreground"
+                role="status"
+              >
+                جاري تحميل دليل الخدمات…
+              </div>
+            ) : servicesQuery.isError ? (
+              <div className="space-y-3 px-3 py-10 text-center" role="alert">
+                <p className="text-sm text-destructive">
+                  تعذر تحميل الخدمات. حاول مرة أخرى.
+                </p>
+                <Button
                   type="button"
-                  onClick={() => setSelectedServiceId(service.id)}
-                  className={cn(
-                    "mb-1 flex w-full items-center gap-3 rounded-md px-3 py-3 text-right transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-background",
-                  )}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void servicesQuery.refetch()}
                 >
-                  <span
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : hubFilteredServices.length === 0 ? (
+              <div className="space-y-3 px-3 py-10 text-center" role="status">
+                <p className="text-sm text-muted-foreground">
+                  لا توجد خدمات مطابقة للتصفية.
+                </p>
+                {(hubSearch ||
+                  hubStatus !== "all" ||
+                  hubCategory !== "all") && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setHubSearch("");
+                      setHubStatus("all");
+                      setHubCategory("all");
+                    }}
+                  >
+                    مسح البحث والتصفية
+                  </Button>
+                )}
+              </div>
+            ) : (
+              pagedHubServices.map((service) => {
+                const active = selectedService?.id === service.id;
+                return (
+                  <Button variant="bare"
+                    key={service.id}
+                    type="button"
+                    onClick={() => setSelectedServiceId(service.id)}
                     className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-md text-sm",
+                      "mb-1 flex w-full items-center gap-3 rounded-md px-3 py-3 text-start transition-colors",
                       active
-                        ? "bg-primary-foreground/15"
-                        : "bg-primary/10 text-primary",
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-background",
                     )}
                   >
-                    {getCategoryEmoji(service.category || "examination")}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-black">
-                      {service.name}
+                    <span
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-md text-sm",
+                        active
+                          ? "bg-primary-foreground/15"
+                          : "bg-primary/10 text-primary",
+                      )}
+                    >
+                      {getCategoryLabel(
+                        service.category || "examination",
+                      ).charAt(0)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-black">
+                        {service.name}
+                      </span>
+                      <span
+                        className={cn(
+                          "mt-0.5 block font-mono text-[13px]",
+                          active
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {service.code}
+                      </span>
                     </span>
                     <span
                       className={cn(
-                        "mt-0.5 block font-mono text-[10px]",
-                        active
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground",
+                        "size-2 rounded-full",
+                        service.isActive
+                          ? "bg-success"
+                          : "bg-muted-foreground/40",
                       )}
-                    >
-                      {service.code}
-                    </span>
-                  </span>
-                  <span
-                    className={cn(
-                      "size-2 rounded-full",
-                      service.isActive
-                        ? "bg-success"
-                        : "bg-muted-foreground/40",
-                    )}
-                  />
-                </button>
-              );
-            })}
+                    />
+                  </Button>
+                );
+              })
+            )}
           </div>
         </aside>
 
@@ -1282,7 +1334,7 @@ export default function AdminServices({
                     <h2 className="text-lg font-black">
                       {selectedService.name}
                     </h2>
-                    <Badge variant="outline" className="rounded text-[10px]">
+                    <Badge variant="outline" className="rounded text-[13px]">
                       {getCategoryLabel(
                         selectedService.category || "examination",
                       )}
@@ -1314,6 +1366,7 @@ export default function AdminServices({
                     <label className="space-y-1.5">
                       <span className="text-xs font-bold">اسم الخدمة</span>
                       <Input
+                        aria-label="اسم الخدمة"
                         value={selectedService.name}
                         onChange={(event) =>
                           updateService(selectedService.id, {
@@ -1323,16 +1376,15 @@ export default function AdminServices({
                       />
                     </label>
                     <label className="space-y-1.5">
-                      <span className="text-xs font-bold">الكود</span>
+                      <span className="text-xs font-bold">
+                        الكود (غير قابل للتعديل)
+                      </span>
                       <Input
+                        aria-label="كود الخدمة، غير قابل للتعديل"
                         value={selectedService.code}
                         dir="ltr"
                         className="font-mono"
-                        onChange={(event) =>
-                          updateService(selectedService.id, {
-                            code: event.target.value,
-                          })
-                        }
+                        readOnly
                       />
                     </label>
                     <label className="space-y-1.5">
@@ -1383,6 +1435,7 @@ export default function AdminServices({
                     <label className="space-y-1.5">
                       <span className="text-xs font-bold">السعر</span>
                       <Input
+                        aria-label="سعر الخدمة بالجنيه المصري"
                         type="number"
                         min={0}
                         step={0.01}
@@ -1398,6 +1451,7 @@ export default function AdminServices({
                             price: selectedService.price ?? 0,
                           })
                         }
+                        aria-busy={updateMssqlPriceMutation.isPending}
                       />
                     </label>
                     <label className="space-y-1.5">
@@ -1434,7 +1488,7 @@ export default function AdminServices({
                     </Button>
                   </div>
                 </div>
-                <aside className="border-t border-border pt-5 xl:border-t-0 xl:border-r xl:pr-5 xl:pt-0">
+                <aside className="border-t border-border pt-5 xl:border-t-0 xl:border-s xl:ps-5 xl:pt-0">
                   <h3 className="text-sm font-black">إجراءات الخدمة</h3>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     يمكن حذف الخدمة من القائمة ثم حفظ التغييرات.
@@ -1444,10 +1498,8 @@ export default function AdminServices({
                     variant="outline"
                     size="sm"
                     className="mt-4 w-full gap-2 text-destructive"
-                    onClick={() => {
-                      deleteService(selectedService.id);
-                      setSelectedServiceId(null);
-                    }}
+                    onClick={() => setDeleteServiceId(selectedService.id)}
+                    disabled={updateServiceInDbMutation.isPending}
                   >
                     <Trash2 className="size-4" />
                     حذف الخدمة
@@ -1456,8 +1508,22 @@ export default function AdminServices({
               </div>
             </div>
           ) : (
-            <div className="flex min-h-[500px] items-center justify-center text-sm text-muted-foreground">
-              لا توجد خدمة مطابقة للتصفية.
+            <div className="flex min-h-[500px] flex-col items-center justify-center gap-3 px-5 text-center text-sm text-muted-foreground">
+              {servicesQuery.isError ? (
+                <>
+                  <p role="alert">تعذر تحميل إعدادات الخدمة.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void servicesQuery.refetch()}
+                  >
+                    إعادة المحاولة
+                  </Button>
+                </>
+              ) : (
+                <p>لا توجد خدمة مطابقة للتصفية.</p>
+              )}
             </div>
           )}
         </section>
@@ -1532,12 +1598,12 @@ export default function AdminServices({
                         </Button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="text-right">
+                        <div className="text-start">
                           <div className="font-semibold leading-tight">
                             {service.name}
                           </div>
                           <div
-                            className="mt-0.5 text-[11px] tabular-nums text-muted-foreground"
+                            className="mt-0.5 text-[13px] tabular-nums text-muted-foreground"
                             dir="ltr"
                           >
                             {service.code}
@@ -1558,17 +1624,16 @@ export default function AdminServices({
                     </div>
                     <div className="mt-2.5 grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs">
                       <div className="text-muted-foreground">الفئة</div>
-                      <div className="text-right">
+                      <div className="text-start">
                         <Badge
                           variant="secondary"
-                          className="text-[10px] font-medium"
+                          className="text-[13px] font-medium"
                         >
-                          {getCategoryEmoji(service.category || "examination")}{" "}
                           {getCategoryLabel(service.category || "examination")}
                         </Badge>
                       </div>
                       <div className="text-muted-foreground">نوع الشيت</div>
-                      <div className="text-right">
+                      <div className="text-start">
                         <Select
                           value={service.defaultSheet}
                           onValueChange={(v) =>
@@ -1590,7 +1655,7 @@ export default function AdminServices({
                         </Select>
                       </div>
                       <div className="text-muted-foreground">السعر</div>
-                      <div className="text-right">
+                      <div className="text-start">
                         <Input
                           type="number"
                           min={0}
@@ -1612,7 +1677,7 @@ export default function AdminServices({
                       <div className="text-muted-foreground">
                         المركز / خارجي
                       </div>
-                      <div className="flex items-center gap-3 text-right">
+                      <div className="flex items-center gap-3 text-start">
                         <label className="flex items-center gap-1 whitespace-nowrap text-xs">
                           <Checkbox
                             checked={service.srvTyp === "1"}
@@ -1675,7 +1740,7 @@ export default function AdminServices({
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border/80 bg-background">
-              <Table dir="rtl" className="min-w-[1000px] text-right">
+              <Table dir="rtl" className="min-w-[1000px] text-start">
                 <TableHeader className="sticky top-0 z-10 bg-primary/5 backdrop-blur-sm">
                   <TableRow className="hover:bg-transparent border-b-primary/10">
                     <TableHead className="w-12 px-3 h-11" />
@@ -1752,7 +1817,7 @@ export default function AdminServices({
                               {service.name}
                             </div>
                             <div
-                              className="text-[10px] tabular-nums font-mono text-muted-foreground/80 mt-0.5"
+                              className="text-[13px] tabular-nums font-mono text-muted-foreground/80 mt-0.5"
                               dir="ltr"
                             >
                               {service.code}
@@ -1761,11 +1826,8 @@ export default function AdminServices({
                           <TableCell className="align-middle whitespace-nowrap py-3">
                             <Badge
                               variant="secondary"
-                              className="font-bold text-[10px] px-2 py-0.5 shadow-none bg-muted/50 border-0"
+                              className="font-bold text-[13px] px-2 py-0.5 shadow-none bg-muted/50 border-0"
                             >
-                              {getCategoryEmoji(
-                                service.category || "examination",
-                              )}{" "}
                               {getCategoryLabel(
                                 service.category || "examination",
                               )}
@@ -1780,7 +1842,7 @@ export default function AdminServices({
                                 })
                               }
                             >
-                              <SelectTrigger className="h-8 text-[11px] font-medium border-muted-foreground/20 bg-background/50">
+                              <SelectTrigger className="h-8 text-[13px] font-medium border-muted-foreground/20 bg-background/50">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -1797,7 +1859,7 @@ export default function AdminServices({
                             </Select>
                           </TableCell>
                           <TableCell className="align-middle py-3">
-                            <div className="flex items-center gap-3 text-[11px] font-semibold text-muted-foreground">
+                            <div className="flex items-center gap-3 text-[13px] font-semibold text-muted-foreground">
                               <label className="flex items-center gap-1.5 cursor-pointer hover:text-foreground">
                                 <Checkbox
                                   className="h-3.5 w-3.5"
@@ -1861,7 +1923,7 @@ export default function AdminServices({
                               variant="outline"
                               size="sm"
                               className={cn(
-                                "h-7 text-[10px] font-bold px-3 transition-all",
+                                "h-7 text-[13px] font-bold px-3 transition-all",
                                 service.isActive
                                   ? "border-success/30 bg-success/10 text-success hover:bg-success/15"
                                   : "border-muted text-muted-foreground",
@@ -1912,7 +1974,7 @@ export default function AdminServices({
                             <TableCell colSpan={8} className="py-4 px-12">
                               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-4 rounded-xl border border-primary/10 bg-background/60 shadow-inner">
                                 <div className="space-y-1.5 flex-1 min-w-[200px]">
-                                  <span className="text-[11px] font-bold text-muted-foreground/70 block px-1">
+                                  <span className="text-[13px] font-bold text-muted-foreground/70 block px-1">
                                     نوع الخدمة (تصنيف النظام)
                                   </span>
                                   <Select
@@ -2015,7 +2077,7 @@ export default function AdminServices({
             });
         }}
       >
-        <DialogContent className="max-w-lg text-right sm:max-w-xl" dir="rtl">
+        <DialogContent className="max-w-lg text-start sm:max-w-xl" dir="rtl">
           <DialogHeader>
             <DialogTitle>إضافة خدمة جديدة</DialogTitle>
           </DialogHeader>
@@ -2032,9 +2094,54 @@ export default function AdminServices({
               type="button"
               className="selrs-gradient-btn text-primary-foreground gap-2"
               onClick={addService}
+              disabled={addServiceInDbMutation.isPending}
             >
               <Plus className="h-4 w-4" />
-              إدراج الخدمة
+              {addServiceInDbMutation.isPending
+                ? "جاري الإدراج…"
+                : "إدراج الخدمة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deleteServiceId !== null}
+        onOpenChange={(open) => {
+          if (!open && !updateServiceInDbMutation.isPending) {
+            setDeleteServiceId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md text-start" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعطيل الخدمة؟</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm leading-6 text-muted-foreground">
+            سيتم إخفاء الخدمة من الخدمات الفعالة دون تغيير سعرها أو حذف
+            بياناتها.
+            {serviceToDelete ? ` الخدمة: ${serviceToDelete.name}` : ""}
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteServiceId(null)}
+              disabled={updateServiceInDbMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (deleteServiceId) void deleteService(deleteServiceId);
+              }}
+              disabled={!serviceToDelete || updateServiceInDbMutation.isPending}
+            >
+              {updateServiceInDbMutation.isPending
+                ? "جاري التعطيل…"
+                : "تعطيل الخدمة"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2094,38 +2201,71 @@ export default function AdminServices({
                   </label>
                 </div>
                 <div className="max-h-64 space-y-1 overflow-auto">
-                  {filteredDoctors.map((doctor) => (
-                    <label
-                      key={doctor.code}
-                      className="flex items-center justify-between gap-2 rounded-md border border-border bg-card p-2 text-sm transition-colors hover:bg-muted/50"
+                  {doctorDirectoryQuery.isLoading ? (
+                    <div
+                      className="px-2 py-8 text-center text-sm text-muted-foreground"
+                      role="status"
                     >
-                      <div className="min-w-0">
-                        <div className="truncate font-medium text-foreground">
-                          {doctor.name}
+                      جاري تحميل دليل الأطباء…
+                    </div>
+                  ) : doctorDirectoryQuery.isError ? (
+                    <div
+                      className="space-y-2 px-2 py-8 text-center"
+                      role="alert"
+                    >
+                      <p className="text-sm text-destructive">
+                        تعذر تحميل الأطباء.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void doctorDirectoryQuery.refetch()}
+                      >
+                        إعادة المحاولة
+                      </Button>
+                    </div>
+                  ) : filteredDoctors.length === 0 ? (
+                    <p
+                      className="px-2 py-8 text-center text-sm text-muted-foreground"
+                      role="status"
+                    >
+                      لا يوجد أطباء مطابقون للبحث.
+                    </p>
+                  ) : (
+                    filteredDoctors.map((doctor) => (
+                      <label
+                        key={doctor.code}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border bg-card p-2 text-sm transition-colors hover:bg-muted/50"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-foreground">
+                            {doctor.name}
+                          </div>
+                          <div
+                            className="text-xs text-muted-foreground"
+                            dir="ltr"
+                          >
+                            {doctor.code}
+                          </div>
                         </div>
-                        <div
-                          className="text-xs text-muted-foreground"
-                          dir="ltr"
-                        >
-                          {doctor.code}
-                        </div>
-                      </div>
-                      <Checkbox
-                        checked={selectedDoctorCodes.includes(doctor.code)}
-                        onCheckedChange={(checked) => {
-                          if (Boolean(checked)) {
-                            setSelectedDoctorCodes((prev) =>
-                              Array.from(new Set([...prev, doctor.code])),
-                            );
-                          } else {
-                            setSelectedDoctorCodes((prev) =>
-                              prev.filter((code) => code !== doctor.code),
-                            );
-                          }
-                        }}
-                      />
-                    </label>
-                  ))}
+                        <Checkbox
+                          checked={selectedDoctorCodes.includes(doctor.code)}
+                          onCheckedChange={(checked) => {
+                            if (Boolean(checked)) {
+                              setSelectedDoctorCodes((prev) =>
+                                Array.from(new Set([...prev, doctor.code])),
+                              );
+                            } else {
+                              setSelectedDoctorCodes((prev) =>
+                                prev.filter((code) => code !== doctor.code),
+                              );
+                            }
+                          }}
+                        />
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -2161,38 +2301,71 @@ export default function AdminServices({
                   </label>
                 </div>
                 <div className="max-h-64 space-y-1 overflow-auto">
-                  {filteredServicesForMapping.map((service) => (
-                    <label
-                      key={service.code}
-                      className="flex items-center justify-between gap-2 rounded-md border border-border bg-card p-2 text-sm transition-colors hover:bg-muted/50"
+                  {servicesQuery.isLoading ? (
+                    <div
+                      className="px-2 py-8 text-center text-sm text-muted-foreground"
+                      role="status"
                     >
-                      <div className="min-w-0">
-                        <div className="truncate font-medium text-foreground">
-                          {service.name}
+                      جاري تحميل دليل الخدمات…
+                    </div>
+                  ) : servicesQuery.isError ? (
+                    <div
+                      className="space-y-2 px-2 py-8 text-center"
+                      role="alert"
+                    >
+                      <p className="text-sm text-destructive">
+                        تعذر تحميل دليل الخدمات.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void servicesQuery.refetch()}
+                      >
+                        إعادة المحاولة
+                      </Button>
+                    </div>
+                  ) : filteredServicesForMapping.length === 0 ? (
+                    <p
+                      className="px-2 py-8 text-center text-sm text-muted-foreground"
+                      role="status"
+                    >
+                      لا توجد خدمات مطابقة للبحث.
+                    </p>
+                  ) : (
+                    filteredServicesForMapping.map((service) => (
+                      <label
+                        key={service.code}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border bg-card p-2 text-sm transition-colors hover:bg-muted/50"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-foreground">
+                            {service.name}
+                          </div>
+                          <div
+                            className="text-xs text-muted-foreground"
+                            dir="ltr"
+                          >
+                            {service.code}
+                          </div>
                         </div>
-                        <div
-                          className="text-xs text-muted-foreground"
-                          dir="ltr"
-                        >
-                          {service.code}
-                        </div>
-                      </div>
-                      <Checkbox
-                        checked={selectedServiceCodes.includes(service.code)}
-                        onCheckedChange={(checked) => {
-                          if (Boolean(checked)) {
-                            setSelectedServiceCodes((prev) =>
-                              Array.from(new Set([...prev, service.code])),
-                            );
-                          } else {
-                            setSelectedServiceCodes((prev) =>
-                              prev.filter((code) => code !== service.code),
-                            );
-                          }
-                        }}
-                      />
-                    </label>
-                  ))}
+                        <Checkbox
+                          checked={selectedServiceCodes.includes(service.code)}
+                          onCheckedChange={(checked) => {
+                            if (Boolean(checked)) {
+                              setSelectedServiceCodes((prev) =>
+                                Array.from(new Set([...prev, service.code])),
+                              );
+                            } else {
+                              setSelectedServiceCodes((prev) =>
+                                prev.filter((code) => code !== service.code),
+                              );
+                            }
+                          }}
+                        />
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -2227,7 +2400,7 @@ export default function AdminServices({
                 </Button>
                 {confirmDeleteMatches ? (
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button variant="bare"
                       type="button"
                       aria-label="تأكيد"
                       className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -2237,15 +2410,15 @@ export default function AdminServices({
                       }}
                     >
                       تأكيد
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="bare"
                       type="button"
                       aria-label="إلغاء"
                       className="rounded bg-muted text-muted-foreground hover:bg-border"
                       onClick={() => setConfirmDeleteMatches(false)}
                     >
                       إلغاء
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <Button
@@ -2279,7 +2452,28 @@ export default function AdminServices({
                 <div />
               </div>
               <div className="max-h-72 overflow-auto">
-                {doctorServiceMatches.length === 0 ? (
+                {mappingsQuery.isLoading ? (
+                  <div
+                    className="p-3 text-sm text-muted-foreground"
+                    role="status"
+                  >
+                    جاري تحميل المطابقات المحفوظة…
+                  </div>
+                ) : mappingsQuery.isError ? (
+                  <div className="space-y-2 p-3" role="alert">
+                    <p className="text-sm text-destructive">
+                      تعذر تحميل المطابقات المحفوظة.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void mappingsQuery.refetch()}
+                    >
+                      إعادة المحاولة
+                    </Button>
+                  </div>
+                ) : doctorServiceMatches.length === 0 ? (
                   <div className="p-3 text-sm text-muted-foreground">
                     لا توجد مطابقات محفوظة
                   </div>

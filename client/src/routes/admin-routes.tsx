@@ -1,48 +1,11 @@
 import { lazy } from "react";
-import { Redirect, Route } from "wouter";
+import { Redirect, Route, useRoute } from "wouter";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { ROUTES } from "../../../shared/routes";
 const AdminHubShell = lazy(() => import("../features/admin/AdminHubShell"));
-const AdminUsers = lazy(() => import("../features/admin/AdminUsers"));
-const AdminMigrations = lazy(() => import("../features/admin/AdminMigrations"));
-const AdminApiTools = lazy(() => import("../features/admin/AdminApiTools"));
-const AdminStatus = lazy(() => import("../features/admin/AdminStatus"));
-const AdminNotificationSettings = lazy(
-  () => import("../features/admin/AdminNotificationSettings"),
-);
-const AdminPermissions = lazy(
-  () => import("../features/admin/AdminPermissions"),
-);
-const AdminSheets = lazy(() => import("../features/admin/AdminSheets"));
-const AdminSheetDesigner = lazy(
-  () => import("../features/admin/AdminSheetDesigner"),
-);
-const AdminDoctors = lazy(() => import("../features/admin/AdminDoctors"));
-const AdminPentacamFailed = lazy(
-  () => import("../features/admin/AdminPentacamFailed"),
-);
-const AdminPatients = lazy(() => import("../features/admin/AdminPatients"));
-const AdminLegacyPatients = lazy(
-  () => import("../features/admin/AdminLegacyPatients"),
-);
-const OpHistory = lazy(() => import("../features/admin/OpHistory"));
-const AdminWhatsAppInbox = lazy(
-  () => import("../features/admin/AdminWhatsAppInbox"),
-);
-const AdminCardVisibility = lazy(
-  () => import("../features/admin/AdminCardVisibility"),
-);
-const AdminDataSourceAudit = lazy(
-  () => import("../features/admin/AdminDataSourceAudit"),
-);
-const AdminServices = lazy(() => import("../features/admin/AdminServices"));
-const TestsManagement = lazy(() => import("../pages/TestsManagement"));
 
 export const AdminRoutes = (
   <>
-    {/* Admin routes */}
-    {/* Legacy namespace remains functional, but all generated navigation stays canonical under Admin Hub. */}
-    {/* Admin Hub - handles all /admin-hub routes internally */}
     <Route
       path={ROUTES.legacyAdminHub}
       component={() => (
@@ -71,16 +34,6 @@ export const AdminRoutes = (
         </ProtectedRoute>
       )}
     />
-    <Route
-      path={`${ROUTES.adminHub}/*`}
-      component={() => (
-        <ProtectedRoute requiredRoles={["admin"]}>
-          <AdminHubShell />
-        </ProtectedRoute>
-      )}
-    />
-
-    {/* selrs.cc top-level aliases (معادلات للصفحات الإدارية) */}
     <Route
       path={ROUTES.users}
       component={() => <Redirect to="/admin-hub/users" />}
@@ -134,7 +87,6 @@ export const AdminRoutes = (
       component={() => <Redirect to="/admin-hub/whatsapp-inbox" />}
     />
 
-    {/* Legacy admin routes */}
     <Route
       path={ROUTES.adminUsers}
       component={() => <Redirect to="/admin-hub/users" />}
@@ -210,6 +162,27 @@ export const AdminRoutes = (
     <Route
       path={ROUTES.adminDataSourceAudit}
       component={() => <Redirect to="/admin-hub/audit" />}
+    />
+    <Route
+      path={ROUTES.adminPentacamId}
+      component={() => {
+        const [, params] = useRoute(ROUTES.adminPentacamId);
+        return (
+          <Redirect to={`/admin-hub/pentacam-linking/${params?.id ?? ""}`} />
+        );
+      }}
+    />
+    <Route
+      path={ROUTES.adminPentacam}
+      component={() => <Redirect to="/admin-hub/pentacam-linking" />}
+    />
+    <Route
+      path={`${ROUTES.adminHub}/*`}
+      component={() => (
+        <ProtectedRoute requiredRoles={["admin"]}>
+          <AdminHubShell />
+        </ProtectedRoute>
+      )}
     />
   </>
 );

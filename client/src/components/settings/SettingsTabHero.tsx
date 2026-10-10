@@ -18,12 +18,12 @@ export function SettingsTabHero({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 text-right sm:flex-row sm:items-start sm:justify-between",
+        "flex flex-col gap-4 text-start sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h2 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">
+        <h2 className="text-xl font-black text-foreground sm:text-2xl">
           {title}
         </h2>
         {subtitle ? (

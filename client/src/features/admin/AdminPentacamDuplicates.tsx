@@ -74,8 +74,6 @@ function groupDuplicates(rows: DupRow[]): DupGroup[] {
 }
 
 export default function AdminPentacamDuplicates() {
-  const [deleteS3, setDeleteS3] = useState(true);
-  const [deleteLocal, setDeleteLocal] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const dupsQuery = trpc.medical.findDuplicateSrv100Uploads.useQuery(
@@ -88,12 +86,13 @@ export default function AdminPentacamDuplicates() {
   const deleteMutation = trpc.medical.deleteSrv100UploadsByIds.useMutation({
     onSuccess: (result) => {
       toast.success(
-        `تم حذف ${result.deleted} سجل${result.s3Deleted ? ` (S3: ${result.s3Deleted})` : ""}`,
+        `تم حذف ${result.deleted} سجل${result.s3Deleted ? ` (من S3: ${result.s3Deleted})` : ""}`,
       );
       setSelected(new Set());
       void dupsQuery.refetch();
     },
-    onError: (err) => toast.error(getTrpcErrorMessage(err, "فشل الحذف")),
+    onError: (err) =>
+      toast.error(getTrpcErrorMessage(err, "تعذر حذف الملفات المكررة")),
   });
 
   const groups = useMemo(
@@ -123,12 +122,15 @@ export default function AdminPentacamDuplicates() {
     });
   };
 
+  const buildDeleteConfirmation = (count: number) => {
+    return `هل تريد حذف ${count} من السجلات المكررة؟ سيبقى سجل الأصل والصورة على S3 والجهاز دون حذف. لا يمكن التراجع عن حذف السجل.`;
+  };
+
   const handleDelete = () => {
     if (!selected.size) return;
+    if (!window.confirm(buildDeleteConfirmation(selected.size))) return;
     deleteMutation.mutate({
       ids: Array.from(selected),
-      deleteFromS3: deleteS3,
-      deleteLocalFile: deleteLocal,
     });
   };
 
@@ -148,24 +150,10 @@ export default function AdminPentacamDuplicates() {
           />
           تحديث
         </Button>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={deleteS3}
-              onChange={(e) => setDeleteS3(e.target.checked)}
-            />
-            حذف من S3
-          </label>
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={deleteLocal}
-              onChange={(e) => setDeleteLocal(e.target.checked)}
-            />
-            حذف من الجهاز المحلي
-          </label>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          المكرر هو سجل آخر لنفس ملف S3 ولنفس المريض. الحذف للسجل الزائد فقط؛
+          الصورة الأصلية لا تُحذف.
+        </p>
         {selected.size > 0 && (
           <Button
             variant="destructive"
@@ -181,25 +169,50 @@ export default function AdminPentacamDuplicates() {
       </div>
 
       {dupsQuery.isLoading && (
-        <p className="text-xs text-muted-foreground">جاري البحث…</p>
+        <p className="text-xs text-muted-foreground" role="status">
+          جارٍ البحث عن الملفات المكررة…
+        </p>
       )}
-      {!dupsQuery.isLoading && groups.length === 0 && (
+      {dupsQuery.isError && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <span>
+            {getTrpcErrorMessage(dupsQuery.error, "تعذر تحميل الملفات المكررة")}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => dupsQuery.refetch()}
+            disabled={dupsQuery.isFetching}
+          >
+            إعادة المحاولة
+          </Button>
+        </div>
+      )}
+      {!dupsQuery.isLoading && !dupsQuery.isError && groups.length === 0 && (
         <p className="text-xs text-muted-foreground">لا توجد مكررات</p>
       )}
 
       {groups.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-border/50">
-          <table className="w-full min-w-[700px] border-collapse text-xs text-right">
+        <div
+          className="overflow-x-auto rounded-lg border border-border/50"
+          aria-label="جدول الملفات المكررة"
+        >
+          <table className="w-full min-w-[700px] border-collapse text-xs text-start">
             <thead>
               <tr className="bg-muted/50">
                 <th className="border-b border-border/50 px-3 py-2">
-                  <input
-                    type="checkbox"
-                    checked={
-                      selected.size === allDupIds.length && allDupIds.length > 0
-                    }
-                    onChange={toggleAll}
-                  />
+                  <label className="flex min-h-11 min-w-11 items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selected.size === allDupIds.length &&
+                        allDupIds.length > 0
+                      }
+                      onChange={toggleAll}
+                      aria-label="تحديد كل الملفات المكررة"
+                    />
+                  </label>
                 </th>
                 <th className="border-b border-border/50 px-3 py-2 font-medium">
                   اسم الملف
@@ -232,11 +245,14 @@ export default function AdminPentacamDuplicates() {
                     className="hover:bg-muted/30 transition-colors"
                   >
                     <td className="border-b border-border/20 px-3 py-1.5">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(dup.id)}
-                        onChange={() => toggle(dup.id)}
-                      />
+                      <label className="flex min-h-11 min-w-11 items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(dup.id)}
+                          onChange={() => toggle(dup.id)}
+                          aria-label={`تحديد الملف المكرر ${dup.id}`}
+                        />
+                      </label>
                     </td>
                     <td
                       className="border-b border-border/20 px-3 py-1.5 font-mono"
@@ -270,7 +286,7 @@ export default function AdminPentacamDuplicates() {
                         : "—"}
                     </td>
                     <td
-                      className="border-b border-border/20 px-3 py-1.5 font-mono text-[10px] max-w-[180px] truncate"
+                      className="border-b border-border/20 px-3 py-1.5 font-mono text-[13px] max-w-[180px] truncate"
                       dir="ltr"
                       title={dup.s3_key ?? ""}
                     >
@@ -279,18 +295,20 @@ export default function AdminPentacamDuplicates() {
                     <td className="border-b border-border/20 px-3 py-1.5">
                       <Button
                         variant="destructive"
-                        size="sm"
-                        className="h-6 px-2 text-[10px]"
+                        size="icon-sm"
+                        className="h-11 w-11"
                         disabled={deleteMutation.isPending}
-                        onClick={() =>
+                        aria-label={`حذف الملف المكرر ${dup.id}`}
+                        title={`حذف الملف المكرر ${dup.id}`}
+                        onClick={() => {
+                          if (!window.confirm(buildDeleteConfirmation(1)))
+                            return;
                           deleteMutation.mutate({
                             ids: [dup.id],
-                            deleteFromS3: deleteS3,
-                            deleteLocalFile: deleteLocal,
-                          })
-                        }
+                          });
+                        }}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
                   </tr>

@@ -1,9 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import PatientPicker from "@/components/PatientPicker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertCircle,
+  CheckCircle2,
   Copy,
   ExternalLink,
   FileText,
@@ -108,13 +118,26 @@ function withOriginalFlag(path: string) {
 }
 
 export default function AdminSheets() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedPatient, setSelectedPatient] = useState<PickedPatient | null>(
     null,
   );
   const [patientPickerOpen, setPatientPickerOpen] = useState(false);
-  const [mode, setMode] = useState<WorkspaceMode>("patient-forms");
+  const routeMode: WorkspaceMode =
+    location.replace(/\/$/, "") === "/admin-hub/sheet-copies"
+      ? "blank-copies"
+      : "patient-forms";
+  const [mode, setMode] = useState<WorkspaceMode>(routeMode);
   const [searchQuery, setSearchQuery] = useState("");
+  const [feedback, setFeedback] = useState<{
+    kind: "error" | "success";
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    setMode(routeMode);
+    setSearchQuery("");
+  }, [routeMode]);
 
   const visibleItems = useMemo(() => {
     const source = mode === "patient-forms" ? SHEET_LINKS : BLANK_COPIES;
@@ -131,16 +154,34 @@ export default function AdminSheets() {
     item: (typeof SHEET_LINKS)[number] | (typeof BLANK_COPIES)[number],
   ) => {
     if (mode === "blank-copies") {
+      setFeedback(null);
       setLocation((item as (typeof BLANK_COPIES)[number]).path);
       return;
     }
     if (!selectedPatient) {
-      toast.error("اختر مريضًا أولًا لفتح الشيت المخصص له.");
+      const message = "اختر مريضًا أولًا لفتح الشيت المخصص له.";
+      setFeedback({ kind: "error", message });
+      toast.error(message);
       setPatientPickerOpen(true);
       return;
     }
     const patientItem = item as (typeof SHEET_LINKS)[number];
+    setFeedback(null);
     setLocation(withOriginalFlag(patientItem.path(selectedPatient.id)));
+  };
+
+  const changeMode = (nextMode: WorkspaceMode) => {
+    setMode(nextMode);
+    setSearchQuery("");
+    const nextPath =
+      nextMode === "blank-copies"
+        ? "/admin-hub/sheet-copies"
+        : location.replace(/\/$/, "") === "/admin-hub/sheets"
+          ? "/admin-hub/sheets"
+          : "/admin-hub/forms";
+    if (location.replace(/\/$/, "") !== nextPath) {
+      setLocation(nextPath);
+    }
   };
 
   return (
@@ -165,12 +206,37 @@ export default function AdminSheets() {
         }
       />
 
-      <div className="grid min-h-[620px] overflow-hidden rounded-lg border border-border bg-background lg:grid-cols-[280px_minmax(0,1fr)]">
+      {feedback ? (
+        <div
+          className={cn(
+            "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
+            feedback.kind === "error"
+              ? "border-destructive/40 bg-destructive/5 text-foreground"
+              : "border-success/40 bg-success/5 text-foreground",
+          )}
+          role={feedback.kind === "error" ? "alert" : "status"}
+          aria-live={feedback.kind === "error" ? "assertive" : "polite"}
+          aria-atomic="true"
+        >
+          {feedback.kind === "error" ? (
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          ) : (
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
+          )}
+          <span>{feedback.message}</span>
+        </div>
+      ) : null}
+
+      <div className="grid min-h-[620px] rounded-lg border border-border bg-background lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="border-b border-border bg-muted/20 p-4 lg:border-b-0 lg:border-l">
           <div className="text-xs font-black text-muted-foreground">
             طريقة العرض
           </div>
-          <div className="mt-2 space-y-1">
+          <div
+            className="mt-2 space-y-1"
+            role="tablist"
+            aria-label="طريقة عرض ملفات الفحص"
+          >
             {(
               [
                 {
@@ -193,9 +259,13 @@ export default function AdminSheets() {
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => setMode(option.id)}
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls="admin-sheets-panel"
+                  id={`admin-sheets-tab-${option.id}`}
+                  onClick={() => changeMode(option.id)}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-md px-3 py-3 text-right transition-colors",
+                    "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-3 text-right transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     active
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-background",
@@ -208,7 +278,7 @@ export default function AdminSheets() {
                     </span>
                     <span
                       className={cn(
-                        "mt-0.5 block text-[10px]",
+                        "mt-0.5 block text-xs",
                         active
                           ? "text-primary-foreground/70"
                           : "text-muted-foreground",
@@ -231,18 +301,21 @@ export default function AdminSheets() {
                 <div className="mt-2 rounded-md border border-border bg-background p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-black">
+                      <div className="break-words text-sm font-black">
                         {selectedPatient.fullName}
                       </div>
-                      <div className="mt-1 text-[10px] text-muted-foreground">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         رقم الملف: {selectedPatient.id}
                       </div>
                     </div>
                     <button
                       type="button"
                       aria-label="إلغاء اختيار المريض"
-                      onClick={() => setSelectedPatient(null)}
-                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        setSelectedPatient(null);
+                        setFeedback(null);
+                      }}
+                      className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                       <X className="size-4" />
                     </button>
@@ -261,7 +334,7 @@ export default function AdminSheets() {
                 <button
                   type="button"
                   onClick={() => setPatientPickerOpen(true)}
-                  className="mt-2 flex w-full items-center gap-3 rounded-md border border-dashed border-border bg-background p-3 text-right hover:border-primary/50"
+                  className="mt-2 flex min-h-11 w-full items-center gap-3 rounded-md border border-dashed border-border bg-background p-3 text-right hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
                     <User className="size-4" />
@@ -270,7 +343,7 @@ export default function AdminSheets() {
                     <span className="block text-xs font-black">
                       اختيار مريض
                     </span>
-                    <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
                       مطلوب لفتح أي استمارة
                     </span>
                   </span>
@@ -289,20 +362,32 @@ export default function AdminSheets() {
                   : "القوالب الأصلية الفارغة"}
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {visibleItems.length} نموذج متاح
+                <span aria-live="polite" aria-atomic="true">
+                  {visibleItems.length} نموذج متاح
+                </span>
               </p>
             </div>
-            <label className="relative block w-full sm:w-72">
+            <label
+              htmlFor="admin-sheet-search"
+              className="relative block w-full sm:w-72"
+            >
+              <span className="sr-only">البحث في النماذج</span>
               <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
+                id="admin-sheet-search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="ابحث عن نموذج"
-                className="h-9 w-full rounded-md border border-input bg-background pr-9 pl-3 text-xs outline-none focus:border-primary"
+                className="h-11 w-full rounded-md border border-input bg-background pr-9 pl-3 text-sm outline-none focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               />
             </label>
           </div>
-          <div className="divide-y divide-border">
+          <div
+            id="admin-sheets-panel"
+            role="tabpanel"
+            aria-labelledby={`admin-sheets-tab-${mode}`}
+            className="divide-y divide-border"
+          >
             {visibleItems.map((item) => (
               <div
                 key={item.key}
@@ -315,7 +400,7 @@ export default function AdminSheets() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-black">{item.title}</h3>
-                      <Badge variant="outline" className="rounded text-[10px]">
+                      <Badge variant="outline" className="rounded text-xs">
                         {item.label}
                       </Badge>
                     </div>
@@ -328,7 +413,7 @@ export default function AdminSheets() {
                   type="button"
                   variant={mode === "patient-forms" ? "default" : "outline"}
                   size="sm"
-                  className="h-9 shrink-0 gap-2"
+                  className="h-11 w-full shrink-0 gap-2 sm:w-auto"
                   onClick={() => openItem(item)}
                 >
                   <ExternalLink className="size-3.5" />
@@ -337,26 +422,70 @@ export default function AdminSheets() {
               </div>
             ))}
             {visibleItems.length === 0 ? (
-              <div className="p-12 text-center text-sm text-muted-foreground">
-                لا توجد نماذج مطابقة للبحث.
+              <div
+                className="flex flex-col items-center gap-3 p-12 text-center text-sm text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                <p>
+                  {searchQuery.trim()
+                    ? "لا توجد نماذج مطابقة للبحث."
+                    : "لا توجد نماذج متاحة حاليًا."}
+                </p>
+                {searchQuery.trim() ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    مسح البحث
+                  </Button>
+                ) : null}
               </div>
             ) : null}
           </div>
         </section>
       </div>
 
-      {patientPickerOpen ? (
-        <PatientPicker
-          onSelect={(patient) => {
-            setSelectedPatient({
-              id: patient.id,
-              fullName: patient.fullName || "مريض بدون اسم",
-            });
-            setPatientPickerOpen(false);
-            toast.success(`تم تحديد المريض: ${patient.fullName || "مريض"}`);
-          }}
-        />
-      ) : null}
+      <Dialog open={patientPickerOpen} onOpenChange={setPatientPickerOpen}>
+        <DialogContent
+          dir="rtl"
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+        >
+          <DialogHeader className="text-right sm:text-right">
+            <DialogTitle>اختيار مريض</DialogTitle>
+            <DialogDescription>
+              ابحث بالاسم أو رقم الملف، ثم اختر المريض لفتح الاستمارة المناسبة.
+            </DialogDescription>
+          </DialogHeader>
+          <PatientPicker
+            wrapperClassName="max-w-none"
+            onSelect={(patient) => {
+              const patientName = patient.fullName || "مريض بدون اسم";
+              setSelectedPatient({
+                id: patient.id,
+                fullName: patientName,
+              });
+              setPatientPickerOpen(false);
+              setFeedback({
+                kind: "success",
+                message: `تم تحديد المريض: ${patientName}`,
+              });
+              toast.success(`تم تحديد المريض: ${patient.fullName || "مريض"}`);
+            }}
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPatientPickerOpen(false)}
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

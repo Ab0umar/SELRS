@@ -23,6 +23,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { DateInput } from "@/components/ui/date-input";
+import "@/styles/frontdesk-design.css";
 
 const STATUS_OPTS = [
   { value: "", label: "الكل" },
@@ -38,7 +39,7 @@ const STATUS_META: Record<
 > = {
   pending: {
     label: "قيد المراجعة",
-    className: "border-warning/30 bg-warning/10 text-warning",
+    className: "border-warning/30 bg-warning/10 text-warning-text",
     icon: Clock3,
   },
   confirmed: {
@@ -121,7 +122,7 @@ type ScheduleRow = {
 };
 
 function formatDate(value: Date | string | null | undefined) {
-  if (!value) return "—";
+  if (!value) return "-";
   const date = new Date(
     value instanceof Date ? value.toISOString().slice(0, 10) : value,
   );
@@ -149,6 +150,7 @@ function BookingCard({
   const [confirmedDate, setConfirmedDate] = useState(
     formatDateKey(booking.confirmedDate),
   );
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const updateBooking = trpc.patientPortal.updateBooking.useMutation({
     onSuccess: () => {
@@ -179,15 +181,15 @@ function BookingCard({
   const reqDate = formatDate(booking.requestedDate);
   const meta = STATUS_META[booking.status] ?? STATUS_META.completed;
   const StatusIcon = meta.icon;
-  const displayName = booking.patientName ?? booking.guestName ?? "—";
+  const displayName = booking.patientName ?? booking.guestName ?? "-";
   const displayPhone = booking.patientPhone ?? booking.guestPhone ?? "";
   const codeLabel = booking.patientCode ?? (booking.isGuest ? "زائر" : "جديد");
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-      <button
+    <article className="overflow-hidden rounded-xl border border-border bg-card">
+      <Button variant="bare"
         type="button"
-        className="flex w-full items-start gap-4 px-4 py-4 text-right transition-colors hover:bg-muted/20"
+        className="flex w-full items-start gap-4 px-4 py-4 text-start transition-colors hover:bg-muted/20"
         onClick={() => setExpanded((value) => !value)}
       >
         <div className="min-w-0 flex-1">
@@ -196,7 +198,7 @@ function BookingCard({
               {displayName}
             </p>
             {booking.isGuest && (
-              <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[11px] font-medium text-warning">
+              <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning-text">
                 زائر
               </span>
             )}
@@ -239,7 +241,7 @@ function BookingCard({
             {expanded ? "إخفاء" : "تفاصيل"}
           </span>
         </div>
-      </button>
+      </Button>
 
       {expanded ? (
         <div className="border-t border-border bg-muted/30 px-4 py-4">
@@ -255,7 +257,7 @@ function BookingCard({
                       (opt) => {
                         const active = status === opt.value;
                         return (
-                          <button
+                          <Button variant="bare"
                             key={opt.value}
                             type="button"
                             onClick={() =>
@@ -265,11 +267,11 @@ function BookingCard({
                               "min-h-10 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
                               active
                                 ? "border-primary/30 bg-primary/10 text-primary"
-                                : "border-border bg-white text-muted-foreground hover:bg-muted/40",
+                                : "border-border bg-card text-muted-foreground hover:bg-muted/40",
                             )}
                           >
                             {opt.label}
-                          </button>
+                          </Button>
                         );
                       },
                     )}
@@ -277,23 +279,31 @@ function BookingCard({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label
+                    htmlFor={`confirmed-date-${booking.id}`}
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     تاريخ مؤكد
                   </label>
                   <DateInput
+                    id={`confirmed-date-${booking.id}`}
                     value={confirmedDate}
                     onChange={(e) => setConfirmedDate(e.target.value)}
                     dir="ltr"
-                    className="h-10 rounded-xl border-border bg-white text-sm"
+                    className="h-10 rounded-xl border-border bg-card text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor={`staff-notes-${booking.id}`}
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   ملاحظات الموظف
                 </label>
                 <textarea
+                  id={`staff-notes-${booking.id}`}
                   value={staffNotes}
                   onChange={(e) => setStaffNotes(e.target.value)}
                   rows={3}
@@ -303,8 +313,8 @@ function BookingCard({
               </div>
 
               {booking.notes ? (
-                <div className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-sm leading-6 text-warning">
-                  <p className="mb-1 text-xs font-medium text-warning">
+                <div className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-sm leading-6 text-warning-text">
+                  <p className="mb-1 text-xs font-medium text-warning-text">
                     ملاحظة المريض
                   </p>
                   {booking.notes}
@@ -313,7 +323,7 @@ function BookingCard({
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl border border-border bg-white px-4 py-4">
+              <div className="bg-card rounded-2xl border border-border px-4 py-4">
                 <p className="text-xs font-medium text-muted-foreground">
                   ملخص سريع
                 </p>
@@ -356,7 +366,7 @@ function BookingCard({
                   size="sm"
                   onClick={save}
                   disabled={updateBooking.isPending}
-                  className="min-w-24 rounded-xl bg-primary text-white hover:bg-primary/90"
+                  className="min-w-24 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {updateBooking.isPending ? "جاري الحفظ…" : "حفظ"}
                 </Button>
@@ -364,24 +374,58 @@ function BookingCard({
                   size="sm"
                   variant="outline"
                   onClick={() => setExpanded(false)}
-                  className="rounded-xl border-border bg-white text-foreground hover:bg-muted/40"
+                  className="rounded-xl border-border bg-card text-foreground hover:bg-muted/40"
                 >
                   إغلاق
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => {
-                    if (confirm("حذف هذا الحجز نهائياً؟")) {
-                      deleteBooking.mutate({ id: booking.id });
-                    }
-                  }}
+                  onClick={() => setDeleteConfirmOpen(true)}
                   disabled={deleteBooking.isPending}
+                  aria-label="حذف الحجز"
                   className="rounded-xl border-destructive/30 bg-background text-destructive hover:bg-destructive/10"
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
               </div>
+              {deleteConfirmOpen ? (
+                <div
+                  role="alertdialog"
+                  aria-labelledby={`delete-booking-title-${booking.id}`}
+                  className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3"
+                >
+                  <p
+                    id={`delete-booking-title-${booking.id}`}
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    حذف هذا الحجز نهائياً؟
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    لا يمكن التراجع عن هذا الإجراء.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteBooking.mutate({ id: booking.id })}
+                      disabled={deleteBooking.isPending}
+                      className="min-h-11 rounded-xl"
+                    >
+                      {deleteBooking.isPending ? "جاري الحذف…" : "تأكيد الحذف"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDeleteConfirmOpen(false)}
+                      disabled={deleteBooking.isPending}
+                      className="min-h-11 rounded-xl"
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -434,14 +478,14 @@ function ScheduleRowCard({
   };
 
   return (
-    <article className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+    <article className="bg-card rounded-2xl border border-border p-4 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
-          <button
+          <Button variant="bare"
             type="button"
             onClick={toggleActive}
             className={cn(
-              "relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-colors focus:outline-none",
+              "relative mt-0.5 h-11 w-14 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
               local.isActive
                 ? "border-primary/30 bg-primary"
                 : "border-border bg-muted",
@@ -450,11 +494,11 @@ function ScheduleRowCard({
           >
             <span
               className={cn(
-                "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                "absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-transform",
                 local.isActive ? "translate-x-5" : "translate-x-0.5",
               )}
             />
-          </button>
+          </Button>
 
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -463,7 +507,7 @@ function ScheduleRowCard({
               </p>
               <span
                 className={cn(
-                  "rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                  "rounded-full border px-2.5 py-1 text-xs font-medium",
                   local.isActive
                     ? "border-success/30 bg-success/10 text-success"
                     : "border-border bg-muted/40 text-muted-foreground",
@@ -486,7 +530,7 @@ function ScheduleRowCard({
               size="sm"
               onClick={save}
               disabled={updateSchedule.isPending}
-              className="rounded-xl bg-primary text-white hover:bg-primary/90"
+              className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {updateSchedule.isPending ? "..." : "حفظ"}
             </Button>
@@ -507,7 +551,7 @@ function ScheduleRowCard({
             const bit = DAY_BITS[index];
             const active = (local.weekdayMask & bit) !== 0;
             return (
-              <button
+              <Button variant="bare"
                 key={day}
                 type="button"
                 onClick={() => toggleDay(bit)}
@@ -518,11 +562,11 @@ function ScheduleRowCard({
                     ? "cursor-not-allowed border-border bg-muted/60 text-muted-foreground"
                     : active
                       ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-border bg-white text-muted-foreground hover:bg-muted/40",
+                      : "border-border bg-card text-muted-foreground hover:bg-muted/40",
                 )}
               >
                 {day}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -602,14 +646,14 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <article
-      className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm"
+      className="rounded-xl border border-primary/20 bg-primary/5 p-4"
       dir="rtl"
     >
       <div className="mb-4 flex items-center justify-between">
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 rounded-lg p-0"
+          className="h-9 w-9 rounded-lg p-0"
           onClick={reset}
         >
           <X className="size-3.5" />
@@ -626,18 +670,19 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
             المريض
           </label>
           {selectedPatient ? (
-            <div className="flex items-center justify-between rounded-xl border border-border bg-white px-3 py-2.5">
-              <button
+            <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
+              <Button variant="bare"
                 type="button"
                 onClick={() => {
                   setSelectedPatient(null);
                   setSearch("");
                 }}
-                className="text-muted-foreground hover:text-muted-foreground"
+                aria-label="إلغاء اختيار المريض"
+                className="min-h-11 min-w-11 rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <X className="size-3.5" />
-              </button>
-              <div className="text-right">
+              </Button>
+              <div className="text-start">
                 <p className="text-sm font-semibold text-foreground">
                   {selectedPatient.name}
                 </p>
@@ -649,8 +694,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           ) : (
             <>
               <div className="relative">
-                <Search className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
+                <Search className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input aria-label="اسم المريض أو الكود أو الموبايل…"
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -658,16 +703,16 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                   }}
                   onFocus={() => setShowDropdown(true)}
                   placeholder="اسم المريض أو الكود أو الموبايل…"
-                  className="h-10 rounded-xl border-border bg-white pr-9 text-sm"
+                  className="h-10 rounded-xl border-border bg-card ps-9 text-sm"
                 />
               </div>
               {showDropdown && searchResults && searchResults.length > 0 && (
-                <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-white shadow-lg">
+                <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
                   {(searchResults as any[]).map((p) => (
-                    <button
+                    <Button variant="bare"
                       key={p.id}
                       type="button"
-                      className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-muted/40"
+                      className="flex w-full items-center justify-between px-3 py-2.5 text-start transition-colors hover:bg-muted/40"
                       onClick={() => {
                         setSelectedPatient({
                           id: p.id,
@@ -684,7 +729,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                       <span className="text-sm font-medium text-foreground">
                         {p.fullName}
                       </span>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -704,7 +749,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                 { value: "kfs", label: "كفرالشيخ" },
               ] as const
             ).map((b) => (
-              <button
+              <Button variant="bare"
                 key={b.value}
                 type="button"
                 onClick={() => setBranch(b.value)}
@@ -712,11 +757,11 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                   "flex-1 h-9 rounded-xl border text-xs font-bold transition-all cursor-pointer",
                   branch === b.value
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-white text-muted-foreground border-border hover:bg-muted/40",
+                    : "bg-card text-muted-foreground border-border hover:bg-muted/40",
                 )}
               >
                 {b.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -728,7 +773,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           </label>
           <div className="grid grid-cols-2 gap-2">
             {STAFF_BOOKING_TYPES.map((t) => (
-              <button
+              <Button variant="bare"
                 key={t.value}
                 type="button"
                 onClick={() => setBookingType(t.value)}
@@ -736,11 +781,11 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                   "rounded-xl border px-3 py-2 text-xs font-medium transition-colors",
                   bookingType === t.value
                     ? "border-primary/30 bg-primary/10 text-primary"
-                    : "border-border bg-white text-muted-foreground hover:bg-muted/40",
+                    : "border-border bg-card text-muted-foreground hover:bg-muted/40",
                 )}
               >
                 {t.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -753,7 +798,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           <DateInput
             value={requestedDate}
             onChange={(e) => setRequestedDate(e.target.value)}
-            className="h-10 rounded-xl border-border bg-white text-sm"
+            className="h-10 rounded-xl border-border bg-card text-sm"
             dir="ltr"
           />
         </div>
@@ -765,7 +810,7 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           <DateInput
             value={confirmedDate}
             onChange={(e) => setConfirmedDate(e.target.value)}
-            className="h-10 rounded-xl border-border bg-white text-sm"
+            className="h-10 rounded-xl border-border bg-card text-sm"
             dir="ltr"
           />
         </div>
@@ -775,12 +820,12 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           <label className="text-xs font-medium text-muted-foreground">
             ملاحظات للمريض (اختياري)
           </label>
-          <textarea
+          <textarea aria-label="تُعرض للمريض في البوابة…"
             value={staffNotes}
             onChange={(e) => setStaffNotes(e.target.value)}
             rows={2}
             placeholder="تُعرض للمريض في البوابة…"
-            className="w-full resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm leading-6 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2.5 text-sm leading-6 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
       </div>
@@ -833,8 +878,12 @@ function ClosuresPanel() {
   const [bookingType, setBookingType] = useState<"" | BookingType>("");
   const [adding, setAdding] = useState(false);
 
-  const { data: closures, refetch } =
-    trpc.patientPortal.listClosures.useQuery();
+  const {
+    data: closures,
+    isLoading: closuresLoading,
+    error: closuresError,
+    refetch,
+  } = trpc.patientPortal.listClosures.useQuery();
 
   const add = trpc.patientPortal.addClosure.useMutation({
     onSuccess: () => {
@@ -858,7 +907,7 @@ function ClosuresPanel() {
   });
 
   const fmt = (d: string | Date | null) => {
-    if (!d) return "—";
+    if (!d) return "-";
     const s =
       typeof d === "string" ? d : (d as Date).toISOString().slice(0, 10);
     return new Date(s + "T00:00:00").toLocaleDateString("ar-EG", {
@@ -869,7 +918,7 @@ function ClosuresPanel() {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-4 shadow-sm space-y-4">
+    <div className="rounded-xl border border-border bg-card p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">
@@ -879,14 +928,14 @@ function ClosuresPanel() {
             التواريخ المحددة هنا لن تظهر للمرضى كمواعيد متاحة.
           </p>
         </div>
-        <button
+        <Button variant="bare"
           type="button"
           onClick={() => setAdding((v) => !v)}
-          className="flex items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
+          className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
         >
           <Plus className="size-3.5" />
           إضافة فترة
-        </button>
+        </Button>
       </div>
 
       {adding && (
@@ -896,7 +945,7 @@ function ClosuresPanel() {
               <label className="text-xs font-medium text-muted-foreground">
                 الوصف (مثل: إجازة د. أحمد)
               </label>
-              <input
+              <Input bare aria-label="وصف فترة الإغلاق…"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="وصف فترة الإغلاق…"
@@ -909,7 +958,7 @@ function ClosuresPanel() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {CLOSURE_TYPES.map((t) => (
-                  <button
+                  <Button variant="bare"
                     key={t.value}
                     type="button"
                     onClick={() => setBookingType(t.value as BookingType)}
@@ -917,11 +966,11 @@ function ClosuresPanel() {
                       "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                       bookingType === t.value
                         ? "border-primary/30 bg-primary/10 text-primary"
-                        : "border-border bg-white text-muted-foreground hover:bg-muted/40",
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/40",
                     )}
                   >
                     {t.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -976,8 +1025,30 @@ function ClosuresPanel() {
         </div>
       )}
 
-      {!closures || closures.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-2">
+      {closuresLoading ? (
+        <p
+          role="status"
+          className="py-2 text-center text-xs text-muted-foreground"
+        >
+          جاري تحميل فترات الإغلاق…
+        </p>
+      ) : closuresError ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          <p>تعذر تحميل فترات الإغلاق.</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void refetch()}
+            className="mt-2 min-h-11 rounded-xl border-destructive/30 text-destructive"
+          >
+            إعادة المحاولة
+          </Button>
+        </div>
+      ) : !closures || closures.length === 0 ? (
+        <p className="py-2 text-center text-xs text-muted-foreground">
           لا توجد فترات إغلاق مضافة.
         </p>
       ) : (
@@ -1006,7 +1077,7 @@ function ClosuresPanel() {
                       ? "text-destructive"
                       : isPast
                         ? "text-muted-foreground/50"
-                        : "text-warning",
+                        : "text-warning-text",
                   )}
                 />
                 <div className="min-w-0 flex-1">
@@ -1023,7 +1094,7 @@ function ClosuresPanel() {
                     </p>
                     <span
                       className={cn(
-                        "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                        "rounded-full border px-2 py-0.5 text-xs font-medium",
                         c.bookingType
                           ? "border-primary/30 bg-primary/10 text-primary"
                           : "border-border bg-muted/60 text-muted-foreground",
@@ -1040,18 +1111,19 @@ function ClosuresPanel() {
                   </p>
                 </div>
                 {isActive && (
-                  <span className="rounded-full border border-destructive/20 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                  <span className="rounded-full border border-destructive/20 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
                     الآن
                   </span>
                 )}
-                <button
+                <Button variant="bare"
                   type="button"
+                  aria-label={`حذف فترة الإغلاق ${c.label}`}
                   onClick={() => del.mutate({ id: c.id })}
                   disabled={del.isPending}
-                  className="text-muted-foreground transition-colors hover:text-destructive"
+                  className="min-h-11 min-w-11 rounded-lg text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   <Trash2 className="size-3.5" />
-                </button>
+                </Button>
               </div>
             );
           })}
@@ -1067,7 +1139,7 @@ function LoadingQueue() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="animate-pulse rounded-2xl border border-border bg-white p-4 shadow-sm"
+          className="animate-pulse bg-card rounded-2xl border border-border p-4 shadow-sm"
         >
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
@@ -1089,7 +1161,7 @@ function ScheduleLoading() {
       {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={index}
-          className="animate-pulse rounded-2xl border border-border bg-white p-4 shadow-sm"
+          className="animate-pulse bg-card rounded-2xl border border-border p-4 shadow-sm"
         >
           <div className="h-5 w-44 rounded-full bg-muted/60" />
           <div className="mt-3 h-4 w-full rounded-full bg-muted/60" />
@@ -1180,7 +1252,7 @@ export default function AdminPortalBookings() {
   );
 
   return (
-    <div dir="rtl" className="space-y-4 text-right">
+    <div dir="rtl" className="portal-bookings-workspace space-y-4 text-start">
       <PageHeader
         title="حجوزات البوابة"
         subtitle="إدارة طلبات الحجز وجدول أوقات البوابة."
@@ -1214,7 +1286,7 @@ export default function AdminPortalBookings() {
                 key={item.label}
                 className="flex items-baseline gap-2 text-xs"
               >
-                <p className="text-[11px] font-medium text-muted-foreground">
+                <p className="text-xs font-medium text-muted-foreground">
                   {item.label}
                 </p>
                 <p className="text-sm font-black text-foreground">
@@ -1227,45 +1299,49 @@ export default function AdminPortalBookings() {
           <div className="flex w-full flex-col gap-2 lg:max-w-2xl lg:items-end">
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
               <div className="relative w-full sm:max-w-xs">
-                <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  aria-label="البحث في الحجوزات"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="بحث بالاسم أو الكود أو الهاتف"
-                  className="h-10 rounded-xl border-border bg-white pr-10 text-sm"
+                  className="h-10 rounded-xl border-border bg-card ps-10 text-sm"
                 />
               </div>
 
               <DateInput
+                aria-label="تصفية حسب التاريخ"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="h-10 w-full rounded-xl border-border bg-white text-sm sm:w-44"
+                className="h-10 w-full rounded-xl border-border bg-card text-sm sm:w-44"
                 dir="ltr"
               />
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="inline-flex rounded-2xl border border-border bg-muted/40 p-1">
+              <div className="inline-flex rounded-xl border border-border bg-muted/40 p-1">
                 {[
                   { key: "bookings", label: "الحجوزات", icon: CalendarDays },
                   { key: "schedule", label: "جدول الأوقات", icon: Settings2 },
                 ].map(({ key, label, icon: Icon }) => {
                   const active = activeTab === key;
                   return (
-                    <button
+                    <Button variant="bare"
                       key={key}
                       type="button"
                       onClick={() => setActiveTab(key as typeof activeTab)}
+                      role="tab"
+                      aria-selected={active}
                       className={cn(
-                        "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                        "inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                         active
-                          ? "bg-white text-foreground shadow-sm"
+                          ? "bg-card text-foreground"
                           : "text-muted-foreground hover:text-foreground",
                       )}
                     >
                       <Icon className="size-4" />
                       {label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -1276,7 +1352,7 @@ export default function AdminPortalBookings() {
                   { value: "tanta" as const, label: "طنطا" },
                   { value: "kfs" as const, label: "كفرالشيخ" },
                 ].map((b) => (
-                  <button
+                  <Button variant="bare"
                     key={b.value}
                     type="button"
                     onClick={() => setBranchFilter(b.value)}
@@ -1284,11 +1360,11 @@ export default function AdminPortalBookings() {
                       "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                       branchFilter === b.value
                         ? "border-secondary/40 bg-secondary/10 text-primary"
-                        : "border-border bg-white text-muted-foreground hover:bg-muted/40",
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/40",
                     )}
                   >
                     {b.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -1296,21 +1372,22 @@ export default function AdminPortalBookings() {
                 {STATUS_OPTS.map((option) => {
                   const active = statusFilter === option.value;
                   return (
-                    <button
+                    <Button variant="bare"
                       key={option.value}
                       type="button"
                       onClick={() =>
                         setStatusFilter(option.value as StatusFilter)
                       }
+                      aria-pressed={active}
                       className={cn(
-                        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                        "min-h-11 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                         active
                           ? "border-primary/30 bg-primary/10 text-primary"
-                          : "border-border bg-white text-muted-foreground hover:bg-muted/40",
+                          : "border-border bg-card text-muted-foreground hover:bg-muted/40",
                       )}
                     >
                       {option.label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -1318,7 +1395,7 @@ export default function AdminPortalBookings() {
           </div>
         </div>
 
-        {dateFilter || statusFilter || searchTerm ? (
+        {dateFilter || statusFilter || searchTerm || branchFilter ? (
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-3 py-1">
               <SlidersHorizontal className="size-3.5" />
@@ -1339,14 +1416,20 @@ export default function AdminPortalBookings() {
                 {STATUS_OPTS.find((item) => item.value === statusFilter)?.label}
               </span>
             ) : null}
+            {branchFilter ? (
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
+                الفرع: {branchFilter === "tanta" ? "طنطا" : "كفرالشيخ"}
+              </span>
+            ) : null}
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 rounded-full px-2.5 text-xs"
+              className="h-9 rounded-full px-3 text-xs"
               onClick={() => {
                 setSearchTerm("");
                 setDateFilter("");
                 setStatusFilter("");
+                setBranchFilter("");
               }}
             >
               مسح الفلاتر
@@ -1362,25 +1445,39 @@ export default function AdminPortalBookings() {
           {bookingsQuery.isLoading ? <LoadingQueue /> : null}
 
           {bookingsQuery.error ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-5 text-right text-destructive shadow-sm">
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-5 text-start text-destructive"
+            >
               <p className="text-sm font-semibold">تعذر تحميل الحجوزات</p>
               <p className="mt-1 text-sm leading-6 text-destructive">
                 {bookingsQuery.error.message}
               </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void bookingsQuery.refetch()}
+                className="mt-3 min-h-11 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+              >
+                إعادة المحاولة
+              </Button>
             </div>
           ) : null}
 
           {!bookingsQuery.isLoading &&
           !bookingsQuery.error &&
           filteredBookings.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-white px-6 py-10 text-center shadow-sm">
+            <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
               <CalendarDays className="mx-auto size-10 text-muted-foreground/50" />
               <h3 className="mt-4 text-base font-semibold text-foreground">
-                لا توجد حجوزات مطابقة
+                {bookingData.length === 0
+                  ? "لا توجد حجوزات بعد"
+                  : "لا توجد حجوزات مطابقة"}
               </h3>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                جرّب توسيع الفلاتر أو مسح البحث. إذا كان الهدف مراجعة الجدول،
-                انتقل إلى تبويب جدول الأوقات.
+                {bookingData.length === 0
+                  ? "ستظهر الحجوزات الجديدة هنا بعد إضافتها."
+                  : "جرّب توسيع الفلاتر أو مسح البحث. إذا كان الهدف مراجعة الجدول، انتقل إلى تبويب جدول الأوقات."}
               </p>
             </div>
           ) : null}
@@ -1402,11 +1499,22 @@ export default function AdminPortalBookings() {
           {scheduleQuery.isLoading ? <ScheduleLoading /> : null}
 
           {scheduleQuery.error ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-5 text-right text-destructive shadow-sm">
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-5 text-start text-destructive"
+            >
               <p className="text-sm font-semibold">تعذر تحميل الجدول</p>
               <p className="mt-1 text-sm leading-6 text-destructive">
                 {scheduleQuery.error.message}
               </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void scheduleQuery.refetch()}
+                className="mt-3 min-h-11 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+              >
+                إعادة المحاولة
+              </Button>
             </div>
           ) : null}
 
@@ -1414,7 +1522,7 @@ export default function AdminPortalBookings() {
           !scheduleQuery.error &&
           scheduleQuery.data ? (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-border bg-white px-4 py-4 shadow-sm">
+              <div className="bg-card rounded-2xl border border-border px-4 py-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-foreground">
@@ -1433,7 +1541,7 @@ export default function AdminPortalBookings() {
                 {/* Branch selector */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SCHEDULE_BRANCHES.map((b) => (
-                    <button
+                    <Button variant="bare"
                       key={b.value}
                       type="button"
                       onClick={() => {
@@ -1447,7 +1555,7 @@ export default function AdminPortalBookings() {
                       )}
                     >
                       {b.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
