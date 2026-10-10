@@ -2198,6 +2198,8 @@ export const salaryOperationFundEntries = mysqlTable(
     amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
     doctorName: varchar("doctor_name", { length: 255 }).notNull(),
     notes: varchar("notes", { length: 500 }),
+    // Set when the fund is paid out; settled entries are kept as history.
+    settledAt: timestamp("settled_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },

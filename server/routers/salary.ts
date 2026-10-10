@@ -569,8 +569,15 @@ export const salaryRouter = router({
           .from(salaryOperationFundEntries)
           .where(
             and(
-              gte(salaryOperationFundEntries.transactionDate, input.fromDate as any),
-              lte(salaryOperationFundEntries.transactionDate, input.toDate as any),
+              gte(
+                salaryOperationFundEntries.transactionDate,
+                input.fromDate as any,
+              ),
+              lte(
+                salaryOperationFundEntries.transactionDate,
+                input.toDate as any,
+              ),
+              isNull(salaryOperationFundEntries.settledAt),
             ),
           )
           .orderBy(desc(salaryOperationFundEntries.transactionDate)),
@@ -619,12 +626,14 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      await db.delete(salaryOperationFundMembers);
       const empCds = Array.from(new Set(input.empCds));
-      if (empCds.length)
-        await db
-          .insert(salaryOperationFundMembers)
-          .values(empCds.map((empCd) => ({ empCd })));
+      await db.transaction(async (tx: any) => {
+        await tx.delete(salaryOperationFundMembers);
+        if (empCds.length)
+          await tx
+            .insert(salaryOperationFundMembers)
+            .values(empCds.map((empCd) => ({ empCd })));
+      });
       return { success: true, count: empCds.length };
     }),
 
@@ -640,15 +649,13 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const result = await db
-        .insert(salaryOperationFundEntries)
-        .values({
-          transactionDate: input.transactionDate as any,
-          amount: String(input.amount) as any,
-          doctorName: input.doctorName,
-          notes: input.notes || null,
-        });
-      return { id: Number((result as any).insertId) };
+      const result = await db.insert(salaryOperationFundEntries).values({
+        transactionDate: input.transactionDate as any,
+        amount: String(input.amount) as any,
+        doctorName: input.doctorName,
+        notes: input.notes || null,
+      });
+      return { id: insertIdOf(result) };
     }),
 
   deleteOperationFundEntry: makeSalaryWriteProcedure("/salary/funds")
@@ -658,29 +665,47 @@ export const salaryRouter = router({
       if (!db) throw new Error("DB unavailable");
       await db
         .delete(salaryOperationFundEntries)
-        .where(eq(salaryOperationFundEntries.id, input.id));
+        .where(
+          and(
+            eq(salaryOperationFundEntries.id, input.id),
+            isNull(salaryOperationFundEntries.settledAt),
+          ),
+        );
       return { success: true };
     }),
 
   settleOperationFund: makeSalaryWriteProcedure("/salary/funds")
     .input(
-      z.object({
-        fromDate: z.string().date(),
-        toDate: z.string().date(),
-      }).refine((value) => value.fromDate <= value.toDate, {
-        message: "تاريخ البداية يجب أن يسبق تاريخ النهاية",
-        path: ["toDate"],
-      }),
+      z
+        .object({
+          fromDate: z.string().date(),
+          toDate: z.string().date(),
+        })
+        .refine((value) => value.fromDate <= value.toDate, {
+          message: "تاريخ البداية يجب أن يسبق تاريخ النهاية",
+          path: ["toDate"],
+        }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      await db.delete(salaryOperationFundEntries).where(
-        and(
-          gte(salaryOperationFundEntries.transactionDate, input.fromDate as any),
-          lte(salaryOperationFundEntries.transactionDate, input.toDate as any),
-        ),
-      );
+      // Paid-out entries are archived, not deleted, so payouts stay auditable.
+      await db
+        .update(salaryOperationFundEntries)
+        .set({ settledAt: new Date() })
+        .where(
+          and(
+            gte(
+              salaryOperationFundEntries.transactionDate,
+              input.fromDate as any,
+            ),
+            lte(
+              salaryOperationFundEntries.transactionDate,
+              input.toDate as any,
+            ),
+            isNull(salaryOperationFundEntries.settledAt),
+          ),
+        );
       return { success: true };
     }),
 
@@ -706,16 +731,14 @@ export const salaryRouter = router({
           code: "BAD_REQUEST",
           message: "لا يوجد موظفون نشطون لصرف العيدية",
         });
-      const result = await db
-        .insert(salaryEidBonuses)
-        .values({
-          title: input.title,
-          bonusDate: input.bonusDate as any,
-          amountPerEmployee: String(input.amountPerEmployee) as any,
-          employeeCount,
-          notes: input.notes || null,
-        });
-      return { id: Number((result as any).insertId) };
+      const result = await db.insert(salaryEidBonuses).values({
+        title: input.title,
+        bonusDate: input.bonusDate as any,
+        amountPerEmployee: String(input.amountPerEmployee) as any,
+        employeeCount,
+        notes: input.notes || null,
+      });
+      return { id: insertIdOf(result) };
     }),
 
   deleteEidBonus: makeSalaryWriteProcedure("/salary/funds")

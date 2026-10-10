@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import { askConfirm } from "../attendance/askConfirm";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,7 +61,12 @@ export default function EmployeeFunds() {
     now.getMonth() + (now.getDate() >= 21 ? 1 : 0),
     20,
   );
-  const cycleStart = new Date(cycleEnd.getFullYear(), cycleEnd.getMonth() - 1, 21);
+  const cycleStart = new Date(
+    cycleEnd.getFullYear(),
+    cycleEnd.getMonth() - 1,
+    21,
+  );
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const fromDate = `${cycleStart.getFullYear()}-${String(cycleStart.getMonth() + 1).padStart(2, "0")}-21`;
   const toDate = `${cycleEnd.getFullYear()}-${String(cycleEnd.getMonth() + 1).padStart(2, "0")}-20`;
   const [activeFundTab, setActiveFundTab] = useState<"operations" | "eid">(
@@ -67,14 +74,14 @@ export default function EmployeeFunds() {
   );
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [entry, setEntry] = useState({
-    transactionDate: now.toISOString().slice(0, 10),
+    transactionDate: todayKey,
     amount: "",
     doctorName: "",
     notes: "",
   });
   const [eid, setEid] = useState({
     title: "عيدية",
-    bonusDate: now.toISOString().slice(0, 10),
+    bonusDate: todayKey,
     amountPerEmployee: "",
     notes: "",
   });
@@ -95,9 +102,7 @@ export default function EmployeeFunds() {
   const fundMembers = (data?.fundMembers ?? []) as FundEmployee[];
   const entries = (data?.entries ?? []) as FundEntry[];
   const eidBonuses = (data?.eidBonuses ?? []) as EidBonus[];
-  const memberCodes = new Set(
-    fundMembers.map((employee) => employee.empCd),
-  );
+  const memberCodes = new Set(fundMembers.map((employee) => employee.empCd));
 
   const refresh = async () =>
     utils.salary.getEmployeeFunds.invalidate({ fromDate, toDate });
@@ -154,6 +159,8 @@ export default function EmployeeFunds() {
   }, [fundEligibleEmployees, employeeSearch]);
 
   const toggleMember = (empCd: string) => {
+    // Each call sends the full list; wait for the previous save to land.
+    if (setMembers.isPending) return;
     const next = new Set(memberCodes);
     if (next.has(empCd)) next.delete(empCd);
     else next.add(empCd);
@@ -181,28 +188,28 @@ export default function EmployeeFunds() {
       >
         <div
           dir="rtl"
-          className="flex flex-row-reverse items-center justify-between gap-3 overflow-x-auto border-b border-border pb-4"
+          className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row-reverse sm:items-center sm:justify-between"
         >
           {activeFundTab === "operations" && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    !window.confirm(
+                    !(await askConfirm(
                       `تأكيد صرف صندوق الفترة من ${fromDate} إلى ${toDate}؟ سيتم تصفير حركات هذه الفترة.`,
-                    )
+                    ))
                   )
                     return;
                   settleFund.mutate({ fromDate, toDate });
                 }}
                 disabled={settleFund.isPending || !entries.length}
               >
-                <WalletCards className="ml-2 size-4" />
+                <WalletCards className="me-2 size-4" />
                 {settleFund.isPending
-                  ? "جاري التصفير…"
+                  ? "جاري التصفير..."
                   : "تم الصرف وابدأ جديد"}
               </Button>
               <Button
@@ -212,33 +219,57 @@ export default function EmployeeFunds() {
                 onClick={() => printSection("operations")}
                 disabled={!fundMembers.length}
               >
-                <Printer className="ml-2 size-4" />
-                طباعة صندوق العمليات
+                <Printer className="me-2 size-4" />
+                طباعة / حفظ صندوق العمليات PDF
               </Button>
             </div>
           )}
-          <div className="flex shrink-0 items-center gap-2 text-sm font-semibold text-muted-foreground" dir="rtl">
+          <div
+            className="flex shrink-0 items-center gap-2 text-sm font-semibold text-muted-foreground"
+            dir="rtl"
+          >
             <span>من {fromDate}</span>
             <span>إلى {toDate}</span>
           </div>
-          <TabsList dir="rtl" className="flex w-80 shrink-0">
+          <TabsList dir="rtl" className="flex w-full shrink-0 sm:w-80">
             <TabsTrigger value="operations" className="flex-1">
-              <WalletCards className="ml-2 size-4" />
+              <WalletCards className="me-2 size-4" />
               صندوق العمليات
             </TabsTrigger>
             <TabsTrigger value="eid" className="flex-1">
-              <Gift className="ml-2 size-4" />
+              <Gift className="me-2 size-4" />
               العيدية
             </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="operations" className="mt-4 space-y-4" dir="rtl">
+          {query.isLoading && (
+            <p
+              role="status"
+              className="rounded-lg border border-border p-4 text-sm text-muted-foreground"
+            >
+              جاري تحميل بيانات الصندوق...
+            </p>
+          )}
+          {query.isError && (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
+            >
+              <span>تعذر تحميل بيانات صندوق العمليات للفترة المحددة.</span>
+              <Button variant="outline" onClick={() => query.refetch()}>
+                إعادة المحاولة
+              </Button>
+            </div>
+          )}
           <div className="grid overflow-hidden rounded-xl border border-border/60 shadow-sm sm:grid-cols-3">
             <div className="p-4">
-              <p className="text-xs text-muted-foreground">إجمالي الإيرادات</p>
+              <p className="text-xs text-muted-foreground">
+                إجمالي إيرادات الفترة
+              </p>
               <p className="mt-1 text-lg font-black">
-                {money(data?.totalRevenue ?? 0)}
+                {data ? money(data.totalRevenue) : "غير متاح"}
               </p>
             </div>
             <div className="border-y border-border p-4 sm:border-y-0 sm:border-x">
@@ -254,7 +285,7 @@ export default function EmployeeFunds() {
                 نصيب الموظف يوم 20
               </p>
               <p className="mt-1 text-lg font-black text-primary">
-                {money(data?.sharePerMember ?? 0)}
+                {data ? money(data.sharePerMember) : "غير متاح"}
               </p>
             </div>
           </div>
@@ -263,16 +294,18 @@ export default function EmployeeFunds() {
             dir="rtl"
             className="grid overflow-hidden rounded-xl border border-border/60 shadow-sm lg:grid-cols-[320px_minmax(0,1fr)]"
           >
-            <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-l">
+            <aside className="border-b border-border bg-muted/15 lg:border-b-0 lg:border-e">
               <div className="border-b border-border p-3">
                 <h2 className="text-sm font-black">موظفو الصندوق</h2>
                 <label className="relative mt-3 block">
-                  <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={employeeSearch}
                     onChange={(event) => setEmployeeSearch(event.target.value)}
                     placeholder="بحث عن موظف"
-                    className="pr-9"
+                    enterKeyHint="search"
+                    aria-label="بحث عن موظف"
+                    className="ps-9"
                   />
                 </label>
               </div>
@@ -291,7 +324,7 @@ export default function EmployeeFunds() {
                       <span className="block truncate text-xs font-black">
                         {employee.fullName}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {employee.department || employee.empCd}
                       </span>
                     </span>
@@ -303,8 +336,7 @@ export default function EmployeeFunds() {
               <div className="border-b border-border p-4">
                 <h2 className="text-sm font-black">إضافة إيراد عملية</h2>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <Input
-                    type="date"
+                  <DateInput
                     value={entry.transactionDate}
                     onChange={(event) =>
                       setEntry({
@@ -322,6 +354,7 @@ export default function EmployeeFunds() {
                       setEntry({ ...entry, amount: event.target.value })
                     }
                     placeholder="المبلغ"
+                    aria-label="المبلغ"
                   />
                   <>
                     <Input
@@ -331,6 +364,8 @@ export default function EmployeeFunds() {
                         setEntry({ ...entry, doctorName: event.target.value })
                       }
                       placeholder="ابحث باسم الدكتور"
+                      enterKeyHint="search"
+                      aria-label="ابحث باسم الدكتور"
                     />
                     <datalist id="operation-fund-doctors">
                       {doctors.map((doctor) => (
@@ -354,7 +389,7 @@ export default function EmployeeFunds() {
                       !entry.doctorName.trim()
                     }
                   >
-                    <Plus className="ml-2 size-4" />
+                    <Plus className="me-2 size-4" />
                     إضافة
                   </Button>
                 </div>
@@ -370,10 +405,7 @@ export default function EmployeeFunds() {
                         <span className="text-sm font-black">
                           {money(Number(row.amount))}
                         </span>
-                        <Badge
-                          variant="outline"
-                          className="rounded text-[10px]"
-                        >
+                        <Badge variant="outline" className="rounded text-xs">
                           د. {row.doctorName}
                         </Badge>
                       </div>
@@ -415,9 +447,9 @@ export default function EmployeeFunds() {
                     setEid({ ...eid, title: event.target.value })
                   }
                   placeholder="اسم المناسبة"
+                  aria-label="اسم المناسبة"
                 />
-                <Input
-                  type="date"
+                <DateInput
                   value={eid.bonusDate}
                   onChange={(event) =>
                     setEid({ ...eid, bonusDate: event.target.value })
@@ -432,6 +464,7 @@ export default function EmployeeFunds() {
                     setEid({ ...eid, amountPerEmployee: event.target.value })
                   }
                   placeholder="مبلغ كل موظف"
+                  aria-label="مبلغ كل موظف"
                 />
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -448,7 +481,7 @@ export default function EmployeeFunds() {
                     addEid.isPending || !eid.title.trim() || eidAmount <= 0
                   }
                 >
-                  <Gift className="ml-2 size-4" />
+                  <Gift className="me-2 size-4" />
                   حفظ العيدية
                 </Button>
                 <Button
@@ -457,8 +490,8 @@ export default function EmployeeFunds() {
                   onClick={() => printSection("eid")}
                   disabled={!activeEmployeesCount || eidAmount <= 0}
                 >
-                  <Printer className="ml-2 size-4" />
-                  طباعة العيدية
+                  <Printer className="me-2 size-4" />
+                  طباعة / حفظ العيدية PDF
                 </Button>
               </div>
             </div>
@@ -491,7 +524,7 @@ export default function EmployeeFunds() {
                       </Badge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      <CalendarDays className="ml-1 inline size-3" />
+                      <CalendarDays className="me-1 inline size-3" />
                       {String(bonus.bonusDate).slice(0, 10)} ·{" "}
                       {bonus.employeeCount} موظف · الإجمالي{" "}
                       {money(
@@ -552,7 +585,7 @@ export default function EmployeeFunds() {
             }
           `}</style>
           <div className="fund-print-root">
-            <h1 className="text-xl font-black">
+            <h1 className="text-2xl font-black">
               {printKind === "operations"
                 ? "صندوق العمليات"
                 : eid.title || "العيدية"}
@@ -562,10 +595,10 @@ export default function EmployeeFunds() {
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="font-black">إجمالي المبلغ: </span>
+                <span className="font-black">إجمالي إيرادات الفترة: </span>
                 {money(
                   printKind === "operations"
-                    ? data?.totalRevenue ?? 0
+                    ? (data?.totalRevenue ?? 0)
                     : activeEmployeesCount * eidAmount,
                 )}
               </div>
@@ -576,16 +609,28 @@ export default function EmployeeFunds() {
                   : activeEmployeesCount}
               </div>
             </div>
-            <table className="mt-5 w-full border-collapse text-sm">
+            <table
+              aria-label="معاينة صرف الصندوق"
+              className="mt-5 w-full border-collapse text-sm"
+            >
               <thead>
                 <tr>
-                  <th className="border border-black/30 p-1 text-right">
+                  <th
+                    scope="col"
+                    className="border border-black/30 p-1 text-start"
+                  >
                     الموظف
                   </th>
-                  <th className="border border-black/30 p-1 text-right">
+                  <th
+                    scope="col"
+                    className="border border-black/30 p-1 text-start"
+                  >
                     المبلغ
                   </th>
-                  <th className="border border-black/30 p-1 text-right">
+                  <th
+                    scope="col"
+                    className="border border-black/30 p-1 text-start"
+                  >
                     التوقيع
                   </th>
                 </tr>
@@ -600,7 +645,7 @@ export default function EmployeeFunds() {
                       <td className="border border-black/30 p-1">
                         {money(
                           printKind === "operations"
-                            ? data?.sharePerMember ?? 0
+                            ? (data?.sharePerMember ?? 0)
                             : eidAmount,
                         )}
                       </td>
