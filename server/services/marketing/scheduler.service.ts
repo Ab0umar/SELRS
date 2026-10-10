@@ -1,14 +1,13 @@
 /**
- * Marketing Auto-publish Scheduler
+ * Marketing generation and publishing scheduler
  *
  * Runs hourly via node-cron.  On each fire it checks:
  *   1. autoPublish setting is enabled
- *   2. Current hour matches publishHour
+ *   2. Current Cairo hour matches publishHour
  *   3. Today is Saturday / Tuesday / Thursday and the day is enabled
  *   4. No non-failed post already exists for that day today (duplicate guard)
  *
- * If all pass → generate content → generate image → publish (or save draft).
- * Every step is logged to marketing_logs; failures never crash the server.
+ * Starts a persisted Manus job; the worker publishes scheduled posts after generation.
  */
 
 import cron from "node-cron";
@@ -18,17 +17,11 @@ import { getDb } from "../../db";
 import {
   marketingPosts,
   marketingSettings,
-  marketingBrandProfile,
   marketingLogs,
 } from "../../../drizzle/schema";
-import { generateMarketingContent } from "./contentGenerator.service";
-import {
-  generateMarketingImage,
-  MarketingImageConfigError,
-} from "./imageGenerator.service";
-import { publishPostToFacebook } from "./facebookPublisher.service";
 import { pickTopic, type PostDay } from "./topicRotation";
-import { ENV } from "../../_core/env";
+import { startManusGeneration } from "./manusGeneration.service";
+import { getMarketingPageTarget, type MarketingPageRole } from "./page.service";
 
 // ─── Day mapping ──────────────────────────────────────────────────────────────
 
@@ -38,6 +31,34 @@ const JS_DAY_TO_POST_DAY: Record<number, PostDay> = {
   2: "tuesday",
   4: "thursday",
 };
+
+const CAIRO_TIME_ZONE = "Africa/Cairo";
+const CAIRO_WEEKDAY_TO_JS_DAY: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+function getCairoScheduleParts(date = new Date()): {
+  jsDay: number;
+  hour: number;
+} {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CAIRO_TIME_ZONE,
+    weekday: "short",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const weekday = parts.find((part) => part.type === "weekday")?.value;
+  const hour = parts.find((part) => part.type === "hour")?.value;
+  const jsDay =
+    weekday === undefined ? -1 : (CAIRO_WEEKDAY_TO_JS_DAY[weekday] ?? -1);
+  return { jsDay, hour: hour === undefined ? -1 : Number(hour) };
+}
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -97,15 +118,15 @@ export function getNextScheduledTime(settings: {
   if (enabled.length === 0) return null;
 
   const now = new Date();
-  for (let offset = 0; offset <= 14; offset++) {
-    const candidate = new Date(now);
-    candidate.setDate(candidate.getDate() + offset);
-    candidate.setHours(settings.publishHour, 0, 0, 0);
-
-    // Skip if this slot is already past
+  const firstHour = new Date(now);
+  firstHour.setMinutes(0, 0, 0);
+  for (let offset = 0; offset <= 24 * 14; offset++) {
+    const candidate = new Date(firstHour);
+    candidate.setHours(firstHour.getHours() + offset);
     if (candidate <= now) continue;
-
-    const match = enabled.find((d) => d.jsDay === candidate.getDay());
+    const cairo = getCairoScheduleParts(candidate);
+    if (cairo.hour !== settings.publishHour) continue;
+    const match = enabled.find((d) => d.jsDay === cairo.jsDay);
     if (match) return { day: match.day, date: candidate };
   }
   return null;
@@ -119,25 +140,34 @@ export interface SchedulerRunResult {
   postId?: number;
   published?: boolean;
   error?: string;
+  jobId?: string;
 }
 
 export async function runScheduledPost(
   day: PostDay,
+  pageRole: MarketingPageRole = "center",
 ): Promise<SchedulerRunResult> {
   const db = await getDb();
   if (!db) return { ok: false, error: "Database not available" };
 
-  // Load settings
-  const [settings] = await db.select().from(marketingSettings).limit(1);
-  if (!settings) return { ok: false, error: "No settings row found" };
+  const pageTarget = await getMarketingPageTarget(pageRole);
+  if (!pageTarget) {
+    return {
+      ok: false,
+      error:
+        pageRole === "doctor"
+          ? "اربط صفحة الدكتور قبل تفعيل النشر التلقائي"
+          : "اربط صفحة المركز قبل تفعيل النشر التلقائي",
+    };
+  }
 
   // Day enabled?
   const dayEnabled =
     day === "saturday"
-      ? settings.saturdayEnabled
+      ? pageTarget.saturdayEnabled
       : day === "tuesday"
-        ? settings.tuesdayEnabled
-        : settings.thursdayEnabled;
+        ? pageTarget.tuesdayEnabled
+        : pageTarget.thursdayEnabled;
 
   if (!dayEnabled) {
     return { ok: true, skipped: `Day "${day}" is disabled in settings` };
@@ -153,6 +183,7 @@ export async function runScheduledPost(
     .where(
       and(
         eq(marketingPosts.postDay, day),
+        eq(marketingPosts.pageRole, pageRole),
         gte(marketingPosts.createdAt, todayStart),
       ),
     );
@@ -173,169 +204,40 @@ export async function runScheduledPost(
     `Starting scheduled post for ${day}`,
   );
 
-  let postId = 0;
-
   try {
-    // Topic selection (round-robin)
+    const today = new Date().toLocaleDateString("en-CA", {
+      timeZone: "Africa/Cairo",
+    });
+    const { createHash } = await import("node:crypto");
+    const requestId = createHash("sha256")
+      .update(`marketing:${today}:${day}:${pageRole}`)
+      .digest("hex")
+      .slice(0, 32);
+    const id = `${requestId.slice(0, 8)}-${requestId.slice(8, 12)}-4${requestId.slice(13, 16)}-a${requestId.slice(17, 20)}-${requestId.slice(20, 32)}`;
     const [countRow] = await db
       .select({ total: drizzleCount() })
       .from(marketingPosts)
-      .where(eq(marketingPosts.postDay, day));
-    const usedCount = countRow?.total ?? 0;
-    const topic = pickTopic(day, usedCount);
-
-    // Brand profile
-    const [brandRow] = await db.select().from(marketingBrandProfile).limit(1);
-
-    // Generate content
-    const clinicName = settings.clinicName ?? "مركزك لطب العيون";
-    let generated;
-    try {
-      generated = await generateMarketingContent(
-        topic,
-        day,
-        brandRow ?? null,
-        clinicName,
-        usedCount,
+      .where(
+        and(
+          eq(marketingPosts.postDay, day),
+          eq(marketingPosts.pageRole, pageRole),
+        ),
       );
-    } catch (err) {
-      await log(null, "scheduler_generate_content", "error", String(err));
-      await setSchedulerStatus("error");
-      return { ok: false, error: `Content generation failed: ${String(err)}` };
-    }
-
-    // Save draft
-    const [result] = await db.insert(marketingPosts).values({
-      title: generated.title,
-      content: generated.content,
-      topic,
-      idea: generated.idea,
-      cta: generated.cta,
-      hashtags: generated.hashtags,
-      imagePrompt: generated.imagePrompt,
-      platform: "facebook",
+    const result = await startManusGeneration({
+      requestId: id,
+      topic: pickTopic(day, countRow?.total ?? 0, pageTarget.topicDirection),
       postDay: day,
-      status: "draft",
-      createdBy: null, // system-generated
+      pageRole,
+      createdBy: null,
     });
-    postId = (result as { insertId?: number }).insertId ?? 0;
-    await log(
-      postId,
-      "scheduler_create_post",
-      "success",
-      `Draft created — topic: ${topic}`,
-    );
-
-    // Generate image (best-effort — don't fail post if image fails)
-    let imageUrl: string | null = null;
-    if (generated.imagePrompt) {
-      try {
-        imageUrl = await generateMarketingImage(generated.imagePrompt, postId);
-        await db
-          .update(marketingPosts)
-          .set({ imageUrl })
-          .where(eq(marketingPosts.id, postId));
-        await log(
-          postId,
-          "scheduler_generate_image",
-          "success",
-          `Image saved: ${imageUrl}`,
-        );
-      } catch (err) {
-        await log(
-          postId,
-          "scheduler_generate_image",
-          "error",
-          err instanceof MarketingImageConfigError
-            ? "No image API configured"
-            : String(err),
-        );
-      }
-    }
-
-    // Publish to Facebook (or keep as draft)
-    let published = false;
-
-    if (
-      settings.autoPublish &&
-      settings.fbConnected &&
-      settings.fbPageId &&
-      settings.fbAccessToken
-    ) {
-      try {
-        const message = [
-          generated.content,
-          generated.cta ? `\n\n${generated.cta}` : "",
-          generated.hashtags ? `\n\n${generated.hashtags}` : "",
-        ]
-          .join("")
-          .trim();
-
-        const appOrigin = ENV.fbAppOrigin || "https://selrs.cc";
-        const { fbPostId } = await publishPostToFacebook(
-          settings.fbPageId,
-          settings.fbAccessToken,
-          message,
-          imageUrl,
-          appOrigin,
-        );
-
-        await db
-          .update(marketingPosts)
-          .set({ status: "published", publishedAt: new Date() })
-          .where(eq(marketingPosts.id, postId));
-
-        await log(
-          postId,
-          "scheduler_publish",
-          "success",
-          `Published — FB post id: ${fbPostId}`,
-        );
-        published = true;
-      } catch (err) {
-        await db
-          .update(marketingPosts)
-          .set({ status: "failed" })
-          .where(eq(marketingPosts.id, postId));
-        await log(
-          postId,
-          "scheduler_publish",
-          "error",
-          `Facebook publish failed: ${String(err)}`,
-        );
-      }
-    } else {
-      const reason = !settings.autoPublish
-        ? "auto-publish disabled"
-        : "Facebook not connected";
-      await log(
-        postId,
-        "scheduler_skip_publish",
-        "info",
-        `Saved as draft — ${reason}`,
-      );
-    }
-
     await setSchedulerStatus("idle");
-    await log(
-      postId,
-      "scheduler_run",
-      "success",
-      `Run complete for ${day}${published ? " — published to Facebook" : " — saved as draft"}`,
-    );
-
-    return { ok: true, postId, published };
-  } catch (err) {
+    return { ok: true, jobId: result.jobId, published: false };
+  } catch (error) {
     await setSchedulerStatus("error");
-    if (postId) {
-      await db
-        .update(marketingPosts)
-        .set({ status: "failed" })
-        .where(eq(marketingPosts.id, postId))
-        .catch(() => {});
-    }
-    await log(postId || null, "scheduler_run", "error", String(err));
-    return { ok: false, error: String(err) };
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "تعذر بدء التوليد",
+    };
   }
 }
 
@@ -353,16 +255,15 @@ export function initMarketingScheduler(): void {
       const db = await getDb();
       if (!db) return;
 
-      const [settings] = await db.select().from(marketingSettings).limit(1);
-      if (!settings?.autoPublish) return;
-
-      const now = new Date();
-      if (now.getHours() !== settings.publishHour) return;
-
-      const postDay = JS_DAY_TO_POST_DAY[now.getDay()];
+      const now = getCairoScheduleParts();
+      const postDay = JS_DAY_TO_POST_DAY[now.jsDay];
       if (!postDay) return;
-
-      await runScheduledPost(postDay);
+      for (const pageRole of ["center", "doctor"] as const) {
+        const pageTarget = await getMarketingPageTarget(pageRole);
+        if (!pageTarget?.autoPublish || now.hour !== pageTarget.publishHour)
+          continue;
+        await runScheduledPost(postDay, pageRole);
+      }
     } catch (err) {
       console.error("[marketing-scheduler] Cron error:", err);
     }

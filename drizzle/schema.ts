@@ -2776,6 +2776,40 @@ export type InsertPatientPortalBooking =
 // Marketing Automation Module
 // ============================================================
 
+export const marketingFacebookPages = mysqlTable(
+  "marketing_facebook_pages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    pageRole: mysqlEnum("page_role", ["center", "doctor"]).notNull(),
+    pageId: varchar("page_id", { length: 255 }).notNull(),
+    pageName: varchar("page_name", { length: 255 }).notNull(),
+    contentName: varchar("content_name", { length: 255 }),
+    accessToken: text("access_token").notNull(),
+    category: varchar("category", { length: 255 }),
+    autoPublish: boolean("auto_publish").default(false).notNull(),
+    saturdayEnabled: boolean("saturday_enabled").default(true).notNull(),
+    tuesdayEnabled: boolean("tuesday_enabled").default(true).notNull(),
+    thursdayEnabled: boolean("thursday_enabled").default(true).notNull(),
+    publishHour: int("publish_hour").default(9).notNull(),
+    topicDirection: mysqlEnum("topic_direction", ["forward", "reverse"])
+      .default("forward")
+      .notNull(),
+    connected: boolean("connected").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    roleUnique: uniqueIndex("uq_marketing_facebook_page_role").on(
+      table.pageRole,
+    ),
+    pageIdUnique: uniqueIndex("uq_marketing_facebook_page_id").on(table.pageId),
+  }),
+);
+
+export type MarketingFacebookPage = typeof marketingFacebookPages.$inferSelect;
+export type InsertMarketingFacebookPage =
+  typeof marketingFacebookPages.$inferInsert;
+
 export const marketingPosts = mysqlTable(
   "marketing_posts",
   {
@@ -2791,8 +2825,17 @@ export const marketingPosts = mysqlTable(
     platform: mysqlEnum("platform", ["facebook", "instagram", "both"])
       .default("facebook")
       .notNull(),
+    pageRole: mysqlEnum("page_role", ["center", "doctor"])
+      .default("center")
+      .notNull(),
     postDay: mysqlEnum("post_day", ["saturday", "tuesday", "thursday"]),
-    status: mysqlEnum("status", ["draft", "published", "failed", "scheduled"])
+    status: mysqlEnum("status", [
+      "draft",
+      "publishing",
+      "published",
+      "failed",
+      "scheduled",
+    ])
       .default("draft")
       .notNull(),
     fbPostId: varchar("fb_post_id", { length: 255 }),
@@ -2813,8 +2856,36 @@ export type MarketingPost = typeof marketingPosts.$inferSelect;
 export type InsertMarketingPost = typeof marketingPosts.$inferInsert;
 
 export const marketingGenerationJobs = mysqlTable(
+  "marketing_generation_jobs",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
     taskId: varchar("task_id", { length: 64 }),
+    kind: mysqlEnum("kind", ["post", "image"]).notNull(),
+    state: mysqlEnum("state", ["starting", "running", "completed", "failed"])
+      .default("starting")
+      .notNull(),
+    topic: varchar("topic", { length: 255 }).notNull(),
+    pageRole: mysqlEnum("page_role", ["center", "doctor"])
+      .default("center")
+      .notNull(),
+    postDay: mysqlEnum("post_day", [
+      "saturday",
+      "tuesday",
+      "thursday",
+    ]).notNull(),
+    postId: int("post_id"),
     postVersion: timestamp("post_version"),
+    createdBy: int("created_by"),
+    error: text("error"),
+    credits: int("credits"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    stateIdx: index("idx_marketing_generation_state").on(table.state),
+  }),
+);
+
 export const marketingSettings = mysqlTable("marketing_settings", {
   id: int("id").autoincrement().primaryKey(),
   autoPublish: boolean("auto_publish").default(false).notNull(),
@@ -2828,6 +2899,9 @@ export const marketingSettings = mysqlTable("marketing_settings", {
   fbConnected: boolean("fb_connected").default(false).notNull(),
   fbOauthState: varchar("fb_oauth_state", { length: 128 }),
   fbPendingPages: text("fb_pending_pages"),
+  fbOauthRole: mysqlEnum("fb_oauth_role", ["center", "doctor"]).default(
+    "center",
+  ),
   clinicName: varchar("clinic_name", { length: 255 }).default(
     "مركزك لطب العيون",
   ),
