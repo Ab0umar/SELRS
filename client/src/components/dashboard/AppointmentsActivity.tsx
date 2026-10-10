@@ -74,7 +74,7 @@ export function AppointmentsActivity({
                   <Badge
                     variant="outline"
                     className={cn(
-                      "text-[10px] font-semibold px-1.5 py-0 border-0",
+                      "text-[13px] font-semibold px-1.5 py-0 border-0",
                       statusStyles[patient.queueStatus] ??
                         "bg-muted text-muted-foreground",
                     )}
@@ -82,11 +82,11 @@ export function AppointmentsActivity({
                     {statusLabels[patient.queueStatus] ?? patient.queueStatus}
                   </Badge>
                 </div>
-                <div className="min-w-0 flex-1 text-left">
+                <div className="min-w-0 flex-1 text-end">
                   <p className="text-xs sm:text-sm font-semibold truncate">
                     {patient.fullName}
                   </p>
-                  <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
+                  <p className="text-[13px] sm:text-xs text-muted-foreground mt-0.5">
                     {patient.doctorName}
                   </p>
                 </div>
@@ -97,7 +97,7 @@ export function AppointmentsActivity({
                   <Badge
                     variant="outline"
                     className={cn(
-                      "text-[10px] font-medium px-2 py-0 border-0",
+                      "text-[13px] font-medium px-2 py-0 border-0",
                       serviceTypeStyles[patient.serviceType],
                     )}
                   >
@@ -118,7 +118,7 @@ export function AppointmentsActivity({
                     </Button>
                   )}
                   {patient.checkedInTime && (
-                    <div className="flex items-center gap-1 text-[11px] sm:text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 text-[13px] sm:text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       <span>{patient.checkedInTime}</span>
                     </div>

@@ -1,0 +1,103 @@
+@media screen {
+  html:not(.dark) .selrs-mobile-brand-canvas:has(:is(.dashboard-workspace, .main-home-focused, .portal-bookings-workspace)) {
+    --background: #ffffff;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --muted: #f3f4f5;
+    --mobile-content-surface: #ffffff;
+    --mobile-brand-gradient: #ffffff;
+    background: #ffffff !important;
+  }
+  .dashboard-workspace, .main-home-focused { background: var(--card); }
+  .dashboard-workspace > div { max-width: 1600px; margin-inline: auto; }
+  :is(.dashboard-workspace, .main-home-focused, .portal-bookings-workspace) :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 3px;
+  }
+  .dashboard-workspace .frontdesk-page-title,
+  .main-home-focused h1,
+  .portal-bookings-workspace h1 {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 0 20px !important;
+    clip: auto !important;
+    clip-path: none !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--foreground);
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content .portal-bookings-workspace [data-page-heading],
+  .portal-bookings-workspace [data-page-heading] {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    clip-path: none !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+  .portal-bookings-workspace [data-page-heading] h1 { margin-bottom: 4px !important; }
+  .portal-bookings-workspace [data-page-heading] p { font-size: 14px; }
+  .dashboard-workspace [role="tabpanel"] > div:first-child h2 {
+    font-size: 18px;
+    font-weight: 600;
+    white-space: normal;
+  }
+  html .selrs-mobile-brand-canvas .selrs-app-content div.dashboard-workspace div[role="tablist"],
+  .dashboard-workspace [role="tablist"][aria-label="أقسام لوحة التحكم"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--card) !important;
+    overflow: visible !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content .dashboard-workspace [role="tablist"] > button,
+  .dashboard-workspace [role="tablist"][aria-label="أقسام لوحة التحكم"] > button {
+    min-height: 44px;
+    height: auto !important;
+    padding: 10px 12px !important;
+    border-radius: 8px !important;
+    white-space: normal !important;
+  }
+  html .selrs-mobile-brand-canvas .selrs-app-content div.dashboard-workspace main[role="tabpanel"],
+  .dashboard-workspace [role="tabpanel"] {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+  }
+  .main-home-focused main { padding-block: 24px; }
+  .main-home-focused .home-section-group {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--muted);
+  }
+  .main-home-focused .home-section-group h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .main-home-focused .home-section-grid { gap: 12px; }
+  .main-home-focused .home-section-item {
+    padding: 16px;
+    min-height: 96px;
+    border-radius: 12px;
+    background: var(--card);
+  }
+  .main-home-focused .home-section-item p { font-size: 13px; line-height: 1.6; }
+  .portal-bookings-workspace :is(button, input, select) { min-height: 44px; }
+}
+
+@media screen and (max-width: 699px) {
+  html .selrs-mobile-brand-canvas .selrs-app-content div.dashboard-workspace div[role="tablist"][aria-label="أقسام لوحة التحكم"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-workspace [role="tablist"] > button { min-width: 0; }
+  .dashboard-workspace [role="tablist"] > button span { white-space: normal; }
+  .main-home-focused .home-section-group { padding: 12px; }
+  .main-home-focused .home-section-item { padding: 12px; }
+}

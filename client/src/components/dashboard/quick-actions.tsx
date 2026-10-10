@@ -36,6 +36,7 @@ import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog"
 import { AddPortalBookingDialog } from "@/components/dashboard/AddPortalBookingDialog";
 import { FollowupQuickDialog } from "@/components/dashboard/FollowupQuickDialog";
 import { OperationsBookingQuickDialog } from "@/components/operations/OperationsBookingQuickDialog";
+import { Button } from "@/components/ui/button";
 
 type QuickActionItem =
   | {
@@ -112,7 +113,7 @@ const quickActions: QuickActionItem[] = [
   {
     label: "تحديد موعد / كشف",
     icon: CalendarPlus,
-    color: "bg-warning/15 text-warning",
+    color: "bg-warning/15 text-warning-text",
     kind: "portal-booking-dialog",
     permPath: "action/schedule-visit",
   },
@@ -327,9 +328,9 @@ export function QuickActions({
           className="max-h-[min(92dvh,calc(100vh-24px))] overflow-x-hidden overflow-y-auto sm:max-w-lg"
           dir="rtl"
         >
-          <DialogHeader className="text-right">
-            <DialogTitle className="text-right">اختر المريض</DialogTitle>
-            <DialogDescription className="text-right text-muted-foreground">
+          <DialogHeader className="text-start">
+            <DialogTitle className="text-start">اختر المريض</DialogTitle>
+            <DialogDescription className="text-start text-muted-foreground">
               أدخل كود المريض أو ابحث بالاسم ثم أكّد للانتقال
             </DialogDescription>
           </DialogHeader>
@@ -434,7 +435,7 @@ export function QuickActions({
     const active = displayedWorkflowKind === action.kind;
     const ChevronIcon = active ? ChevronUp : ChevronDown;
     return (
-      <button
+      <Button variant="bare"
         key={action.kind}
         type="button"
         aria-expanded={active}
@@ -465,13 +466,13 @@ export function QuickActions({
         </span>
         <span className="truncate">{action.label}</span>
         <ChevronIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      </button>
+      </Button>
     );
   }
   function renderActionButton(action: QuickActionItem, isPrimary: boolean) {
     const Icon = action.icon;
     return (
-      <button
+      <Button variant="bare"
         key={action.label}
         type="button"
         aria-label={action.label}
@@ -496,7 +497,7 @@ export function QuickActions({
         <span className="hidden whitespace-nowrap sm:inline">
           {action.label}
         </span>
-      </button>
+      </Button>
     );
   }
 }

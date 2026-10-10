@@ -10,6 +10,7 @@ import {
 import { ExaminationPatientQuickDialogContent } from "@/components/examination/ExaminationPatientQuickDialogContent";
 import { useIsMobile } from "@/hooks/useMobile";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function QuickPatientEntryDialog({
   open,
@@ -83,14 +84,14 @@ export function QuickPatientEntryDialog({
         className="overflow-hidden rounded-lg border border-border bg-background"
         dir="rtl"
       >
-        <button
+        <Button variant="bare"
           type="button"
           onClick={() => {
             const next = !expanded;
             setExpanded(next);
             onOpenChange(next);
           }}
-          className="flex min-h-11 w-full items-center justify-between gap-3 border-b border-border px-4 py-2.5 text-right transition-colors hover:bg-muted/40"
+          className="flex min-h-11 w-full items-center justify-between gap-3 border-b border-border px-4 py-2.5 text-start transition-colors hover:bg-muted/40"
           aria-expanded={expanded}
         >
           <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -105,7 +106,7 @@ export function QuickPatientEntryDialog({
               aria-hidden
             />
           )}
-        </button>
+        </Button>
         {content}
       </section>
     );
@@ -118,7 +119,7 @@ export function QuickPatientEntryDialog({
         className="quick-patient-registration-sheet max-h-[92dvh] w-full gap-0 overflow-hidden p-0"
         dir="rtl"
       >
-        <SheetHeader className="quick-patient-registration-header shrink-0 border-b px-5 py-4 text-right">
+        <SheetHeader className="quick-patient-registration-header shrink-0 border-b px-5 py-4 text-start">
           <SheetTitle>تسجيل مريض</SheetTitle>
           <SheetDescription className="sr-only">
             نموذج تسجيل مريض جديد

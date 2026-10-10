@@ -3,14 +3,10 @@ import { Link, useLocation } from "wouter";
 import { Capacitor } from "@capacitor/core";
 import {
   Eye,
-  LockKeyhole,
-  LogIn,
-  Microscope,
-  Scan,
+  EyeOff,
   Stethoscope,
   UserRound,
   WifiOff,
-  Zap,
   Loader2,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,28 +19,15 @@ import {
   getOfflineCacheSummary,
   subscribeNetworkStatus,
 } from "@/lib/appRuntime";
-import { BRAND_FOOTER_EN, BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
+import { BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
 import {
   NATIVE_LAST_USERNAME_KEY,
   hydrateDurableValue,
   saveDurableValue,
 } from "@/lib/nativeStorage";
 
-const SERVICES = [
-  { icon: Zap, ar: "تصحيح الإبصار" },
-  { icon: Eye, ar: "المياه البيضاء" },
-  { icon: Scan, ar: "أشعة القرنية" },
-  { icon: Microscope, ar: "زراعة العدسات" },
-] as const;
-
-const STATS = [
-  { value: "+10K", label: "مريض" },
-  { value: "15+", label: "طبيب" },
-  { value: "24/7", label: "خدمة" },
-] as const;
-
 export default function Home() {
-  const { loading, user } = useAuth();
+  const { loading, user, error: sessionError, refresh } = useAuth();
   const [, setLocation] = useLocation();
   const [username, setUsername] = useState(() =>
     typeof window !== "undefined"
@@ -64,6 +47,11 @@ export default function Home() {
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
   const offlineCacheSummary = getOfflineCacheSummary();
+  const sessionData = (sessionError as { data?: { code?: string; httpStatus?: number } } | null)?.data;
+  const sessionCheckFailed =
+    !!sessionError &&
+    sessionData?.code !== "UNAUTHORIZED" &&
+    sessionData?.httpStatus !== 401;
 
   useEffect(() => {
     if (loading || !user) return;
@@ -114,6 +102,11 @@ export default function Home() {
         if (data?.user) store.setItem("user", JSON.stringify(data.user));
         if (data?.token) store.setItem("token", String(data.token));
       }
+      const session = await refresh();
+      if (!session.data) {
+        setError("تم تسجيل الدخول، لكن تعذر تأكيد الجلسة. حاول مرة أخرى.");
+        return;
+      }
       setLocation("/home");
     } catch (err) {
       setError(
@@ -130,251 +123,118 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-primary">
-        <div className="space-y-3 text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary-foreground/20 border-t-primary-foreground/70" />
-          <p className="text-sm font-medium text-primary-foreground/50">
-            جاري التحميل...
-          </p>
-        </div>
+      <div className="flex min-h-dvh items-center justify-center bg-background text-foreground" role="status">
+        <Loader2 className="me-3 size-5 animate-spin" aria-hidden />
+        <p className="text-sm">جارٍ التحقق من الجلسة...</p>
       </div>
     );
   }
 
   return (
-    <div
-      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row-reverse bg-white text-foreground font-sans selection:bg-[#2a4f9a]/10 selection:text-[#1f3f82]"
-      dir="rtl"
-    >
-      {/* Brand panel (Left side on desktop, top banner on mobile) */}
-      <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-gradient-to-br from-[#15296a] via-[#0f2050] to-[#0c1840] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
-        {/* soft glow blobs */}
-        <div
-          className="absolute top-[-120px] left-[-80px] w-[360px] h-[360px] rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(211, 156, 42, 0.18), transparent 70%)",
-          }}
-        />
-        <div
-          className="absolute bottom-[-140px] right-[-100px] w-[420px] h-[420px] rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(37, 99, 235, 0.30), transparent 70%)",
-          }}
-        />
-
-        {/* Lockup (Logo + Title + Tagline) */}
-        <div className="relative z-10 flex flex-1 flex-row items-center justify-center gap-5 lg:gap-7">
-          <BrandLogo className="size-32 lg:size-44 object-contain select-none shrink-0" />
-          <div className="flex flex-col items-start text-right">
-            <span className="whitespace-nowrap text-[32px] sm:text-[42px] lg:text-[56px] font-extrabold text-white leading-none">
-              مركز عيون الشروق
-            </span>
-            <span className="text-base lg:text-2xl font-bold text-[#FC9918] mt-2">
-              لامراض القرنيه و تصحيح الابصار
-            </span>
+    <div className="flex min-h-dvh flex-col bg-background text-foreground" dir="rtl">
+      <header className="border-b border-border bg-card px-4 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-5xl items-center gap-3">
+          <BrandLogo className="size-14 shrink-0 object-contain" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold sm:text-2xl">{BRAND_NAME_AR}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{BRAND_TAGLINE_AR}</p>
           </div>
         </div>
+      </header>
 
-        {/* Services Grid (Desktop 2x2, Mobile 1x4 horizontal chips) */}
-        {/* Desktop 2x2 Grid */}
-        <div className="relative z-10 mt-auto hidden lg:grid grid-cols-4 gap-2.5">
-          {SERVICES.map(({ icon: Icon, ar: label }) => (
-            <div
-              key={label}
-              className="flex h-20 flex-col items-center justify-center gap-2 text-center"
-            >
-              <span className="flex items-center justify-center text-[#e8b54a] shrink-0">
-                <Icon className="size-7" />
-              </span>
-              <span className="text-white/85 text-sm font-bold leading-tight">
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile horizontal chips */}
-        <div className="relative z-10 mt-4 grid lg:hidden grid-cols-4 gap-1.5">
-          {SERVICES.map(({ icon: Icon, ar: label }) => (
-            <div
-              key={label}
-              className="flex h-16 flex-col items-center justify-center gap-1.5 text-center"
-            >
-              <span className="text-[#e8b54a]">
-                <Icon className="size-5" />
-              </span>
-              <span className="text-white/85 text-[9px] sm:text-[10px] font-bold leading-tight">
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Form Column (Right side on desktop, bottom sheet sliding up on mobile) */}
-      <div className="flex-1 overflow-hidden bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
-        {/* Top bar (for beautiful visual connection on mobile/desktop) */}
-        <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-slate-200" />
-
-        <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-3 sm:space-y-5">
-            {error ? (
-              <Alert className="border-destructive/20 bg-destructive/5 text-destructive font-medium text-xs py-2 rounded-xl">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-
-            {!isOnline ? (
-              <Alert className="border-warning/25 bg-warning/10 py-2 text-warning-text rounded-xl">
-                <AlertDescription className="text-xs font-medium">
-                  وضع عدم الاتصال — {offlineCacheSummary.count} ملف مخزن
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
-            <div className="space-y-1.5">
-              <label
-                className="block text-xs sm:text-sm font-bold text-slate-700"
-                htmlFor="username"
-              >
-                اسم المستخدم
-              </label>
-              <div className="relative">
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="أدخل اسم المستخدم"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="h-12 border-[#e6edf5] bg-slate-50 rounded-xl pr-12 focus-visible:ring-primary/10 text-right font-medium"
-                  disabled={submitting}
-                  required
-                  autoComplete="username"
-                />
-                <UserRound className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                className="block text-xs sm:text-sm font-bold text-slate-700"
-                htmlFor="password"
-              >
-                كلمة المرور
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="******"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 border-[#e6edf5] bg-slate-50 rounded-xl pr-12 pl-12 focus-visible:ring-primary/10 text-right font-medium"
-                  disabled={submitting}
-                  required
-                  autoComplete="current-password"
-                />
-                <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <button
-                  type="button"
-                  aria-label={
-                    showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
-                  }
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2a4f9a] transition-colors cursor-pointer"
-                  tabIndex={-1}
-                >
-                  <Eye className="size-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex cursor-pointer items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-[#1f3f82] accent-[#1f3f82] cursor-pointer"
-                  disabled={submitting}
-                />
-                <span>تذكرني</span>
-              </label>
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="text-xs sm:text-sm font-bold text-[#2a4f9a] hover:underline"
-              >
-                نسيت كلمة المرور؟
-              </a>
-            </div>
-
-            <div className="pt-2">
-              <Button
-                type="submit"
-                className="bg-primary text-sm font-bold text-primary-foreground"
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-8 sm:px-6 sm:py-12">
+        <h2 className="mb-6 text-2xl font-bold">تسجيل الدخول</h2>
+        <form onSubmit={handleLogin} className="space-y-5" aria-busy={submitting}>
+          {error ? (
+            <Alert className="border-destructive bg-destructive/5 text-destructive-text">
+              <AlertDescription className="text-destructive-text">{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          {sessionCheckFailed ? (
+            <Alert className="border-warning bg-warning/10 text-warning-text">
+              <AlertDescription>
+                تعذر التحقق من الجلسة السابقة. يمكنك تسجيل الدخول من جديد.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {!isOnline ? (
+            <Alert className="border-warning bg-warning/10 text-warning-text">
+              <WifiOff className="size-4" aria-hidden />
+              <AlertDescription>وضع عدم الاتصال: {offlineCacheSummary.count} ملف مخزن</AlertDescription>
+            </Alert>
+          ) : null}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor="username">اسم المستخدم</label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="أدخل اسم المستخدم"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="h-12 bg-card"
+              disabled={submitting}
+              required
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor="password">كلمة المرور</label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-12 bg-card ps-3 pe-12"
                 disabled={submitting}
+                required
+                autoComplete="current-password"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                title={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={submitting}
+                className="absolute end-1 top-1 text-muted-foreground"
               >
-                {submitting ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-5 animate-spin" />
-                    <span>جاري التحقق…</span>
-                  </div>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    دخول إلى النظام <LogIn className="size-5" />
-                  </span>
-                )}
+                {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
               </Button>
             </div>
-          </form>
-
-          {/* Portals divider */}
-          <div className="flex items-center gap-3.5 my-4 sm:my-8">
-            <div className="flex-1 h-px bg-[#e6edf5]" />
           </div>
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="size-5 accent-primary rounded border-border"
+              disabled={submitting}
+            />
+            <span>تذكرني</span>
+          </label>
+          <Button type="submit" variant="secondary" className="h-12 w-full font-semibold" disabled={submitting}>
+            {submitting ? <Loader2 className="size-5 animate-spin" aria-hidden /> : null}
+            {submitting ? "جارٍ التحقق..." : "دخول إلى النظام"}
+          </Button>
+        </form>
 
-          {/* Portals Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <Link href="/my/login">
-              <div className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white px-3 py-4 sm:py-5 text-center cursor-pointer transition-all hover:border-[#d39c2a] hover:bg-[#fff8ec] hover:shadow-md">
-                <span className="flex size-11 sm:size-12 items-center justify-center rounded-full bg-[#fec24e]/25 text-[#d39c2a] transition-colors group-hover:bg-[#d39c2a] group-hover:text-white">
-                  <UserRound className="size-5 sm:size-6" />
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-[#0f2050]">
-                  دخول المريض
-                </span>
-              </div>
-            </Link>
-            <Link href="/doctor-portal/login">
-              <div className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-[#e6edf5] bg-white px-3 py-4 sm:py-5 text-center cursor-pointer transition-all hover:border-[#1f3f82] hover:bg-[#eef2fb] hover:shadow-md">
-                <span className="flex size-11 sm:size-12 items-center justify-center rounded-full bg-[#1f3f82]/10 text-[#1f3f82] transition-colors group-hover:bg-[#1f3f82] group-hover:text-white">
-                  <Stethoscope className="size-5 sm:size-6" />
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-[#0f2050]">
-                  دخول الطبيب
-                </span>
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-[#e6edf5] flex flex-row items-center justify-between text-[11px] sm:text-xs text-slate-400 w-full">
-          <div
-            className={`flex items-center gap-1.5 font-bold ${isOnline ? "text-[#0f766e]" : "text-warning-text"}`}
-          >
-            {!isOnline && <WifiOff className="size-3.5" />}
-            {!isOnline ? `غير متصل (${offlineCacheSummary.count})` : null}
-          </div>
-          <p className="m-0 text-slate-400/80">
-            © {new Date().getFullYear()} مركز عيون الشروق
-          </p>
-        </footer>
-      </div>
+        <nav className="mt-8 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row" aria-label="بوابات المركز">
+          <Link href="/my/login" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted">
+            <UserRound className="size-4" aria-hidden />دخول المريض
+          </Link>
+          <Link href="/doctor-portal/login" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted">
+            <Stethoscope className="size-4" aria-hidden />دخول الطبيب
+          </Link>
+        </nav>
+      </main>
+      <footer className="border-t border-border px-4 py-4 text-center text-sm text-muted-foreground">
+        &copy; {new Date().getFullYear()} {BRAND_NAME_AR}
+      </footer>
     </div>
   );
 }

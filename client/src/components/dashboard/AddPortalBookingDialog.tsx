@@ -129,7 +129,7 @@ export function AddPortalBookingDialog({
         <div className="grid grid-cols-2 gap-3" dir="rtl">
           {/* Patient type */}
           <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground block text-right">
+          <label className="text-xs font-medium text-muted-foreground block text-start">
             نوع الزيارة
           </label>
           <div className="flex gap-2 flex-wrap">
@@ -139,7 +139,7 @@ export function AddPortalBookingDialog({
                 { value: "new", label: "مريض جديد" },
               ] as const
             ).map((opt) => (
-              <button
+              <Button variant="bare"
                 key={opt.value}
                 type="button"
                 onClick={() => {
@@ -157,19 +157,19 @@ export function AddPortalBookingDialog({
                 )}
               >
                 {opt.label}
-              </button>
+              </Button>
             ))}
           </div>
           </div>
 
           {/* Branch */}
           <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground block text-right">
+          <label className="text-xs font-medium text-muted-foreground block text-start">
             الفرع
           </label>
           <div className="flex gap-2">
             {BRANCHES.map((b) => (
-              <button
+              <Button variant="bare"
                 key={b.value}
                 type="button"
                 onClick={() => setBranch(b.value)}
@@ -181,7 +181,7 @@ export function AddPortalBookingDialog({
                 )}
               >
                 {b.label}
-              </button>
+              </Button>
             ))}
           </div>
           </div>
@@ -196,13 +196,13 @@ export function AddPortalBookingDialog({
             {/* Patient search / name, next to the date */}
             <div className="grid grid-cols-2 gap-3 items-start" dir="rtl">
             <div className="relative min-w-0 space-y-1.5" ref={searchRef}>
-              <label className="text-xs font-medium text-muted-foreground block text-right">
+              <label className="text-xs font-medium text-muted-foreground block text-start">
                 {patientType === "existing" ? "المريض" : "الاسم"}
               </label>
               {patientType === "existing" ? (
                 selectedPatient ? (
                   <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2.5">
-                    <button
+                    <Button variant="bare"
                       type="button"
                       onClick={() => {
                         setSelectedPatient(null);
@@ -212,8 +212,8 @@ export function AddPortalBookingDialog({
                       aria-label="إزالة المريض المختار"
                     >
                       <X className="h-3.5 w-3.5" />
-                    </button>
-                    <div className="text-right">
+                    </Button>
+                    <div className="text-start">
                       <p className="text-sm font-semibold">
                         {selectedPatient.name}
                       </p>
@@ -225,8 +225,8 @@ export function AddPortalBookingDialog({
                 ) : (
                   <>
                     <div className="relative">
-                      <Search className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                      <Input
+                      <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input aria-label="اسم المريض أو الكود أو الموبايل…"
                         value={search}
                         onChange={(e) => {
                           setSearch(e.target.value);
@@ -235,7 +235,7 @@ export function AddPortalBookingDialog({
                         onFocus={() => setShowDropdown(true)}
                         placeholder="اسم المريض أو الكود أو الموبايل…"
                         dir="rtl"
-                        className="h-10 rounded-xl pr-9 text-sm"
+                        className="h-10 rounded-xl ps-9 text-sm"
                       />
                     </div>
                     {showDropdown &&
@@ -243,10 +243,10 @@ export function AddPortalBookingDialog({
                       searchResults.length > 0 && (
                         <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
                           {(searchResults as any[]).map((p) => (
-                            <button
+                            <Button variant="bare"
                               key={p.id}
                               type="button"
-                              className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-muted/40"
+                              className="flex w-full items-center justify-between px-3 py-2.5 text-start transition-colors hover:bg-muted/40"
                               onClick={() => {
                                 setSelectedPatient({
                                   id: p.id,
@@ -263,14 +263,14 @@ export function AddPortalBookingDialog({
                               <span className="text-sm font-medium">
                                 {p.fullName}
                               </span>
-                            </button>
+                            </Button>
                           ))}
                         </div>
                       )}
                   </>
                 )
               ) : (
-                <Input
+                <Input aria-label="الاسم بالكامل…"
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
                   placeholder="الاسم بالكامل…"
@@ -281,7 +281,7 @@ export function AddPortalBookingDialog({
             </div>
 
             <div className="min-w-0 space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground block text-right">
+              <label className="text-xs font-medium text-muted-foreground block text-start">
                 التاريخ
               </label>
               <DateInput
@@ -296,10 +296,10 @@ export function AddPortalBookingDialog({
             {patientType !== "existing" ? (
               <div className="grid grid-cols-2 gap-3" dir="rtl">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground block text-right">
+                  <label className="text-xs font-medium text-muted-foreground block text-start">
                     الموبايل
                   </label>
-                  <Input
+                  <Input aria-label="01xxxxxxxxx"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder="01xxxxxxxxx"
@@ -308,10 +308,10 @@ export function AddPortalBookingDialog({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground block text-right">
+                  <label className="text-xs font-medium text-muted-foreground block text-start">
                     البريد الإلكتروني
                   </label>
-                  <Input
+                  <Input aria-label="name@example.com"
                     type="email"
                     value={guestEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
@@ -325,11 +325,11 @@ export function AddPortalBookingDialog({
 
             {/* Staff notes */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground block text-right">
+              <label className="text-xs font-medium text-muted-foreground block text-start">
                 ملاحظات{" "}
                 <span className="font-normal opacity-60">(اختياري)</span>
               </label>
-              <textarea
+              <textarea aria-label="ملاحظات للمريض…"
                 value={staffNotes}
                 onChange={(e) => setStaffNotes(e.target.value)}
                 rows={2}
@@ -342,12 +342,12 @@ export function AddPortalBookingDialog({
 
           {/* Left column: booking type */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground block text-right">
+            <label className="text-xs font-medium text-muted-foreground block text-start">
               الخدمة
             </label>
             <div className="grid grid-cols-2 gap-2 w-fit" dir="rtl">
               {STAFF_BOOKING_TYPES.map((t) => (
-                <button
+                <Button variant="bare"
                   key={t.value}
                   type="button"
                   onClick={() => setBookingType(t.value)}
@@ -359,7 +359,7 @@ export function AddPortalBookingDialog({
                   )}
                 >
                   {t.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -435,11 +435,11 @@ export function AddPortalBookingDialog({
             <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <Plus className="h-4 w-4 text-primary" />
             </div>
-            <div className="text-right">
+            <div className="text-start">
               <SheetTitle className="text-base font-bold">
                 إضافة حجز للمريض
               </SheetTitle>
-              <SheetDescription className="text-[11px]">
+              <SheetDescription className="text-[13px]">
                 ابحث عن المريض، حدد نوع الخدمة والتاريخ، ثم احفظ الحجز مباشرةً.
               </SheetDescription>
             </div>

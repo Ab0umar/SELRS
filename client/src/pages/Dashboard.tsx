@@ -1,4 +1,3 @@
-import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useMedicalFileLauncher } from "@/hooks/useMedicalFileLauncher";
@@ -42,12 +41,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { formatMoneyAr } from "../features/accounting/accountingFormat";
+import "@/styles/frontdesk-design.css";
+import { Input } from "@/components/ui/input";
 
 const LazyPortalBookings = lazy(
   () => import("@/features/admin/AdminPortalBookings"),
 );
 
-// ─── Lazy charts ────────────────────────────────────────────────────────────
 const ChartLoading = () => (
   <div className="h-[200px] animate-pulse rounded-lg bg-muted/40" />
 );
@@ -62,7 +62,6 @@ const DepartmentWorkloadChart = lazy(() =>
   })),
 );
 
-// ─── Tabs config ────────────────────────────────────────────────────────────
 type TabId =
   | "today"
   | "hub"
@@ -97,7 +96,7 @@ const TABS: Array<{
     id: "accounting",
     label: "الحسابات",
     icon: Wallet,
-    iconWrapCls: "bg-warning/20 text-warning",
+    iconWrapCls: "bg-warning/20 text-warning-text",
     permPath: "/accounting",
   },
   {
@@ -125,12 +124,11 @@ const TABS: Array<{
     id: "admin",
     label: "الإدارة",
     icon: Shield,
-    iconWrapCls: "bg-primary text-primary-foreground",
+    iconWrapCls: "bg-slate-900 text-white",
     permPath: "/admin-hub",
   },
 ];
 
-// ─── Shared helpers ──────────────────────────────────────────────────────────
 function useClock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -226,7 +224,27 @@ function PanelLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-// ─── Today panel ─────────────────────────────────────────────────────────────
+function DashboardQueryError({
+  message = "تعذر تحميل بيانات لوحة التحكم",
+  onRetry,
+}: {
+  message?: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-6 text-center"
+      role="alert"
+    >
+      <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden />
+      <p className="text-sm text-destructive">{message}</p>
+      <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+        إعادة المحاولة
+      </Button>
+    </div>
+  );
+}
+
 function ServiceBreakdown({ selectedDate }: { selectedDate: string }) {
   const { merged, isLoading } = useTodayQueuePatientsMerged(selectedDate);
 
@@ -321,6 +339,15 @@ function MedicalTotals() {
     loading ? "-" : (n ?? 0).toLocaleString("ar-EG");
   const t = q.data;
 
+  if (q.isError) {
+    return (
+      <DashboardQueryError
+        message="تعذر تحميل الإحصائيات الطبية"
+        onRetry={() => void q.refetch()}
+      />
+    );
+  }
+
   return (
     <div className="space-y-1">
       {[
@@ -375,7 +402,7 @@ function OffUsersTodayCard() {
   return (
     <div className="rounded-lg border border-border/70 bg-background">
       <SectionHeader title="إجازات اليوم">
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning/15 px-1.5 text-[11px] font-semibold text-warning tabular-nums">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning/15 px-1.5 text-xs font-semibold text-warning-text tabular-nums">
           {q.isLoading ? "…" : list.length}
         </span>
       </SectionHeader>
@@ -386,6 +413,11 @@ function OffUsersTodayCard() {
               <Skeleton key={i} className="h-5 rounded" />
             ))}
           </div>
+        ) : q.isError ? (
+          <DashboardQueryError
+            message="تعذر تحميل إجازات اليوم"
+            onRetry={() => void q.refetch()}
+          />
         ) : list.length === 0 ? (
           <p className="py-2 text-center text-sm text-muted-foreground">
             لا توجد إجازات اليوم
@@ -395,13 +427,13 @@ function OffUsersTodayCard() {
             {list.map((emp) => (
               <li key={emp.empCd} className="flex items-center gap-2 text-sm">
                 <UserX
-                  className="h-3.5 w-3.5 shrink-0 text-warning/70"
+                  className="h-3.5 w-3.5 shrink-0 text-warning-text/70"
                   aria-hidden
                 />
                 <span className="flex-1 truncate font-medium">
                   {emp.fullName}
                 </span>
-                <span className="shrink-0 text-[11px] text-muted-foreground">
+                <span className="shrink-0 text-xs text-muted-foreground">
                   {LEAVE_TYPE_AR[emp.type] ?? emp.type}
                   {!emp.approved && " (معلق)"}
                 </span>
@@ -434,8 +466,12 @@ function TodayPanel({
   onSelectedDateChange: (d: string) => void;
   openMedicalFileForPatient: (id: number) => void;
 }) {
-  const { merged, isLoading: queueLoading } =
-    useTodayQueuePatientsMerged(selectedDate);
+  const {
+    merged,
+    isLoading: queueLoading,
+    isError: queueError,
+    refetch: refetchQueue,
+  } = useTodayQueuePatientsMerged(selectedDate);
   const opsQuery = trpc.medical.getTodayOperationLists.useQuery(
     { date: selectedDate },
     { refetchOnWindowFocus: false },
@@ -455,11 +491,28 @@ function TodayPanel({
     );
   }
 
+  if (queueError || opsQuery.isError) {
+    return (
+      <DashboardQueryError
+        message="تعذر تحميل بيانات مرضى وعمليات اليوم"
+        onRetry={() => {
+          void refetchQueue();
+          void opsQuery.refetch();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Sub tabs configuration */}
-      <div className="flex border-b border-border/40 gap-4 mb-4">
-        <button
+      <div
+        className="mb-4 flex gap-4 border-b border-border/40"
+        role="tablist"
+        aria-label="أقسام لوحة اليوم"
+      >
+        <Button variant="bare"
+          id="dashboard-today-queue-tab"
+          type="button"
           onClick={() => setSubTab("queue")}
           className={cn(
             "px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-200 cursor-pointer",
@@ -467,10 +520,16 @@ function TodayPanel({
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground",
           )}
+          role="tab"
+          aria-selected={subTab === "queue"}
+          aria-controls="dashboard-today-queue-panel"
+          tabIndex={subTab === "queue" ? 0 : -1}
         >
           العمل اليومي والانتظار
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
+          id="dashboard-today-analytics-tab"
+          type="button"
           onClick={() => setSubTab("analytics")}
           className={cn(
             "px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-200 cursor-pointer",
@@ -478,14 +537,23 @@ function TodayPanel({
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground",
           )}
+          role="tab"
+          aria-selected={subTab === "analytics"}
+          aria-controls="dashboard-today-analytics-panel"
+          tabIndex={subTab === "analytics" ? 0 : -1}
         >
           التحليلات وإحصائيات اليوم
-        </button>
+        </Button>
       </div>
 
       {subTab === "queue" && (
-        <div className="space-y-4">
-          {/* Appointments list occupying full width */}
+        <div
+          id="dashboard-today-queue-panel"
+          className="space-y-4"
+          role="tabpanel"
+          aria-labelledby="dashboard-today-queue-tab"
+          tabIndex={0}
+        >
           <Surface className="w-full">
             <div className="p-3">
               <AppointmentsSection
@@ -499,8 +567,13 @@ function TodayPanel({
       )}
 
       {subTab === "analytics" && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
-          {/* Left: Charts */}
+        <div
+          id="dashboard-today-analytics-panel"
+          className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start"
+          role="tabpanel"
+          aria-labelledby="dashboard-today-analytics-tab"
+          tabIndex={0}
+        >
           <div className="space-y-5 lg:col-span-2">
             <Surface>
               <SectionHeader title="اتجاه المرضى" />
@@ -520,7 +593,6 @@ function TodayPanel({
             </Surface>
           </div>
 
-          {/* Right: Sidebar statistics */}
           <div className="space-y-4">
             <Surface className="overflow-hidden">
               <SectionHeader title="توزيع الخدمات" />
@@ -542,7 +614,6 @@ function TodayPanel({
   );
 }
 
-// ─── Patient Hub panel ───────────────────────────────────────────────────────
 type RecentPatient = {
   id: number;
   name: string;
@@ -578,7 +649,6 @@ function PatientHubPanel() {
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-      {/* Search + results */}
       <div className="lg:col-span-2 space-y-4">
         <div className="rounded-lg border border-border/50 bg-background">
           <SectionHeader title="البحث عن مريض">
@@ -587,15 +657,16 @@ function PatientHubPanel() {
           <div className="p-4">
             <div className="relative">
               <Search
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
                 aria-hidden
               />
-              <input
+              <Input bare
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="اسم المريض أو رقم الملف…"
-                className="w-full rounded-md border border-border bg-background py-2 pr-9 pl-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                placeholder="اسم المريض أو رقم الملف..."
+                aria-label="البحث عن مريض بالاسم أو رقم الملف"
+                className="w-full rounded-md border border-border bg-background py-2 ps-9 pe-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 dir="rtl"
               />
             </div>
@@ -609,27 +680,37 @@ function PatientHubPanel() {
                     ))}
                   </div>
                 )}
-                {searchQuery.data && searchQuery.data.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    لا نتائج لـ «{debouncedQuery}»
-                  </p>
+                {searchQuery.isError && (
+                  <DashboardQueryError
+                    message="تعذر البحث عن المريض"
+                    onRetry={() => void searchQuery.refetch()}
+                  />
                 )}
-                {searchQuery.data && searchQuery.data.length > 0 && (
-                  <div className="divide-y divide-border/40">
-                    {searchQuery.data.map((p) => (
-                      <Link
-                        key={p.id}
-                        href={`/patients/${p.id}`}
-                        className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors"
-                      >
-                        <span className="font-medium">{p.fullName}</span>
-                        <span className="text-sm text-muted-foreground tabular-nums">
-                          {p.patientCode ?? "-"}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
+                {!searchQuery.isError &&
+                  searchQuery.data &&
+                  searchQuery.data.length === 0 && (
+                    <p className="py-4 text-center text-sm text-muted-foreground">
+                      لا نتائج لـ «{debouncedQuery}»
+                    </p>
+                  )}
+                {!searchQuery.isError &&
+                  searchQuery.data &&
+                  searchQuery.data.length > 0 && (
+                    <div className="divide-y divide-border/40">
+                      {searchQuery.data.slice(0, 8).map((p) => (
+                        <Link
+                          key={p.id}
+                          href={`/patients/${p.id}`}
+                          className="flex items-center justify-between py-2.5 text-sm hover:text-primary transition-colors"
+                        >
+                          <span className="font-medium">{p.fullName}</span>
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            {p.patientCode ?? "-"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
               </div>
             )}
 
@@ -664,7 +745,6 @@ function PatientHubPanel() {
         </div>
       </div>
 
-      {/* Totals */}
       <div className="rounded-lg border border-border/50 bg-background">
         <SectionHeader title="إحصائيات المرضى">
           <PanelLink href="/patients" label="التفاصيل" />
@@ -674,6 +754,11 @@ function PatientHubPanel() {
             Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-7 rounded" />
             ))
+          ) : totalsQuery.isError ? (
+            <DashboardQueryError
+              message="تعذر تحميل إحصائيات المرضى"
+              onRetry={() => void totalsQuery.refetch()}
+            />
           ) : (
             <>
               <StatRow
@@ -709,7 +794,6 @@ function PatientHubPanel() {
   );
 }
 
-// ─── Accounting panel ────────────────────────────────────────────────────────
 function AccountingPanel() {
   const today = getLocalDateIso();
   const q = trpc.accounting.dashboardSummary.useQuery({ date: today });
@@ -728,6 +812,11 @@ function AccountingPanel() {
             Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-7 rounded" />
             ))
+          ) : q.isError ? (
+            <DashboardQueryError
+              message="تعذر تحميل ملخص الحسابات"
+              onRetry={() => void q.refetch()}
+            />
           ) : (
             <>
               <StatRow
@@ -764,7 +853,6 @@ function AccountingPanel() {
         </div>
       </div>
 
-      {/* Quick links */}
       <div className="rounded-lg border border-border/50 bg-background">
         <SectionHeader title="روابط سريعة" />
         <div className="divide-y divide-border/40 px-4">
@@ -793,7 +881,6 @@ function AccountingPanel() {
   );
 }
 
-// ─── Attendance panel ────────────────────────────────────────────────────────
 function AttendancePanel() {
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
@@ -845,7 +932,7 @@ function AttendancePanel() {
       value: d?.absentToday ?? 0,
       cls: "text-destructive",
     },
-    { label: "متأخر اليوم", value: d?.lateToday ?? 0, cls: "text-warning" },
+    { label: "متأخر اليوم", value: d?.lateToday ?? 0, cls: "text-warning-text" },
     { label: "داخل الآن", value: d?.insideNow ?? 0, cls: "text-primary" },
     {
       label: "لم يسجل الخروج أمس",
@@ -856,27 +943,33 @@ function AttendancePanel() {
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-      {/* Stats */}
       <div className="rounded-lg border border-border/50 bg-background">
         <SectionHeader title="ملخص الحضور">
           <PanelLink href="/attendance" label="الحضور" />
         </SectionHeader>
         <div className="px-4 py-3 space-y-1">
-          {q.isLoading
-            ? Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-7 rounded" />
-              ))
-            : stats.map((s) => (
-                <StatRow
-                  key={s.label}
-                  label={s.label}
-                  value={
-                    <span className={cn("text-lg font-bold", s.cls)}>
-                      {s.value}
-                    </span>
-                  }
-                />
-              ))}
+          {q.isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-7 rounded" />
+            ))
+          ) : q.isError ? (
+            <DashboardQueryError
+              message="تعذر تحميل ملخص الحضور"
+              onRetry={() => void q.refetch()}
+            />
+          ) : (
+            stats.map((s) => (
+              <StatRow
+                key={s.label}
+                label={s.label}
+                value={
+                  <span className={cn("text-lg font-bold", s.cls)}>
+                    {s.value}
+                  </span>
+                }
+              />
+            ))
+          )}
         </div>
         {!q.isLoading && d?.lastSync && (
           <div className="border-t border-border/40 px-4 py-2.5 text-sm text-muted-foreground">
@@ -891,7 +984,7 @@ function AttendancePanel() {
                     : d.lastSync.status}
             </span>
             {d.lastSync.finishedAt && (
-              <span className="mr-2">
+              <span className="ms-2">
                 ،{" "}
                 {new Date(d.lastSync.finishedAt).toLocaleTimeString("ar-EG", {
                   hour: "2-digit",
@@ -928,7 +1021,6 @@ function AttendancePanel() {
         </div>
       </div>
 
-      {/* Quick links */}
       <div className="rounded-lg border border-border/50 bg-background">
         <SectionHeader title="روابط سريعة" />
         <div className="divide-y divide-border/40 px-4">
@@ -956,7 +1048,6 @@ function AttendancePanel() {
   );
 }
 
-// ─── Stockroom panel ─────────────────────────────────────────────────────────
 const STOCK_CATEGORIES = [
   { key: "قطرات العين", label: "قطرات العين", icon: Eye },
   { key: "غرفة العمليات", label: "غرفة العمليات", icon: Syringe },
@@ -967,6 +1058,15 @@ const STOCK_CATEGORIES = [
 function StockroomPanel() {
   const q = trpc.stockroom.getReports.useQuery({});
   const inventory = q.data?.inventory ?? [];
+
+  if (q.isError) {
+    return (
+      <DashboardQueryError
+        message="تعذر تحميل بيانات المخزن"
+        onRetry={() => void q.refetch()}
+      />
+    );
+  }
 
   const getCategoryStats = (key: string) => {
     const items = inventory.filter((i: any) => i.category === key);
@@ -983,23 +1083,21 @@ function StockroomPanel() {
 
   return (
     <div className="space-y-4">
-      {/* Alert banner */}
       {!q.isLoading && totalAlerts > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5">
           <AlertTriangle
-            className="h-4 w-4 shrink-0 text-warning"
+            className="h-4 w-4 shrink-0 text-warning-text"
             aria-hidden
           />
-          <p className="text-sm text-warning font-medium">
+          <p className="text-sm text-warning-text font-medium">
             {totalAlerts} صنف يحتاج إعادة تعبئة
           </p>
-          <div className="mr-auto">
+          <div className="ms-auto">
             <PanelLink href="/stockroom" label="المخزن" />
           </div>
         </div>
       )}
 
-      {/* Category grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {STOCK_CATEGORIES.map(({ key, label, icon: Icon }) => {
           const stats = getCategoryStats(key);
@@ -1025,7 +1123,7 @@ function StockroomPanel() {
                     <StatRow
                       label="كمية قليلة"
                       value={stats.low}
-                      valueClass={stats.low > 0 ? "text-warning" : ""}
+                      valueClass={stats.low > 0 ? "text-warning-text" : ""}
                     />
                     <StatRow
                       label="نفذ المخزون"
@@ -1043,7 +1141,6 @@ function StockroomPanel() {
   );
 }
 
-// ─── Admin panel ─────────────────────────────────────────────────────────────
 const ADMIN_GROUPS = [
   {
     title: "الأفراد والصلاحيات",
@@ -1130,7 +1227,6 @@ function AdminPanel() {
 
   return (
     <div className="space-y-12 pb-12 animate-in fade-in duration-500">
-
       {/* ── Top Nav Chips (Flattened) ── */}
       <nav className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 print:hidden scrollbar-none">
         {navItems.map((item) => {
@@ -1139,7 +1235,7 @@ function AdminPanel() {
             <Link
               key={item.href}
               href={item.href}
-              className="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             >
               <Icon className="h-4 w-4" aria-hidden />
               <span>{item.label}</span>
@@ -1150,38 +1246,49 @@ function AdminPanel() {
 
       {/* ── Main Layout: Hero vs Links ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
-
-        {/* Left Side (Hero & Stats) */}
         <div className="xl:col-span-4 flex flex-col space-y-6">
-          <div className="border-b border-border/60 pb-4">
-            <h2 className="flex items-center gap-2.5 text-2xl font-black text-foreground">
-              <Shield className="h-6 w-6 text-foreground" />
+          <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+            <h2 className="flex items-center gap-2.5 text-2xl font-black text-slate-900 dark:text-white">
+              <Shield className="h-6 w-6 text-slate-900 dark:text-white" />
               لوحة التحكم الإدارية
             </h2>
-            <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-              مسارات المستخدمين، الصلاحيات، تعريفات المركز، وحالة النظام في مكان واحد بنفس إيقاع صفحات التشغيل.
+            <p className="mt-3 text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+              مسارات المستخدمين، الصلاحيات، تعريفات المركز، وحالة النظام في مكان
+              واحد بنفس إيقاع صفحات التشغيل.
             </p>
           </div>
 
           <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between py-2 text-base">
-              <span className="text-muted-foreground font-semibold">مجموعات الإدارة</span>
-              <span className="font-bold text-foreground tabular-nums">{ADMIN_GROUPS.length}</span>
+              <span className="text-slate-600 dark:text-slate-400 font-semibold">
+                مجموعات الإدارة
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                {ADMIN_GROUPS.length}
+              </span>
             </div>
             <div className="flex items-center justify-between py-2 text-base">
-              <span className="text-muted-foreground font-semibold">مسارات مباشرة</span>
-              <span className="font-bold text-primary tabular-nums">{navItems.length}</span>
+              <span className="text-slate-600 dark:text-slate-400 font-semibold">
+                مسارات مباشرة
+              </span>
+              <span className="font-bold text-primary tabular-nums">
+                {navItems.length}
+              </span>
             </div>
             <div className="flex items-center justify-between py-2 text-base">
-              <span className="text-muted-foreground font-semibold">حالة الوصول</span>
-              <span className="font-bold text-primary">مفعل</span>
+              <span className="text-slate-600 dark:text-slate-400 font-semibold">
+                حالة الوصول
+              </span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                مفعل
+              </span>
             </div>
           </div>
 
           <div className="pt-4">
             <Link
               href="/admin-hub"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-base font-bold transition-transform hover:bg-primary/90"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-base font-bold transition-transform hover:bg-slate-800 dark:hover:bg-slate-200"
             >
               فتح مركز الإدارة الكامل
               <ChevronLeft className="h-5 w-5" aria-hidden />
@@ -1195,15 +1302,15 @@ function AdminPanel() {
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href} className="group block">
-                <div className="flex items-start gap-4 p-4 -m-4 rounded-2xl transition-colors hover:bg-muted/50">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                <div className="flex items-start gap-4 p-4 -m-4 rounded-2xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors group-hover:bg-primary/10 group-hover:text-primary dark:group-hover:bg-primary/20">
                     <Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <div className="pt-1">
-                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
                       {item.label}
                     </h3>
-                    <p className="mt-1 text-sm text-muted-foreground leading-snug">
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-snug">
                       {item.description}
                     </p>
                   </div>
@@ -1217,13 +1324,12 @@ function AdminPanel() {
   );
 }
 
-// ─── Tab strip badge ──────────────────────────────────────────────────────────
 function TabBadge({ count, cls }: { count: number; cls: string }) {
   if (count === 0) return null;
   return (
     <span
       className={cn(
-        "ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.8125rem] font-medium leading-none",
+        "me-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.8125rem] font-medium leading-none",
         cls,
       )}
     >
@@ -1271,7 +1377,7 @@ function WorkspaceButton({
 }) {
   const Icon = tab.icon;
   return (
-    <button
+    <Button variant="bare"
       type="button"
       onClick={onClick}
       className={cn(
@@ -1297,11 +1403,10 @@ function WorkspaceButton({
         </span>
       </span>
       <span className="hidden xl:inline">{badge}</span>
-    </button>
+    </Button>
   );
 }
 
-// ─── Main Dashboard ──────────────────────────────────────────────────────────
 export default function Dashboard() {
   const {
     medicalFilePortal,
@@ -1342,8 +1447,7 @@ export default function Dashboard() {
   });
 
   // Lightweight badge data loaded on mount.
-  const queue = useTodayQueuePatientsMerged(selectedDate);
-  const { merged } = queue;
+  const { merged } = useTodayQueuePatientsMerged(selectedDate);
   const attQ = trpc.attendance.dashboardSummary.useQuery(undefined, {
     refetchInterval: 60_000,
   });
@@ -1372,7 +1476,7 @@ export default function Dashboard() {
       ) : null,
     attendance:
       attBadge > 0 ? (
-        <TabBadge count={attBadge} cls="bg-warning/20 text-warning" />
+        <TabBadge count={attBadge} cls="bg-warning/20 text-warning-text" />
       ) : null,
     stockroom:
       stockBadge > 0 ? (
@@ -1404,11 +1508,11 @@ export default function Dashboard() {
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground p-4 sm:p-6"
+      className="dashboard-workspace min-h-screen bg-background text-foreground p-4 sm:p-6"
       dir="rtl"
     >
       <div className="w-full space-y-6">
-        <QueueLoadStatus {...queue} />
+        <h1 className="frontdesk-page-title">لوحة التحكم</h1>
         {medicalFilePortal}
         <OperationsBookingQuickDialog
           open={bookingOpen}
@@ -1418,7 +1522,6 @@ export default function Dashboard() {
           }}
         />
 
-        {/* Quick Actions Bar */}
         <div className="bg-card border border-border/60 rounded-3xl px-4 py-3 shadow-sm">
           <QuickActions
             onOpenMeasurementsMedicalFile={openMedicalFilePicker}
@@ -1463,7 +1566,7 @@ export default function Dashboard() {
                     />
                     <span className="hidden sm:inline">
                       {syncMssqlMutation.isPending
-                        ? "جارِ المزامنة…"
+                        ? "جارِ المزامنة..."
                         : "مزامنة MSSQL"}
                     </span>
                   </Button>
@@ -1473,7 +1576,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Workspace navigation */}
         <div className="flex flex-col gap-6">
           <div
             className="flex w-full items-center gap-2 overflow-x-auto rounded-3xl border border-border/60 bg-card p-3 shadow-sm scrollbar-none"
@@ -1484,17 +1586,33 @@ export default function Dashboard() {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
-                <button
+                <Button variant="bare"
                   key={tab.id}
+                  id={`dashboard-tab-${tab.id}`}
                   type="button"
                   onClick={() => selectTab(tab.id)}
+                  onKeyDown={(event) => {
+                    const index = visibleTabs.findIndex((item) => item.id === tab.id);
+                    const nextIndex = event.key === "Home" ? 0
+                      : event.key === "End" ? visibleTabs.length - 1
+                        : event.key === "ArrowLeft" ? (index + 1) % visibleTabs.length
+                          : event.key === "ArrowRight" ? (index - 1 + visibleTabs.length) % visibleTabs.length
+                            : null;
+                    if (nextIndex === null) return;
+                    event.preventDefault();
+                    const nextTab = visibleTabs[nextIndex];
+                    selectTab(nextTab.id);
+                    document.getElementById(`dashboard-tab-${nextTab.id}`)?.focus();
+                  }}
                   className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition-all sm:px-4",
+                    "flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition-colors sm:px-4",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-md"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                   )}
                   aria-selected={isActive}
+                  aria-controls={`dashboard-panel-${tab.id}`}
+                  tabIndex={isActive ? 0 : -1}
                   role="tab"
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -1502,28 +1620,28 @@ export default function Dashboard() {
                   {badges[tab.id] && (
                     <span className="shrink-0">{badges[tab.id]}</span>
                   )}
-                </button>
+                </Button>
               );
             })}
           </div>
 
-          {/* Main Content Floating Bento Container */}
-          <main className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
-            {/* Active workspace title bar */}
+          <main
+            id={`dashboard-panel-${activeTab}`}
+            className="flex-1 w-full min-w-0 bg-card border border-border/60 rounded-xl p-4 sm:p-6"
+            role="tabpanel"
+            aria-labelledby={`dashboard-tab-${activeTab}`}
+            tabIndex={0}
+          >
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/40">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <ActiveTabIcon className="h-4 w-4" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold text-muted-foreground">
-                  المساحة الحالية
-                </p>
                 <h2 className="truncate text-sm font-black text-foreground">
                   {activeTabMeta.label}
                 </h2>
               </div>
 
-              {/* Quick nav links */}
               <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto scrollbar-none">
                 {[
                   {
@@ -1538,7 +1656,7 @@ export default function Dashboard() {
                   <Link
                     key={href}
                     href={href}
-                    className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-xl border border-border/50 bg-background px-2.5 text-[10px] font-bold text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                    className="inline-flex h-9 shrink-0 items-center bg-background text-xs font-bold text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary gap-1.5 rounded-xl border border-border/50 px-2.5"
                   >
                     <NavIcon className="h-3 w-3" aria-hidden />
                     {label}
@@ -1546,13 +1664,12 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary/15 px-2.5 text-[10px] font-bold text-primary tabular-nums shrink-0">
+              <span className="inline-flex h-9 items-center bg-secondary/15 text-xs font-bold text-primary tabular-nums shrink-0 gap-1.5 rounded-full px-2.5">
                 <Clock className="h-3 w-3" aria-hidden />
                 {timeStr}
               </span>
             </div>
 
-            {/* Tab content */}
             <div>
               {activeTab === "today" && (
                 <TodayPanel

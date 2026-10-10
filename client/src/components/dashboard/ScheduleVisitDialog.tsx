@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -135,13 +136,13 @@ export function ScheduleVisitDialog({
         <DialogHeader className="p-4 border-b bg-muted/20">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <span className="text-primary font-bold">📅</span>
+              <CalendarDays className="size-4 text-primary" aria-hidden />
             </div>
-            <div className="text-right">
+            <div className="text-start">
               <DialogTitle className="text-lg font-bold">
                 تحديد موعد / كشف
               </DialogTitle>
-              <DialogDescription className="text-[11px]">
+              <DialogDescription className="text-[13px]">
                 أدخل بيانات المريض والخدمة المطلوبة لإدراجها في جدول المواعيد
               </DialogDescription>
             </div>
@@ -154,7 +155,7 @@ export function ScheduleVisitDialog({
             <div className="space-y-4">
               {/* Patient Type */}
               <div className="space-y-1.5">
-                <Label className="font-semibold text-[11px] block text-muted-foreground">
+                <Label className="font-semibold text-[13px] block text-muted-foreground">
                   نوع الزيارة
                 </Label>
                 <div className="flex gap-2 flex-wrap">
@@ -164,7 +165,7 @@ export function ScheduleVisitDialog({
                       { value: "new", label: "مريض جديد" },
                     ] as const
                   ).map((opt) => (
-                    <button
+                    <Button variant="bare"
                       key={opt.value}
                       type="button"
                       onClick={() => setPatientType(opt.value)}
@@ -176,17 +177,17 @@ export function ScheduleVisitDialog({
                       ].join(" ")}
                     >
                       {opt.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                  <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                     الاسم بالكامل
                   </Label>
-                  <Input
+                  <Input aria-label="اسم المريض الرباعي…"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="h-9 text-sm font-medium"
@@ -194,20 +195,20 @@ export function ScheduleVisitDialog({
                   />
                 </div>
                 <div>
-                  <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                  <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                     رقم الموبايل
                   </Label>
-                  <Input
+                  <Input aria-label="01xxxxxxxxx"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="h-9 text-sm font-medium tracking-wider"
+                    className="h-9 text-sm font-medium"
                     placeholder="01xxxxxxxxx"
                     dir="ltr"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       السن
                     </Label>
                     <Input
@@ -220,7 +221,7 @@ export function ScheduleVisitDialog({
                     />
                   </div>
                   <div>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       الكود
                     </Label>
                     <Input
@@ -236,7 +237,7 @@ export function ScheduleVisitDialog({
             {/* Left Column: Visit Details */}
             <div className="bg-primary/[0.03] p-4 rounded-xl border border-primary/10 space-y-4">
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">
+                <Label className="font-bold text-[13px] text-primary">
                   الخدمة المطلوبة
                 </Label>
                 <Select value={service} onValueChange={setService}>
@@ -254,7 +255,7 @@ export function ScheduleVisitDialog({
               </div>
 
               <div className="space-y-1">
-                <Label className="font-bold text-[11px] text-primary">
+                <Label className="font-bold text-[13px] text-primary">
                   تاريخ الزيارة
                 </Label>
                 <DateInput
@@ -276,7 +277,7 @@ export function ScheduleVisitDialog({
                   />
                   <Label
                     htmlFor="move-to-checkin"
-                    className="text-[11px] font-medium cursor-pointer text-primary"
+                    className="text-[13px] font-medium cursor-pointer text-primary"
                   >
                     نقل إلى التسجيل
                   </Label>
@@ -292,7 +293,7 @@ export function ScheduleVisitDialog({
                   />
                   <Label
                     htmlFor="cancel-previous"
-                    className="text-[11px] font-medium cursor-pointer text-primary"
+                    className="text-[13px] font-medium cursor-pointer text-primary"
                   >
                     إلغاء الموعد السابق
                   </Label>
@@ -300,7 +301,7 @@ export function ScheduleVisitDialog({
               </div>
 
               <div className="pt-2">
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                <p className="text-[13px] text-muted-foreground leading-relaxed">
                   * سيتم إضافة المريض إلى قائمة الانتظار في التاريخ المحدد.
                 </p>
               </div>

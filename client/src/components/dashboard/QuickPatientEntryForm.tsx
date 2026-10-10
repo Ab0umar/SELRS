@@ -143,7 +143,7 @@ export function QuickPatientEntryForm({
             <DateInput
               value={visitDate}
               onChange={(e) => setVisitDate(e.target.value)}
-              className="text-right"
+              className="text-start"
             />
           </div>
         </CardContent>
@@ -157,7 +157,7 @@ export function QuickPatientEntryForm({
           <CardContent className="space-y-3">
             <div>
               <Label>UCVA</Label>
-              <Input
+              <Input aria-label="6/6"
                 value={ucvaOD}
                 onChange={(e) => setUcvaOD(e.target.value)}
                 placeholder="6/6"
@@ -165,7 +165,7 @@ export function QuickPatientEntryForm({
             </div>
             <div>
               <Label>BCVA</Label>
-              <Input
+              <Input aria-label="6/6"
                 value={bcvaOD}
                 onChange={(e) => setBcvaOD(e.target.value)}
                 placeholder="6/6"
@@ -220,7 +220,7 @@ export function QuickPatientEntryForm({
           <CardContent className="space-y-3">
             <div>
               <Label>UCVA</Label>
-              <Input
+              <Input aria-label="6/6"
                 value={ucvaOS}
                 onChange={(e) => setUcvaOS(e.target.value)}
                 placeholder="6/6"
@@ -228,7 +228,7 @@ export function QuickPatientEntryForm({
             </div>
             <div>
               <Label>BCVA</Label>
-              <Input
+              <Input aria-label="6/6"
                 value={bcvaOS}
                 onChange={(e) => setBcvaOS(e.target.value)}
                 placeholder="6/6"
@@ -284,7 +284,7 @@ export function QuickPatientEntryForm({
         <CardContent className="space-y-4">
           <div>
             <Label>الروشتة</Label>
-            <Input
+            <Input aria-label="الروشتة"
               value={prescription}
               onChange={(e) => setPrescription(e.target.value)}
               placeholder="الروشتة"
@@ -292,7 +292,7 @@ export function QuickPatientEntryForm({
           </div>
           <div>
             <Label>التشخيص</Label>
-            <Input
+            <Input aria-label="التشخيص"
               value={diagnosis}
               onChange={(e) => setDiagnosis(e.target.value)}
               placeholder="التشخيص"

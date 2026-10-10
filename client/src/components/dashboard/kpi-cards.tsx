@@ -112,7 +112,7 @@ export function KpiCards({ selectedDate }: { selectedDate: string }) {
               {item.loading ? (
                 <Skeleton className="h-7 w-16" />
               ) : (
-                <div className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums">
+                <div className="text-xl sm:text-2xl font-bold tabular-nums">
                   {item.value}
                 </div>
               )}

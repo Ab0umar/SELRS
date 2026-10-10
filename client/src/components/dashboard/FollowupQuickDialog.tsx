@@ -102,9 +102,9 @@ export function FollowupQuickDialog({
         className="max-h-[92dvh] w-full gap-0 overflow-hidden p-0"
         dir="rtl"
       >
-        <SheetHeader className="shrink-0 border-b px-5 py-4 text-right">
-          <SheetTitle className="text-right">إضافة متابعة للطابور</SheetTitle>
-          <SheetDescription className="text-right text-muted-foreground">
+        <SheetHeader className="shrink-0 border-b px-5 py-4 text-start">
+          <SheetTitle className="text-start">إضافة متابعة للطابور</SheetTitle>
+          <SheetDescription className="text-start text-muted-foreground">
             ابحث عن المريض واختر التاريخ ثم أضفه للطابور
           </SheetDescription>
         </SheetHeader>

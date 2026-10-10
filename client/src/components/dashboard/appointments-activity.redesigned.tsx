@@ -437,7 +437,7 @@ export function AppointmentsSection({
       </div>
 
       <div className="flex gap-1.5 bg-muted p-1 rounded-2xl w-fit mb-2">
-        <button
+        <Button variant="bare"
           type="button"
           className={cn(
             "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
@@ -449,8 +449,8 @@ export function AppointmentsSection({
         >
           <Users className="h-4 w-4" />
           مرضى اليوم
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
           type="button"
           className={cn(
             "px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
@@ -462,8 +462,8 @@ export function AppointmentsSection({
         >
           <Syringe className="h-4 w-4" />
           العمليات
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
           type="button"
           className={cn(
             "relative px-4 py-1.5 text-xs font-black rounded-xl transition-all duration-150 cursor-pointer flex items-center gap-2",
@@ -477,12 +477,12 @@ export function AppointmentsSection({
           حجز
           {bookingsForDate.length + (scheduleRequestsQuery.data?.length ?? 0) >
             0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-primary-foreground font-mono shadow-sm">
+            <span className="absolute -top-1.5 -start-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[13px] font-bold text-primary-foreground font-mono shadow-sm">
               {bookingsForDate.length +
                 (scheduleRequestsQuery.data?.length ?? 0)}
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
       {mainTab === "patients" ? (
@@ -493,7 +493,7 @@ export function AppointmentsSection({
                 const n = (counts as Record<string, number>)[value] ?? 0;
                 const active = queueFilter === value;
                 return (
-                  <button
+                  <Button variant="bare"
                     key={value}
                     type="button"
                     onClick={() => setQueueFilter(value)}
@@ -505,10 +505,10 @@ export function AppointmentsSection({
                     )}
                   >
                     {label}{" "}
-                    <span className="font-mono opacity-80 text-[10px] font-semibold">
+                    <span className="font-mono opacity-80 text-[13px] font-semibold">
                       ({n.toLocaleString("ar-EG")})
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -606,7 +606,7 @@ export function AppointmentsSection({
             <div className="space-y-5">
               {(scheduleRequestsQuery.data?.length ?? 0) > 0 && (
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
                     مواعيد الاستقبال ({scheduleRequestsQuery.data?.length ?? 0})
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -618,7 +618,7 @@ export function AppointmentsSection({
               )}
               {bookingsForDate.length > 0 && (
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
                     حجوزات البوابة ({bookingsForDate.length})
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -637,7 +637,7 @@ export function AppointmentsSection({
 }
 
 const BOOKING_STATUS_STYLE: Record<string, string> = {
-  pending: "border-warning/30 bg-warning/5 text-warning",
+  pending: "border-warning/30 bg-warning/5 text-warning-text",
   confirmed: "border-primary/30 bg-primary/5 text-primary",
   cancelled: "border-destructive/30 bg-destructive/5 text-destructive",
   completed: "border-border bg-muted/30 text-muted-foreground",
@@ -674,7 +674,7 @@ function ScheduleRequestCard({ r }: { r: any }) {
           {r.phone ? ` · ${r.phone}` : ""}
         </p>
       </div>
-      <button
+      <Button variant="bare"
         type="button"
         disabled={remove.isPending}
         onClick={() => remove.mutate({ requestId: r.id })}
@@ -682,7 +682,7 @@ function ScheduleRequestCard({ r }: { r: any }) {
         aria-label="حذف الموعد"
       >
         <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -719,7 +719,7 @@ function BookingCard({ booking }: { booking: any }) {
         <div className="flex items-center gap-1.5 shrink-0">
           <span
             className={cn(
-              "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+              "rounded-full border px-2 py-0.5 text-[13px] font-medium",
               stStyle,
             )}
           >
@@ -727,7 +727,7 @@ function BookingCard({ booking }: { booking: any }) {
           </span>
           {booking.patientId ? (
             <>
-              <button
+              <Button variant="bare"
                 type="button"
                 title="طباعة روشتة"
                 onClick={() =>
@@ -740,8 +740,8 @@ function BookingCard({ booking }: { booking: any }) {
                 aria-label="طباعة روشتة"
               >
                 <Pill className="h-3.5 w-3.5" />
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 type="button"
                 title="طباعة طلب تحاليل"
                 onClick={() =>
@@ -754,10 +754,10 @@ function BookingCard({ booking }: { booking: any }) {
                 aria-label="طباعة طلب تحاليل"
               >
                 <FlaskConical className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </>
           ) : null}
-          <button
+          <Button variant="bare"
             type="button"
             disabled={del.isPending}
             onClick={() => del.mutate({ id: booking.id })}
@@ -765,7 +765,7 @@ function BookingCard({ booking }: { booking: any }) {
             aria-label="حذف الحجز"
           >
             <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         </div>
       </div>
       {booking.staffNotes ? (
@@ -814,7 +814,7 @@ function BookingsAndQueueView({
     <div className="space-y-5">
       {/* Schedule requests from حجز موعد/كشف */}
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
           مواعيد الاستقبال ({scheduleRequests.length})
         </p>
         {scheduleRequests.length === 0 ? (
@@ -832,7 +832,7 @@ function BookingsAndQueueView({
 
       {/* Portal bookings */}
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
           حجوزات البوابة ({bookingsForDate.length})
         </p>
         {bookingsForDate.length === 0 ? (
@@ -850,7 +850,7 @@ function BookingsAndQueueView({
 
       {/* Queue patients */}
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
           مرضى الطابور ({queuePatients.length})
         </p>
         {queuePatients.length === 0 ? (
@@ -933,7 +933,7 @@ function QueuePatientCard({
               <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
             ) : null}
             {(patient as any).visitType === "followup" ? (
-              <Badge className="max-w-full truncate text-[10px] bg-info/15 text-info border-info/20">
+              <Badge className="max-w-full truncate text-[13px] bg-info/15 text-info border-info/20">
                 متابعة
               </Badge>
             ) : null}
@@ -946,7 +946,7 @@ function QueuePatientCard({
               {queueStatusLabelsAr[st] ?? st}
             </Badge>
             {["clinic1", "clinic2", "pentacam"].includes(st) ? (
-              <Badge variant="outline" className="max-w-full text-[10px]">
+              <Badge variant="outline" className="max-w-full text-[13px]">
                 {st === "clinic1"
                   ? "عيادة 1"
                   : st === "clinic2"
@@ -958,11 +958,11 @@ function QueuePatientCard({
         </div>
         <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 border-t border-border/50 pt-2 text-sm">
           <span className="text-muted-foreground">الطبيب</span>
-          <span className="text-right text-foreground break-words">
+          <span className="text-start text-foreground break-words">
             {doctorText}
           </span>
           <span className="text-muted-foreground">نوع الخدمة</span>
-          <span className="text-right">
+          <span className="text-start">
             <Badge
               variant="outline"
               className={cn(
@@ -974,7 +974,7 @@ function QueuePatientCard({
             </Badge>
           </span>
           <span className="text-muted-foreground">الوقت</span>
-          <span className="text-right text-foreground tabular-nums">
+          <span className="text-start text-foreground tabular-nums">
             {timeText}
           </span>
         </div>
@@ -1065,7 +1065,7 @@ function QueuePatientCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
+            <Button variant="bare"
               type="button"
               title="طباعة روشتة"
               aria-label="طباعة روشتة"
@@ -1079,8 +1079,8 @@ function QueuePatientCard({
               }}
             >
               <Pill className="h-4 w-4" aria-hidden />
-            </button>
-            <button
+            </Button>
+            <Button variant="bare"
               type="button"
               title="طباعة طلب تحاليل"
               aria-label="طباعة طلب تحاليل"
@@ -1094,7 +1094,7 @@ function QueuePatientCard({
               }}
             >
               <FlaskConical className="h-4 w-4" aria-hidden />
-            </button>
+            </Button>
             {canMarkTreated ? (
               <Button
                 type="button"
@@ -1205,7 +1205,7 @@ function TodayOperationListItemCard({
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2 text-sm">
         {row.item.payment ? (
-          <Badge className="bg-warning/10 text-[0.8125rem] text-warning">
+          <Badge className="bg-warning/10 text-[0.8125rem] text-warning-text">
             {row.item.payment}
           </Badge>
         ) : (

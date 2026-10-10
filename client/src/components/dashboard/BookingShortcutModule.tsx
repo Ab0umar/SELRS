@@ -66,12 +66,12 @@ export function BookingShortcutModule({
         </Button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
         <table className={reportStyles.gridTable}>
           <thead>
             <tr>
-              <th className="font-bold text-[11px] py-1 px-2">الطبيب</th>
-              <th className="font-bold text-center w-16 text-[11px] py-1 px-2">
+              <th className="font-bold text-[13px] py-1 px-2">الطبيب</th>
+              <th className="font-bold text-center w-16 text-[13px] py-1 px-2">
                 العدد
               </th>
             </tr>
@@ -92,7 +92,7 @@ export function BookingShortcutModule({
               <tr>
                 <td
                   colSpan={2}
-                  className="text-center py-4 text-muted-foreground text-[10px] italic"
+                  className="text-center py-4 text-muted-foreground text-[13px] italic"
                 >
                   لا توجد حجوزات ويب مسجلة
                 </td>
@@ -116,8 +116,8 @@ export function BookingShortcutModule({
           {grouped.length > 0 && (
             <tfoot>
               <tr className={reportStyles.grandTotalRow}>
-                <td className="font-bold text-[11px] py-1 px-2">الإجمالي</td>
-                <td className="text-center font-bold text-[11px] py-1 px-2 tabular-nums">
+                <td className="font-bold text-[13px] py-1 px-2">الإجمالي</td>
+                <td className="text-center font-bold text-[13px] py-1 px-2 tabular-nums">
                   {totalCases}
                 </td>
               </tr>
