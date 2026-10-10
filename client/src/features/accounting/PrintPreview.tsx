@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
@@ -79,36 +79,42 @@ export default function PrintPreview() {
   const search = useSearch();
   const [payload, setPayload] = useState<PrintPayload | null>(null);
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(search);
     const payloadId = params.get("payloadId");
 
     if (!payloadId) {
-      setError("No print payload specified.");
+      setError("لا توجد بيانات للمعاينة.");
       return;
     }
 
     try {
       const data = sessionStorage.getItem(payloadId);
       if (!data) {
-        setError("Print data has expired or is invalid.");
+        setError("انتهت صلاحية بيانات المعاينة. افتح التقرير من جديد.");
         return;
       }
 
       setPayload(JSON.parse(data) as PrintPayload);
       sessionStorage.removeItem(payloadId);
     } catch (err) {
-      setError("Failed to load print data.");
+      setError("تعذر تحميل بيانات المعاينة.");
     }
   }, [search]);
 
   useEffect(() => {
     if (!payload) return;
+    openerRef.current = document.activeElement as HTMLElement;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
     return () => {
+      window.clearTimeout(focusTimer);
       document.body.style.overflow = prev;
+      openerRef.current?.focus();
     };
   }, [payload]);
 
@@ -118,7 +124,7 @@ export default function PrintPreview() {
         className="min-h-screen bg-muted/20 p-8 flex items-center justify-center"
         dir="rtl"
       >
-        <Card className="max-w-md border-error/30 bg-error/5 shadow-sm">
+        <Card role="alert" className="max-w-md border-border shadow-none">
           <CardContent className="flex flex-col items-center p-6 text-center gap-4">
             <div className="rounded-full bg-error/10 p-3 text-error">
               <CircleAlert className="h-8 w-8" aria-hidden />
@@ -135,7 +141,7 @@ export default function PrintPreview() {
               className="mt-2"
               aria-label="الرجوع إلى الحسابات"
             >
-              <ArrowLeft className="ml-2 h-4 w-4 rotate-180" aria-hidden />
+              <ArrowLeft className="me-2 h-4 w-4 rotate-180" aria-hidden />
               الرجوع إلى الحسابات
             </Button>
           </CardContent>
@@ -145,7 +151,11 @@ export default function PrintPreview() {
   }
 
   if (!payload) {
-    return null;
+    return (
+      <p role="status" dir="rtl" className="p-8 text-foreground">
+        جارٍ تحميل المعاينة
+      </p>
+    );
   }
 
   const isReceiptPrint = payload.printLayout === "receipt";
@@ -229,7 +239,7 @@ export default function PrintPreview() {
       const sums = sumNumericBlock(blockRows, cols);
       bodyRows.push(
         <tr key={`sub-svc-${svc}`} className={styles.groupSubtotalRow}>
-          <td colSpan={labelSpan} className="text-right font-bold">
+          <td colSpan={labelSpan} className="text-start font-bold">
             إجمالي الخدمة
           </td>
           {cols.slice(labelSpan).map((col) => (
@@ -255,11 +265,11 @@ export default function PrintPreview() {
         const serviceName = String(r.serviceName ?? "");
         const label =
           serviceName.trim().length > 0
-            ? `${serviceCode} — ${serviceName}`
+            ? `${serviceCode}: ${serviceName}`
             : serviceCode;
         bodyRows.push(
           <tr key={`svc-${serviceCode}-${index}`} className={styles.groupRow}>
-            <td colSpan={cols.length} className="font-bold text-right">
+            <td colSpan={cols.length} className="font-bold text-start">
               الخدمة: {toArabicDigits(label)}
             </td>
           </tr>,
@@ -291,7 +301,7 @@ export default function PrintPreview() {
       const sums = sumNumericBlock(blockRows, cols);
       bodyRows.push(
         <tr key={`sub-doc-${doc}`} className={styles.groupSubtotalRow}>
-          <td colSpan={labelSpan} className="text-right font-bold">
+          <td colSpan={labelSpan} className="text-start font-bold">
             إجمالي الطبيب
           </td>
           {cols.slice(labelSpan).map((col) => (
@@ -319,7 +329,7 @@ export default function PrintPreview() {
           : doctorCode;
         bodyRows.push(
           <tr key={`group-${doctorCode}-${index}`} className={styles.groupRow}>
-            <td colSpan={cols.length} className="font-bold text-right">
+            <td colSpan={cols.length} className="font-bold text-start">
               الطبيب: {toArabicDigits(String(doctorName))}
             </td>
           </tr>,
@@ -354,7 +364,7 @@ export default function PrintPreview() {
                   <td
                     key={col.key}
                     colSpan={labelSpan}
-                    className="text-right font-bold"
+                    className="text-start font-bold"
                   >
                     {String(r[col.key] ?? "")}
                   </td>
@@ -391,18 +401,48 @@ export default function PrintPreview() {
   return (
     <div className={styles.viewport} dir="rtl">
       <div className={`${styles.backdrop} ${styles.noPrint}`} aria-hidden />
-      <div className={styles.dialog}>
+      <div
+        ref={dialogRef}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label={payload.title}
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            window.history.back();
+            return;
+          }
+          if (event.key !== "Tab") return;
+          const focusable = Array.from(
+            event.currentTarget.querySelectorAll<HTMLElement>(
+              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter((element) => !element.hasAttribute("disabled"));
+          if (focusable.length === 0) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
+      >
         <div className={`${styles.actionBar} ${styles.noPrint}`}>
           <Button
             type="button"
             variant="outline"
             onClick={() => window.history.back()}
           >
-            <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+            <ArrowLeft className="me-2 h-4 w-4 rotate-180" aria-hidden="true" />
             رجوع
           </Button>
           <Button type="button" onClick={() => void handlePrint()}>
-            <Printer className="ml-2 h-4 w-4" />
+            <Printer className="me-2 h-4 w-4" aria-hidden="true" />
             طباعة التقرير
           </Button>
         </div>
@@ -429,7 +469,7 @@ export default function PrintPreview() {
                     </div>
 
                     <div className={`${styles.header} ${styles.screenOnly}`}>
-                      <h1 className="text-2xl font-bold uppercase tracking-tight">
+                      <h1 className="text-2xl font-bold uppercase">
                         {payload.title}
                       </h1>
                       <div className="mt-1 text-sm font-medium text-foreground">

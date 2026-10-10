@@ -378,7 +378,7 @@
     background: white !important;
   }
 
-  /* App shell scroll/clipping chains — print full document flow, not viewport */
+  /* App shell scroll/clipping chains. Print the full document flow, not the viewport. */
   :global(.selrs-page-bg) {
     overflow: visible !important;
     height: auto !important;

@@ -14,7 +14,13 @@ import type {
   ReceiptHeader,
   ReceiptsInquiryInput,
 } from "@shared/accounting/contracts";
-import { CircleAlert, RefreshCw, Search, ReceiptText, RotateCcw } from "lucide-react";
+import {
+  CircleAlert,
+  RefreshCw,
+  Search,
+  ReceiptText,
+  RotateCcw,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import reportStyles from "./AccountingOpReport.module.css";
@@ -244,103 +250,132 @@ export default function ReceiptsInquiry() {
 
   return (
     <>
-      <div className="space-y-2 sm:space-y-2.5" dir="rtl">
+      <div className="accounting-report space-y-4" dir="rtl">
+        <h1 className="print:hidden">الإيصالات</h1>
         <Card className="w-fit max-w-full border-border/60 shadow-xs">
           <CardContent className="w-fit max-w-full space-y-2 p-2.5 sm:p-3">
-            {/* layout-refined-add-filter */}
-            <div className="accounting-add-filter flex w-fit max-w-full flex-wrap items-end gap-2" data-add-filter="1" dir="rtl">
-<label
-              htmlFor="receipt-from-date"
-              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+            <div
+              className="accounting-add-filter flex w-fit max-w-full flex-wrap items-end gap-2"
+              data-add-filter="1"
+              dir="rtl"
             >
-              <span>من تاريخ</span>
-              <DateInput
-                id="receipt-from-date"
-                value={draft.fromDate ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, fromDate: e.target.value }))
-                }
-               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
-            </label>
-            <label
-              htmlFor="receipt-to-date"
-              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
-            >
-              <span>إلى تاريخ</span>
-              <DateInput
-                id="receipt-to-date"
-                value={draft.toDate ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, toDate: e.target.value }))
-                }
-               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
-            </label>
-            {dateError && (
-              <p className="text-sm text-destructive md:col-span-2">
-                {dateError}
-              </p>
-            )}
-            <label
-              htmlFor="receipt-patient-code"
-              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
-            >
-              <span>كود المريض</span>
-              <Input
-                id="receipt-patient-code"
-                value={draft.patientCode ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({
-                    ...p,
-                    patientCode: e.target.value ? e.target.value : undefined,
-                  }))
-                }
-              />
-              {draft.patientCode && (
-                <span className="text-xs text-muted-foreground block mt-1">
-                  {patientLookup.isLoading
-                    ? "جاري البحث…"
-                    : patientLookup.data
-                      ? `الاسم: ${patientLookup.data.patientName}`
-                      : "غير موجود"}
-                </span>
+              <label
+                htmlFor="receipt-from-date"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+              >
+                <span>من تاريخ</span>
+                <DateInput
+                  id="receipt-from-date"
+                  value={draft.fromDate ?? ""}
+                  onChange={(e) =>
+                    setDraft((p) => ({ ...p, fromDate: e.target.value }))
+                  }
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
+              <label
+                htmlFor="receipt-to-date"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+              >
+                <span>إلى تاريخ</span>
+                <DateInput
+                  id="receipt-to-date"
+                  value={draft.toDate ?? ""}
+                  onChange={(e) =>
+                    setDraft((p) => ({ ...p, toDate: e.target.value }))
+                  }
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
+              {dateError && (
+                <p className="text-sm text-destructive md:col-span-2">
+                  {dateError}
+                </p>
               )}
-            </label>
-            <label
-              htmlFor="receipt-doctor-code"
-              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
-            >
-              <span>كود الطبيب</span>
-              <Input
-                id="receipt-doctor-code"
-                value={draft.doctorCode ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({
-                    ...p,
-                    doctorCode: e.target.value ? e.target.value : undefined,
-                  }))
-                }
-              />
-              {draft.doctorCode && (
-                <span className="text-xs text-muted-foreground block mt-1">
-                  {doctorLookup.isLoading
-                    ? "جاري البحث…"
-                    : doctorLookup.data
-                      ? `الاسم: ${doctorLookup.data.doctorName}`
-                      : "غير موجود"}
-                </span>
-              )}
-            </label>
+              <label
+                htmlFor="receipt-patient-code"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+              >
+                <span>كود المريض</span>
+                <Input
+                  id="receipt-patient-code"
+                  value={draft.patientCode ?? ""}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      patientCode: e.target.value ? e.target.value : undefined,
+                    }))
+                  }
+                />
+                {draft.patientCode && (
+                  <span className="text-xs text-muted-foreground block mt-1">
+                    {patientLookup.isLoading
+                      ? "جاري البحث…"
+                      : patientLookup.data
+                        ? `الاسم: ${patientLookup.data.patientName}`
+                        : patientLookup.isError
+                          ? "تعذر البحث عن المريض"
+                          : "غير موجود"}
+                  </span>
+                )}
+              </label>
+              <label
+                htmlFor="receipt-doctor-code"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+              >
+                <span>كود الطبيب</span>
+                <Input
+                  id="receipt-doctor-code"
+                  value={draft.doctorCode ?? ""}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      doctorCode: e.target.value ? e.target.value : undefined,
+                    }))
+                  }
+                />
+                {draft.doctorCode && (
+                  <span className="text-xs text-muted-foreground block mt-1">
+                    {doctorLookup.isLoading
+                      ? "جاري البحث…"
+                      : doctorLookup.data
+                        ? `الاسم: ${doctorLookup.data.doctorName}`
+                        : doctorLookup.isError
+                          ? "تعذر البحث عن الطبيب"
+                          : "غير موجود"}
+                  </span>
+                )}
+              </label>
 
-                                                
-            <Button type="button" size="icon" className="h-11 w-11" onClick={applyFilters} aria-label="تطبيق">
-              <Search className="h-4 w-4" aria-hidden />
-            </Button>
-            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={resetFilters} aria-label="إعادة ضبط">
-              <RotateCcw className="h-4 w-4" aria-hidden />
-            </Button>
-            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => void receiptsQuery.refetch()} aria-label="تحديث">
-              <RefreshCw className="h-4 w-4" aria-hidden />
-            </Button>
+              <Button
+                type="button"
+                size="icon"
+                className="h-11 w-11"
+                onClick={applyFilters}
+                aria-label="تطبيق"
+              >
+                <Search className="h-4 w-4" aria-hidden />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11"
+                onClick={resetFilters}
+                aria-label="إعادة ضبط"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11"
+                onClick={() => void receiptsQuery.refetch()}
+                aria-label="تحديث"
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden />
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -355,11 +390,19 @@ export default function ReceiptsInquiry() {
                 </div>
               )}
             {receiptsQuery.isLoading ? (
+              <p role="status" className="py-4 text-sm text-muted-foreground">
+                جارٍ تحميل الإيصالات
+              </p>
+            ) : null}
+            {receiptsQuery.isLoading ? (
               <Skeleton className="h-40 w-full" aria-busy />
             ) : null}
 
             {receiptsQuery.isError ? (
-              <div className="flex items-start gap-2 rounded-lg border border-error/30 bg-error/5 p-4 text-error">
+              <div
+                role="alert"
+                className="flex flex-wrap items-start gap-3 border-y border-border py-4 text-foreground"
+              >
                 <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
                 <div>
                   <p className="font-semibold">
@@ -369,6 +412,12 @@ export default function ReceiptsInquiry() {
                     {getErrorContext(receiptsQuery.error.message).hint}
                   </p>
                 </div>
+                <Button
+                  variant="outline"
+                  onClick={() => void receiptsQuery.refetch()}
+                >
+                  <RefreshCw className="h-4 w-4" /> إعادة المحاولة
+                </Button>
               </div>
             ) : null}
 
@@ -416,7 +465,7 @@ export default function ReceiptsInquiry() {
               !receiptsQuery.isError &&
               rows.length > 0
                 ? rows.map((row) => (
-                    <button
+                    <Button variant="bare"
                       key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
                       type="button"
                       onClick={() =>
@@ -424,7 +473,7 @@ export default function ReceiptsInquiry() {
                           receiptDetailUrl(row.sectionCode, row.trTy, row.trNo),
                         )
                       }
-                      className="rounded-xl border border-border bg-background p-4 text-right shadow-xs transition-colors hover:bg-primary/50"
+                      className="rounded-xl border border-border bg-background p-4 text-start shadow-xs transition-colors hover:bg-primary/50"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="shrink-0">
@@ -432,7 +481,7 @@ export default function ReceiptsInquiry() {
                             {formatDateAr(row.transactionDate)}
                           </div>
                           <div className="mt-1 text-sm font-semibold text-foreground">
-                            {row.patientName ?? "—"}
+                            {row.patientName ?? "غير متاح"}
                           </div>
                         </div>
                         <span className="rounded-full bg-primary text-primary-foreground">
@@ -442,7 +491,7 @@ export default function ReceiptsInquiry() {
 
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-xl bg-muted px-2 py-1.5">
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-[13px] text-muted-foreground">
                             النوع
                           </div>
                           <div className="mt-1 font-semibold text-foreground">
@@ -450,7 +499,7 @@ export default function ReceiptsInquiry() {
                           </div>
                         </div>
                         <div className="rounded-xl bg-muted px-2 py-1.5">
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-[13px] text-muted-foreground">
                             الإجمالي
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
@@ -458,7 +507,7 @@ export default function ReceiptsInquiry() {
                           </div>
                         </div>
                         <div className="rounded-xl bg-destructive/10 px-2 py-1.5">
-                          <div className="text-[10px] text-destructive">
+                          <div className="text-[13px] text-destructive">
                             الخصم
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-destructive">
@@ -466,7 +515,7 @@ export default function ReceiptsInquiry() {
                           </div>
                         </div>
                         <div className="rounded-xl bg-success/10 px-2 py-1.5">
-                          <div className="text-[10px] text-success">
+                          <div className="text-[13px] text-success">
                             المدفوع
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-success">
@@ -474,7 +523,7 @@ export default function ReceiptsInquiry() {
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </Button>
                   ))
                 : null}
             </div>
@@ -483,7 +532,7 @@ export default function ReceiptsInquiry() {
               {!receiptsQuery.isLoading &&
               !receiptsQuery.isError &&
               rows.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
                   <table className={reportStyles.gridTable}>
                     <thead>
                       <tr>
@@ -539,7 +588,9 @@ export default function ReceiptsInquiry() {
                             {formatDateAr(row.transactionDate)}
                           </td>
                           <td data-label="النوع">{trTyLabel(row.trTy)}</td>
-                          <td data-label="المريض">{row.patientName ?? "—"}</td>
+                          <td data-label="المريض">
+                            {row.patientName ?? "غير متاح"}
+                          </td>
                           <td
                             data-label="الإجمالي"
                             className={reportStyles.numeric}
@@ -569,7 +620,7 @@ export default function ReceiptsInquiry() {
             {!receiptsQuery.isLoading &&
               !receiptsQuery.isError &&
               rows.length >= 500 && (
-                <div className="px-4 py-2 text-sm text-warning bg-warning/10 border-t border-border/30 mt-2">
+                <div className="px-4 py-2 text-sm text-warning-text bg-warning/10 border-t border-border/30 mt-2">
                   قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
                 </div>
               )}
