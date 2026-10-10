@@ -1138,6 +1138,8 @@ export const tests = mysqlTable("tests", {
   type: mysqlEnum("type", ["examination", "lab", "imaging", "other"]).notNull(),
   category: varchar("category", { length: 255 }),
   normalRange: varchar("normalRange", { length: 255 }),
+  referenceRanges: json("referenceRanges").$type<TestReferenceRange[]>(),
+  noNormalRange: boolean("noNormalRange").default(false).notNull(),
   unit: varchar("unit", { length: 64 }),
   description: text("description"),
   priceEgp: varchar("priceEgp", { length: 32 }),

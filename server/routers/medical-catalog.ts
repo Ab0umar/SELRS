@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  legacyReferenceFields,
+  testReferenceRangesSchema,
+} from "../../shared/test-reference-ranges";
 import { access, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import * as XLSX from "xlsx";
@@ -608,6 +612,8 @@ export const medicalCatalogRoutes = {
         type: z.enum(["examination", "lab", "imaging", "other"]),
         category: z.string().optional(),
         normalRange: z.string().optional(),
+        referenceRanges: testReferenceRangesSchema.optional(),
+        noNormalRange: z.boolean().optional(),
         unit: z.string().optional(),
         description: z.string().optional(),
         priceEgp: z.string().optional(),
@@ -622,6 +628,15 @@ export const medicalCatalogRoutes = {
         category: input.category || "",
         normalRange: input.normalRange || "",
         unit: input.unit || "",
+        ...(input.referenceRanges !== undefined || input.noNormalRange
+          ? legacyReferenceFields(
+              input.noNormalRange ? [] : (input.referenceRanges ?? []),
+            )
+          : {}),
+        referenceRanges: input.noNormalRange
+          ? []
+          : (input.referenceRanges ?? null),
+        noNormalRange: input.noNormalRange ?? false,
         description: input.description || "",
         priceEgp: input.priceEgp?.trim() || null,
         durationMinutes: input.durationMinutes ?? null,
@@ -642,6 +657,8 @@ export const medicalCatalogRoutes = {
           type: z.enum(["examination", "lab", "imaging", "other"]).optional(),
           category: z.string().optional(),
           normalRange: z.string().optional(),
+          referenceRanges: testReferenceRangesSchema.optional(),
+          noNormalRange: z.boolean().optional(),
           unit: z.string().optional(),
           description: z.string().optional(),
           priceEgp: z.string().nullable().optional(),
@@ -657,6 +674,16 @@ export const medicalCatalogRoutes = {
       }
       if (input.updates.category !== undefined) {
         raw.category = input.updates.category ?? "";
+      }
+      if (input.updates.noNormalRange === true) {
+        raw.referenceRanges = [];
+        Object.assign(raw, legacyReferenceFields([]));
+      } else if (input.updates.referenceRanges !== undefined) {
+        Object.assign(
+          raw,
+          legacyReferenceFields(input.updates.referenceRanges),
+        );
+        raw.noNormalRange = false;
       }
       await db.updateTest(input.testId, raw);
       await db.logAuditEvent(ctx.user.id, "UPDATE_TEST", "test", input.testId, {
