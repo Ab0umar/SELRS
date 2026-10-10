@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SELRS — أنماط إضافية</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Cairo,sans-serif;background:#c9cad0}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.top{position:sticky;top:0;z-index:50;background:#111;color:#fff;padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center}
+.top h1{font-size:15px}
+.seg{display:flex;gap:4px;background:#2a2a2a;padding:4px;border-radius:10px}
+.seg button{border:0;background:none;color:#aaa;font:600 13px Cairo;padding:7px 14px;border-radius:7px;cursor:pointer}
+.seg button.on{background:#fff;color:#111}
+.note{max-width:1320px;margin:16px auto 0;padding:0 20px;font-size:14px;color:#333;line-height:1.8}
+.stage{max-width:1320px;margin:12px auto 40px;padding:0 20px}
+.frame{border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.28);overflow-x:auto}
+
+/* ---- shared structure, themed by variables ---- */
+.app{min-width:1020px;min-height:740px;background:var(--bg);color:var(--ink);font-family:var(--f);padding:0 0 36px}
+.hd{display:flex;align-items:center;gap:26px;padding:18px 34px;border-bottom:var(--bw) solid var(--line)}
+.hd .br{font:var(--bf);font-size:24px;color:var(--acc)}
+.hd nav{display:flex;gap:6px}
+.hd nav a{padding:8px 16px;font-size:14px;color:var(--mut);border-radius:var(--rs)}
+.hd nav a.on{color:var(--onacc);background:var(--acc)}
+.hd .me{margin-inline-start:auto;font-size:13px;color:var(--mut)}
+.mn{padding:28px 34px;display:flex;flex-direction:column;gap:22px}
+.mn h1{font:var(--hf);font-size:34px;line-height:1.2}
+.mn .sub{color:var(--mut);font-size:14px;margin-top:4px}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.k{background:var(--card);border:var(--bw) solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.k small{color:var(--mut);font-size:13px}
+.k b{font:var(--nf);font-size:34px;line-height:1.1}
+.k i{font-style:normal;font-size:12px;color:var(--acc)}
+.gr{display:grid;grid-template-columns:1.7fr 1fr;gap:16px}
+.pn{background:var(--card);border:var(--bw) solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px}
+.pn h3{font:var(--hf);font-size:19px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.pn h3 span{font:500 12px Cairo;color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:start;font-size:12px;color:var(--mut);font-weight:700;padding:9px 8px;border-bottom:var(--bw) solid var(--line)}
+td{padding:11px 8px;border-bottom:1px solid var(--line2)}
+td.n,th.n{text-align:end;font-family:var(--nf);font-variant-numeric:tabular-nums}
+td.n{font-weight:600}
+.tg{display:inline-block;font-size:12px;font-weight:700;padding:2px 11px;border-radius:var(--rs);background:var(--tg);color:var(--tgc)}
+.tg.w{background:var(--tw);color:var(--twc)}.tg.b{background:var(--tb);color:var(--tbc)}
+.bar{display:flex;flex-direction:column;gap:14px}
+.bar div{display:grid;grid-template-columns:78px 1fr 62px;gap:10px;align-items:center;font-size:13.5px}
+.bar em{height:14px;background:var(--line2);border-radius:var(--rs);overflow:hidden;display:block}
+.bar em u{display:block;height:100%;background:var(--acc)}
+.bar b{font-family:var(--nf);text-align:end;font-size:13px}
+.feed div{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line2);font-size:14px;align-items:center}
+.feed div:last-child{border:0}.feed small{margin-inline-start:auto;font:500 12px "IBM Plex Mono";color:var(--mut)}
+.feed i{width:9px;height:9px;border-radius:50%;background:var(--acc);flex:none}
+
+/* ===== 1 · نقاء ===== */
+.t1{--bg:#f6f9fa;--card:#fff;--ink:#17262b;--mut:#5a6e75;--acc:#0e7c86;--onacc:#fff;--line:#dbe4e7;--line2:#ecf1f2;--bw:1px;--r:14px;--rs:8px;--sh:0 1px 2px rgba(23,38,43,.05);--f:'IBM Plex Sans Arabic',Cairo,sans-serif;--hf:600 1em 'IBM Plex Sans Arabic';--nf:600 1em 'IBM Plex Sans Arabic';--bf:700 1em 'IBM Plex Sans Arabic';--tg:#def3ea;--tgc:#0a6444;--tw:#fdf0cf;--twc:#7a5200;--tb:#e3eef9;--tbc:#14568f}
+.t1 .hd{background:#fff}
+.t1 .hd nav a.on{background:none;color:var(--acc);border-radius:0;box-shadow:inset 0 -3px 0 var(--acc);font-weight:700}
+.t1 .k b{font-weight:600}
+.t1 .k{border-top:3px solid var(--acc)}
+.t1 .k:nth-child(2){border-top-color:#3aa17e}.t1 .k:nth-child(3){border-top-color:#5b8def}.t1 .k:nth-child(4){border-top-color:#c9a227}
+
+/* ===== 2 · هدوء ===== */
+.t2{--bg:#edf4ef;--card:#fff;--ink:#1c2f28;--mut:#5f766c;--acc:#2f7d62;--onacc:#fff;--line:transparent;--line2:#e8f0eb;--bw:0px;--r:22px;--rs:99px;--sh:0 4px 20px rgba(28,47,40,.07);--f:Cairo;--hf:700 1em Cairo;--nf:700 1em Cairo;--bf:800 1em Cairo;--tg:#dcf1e6;--tgc:#216146;--tw:#fbeccb;--twc:#79540a;--tb:#dfeaf6;--tbc:#27567f}
+.t2 .hd{border:0;margin:18px 34px 0;padding:10px 22px;background:#fff;border-radius:99px;box-shadow:var(--sh)}
+.t2 .k b{color:var(--acc)}
+.t2 th{border-bottom:2px solid var(--line2)}
+.t2 .bar em u{border-radius:99px;background:linear-gradient(90deg,#2f7d62,#6bbf9d)}
+
+/* ===== 3 · ملف ===== */
+.t3{--bg:#e9edf2;--card:#fff;--ink:#1a2530;--mut:#586677;--acc:#1d4e89;--onacc:#fff;--line:#b8c3d0;--line2:#e3e8ee;--bw:1px;--r:4px;--rs:3px;--sh:none;--f:'IBM Plex Sans Arabic',Cairo,sans-serif;--hf:600 1em 'IBM Plex Sans Arabic';--nf:500 1em 'IBM Plex Mono';--bf:700 1em 'IBM Plex Sans Arabic';--tg:#e0f0e6;--tgc:#14633b;--tw:#fff0c8;--twc:#6e4d00;--tb:#fbe0dd;--tbc:#a12318}
+.t3 .hd{background:var(--acc);border:0;padding:12px 34px}
+.t3 .hd .br{color:#fff}.t3 .hd nav a{color:#cddcf0}.t3 .hd nav a.on{background:#fff;color:var(--acc);font-weight:700}.t3 .hd .me{color:#cddcf0}
+.t3 .k{border-top:3px solid var(--acc)}
+.t3 .k b{font-size:30px}
+.t3 td{padding:7px 8px}.t3 th{background:#f1f4f8;padding:7px 8px}
+.t3 tr:nth-child(even) td{background:#f8fafc}
+.t3 .pn h3{font-size:16px;padding-bottom:8px;border-bottom:2px solid var(--acc)}
+
+/* ===== 4 · ليل ===== */
+.t4{--bg:#0f171b;--card:#162126;--ink:#e2ecef;--mut:#8aa0a8;--acc:#5fb7bf;--onacc:#062a2e;--line:#2a3b42;--line2:#202e34;--bw:1px;--r:14px;--rs:8px;--sh:none;--f:'IBM Plex Sans Arabic',Cairo,sans-serif;--hf:600 1em 'IBM Plex Sans Arabic';--nf:600 1em 'IBM Plex Sans Arabic';--bf:700 1em 'IBM Plex Sans Arabic';--tg:rgba(95,183,191,.16);--tgc:#8fd6dc;--tw:rgba(230,180,70,.16);--twc:#e8c068;--tb:rgba(240,120,110,.16);--tbc:#f1a199}
+.t4 .hd{background:#121c20}
+.t4 .bar em u{background:var(--acc)}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>SELRS — أنماط إضافية</h1>
+  <div class="seg" id="sty"></div>
+  <div class="seg" id="mod"></div>
+</div>
+<p class="note" id="note"></p>
+<div class="stage"><div class="frame" id="frame"></div></div>
+
+<script>
+const L=t=>`<span class="ltr">${t}</span>`;
+const M={
+accounting:{nav:['الإيراد اليومي','الإيصالات','الخزنة','حساب مريض','القروض'],on:0,title:'الإيراد اليومي',sub:'الخميس ٩ أكتوبر — طنطا',
+ kp:[['إيراد اليوم','38,400','+8% عن أمس'],['نقدي','22,150','١٤ إيصال'],['انستاباي','9,800','٦ إيصالات'],['مصروفات','4,300','٣ بنود']],
+ th:['الإيصال','المريض','الخدمة','الطبيب','الدفع','المبلغ'],
+ rows:[['R-5521','أحمد محمود السيد','كشف','د.الصواف',['نقدي',''],'300'],['R-5522','سارة علي حسن','إستشاري','د.الصواف',['انستاباي','b'],'500'],['R-5523','محمد حسن عبده','بنتاكام','الأشعة',['نقدي',''],'450'],['R-5524','منى إبراهيم','أخصائي','د. السعدني',['آجل','w'],'400'],['R-5525','هدى مصطفى','عملية','د.الصواف',['نقدي',''],'6,500']],
+ pt:'الإيصالات',side:'إيراد الخدمات',bars:[['عمليات',92,'19,500'],['بنتاكام',60,'8,100'],['إستشاري',44,'5,400'],['كشف',30,'3,600'],['متابعة',12,'1,800']]},
+attendance:{nav:['لوحة التحكم','مباشر','الموظفون','التقارير','الإعدادات'],on:1,title:'الحضور المباشر',sub:'تحديث تلقائي كل دقيقة — جهاز البصمة طنطا',
+ kp:[['حاضر الآن','41','من ٥١ موظف'],['متأخر','5','أكثر من ١٥ د'],['غائب','3','بدون إذن'],['إجازة','2','معتمدة']],
+ th:['الموظف','القسم','دخول','خروج','المدة','الحالة'],
+ rows:[['نورا عبد الله','الاستقبال','07:58','—','02:41',['حاضر','']],['عمرو يوسف','الأشعة','08:12','—','02:27',['حاضر','']],['مي سعيد','التمريض','08:41','—','01:58',['متأخر','w']],['كريم فؤاد','المعمل','—','—','—',['غائب','b']],['دعاء حسن','الحسابات','07:45','—','02:54',['حاضر','']]],
+ pt:'سجل اليوم',side:'آخر البصمات',feed:[['نورا عبد الله','دخول','10:39'],['مي سعيد','دخول','08:41'],['عمرو يوسف','دخول','08:12'],['دعاء حسن','دخول','07:45']]},
+salary:{nav:['البيانات الأساسية','العمولات','الصندوق والعيدية','الجزاءات','كشف المرتبات'],on:4,title:'كشف المرتبات',sub:'شهر أكتوبر 2026 — مسودة',
+ kp:[['إجمالي المرتبات','286,400','٥١ موظف'],['العمولات','31,200','من الصناديق'],['الجزاءات','4,150','١٢ جزاء'],['الصافي','313,450','بعد الخصم']],
+ th:['الموظف','الأساسي','العمولة','الجزاءات','الصافي','الحالة'],
+ rows:[['نورا عبد الله','5,200','650','—','5,850',['معتمد','']],['عمرو يوسف','6,100','900','200','6,800',['معتمد','']],['مي سعيد','4,800','420','150','5,070',['مراجعة','w']],['دعاء حسن','7,000','—','—','7,000',['معتمد','']],['كريم فؤاد','5,500','380','500','5,380',['مراجعة','w']]],
+ pt:'الموظفون',side:'الصندوق والعيدية',bars:[['صندوق العمولات',78,'31,200'],['العيدية',45,'18,000'],['الحافز',30,'12,000'],['الجزاءات',10,'4,150']]}
+};
+const STY={t1:["١ · نقاء","عيادي نظيف: أبيض وأزرق مخضر (تيل)، خطوط رفيعة، شريط علوي بخط تحتي للقسم النشط، وخط بلكس العربي. أقرب شيء لبرامج السجلات الطبية الحديثة."],
+ t2:["٢ · هدوء","أخضر مريمية فاتح، بطاقات مستديرة بظل ناعم وقائمة عائمة. مطمئن للمرضى والموظفين، ويصلح لشاشات الاستقبال."],
+ t3:["٣ · ملف","مثل نظام السجل الطبي الإلكتروني: شريط كحلي، جداول كثيفة ومخططة، زوايا حادة قليلاً، وأرقام بخط ثابت العرض. للشاشات التي تُقرأ فيها بيانات كثيرة."],
+ t4:["٤ · ليل","وضع داكن هادئ لمناوبات الليل أو غرف الفحص المعتمة: رمادي مزرق وتيل خافت، بدون ألوان فاقعة."]};
+const MOD={accounting:'الحسابات',attendance:'الحضور',salary:'المرتبات'};
+let s='t1',m='accounting';
+function screen(){
+ const d=M[m];
+ const head=`<div class="hd"><span class="br">SELRS</span><nav>${d.nav.map((t,i)=>`<a class="${i==d.on?'on':''}">${t}</a>`).join('')}</nav><span class="me">د. الصواف · طنطا</span></div>`;
+ const kp=`<div class="kp">${d.kp.map(([a,b,c])=>`<div class="k"><small>${a}</small><b>${b}</b><i>${c}</i></div>`).join('')}</div>`;
+ const tbl=`<div class="pn"><h3>${d.pt}<span>${d.rows.length} صفوف</span></h3><table><tr>${d.th.map((h,i)=>`<th class="${i==d.th.length-1&&typeof d.rows[0][5]=='string'?'n':''}">${h}</th>`).join('')}</tr>${d.rows.map(r=>`<tr>${r.map((c,i)=>Array.isArray(c)?`<td><span class="tg ${c[1]}">${c[0]}</span></td>`:`<td class="${/^[\d,—:]+$/.test(c)&&c!=='—'||(i==5&&typeof c=='string'&&/^[\d,]+$/.test(c))?'n':''}">${c}</td>`).join('')}</tr>`).join('')}</table></div>`;
+ const side=d.bars?`<div class="pn"><h3>${d.side}</h3><div class="bar">${d.bars.map(([a,p,v])=>`<div><span>${a}</span><em><u style="width:${p}%"></u></em><b>${v}</b></div>`).join('')}</div></div>`:`<div class="pn"><h3>${d.side}</h3><div class="feed">${d.feed.map(([a,b,t])=>`<div><i></i><span><b>${a}</b> — ${b}</span><small>${t}</small></div>`).join('')}</div></div>`;
+ return `<div class="app ${s}">${head}<div class="mn"><div><h1>${d.title}</h1><p class="sub">${d.sub}</p></div>${kp}<div class="gr">${tbl}${side}</div></div></div>`;
+}
+const mk=(el,o,cur,set)=>{el.innerHTML=Object.entries(o).map(([k,v])=>`<button class="${k==cur?'on':''}" data-k="${k}">${Array.isArray(v)?v[0]:v}</button>`).join('');el.onclick=e=>{const k=e.target.dataset.k;if(k){set(k);draw()}}};
+function draw(){
+ mk(document.getElementById('sty'),STY,s,k=>s=k);
+ mk(document.getElementById('mod'),MOD,m,k=>m=k);
+ document.getElementById('note').textContent=STY[s][1];
+ document.getElementById('frame').innerHTML=screen();
+}
+draw();
+</script>
+</body>
+</html>

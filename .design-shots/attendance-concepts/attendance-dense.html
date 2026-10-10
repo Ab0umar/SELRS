@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>الحضور — مكثّف</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+    body { font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .ctrl { min-height: 36px; }
+    .bar-present { border-inline-start: 3px solid #10b981; }
+    .bar-late { border-inline-start: 3px solid #f59e0b; }
+    .bar-absent { border-inline-start: 3px solid #f43f5e; }
+    .bar-leave { border-inline-start: 3px solid #0ea5e9; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased text-[13px]">
+  <!-- Concept banner -->
+  <div class="bg-emerald-500 text-zinc-950 text-center py-1.5 text-xs font-bold tracking-wide uppercase">
+    مفهوم التصميم: «مكثّف» — Dense Ops Dashboard
+  </div>
+
+  <header class="border-b border-zinc-800 px-3 py-2.5 sticky top-0 bg-zinc-950/95 backdrop-blur z-10">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-baseline gap-3">
+        <h1 class="text-base font-bold text-white">الحضور</h1>
+        <span class="text-zinc-500 text-xs">الإثنين، ٥ أكتوبر ٢٠٢٦</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button type="button" class="ctrl px-3 rounded border border-zinc-700 text-xs font-medium text-zinc-300 hover:bg-zinc-900">تصدير</button>
+        <button type="button" class="ctrl px-3 rounded bg-emerald-500 text-zinc-950 text-xs font-bold hover:bg-emerald-400">تسجيل يدوي</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-3 py-4 space-y-4">
+    <!-- Compact KPIs -->
+    <section>
+      <div class="grid grid-cols-4 gap-2">
+        <div class="bg-zinc-900 border border-zinc-800 rounded px-3 py-2">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500">حاضرون</p>
+          <p class="text-xl font-bold mono text-emerald-400 leading-tight">142</p>
+          <p class="text-[10px] text-zinc-600">/ 168</p>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-800 rounded px-3 py-2">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500">متأخرون</p>
+          <p class="text-xl font-bold mono text-amber-400 leading-tight">11</p>
+          <p class="text-[10px] text-zinc-600">بعد 08:15</p>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-800 rounded px-3 py-2">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500">غياب</p>
+          <p class="text-xl font-bold mono text-rose-400 leading-tight">9</p>
+          <p class="text-[10px] text-zinc-600">بدون عذر</p>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-800 rounded px-3 py-2">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500">إجازة</p>
+          <p class="text-xl font-bold mono text-sky-400 leading-tight">6</p>
+          <p class="text-[10px] text-zinc-600">معتمدة</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Live strip -->
+      <section class="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded overflow-hidden">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+          <h2 class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">البث المباشر</h2>
+          <span class="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            LIVE
+          </span>
+        </div>
+        <ul class="divide-y divide-zinc-800/80">
+          <li class="flex items-center justify-between px-3 py-2 gap-2">
+            <span class="font-medium text-zinc-200 truncate">سارة ناصر العتيبي</span>
+            <span class="mono text-zinc-500 shrink-0 text-[11px]">08:41</span>
+          </li>
+          <li class="flex items-center justify-between px-3 py-2 gap-2">
+            <span class="font-medium text-zinc-200 truncate">ماجد فهد الشمري</span>
+            <span class="mono text-zinc-500 shrink-0 text-[11px]">08:39</span>
+          </li>
+          <li class="flex items-center justify-between px-3 py-2 gap-2 bg-amber-500/5">
+            <span class="font-medium text-amber-300 truncate">هند سليمان القحطاني</span>
+            <span class="mono text-amber-400 shrink-0 text-[11px]">08:28</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Daily table -->
+      <section class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded overflow-hidden">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800 gap-2 flex-wrap">
+          <h2 class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">سجل اليوم</h2>
+          <input type="search" placeholder="بحث…" class="ctrl px-2 rounded bg-zinc-950 border border-zinc-700 text-xs w-36 text-zinc-200 placeholder:text-zinc-600" />
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right min-w-[480px]">
+            <thead>
+              <tr class="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800">
+                <th class="px-3 py-1.5 font-medium">الموظف</th>
+                <th class="px-3 py-1.5 font-medium">القسم</th>
+                <th class="px-3 py-1.5 font-medium">الدخول</th>
+                <th class="px-3 py-1.5 font-medium">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bar-present bg-zinc-900 hover:bg-zinc-800/60 border-b border-zinc-800/60">
+                <td class="px-3 py-1.5 font-medium text-zinc-100">أحمد محمد العتيبي</td>
+                <td class="px-3 py-1.5 text-zinc-500">العمليات</td>
+                <td class="px-3 py-1.5 mono text-zinc-300">08:02</td>
+                <td class="px-3 py-1.5"><span class="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400">حاضر</span></td>
+              </tr>
+              <tr class="bar-late bg-zinc-900 hover:bg-zinc-800/60 border-b border-zinc-800/60">
+                <td class="px-3 py-1.5 font-medium text-zinc-100">فاطمة عبدالله الشمري</td>
+                <td class="px-3 py-1.5 text-zinc-500">الموارد البشرية</td>
+                <td class="px-3 py-1.5 mono text-zinc-300">08:27</td>
+                <td class="px-3 py-1.5"><span class="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-400">متأخر</span></td>
+              </tr>
+              <tr class="bar-absent bg-zinc-900 hover:bg-zinc-800/60 border-b border-zinc-800/60">
+                <td class="px-3 py-1.5 font-medium text-zinc-100">خالد سعد القحطاني</td>
+                <td class="px-3 py-1.5 text-zinc-500">المالية</td>
+                <td class="px-3 py-1.5 mono text-zinc-600">——:—</td>
+                <td class="px-3 py-1.5"><span class="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-400">غياب</span></td>
+              </tr>
+              <tr class="bar-leave bg-zinc-900 hover:bg-zinc-800/60 border-b border-zinc-800/60">
+                <td class="px-3 py-1.5 font-medium text-zinc-100">نورة إبراهيم الدوسري</td>
+                <td class="px-3 py-1.5 text-zinc-500">التسويق</td>
+                <td class="px-3 py-1.5 mono text-zinc-600">——:—</td>
+                <td class="px-3 py-1.5"><span class="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-500/15 text-sky-400">إجازة</span></td>
+              </tr>
+              <tr class="bar-present bg-zinc-900 hover:bg-zinc-800/60">
+                <td class="px-3 py-1.5 font-medium text-zinc-100">يوسف عبدالرحمن الحربي</td>
+                <td class="px-3 py-1.5 text-zinc-500">تقنية المعلومات</td>
+                <td class="px-3 py-1.5 mono text-zinc-300">07:55</td>
+                <td class="px-3 py-1.5"><span class="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400">حاضر</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

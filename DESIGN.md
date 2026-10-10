@@ -1,247 +1,152 @@
 # SELRS Design System
 
-## Color Palette
+## Purpose and Scope
 
-### Primary Colors
+SELRS is an Arabic-first medical-center workspace for clinical staff, reception,
+accounting, attendance, payroll, and administration. Its design supports identifying
+the right record, reviewing relevant details, and completing the next available action.
+This document specifies direction and acceptance criteria. It does not certify
+that every existing screen meets them.
 
-- **Orange (Brand Primary)**: `#FF6B35` (warmth, action, medical optimism)
-  - Light: `#FFE5D9`
-  - Dark: `#CC5529`
-- **Blue (Trust)**: `#2563EB` (clarity, reliability, focus)
-  - Light: `#DBEAFE`
-  - Dark: `#1E40AF`
-- **White (Cleanliness)**: `#FFFFFF`
+Reading this as: an Arabic RTL clinical and operational workspace for medical-center
+staff, using the existing blue/orange identity, ENERGY 1 / RHYTHM 1 / MOTION 1.
 
-### Neutrals (Tinted)
+## Identity
 
-- **Foreground (text)**: `#1F2937` (near-black, tinted blue)
-- **Muted text**: `#6B7280` (gray, medical neutral)
-- **Border**: `#E5E7EB` (light gray)
-- **Background**: `#F9FAFB` (off-white, clinical clean)
-- **Light background**: `#F3F4F6` (card/section backgrounds)
+| Decision | Direction | Reason |
+| --- | --- | --- |
+| Energy | 1, calm | Patient and operational records need sustained attention. |
+| Rhythm | 1, predictable | Repeated work benefits from familiar filter, form, and table placement. |
+| Motion | 1, interaction feedback | State changes need confirmation without continuous distraction. |
+| Focal point | Active record, task, or exception | Staff need to know what requires action. |
+| Motif | Arabic context headers and labelled data groups | Patient, employee, and account identity remain recognizable across modules. |
+| Accent | Selective orange within the blue/neutral identity | Emphasis remains useful when concentrated on a key action. |
 
-### Semantic Colors
+## Implementation References
 
-- **Success**: `#10B981` (positive, recovery, post-op success)
-- **Warning**: `#F59E0B` (caution, pending, awaiting approval)
-- **Error**: `#EF4444` (critical, alerts, urgent)
-- **Info**: `#3B82F6` (notification, guidance)
+- Shared screen tokens and fonts: `client/src/styles/design-system.css`.
+- Platform layouts: `client/src/styles/web.css` and `client/src/styles/mobile.css`.
+- `client/src/main.tsx` loads the shared contract after the platform stylesheet.
+- Theme state: `client/src/contexts/ThemeContext.tsx`.
+- Provider configuration: `client/src/App.tsx`.
+- Shared operational theme configuration: `client/src/config/moduleThemes.ts`.
+- Navigation: `client/src/components/layout/AppNav.tsx` and the current app router.
 
-### Color discipline (no third brand color)
+Source values determine the rendered theme. This document does not replace them
+with a second hard-coded palette or certify route availability.
 
-The palette is **navy + orange + semantic tokens**. No `--accent-3`. When a feature reaches for a third color (violet, cyan, teal, etc.) to differentiate a category or role:
+## Color and Themes
 
-1. First option: use **secondary (orange)** with opacity variants (`bg-secondary/10`, `bg-secondary/15`, `text-secondary`). This is the canonical "second identity color" in the system.
-2. Second option: use a **semantic token** if the meaning matches (success / warning / destructive / info).
-3. Third option: use **muted neutrals** if the distinction is decorative, not semantic.
+Use shared primary, secondary, surface, foreground, border, and semantic tokens.
+The light identity is blue primary, orange secondary, and neutral surfaces.
+Semantic success, warning, and destructive colors communicate actual state;
+they are not a rotating category palette. Labels also communicate the state.
 
-**Rationale**: A two-color brand is harder to dilute. Every additional named color is a future migration debt. Violet, indigo, teal, and emerald palettes were normalized to `secondary` in 2026-05 (Pass 3 audit).
+Limit brand colors to 2-3 core colors and one accent. Neutral colors do not count.
+Use paired foreground/background tokens. Never assume white text on orange
+passes contrast. Measure each combination and each shipped theme.
 
-### Hub-shell category palette (token-only)
-
-Multi-hub navigation surfaces (Clinics / Admin / Services / Medical Reports / Patients / Workflow) need visual identity per hub. Use this **fixed rotation of semantic tokens**, not Tailwind raw palette names:
-
-| Slot | iconWrap                             | Use for                          |
-| ---- | ------------------------------------ | -------------------------------- |
-| 1    | `bg-primary/10 text-primary`         | Main / clinical / default hub    |
-| 2    | `bg-secondary/15 text-secondary`     | Secondary identity (orange-warm) |
-| 3    | `bg-success/15 text-success`         | Health / completed / labs        |
-| 4    | `bg-warning/20 text-warning`         | Admin / caution / migrations     |
-| 5    | `bg-destructive/10 text-destructive` | Critical / errors only           |
-| 6    | `bg-muted text-muted-foreground`     | Utility / neutral hub            |
-
-Never reach for `sky-*`, `cyan-*`, `pink-*`, `indigo-*`, `teal-*`, `emerald-*`, `rose-*`, `amber-*`, `violet-*`. They were swept in Pass 4 (2026-05) and should not return.
+Light is the configured default; the app enables light/dark switching and persists
+the preference. Both themes must work. Clinical print output remains light.
+Avoid decorative colored backgrounds and gradients. Any permitted treatment
+needs a documented hierarchy or identity purpose.
 
 ## Typography
 
-### Font Family
+| Role | Direction | Reason |
+| --- | --- | --- |
+| Arabic | Cairo with Segoe UI/system fallback | Matches the existing Arabic-first interface. |
+| English | Inter with Segoe UI/system fallback | Matches existing mixed-language labels and data. |
+| Codes | IBM Plex Mono with monospace fallback | Separates identifiers and code from prose. |
+| Page title | 24-32px, 700 weight | Identifies the current task without a marketing hero. |
+| Section title | 16-20px, 600-700 weight | Groups operational content compactly. |
+| Body and fields | 14-16px with readable line height | Supports sustained reading and editing. |
+| Supporting labels | 13-14px | Keeps secondary information legible. |
 
-- **UI Font**: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif
-- **Fallback for Arabic**: Segoe UI, Tahoma, Arial (system fonts that support Arabic)
+Use fixed sizes with explicit breakpoint changes. Letter spacing is zero.
+Long Arabic text wraps. Do not reduce text until essential labels become unreadable.
+Reserve monospace for data that benefits from it, not decorative headings.
 
-### Scale & Weight
+## Layout and Components
 
-| Role                   | Size | Weight | Line Height | Usage                              |
-| ---------------------- | ---- | ------ | ----------- | ---------------------------------- |
-| H1 (Page Title)        | 32px | 700    | 1.2         | Page headers                       |
-| H2 (Section)           | 24px | 700    | 1.25        | Major sections                     |
-| H3 (Subsection)        | 20px | 600    | 1.3         | Subsections                        |
-| H4 (Card/Table Header) | 16px | 600    | 1.4         | Card titles, table headers         |
-| Body (Regular)         | 14px | 400    | 1.6         | Body text, table cells             |
-| Body (Small)           | 13px | 400    | 1.5         | Secondary text, captions           |
-| Label (Form)           | 13px | 500    | 1.4         | Form labels, badges                |
-| Mono (Data)            | 13px | 400    | 1.5         | IDs, codes, medical record numbers |
+- Build each screen around its task. Charts and metrics answer a specific question
+  and use actual data with the period and scope identified.
+- The approved visual direction restores the pre-October-2 framing, rounded
+  controls, and subtle shadows. Do not flatten existing panels or impose an
+  8px radius cap. Preserve the blue/orange brand and unified white canvas.
+- Use the 4/8/12/16/24/32/48px spacing scale. Small gaps connect related fields;
+  larger gaps separate tasks. A predictable layout can still vary spacing.
+- Tables put decision-relevant fields early. Align text to logical start and
+  isolate amounts, dates, codes, and eye measurements as LTR.
+- Wrap filters and actions on narrow screens. Wide tables may scroll inside a
+  labelled region; the page itself must not overflow.
+- Use stable toolbar tracks and control dimensions so labels and data do not
+  shift neighboring controls or overlap.
+- Use shared button variants and form controls. Icon buttons identify familiar
+  tools and have accessible names and tooltips.
+- Use switches for binary settings, segmented controls for modes, inputs or
+  steppers for numbers, menus for choices, and tabs for views.
+- Use relevant existing Lucide icons for action recognition. The glyph's meaning
+  determines its use; do not add generic feature icons merely to fill space.
 
-**Contrast Hierarchy**: Title (H1) → H2 → H3 → H4 → Body Regular → Body Small. Avoid flat scales.
+## Content and Behavior
 
-## Spacing Scale
+Action labels identify the actual operation. Avoid promotional claims, decorative
+emoji, redundant headline badges, and em dashes in newly written copy.
+Use actual records, events, metrics, and clinical content. Unknown values remain
+empty or are explicitly labelled placeholders. No invented patients, signatures,
+testimonials, customer claims, or performance figures.
 
-| Token | Size | Usage                              |
-| ----- | ---- | ---------------------------------- |
-| xs    | 4px  | Inline spacing, small gaps         |
-| sm    | 8px  | Small padding, component internals |
-| md    | 12px | Standard padding, breathing room   |
-| lg    | 16px | Sections, card padding             |
-| xl    | 24px | Page sections, major spacing       |
-| 2xl   | 32px | Large section breaks               |
-| 3xl   | 48px | Page top/bottom margins            |
+Use existing approved assets. New final logos, people imagery, and navigation
+require explicit direction or confirmation. Routes and actions must exist and
+respect permissions. A permission-restricted view is distinct from an empty result.
 
-**Rule**: Vary spacing for rhythm. Consistent 16px padding everywhere = monotony.
+Loading names the data being fetched. Empty states distinguish first use from
+filtered results. Errors identify the failure and an available next action.
+Save actions report success or failure and retain usable input on failure.
 
-## Components
+## Decoration and Motion
 
-### Buttons
+Solid surfaces are the default. Shadows communicate actual elevation, not a
+floating page. Glass and glow are limited to 1-2 meaningful accents when justified.
+Status dots and edge markers communicate real state or selection.
+No decorative pulsing, bouncing, floating, or scroll choreography.
+Brief color/opacity feedback follows user interaction and respects reduced motion.
 
-- **Primary (Orange)**: Orange background, white text, 8px padding vertical, 12px horizontal, rounded 6px, 400 weight
-- **Secondary (Blue outline)**: Blue border, blue text, white background, 8px v / 12px h, rounded 6px
-- **Tertiary (Ghost)**: No background, blue text, no border, 8px v / 12px h, hover: light background
-- **Danger (Red)**: Red background, white text, same sizing
-- **Disabled**: Muted text, muted background, no interaction
+## Accessibility and Print
 
-### Tables
+Normal text meets 4.5:1 contrast; large text meets 3:1. Non-text controls and focus
+indicators remain distinguishable. Touch targets are at least 44px.
+Keyboard order follows the task. Controls have labels and visible focus.
+Dialogs support Escape and restore focus. Drag interactions have keyboard alternatives.
 
-- **Header row**: Light blue background (#DBEAFE), 600 weight, left-align text + numbers
-- **Data rows**: Alternating white / light gray (#F3F4F6), 14px body
-- **Row hover**: Light blue tint (#F0F9FF)
-- **Grouping rows**: Light blue section headers (#E0F2FE), 600 weight, can be collapsible
-- **Total/Summary rows**: Light orange (#FFE5D9) or light gray highlight, bold or slightly heavier weight
-- **Column spacing**: Min 12px padding, increase for readability
+Arabic is primary and RTL uses logical positioning. English and numeric fragments
+use direction isolation. Clinical documents retain explicit OD/OS labels.
+Print hides navigation and editing controls, uses readable light surfaces, and
+avoids clipped fields or split patient context.
 
-### Forms
+## Related Documents
 
-- **Input**: 12px padding, light gray background, blue border on focus, rounded 6px, 13px label
-- **Select/Dropdown**: Match input styling
-- **Validation**: Red text for errors, green text for success, warning yellow for caution
-- **Placeholder**: Muted gray text
+- `PAGES_DESIGN.md`: task-based screen patterns.
+- `REDESIGN_GUIDE.md`: applying the direction to existing screens.
+- `REDESIGN_SUMMARY.md`: document index and verification status.
+- `SHEETS_REDESIGN_SUMMARY.md`: clinical-sheet and A4 requirements.
+- `.superdesign/design-system.md`: report-workspace specialization.
 
-### Cards
+## Delivery Gate
 
-- **Background**: White
-- **Border**: 1px light gray, rounded 8px
-- **Padding**: 16px (lg spacing)
-- **Shadow**: None (restrained clinic aesthetic, not material design)
-- **No nested cards** (absolute ban)
+For changed UI, record the core antislop Delivery Gate and UI checklist with
+actual evidence. Every relevant item receives PASS only after verification.
+Unverified behavior is not a PASS.
 
-### Navigation
+1. Hard Gate: real content/routes/actions, state coverage, measured contrast,
+   mobile containment, keyboard/focus, and both themes.
+2. Purpose-Gate: written reasons for color, typography, icons, cards, elevation,
+   badges, backgrounds, illustrations, and motion; enforce dose caps.
+3. Liveliness: declared dials, task focal point, structural whitespace, selective
+   accent, identity motif, and a Design Read before generation.
+4. Craftsmanship: run or build, inspect console output, record each control's
+   observed action, and check desktop/mobile, themes, states, and print when relevant.
 
-- **Sidebar/Top nav**: Light gray background (#F9FAFB), dark text
-- **Active link**: Blue left border (2px), blue text, light blue background
-- **Inactive link**: Muted text, no background
-- **Hover**: Light gray background
-
-#### Navigation architecture
-
-The app has three navigation surfaces that work together. Component files live in `client/src/components/layout/`.
-
-**AppTopNav** (`AppTopNav.tsx`) — horizontal header bar (visible on all screen sizes):
-- Admin users see 8 fixed `adminQuickTabs`: لوحة التحكم, مركز المريض, الحسابات, المرتبات, الحضور, كفرالشيخ, المخزن, مركز الإدارة.
-- Non-admin users see permission-filtered tabs from `allNavTabs` (today, patients, operations, accounting, kf, stockroom). Tabs not permitted are hidden.
-- A **"المزيد" popover** (desktop only) shows remaining `NavGroupSection` entries from `navGroups` that are not already main tabs, filtered by permission. Sections with a single item navigate directly on header click — no accordion expand.
-- The Accounting sub-group for non-admin users also appears as a dropdown button next to the Accounting tab when the user has accounting permission but it is not already in `mainNavTabs`.
-
-**AppSidebar** (`AppSidebar.tsx`) — collapsible sidebar (desktop only):
-- Admin sees `adminNavGroups` (defined in `AppNav.tsx`).
-- Staff sees `staffNavGroups` (same as adminNavGroups minus the last entry, with attendance items role-filtered and "حضوري" + "الروستر" added at the bottom).
-- **مركز الإدارة** group is NOT in the sidebar — reachable from AppTopNav admin tabs and user dropdown only.
-
-**AppBottomNav** (`AppBottomNav.tsx`) — fixed bottom tab bar (mobile only, hidden on `md:` and above):
-
-| Admin tabs | Staff tabs (permission-filtered) |
-|---|---|
-| لوحة التحكم | اليوم |
-| مركز المريض | مركز المريض |
-| الحسابات | العمليات |
-| المرتبات | الحسابات |
-| الحضور | كفرالشيخ |
-| كفرالشيخ | الروستر *(doctors + technicians only)* |
-| الإدارة | المزيد |
-| المزيد | |
-
-The "المزيد" tab in both variants opens the same `NavGroupSection` drawer filtered by permission. Single-item sections navigate directly.
-
-#### AppNav groups (`client/src/components/layout/AppNav.tsx`)
-
-| Export | Type | nav key | Module |
-|---|---|---|---|
-| `attendanceNavGroup` | `NavGroupSection` | `attendance` | Attendance (5 items) |
-| `salaryNavGroup` | `NavGroupSection` | `salary` | Salary (4 items) |
-| `accountingNavGroup` | `NavGroupSection` | `accounting` | Accounting (14 items) |
-| `adminNavGroups` | `NavGroup[]` | — | All admin nav (includes above + Clinics groups + KF + Stockroom + more) |
-| `staffNavGroups` | `NavGroup[]` | — | Same as admin but without last entry; adds "حضوري" and "الروستر" leaves |
-
-#### Clinics sidebar sections (5 `NavGroupSection` accordion entries)
-
-| Section key | Arabic label | Links |
-|---|---|---|
-| `clinics-file` | ملف المريض | `/medicalfile` |
-| `clinics-measurements` | القياسات | `/sheets/autorefs/dashboard`, `/sheets/refractions/dashboard` |
-| `clinics-pentacam` | البنتاكام | `/sheets/pentacam/dashboard`, `/sheets/pentacam`, `/admin/pentacam` |
-| `clinics-prescriptions` | روشتات و تقارير | `/prescription`, `/medical-reports` |
-| `clinics-tests` | أشعة و تحاليل | `/request-tests` |
-
-**Key behavior notes:**
-- Single-item accordion sections navigate directly on header click (no expand needed).
-- **مركز الإدارة** group is NOT in the sidebar; it appears only as an admin quick tab and in the user dropdown.
-- Salary appears in the "المزيد" popover for non-admin users who have a `/salary` permission.
-- `/quick-entry` and `/new-cases` are not in navigation groups (accessible directly via URL or command palette).
-
-### Alerts / Callouts
-
-- **Success**: Green (#10B981) left border (2px), light green background (#ECFDF5), green text
-- **Warning**: Yellow (#F59E0B) left border, light yellow background, yellow text
-- **Error**: Red border, light red background, red text
-- **Info**: Blue border, light blue background, blue text
-- **No side-stripe only** (must include background tint)
-
-## Layout Principles
-
-1. **Breathing room** — Don't fill every pixel. Whitespace aids clarity.
-2. **Content-first** — Sidebars support, don't dominate.
-3. **Data density** — Tables can be tighter (12px row padding) than prose (16px).
-4. **No boxes-within-boxes** — One level of nesting max (card → content, not card → card → content).
-5. **Responsive grid** — 1-column mobile, 2-col tablet, 3+ desktop; use CSS Grid or Flexbox, not Bootstrap-style containers.
-
-## Theme & Lighting
-
-**Light theme always.** Clinic staff work in bright office lighting and daylight surgery suites. Dark mode contradicts the medical environment. Light backgrounds reduce fatigue in OR/recovery where screens are visible from distance.
-
-## Motion
-
-- **Button hover/active**: Slight opacity change (0.9), no animation
-- **Form validation**: Instant visual feedback, no animation
-- **Page transitions**: Fade in (200ms ease-out) if needed
-- **Avoid**: Animating layout properties, bouncing, elastic easing
-
-## Bilingual (Arabic/English)
-
-- **Arabic primary** — All UI text leads in Arabic
-- **English fallback** — English always available, not translated separately
-- **RTL layout** — Ensure flex/grid flow adapts to text direction
-- **Typography**: Same font stack supports both; line-height works for both
-- **Data**: Numbers stay LTR (123, not ١٢٣)
-
-## Accessibility (Standard)
-
-- **Color contrast**: WCAG AA (4.5:1 normal text, 3:1 large text)
-- **Touch targets**: Min 44×44px (clinic staff with gloves, time pressure)
-- **Focus states**: Visible outline (2px blue), no invisible focus
-- **Screen readers**: Semantic HTML, labels on form inputs
-- **Mobile**: Readable on 5-inch and 27-inch screens; scale text appropriately
-
-## Anti-Patterns (Absolute Bans)
-
-1. ❌ **Side-stripe borders only** — Rewrite with full borders or background tints
-2. ❌ **Gradient text** — Use solid color, emphasis via weight/size
-3. ❌ **Glassmorphism as default** — No decorative blurs
-4. ❌ **Card grids of identical cards** — Vary content, use tables for structured data
-5. ❌ **Modal-first** — Use inline or progressive UI; modals are last resort
-6. ❌ **Hero-metric template** — No big-number + label + gradient cliché
-
-## Current Debt
-
-- Inconsistent button styles (no unified primary/secondary)
-- Random color usage (orange, blue, teal scattered without system)
-- Poor spacing rhythm (16px everywhere, no variation)
-- Weak typography hierarchy (size only, no weight contrast)
-- Ad-hoc table styling (no consistent header/row treatment)
-- Missing focus/hover states
+Documentation inspection verifies these written requirements only. It is not
+runtime, accessibility, performance, or production verification.

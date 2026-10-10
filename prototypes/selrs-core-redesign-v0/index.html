@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="ar" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>SELRS · تصور الواجهة v0</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: oklch(0.965 0.012 255);
+      --surface: oklch(0.995 0.004 252);
+      --surface-soft: oklch(0.946 0.018 255);
+      --ink: oklch(0.285 0.052 258);
+      --ink-soft: oklch(0.48 0.035 256);
+      --ink-faint: oklch(0.62 0.025 255);
+      --line: oklch(0.906 0.018 255);
+      --blue: oklch(0.47 0.14 258);
+      --blue-soft: oklch(0.94 0.03 258);
+      --orange: oklch(0.68 0.18 44);
+      --orange-soft: oklch(0.95 0.045 55);
+      --green: oklch(0.52 0.13 150);
+      --green-soft: oklch(0.95 0.03 150);
+      --amber: oklch(0.62 0.14 76);
+      --amber-soft: oklch(0.96 0.04 82);
+      --red: oklch(0.54 0.17 25);
+      --red-soft: oklch(0.95 0.035 25);
+      --radius-sm: 8px;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --space: 4px;
+      --shadow: 0 2px 8px oklch(0.28 0.05 258 / 0.055);
+      font-family: "Segoe UI", Tahoma, system-ui, sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    html { direction: ltr; width: 100%; min-width: 320px; max-width: 100%; overflow-x: hidden; background: var(--page); }
+    body { direction: ltr; width: 100%; max-width: 100vw; overflow-x: hidden; margin: 0; color: var(--ink); background: var(--page); font-size: 14px; }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+    .review-bar {
+      direction: rtl; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      min-height: 58px; padding: 9px 22px; color: var(--ink-soft);
+      background: var(--surface); border-bottom: 1px solid var(--line);
+    }
+    .review-title { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .preview-tag { padding: 5px 9px; border-radius: 999px; background: var(--orange-soft); color: var(--ink); font-size: 11px; font-weight: 750; }
+    .review-copy { font-size: 12px; }
+    .screen-switcher { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--page); }
+    .screen-switcher button {
+      min-height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent;
+      color: var(--ink-soft); font-size: 12px; font-weight: 650; cursor: pointer;
+      transition: background-color 160ms ease-out, color 160ms ease-out, box-shadow 160ms ease-out;
+    }
+    .screen-switcher button[aria-selected="true"] { color: var(--surface); background: var(--blue); box-shadow: 0 1px 3px oklch(0.25 0.05 258 / .12); }
+    .assumption-note { position: relative; }
+    .assumption-note summary { list-style: none; cursor: pointer; font-size: 12px; font-weight: 650; white-space: nowrap; }
+    .assumption-note summary::-webkit-details-marker { display: none; }
+    .assumption-note summary span { color: var(--blue); }
+    .assumption-panel {
+      position: absolute; z-index: 5; inset-block-start: 29px; inset-inline-end: 0; width: min(350px, calc(100vw - 32px));
+      padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+      line-height: 1.8; font-size: 12px;
+    }
+    .assumption-panel p { margin: 0 0 8px; }
+    .assumption-panel p:last-child { margin-bottom: 0; }
+    .app-frame { direction: ltr; display: grid; grid-template-columns: minmax(0, 1fr) 236px; width: 100vw; min-width: 0; min-height: calc(100vh - 58px); max-width: 1680px; margin: 0 auto; overflow-x: clip; }
+    .app-sidebar { direction: rtl; grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 22px; width: 236px; min-width: 0; padding: 22px 16px; background: oklch(0.976 0.009 255); border-inline-start: 1px solid var(--line); }
+    .brand-lockup { display: flex; align-items: center; gap: 10px; padding: 0 4px 18px; border-bottom: 1px solid var(--line); }
+    .brand-lockup img { width: 42px; height: 42px; object-fit: contain; border-radius: 9px; background: var(--surface); }
+    .brand-lockup strong { display: block; font-size: 13px; font-weight: 760; }
+    .brand-lockup small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 10px; }
+    .nav-heading { margin: 0 8px 6px; color: var(--ink-faint); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+    .side-nav { display: grid; gap: 3px; }
+    .side-nav button {
+      display: flex; align-items: center; gap: 10px; width: 100%; min-height: 42px; padding: 0 10px;
+      border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink-soft); text-align: right; cursor: pointer;
+      transition: background-color 150ms ease-out, color 150ms ease-out;
+    }
+    .side-nav button:hover { background: var(--surface-soft); color: var(--ink); }
+    .side-nav button[aria-current="page"] { background: var(--blue-soft); color: var(--blue); font-weight: 720; }
+    .side-nav .icon { width: 18px; height: 18px; flex: none; }
+    .side-nav .nav-label { flex: 1; }
+    .nav-count { min-width: 23px; padding: 2px 6px; border-radius: 999px; background: var(--surface); color: var(--ink-soft); text-align: center; font-size: 10px; }
+    .sidebar-bottom { margin-top: auto; padding: 13px 10px; border-radius: var(--radius); background: var(--surface); color: var(--ink-soft); font-size: 11px; line-height: 1.7; }
+    .connection-line { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; color: var(--ink); font-weight: 650; }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .app-header { direction: rtl; grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 0; min-height: 70px; padding: 12px 28px; background: var(--surface); border-bottom: 1px solid var(--line); }
+    .header-context { color: var(--ink-soft); font-size: 12px; }
+    .header-tools { display: flex; align-items: center; gap: 10px; }
+    .global-search { display: flex; align-items: center; gap: 8px; min-width: 230px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--page); color: var(--ink-faint); font-size: 12px; }
+    .global-search .icon { width: 15px; height: 15px; }
+    .icon-button { display: inline-grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink-soft); cursor: pointer; }
+    .icon-button .icon { width: 17px; height: 17px; }
+    .user-pill { display: flex; align-items: center; gap: 8px; padding-inline-start: 8px; color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
+    .avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--blue); background: var(--blue-soft); font-size: 11px; font-weight: 750; }
+    .page-content { direction: rtl; grid-column: 1; grid-row: 2; min-width: 0; padding: 28px clamp(16px, 2.8vw, 40px) 38px; }
+    .page-view[hidden] { display: none !important; }
+    .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+    .eyebrow { display: block; margin-bottom: 7px; color: var(--blue); font-size: 10px; font-weight: 760; letter-spacing: .06em; }
+    h1, h2, h3, p { margin-block-start: 0; }
+    h1 { margin-bottom: 6px; font-size: 27px; line-height: 1.28; letter-spacing: -.025em; font-weight: 760; }
+    h2 { margin-bottom: 0; font-size: 16px; line-height: 1.4; font-weight: 730; }
+    h3 { margin-bottom: 0; font-size: 13px; font-weight: 700; }
+    .page-subtitle { max-width: 64ch; margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.7; }
+    .heading-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .text-button, .secondary-button, .primary-button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 39px; padding: 0 13px;
+      border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 680; cursor: pointer;
+      transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out;
+    }
+    .text-button:hover, .secondary-button:hover { background: var(--surface-soft); }
+    .primary-button { border-color: var(--orange); color: var(--ink); background: var(--orange); }
+    .primary-button:hover { background: oklch(0.64 0.18 44); }
+    .primary-button:active, .secondary-button:active, .text-button:active { transform: translateY(1px); }
+    .text-button .icon, .secondary-button .icon, .primary-button .icon { width: 16px; height: 16px; }
+    .soft-label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 999px; color: var(--ink-soft); background: var(--surface-soft); font-size: 10px; font-weight: 680; white-space: nowrap; }
+    .soft-label .dot { width: 6px; height: 6px; }
+    .panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+    .panel-head p { margin: 3px 0 0; color: var(--ink-soft); font-size: 11px; }
+    .panel-body { padding: 14px 16px; }
+    .link-button { border: 0; background: transparent; color: var(--blue); font-size: 11px; font-weight: 700; cursor: pointer; }
+    .home-search { display: flex; align-items: center; gap: 10px; min-height: 50px; margin-bottom: 18px; padding: 6px 8px 6px 13px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .home-search .icon { width: 18px; height: 18px; color: var(--ink-faint); flex: none; }
+    .home-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 13px; }
+    .home-search input::placeholder { color: var(--ink-faint); }
+    .home-search button { min-height: 36px; padding: 0 15px; }
+    .action-row { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .home-columns { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(270px, .85fr); gap: 18px; align-items: start; }
+    .work-list { display: grid; }
+    .work-row { display: flex; align-items: center; gap: 12px; min-height: 65px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .work-row:last-child { border-bottom: 0; }
+    .work-icon { display: grid; place-items: center; width: 37px; height: 37px; flex: none; border-radius: 10px; color: var(--blue); background: var(--blue-soft); }
+    .work-icon.orange { color: var(--ink); background: var(--orange-soft); }
+    .work-icon.green { color: var(--green); background: var(--green-soft); }
+    .work-icon .icon { width: 17px; height: 17px; }
+    .work-copy { flex: 1; min-width: 0; }
+    .work-copy strong { display: block; font-size: 12px; font-weight: 700; }
+    .work-copy small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 10px; }
+    .work-value { color: var(--ink-soft); font-size: 11px; white-space: nowrap; }
+    .row-arrow { color: var(--ink-faint); font-size: 18px; line-height: 1; }
+    .today-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-bottom: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .summary-cell { padding: 0 10px; border-inline-start: 1px solid var(--line); }
+    .summary-cell:first-child { padding-inline-start: 0; }
+    .summary-cell:last-child { border-inline-start: 0; }
+    .summary-cell strong { display: block; font-size: 20px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .summary-cell span { display: block; margin-top: 5px; color: var(--ink-soft); font-size: 10px; }
+    .mini-appointment { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .mini-appointment:last-child { border-bottom: 0; }
+    .time-stamp { min-width: 52px; color: var(--ink-soft); font-size: 11px; font-weight: 690; font-variant-numeric: tabular-nums; }
+    .patient-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--surface-soft); color: var(--blue); font-size: 10px; font-weight: 700; }
+    .appointment-copy { min-width: 0; flex: 1; }
+    .appointment-copy strong { display: block; font-size: 11px; }
+    .appointment-copy small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 10px; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 999px; font-size: 9px; font-weight: 720; white-space: nowrap; }
+    .status.good { color: var(--green); background: var(--green-soft); }
+    .status.wait { color: var(--amber); background: var(--amber-soft); }
+    .status.info { color: var(--blue); background: var(--blue-soft); }
+    .status .dot { width: 5px; height: 5px; background: currentColor; }
+    .note-line { margin: 13px 0 0; color: var(--ink-faint); font-size: 10px; line-height: 1.6; }
+    .dashboard-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .dashboard-stat { display: flex; align-items: center; gap: 11px; min-height: 84px; padding: 14px 18px; border-inline-start: 1px solid var(--line); }
+    .dashboard-stat:last-child { border-inline-start: 0; }
+    .stat-mark { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px; color: var(--blue); background: var(--blue-soft); }
+    .stat-mark.orange { color: var(--ink); background: var(--orange-soft); }
+    .stat-mark.green { color: var(--green); background: var(--green-soft); }
+    .stat-mark .icon { width: 17px; height: 17px; }
+    .dashboard-stat strong { display: block; font-size: 20px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+    .dashboard-stat small { display: block; margin-top: 5px; color: var(--ink-soft); font-size: 10px; }
+    .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr); gap: 18px; align-items: start; }
+    .queue-head, .queue-row { display: grid; grid-template-columns: 1.25fr 1fr 1fr auto; align-items: center; gap: 12px; }
+    .queue-head { min-height: 35px; color: var(--ink-faint); font-size: 10px; font-weight: 700; }
+    .queue-row { min-height: 51px; border-top: 1px solid var(--line); font-size: 11px; }
+    .queue-patient { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 680; }
+    .queue-patient .patient-mark { width: 27px; height: 27px; }
+    .queue-muted { color: var(--ink-soft); font-size: 10px; }
+    .timeline { display: grid; gap: 0; }
+    .timeline-row { display: grid; grid-template-columns: 52px 10px minmax(0,1fr); gap: 9px; min-height: 61px; }
+    .timeline-time { color: var(--ink-soft); font-size: 10px; font-weight: 680; font-variant-numeric: tabular-nums; }
+    .timeline-track { position: relative; display: flex; justify-content: center; }
+    .timeline-track::before { position: absolute; inset-block: 3px -12px; width: 1px; background: var(--line); content: ""; }
+    .timeline-row:last-child .timeline-track::before { display: none; }
+    .timeline-track::after { position: relative; z-index: 1; display: block; width: 8px; height: 8px; margin-top: 2px; border: 2px solid var(--blue); border-radius: 50%; background: var(--surface); content: ""; }
+    .timeline-row.current .timeline-track::after { border-color: var(--orange); background: var(--orange); }
+    .timeline-copy strong { display: block; font-size: 11px; }
+    .timeline-copy small { display: block; margin-top: 4px; color: var(--ink-soft); font-size: 10px; }
+    .ops-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .ops-item { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .ops-item .icon { width: 17px; height: 17px; color: var(--ink-soft); flex: none; }
+    .ops-item strong { display: block; font-size: 11px; }
+    .ops-item small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 10px; }
+    .admin-status { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-bottom: 17px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .admin-status-item { display: flex; align-items: center; gap: 9px; min-height: 58px; padding: 10px 15px; border-inline-start: 1px solid var(--line); }
+    .admin-status-item:last-child { border-inline-start: 0; }
+    .admin-status-item .icon { width: 17px; height: 17px; color: var(--blue); }
+    .admin-status-item strong { display: block; font-size: 11px; }
+    .admin-status-item small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 10px; }
+    .admin-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 19px; }
+    .admin-filters { display: flex; align-items: center; gap: 5px; overflow-x: auto; padding: 3px; }
+    .admin-filters button { min-height: 32px; padding: 0 11px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--ink-soft); font-size: 10px; font-weight: 680; white-space: nowrap; cursor: pointer; }
+    .admin-filters button:hover { background: var(--surface-soft); }
+    .admin-filters button[aria-pressed="true"] { border-color: var(--line); background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+    .admin-search { display: flex; align-items: center; gap: 8px; min-width: 240px; height: 38px; padding: 0 11px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+    .admin-search .icon { width: 15px; height: 15px; color: var(--ink-faint); flex: none; }
+    .admin-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 11px; }
+    .admin-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; }
+    .admin-group { min-width: 0; padding: 0 0 11px; border-bottom: 1px solid var(--line); }
+    .admin-group h2 { display: flex; align-items: center; gap: 8px; padding: 7px 0 9px; color: var(--ink); font-size: 13px; }
+    .group-count { color: var(--ink-faint); font-size: 10px; font-weight: 600; }
+    .module-list { display: grid; }
+    .module-row { display: flex; align-items: center; gap: 10px; min-height: 43px; padding: 6px 0; border-top: 1px solid oklch(0.93 0.012 255); }
+    .module-row:first-child { border-top: 0; }
+    .module-row[hidden], .admin-group[hidden] { display: none !important; }
+    .module-icon { display: grid; place-items: center; width: 29px; height: 29px; flex: none; border-radius: 8px; color: var(--blue); background: var(--blue-soft); }
+    .module-icon.orange { color: var(--ink); background: var(--orange-soft); }
+    .module-icon.green { color: var(--green); background: var(--green-soft); }
+    .module-icon .icon { width: 15px; height: 15px; }
+    .module-name { flex: 1; min-width: 0; }
+    .module-name strong { display: block; font-size: 11px; font-weight: 700; }
+    .module-name small { display: block; margin-top: 2px; color: var(--ink-soft); font-size: 9px; }
+    .module-arrow { color: var(--ink-faint); font-size: 15px; }
+    .empty-search { display: none; padding: 22px 12px; color: var(--ink-soft); text-align: center; font-size: 12px; }
+    .empty-search.visible { display: block; }
+    .prototype-footnote { margin-top: 20px; color: var(--ink-faint); font-size: 10px; text-align: left; }
+    @media (max-width: 1080px) {
+      .app-frame { grid-template-columns: 205px minmax(0,1fr); }
+      .app-header { padding-inline: 20px; }
+      .page-content { padding-inline: 20px; }
+      .dashboard-summary { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .dashboard-stat:nth-child(2) { border-inline-start: 0; }
+      .dashboard-stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    }
+    @media (max-width: 760px) {
+      .review-bar { align-items: flex-start; flex-wrap: wrap; padding: 10px 12px; }
+      .review-title { min-height: 30px; }
+      .review-copy, .assumption-note { display: none; }
+      .screen-switcher { order: 2; width: 100%; justify-content: stretch; }
+      .screen-switcher button { flex: 1; padding-inline: 7px; }
+      .app-frame { direction: ltr; display: flex; flex-direction: column; width: 100%; min-width: 0; min-height: calc(100vh - 98px); }
+      .app-header { min-height: 58px; padding: 9px 13px; }
+      .header-context { display: none; }
+      .global-search { min-width: 0; width: min(42vw, 210px); padding: 8px 9px; }
+      .user-pill > span:not(.avatar) { display: none; }
+      .app-sidebar { order: 2; display: block; width: auto; min-width: 0; padding: 9px 10px 11px; border-top: 1px solid var(--line); border-inline-start: 0; }
+      .brand-lockup, .nav-heading, .sidebar-bottom { display: none; }
+      .side-nav { display: flex; gap: 4px; overflow-x: auto; }
+      .side-nav button { width: auto; min-width: max-content; min-height: 39px; padding-inline: 11px; }
+      .side-nav .nav-label { flex: initial; }
+      .nav-count { display: none; }
+      .page-content { order: 1; width: 100%; min-width: 0; padding: 22px 13px 28px; }
+      .page-heading { align-items: flex-start; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+      h1 { font-size: 23px; }
+      .home-columns, .dashboard-grid, .admin-groups { grid-template-columns: 1fr; }
+      .home-columns { gap: 13px; }
+      .dashboard-grid { gap: 13px; }
+      .dashboard-summary { margin-bottom: 13px; }
+      .dashboard-stat { min-height: 72px; padding: 11px 12px; }
+      .dashboard-stat strong { font-size: 18px; }
+      .admin-controls { align-items: stretch; flex-direction: column; }
+      .admin-search { width: 100%; min-width: 0; }
+      .admin-filters { margin-inline: -3px; }
+      .ops-strip { grid-template-columns: 1fr; gap: 10px; }
+      .queue-head, .queue-row { grid-template-columns: 1.1fr .8fr .8fr auto; gap: 6px; }
+      .queue-head { font-size: 9px; }
+      .queue-row { font-size: 10px; }
+      .queue-muted { font-size: 9px; }
+    }
+    @media (max-width: 420px) {
+      .heading-tools { width: 100%; }
+      .heading-tools > * { flex: 1; }
+      .dashboard-summary { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .dashboard-stat:nth-child(odd) { border-inline-start: 1px solid var(--line); }
+      .dashboard-stat:nth-child(even) { border-inline-start: 0; }
+      .dashboard-stat:nth-child(n+3) { border-bottom: 0; }
+      .queue-head, .queue-row { grid-template-columns: 1fr auto auto; }
+      .queue-head > :nth-child(2), .queue-row > :nth-child(2) { display: none; }
+      .queue-row .status { padding-inline: 5px; }
+      .action-row > * { flex: 1; }
+    }
+    @media (min-width: 761px) {
+      .app-frame { display: block; width: 100%; max-width: 1680px; margin: 0 auto; overflow-x: hidden; }
+      .app-sidebar { display: none; }
+      .app-header, .page-content { width: 100%; grid-column: auto; grid-row: auto; }
+      .home-columns, .dashboard-grid, .admin-groups { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="review-bar" dir="rtl">
+    <div class="review-title">
+      <span class="preview-tag">تصور أولي · V0</span>
+      <span class="review-copy">اتجاه بصري للمراجعة، قبل أي تغيير في التطبيق</span>
+    </div>
+    <nav class="screen-switcher" role="tablist" aria-label="شاشات المعاينة">
+      <button type="button" role="tab" aria-selected="true" data-screen="home">الرئيسية</button>
+      <button type="button" role="tab" aria-selected="false" data-screen="dashboard">لوحة اليوم</button>
+      <button type="button" role="tab" aria-selected="false" data-screen="admin">مركز الإدارة</button>
+    </nav>
+    <details class="assumption-note">
+      <summary><span>؟</span> افتراضات النسخة</summary>
+      <div class="assumption-panel">
+        <p><strong>النطاق:</strong> نموذج محلي منفصل للصفحات الثلاث، لا يغيّر مسارات التطبيق أو صلاحياته.</p>
+        <p><strong>الرئيسية:</strong> المقصود صفحة العمل بعد تسجيل الدخول <b>/home</b>، وليست شاشة الدخول.</p>
+        <p><strong>البيانات:</strong> كل الأسماء والأرقام الظاهرة توضيحية فقط، وليست بيانات مرضى حقيقية.</p>
+        <p><strong>الهوية:</strong> اتجاه عربي RTL، مظهر فاتح، شعار المركز وألوانه الحالية، مع تركيز أكبر على ترتيب المهام.</p>
+      </div>
+    </details>
+  </header>
+
+  <div class="app-frame" dir="ltr">
+    <aside class="app-sidebar" aria-label="التنقل الرئيسي" dir="rtl">
+      <div class="brand-lockup">
+        <img src="assets/selrs-mark.png" alt="شعار عيون الشروق">
+        <div><strong>مركز عيون الشروق</strong><small>نظام إدارة العيادة</small></div>
+      </div>
+      <div>
+        <p class="nav-heading">مساحة العمل</p>
+        <nav class="side-nav">
+          <button type="button" data-screen="home" aria-current="page"><span class="icon" data-icon="home"></span><span class="nav-label">الرئيسية</span></button>
+          <button type="button" data-screen="dashboard"><span class="icon" data-icon="dashboard"></span><span class="nav-label">لوحة التحكم</span><span class="nav-count">08</span></button>
+          <button type="button"><span class="icon" data-icon="patients"></span><span class="nav-label">مركز المريض</span></button>
+          <button type="button"><span class="icon" data-icon="calendar"></span><span class="nav-label">الاستقبال والمواعيد</span></button>
+          <button type="button"><span class="icon" data-icon="activity"></span><span class="nav-label">مسار اليوم</span></button>
+        </nav>
+      </div>
+      <div>
+        <p class="nav-heading">الإدارة والخدمات</p>
+        <nav class="side-nav">
+          <button type="button"><span class="icon" data-icon="wallet"></span><span class="nav-label">الحسابات</span></button>
+          <button type="button"><span class="icon" data-icon="staff"></span><span class="nav-label">الموظفون</span></button>
+          <button type="button"><span class="icon" data-icon="archive"></span><span class="nav-label">المخزن والسجلات</span></button>
+          <button type="button" data-screen="admin"><span class="icon" data-icon="settings"></span><span class="nav-label">مركز الإدارة</span></button>
+        </nav>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="connection-line"><span class="dot"></span> النظام متصل</div>
+        <div>واجهة تجريبية ببيانات توضيحية</div>
+      </div>
+    </aside>
+
+    <header class="app-header" dir="rtl">
+      <div class="header-context">مركز عيون الشروق <span aria-hidden="true">/</span> <span id="crumb-label">الرئيسية</span></div>
+      <div class="header-tools">
+        <div class="global-search"><span class="icon" data-icon="search"></span><span>بحث سريع عن مريض أو خدمة</span><span class="nav-count">⌘ K</span></div>
+        <button class="icon-button" type="button" aria-label="الإشعارات"><span class="icon" data-icon="bell"></span></button>
+        <div class="user-pill"><span class="avatar">م</span><span>د. محمد</span></div>
+      </div>
+    </header>
+
+    <main class="page-content" id="prototype-main" dir="rtl">
+      <section class="page-view" id="view-home" role="tabpanel" aria-label="الرئيسية">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">مساحة العمل · الخميس ٢ أكتوبر ٢٠٢٦</span>
+            <h1>صباح الخير، د. محمد</h1>
+            <p class="page-subtitle">ابدأ من المهمة التالية، أو انتقل مباشرة إلى أحد مسارات العيادة.</p>
+          </div>
+          <span class="soft-label"><span class="dot"></span> بيانات توضيحية</span>
+        </div>
+
+        <form class="home-search" onsubmit="event.preventDefault(); document.getElementById('home-search-note').textContent='هذه معاينة فقط، البحث غير متصل بقاعدة البيانات.';">
+          <span class="icon" data-icon="search"></span>
+          <input aria-label="بحث عن مريض" placeholder="ابحث باسم المريض أو رقم الملف">
+          <button class="secondary-button" type="submit">بحث</button>
+        </form>
+        <p id="home-search-note" class="note-line" aria-live="polite" style="margin: -11px 4px 13px"></p>
+
+        <div class="action-row" aria-label="إجراءات سريعة">
+          <button class="primary-button" type="button"><span class="icon" data-icon="plus"></span> تسجيل مريض</button>
+          <button class="secondary-button" type="button"><span class="icon" data-icon="calendar"></span> حجز موعد</button>
+          <button class="text-button" type="button" data-screen="dashboard"><span class="icon" data-icon="dashboard"></span> متابعة لوحة اليوم</button>
+        </div>
+
+        <div class="home-columns">
+          <section class="panel">
+            <div class="panel-head">
+              <div><h2>مسارات العمل</h2><p>الوحدات الأكثر استخداماً في بداية اليوم</p></div>
+              <button class="link-button" type="button">عرض كل الوحدات</button>
+            </div>
+            <div class="panel-body work-list">
+              <div class="work-row"><span class="work-icon orange"><span class="icon" data-icon="patients"></span></span><span class="work-copy"><strong>الاستقبال ومركز المريض</strong><small>تسجيل الزيارات، الملفات، ومواعيد اليوم</small></span><span class="work-value">٣ مهام</span><span class="row-arrow" aria-hidden="true">‹</span></div>
+              <div class="work-row"><span class="work-icon"><span class="icon" data-icon="activity"></span></span><span class="work-copy"><strong>العمليات والمتابعة</strong><small>تجهيز الحالات ومراجعة ما بعد الإجراء</small></span><span class="work-value">٨ حالات</span><span class="row-arrow" aria-hidden="true">‹</span></div>
+              <div class="work-row"><span class="work-icon green"><span class="icon" data-icon="wallet"></span></span><span class="work-copy"><strong>الحسابات والموارد</strong><small>التحصيل، الحضور، والمخزون</small></span><span class="work-value">متابعة</span><span class="row-arrow" aria-hidden="true">‹</span></div>
+              <div class="work-row"><span class="work-icon"><span class="icon" data-icon="settings"></span></span><span class="work-copy"><strong>الإدارة والخدمات</strong><small>الموظفون، الإعدادات، وسلامة النظام</small></span><span class="work-value">للمصرّح لهم</span><span class="row-arrow" aria-hidden="true">‹</span></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div><h2>نظرة اليوم</h2><p>الخميس · ٢ أكتوبر</p></div>
+              <button class="link-button" type="button" data-screen="dashboard">التفاصيل</button>
+            </div>
+            <div class="panel-body">
+              <div class="today-summary">
+                <div class="summary-cell"><strong>٤٢</strong><span>موعداً</span></div>
+                <div class="summary-cell"><strong>٠٨</strong><span>في الانتظار</span></div>
+                <div class="summary-cell"><strong>١٥</strong><span>أُنجزت</span></div>
+              </div>
+              <div class="mini-appointment"><span class="time-stamp">١٠:٣٠</span><span class="patient-mark">م</span><span class="appointment-copy"><strong>ملف ١٠٤٢</strong><small>متابعة بعد تصحيح الإبصار</small></span><span class="status good"><span class="dot"></span>وصل</span></div>
+              <div class="mini-appointment"><span class="time-stamp">١١:٠٠</span><span class="patient-mark">م</span><span class="appointment-copy"><strong>ملف ٢٢٥٨</strong><small>كشف استشاري</small></span><span class="status wait"><span class="dot"></span>قادم</span></div>
+              <p class="note-line">الأرقام ومعرّفات الملفات أمثلة للعرض وليست بيانات حقيقية.</p>
+            </div>
+          </section>
+        </div>
+        <p class="prototype-footnote">تصور أولي للمراجعة فقط · لا توجد اتصالات بخدمات SELRS أو قاعدة البيانات.</p>
+      </section>
+
+      <section class="page-view" id="view-dashboard" role="tabpanel" aria-label="لوحة اليوم" hidden>
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">مركز التشغيل · الخميس ٢ أكتوبر ٢٠٢٦</span>
+            <h1>لوحة العمل اليومية</h1>
+            <p class="page-subtitle">حالة الاستقبال والزيارات القادمة، مرتبة لتُقرأ سريعاً من مكتب العيادة.</p>
+          </div>
+          <div class="heading-tools"><span class="soft-label"><span class="dot"></span> تحديث توضيحي · ١٠:٢٦ ص</span><button class="secondary-button" type="button"><span class="icon" data-icon="calendar"></span> اليوم</button></div>
+        </div>
+
+        <div class="dashboard-summary" aria-label="ملخص اليوم">
+          <div class="dashboard-stat"><span class="stat-mark orange"><span class="icon" data-icon="patients"></span></span><span><strong>٤٢</strong><small>موعداً اليوم</small></span></div>
+          <div class="dashboard-stat"><span class="stat-mark"><span class="icon" data-icon="clock"></span></span><span><strong>٠٨</strong><small>في قائمة الانتظار</small></span></div>
+          <div class="dashboard-stat"><span class="stat-mark green"><span class="icon" data-icon="check"></span></span><span><strong>١٥</strong><small>زيارة مكتملة</small></span></div>
+          <div class="dashboard-stat"><span class="stat-mark"><span class="icon" data-icon="activity"></span></span><span><strong>٠٣</strong><small>إجراءات مجدولة</small></span></div>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="panel-head"><div><h2>طابور الاستقبال</h2><p>الحالات النشطة الآن · بيانات توضيحية</p></div><button class="link-button" type="button">فتح قائمة المرضى</button></div>
+            <div class="panel-body">
+              <div class="queue-head"><span>الملف</span><span>نوع الزيارة</span><span>الطبيب</span><span>الحالة</span></div>
+              <div class="queue-row"><span class="queue-patient"><span class="patient-mark">م</span>ملف ١٠٤٢</span><span class="queue-muted">متابعة</span><span class="queue-muted">د. سامر</span><span class="status good"><span class="dot"></span>داخل العيادة</span></div>
+              <div class="queue-row"><span class="queue-patient"><span class="patient-mark">م</span>ملف ٢٢٥٨</span><span class="queue-muted">كشف جديد</span><span class="queue-muted">د. سارة</span><span class="status wait"><span class="dot"></span>ينتظر</span></div>
+              <div class="queue-row"><span class="queue-patient"><span class="patient-mark">م</span>ملف ٣١٨٦</span><span class="queue-muted">قياسات</span><span class="queue-muted">الفني</span><span class="status info"><span class="dot"></span>تجهيز</span></div>
+              <div class="queue-row"><span class="queue-patient"><span class="patient-mark">م</span>ملف ٤٠٧١</span><span class="queue-muted">ما بعد الإجراء</span><span class="queue-muted">د. سامر</span><span class="status wait"><span class="dot"></span>قادم</span></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>المواعيد التالية</h2><p>الفترة الصباحية</p></div><span class="soft-label">٤ مواعيد</span></div>
+            <div class="panel-body timeline">
+              <div class="timeline-row current"><span class="timeline-time">١٠:٣٠</span><span class="timeline-track"></span><span class="timeline-copy"><strong>ملف ١٠٤٢ · متابعة</strong><small>د. سامر · وصل</small></span></div>
+              <div class="timeline-row"><span class="timeline-time">١١:٠٠</span><span class="timeline-track"></span><span class="timeline-copy"><strong>ملف ٢٢٥٨ · كشف استشاري</strong><small>د. سارة · بانتظار الوصول</small></span></div>
+              <div class="timeline-row"><span class="timeline-time">١١:٣٠</span><span class="timeline-track"></span><span class="timeline-copy"><strong>ملف ٣١٨٦ · قياسات</strong><small>وحدة الفحوصات</small></span></div>
+              <div class="timeline-row"><span class="timeline-time">١٢:٠٠</span><span class="timeline-track"></span><span class="timeline-copy"><strong>ملف ٤٠٧١ · متابعة</strong><small>د. سامر</small></span></div>
+            </div>
+          </section>
+        </div>
+        <div class="ops-strip">
+          <div class="ops-item"><span class="icon" data-icon="staff"></span><span><strong>الفريق</strong><small>الحضور مكتمل · ١٢ من ١٣</small></span></div>
+          <div class="ops-item"><span class="icon" data-icon="archive"></span><span><strong>المستلزمات</strong><small>صنف واحد يحتاج مراجعة</small></span></div>
+          <div class="ops-item"><span class="icon" data-icon="database"></span><span><strong>اتصال النظام</strong><small>قاعدة البيانات متصلة</small></span></div>
+        </div>
+        <p class="prototype-footnote">أسماء الموظفين، الأرقام، والحالات بيانات افتراضية لشرح الترتيب البصري فقط.</p>
+      </section>
+
+      <section class="page-view" id="view-admin" role="tabpanel" aria-label="مركز الإدارة" hidden>
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">إعدادات وصيانة · للمصرّح لهم</span>
+            <h1>مركز الإدارة</h1>
+            <p class="page-subtitle">الأدوات مجمّعة حسب المهمة، مع بحث مباشر وحالة النظام في موضع واحد.</p>
+          </div>
+          <span class="soft-label"><span class="dot"></span> بيانات توضيحية</span>
+        </div>
+
+        <div class="admin-status" aria-label="حالة النظام">
+          <div class="admin-status-item"><span class="dot"></span><span><strong>قاعدة البيانات</strong><small>متصلة</small></span></div>
+          <div class="admin-status-item"><span class="icon" data-icon="shield"></span><span><strong>النفق الآمن</strong><small>نشط</small></span></div>
+          <div class="admin-status-item"><span class="icon" data-icon="bell"></span><span><strong>المراجعات</strong><small>عنصران للمتابعة</small></span></div>
+        </div>
+
+        <div class="admin-controls">
+          <div class="admin-filters" role="group" aria-label="تصفية الأدوات">
+            <button type="button" data-filter="all" aria-pressed="true">الكل <span class="group-count">١٨</span></button>
+            <button type="button" data-filter="staff" aria-pressed="false">الكادر والصلاحيات</button>
+            <button type="button" data-filter="services" aria-pressed="false">الخدمات والملفات</button>
+            <button type="button" data-filter="portal" aria-pressed="false">المرضى والبوابة</button>
+            <button type="button" data-filter="system" aria-pressed="false">النظام والصيانة</button>
+          </div>
+          <label class="admin-search"><span class="icon" data-icon="search"></span><input id="admin-search-input" type="search" placeholder="ابحث عن أداة إدارية" aria-label="بحث عن أداة إدارية"></label>
+        </div>
+
+        <div class="admin-groups" id="admin-groups">
+          <section class="admin-group" data-group="staff">
+            <h2><span class="module-icon"><span class="icon" data-icon="staff"></span></span> الكادر والصلاحيات <span class="group-count">٤ أدوات</span></h2>
+            <div class="module-list">
+              <div class="module-row" data-category="staff" data-search="المستخدمين الحسابات الموظفين"><span class="module-icon"><span class="icon" data-icon="staff"></span></span><span class="module-name"><strong>المستخدمون</strong><small>الحسابات والموظفون</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="staff" data-search="الأطباء التخصصات"><span class="module-icon"><span class="icon" data-icon="eye"></span></span><span class="module-name"><strong>الأطباء</strong><small>الكادر الطبي والتخصصات</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="staff" data-search="الصلاحيات أدوار مجموعات العمل"><span class="module-icon"><span class="icon" data-icon="shield"></span></span><span class="module-name"><strong>الصلاحيات</strong><small>الأدوار ومجموعات العمل</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="staff" data-search="الأطباء الخارجيين الإحالات التعاقدات"><span class="module-icon"><span class="icon" data-icon="patients"></span></span><span class="module-name"><strong>الإحالات الخارجية</strong><small>الأطباء والتعاقدات</small></span><span class="module-arrow">‹</span></div>
+            </div>
+          </section>
+          <section class="admin-group" data-group="services">
+            <h2><span class="module-icon orange"><span class="icon" data-icon="activity"></span></span> الخدمات والملفات <span class="group-count">٥ أدوات</span></h2>
+            <div class="module-list">
+              <div class="module-row" data-category="services" data-search="الخدمات الربط التكويد المطابقة"><span class="module-icon orange"><span class="icon" data-icon="link"></span></span><span class="module-name"><strong>ربط الخدمات</strong><small>التكويد والمطابقة</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="services" data-search="الفحوصات الأسعار الباقات"><span class="module-icon orange"><span class="icon" data-icon="activity"></span></span><span class="module-name"><strong>الفحوصات</strong><small>الأسعار وإعدادات الباقات</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="services" data-search="ملفات الفحص الإلكترونية الاستمارات القوالب"><span class="module-icon"><span class="icon" data-icon="file"></span></span><span class="module-name"><strong>ملفات الفحص الإلكترونية</strong><small>استمارات العيادات والقوالب</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="services" data-search="مصمم النماذج الحقول"><span class="module-icon"><span class="icon" data-icon="edit"></span></span><span class="module-name"><strong>مصمم النماذج</strong><small>بناء وتعديل حقول الكشف</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="services" data-search="البنتاكام الصور ربط الملفات"><span class="module-icon green"><span class="icon" data-icon="eye"></span></span><span class="module-name"><strong>البنتاكام</strong><small>الصور وربط الملفات</small></span><span class="module-arrow">‹</span></div>
+            </div>
+          </section>
+          <section class="admin-group" data-group="portal">
+            <h2><span class="module-icon green"><span class="icon" data-icon="patients"></span></span> المرضى والبوابة <span class="group-count">٤ أدوات</span></h2>
+            <div class="module-list">
+              <div class="module-row" data-category="portal" data-search="سجل المرضى البحث كافة المرضى"><span class="module-icon green"><span class="icon" data-icon="patients"></span></span><span class="module-name"><strong>سجل المرضى الكلي</strong><small>البحث في كافة المرضى</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="portal" data-search="الأرشيف التاريخي سجلات السنوات السابقة"><span class="module-icon"><span class="icon" data-icon="archive"></span></span><span class="module-name"><strong>الأرشيف التاريخي</strong><small>سجلات السنوات السابقة</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="portal" data-search="حجوزات البوابة طلبات الحجز"><span class="module-icon orange"><span class="icon" data-icon="calendar"></span></span><span class="module-name"><strong>حجوزات البوابة</strong><small>طلبات الحجز الخارجي</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="portal" data-search="رسائل واتساب صندوق الوارد التواصل"><span class="module-icon"><span class="icon" data-icon="bell"></span></span><span class="module-name"><strong>رسائل واتساب</strong><small>صندوق الوارد والتواصل</small></span><span class="module-arrow">‹</span></div>
+            </div>
+          </section>
+          <section class="admin-group" data-group="system">
+            <h2><span class="module-icon"><span class="icon" data-icon="settings"></span></span> النظام والصيانة <span class="group-count">٥ أدوات</span></h2>
+            <div class="module-list">
+              <div class="module-row" data-category="system" data-search="حالة السيرفر مراقبة الأداء الاتصال"><span class="module-icon"><span class="icon" data-icon="database"></span></span><span class="module-name"><strong>حالة النظام</strong><small>الأداء والاتصال</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="system" data-search="اسكيما تحديثات ترحيل جداول قاعدة البيانات"><span class="module-icon"><span class="icon" data-icon="database"></span></span><span class="module-name"><strong>التحديثات وقاعدة البيانات</strong><small>الترحيلات وحالة المخطط</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="system" data-search="سجل العمليات التعديلات والإجراءات"><span class="module-icon"><span class="icon" data-icon="file"></span></span><span class="module-name"><strong>سجل العمليات</strong><small>التعديلات والإجراءات</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="system" data-search="قواعد تسعير المواعيد حسابات الأطباء"><span class="module-icon orange"><span class="icon" data-icon="wallet"></span></span><span class="module-name"><strong>قواعد التسعير</strong><small>أسعار الكشوفات وحسابات الأطباء</small></span><span class="module-arrow">‹</span></div>
+              <div class="module-row" data-category="system" data-search="الإشعارات التدقيق التشخيص الإصلاح أدوات المطور"><span class="module-icon"><span class="icon" data-icon="settings"></span></span><span class="module-name"><strong>الإشعارات والتشخيص</strong><small>إعدادات التنبيه وفحص الأعطال</small></span><span class="module-arrow">‹</span></div>
+            </div>
+          </section>
+        </div>
+        <div class="empty-search" id="admin-empty" aria-live="polite">لا توجد أدوات تطابق هذا البحث أو التصنيف.</div>
+        <p class="prototype-footnote">تصور تنظيمي فقط. الصلاحيات والأدوات هنا أمثلة ولا تتصل بالتطبيق الفعلي.</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const icons = {
+      home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/><path d="M8 21v-6h8v6"/>',
+      dashboard: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>',
+      patients: '<path d="M16 20v-1.5a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4V20"/><circle cx="10" cy="7" r="3.5"/><path d="M20 20v-1.5a4 4 0 0 0-3-3.87M16 3.2a3.5 3.5 0 0 1 0 6.8"/>',
+      calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m8 15 2 2 5-5"/>',
+      activity: '<path d="M3 12h4l3-7 4 14 3-7h4"/>',
+      wallet: '<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 8h18M16 14h2"/><path d="M6 5V3h12v2"/>',
+      staff: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 11a3 3 0 1 0 0-6M18 15a5 5 0 0 1 3 4v1"/>',
+      archive: '<path d="M4 4h16v4H4zM5 8v12h14V8M9 12h6M9 16h6"/>',
+      settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.5 1.5-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2.12v-.4a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.5-1.5.06-.06A1.7 1.7 0 0 0 9.14 15a1.7 1.7 0 0 0-1.56-1.03H7v-2.12h.58A1.7 1.7 0 0 0 9.14 10a1.7 1.7 0 0 0-.34-1.88l-.06-.06 1.5-1.5.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 13.2 5.4V5h2.12v.4a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.5 1.5-.06.06A1.7 1.7 0 0 0 19.4 10c.25.6.84 1 1.5 1h.1v2.12h-.1c-.66 0-1.25.4-1.5 1.03Z"/>',
+      search: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>',
+      bell: '<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+      plus: '<path d="M12 5v14M5 12h14"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      check: '<path d="m5 12 4 4L19 6"/>',
+      database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+      shield: '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/>',
+      link: '<path d="M10 13a5 5 0 0 0 7.07 0l2-2A5 5 0 0 0 12 3.93l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/>',
+      file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+      edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4Z"/>',
+      eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'
+    };
+    document.querySelectorAll('[data-icon]').forEach((node) => {
+      const path = icons[node.dataset.icon];
+      if (path) node.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+    });
+
+    const viewLabels = { home: 'الرئيسية', dashboard: 'لوحة اليوم', admin: 'مركز الإدارة' };
+    const views = [...document.querySelectorAll('.page-view')];
+    function showView(name) {
+      views.forEach((view) => { view.hidden = view.id !== `view-${name}`; });
+      document.querySelectorAll('[data-screen]').forEach((control) => {
+        const active = control.dataset.screen === name;
+        if (control.matches('[role="tab"]')) control.setAttribute('aria-selected', String(active));
+        if (control.closest('.side-nav')) {
+          if (active) control.setAttribute('aria-current', 'page');
+          else control.removeAttribute('aria-current');
+        }
+      });
+      document.getElementById('crumb-label').textContent = viewLabels[name] || viewLabels.home;
+      document.title = `SELRS · ${viewLabels[name] || viewLabels.home} · V0`;
+    }
+    document.querySelectorAll('[data-screen]').forEach((control) => {
+      control.addEventListener('click', () => showView(control.dataset.screen));
+    });
+
+    let activeFilter = 'all';
+    const adminSearch = document.getElementById('admin-search-input');
+    const adminRows = [...document.querySelectorAll('.module-row')];
+    const adminGroups = [...document.querySelectorAll('.admin-group')];
+    function filterAdmin() {
+      const query = adminSearch.value.trim().toLocaleLowerCase('ar');
+      let visibleCount = 0;
+      adminRows.forEach((row) => {
+        const categoryMatch = activeFilter === 'all' || row.dataset.category === activeFilter;
+        const textMatch = !query || `${row.dataset.search} ${row.innerText}`.toLocaleLowerCase('ar').includes(query);
+        row.hidden = !(categoryMatch && textMatch);
+        if (!row.hidden) visibleCount += 1;
+      });
+      adminGroups.forEach((group) => {
+        group.hidden = !group.querySelector('.module-row:not([hidden])');
+      });
+      document.getElementById('admin-empty').classList.toggle('visible', visibleCount === 0);
+    }
+    document.querySelectorAll('[data-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        activeFilter = button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+        filterAdmin();
+      });
+    });
+    adminSearch.addEventListener('input', filterAdmin);
+  </script>
+</body>
+</html>
