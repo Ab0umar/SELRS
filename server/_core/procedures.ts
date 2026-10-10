@@ -451,7 +451,7 @@ export function makeAccWriteProcedure(pagePath: string) {
 }
 
 // Attendance per-page factory (admin + manager bypass)
-export function makeAttProcedure(pagePath: string) {
+export function makeAttProcedure(pagePath: string | string[]) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -471,7 +471,7 @@ export function makeAttProcedure(pagePath: string) {
           .trim()
           .replace(/:r[w]?$/, "")
           .trim();
-        return permMatchesPath(clean, pagePath);
+        return salaryPathMatches(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
@@ -483,7 +483,7 @@ export function makeAttProcedure(pagePath: string) {
   );
 }
 
-export function makeAttWriteProcedure(pagePath: string) {
+export function makeAttWriteProcedure(pagePath: string | string[]) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -502,7 +502,7 @@ export function makeAttWriteProcedure(pagePath: string) {
         const raw = String(p ?? "").trim();
         if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
         const clean = raw.replace(/:rw$/, "").trim();
-        return permMatchesPath(clean, pagePath);
+        return salaryPathMatches(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
@@ -579,7 +579,13 @@ export function makeStockroomWriteProcedure(pagePath: string) {
 }
 
 // Salary per-page factory (admin + manager bypass)
-export function makeSalaryProcedure(pagePath: string) {
+// A procedure may serve several pages (salary, attendance); any one grants it.
+function salaryPathMatches(clean: string, pagePaths: string | string[]) {
+  const paths = Array.isArray(pagePaths) ? pagePaths : [pagePaths];
+  return paths.some((path) => permMatchesPath(clean, path));
+}
+
+export function makeSalaryProcedure(pagePath: string | string[]) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -599,7 +605,7 @@ export function makeSalaryProcedure(pagePath: string) {
           .trim()
           .replace(/:r[w]?$/, "")
           .trim();
-        return permMatchesPath(clean, pagePath);
+        return salaryPathMatches(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
@@ -611,7 +617,7 @@ export function makeSalaryProcedure(pagePath: string) {
   );
 }
 
-export function makeSalaryWriteProcedure(pagePath: string) {
+export function makeSalaryWriteProcedure(pagePath: string | string[]) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -630,7 +636,7 @@ export function makeSalaryWriteProcedure(pagePath: string) {
         const raw = String(p ?? "").trim();
         if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
         const clean = raw.replace(/:rw$/, "").trim();
-        return permMatchesPath(clean, pagePath);
+        return salaryPathMatches(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
