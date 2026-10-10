@@ -339,7 +339,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="examDate" className="after:content-['*'] after:text-destructive after:mr-1">
+              <Label htmlFor="examDate" className="after:content-['*'] after:text-destructive after:ms-1">
                 تاريخ الفحص
               </Label>
               <DateInput
@@ -544,7 +544,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                           options={CYLINDER_OPTIONS}
                           triggerClassName="h-8 text-sm"
                         />
-                        <Input
+                        <Input aria-label="Axis"
                           value={eye.a1}
                           onChange={(e) => eye.setA1(e.target.value)}
                           className="h-8 text-sm"
@@ -567,7 +567,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                           options={CYLINDER_OPTIONS}
                           triggerClassName="h-8 text-sm"
                         />
-                        <Input
+                        <Input aria-label="Axis"
                           value={eye.afterA}
                           onChange={(e) => eye.setAfterA(e.target.value)}
                           className="h-8 text-sm"
@@ -602,7 +602,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                           triggerClassName="h-8 text-sm"
                         />
                         <Label className="text-xs">A</Label>
-                        <Input
+                        <Input aria-label="Axis"
                           value={eye.refA}
                           onChange={(e) => eye.setRefA(e.target.value)}
                           className="h-8 text-sm"
@@ -611,14 +611,14 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                         {eye.label === "Right (OD)" ? (
                           <>
                             <Label className="text-xs">P.D</Label>
-                            <Input
+                            <Input aria-label="PD"
                               value={osPd}
                               onChange={(e) => setOsPd(e.target.value)}
                               className="h-8 text-sm"
                               placeholder="PD"
                             />
                             <Label className="text-xs">Add</Label>
-                            <Input
+                            <Input aria-label="ADD"
                               value={nearAdd}
                               onChange={(e) => setNearAdd(e.target.value)}
                               className="h-8 text-sm"
@@ -657,7 +657,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                       options={CYLINDER_OPTIONS}
                       triggerClassName="h-8 w-20 text-sm"
                     />
-                    <Input
+                    <Input aria-label="Axis"
                       value={autoOdA1}
                       onChange={(e) => setAutoOdA1(e.target.value)}
                       className="h-8 w-20 text-sm text-center"
@@ -677,7 +677,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                       options={CYLINDER_OPTIONS}
                       triggerClassName="h-8 w-20 text-sm"
                     />
-                    <Input
+                    <Input aria-label="Axis"
                       value={autoOsA1}
                       onChange={(e) => setAutoOsA1(e.target.value)}
                       className="h-8 w-20 text-sm text-center"
@@ -701,7 +701,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                       options={CYLINDER_OPTIONS}
                       triggerClassName="h-8 w-20 text-sm"
                     />
-                    <Input
+                    <Input aria-label="Axis"
                       value={afterOdA}
                       onChange={(e) => setAfterOdA(e.target.value)}
                       className="h-8 w-20 text-sm text-center"
@@ -721,7 +721,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                       options={CYLINDER_OPTIONS}
                       triggerClassName="h-8 w-20 text-sm"
                     />
-                    <Input
+                    <Input aria-label="Axis"
                       value={afterOsA}
                       onChange={(e) => setAfterOsA(e.target.value)}
                       className="h-8 w-20 text-sm text-center"
@@ -827,7 +827,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                       />
                     </td>
                     <td className="border px-2 py-2">
-                      <Input
+                      <Input aria-label="PD"
                         value={osPd}
                         onChange={(e) => setOsPd(e.target.value)}
                         placeholder="PD"
@@ -839,7 +839,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                       Near
                     </td>
                     <td className="border px-2 py-2" colSpan={7}>
-                      <Input
+                      <Input aria-label="ADD"
                         value={nearAdd}
                         onChange={(e) => setNearAdd(e.target.value)}
                         placeholder="ADD"
@@ -907,7 +907,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                   key={key}
                   className="flex items-center justify-between gap-2 border-b pb-1"
                 >
-                  <span className="text-right flex-1">{label}</span>
+                  <span className="text-start flex-1">{label}</span>
                   <Checkbox
                     checked={medicalHistory[key]}
                     onCheckedChange={(checked) =>
@@ -969,7 +969,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                     ))}
                   </SelectContent>
                 </Select>
-                <Input
+                <Input aria-label="ملاحظات (اختياري)"
                   placeholder="ملاحظات (اختياري)"
                   value={item.result}
                   onChange={(e) =>
@@ -1052,7 +1052,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                     ))}
                   </SelectContent>
                 </Select>
-                <Input
+                <Input aria-label="اسم الدواء (إن لم يوجد بالقائمة)"
                   placeholder="اسم الدواء (إن لم يوجد بالقائمة)"
                   value={item.medicationName}
                   onChange={(e) =>
@@ -1066,7 +1066,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                   }
                   className="sm:col-span-2"
                 />
-                <Input
+                <Input aria-label="الجرعة"
                   placeholder="الجرعة"
                   value={item.dosage}
                   onChange={(e) =>
@@ -1077,7 +1077,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                     )
                   }
                 />
-                <Input
+                <Input aria-label="عدد المرات"
                   placeholder="عدد المرات"
                   value={item.frequency}
                   onChange={(e) =>
@@ -1088,7 +1088,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                     )
                   }
                 />
-                <Input
+                <Input aria-label="المدة"
                   placeholder="المدة"
                   value={item.duration}
                   onChange={(e) =>
@@ -1099,7 +1099,7 @@ export default function KfExaminationForm({ patientId }: { patientId?: number })
                     )
                   }
                 />
-                <Input
+                <Input aria-label="تعليمات إضافية"
                   placeholder="تعليمات إضافية"
                   value={item.instructions}
                   onChange={(e) =>

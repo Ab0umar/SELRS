@@ -131,7 +131,7 @@ function AddPatientDialog({ open, onClose, onCreated }: { open: boolean; onClose
             <p className="text-sm font-semibold text-primary border-b pb-1">البيانات الشخصية</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="dp-fullName" className="after:content-['*'] after:text-destructive after:mr-1">الاسم بالكامل</Label>
+                <Label htmlFor="dp-fullName" className="after:content-['*'] after:text-destructive after:ms-1">الاسم بالكامل</Label>
                 <Input id="dp-fullName" placeholder="مثال: محمد أحمد علي" value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className={errors.fullName ? "border-destructive" : ""} />
                 {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
               </div>
@@ -272,11 +272,11 @@ export default function KfPatients() {
           <CardTitle className="text-lg">قائمة البحث</CardTitle>
           <CardDescription>ابحث باستخدام الاسم، كود المريض (KF-XXXX)، رقم الهاتف، أو الرقم القومي</CardDescription>
           <div className="relative mt-2 max-w-md">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input aria-label="ابحث هنا…"
               type="text"
               placeholder="ابحث هنا…"
-              className="pr-10"
+              className="ps-10"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
             />
@@ -291,12 +291,12 @@ export default function KfPatients() {
             <Table className="min-w-[600px] md:min-w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right font-semibold">كود المريض</TableHead>
-                  <TableHead className="text-right font-semibold">الاسم بالكامل</TableHead>
-                  <TableHead className="text-right font-semibold">رقم الموبايل</TableHead>
-                  <TableHead className="text-right font-semibold hidden lg:table-cell">الرقم القومي</TableHead>
-                  <TableHead className="text-right font-semibold hidden md:table-cell">تاريخ التسجيل</TableHead>
-                  <TableHead className="text-left font-semibold">إجراءات</TableHead>
+                  <TableHead className="text-start font-semibold">كود المريض</TableHead>
+                  <TableHead className="text-start font-semibold">الاسم بالكامل</TableHead>
+                  <TableHead className="text-start font-semibold">رقم الموبايل</TableHead>
+                  <TableHead className="text-start font-semibold hidden lg:table-cell">الرقم القومي</TableHead>
+                  <TableHead className="text-start font-semibold hidden md:table-cell">تاريخ التسجيل</TableHead>
+                  <TableHead className="text-end font-semibold">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -366,7 +366,7 @@ export default function KfPatients() {
                           <span>{new Date(patient.createdAt).toLocaleDateString("ar-EG")}</span>
                         </span>
                       </TableCell>
-                      <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-start gap-1">
                           <Button variant="ghost" size="icon" asChild title="عرض الملف">
                             <Link href={`/kf/patients/${patient.kfId}`}>

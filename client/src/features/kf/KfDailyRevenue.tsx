@@ -62,7 +62,7 @@ export default function KfDailyRevenue() {
                 تحديث
               </Button>
               <Button onClick={print} disabled={q.isLoading || rows.length === 0}>
-                <Printer className="ml-2 h-4 w-4" />
+                <Printer className="me-2 h-4 w-4" />
                 طباعة
               </Button>
             </div>
@@ -79,7 +79,7 @@ export default function KfDailyRevenue() {
           </label>
           {dateError && <p className="col-span-full text-sm text-destructive">{dateError}</p>}
           <div className="flex items-end gap-2 sm:col-span-2 md:col-span-2">
-            <Button className="flex-1" onClick={apply}><Search className="ml-2 h-4 w-4" />تطبيق</Button>
+            <Button className="flex-1" onClick={apply}><Search className="me-2 h-4 w-4" />تطبيق</Button>
             <Button variant="outline" onClick={reset}>إعادة ضبط</Button>
           </div>
         </CardContent>
@@ -128,17 +128,17 @@ export default function KfDailyRevenue() {
           )}
 
           {!q.isLoading && rows.length > 0 && !isMobile && (
-            <div className="overflow-x-auto">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b bg-muted/40 text-muted-foreground text-xs">
-                    <th className="px-3 py-2 text-right font-medium">التاريخ</th>
-                    <th className="px-3 py-2 text-right font-medium">كشف استشاري (عدد)</th>
-                    <th className="px-3 py-2 text-right font-medium tabular-nums">استشاري (ج)</th>
-                    <th className="px-3 py-2 text-right font-medium">كشف أخصائي (عدد)</th>
-                    <th className="px-3 py-2 text-right font-medium tabular-nums">أخصائي (ج)</th>
-                    <th className="px-3 py-2 text-right font-medium">الإجمالي (عدد)</th>
-                    <th className="px-3 py-2 text-right font-medium tabular-nums text-primary">الإجمالي (ج)</th>
+                    <th className="px-3 py-2 text-start font-medium">التاريخ</th>
+                    <th className="px-3 py-2 text-start font-medium">كشف استشاري (عدد)</th>
+                    <th className="px-3 py-2 text-start font-medium tabular-nums">استشاري (ج)</th>
+                    <th className="px-3 py-2 text-start font-medium">كشف أخصائي (عدد)</th>
+                    <th className="px-3 py-2 text-start font-medium tabular-nums">أخصائي (ج)</th>
+                    <th className="px-3 py-2 text-start font-medium">الإجمالي (عدد)</th>
+                    <th className="px-3 py-2 text-start font-medium tabular-nums text-primary">الإجمالي (ج)</th>
                   </tr>
                 </thead>
                 <tbody>

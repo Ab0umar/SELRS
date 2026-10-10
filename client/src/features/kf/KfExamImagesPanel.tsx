@@ -151,7 +151,7 @@ export function KfExamImagesPanel({ kfPatientId, readOnly = false }: Props) {
                 <Eye className="size-5 text-white" />
               </div>
               <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1">
-                <p className="text-[10px] text-white truncate" dir="auto">
+                <p className="text-[13px] text-white truncate" dir="auto">
                   {img.fileName}
                 </p>
               </div>

@@ -137,7 +137,7 @@ export default function KfOperationForm() {
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Op Date */}
               <div className="space-y-2">
-                <Label htmlFor="opDate" className="after:content-['*'] after:text-destructive after:mr-1">
+                <Label htmlFor="opDate" className="after:content-['*'] after:text-destructive after:ms-1">
                   تاريخ العملية
                 </Label>
                 <DateInput
@@ -154,7 +154,7 @@ export default function KfOperationForm() {
 
               {/* Eye selection */}
               <div className="space-y-2">
-                <Label htmlFor="eye" className="after:content-['*'] after:text-destructive after:mr-1">
+                <Label htmlFor="eye" className="after:content-['*'] after:text-destructive after:ms-1">
                   العين المعنية
                 </Label>
                 <Select
@@ -178,7 +178,7 @@ export default function KfOperationForm() {
 
               {/* Op Type */}
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="opType" className="after:content-['*'] after:text-destructive after:mr-1">
+                <Label htmlFor="opType" className="after:content-['*'] after:text-destructive after:ms-1">
                   نوع العملية الجراحية / الإجراء
                 </Label>
                 <Input

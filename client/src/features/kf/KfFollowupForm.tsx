@@ -133,7 +133,7 @@ export default function KfFollowupForm() {
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Date */}
               <div className="space-y-2">
-                <Label htmlFor="followupDate" className="after:content-['*'] after:text-destructive after:mr-1">
+                <Label htmlFor="followupDate" className="after:content-['*'] after:text-destructive after:ms-1">
                   تاريخ المتابعة
                 </Label>
                 <DateInput

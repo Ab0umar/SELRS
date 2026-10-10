@@ -124,7 +124,7 @@ export default function KfVisitForm() {
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Date */}
               <div className="space-y-2">
-                <Label htmlFor="visitDate" className="after:content-['*'] after:text-destructive after:mr-1">
+                <Label htmlFor="visitDate" className="after:content-['*'] after:text-destructive after:ms-1">
                   تاريخ الزيارة
                 </Label>
                 <DateInput

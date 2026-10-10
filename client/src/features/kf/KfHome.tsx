@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -25,7 +31,7 @@ import {
   ArrowLeft,
   Clock,
   Wallet,
-  Plus
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KfAddBookingDialog } from "@/features/kf/KfAddBookingDialog";
@@ -45,16 +51,16 @@ const initialForm = {
 export default function KfHome() {
   const [, setLocation] = useLocation();
   const [leftTab, setLeftTab] = useState<"patient" | "ledger">("patient");
-  const [rightTab, setRightTab] = useState<"bookings" | "operations">("bookings");
+  const [rightTab, setRightTab] = useState<"bookings" | "operations">(
+    "bookings",
+  );
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [operationDialogOpen, setOperationDialogOpen] = useState(false);
 
-  // Compact new-patient form state
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const createMutation = trpc.kf.createPatient.useMutation();
 
-  // Ledger form state
   const initialLedgerForm = {
     entryDate: new Date().toISOString().split("T")[0],
     type: "income" as "income" | "expense",
@@ -64,15 +70,15 @@ export default function KfHome() {
   const [ledgerForm, setLedgerForm] = useState(initialLedgerForm);
   const ledgerMutation = trpc.kf.addLedgerEntry.useMutation();
 
-  // Queries
-  const { data: operationsData, isLoading: loadingOperations } = trpc.kf.listOperations.useQuery({});
-  const { data: followupsData } = trpc.kf.listFollowups.useQuery({});
+  const operationsQuery = trpc.kf.listOperations.useQuery({});
+  const followupsQuery = trpc.kf.listFollowups.useQuery({});
   const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
     { branch: "kfs", limit: 50 },
     { staleTime: 30_000 },
   );
 
-  const activeOperations = operationsData?.filter((op: any) => op.status === "scheduled") ?? [];
+  const activeOperations =
+    operationsQuery.data?.filter((op: any) => op.status === "scheduled") ?? [];
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const upcomingBookings = ((bookingsQuery.data ?? []) as any[])
@@ -84,14 +90,14 @@ export default function KfHome() {
     .slice()
     .sort(
       (a, b) =>
-        new Date(a.requestedDate).getTime() - new Date(b.requestedDate).getTime(),
+        new Date(a.requestedDate).getTime() -
+        new Date(b.requestedDate).getTime(),
     );
 
   const handleChange = (key: keyof typeof initialForm, value: string) => {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
 
-      // Auto-sync Age and Date of Birth
       if (key === "dateOfBirth" && value) {
         const dob = new Date(value);
         if (!isNaN(dob.getTime())) {
@@ -108,7 +114,6 @@ export default function KfHome() {
         if (!isNaN(ageNum) && ageNum >= 0) {
           const today = new Date();
           const dobYear = today.getFullYear() - ageNum;
-          // Default to Jan 1st of the calculated year
           next.dateOfBirth = `${dobYear}-01-01`;
         } else {
           next.dateOfBirth = "";
@@ -149,7 +154,9 @@ export default function KfHome() {
         address: null,
         doctorName: form.doctorName.trim() || null,
         medicalHistory: form.medicalHistory.trim() || null,
-        dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString() : null,
+        dateOfBirth: form.dateOfBirth
+          ? new Date(form.dateOfBirth).toISOString()
+          : null,
         nationalId: null,
         alternatePhone: null,
         occupation: form.occupation.trim() || null,
@@ -184,14 +191,11 @@ export default function KfHome() {
 
   return (
     <section dir="rtl" className="space-y-12 pb-12">
-      {/* ── Main Layout: Split Form and Feeds ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
-
-        {/* Left Column: Quick Registration (tabbed: patient / ledger) */}
         <div className="xl:col-span-9 flex flex-col print:hidden">
           <div className="mb-6 border-b border-border/60">
             <div className="flex items-center gap-1">
-              <button
+              <Button variant="bare"
                 type="button"
                 onClick={() => setLeftTab("patient")}
                 className={cn(
@@ -203,8 +207,8 @@ export default function KfHome() {
               >
                 <UserPlus className="h-4 w-4" />
                 تسجيل مريض جديد
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 type="button"
                 onClick={() => setLeftTab("ledger")}
                 className={cn(
@@ -216,202 +220,297 @@ export default function KfHome() {
               >
                 <Wallet className="h-4 w-4" />
                 تسجيل قيد جديد
-              </button>
+              </Button>
             </div>
           </div>
 
           {leftTab === "patient" ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Row 1: الاسم الرباعي | تاريخ الميلاد | السن */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="kh-name" className="text-sm font-semibold text-foreground">الاسم الرباعي <span className="text-rose-500">*</span></Label>
-                <Input
-                  id="kh-name"
-                  placeholder="مثال: محمد أحمد علي محمود"
-                  value={form.fullName}
-                  onChange={(e) => handleChange("fullName", e.target.value)}
-                  className={cn(
-                    "h-12 bg-muted/40 border-border/60",
-                    errors.fullName && "border-primary"
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2 col-span-1 sm:col-span-2 lg:col-span-2">
+                  <Label
+                    htmlFor="kh-name"
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    الاسم الرباعي <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    id="kh-name"
+                    placeholder="مثال: محمد أحمد علي محمود"
+                    value={form.fullName}
+                    onChange={(e) => handleChange("fullName", e.target.value)}
+                    className={cn(
+                      "h-12 bg-muted/40 border-border/60",
+                      errors.fullName && "border-primary",
+                    )}
+                  />
+                  {errors.fullName && (
+                    <p className="text-xs font-medium text-rose-500 mt-1">
+                      {errors.fullName}
+                    </p>
                   )}
-                />
-                {errors.fullName && <p className="text-xs font-medium text-rose-500 mt-1">{errors.fullName}</p>}
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="kh-dob" className="text-sm font-semibold text-foreground">تاريخ الميلاد</Label>
-                <DateInput
-                  id="kh-dob"
-                  value={form.dateOfBirth}
-                  onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                  className="h-12 w-full bg-muted/40 border-border/60"
-                  inputClassName="h-11 w-full"
-                />
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="kh-age" className="text-sm font-semibold text-foreground">السن</Label>
-                <Input
-                  id="kh-age"
-                  type="number"
-                  min="0"
-                  placeholder="45"
-                  value={form.age}
-                  onChange={(e) => handleChange("age", e.target.value)}
-                  className="h-12 bg-muted/40 border-border/60"
-                />
-              </div>
-            </div>
-
-            {/* Row 2: النوع | رقم الهاتف | الوظيفه */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-foreground">النوع</Label>
-                <Select value={form.gender} onValueChange={(v: "male" | "female") => handleChange("gender", v)}>
-                  <SelectTrigger className="h-12 bg-muted/40 border-border/60">
-                    <SelectValue placeholder="اختر…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">ذكر</SelectItem>
-                    <SelectItem value="female">أنثى</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="kh-phone" className="text-sm font-semibold text-foreground">رقم الهاتف</Label>
-                <Input
-                  id="kh-phone"
-                  placeholder="01xxxxxxxxx"
-                  value={form.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                  className="h-12 bg-muted/40 border-border/60 text-left"
-                  dir="ltr"
-                />
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="kh-job" className="text-sm font-semibold text-foreground">الوظيفة</Label>
-                <Input
-                  id="kh-job"
-                  placeholder="مثال: مدرس"
-                  value={form.occupation}
-                  onChange={(e) => handleChange("occupation", e.target.value)}
-                  className="h-12 bg-muted/40 border-border/60"
-                />
-              </div>
-            </div>
-
-            {/* Row 3: الطبيب | ملاحظات \ تاريخ مرضي */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-foreground">الطبيب</Label>
-                <Select value={form.doctorName} onValueChange={(v) => handleChange("doctorName", v)}>
-                  <SelectTrigger className="h-12 bg-muted/40 border-border/60">
-                    <SelectValue placeholder="تحديد الطبيب…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {KF_DOCTORS.map((dr) => (
-                      <SelectItem key={dr} value={dr}>{dr}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </div>
+                <div className="space-y-2 col-span-1">
+                  <Label
+                    htmlFor="kh-dob"
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    تاريخ الميلاد
+                  </Label>
+                  <DateInput
+                    id="kh-dob"
+                    value={form.dateOfBirth}
+                    onChange={(e) =>
+                      handleChange("dateOfBirth", e.target.value)
+                    }
+                    className="h-12 w-full bg-muted/40 border-border/60"
+                    inputClassName="h-11 w-full"
+                  />
+                </div>
+                <div className="space-y-2 col-span-1">
+                  <Label
+                    htmlFor="kh-age"
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    السن
+                  </Label>
+                  <Input
+                    id="kh-age"
+                    type="number"
+                    min="0"
+                    placeholder="45"
+                    value={form.age}
+                    onChange={(e) => handleChange("age", e.target.value)}
+                    className="h-12 bg-muted/40 border-border/60"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2 col-span-3">
-                <Label htmlFor="kh-history" className="text-sm font-semibold text-foreground">ملاحظات \ تاريخ مرضي</Label>
-                <Textarea
-                  id="kh-history"
-                  rows={2}
-                  placeholder="سجل أي ملاحظات هامة هنا…"
-                  value={form.medicalHistory}
-                  onChange={(e) => handleChange("medicalHistory", e.target.value)}
-                  className="bg-muted/40 border-border/60 resize-none text-base"
-                />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2 col-span-1">
+                  <Label className="text-sm font-semibold text-foreground">
+                    النوع
+                  </Label>
+                  <Select
+                    value={form.gender}
+                    onValueChange={(v: "male" | "female") =>
+                      handleChange("gender", v)
+                    }
+                  >
+                    <SelectTrigger className="h-12 bg-muted/40 border-border/60">
+                      <SelectValue placeholder="اختر…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">ذكر</SelectItem>
+                      <SelectItem value="female">أنثى</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 col-span-1 sm:col-span-2 lg:col-span-2">
+                  <Label
+                    htmlFor="kh-phone"
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    رقم الهاتف
+                  </Label>
+                  <Input
+                    id="kh-phone"
+                    placeholder="01xxxxxxxxx"
+                    value={form.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    className="h-12 bg-muted/40 border-border/60 text-left"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2 col-span-1">
+                  <Label
+                    htmlFor="kh-job"
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    الوظيفة
+                  </Label>
+                  <Input
+                    id="kh-job"
+                    placeholder="مثال: مدرس"
+                    value={form.occupation}
+                    onChange={(e) => handleChange("occupation", e.target.value)}
+                    className="h-12 bg-muted/40 border-border/60"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="pt-6 flex items-center justify-between">
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-base"
-              >
-                <Save className="h-5 w-5 ml-2.5" />
-                {createMutation.isPending ? "جاري الحفظ…" : "حفظ المريض"}
-              </Button>
-              <Link href={ROUTES.kfPatientsNew} className="text-sm text-primary hover:text-primary font-bold flex items-center gap-1.5">
-                فتح الملف الشامل
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </div>
-          </form>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2 col-span-1">
+                  <Label className="text-sm font-semibold text-foreground">
+                    الطبيب
+                  </Label>
+                  <Select
+                    value={form.doctorName}
+                    onValueChange={(v) => handleChange("doctorName", v)}
+                  >
+                    <SelectTrigger className="h-12 bg-muted/40 border-border/60">
+                      <SelectValue placeholder="تحديد الطبيب…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {KF_DOCTORS.map((dr) => (
+                        <SelectItem key={dr} value={dr}>
+                          {dr}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 col-span-1 sm:col-span-2 lg:col-span-3">
+                  <Label
+                    htmlFor="kh-history"
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    ملاحظات \ تاريخ مرضي
+                  </Label>
+                  <Textarea
+                    id="kh-history"
+                    rows={2}
+                    placeholder="سجل أي ملاحظات هامة هنا…"
+                    value={form.medicalHistory}
+                    onChange={(e) =>
+                      handleChange("medicalHistory", e.target.value)
+                    }
+                    className="bg-muted/40 border-border/60 resize-none text-base"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 flex items-center justify-between">
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending}
+                  className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-base"
+                >
+                  <Save className="h-5 w-5 me-2.5" />
+                  {createMutation.isPending ? "جاري الحفظ…" : "حفظ المريض"}
+                </Button>
+                <Link
+                  href={ROUTES.kfPatientsNew}
+                  className="text-sm text-primary hover:text-primary font-bold flex items-center gap-1.5"
+                >
+                  فتح الملف الشامل
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </div>
+            </form>
           ) : (
-          <form onSubmit={handleLedgerSubmit} className="bg-muted/40 rounded-2xl p-6 border border-border/60 space-y-5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-foreground">النوع</Label>
-                <Select value={ledgerForm.type} onValueChange={(v: "income" | "expense") => setLedgerForm(prev => ({...prev, type: v}))}>
-                  <SelectTrigger className="h-11 bg-white border-border/60 font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="income" className="text-primary font-bold">إيراد</SelectItem>
-                    <SelectItem value="expense" className="text-primary font-bold">مصروف</SelectItem>
-                  </SelectContent>
-                </Select>
+            <form
+              onSubmit={handleLedgerSubmit}
+              className="bg-muted/40 rounded-2xl p-6 border border-border/60 space-y-5"
+            >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2 col-span-1">
+                  <Label className="text-sm font-semibold text-foreground">
+                    النوع
+                  </Label>
+                  <Select
+                    value={ledgerForm.type}
+                    onValueChange={(v: "income" | "expense") =>
+                      setLedgerForm((prev) => ({ ...prev, type: v }))
+                    }
+                  >
+                    <SelectTrigger className="h-11 bg-white border-border/60 font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        value="income"
+                        className="text-primary font-bold"
+                      >
+                        إيراد
+                      </SelectItem>
+                      <SelectItem
+                        value="expense"
+                        className="text-primary font-bold"
+                      >
+                        مصروف
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 col-span-1">
+                  <Label className="text-sm font-semibold text-foreground">
+                    المبلغ
+                  </Label>
+                  <Input aria-label="0"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={ledgerForm.amount}
+                    onChange={(e) =>
+                      setLedgerForm((prev) => ({
+                        ...prev,
+                        amount: e.target.value,
+                      }))
+                    }
+                    className="h-11 bg-white border-border/60 font-mono text-lg"
+                  />
+                </div>
+                <div className="space-y-2 col-span-1 sm:col-span-2 lg:col-span-2">
+                  <Label className="text-sm font-semibold text-foreground">
+                    التاريخ
+                  </Label>
+                  <DateInput
+                    value={ledgerForm.entryDate}
+                    onChange={(e) =>
+                      setLedgerForm((prev) => ({
+                        ...prev,
+                        entryDate: e.target.value,
+                      }))
+                    }
+                    className="h-11 w-full bg-white border-border/60"
+                    inputClassName="h-10 w-full"
+                  />
+                </div>
               </div>
-              <div className="space-y-2 col-span-1">
-                <Label className="text-sm font-semibold text-foreground">المبلغ</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={ledgerForm.amount}
-                  onChange={(e) => setLedgerForm(prev => ({...prev, amount: e.target.value}))}
-                  className="h-11 bg-white border-border/60 font-mono text-lg"
-                />
+              <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-end">
+                <div className="space-y-2 flex-1">
+                  <Label className="text-sm font-semibold text-foreground">
+                    البيان \ الملاحظات
+                  </Label>
+                  <Input aria-label="بيان القيد…"
+                    placeholder="بيان القيد…"
+                    value={ledgerForm.notes}
+                    onChange={(e) =>
+                      setLedgerForm((prev) => ({
+                        ...prev,
+                        notes: e.target.value,
+                      }))
+                    }
+                    className="h-11 bg-white border-border/60"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={ledgerMutation.isPending}
+                  className="h-11 w-full px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl sm:w-auto"
+                >
+                  <Plus className="h-5 w-5 me-1.5" />
+                  {ledgerMutation.isPending ? "..." : "إضافة القيد"}
+                </Button>
               </div>
-              <div className="space-y-2 col-span-2">
-                <Label className="text-sm font-semibold text-foreground">التاريخ</Label>
-                <DateInput
-                  value={ledgerForm.entryDate}
-                  onChange={(e) => setLedgerForm(prev => ({...prev, entryDate: e.target.value}))}
-                  className="h-11 w-full bg-white border-border/60"
-                  inputClassName="h-10 w-full"
-                />
+              <div className="pt-1 text-start">
+                <Link
+                  href={ROUTES.kfAccounting}
+                  className="text-sm font-bold text-primary hover:text-primary"
+                >
+                  دفتر الحسابات &larr;
+                </Link>
               </div>
-            </div>
-            <div className="flex gap-4 items-end">
-              <div className="space-y-2 flex-1">
-                <Label className="text-sm font-semibold text-foreground">البيان \ الملاحظات</Label>
-                <Input
-                  placeholder="بيان القيد…"
-                  value={ledgerForm.notes}
-                  onChange={(e) => setLedgerForm(prev => ({...prev, notes: e.target.value}))}
-                  className="h-11 bg-white border-border/60"
-                />
-              </div>
-              <Button
-                type="submit"
-                disabled={ledgerMutation.isPending}
-                className="h-11 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl"
-              >
-                <Plus className="h-5 w-5 ml-1.5" />
-                {ledgerMutation.isPending ? "..." : "إضافة القيد"}
-              </Button>
-            </div>
-            <div className="pt-1 text-right">
-              <Link href={ROUTES.kfAccounting} className="text-sm font-bold text-primary hover:text-primary">
-                دفتر الحسابات &larr;
-              </Link>
-            </div>
-          </form>
+            </form>
           )}
         </div>
 
-        {/* Right Column: Feeds & Lists (tabbed: bookings / operations) */}
         <div className="xl:col-span-3 flex flex-col print:hidden">
           <div className="mb-6 border-b border-border/60">
             <div className="flex items-center gap-1">
-              <button
+              <Button variant="bare"
                 type="button"
                 onClick={() => setRightTab("bookings")}
                 className={cn(
@@ -423,8 +522,8 @@ export default function KfHome() {
               >
                 <CalendarPlus className="h-4 w-4" />
                 المواعيد
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 type="button"
                 onClick={() => setRightTab("operations")}
                 className={cn(
@@ -436,127 +535,204 @@ export default function KfHome() {
               >
                 <Activity className="h-4 w-4" />
                 العمليات
-              </button>
+              </Button>
             </div>
           </div>
+
+          {followupsQuery.isError ? (
+            <div
+              role="alert"
+              className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+            >
+              <p>تعذر تحميل بيانات المتابعات.</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void followupsQuery.refetch()}
+                className="mt-2"
+              >
+                إعادة المحاولة
+              </Button>
+            </div>
+          ) : null}
 
           {rightTab === "bookings" ? (
-          <div>
-            <div className="flex flex-col gap-3 mb-4">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setBookingDialogOpen(true)}
-                className="h-9 w-full rounded-lg bg-primary font-bold text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus className="h-4 w-4 ml-1.5" />
-                إضافة موعد
-              </Button>
-              <Link href={ROUTES.kfBookings} className="text-sm font-bold text-primary hover:text-primary text-center">
-                كل الحجوزات &larr;
-              </Link>
-            </div>
+            <div>
+              <div className="flex flex-col gap-3 mb-4">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setBookingDialogOpen(true)}
+                  className="h-9 w-full rounded-lg bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4 me-1.5" />
+                  إضافة موعد
+                </Button>
+                <Link
+                  href={ROUTES.kfBookings}
+                  className="text-sm font-bold text-primary hover:text-primary text-center"
+                >
+                  كل الحجوزات &larr;
+                </Link>
+              </div>
 
-            {bookingsQuery.isLoading ? (
-              <div className="space-y-6">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <Skeleton className="h-5 w-full rounded-md" />
-                    <Skeleton className="h-4 w-2/3 rounded-md" />
-                  </div>
-                ))}
-              </div>
-            ) : upcomingBookings.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CalendarPlus className="h-10 w-10 text-muted-foreground mb-3" />
-                <h4 className="text-sm text-foreground font-bold mb-1">لا توجد مواعيد قادمة</h4>
-                <p className="text-xs text-muted-foreground">لا توجد حجوزات بانتظار التأكيد حالياً.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/60">
-                {upcomingBookings.slice(0, 5).map((b: any) => (
-                  <div key={b.id} className="flex items-center gap-3 py-4">
-                    <div className="w-2 h-10 rounded-full bg-amber-500 shrink-0" />
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-sm text-foreground truncate">
-                        {b.patientName ?? b.guestName ?? "—"}
-                      </h4>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                        <span className="font-semibold text-foreground">
-                          {b.typeLabel ?? b.bookingType}
-                        </span>
-                        <span>•</span>
-                        <span>{new Date(b.requestedDate).toLocaleDateString("ar-EG")}</span>
+              {bookingsQuery.isError ? (
+                <div
+                  role="alert"
+                  className="space-y-3 py-10 text-center text-sm text-destructive"
+                >
+                  <p>تعذر تحميل المواعيد.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void bookingsQuery.refetch()}
+                  >
+                    إعادة المحاولة
+                  </Button>
+                </div>
+              ) : bookingsQuery.isLoading ? (
+                <div className="space-y-6">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="space-y-3">
+                      <Skeleton className="h-5 w-full rounded-md" />
+                      <Skeleton className="h-4 w-2/3 rounded-md" />
+                    </div>
+                  ))}
+                </div>
+              ) : upcomingBookings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <CalendarPlus className="h-10 w-10 text-muted-foreground mb-3" />
+                  <h4 className="text-sm text-foreground font-bold mb-1">
+                    لا توجد مواعيد قادمة
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    لا توجد حجوزات بانتظار التأكيد حالياً.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/60">
+                  {upcomingBookings.slice(0, 5).map((b: any) => (
+                    <div key={b.id} className="flex items-center gap-3 py-4">
+                      <div className="w-2 h-10 rounded-full bg-amber-500 shrink-0" />
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-sm text-foreground truncate">
+                          {b.patientName ?? b.guestName ?? "—"}
+                        </h4>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                          <span className="font-semibold text-foreground">
+                            {b.typeLabel ?? b.bookingType}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {new Date(b.requestedDate).toLocaleDateString(
+                              "ar-EG",
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
-          <div>
-            <div className="flex flex-col gap-3 mb-4">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setOperationDialogOpen(true)}
-                className="h-9 w-full rounded-lg bg-primary font-bold text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus className="h-4 w-4 ml-1.5" />
-                حجز عملية
-              </Button>
-              <Link href={ROUTES.kfOperations} className="text-sm font-bold text-primary hover:text-primary text-center">
-                الجدول الكامل &larr;
-              </Link>
-            </div>
+            <div>
+              <div className="flex flex-col gap-3 mb-4">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setOperationDialogOpen(true)}
+                  className="h-9 w-full rounded-lg bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4 me-1.5" />
+                  حجز عملية
+                </Button>
+                <Link
+                  href={ROUTES.kfOperations}
+                  className="text-sm font-bold text-primary hover:text-primary text-center"
+                >
+                  الجدول الكامل &larr;
+                </Link>
+              </div>
 
-            {loadingOperations ? (
-              <div className="space-y-6">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <Skeleton className="h-5 w-full rounded-md" />
-                    <Skeleton className="h-4 w-2/3 rounded-md" />
-                  </div>
-                ))}
-              </div>
-            ) : activeOperations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Activity className="h-10 w-10 text-muted-foreground mb-3" />
-                <h4 className="text-sm text-foreground font-bold mb-1">لا توجد عمليات</h4>
-                <p className="text-xs text-muted-foreground">جميع المواعيد مكتملة حالياً.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/60">
-                {activeOperations.slice(0, 5).map((op: any) => (
-                  <div key={op.kfOpId} className="flex items-center gap-3 py-4 group">
-                    <div className="w-2 h-10 rounded-full bg-rose-500 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-sm text-foreground truncate">
-                        {op.opType}
-                        <span className="text-xs font-normal text-muted-foreground mr-1.5">
-                          ({op.eye === "both" ? "العينين" : op.eye === "right" ? "اليمنى" : "اليسرى"})
-                        </span>
-                      </h4>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                        <span className="font-semibold text-foreground truncate">
-                          {op.patientName || `مريض ${op.kfPatientId}`}
-                        </span>
-                        <span>•</span>
-                        <span>{new Date(op.opDate).toLocaleDateString("ar-EG")}</span>
-                      </div>
+              {operationsQuery.isError ? (
+                <div
+                  role="alert"
+                  className="space-y-3 py-10 text-center text-sm text-destructive"
+                >
+                  <p>تعذر تحميل العمليات.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void operationsQuery.refetch()}
+                  >
+                    إعادة المحاولة
+                  </Button>
+                </div>
+              ) : operationsQuery.isLoading ? (
+                <div className="space-y-6">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="space-y-3">
+                      <Skeleton className="h-5 w-full rounded-md" />
+                      <Skeleton className="h-4 w-2/3 rounded-md" />
                     </div>
-                    <Link
-                      href={`/kf/patients/${op.kfPatientId}`}
-                      className="text-xs font-bold text-primary hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  ))}
+                </div>
+              ) : activeOperations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Activity className="h-10 w-10 text-muted-foreground mb-3" />
+                  <h4 className="text-sm text-foreground font-bold mb-1">
+                    لا توجد عمليات
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    جميع المواعيد مكتملة حالياً.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/60">
+                  {activeOperations.slice(0, 5).map((op: any) => (
+                    <div
+                      key={op.kfOpId}
+                      className="flex items-center gap-3 py-4 group"
                     >
-                      تفاصيل
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                      <div className="w-2 h-10 rounded-full bg-rose-500 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-sm text-foreground truncate">
+                          {op.opType}
+                          <span className="text-xs font-normal text-muted-foreground ms-1.5">
+                            (
+                            {op.eye === "both"
+                              ? "العينين"
+                              : op.eye === "right"
+                                ? "اليمنى"
+                                : "اليسرى"}
+                            )
+                          </span>
+                        </h4>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                          <span className="font-semibold text-foreground truncate">
+                            {op.patientName || `مريض ${op.kfPatientId}`}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {new Date(op.opDate).toLocaleDateString("ar-EG")}
+                          </span>
+                        </div>
+                      </div>
+                      <Link
+                        href={`/kf/patients/${op.kfPatientId}`}
+                        className="text-xs font-bold text-primary hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      >
+                        تفاصيل
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

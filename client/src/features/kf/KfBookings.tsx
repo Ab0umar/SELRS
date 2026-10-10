@@ -17,7 +17,7 @@ const BOOKING_TYPE_AR: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  pending: "border-warning/30 bg-warning/5 text-warning",
+  pending: "border-warning/30 bg-warning/5 text-warning-text",
   confirmed: "border-primary/30 bg-primary/5 text-primary",
   cancelled: "border-destructive/30 bg-destructive/5 text-destructive",
   completed: "border-success/30 bg-success/5 text-success",
@@ -102,10 +102,10 @@ export default function KfBookings() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", stStyle)}>
+                    <span className={cn("rounded-full border px-2 py-0.5 text-[13px] font-medium", stStyle)}>
                       {stAr}
                     </span>
-                    <button
+                    <Button variant="bare"
                       type="button"
                       disabled={del.isPending}
                       onClick={() => del.mutate({ id: booking.id })}
@@ -113,7 +113,7 @@ export default function KfBookings() {
                       aria-label="حذف الحجز"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 {booking.staffNotes ? (

@@ -73,7 +73,7 @@ export default function KfReceipts() {
                 تحديث
               </Button>
               <Button onClick={() => window.print()} disabled={q.isLoading || rows.length === 0}>
-                <Printer className="ml-2 h-4 w-4" />
+                <Printer className="me-2 h-4 w-4" />
                 طباعة
               </Button>
             </div>
@@ -90,7 +90,7 @@ export default function KfReceipts() {
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             <span>كود المريض (KF)</span>
-            <Input
+            <Input aria-label="KF-0001"
               placeholder="KF-0001"
               value={draft.kfCode}
               onChange={(e) => setDraft((p) => ({ ...p, kfCode: e.target.value }))}
@@ -98,7 +98,7 @@ export default function KfReceipts() {
           </label>
           {dateError && <p className="col-span-full text-sm text-destructive">{dateError}</p>}
           <div className="flex items-end gap-2">
-            <Button className="flex-1" onClick={apply}><Search className="ml-2 h-4 w-4" />تطبيق</Button>
+            <Button className="flex-1" onClick={apply}><Search className="me-2 h-4 w-4" />تطبيق</Button>
             <Button variant="outline" onClick={reset}>إعادة ضبط</Button>
           </div>
         </CardContent>
@@ -141,7 +141,7 @@ export default function KfReceipts() {
                       {KF_LABELS[row.visitType] ?? row.visitType}
                     </Badge>
                     <span className="text-muted-foreground">{row.doctorName ?? "—"}</span>
-                    <span className="mr-auto text-muted-foreground">{formatDateAr(row.visitDate)}</span>
+                    <span className="ms-auto text-muted-foreground">{formatDateAr(row.visitDate)}</span>
                   </div>
                 </div>
               ))}
@@ -153,17 +153,17 @@ export default function KfReceipts() {
           )}
 
           {!q.isLoading && rows.length > 0 && !isMobile && (
-            <div className="overflow-x-auto">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b bg-muted/40 text-muted-foreground text-xs">
-                    <th className="px-3 py-2 text-right font-medium">#</th>
-                    <th className="px-3 py-2 text-right font-medium">كود المريض</th>
-                    <th className="px-3 py-2 text-right font-medium">اسم المريض</th>
-                    <th className="px-3 py-2 text-right font-medium">نوع الخدمة</th>
-                    <th className="px-3 py-2 text-right font-medium">الطبيب</th>
-                    <th className="px-3 py-2 text-right font-medium">التاريخ</th>
-                    <th className="px-3 py-2 text-right font-medium tabular-nums">الرسوم (ج)</th>
+                    <th className="px-3 py-2 text-start font-medium">#</th>
+                    <th className="px-3 py-2 text-start font-medium">كود المريض</th>
+                    <th className="px-3 py-2 text-start font-medium">اسم المريض</th>
+                    <th className="px-3 py-2 text-start font-medium">نوع الخدمة</th>
+                    <th className="px-3 py-2 text-start font-medium">الطبيب</th>
+                    <th className="px-3 py-2 text-start font-medium">التاريخ</th>
+                    <th className="px-3 py-2 text-start font-medium tabular-nums">الرسوم (ج)</th>
                   </tr>
                 </thead>
                 <tbody>

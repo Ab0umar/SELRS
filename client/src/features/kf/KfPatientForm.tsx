@@ -247,7 +247,7 @@ export default function KfPatientForm() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="after:content-['*'] after:text-destructive after:mr-1">
+                <Label htmlFor="fullName" className="after:content-['*'] after:text-destructive after:ms-1">
                   الاسم بالكامل
                 </Label>
                 <Input
@@ -445,7 +445,7 @@ export default function KfPatientForm() {
                 className="cursor-pointer shrink-0"
               >
                 {isVerifyingSelrs || lookupSelrsQuery.isFetching ? (
-                  <Loader2 className="h-4 w-4 animate-spin ml-1" />
+                  <Loader2 className="h-4 w-4 animate-spin me-1" />
                 ) : null}
                 تحقق من الكود
               </Button>
@@ -456,7 +456,7 @@ export default function KfPatientForm() {
               <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm max-w-xl ${
                 verifiedSelrsName
                   ? "bg-success/5 border-success/20 text-success"
-                  : "bg-warning/5 border-warning/20 text-warning"
+                  : "bg-warning/5 border-warning/20 text-warning-text"
               }`}>
                 {verifiedSelrsName ? (
                   <>
@@ -465,7 +465,7 @@ export default function KfPatientForm() {
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="h-4 w-4 shrink-0 text-warning" />
+                    <AlertCircle className="h-4 w-4 shrink-0 text-warning-text" />
                     <p>لم يتم العثور على مريض بهذا الكود في SELRS. يمكنك الحفظ على أي حال.</p>
                   </>
                 )}

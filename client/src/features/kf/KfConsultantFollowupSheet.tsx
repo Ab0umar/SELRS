@@ -13,6 +13,7 @@ import {
 import { printOrExportPdf } from "@/lib/nativePdf";
 import { DateInput } from "@/components/ui/date-input";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 export default function ConsultantFollowupPage() {
   const { user, isAuthenticated } = useAuth();
@@ -180,7 +181,7 @@ export default function ConsultantFollowupPage() {
     // Collect filled followups in groups of 4
     const filledFollowups = followups.filter((f) => f.date);
     if (filledFollowups.length === 0) {
-      alert("لا توجد بيانات لحفظها");
+      toast.info("لا توجد بيانات لحفظها");
       return;
     }
 
@@ -192,9 +193,9 @@ export default function ConsultantFollowupPage() {
           notes: f.type,
         });
       }
-      alert("تم حفظ البيانات بنجاح");
+      toast.success("تم حفظ البيانات بنجاح");
     } catch (error) {
-      alert("فشل حفظ البيانات");
+      toast.error("فشل حفظ البيانات");
       console.error(error);
     }
   };
@@ -314,7 +315,7 @@ export default function ConsultantFollowupPage() {
             <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
               Operation Type
             </span>
-            <Input
+            <Input aria-label="LASIK / Refractive Surgery"
               value={operationType}
               onChange={(e) => setOperationType(e.target.value)}
               placeholder="LASIK / Refractive Surgery"
@@ -386,7 +387,7 @@ export default function ConsultantFollowupPage() {
 
         {/* TITLE */}
         <div className="px-6 py-3">
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900">
             Post-Op Follow-up /{" "}
             <span dir="rtl">متابعة ما بعد العمليات</span>
           </h1>
@@ -486,37 +487,37 @@ export default function ConsultantFollowupPage() {
                             <span className="font-bold text-[#003D9B]">OD</span>
                           </td>
                           <td className="px-2 py-1 text-center">
-                            <Input
+                            <Input aria-label="6/6"
                               className="h-6 text-[11px] w-20 text-center border-gray-300"
                               placeholder="6/6"
                             />
                           </td>
                           <td className="px-1 py-1">
-                            <Input
+                            <Input aria-label="S"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="S"
                             />
                           </td>
                           <td className="px-1 py-1">
-                            <Input
+                            <Input aria-label="C"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="C"
                             />
                           </td>
                           <td className="px-1 py-1">
-                            <Input
+                            <Input aria-label="A"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="A"
                             />
                           </td>
                           <td className="px-2 py-1">
-                            <Input
+                            <Input aria-label="Clear / Apposed"
                               className="h-6 text-[11px] w-28 border-gray-300"
                               placeholder="Clear / Apposed"
                             />
                           </td>
                           <td className="px-2 py-1 text-center">
-                            <Input
+                            <Input aria-label="14"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="14"
                             />
@@ -529,37 +530,37 @@ export default function ConsultantFollowupPage() {
                             <span className="text-gray-600">OS</span>
                           </td>
                           <td className="px-2 py-1 text-center">
-                            <Input
+                            <Input aria-label="6/6"
                               className="h-6 text-[11px] w-20 text-center border-gray-300"
                               placeholder="6/6"
                             />
                           </td>
                           <td className="px-1 py-1">
-                            <Input
+                            <Input aria-label="S"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="S"
                             />
                           </td>
                           <td className="px-1 py-1">
-                            <Input
+                            <Input aria-label="C"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="C"
                             />
                           </td>
                           <td className="px-1 py-1">
-                            <Input
+                            <Input aria-label="A"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="A"
                             />
                           </td>
                           <td className="px-2 py-1">
-                            <Input
+                            <Input aria-label="Clear / Apposed"
                               className="h-6 text-[11px] w-28 border-gray-300"
                               placeholder="Clear / Apposed"
                             />
                           </td>
                           <td className="px-2 py-1 text-center">
-                            <Input
+                            <Input aria-label="14"
                               className="h-6 text-[11px] w-14 text-center border-gray-300"
                               placeholder="14"
                             />
@@ -586,7 +587,7 @@ export default function ConsultantFollowupPage() {
                     </p>
                     <div className="flex gap-4">
                       <div className="flex-[3]">
-                        <Textarea
+                        <Textarea aria-label="Vigamox q2h, Pred Forte q2h…"
                           rows={2}
                           placeholder="Vigamox q2h, Pred Forte q2h…"
                           className="text-sm w-full border-gray-200"

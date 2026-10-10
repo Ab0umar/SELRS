@@ -58,7 +58,7 @@ export default function KfServiceRevenue() {
                 تحديث
               </Button>
               <Button onClick={() => window.print()} disabled={q.isLoading || rows.length === 0}>
-                <Printer className="ml-2 h-4 w-4" />
+                <Printer className="me-2 h-4 w-4" />
                 طباعة
               </Button>
             </div>
@@ -75,7 +75,7 @@ export default function KfServiceRevenue() {
           </label>
           {dateError && <p className="col-span-full text-sm text-destructive">{dateError}</p>}
           <div className="flex items-end gap-2 sm:col-span-2">
-            <Button className="flex-1" onClick={apply}><Search className="ml-2 h-4 w-4" />تطبيق</Button>
+            <Button className="flex-1" onClick={apply}><Search className="me-2 h-4 w-4" />تطبيق</Button>
             <Button variant="outline" onClick={reset}>إعادة ضبط</Button>
           </div>
         </CardContent>
@@ -145,15 +145,15 @@ export default function KfServiceRevenue() {
           )}
 
           {!q.isLoading && rows.length > 0 && !isMobile && (
-            <div className="overflow-x-auto">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b bg-muted/40 text-muted-foreground text-xs">
-                    <th className="px-3 py-2 text-right font-medium">الخدمة</th>
-                    <th className="px-3 py-2 text-right font-medium tabular-nums">العدد</th>
-                    <th className="px-3 py-2 text-right font-medium tabular-nums">سعر الوحدة (ج)</th>
-                    <th className="px-3 py-2 text-right font-medium tabular-nums">الإجمالي (ج)</th>
-                    <th className="px-3 py-2 text-right font-medium">%</th>
+                    <th className="px-3 py-2 text-start font-medium">الخدمة</th>
+                    <th className="px-3 py-2 text-start font-medium tabular-nums">العدد</th>
+                    <th className="px-3 py-2 text-start font-medium tabular-nums">سعر الوحدة (ج)</th>
+                    <th className="px-3 py-2 text-start font-medium tabular-nums">الإجمالي (ج)</th>
+                    <th className="px-3 py-2 text-start font-medium">%</th>
                   </tr>
                 </thead>
                 <tbody>

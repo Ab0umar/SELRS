@@ -671,7 +671,7 @@ export default function KfWorkflow() {
           </tbody>
         </table>
 
-        <div className="flex justify-between items-end pt-8 text-[10px] text-muted-foreground" dir="rtl">
+        <div className="flex justify-between items-end pt-8 text-[13px] text-muted-foreground" dir="rtl">
           <div>العنوان: كفر الشيخ - أمام مستشفى الرمد</div>
           <div className="text-center font-bold text-xs text-slate-800">توقيع الطبيب: .............................</div>
         </div>
@@ -758,19 +758,19 @@ export default function KfWorkflow() {
       ) : (
         <Tabs defaultValue="reception" dir="rtl" className="space-y-6 print:hidden">
           <TabsList className="flex w-full overflow-x-auto h-14 bg-muted rounded-2xl p-1 gap-1 whitespace-nowrap scrollbar-none md:grid md:grid-cols-5">
-            <TabsTrigger value="reception" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[11px] font-semibold px-2 min-w-[80px] shrink-0">
+            <TabsTrigger value="reception" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[13px] font-semibold px-2 min-w-[80px] shrink-0">
               <UserRound className="h-3.5 w-3.5" /> الاستقبال
             </TabsTrigger>
-            <TabsTrigger value="nursing" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[11px] font-semibold px-2 min-w-[80px] shrink-0">
+            <TabsTrigger value="nursing" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[13px] font-semibold px-2 min-w-[80px] shrink-0">
               <HeartPulse className="h-3.5 w-3.5" /> التمريض
             </TabsTrigger>
-            <TabsTrigger value="specialist" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[11px] font-semibold px-2 min-w-[110px] shrink-0">
+            <TabsTrigger value="specialist" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[13px] font-semibold px-2 min-w-[110px] shrink-0">
               <Stethoscope className="h-3.5 w-3.5" /> الأخصائي
             </TabsTrigger>
-            <TabsTrigger value="consultant" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[11px] font-semibold px-2 min-w-[80px] shrink-0">
+            <TabsTrigger value="consultant" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[13px] font-semibold px-2 min-w-[80px] shrink-0">
               <ClipboardCheck className="h-3.5 w-3.5" /> الاستشاري
             </TabsTrigger>
-            <TabsTrigger value="final-report" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[11px] font-semibold px-2 min-w-[110px] shrink-0">
+            <TabsTrigger value="final-report" className="flex-1 rounded-xl flex items-center justify-center gap-1 text-[13px] font-semibold px-2 min-w-[110px] shrink-0">
               <FileText className="h-3.5 w-3.5" /> الشيت النهائي
             </TabsTrigger>
           </TabsList>
@@ -941,9 +941,9 @@ export default function KfWorkflow() {
                       <tr className="border-b border-border">
                         <th className="p-2 border-r border-border font-bold text-foreground" rowSpan={2}>Type</th>
                         <th colSpan={3} className="p-2 border-r border-border font-bold text-amber-800">OD (Right Eye)</th>
-                        <th colSpan={3} className="p-2 font-bold text-blue-800">OS (Left Eye)</th>
+                        <th colSpan={3} className="p-2 font-bold text-foreground">OS (Left Eye)</th>
                       </tr>
-                      <tr className="border-b border-border text-[11px] text-muted-foreground bg-muted/30">
+                      <tr className="border-b border-border text-[13px] text-muted-foreground bg-muted/30">
                         <th className="p-1.5 border-r border-border">S (Sph)</th>
                         <th className="p-1.5 border-r border-border">C (Cyl)</th>
                         <th className="p-1.5 border-r border-border">Ax</th>
@@ -969,7 +969,7 @@ export default function KfWorkflow() {
                           </Select>
                         </td>
                         <td className="p-1.5 border-r border-border">
-                          <Input type="number" placeholder="Axis" value={nursingForm.arOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOdAxis: e.target.value })} className="h-9 rounded-lg" />
+                          <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.arOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOdAxis: e.target.value })} className="h-9 rounded-lg" />
                         </td>
                         {/* OS */}
                         <td className="p-1.5 border-r border-border">
@@ -985,7 +985,7 @@ export default function KfWorkflow() {
                           </Select>
                         </td>
                         <td className="p-1.5">
-                          <Input type="number" placeholder="Axis" value={nursingForm.arOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOsAxis: e.target.value })} className="h-9 rounded-lg" />
+                          <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.arOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOsAxis: e.target.value })} className="h-9 rounded-lg" />
                         </td>
                       </tr>
                     </tbody>
@@ -996,20 +996,20 @@ export default function KfWorkflow() {
                 <div className="block md:hidden space-y-4" dir="ltr">
                   {/* OD Card */}
                   <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
-                    <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
+                    <div className="bg-primary/5 text-primary text-[13px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OD (Right)
                     </div>
                     <div className="p-3.5 space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-center">
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">S</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">S</span>
                           <Select value={nursingForm.arOdSph} onValueChange={(val) => setNursingForm({ ...nursingForm, arOdSph: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{SPH_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">C</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">C</span>
                           <Select value={nursingForm.arOdCyl} onValueChange={(val) => setNursingForm({ ...nursingForm, arOdCyl: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{CYL_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
@@ -1017,28 +1017,28 @@ export default function KfWorkflow() {
                         </div>
                       </div>
                       <div className="space-y-1 text-center">
-                        <Input type="number" placeholder="Axis" value={nursingForm.arOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOdAxis: e.target.value })} className="h-9 rounded-lg text-center" />
-                        <span className="text-[9px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
+                        <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.arOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOdAxis: e.target.value })} className="h-9 rounded-lg text-center" />
+                        <span className="text-[13px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
                       </div>
                     </div>
                   </div>
 
                   {/* OS Card */}
                   <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
-                    <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
+                    <div className="bg-primary/5 text-primary text-[13px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OS (Left)
                     </div>
                     <div className="p-3.5 space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-center">
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">S</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">S</span>
                           <Select value={nursingForm.arOsSph} onValueChange={(val) => setNursingForm({ ...nursingForm, arOsSph: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{SPH_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">C</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">C</span>
                           <Select value={nursingForm.arOsCyl} onValueChange={(val) => setNursingForm({ ...nursingForm, arOsCyl: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{CYL_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
@@ -1046,8 +1046,8 @@ export default function KfWorkflow() {
                         </div>
                       </div>
                       <div className="space-y-1 text-center">
-                        <Input type="number" placeholder="Axis" value={nursingForm.arOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOsAxis: e.target.value })} className="h-9 rounded-lg text-center" />
-                        <span className="text-[9px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
+                        <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.arOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, arOsAxis: e.target.value })} className="h-9 rounded-lg text-center" />
+                        <span className="text-[13px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
                       </div>
                     </div>
                   </div>
@@ -1068,9 +1068,9 @@ export default function KfWorkflow() {
                       <tr className="border-b border-border">
                         <th className="p-2 border-r border-border font-bold text-foreground" rowSpan={2}>Type</th>
                         <th colSpan={3} className="p-2 border-r border-border font-bold text-amber-800">OD (Right Eye)</th>
-                        <th colSpan={3} className="p-2 font-bold text-blue-800">OS (Left Eye)</th>
+                        <th colSpan={3} className="p-2 font-bold text-foreground">OS (Left Eye)</th>
                       </tr>
-                      <tr className="border-b border-border text-[11px] text-muted-foreground bg-muted/30">
+                      <tr className="border-b border-border text-[13px] text-muted-foreground bg-muted/30">
                         <th className="p-1.5 border-r border-border">S (Sph)</th>
                         <th className="p-1.5 border-r border-border">C (Cyl)</th>
                         <th className="p-1.5 border-r border-border">Ax</th>
@@ -1096,7 +1096,7 @@ export default function KfWorkflow() {
                           </Select>
                         </td>
                         <td className="p-1.5 border-r border-border">
-                          <Input type="number" placeholder="Axis" value={nursingForm.afterOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOdAxis: e.target.value })} className="h-9 rounded-lg" />
+                          <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.afterOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOdAxis: e.target.value })} className="h-9 rounded-lg" />
                         </td>
                         {/* OS */}
                         <td className="p-1.5 border-r border-border">
@@ -1112,7 +1112,7 @@ export default function KfWorkflow() {
                           </Select>
                         </td>
                         <td className="p-1.5">
-                          <Input type="number" placeholder="Axis" value={nursingForm.afterOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOsAxis: e.target.value })} className="h-9 rounded-lg" />
+                          <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.afterOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOsAxis: e.target.value })} className="h-9 rounded-lg" />
                         </td>
                       </tr>
                     </tbody>
@@ -1123,20 +1123,20 @@ export default function KfWorkflow() {
                 <div className="block md:hidden space-y-4" dir="ltr">
                   {/* OD Card */}
                   <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
-                    <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
+                    <div className="bg-primary/5 text-primary text-[13px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OD (Right)
                     </div>
                     <div className="p-3.5 space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-center">
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">S</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">S</span>
                           <Select value={nursingForm.afterOdSph} onValueChange={(val) => setNursingForm({ ...nursingForm, afterOdSph: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{SPH_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">C</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">C</span>
                           <Select value={nursingForm.afterOdCyl} onValueChange={(val) => setNursingForm({ ...nursingForm, afterOdCyl: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{CYL_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
@@ -1144,28 +1144,28 @@ export default function KfWorkflow() {
                         </div>
                       </div>
                       <div className="space-y-1 text-center">
-                        <Input type="number" placeholder="Axis" value={nursingForm.afterOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOdAxis: e.target.value })} className="h-9 rounded-lg text-center" />
-                        <span className="text-[9px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
+                        <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.afterOdAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOdAxis: e.target.value })} className="h-9 rounded-lg text-center" />
+                        <span className="text-[13px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
                       </div>
                     </div>
                   </div>
 
                   {/* OS Card */}
                   <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
-                    <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
+                    <div className="bg-primary/5 text-primary text-[13px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OS (Left)
                     </div>
                     <div className="p-3.5 space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-center">
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">S</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">S</span>
                           <Select value={nursingForm.afterOsSph} onValueChange={(val) => setNursingForm({ ...nursingForm, afterOsSph: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{SPH_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">C</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">C</span>
                           <Select value={nursingForm.afterOsCyl} onValueChange={(val) => setNursingForm({ ...nursingForm, afterOsCyl: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{CYL_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
@@ -1173,8 +1173,8 @@ export default function KfWorkflow() {
                         </div>
                       </div>
                       <div className="space-y-1 text-center">
-                        <Input type="number" placeholder="Axis" value={nursingForm.afterOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOsAxis: e.target.value })} className="h-9 rounded-lg text-center" />
-                        <span className="text-[9px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
+                        <Input aria-label="Axis" type="number" placeholder="Axis" value={nursingForm.afterOsAxis} onChange={(e) => setNursingForm({ ...nursingForm, afterOsAxis: e.target.value })} className="h-9 rounded-lg text-center" />
+                        <span className="text-[13px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
                       </div>
                     </div>
                   </div>
@@ -1225,7 +1225,7 @@ export default function KfWorkflow() {
                   </div>
                   <div className="flex items-center gap-3 w-full sm:w-44">
                     <span className="text-xs text-muted-foreground w-12 shrink-0">PD</span>
-                    <Input
+                    <Input aria-label="PD"
                       placeholder="PD"
                       value={specialistForm.pd}
                       onChange={(e) => setSpecialistForm({ ...specialistForm, pd: e.target.value })}
@@ -1249,9 +1249,9 @@ export default function KfWorkflow() {
                       <tr className="border-b border-border">
                         <th className="p-2 border-r border-border font-bold text-foreground" rowSpan={2}>Type</th>
                         <th colSpan={3} className="p-2 border-r border-border font-bold text-amber-800">OD (Right Eye)</th>
-                        <th colSpan={3} className="p-2 font-bold text-blue-800">OS (Left Eye)</th>
+                        <th colSpan={3} className="p-2 font-bold text-foreground">OS (Left Eye)</th>
                       </tr>
-                      <tr className="border-b border-border text-[11px] text-muted-foreground bg-muted/30">
+                      <tr className="border-b border-border text-[13px] text-muted-foreground bg-muted/30">
                         <th className="p-1.5 border-r border-border">S (Sph)</th>
                         <th className="p-1.5 border-r border-border">C (Cyl)</th>
                         <th className="p-1.5 border-r border-border">Ax</th>
@@ -1278,7 +1278,7 @@ export default function KfWorkflow() {
                           </Select>
                         </td>
                         <td className="p-1.5 border-r border-border">
-                          <Input type="number" placeholder="Axis" value={specialistForm.odAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, odAxis: e.target.value })} className="h-9 rounded-lg" />
+                          <Input aria-label="Axis" type="number" placeholder="Axis" value={specialistForm.odAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, odAxis: e.target.value })} className="h-9 rounded-lg" />
                         </td>
                         {/* OS */}
                         <td className="p-1.5 border-r border-border">
@@ -1294,7 +1294,7 @@ export default function KfWorkflow() {
                           </Select>
                         </td>
                         <td className="p-1.5">
-                          <Input type="number" placeholder="Axis" value={specialistForm.osAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, osAxis: e.target.value })} className="h-9 rounded-lg" />
+                          <Input aria-label="Axis" type="number" placeholder="Axis" value={specialistForm.osAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, osAxis: e.target.value })} className="h-9 rounded-lg" />
                         </td>
                       </tr>
                       {/* Reading */}
@@ -1328,20 +1328,20 @@ export default function KfWorkflow() {
                 <div className="block md:hidden space-y-4" dir="ltr">
                   {/* OD Card */}
                   <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
-                    <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
+                    <div className="bg-primary/5 text-primary text-[13px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OD (Right)
                     </div>
                     <div className="p-3.5 space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-center">
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">S</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">S</span>
                           <Select value={specialistForm.odSph} onValueChange={(val) => setSpecialistForm({ ...specialistForm, odSph: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{SPH_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">C</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">C</span>
                           <Select value={specialistForm.odCyl} onValueChange={(val) => setSpecialistForm({ ...specialistForm, odCyl: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{CYL_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
@@ -1349,28 +1349,28 @@ export default function KfWorkflow() {
                         </div>
                       </div>
                       <div className="space-y-1 text-center">
-                        <Input type="number" placeholder="Axis" value={specialistForm.odAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, odAxis: e.target.value })} className="h-9 rounded-lg text-center" />
-                        <span className="text-[9px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
+                        <Input aria-label="Axis" type="number" placeholder="Axis" value={specialistForm.odAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, odAxis: e.target.value })} className="h-9 rounded-lg text-center" />
+                        <span className="text-[13px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
                       </div>
                     </div>
                   </div>
 
                   {/* OS Card */}
                   <div className="bg-muted/30 border border-border/80 rounded-2xl overflow-hidden shadow-xs">
-                    <div className="bg-primary/5 text-primary text-[11px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
+                    <div className="bg-primary/5 text-primary text-[13px] font-bold px-3 py-1.5 border-b border-border/50 text-left">
                       OS (Left)
                     </div>
                     <div className="p-3.5 space-y-3">
                       <div className="grid grid-cols-2 gap-3 text-center">
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">S</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">S</span>
                           <Select value={specialistForm.osSph} onValueChange={(val) => setSpecialistForm({ ...specialistForm, osSph: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{SPH_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">C</span>
+                          <span className="text-[13px] font-bold text-muted-foreground block">C</span>
                           <Select value={specialistForm.osCyl} onValueChange={(val) => setSpecialistForm({ ...specialistForm, osCyl: val })}>
                             <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="---" /></SelectTrigger>
                             <SelectContent className="max-h-48">{CYL_OPTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
@@ -1378,8 +1378,8 @@ export default function KfWorkflow() {
                         </div>
                       </div>
                       <div className="space-y-1 text-center">
-                        <Input type="number" placeholder="Axis" value={specialistForm.osAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, osAxis: e.target.value })} className="h-9 rounded-lg text-center" />
-                        <span className="text-[9px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
+                        <Input aria-label="Axis" type="number" placeholder="Axis" value={specialistForm.osAxis} onChange={(e) => setSpecialistForm({ ...specialistForm, osAxis: e.target.value })} className="h-9 rounded-lg text-center" />
+                        <span className="text-[13px] font-semibold text-muted-foreground block mt-0.5">Axis</span>
                       </div>
                     </div>
                   </div>
@@ -1410,23 +1410,23 @@ export default function KfWorkflow() {
             <div className="space-y-6">
               <div className="space-y-2 bg-card p-5 rounded-3xl border border-border shadow-sm">
                 <Label className="font-bold text-sm text-primary">Diagnosis:</Label>
-                <Textarea
+                <Textarea aria-label="...اكتب الشكوى يدوياً أو ابحث من الأعراض بالأسفل"
                   rows={3}
                   value={specialistForm.diagnosis}
                   onChange={(e) => setSpecialistForm({ ...specialistForm, diagnosis: e.target.value })}
                   placeholder="...اكتب الشكوى يدوياً أو ابحث من الأعراض بالأسفل"
-                  className="rounded-xl mt-1 text-right"
+                  className="rounded-xl mt-1 text-start"
                 />
               </div>
 
               <div className="space-y-2 bg-card p-5 rounded-3xl border border-border shadow-sm">
                 <Label className="font-bold text-sm text-primary">Recommendations:</Label>
-                <Textarea
+                <Textarea aria-label="...اكتب التوصيات هنا"
                   rows={3}
                   value={specialistForm.plan}
                   onChange={(e) => setSpecialistForm({ ...specialistForm, plan: e.target.value })}
                   placeholder="...اكتب التوصيات هنا"
-                  className="rounded-xl mt-1 text-right"
+                  className="rounded-xl mt-1 text-start"
                 />
               </div>
 
@@ -1450,17 +1450,17 @@ export default function KfWorkflow() {
                   {images.map((img, i) => (
                     <div key={i} className="relative h-14 w-14 rounded-xl overflow-hidden border border-border group">
                       <img src={img.preview} alt="" aria-hidden loading="lazy" className="h-full w-full object-cover" />
-                      <button
+                      <Button variant="bare"
                         onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                         className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash2 className="h-4 w-4 text-primary-foreground" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
                 {images.length === 0 && (
-                  <p className="text-[11px] text-muted-foreground">لا توجد صور مرفقة بعد</p>
+                  <p className="text-[13px] text-muted-foreground">لا توجد صور مرفقة بعد</p>
                 )}
               </div>
             </div>
@@ -1511,7 +1511,7 @@ export default function KfWorkflow() {
                     if (template) handleApplyPresTemplate(template);
                   }}>
                     <SelectTrigger className="w-56 h-10 rounded-xl bg-primary/5 text-primary border-primary/20">
-                      <Sparkles className="h-4 w-4 ml-2" />
+                      <Sparkles className="h-4 w-4 me-2" />
                       <SelectValue placeholder="اختر من القوالب الجاهزة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1528,7 +1528,7 @@ export default function KfWorkflow() {
                 {/* Added Prescription Items Table */}
                 {prescriptionItems.length > 0 ? (
                   <div className="border border-border rounded-xl overflow-hidden bg-background">
-                    <table className="w-full text-right text-sm">
+                    <table className="w-full text-start text-sm">
                       <thead className="bg-muted">
                         <tr>
                           <th className="p-3">اسم الدواء</th>
@@ -1546,7 +1546,7 @@ export default function KfWorkflow() {
                             <td className="p-3">{item.frequency || "—"}</td>
                             <td className="p-3">{item.duration || "—"}</td>
                             <td className="p-3">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveMedication(idx)}>
+                              <Button aria-label="حذف الدواء" title="حذف الدواء" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveMedication(idx)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </td>
@@ -1565,7 +1565,7 @@ export default function KfWorkflow() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-muted/20 p-4 rounded-2xl border border-border">
                   <div className="space-y-1">
                     <Label className="text-xs">اسم الدواء</Label>
-                    <Input
+                    <Input aria-label="اسم الدواء…"
                       placeholder="اسم الدواء…"
                       value={newMed.medicationName}
                       onChange={(e) => setNewMed({ ...newMed, medicationName: e.target.value })}
@@ -1574,7 +1574,7 @@ export default function KfWorkflow() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">الجرعة (Dosage)</Label>
-                    <Input
+                    <Input aria-label="مثال: قرص، ملعقة…"
                       placeholder="مثال: قرص، ملعقة…"
                       value={newMed.dosage}
                       onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })}
@@ -1583,7 +1583,7 @@ export default function KfWorkflow() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">التكرار (Frequency)</Label>
-                    <Input
+                    <Input aria-label="مثال: 3 مرات يومياً…"
                       placeholder="مثال: 3 مرات يومياً…"
                       value={newMed.frequency}
                       onChange={(e) => setNewMed({ ...newMed, frequency: e.target.value })}
@@ -1592,7 +1592,7 @@ export default function KfWorkflow() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">المدة (Duration)</Label>
-                    <Input
+                    <Input aria-label="مثال: 5 أيام…"
                       placeholder="مثال: 5 أيام…"
                       value={newMed.duration}
                       onChange={(e) => setNewMed({ ...newMed, duration: e.target.value })}
@@ -1608,7 +1608,7 @@ export default function KfWorkflow() {
 
                 <div className="space-y-2 pt-2">
                   <Label>ملاحظات عامة على الروشتة</Label>
-                  <Textarea
+                  <Textarea aria-label="تعليمات إضافية للمريض…"
                     rows={2}
                     value={prescriptionNotes}
                     onChange={(e) => setPrescriptionNotes(e.target.value)}
@@ -1645,7 +1645,7 @@ export default function KfWorkflow() {
                     if (template) handleApplyTestTemplate(template);
                   }}>
                     <SelectTrigger className="w-56 h-10 rounded-xl bg-primary/5 text-primary border-primary/20">
-                      <Sparkles className="h-4 w-4 ml-2" />
+                      <Sparkles className="h-4 w-4 me-2" />
                       <SelectValue placeholder="اختر من القوالب الجاهزة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1689,7 +1689,7 @@ export default function KfWorkflow() {
                             <span className="font-bold text-sm text-foreground">{index + 1}. {test.name}</span>
                           </div>
                           <div className="w-full sm:w-80">
-                            <Input
+                            <Input aria-label="ملاحظات أو توجيهات لهذا الفحص…"
                               placeholder="ملاحظات أو توجيهات لهذا الفحص…"
                               value={test.notes}
                               onChange={(e) => {
@@ -1700,7 +1700,7 @@ export default function KfWorkflow() {
                               className="h-9 rounded-lg text-xs"
                             />
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => handleRemoveTest(test.id)}>
+                          <Button aria-label="حذف التحليل" title="حذف التحليل" variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => handleRemoveTest(test.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -1715,7 +1715,7 @@ export default function KfWorkflow() {
 
                 <div className="space-y-2">
                   <Label>توجيهات عامة لطلب الفحص</Label>
-                  <Textarea
+                  <Textarea aria-label="مثال: يرجى إحضار النتائج للاستشارة القادمة…"
                     rows={2}
                     value={testRequestNotes}
                     onChange={(e) => setTestRequestNotes(e.target.value)}
@@ -1753,7 +1753,7 @@ export default function KfWorkflow() {
             <Card className="rounded-3xl shadow-md border border-border p-6 space-y-8 bg-card max-w-2xl mx-auto">
               {/* Header */}
               <div className="flex flex-col items-center border-b border-border/60 pb-5 text-center">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Selrs Eye Center</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase">Selrs Eye Center</span>
                 <h2 className="text-xl font-extrabold text-foreground mt-1">FINAL MEDICAL REPORT</h2>
                 <span className="text-xs text-primary font-semibold mt-1">Digital Visit Summary</span>
 
@@ -1769,7 +1769,7 @@ export default function KfWorkflow() {
 
               {/* Report Information */}
               <div className="bg-muted/40 border border-border/40 rounded-2xl p-4.5 space-y-3">
-                <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Report Information</h3>
+                <h3 className="text-xs font-extrabold text-muted-foreground uppercase">Report Information</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-foreground">
                   <div>Patient Name: <span className="font-bold text-foreground">{patientForm.fullName}</span></div>
                   <div>Date of Birth: <span className="font-mono text-foreground">{patientForm.dateOfBirth || "—"}</span></div>
@@ -1780,7 +1780,7 @@ export default function KfWorkflow() {
 
               {/* History & Complaints */}
               <div className="bg-muted/40 border border-border/40 rounded-2xl p-4.5 space-y-3">
-                <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">History & Complaints</h3>
+                <h3 className="text-xs font-extrabold text-muted-foreground uppercase">History & Complaints</h3>
                 <div className="space-y-2 text-sm text-foreground">
                   <div>Medical History: <span className="font-semibold text-foreground">{patientForm.medicalHistory || "—"}</span></div>
                   <div>Previous Operations: <span className="font-semibold text-foreground">—</span></div>
@@ -1791,35 +1791,35 @@ export default function KfWorkflow() {
 
               {/* Measurements Table */}
               <div className="space-y-3">
-                <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Measurements</h3>
+                <h3 className="text-xs font-extrabold text-muted-foreground uppercase">Measurements</h3>
                 <div className="border border-border/60 rounded-xl overflow-hidden bg-card">
                   <table className="w-full text-center border-collapse text-xs">
                     <thead className="bg-muted/40 text-muted-foreground font-bold border-b border-border/60">
                       <tr>
-                        <th className="p-2.5 border-r border-border/60">Eye</th>
-                        <th className="p-2.5 border-r border-border/60">OD (Right)</th>
+                        <th className="p-2.5 border-s border-border/60">Eye</th>
+                        <th className="p-2.5 border-s border-border/60">OD (Right)</th>
                         <th className="p-2.5">OS (Left)</th>
                       </tr>
                     </thead>
                     <tbody className="text-foreground">
                       <tr className="border-b border-border/60">
-                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">UCVA</td>
-                        <td className="p-2 border-r border-border/60 font-mono">{nursingForm.ucvaOd || "—"}</td>
+                        <td className="p-2 border-s border-border/60 font-semibold bg-muted/30">UCVA</td>
+                        <td className="p-2 border-s border-border/60 font-mono">{nursingForm.ucvaOd || "—"}</td>
                         <td className="p-2 font-mono">{nursingForm.ucvaOs || "—"}</td>
                       </tr>
                       <tr className="border-b border-border/60">
-                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">BCVA</td>
-                        <td className="p-2 border-r border-border/60 font-mono">{specialistForm.bcvaOd || "—"}</td>
+                        <td className="p-2 border-s border-border/60 font-semibold bg-muted/30">BCVA</td>
+                        <td className="p-2 border-s border-border/60 font-mono">{specialistForm.bcvaOd || "—"}</td>
                         <td className="p-2 font-mono">{specialistForm.bcvaOs || "—"}</td>
                       </tr>
                       <tr className="border-b border-border/60">
-                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">IOP</td>
-                        <td className="p-2 border-r border-border/60 font-mono">{nursingForm.iopOd || "—"}</td>
+                        <td className="p-2 border-s border-border/60 font-semibold bg-muted/30">IOP</td>
+                        <td className="p-2 border-s border-border/60 font-mono">{nursingForm.iopOd || "—"}</td>
                         <td className="p-2 font-mono">{nursingForm.iopOs || "—"}</td>
                       </tr>
                       <tr className="border-b border-border/60">
-                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">Autoref (S/C/A)</td>
-                        <td className="p-2 border-r border-border/60 font-mono">
+                        <td className="p-2 border-s border-border/60 font-semibold bg-muted/30">Autoref (S/C/A)</td>
+                        <td className="p-2 border-s border-border/60 font-mono">
                           {nursingForm.arOdSph} / {nursingForm.arOdCyl} / {nursingForm.arOdAxis || "0"}
                         </td>
                         <td className="p-2 font-mono">
@@ -1827,8 +1827,8 @@ export default function KfWorkflow() {
                         </td>
                       </tr>
                       <tr className="border-b border-border/60">
-                        <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">Final Refraction</td>
-                        <td className="p-2 border-r border-border/60 font-mono">
+                        <td className="p-2 border-s border-border/60 font-semibold bg-muted/30">Final Refraction</td>
+                        <td className="p-2 border-s border-border/60 font-mono">
                           {specialistForm.odSph} / {specialistForm.odCyl} / {specialistForm.odAxis || "0"}
                         </td>
                         <td className="p-2 font-mono">
@@ -1837,13 +1837,13 @@ export default function KfWorkflow() {
                       </tr>
                       {specialistForm.add !== "---" && (
                         <tr className="border-b border-border/60">
-                          <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">Reading Addition (+Add)</td>
+                          <td className="p-2 border-s border-border/60 font-semibold bg-muted/30">Reading Addition (+Add)</td>
                           <td colSpan={2} className="p-2 font-bold text-primary font-mono">{specialistForm.add}</td>
                         </tr>
                       )}
                       {specialistForm.pd && (
                         <tr>
-                          <td className="p-2 border-r border-border/60 font-semibold bg-muted/30">PD</td>
+                          <td className="p-2 border-s border-border/60 font-semibold bg-muted/30">PD</td>
                           <td colSpan={2} className="p-2 font-bold font-mono">{specialistForm.pd} mm</td>
                         </tr>
                       )}
@@ -1855,9 +1855,9 @@ export default function KfWorkflow() {
               {/* Treatment Plans / Prescription review */}
               {prescriptionItems.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Prescribed Treatment</h3>
+                  <h3 className="text-xs font-extrabold text-muted-foreground uppercase">Prescribed Treatment</h3>
                   <div className="border border-border/60 rounded-xl overflow-hidden bg-card">
-                    <table className="w-full text-right text-xs">
+                    <table className="w-full text-start text-xs">
                       <thead className="bg-muted/40 text-muted-foreground font-bold border-b border-border/60">
                         <tr>
                           <th className="p-2.5">Medication Name</th>

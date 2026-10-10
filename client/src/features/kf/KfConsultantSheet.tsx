@@ -514,7 +514,7 @@ export default function KfConsultantSheet() {
         {/* Brand Header */}
         <div className="flex items-start justify-between mb-6 pb-4 border-b border-gray-200">
           <div>
-            <h1 className="text-sm font-bold text-[#003D9B]">{BRAND_NAME_EN}</h1>
+            <h1 className="text-2xl font-bold text-[#003D9B]">{BRAND_NAME_EN}</h1>
             <p className="text-[11px] text-gray-700 mt-0.5">Lasik & Vision Correction — {BRAND_NAME_AR}</p>
             <p className="text-[11px] text-gray-500">Ophthalmic Excellence Center</p>
           </div>
@@ -598,8 +598,8 @@ export default function KfConsultantSheet() {
                 return (
                   <tr>
                     <td className="px-3 py-1.5 border-r border-gray-200 bg-gray-50 text-gray-600">mmHg</td>
-                    <td className="px-1 py-1 border-r border-gray-200"><Input className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${odIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} placeholder="mmHg" /></td>
-                    <td className="px-1 py-1"><Input className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${osIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} placeholder="mmHg" /></td>
+                    <td className="px-1 py-1 border-r border-gray-200"><Input aria-label="mmHg" className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${odIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} placeholder="mmHg" /></td>
+                    <td className="px-1 py-1"><Input aria-label="mmHg" className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${osIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} placeholder="mmHg" /></td>
                   </tr>
                 );
               })()}
@@ -633,11 +633,11 @@ export default function KfConsultantSheet() {
                       <span className={`font-bold ${isOD ? "text-[#003D9B]" : "text-gray-800"}`}>{eye}</span>
                       <br /><span className="text-[10px] text-gray-500 font-normal">{sub}</span>
                     </td>
-                    <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-16 mx-auto" value={ucva} onChange={e => setUcva(e.target.value)} placeholder="6/.." /></td>
-                    <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-16 mx-auto" value={bcva} onChange={e => setBcva(e.target.value)} placeholder="6/.." /></td>
-                    <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.a} onChange={e => setRef("a", e.target.value)} placeholder="A" /></td>
-                    <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.c} onChange={e => setRef("c", e.target.value)} placeholder="C" /></td>
-                    <td className="px-1 py-1 border-r border-gray-200"><Input className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.s} onChange={e => setRef("s", e.target.value)} placeholder="S" /></td>
+                    <td className="px-1 py-1 border-r border-gray-200"><Input aria-label="6/.." className="text-center text-[11px] h-7 border-gray-300 p-0 w-16 mx-auto" value={ucva} onChange={e => setUcva(e.target.value)} placeholder="6/.." /></td>
+                    <td className="px-1 py-1 border-r border-gray-200"><Input aria-label="6/.." className="text-center text-[11px] h-7 border-gray-300 p-0 w-16 mx-auto" value={bcva} onChange={e => setBcva(e.target.value)} placeholder="6/.." /></td>
+                    <td className="px-1 py-1 border-r border-gray-200"><Input aria-label="A" className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.a} onChange={e => setRef("a", e.target.value)} placeholder="A" /></td>
+                    <td className="px-1 py-1 border-r border-gray-200"><Input aria-label="C" className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.c} onChange={e => setRef("c", e.target.value)} placeholder="C" /></td>
+                    <td className="px-1 py-1 border-r border-gray-200"><Input aria-label="S" className="text-center text-[11px] h-7 border-gray-300 p-0 w-12 mx-auto" value={ref.s} onChange={e => setRef("s", e.target.value)} placeholder="S" /></td>
                     <td className="px-3 py-1"><input type="radio" name="dominant-eye" value={eye} checked={formData.dominantEye === eye} onChange={() => setFormData(p => ({ ...p, dominantEye: eye }))} className="h-4 w-4 accent-[#003D9B]" /></td>
                   </tr>
                 );
@@ -653,13 +653,13 @@ export default function KfConsultantSheet() {
               <h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">CLINICAL EXAMINATION / الفحص الإكلينيكي</h3>
             </div>
             <div className="grid grid-cols-2 divide-x divide-gray-200">
-              <div className="p-3"><p className="text-[10px] text-gray-500 mb-1.5 font-medium">Fundus Exam (OD/OS)</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} placeholder="Enter findings…" dir="ltr" /></div>
-              <div className="p-3"><p className="text-[10px] text-gray-500 mb-1.5 font-medium">Tear Film / BUT / Schirmer</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.drOD} onChange={e => setFormData(p => ({ ...p, drOD: e.target.value }))} placeholder="BUT: .. sec / Schirmer: .. mm" dir="ltr" /></div>
+              <div className="p-3"><p className="text-[10px] text-gray-500 mb-1.5 font-medium">Fundus Exam (OD/OS)</p><Textarea aria-label="Enter findings…" className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.fundusOD} onChange={e => setFormData(p => ({ ...p, fundusOD: e.target.value }))} placeholder="Enter findings…" dir="ltr" /></div>
+              <div className="p-3"><p className="text-[10px] text-gray-500 mb-1.5 font-medium">Tear Film / BUT / Schirmer</p><Textarea aria-label="BUT: .. sec / Schirmer: .. mm" className="text-[11px] resize-none border-gray-200 w-full" rows={4} value={formData.drOD} onChange={e => setFormData(p => ({ ...p, drOD: e.target.value }))} placeholder="BUT: .. sec / Schirmer: .. mm" dir="ltr" /></div>
             </div>
           </div>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="border-l-4 border-[#003D9B] bg-[#EEF4FF] pl-3 py-1"><h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">Lid Margin</h3></div>
-            <div className="p-3"><Textarea className="text-[11px] resize-none border-gray-200 w-full" style={{ minHeight: 100 }} value={formData.drOS} onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))} placeholder="Lid margin status…" dir="ltr" /></div>
+            <div className="p-3"><Textarea aria-label="Lid margin status…" className="text-[11px] resize-none border-gray-200 w-full" style={{ minHeight: 100 }} value={formData.drOS} onChange={e => setFormData(p => ({ ...p, drOS: e.target.value }))} placeholder="Lid margin status…" dir="ltr" /></div>
           </div>
         </div>
 
@@ -682,8 +682,8 @@ export default function KfConsultantSheet() {
 
         {/* Notes & Final Diagnosis */}
         <div className="mb-5 grid grid-cols-2 gap-4">
-          <div><p className="text-[11px] font-semibold text-gray-800 mb-1.5">Notes & Comments / ملاحظات</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.comments} onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))} placeholder="Notes…" dir="ltr" /></div>
-          <div><p className="text-[11px] font-bold text-red-600 mb-1.5">FINAL DIAGNOSIS / التشخيص النهائي</p><Textarea className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.final} onChange={e => setFormData(p => ({ ...p, final: e.target.value }))} placeholder="PRIMARY DIAGNOSIS HERE" dir="ltr" /></div>
+          <div><p className="text-[11px] font-semibold text-gray-800 mb-1.5">Notes & Comments / ملاحظات</p><Textarea aria-label="Notes…" className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.comments} onChange={e => setFormData(p => ({ ...p, comments: e.target.value }))} placeholder="Notes…" dir="ltr" /></div>
+          <div><p className="text-[11px] font-bold text-red-600 mb-1.5">FINAL DIAGNOSIS / التشخيص النهائي</p><Textarea aria-label="PRIMARY DIAGNOSIS HERE" className="text-[11px] resize-none border-gray-200 w-full" rows={5} value={formData.final} onChange={e => setFormData(p => ({ ...p, final: e.target.value }))} placeholder="PRIMARY DIAGNOSIS HERE" dir="ltr" /></div>
         </div>
 
         {/* Signatures */}

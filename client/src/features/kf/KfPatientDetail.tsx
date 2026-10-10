@@ -552,12 +552,12 @@ export default function KfPatientDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">تاريخ الزيارة</TableHead>
-                    <TableHead className="text-right">نوع الزيارة</TableHead>
-                    <TableHead className="text-right">الطبيب المعالج</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-right">الملاحظات</TableHead>
-                    <TableHead className="text-left"></TableHead>
+                    <TableHead className="text-start">تاريخ الزيارة</TableHead>
+                    <TableHead className="text-start">نوع الزيارة</TableHead>
+                    <TableHead className="text-start">الطبيب المعالج</TableHead>
+                    <TableHead className="text-start">الحالة</TableHead>
+                    <TableHead className="text-start">الملاحظات</TableHead>
+                    <TableHead className="text-end"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -603,9 +603,9 @@ export default function KfPatientDetail() {
                         <TableCell className="max-w-xs truncate" title={v.notes ?? ""}>
                           {v.notes || "—"}
                         </TableCell>
-                        <TableCell className="text-left">
+                        <TableCell className="text-end">
                           <div className="flex gap-1 items-center">
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditVisit({ ...v, visitDate: v.visitDate ? new Date(v.visitDate).toISOString().split("T")[0] : "" })}>
+                            <Button aria-label="تعديل الزيارة" title="تعديل الزيارة" variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditVisit({ ...v, visitDate: v.visitDate ? new Date(v.visitDate).toISOString().split("T")[0] : "" })}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
                             {delVisit === v.kfVisitId ? (
@@ -638,13 +638,13 @@ export default function KfPatientDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">تاريخ الفحص</TableHead>
-                    <TableHead className="text-right">العين اليمنى VA</TableHead>
-                    <TableHead className="text-right">العين اليسرى VA</TableHead>
-                    <TableHead className="text-right">ضغط العين (ي / ش)</TableHead>
-                    <TableHead className="text-right">التشخيص</TableHead>
-                    <TableHead className="text-right">الطبيب الفاحص</TableHead>
-                    <TableHead className="text-left">إجراءات</TableHead>
+                    <TableHead className="text-start">تاريخ الفحص</TableHead>
+                    <TableHead className="text-start">العين اليمنى VA</TableHead>
+                    <TableHead className="text-start">العين اليسرى VA</TableHead>
+                    <TableHead className="text-start">ضغط العين (ي / ش)</TableHead>
+                    <TableHead className="text-start">التشخيص</TableHead>
+                    <TableHead className="text-start">الطبيب الفاحص</TableHead>
+                    <TableHead className="text-end">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -681,12 +681,12 @@ export default function KfPatientDetail() {
                           {e.diagnosis || "—"}
                         </TableCell>
                         <TableCell>{e.doctorName || "—"}</TableCell>
-                        <TableCell className="text-left">
+                        <TableCell className="text-end">
                           <div className="flex gap-1 items-center">
-                            <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => setSelectedExamId(e.kfExamId)}>
+                            <Button aria-label="عرض الفحص" title="عرض الفحص" variant="ghost" size="icon" className="cursor-pointer" onClick={() => setSelectedExamId(e.kfExamId)}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditExam({ ...e, examDate: e.examDate ? new Date(e.examDate).toISOString().split("T")[0] : "", rightRefraction: e.rightRefraction ?? {}, leftRefraction: e.leftRefraction ?? {} })}>
+                            <Button aria-label="تعديل الفحص" title="تعديل الفحص" variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditExam({ ...e, examDate: e.examDate ? new Date(e.examDate).toISOString().split("T")[0] : "", rightRefraction: e.rightRefraction ?? {}, leftRefraction: e.leftRefraction ?? {} })}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
                             {delExam === e.kfExamId ? (
@@ -719,13 +719,13 @@ export default function KfPatientDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">تاريخ العملية</TableHead>
-                    <TableHead className="text-right">نوع العملية</TableHead>
-                    <TableHead className="text-right">العين</TableHead>
-                    <TableHead className="text-right">الجراح</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-right">ملاحظات</TableHead>
-                    <TableHead className="text-left"></TableHead>
+                    <TableHead className="text-start">تاريخ العملية</TableHead>
+                    <TableHead className="text-start">نوع العملية</TableHead>
+                    <TableHead className="text-start">العين</TableHead>
+                    <TableHead className="text-start">الجراح</TableHead>
+                    <TableHead className="text-start">الحالة</TableHead>
+                    <TableHead className="text-start">ملاحظات</TableHead>
+                    <TableHead className="text-end"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -768,9 +768,9 @@ export default function KfPatientDetail() {
                         <TableCell className="max-w-xs truncate" title={op.notes ?? ""}>
                           {op.notes || "—"}
                         </TableCell>
-                        <TableCell className="text-left">
+                        <TableCell className="text-end">
                           <div className="flex gap-1 items-center">
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditOp({ ...op, opDate: op.opDate ? new Date(op.opDate).toISOString().split("T")[0] : "" })}>
+                            <Button aria-label="تعديل العملية" title="تعديل العملية" variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditOp({ ...op, opDate: op.opDate ? new Date(op.opDate).toISOString().split("T")[0] : "" })}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
                             {delOp === op.kfOpId ? (
@@ -803,10 +803,10 @@ export default function KfPatientDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">تاريخ المتابعة</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-right">ملاحظات</TableHead>
-                    <TableHead className="text-left"></TableHead>
+                    <TableHead className="text-start">تاريخ المتابعة</TableHead>
+                    <TableHead className="text-start">الحالة</TableHead>
+                    <TableHead className="text-start">ملاحظات</TableHead>
+                    <TableHead className="text-end"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -842,9 +842,9 @@ export default function KfPatientDetail() {
                           </Badge>
                         </TableCell>
                         <TableCell>{f.notes || "—"}</TableCell>
-                        <TableCell className="text-left">
+                        <TableCell className="text-end">
                           <div className="flex gap-1 items-center">
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditFollowup({ ...f, followupDate: f.followupDate ? new Date(f.followupDate).toISOString().split("T")[0] : "" })}>
+                            <Button aria-label="تعديل المتابعة" title="تعديل المتابعة" variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => setEditFollowup({ ...f, followupDate: f.followupDate ? new Date(f.followupDate).toISOString().split("T")[0] : "" })}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
                             {delFollowup === f.kfFollowupId ? (
@@ -880,7 +880,7 @@ export default function KfPatientDetail() {
             </div>
           ) : selectedExam ? (
             <div className="space-y-6">
-              <DialogHeader className="text-right">
+              <DialogHeader className="text-start">
                 <DialogTitle className="text-xl flex items-center gap-2">
                   <Activity className="h-5 w-5 text-primary" />
                   <span>تفاصيل الفحص الطبي بتاريخ {new Date(selectedExam.examDate).toLocaleDateString("ar-EG")}</span>
@@ -1305,7 +1305,7 @@ export default function KfPatientDetail() {
             </div>
             <div className="space-y-1">
               <Label>نوع العملية</Label>
-              <Input placeholder="مثال: LASIK، فاكو، إلخ…" value={addOpForm.opType ?? ""} onChange={(e) => setAddOpForm({ ...addOpForm, opType: e.target.value })} />
+              <Input aria-label="مثال: LASIK، فاكو، إلخ…" placeholder="مثال: LASIK، فاكو، إلخ…" value={addOpForm.opType ?? ""} onChange={(e) => setAddOpForm({ ...addOpForm, opType: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label>العين</Label>

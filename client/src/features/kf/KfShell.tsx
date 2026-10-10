@@ -15,12 +15,12 @@ import {
   FlaskConical,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
 
 interface KfShellProps {
   children: ReactNode;
 }
 
-// Navigation structure
 const navigationSections = [
   {
     id: "dashboard",
@@ -118,6 +118,33 @@ function fmtCount(value: number | undefined | null) {
   return value.toLocaleString("ar-EG");
 }
 
+function MetricValue({
+  label,
+  query,
+  value,
+}: {
+  label: string;
+  query: { isLoading: boolean; isError: boolean; refetch: () => unknown };
+  value: ReactNode;
+}) {
+  if (query.isLoading) return `جاري تحميل ${label}…`;
+  if (query.isError) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1">
+        <span>تعذر تحميل {label}</span>
+        <Button variant="bare"
+          type="button"
+          className="font-semibold text-primary underline underline-offset-2"
+          onClick={() => void query.refetch()}
+        >
+          إعادة المحاولة
+        </Button>
+      </span>
+    );
+  }
+  return value;
+}
+
 export default function KfShell({ children }: KfShellProps) {
   const { canAccess } = usePermissions();
 
@@ -143,21 +170,38 @@ export default function KfShell({ children }: KfShellProps) {
   const receipts = receiptsQ.data || [];
   const ledgerSummary = ledgerSummaryQ.data;
 
-  // Key metrics for the header
   const metrics = [
     {
       label: "إيراد اليوم",
-      value: revenueQ.isLoading ? "—" : fmtMoney(revenue?.total ?? 0),
+      value: (
+        <MetricValue
+          label="الإيراد"
+          query={revenueQ}
+          value={fmtMoney(revenue?.total ?? 0)}
+        />
+      ),
       icon: Banknote,
     },
     {
-      label: "زيارات اليوم",
-      value: receiptsQ.isLoading ? "—" : fmtCount(receipts?.length ?? 0),
+      label: "إيصالات اليوم",
+      value: (
+        <MetricValue
+          label="الإيصالات"
+          query={receiptsQ}
+          value={fmtCount(receipts?.length ?? 0)}
+        />
+      ),
       icon: ReceiptText,
     },
     {
       label: "خزنة الفرع",
-      value: ledgerSummaryQ.isLoading ? "—" : fmtMoney(ledgerSummary?.currentBalance ?? 0),
+      value: (
+        <MetricValue
+          label="رصيد الخزنة"
+          query={ledgerSummaryQ}
+          value={fmtMoney(ledgerSummary?.currentBalance ?? 0)}
+        />
+      ),
       icon: Wallet,
     },
   ];

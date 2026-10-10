@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function KfOperationBookingDialog({
   open,
@@ -45,13 +46,13 @@ export function KfOperationBookingDialog({
         </DialogHeader>
 
         <div className="relative">
-          <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input aria-label="اسم المريض أو الكود…"
             autoFocus
             placeholder="اسم المريض أو الكود…"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
-            className="pr-9"
+            className="ps-9"
           />
         </div>
 
@@ -66,18 +67,18 @@ export function KfOperationBookingDialog({
             </p>
           ) : (
             results.map((p: any) => (
-              <button
+              <Button variant="bare"
                 key={p.kfId}
                 type="button"
                 onClick={() => handleSelect(p.kfId)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-right transition-colors",
+                  "flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-start transition-colors",
                   "hover:border-border hover:bg-muted/40",
                 )}
               >
                 <span className="text-sm font-semibold text-foreground">{p.fullName}</span>
                 <span className="font-mono text-xs text-primary">{p.kfCode}</span>
-              </button>
+              </Button>
             ))
           )}
         </div>

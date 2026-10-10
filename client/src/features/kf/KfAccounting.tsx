@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Banknote, Receipt, CalendarDays } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
@@ -20,12 +21,49 @@ const KF_PRICES: Record<string, number> = {
   examination: 215,
 };
 
+function ReportError({
+  label,
+  onRetry,
+}: {
+  label: string;
+  onRetry: () => unknown;
+}) {
+  return (
+    <div role="alert" className="space-y-2 py-6 text-sm text-destructive">
+      <p>تعذر تحميل {label}.</p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => void onRetry()}
+      >
+        إعادة المحاولة
+      </Button>
+    </div>
+  );
+}
+
 export default function KfAccounting() {
   const isMobile = useIsMobile();
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
 
-  const { data: revenue, isLoading: loadingRevenue } = trpc.kf.getRevenue.useQuery({ date });
-  const { data: receipts = [], isLoading: loadingReceipts } = trpc.kf.listReceipts.useQuery({ fromDate: date, toDate: date });
+  const revenueQuery = trpc.kf.getRevenue.useQuery({ date });
+  const receiptsQuery = trpc.kf.listReceipts.useQuery({
+    fromDate: date,
+    toDate: date,
+  });
+  const {
+    data: revenue,
+    isLoading: loadingRevenue,
+    isError: revenueError,
+  } = revenueQuery;
+  const {
+    data: receipts = [],
+    isLoading: loadingReceipts,
+    isError: receiptsError,
+  } = receiptsQuery;
 
   const isToday = date === new Date().toISOString().split("T")[0];
 
@@ -33,10 +71,11 @@ export default function KfAccounting() {
     <section dir="rtl" className="space-y-6 max-w-5xl mx-auto">
       <div className="sr-only">
         <h1 className="sr-only">حسابات وحدة KF</h1>
-        <p className="text-muted-foreground text-sm">الإيراد والإيصالات — كشف استشاري 465ج · كشف أخصائي 215ج</p>
+        <p className="text-muted-foreground text-sm">
+          الإيراد والإيصالات — كشف استشاري 465ج · كشف أخصائي 215ج
+        </p>
       </div>
 
-      {/* Date picker */}
       <div className="flex items-end gap-3">
         <div className="space-y-1">
           <Label htmlFor="revDate">التاريخ</Label>
@@ -48,47 +87,90 @@ export default function KfAccounting() {
           />
         </div>
         {isToday && (
-          <Badge variant="secondary" className="mb-1">اليوم</Badge>
+          <Badge variant="secondary" className="mb-1">
+            اليوم
+          </Badge>
         )}
       </div>
 
-      {/* Revenue summary */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="sm:col-span-1 shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
-            <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي الإيراد</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              إجمالي الإيراد
+            </CardTitle>
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loadingRevenue ? (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            {revenueError ? (
+              <ReportError
+                label="تقرير الإيرادات"
+                onRetry={revenueQuery.refetch}
+              />
+            ) : loadingRevenue ? (
+              <div
+                role="status"
+                className="flex items-center gap-2 py-2 text-sm text-muted-foreground"
+              >
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                جاري تحميل الإيراد…
+              </div>
             ) : (
               <>
-                <p className="text-3xl font-bold">{(revenue?.total ?? 0).toLocaleString("ar-EG")} ج</p>
+                <p className="text-3xl font-bold">
+                  {(revenue?.total ?? 0).toLocaleString("ar-EG")} ج
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {(receipts as any[]).length} زيارة مسجلة
+                  {receiptsError
+                    ? "تعذر تحميل عدد الإيصالات"
+                    : loadingReceipts
+                      ? "جاري تحميل عدد الإيصالات…"
+                      : `${(receipts as any[]).length} إيصال مسجل`}
                 </p>
               </>
             )}
           </CardContent>
         </Card>
 
-        {/* Breakdown by service */}
         {Object.entries(KF_PRICES).map(([type, price]) => {
-          const row = (revenue?.breakdown ?? []).find((b: any) => b.visitType === type);
+          const row = (revenue?.breakdown ?? []).find(
+            (b: any) => b.visitType === type,
+          );
           return (
             <Card key={type}>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{KF_LABELS[type]}</CardTitle>
-                <span className="text-xs text-muted-foreground">{price} ج / كشف</span>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {KF_LABELS[type]}
+                </CardTitle>
+                <span className="text-xs text-muted-foreground">
+                  {price} ج / كشف
+                </span>
               </CardHeader>
               <CardContent>
-                {loadingRevenue ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                {revenueError ? (
+                  <ReportError
+                    label="تفاصيل الإيراد"
+                    onRetry={revenueQuery.refetch}
+                  />
+                ) : loadingRevenue ? (
+                  <div
+                    role="status"
+                    className="flex items-center gap-2 py-2 text-sm text-muted-foreground"
+                  >
+                    <Loader2
+                      className="h-5 w-5 animate-spin"
+                      aria-hidden="true"
+                    />
+                    جاري تحميل تفاصيل الإيراد…
+                  </div>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold">{(row?.subtotal ?? 0).toLocaleString("ar-EG")} ج</p>
-                    <p className="text-xs text-muted-foreground mt-1">{row?.count ?? 0} كشف</p>
+                    <p className="text-2xl font-bold">
+                      {(row?.subtotal ?? 0).toLocaleString("ar-EG")} ج
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {row?.count ?? 0} كشف
+                    </p>
                   </>
                 )}
               </CardContent>
@@ -97,82 +179,141 @@ export default function KfAccounting() {
         })}
       </div>
 
-      {/* Receipts table */}
       <Card className="shadow-sm border-border/60 bg-card  hover:shadow-md transition-all duration-300">
         <CardHeader className="flex flex-row items-center gap-2 py-4 pb-4 border-b border-border/40 bg-muted/40 rounded-t-xl">
           <Receipt className="h-4 w-4 text-muted-foreground" />
           <CardTitle className="text-base">الإيصالات</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {loadingReceipts ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          {receiptsError ? (
+            <div className="flex justify-center px-4 text-center">
+              <ReportError
+                label="قائمة الإيصالات"
+                onRetry={receiptsQuery.refetch}
+              />
+            </div>
+          ) : loadingReceipts ? (
+            <div
+              role="status"
+              className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"
+            >
+              <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+              جاري تحميل الإيصالات…
             </div>
           ) : (receipts as any[]).length === 0 ? (
             <div className="py-12 text-center text-muted-foreground text-sm">
               <CalendarDays className="mx-auto h-8 w-8 mb-2 opacity-40" />
-              لا توجد زيارات في هذا التاريخ
+              لا توجد إيصالات في هذا التاريخ
             </div>
           ) : isMobile ? (
             <div className="space-y-2 p-3">
               {(receipts as any[]).map((r: any) => (
-                <div key={r.kfVisitId} className="rounded-2xl border border-border bg-background p-3 shadow-sm">
+                <div
+                  key={r.kfVisitId}
+                  className="rounded-2xl border border-border bg-background p-3 shadow-sm"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="text-sm font-semibold text-foreground">{r.patientName}</div>
-                      <div className="font-mono text-xs text-muted-foreground">{r.kfCode}</div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {r.patientName}
+                      </div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {r.kfCode}
+                      </div>
                     </div>
                     <span className="font-semibold text-primary">
-                      {r.fee > 0 ? `${r.fee} ج` : <span className="text-muted-foreground text-xs">—</span>}
+                      {r.fee > 0 ? (
+                        `${r.fee} ج`
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <Badge variant={r.fee > 0 ? "default" : "secondary"} className="text-xs">
+                    <Badge
+                      variant={r.fee > 0 ? "default" : "secondary"}
+                      className="text-xs"
+                    >
                       {KF_LABELS[r.visitType] ?? r.visitType}
                     </Badge>
-                    <span className="text-muted-foreground">{r.doctorName ?? "—"}</span>
+                    <span className="text-muted-foreground">
+                      {r.doctorName ?? "—"}
+                    </span>
                   </div>
                 </div>
               ))}
               <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-3 text-sm font-bold flex items-center justify-between">
                 <span>الإجمالي</span>
-                <span className="text-primary">{(revenue?.total ?? 0).toLocaleString("ar-EG")} ج</span>
+                <span className="text-primary">
+                  {(revenue?.total ?? 0).toLocaleString("ar-EG")} ج
+                </span>
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40 text-muted-foreground text-xs">
-                    <th className="px-4 py-2 text-right font-medium">#</th>
-                    <th className="px-4 py-2 text-right font-medium">كود المريض</th>
-                    <th className="px-4 py-2 text-right font-medium">اسم المريض</th>
-                    <th className="px-4 py-2 text-right font-medium">نوع الخدمة</th>
-                    <th className="px-4 py-2 text-right font-medium">الطبيب</th>
-                    <th className="px-4 py-2 text-right font-medium">الرسوم</th>
+                    <th className="px-4 py-2 text-start font-medium">#</th>
+                    <th className="px-4 py-2 text-start font-medium">
+                      كود المريض
+                    </th>
+                    <th className="px-4 py-2 text-start font-medium">
+                      اسم المريض
+                    </th>
+                    <th className="px-4 py-2 text-start font-medium">
+                      نوع الخدمة
+                    </th>
+                    <th className="px-4 py-2 text-start font-medium">الطبيب</th>
+                    <th className="px-4 py-2 text-start font-medium">الرسوم</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(receipts as any[]).map((r: any, i: number) => (
-                    <tr key={r.kfVisitId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
-                      <td className="px-4 py-2.5 font-mono text-xs">{r.kfCode}</td>
-                      <td className="px-4 py-2.5 font-medium">{r.patientName}</td>
+                    <tr
+                      key={r.kfVisitId}
+                      className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {i + 1}
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-xs">
+                        {r.kfCode}
+                      </td>
+                      <td className="px-4 py-2.5 font-medium">
+                        {r.patientName}
+                      </td>
                       <td className="px-4 py-2.5">
-                        <Badge variant={r.fee > 0 ? "default" : "secondary"} className="text-xs">
+                        <Badge
+                          variant={r.fee > 0 ? "default" : "secondary"}
+                          className="text-xs"
+                        >
                           {KF_LABELS[r.visitType] ?? r.visitType}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{r.doctorName ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {r.doctorName ?? "—"}
+                      </td>
                       <td className="px-4 py-2.5 font-semibold">
-                        {r.fee > 0 ? `${r.fee} ج` : <span className="text-muted-foreground text-xs">—</span>}
+                        {r.fee > 0 ? (
+                          `${r.fee} ج`
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            —
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr className="border-t bg-muted/20">
-                    <td colSpan={5} className="px-4 py-2.5 text-sm font-semibold">الإجمالي</td>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-2.5 text-sm font-semibold"
+                    >
+                      الإجمالي
+                    </td>
                     <td className="px-4 py-2.5 text-sm font-bold text-primary">
                       {(revenue?.total ?? 0).toLocaleString("ar-EG")} ج
                     </td>

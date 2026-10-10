@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Search, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export type KfPatientOption = {
   id: number;
@@ -102,9 +103,9 @@ export default function KfPatientPicker({
   return (
     <div className="space-y-2">
       <div
-        className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}
+        className={`relative w-full max-w-md me-auto ${wrapperClassName ?? ""}`}
       >
-        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-muted-foreground">
+        <div className="pointer-events-none absolute inset-y-0 start-3 flex items-center gap-2 text-muted-foreground">
           <Search className="h-4 w-4" />
         </div>
         <Input
@@ -123,7 +124,7 @@ export default function KfPatientPicker({
             setTimeout(() => setOpen(false), 150);
           }}
           placeholder={placeholder}
-          className="h-11 rounded-2xl border-border bg-background pr-10 text-right shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25"
+          className="h-11 rounded-2xl border-border bg-background ps-10 text-start shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25"
           dir="rtl"
           readOnly={readOnly}
         />
@@ -141,10 +142,10 @@ export default function KfPatientPicker({
             </div>
           )}
           {results.map((patient) => (
-            <button
+            <Button variant="bare"
               key={patient.kfId}
               type="button"
-              className="w-full px-3 py-3 text-right transition-colors hover:bg-accent"
+              className="w-full px-3 py-3 text-start transition-colors hover:bg-accent"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 setSelected(patient);
@@ -169,7 +170,7 @@ export default function KfPatientPicker({
                   {formatPhone(patient.phone)}
                 </div>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       )}

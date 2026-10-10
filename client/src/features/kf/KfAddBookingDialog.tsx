@@ -92,12 +92,12 @@ export function KfAddBookingDialog({
 
         <div className="space-y-4">
           <div className="relative space-y-1.5" ref={searchRef}>
-            <label className="text-xs font-medium text-muted-foreground block text-right">
+            <label className="text-xs font-medium text-muted-foreground block text-start">
               المريض
             </label>
             {selectedPatient ? (
               <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2.5">
-                <button
+                <Button variant="bare"
                   type="button"
                   onClick={() => {
                     setSelectedPatient(null);
@@ -107,8 +107,8 @@ export function KfAddBookingDialog({
                   aria-label="إزالة المريض المختار"
                 >
                   <X className="h-3.5 w-3.5" />
-                </button>
-                <div className="text-right">
+                </Button>
+                <div className="text-start">
                   <p className="text-sm font-semibold">{selectedPatient.name}</p>
                   <p className="text-xs text-muted-foreground">{selectedPatient.code}</p>
                 </div>
@@ -116,8 +116,8 @@ export function KfAddBookingDialog({
             ) : (
               <>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
+                  <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input aria-label="اسم المريض أو الكود…"
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
@@ -125,16 +125,16 @@ export function KfAddBookingDialog({
                     }}
                     onFocus={() => setShowDropdown(true)}
                     placeholder="اسم المريض أو الكود…"
-                    className="h-10 rounded-xl pr-9 text-sm"
+                    className="h-10 rounded-xl ps-9 text-sm"
                   />
                 </div>
                 {showDropdown && searchResults && searchResults.length > 0 && (
                   <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
                     {(searchResults as any[]).map((p) => (
-                      <button
+                      <Button variant="bare"
                         key={p.kfId}
                         type="button"
-                        className="flex w-full items-center justify-between px-3 py-2.5 text-right transition-colors hover:bg-muted/40"
+                        className="flex w-full items-center justify-between px-3 py-2.5 text-start transition-colors hover:bg-muted/40"
                         onClick={() => {
                           setSelectedPatient({
                             kfId: p.kfId,
@@ -148,7 +148,7 @@ export function KfAddBookingDialog({
                       >
                         <span className="text-xs text-muted-foreground">{p.kfCode}</span>
                         <span className="text-sm font-medium">{p.fullName}</span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -157,7 +157,7 @@ export function KfAddBookingDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground block text-right">
+            <label className="text-xs font-medium text-muted-foreground block text-start">
               التاريخ
             </label>
             <DateInput
@@ -168,12 +168,12 @@ export function KfAddBookingDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground block text-right">
+            <label className="text-xs font-medium text-muted-foreground block text-start">
               الخدمة
             </label>
             <div className="flex flex-wrap gap-1.5">
               {STAFF_BOOKING_TYPES.map((t) => (
-                <button
+                <Button variant="bare"
                   key={t.value}
                   type="button"
                   onClick={() => setBookingType(t.value)}
@@ -185,7 +185,7 @@ export function KfAddBookingDialog({
                   )}
                 >
                   {t.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
