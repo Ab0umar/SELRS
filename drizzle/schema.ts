@@ -3042,8 +3042,15 @@ export const marketingReferenceDesigns = mysqlTable(
     filePath: varchar("file_path", { length: 1000 }).notNull(),
     fileUrl: varchar("file_url", { length: 1000 }).notNull(),
     mimeType: varchar("mime_type", { length: 100 }).notNull(),
+    pageRole: mysqlEnum("page_role", ["center", "doctor"])
+      .default("center")
+      .notNull(),
     fileSize: int("file_size"),
     styleAttributes: text("style_attributes"),
+    analysisStatus: varchar("analysis_status", { length: 20 })
+      .default("pending")
+      .notNull(),
+    analysisError: text("analysis_error"),
     analyzedAt: timestamp("analyzed_at"),
     uploadedBy: int("uploaded_by"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -3058,21 +3065,38 @@ export type MarketingReferenceDesign =
 export type InsertMarketingReferenceDesign =
   typeof marketingReferenceDesigns.$inferInsert;
 
-export const marketingBrandProfile = mysqlTable("marketing_brand_profile", {
-  id: int("id").autoincrement().primaryKey(),
-  dominantColors: text("dominant_colors"),
-  colorPalette: text("color_palette"),
-  layoutStyle: text("layout_style"),
-  imageComposition: text("image_composition"),
-  brandingStyle: text("branding_style"),
-  medicalVisualStyle: text("medical_visual_style"),
-  ctaPositioning: text("cta_positioning"),
-  logoPlacementStyle: text("logo_placement_style"),
-  overallAesthetic: text("overall_aesthetic"),
-  designCount: int("design_count").default(0).notNull(),
-  rawProfile: mediumtext("raw_profile"),
-  builtAt: timestamp("built_at"),
-});
+export const marketingBrandProfile = mysqlTable(
+  "marketing_brand_profile",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    pageRole: mysqlEnum("page_role", ["center", "doctor"])
+      .default("center")
+      .notNull(),
+    dominantColors: text("dominant_colors"),
+    colorPalette: text("color_palette"),
+    layoutStyle: text("layout_style"),
+    imageComposition: text("image_composition"),
+    brandingStyle: text("branding_style"),
+    medicalVisualStyle: text("medical_visual_style"),
+    ctaPositioning: text("cta_positioning"),
+    logoPlacementStyle: text("logo_placement_style"),
+    typographyStyle: text("typography_style"),
+    overallAesthetic: text("overall_aesthetic"),
+    designCount: int("design_count").default(0).notNull(),
+    rawProfile: mediumtext("raw_profile"),
+    builtAt: timestamp("built_at"),
+    rebuildStatus: varchar("rebuild_status", { length: 20 })
+      .default("idle")
+      .notNull(),
+    rebuildError: text("rebuild_error"),
+    rebuildStartedAt: timestamp("rebuild_started_at"),
+  },
+  (table) => ({
+    roleUnique: uniqueIndex("uq_marketing_brand_profile_role").on(
+      table.pageRole,
+    ),
+  }),
+);
 
 export const attendanceShiftChangeRequests = mysqlTable(
   "attendance_shift_change_requests",

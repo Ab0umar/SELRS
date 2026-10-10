@@ -37,14 +37,21 @@ export const TOPICS_BY_DAY = {
 
 export type PostDay = keyof typeof TOPICS_BY_DAY;
 export type TopicForDay<D extends PostDay> = (typeof TOPICS_BY_DAY)[D][number];
+export type TopicDirection = "forward" | "reverse";
 
 /**
  * Pick the next topic for a given day using round-robin index.
  * `usedCount` is the number of posts already generated for that day.
  */
-export function pickTopic(day: PostDay, usedCount: number): string {
+export function pickTopic(
+  day: PostDay,
+  usedCount: number,
+  direction: TopicDirection = "forward",
+): string {
   const topics = TOPICS_BY_DAY[day] as readonly string[];
-  return topics[usedCount % topics.length] ?? topics[0]!;
+  const offset = usedCount % topics.length;
+  const index = direction === "reverse" ? topics.length - 1 - offset : offset;
+  return topics[index] ?? topics[0]!;
 }
 
 export const DAY_CATEGORY_LABELS: Record<PostDay, string> = {

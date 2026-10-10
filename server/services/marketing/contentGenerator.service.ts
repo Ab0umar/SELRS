@@ -115,13 +115,20 @@ const TOPIC_IMAGE_HINTS: Record<string, string> = {
     "person with tired eyes rubbing them near a computer screen, soft office lighting, relatable scene",
 };
 
+export function getTopicImageHint(topic: string): string {
+  const normalizedTopic = topic.trim().replace(/^الـ?/, "");
+  return (
+    TOPIC_IMAGE_HINTS[topic] ??
+    TOPIC_IMAGE_HINTS[normalizedTopic] ??
+    `a concrete ophthalmology visual directly related to "${topic}", not a generic eye exam`
+  );
+}
+
 function buildImagePrompt(
   topic: string,
   brandProfile: PartialBrandProfile | null,
 ): string {
-  const hint =
-    TOPIC_IMAGE_HINTS[topic] ??
-    `professional ophthalmology clinic setting related to "${topic}", medical photography`;
+  const hint = getTopicImageHint(topic);
 
   const brandPart = brandProfile
     ? `Brand colors: ${brandProfile.dominantColors ?? "professional blues and whites"}. Style: ${brandProfile.brandingStyle ?? "clean medical"}. Layout: ${brandProfile.imageComposition ?? "centered"}.`
@@ -136,26 +143,11 @@ function buildFinalImagePrompt(
   topic: string,
   brandProfile: PartialBrandProfile | null,
 ): string {
-  const topicHint =
-    TOPIC_IMAGE_HINTS[topic] ??
-    `professional ophthalmology clinic setting related to "${topic}", medical photography`;
-
-  if (!brandProfile) {
-    return `Professional medical marketing photograph for Arabic ophthalmology center. Visual: ${topicHint}. Color palette: deep blue, white, clean medical tones. No text, no Arabic writing, photorealistic, cinematic lighting.`;
-  }
-
-  return `Create a professional marketing image for an Arabic ophthalmology center.
+  const topicHint = getTopicImageHint(topic);
+  return `${buildBrandAwareImagePrompt(topic, brandProfile)}
 
 Visual subject: ${topicHint}
-
-STRICTLY match this brand's visual identity — do NOT produce generic medical stock imagery:
-- Color palette: ${brandProfile.dominantColors ?? "professional blues and whites"}
-- Layout & composition: ${brandProfile.imageComposition ?? "centered, professional"}
-- Branding personality: ${brandProfile.brandingStyle ?? "trustworthy, clinical"}
-- Medical visual style: ${brandProfile.medicalVisualStyle ?? "real clinical photography"}
-- Overall brand aesthetic: ${brandProfile.overallAesthetic ?? "clean, modern ophthalmology center"}
-
-The result must look like it belongs to this brand's design family. Fresh composition — do not copy any existing design. No text, no Arabic writing, no overlaid words. Photorealistic, cinematic lighting, ultra high quality.`.trim();
+Photorealistic medical marketing image, with no text, Arabic writing, logo, watermark, or overlaid words.`.trim();
 }
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
@@ -280,7 +272,9 @@ export async function generateMarketingContent(
 
   const parsed = parseSafeJson(text);
   if (!parsed || !parsed.title || !parsed.content) {
-    throw new Error(`Gemini returned unparseable response: ${text.slice(0, 300)}`);
+    throw new Error(
+      `Gemini returned unparseable response: ${text.slice(0, 300)}`,
+    );
   }
 
   // Always build imagePrompt from brand profile + topic hint — never rely on

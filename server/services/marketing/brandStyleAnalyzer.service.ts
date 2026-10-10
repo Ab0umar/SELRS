@@ -10,6 +10,7 @@
 
 import fs from "node:fs/promises";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { z } from "zod";
 import { ENV } from "../../_core/env";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -36,9 +37,41 @@ export interface BrandProfile {
   medicalVisualStyle: string;
   ctaPositioning: string;
   logoPlacementStyle: string;
+  typographyStyle: string;
   overallAesthetic: string;
   designCount: number;
   rawProfile: string;
+}
+
+export const styleAttributesSchema = z.object({
+  dominantColors: z.array(z.string().trim().min(1)).min(1),
+  colorMood: z.string().trim().min(1),
+  layoutStyle: z.string().trim().min(1),
+  imageComposition: z.string().trim().min(1),
+  brandingStyle: z.string().trim().min(1),
+  medicalVisualStyle: z.string().trim().min(1),
+  ctaPositioning: z.string().trim().min(1),
+  logoPlacementStyle: z.string().trim().min(1),
+  typographyStyle: z.string().trim().min(1),
+  overallAesthetic: z.string().trim().min(1),
+});
+
+const brandProfileFieldsSchema = z.object({
+  dominantColors: z.string().trim().min(1),
+  colorPalette: z.string().trim().min(1),
+  layoutStyle: z.string().trim().min(1),
+  imageComposition: z.string().trim().min(1),
+  brandingStyle: z.string().trim().min(1),
+  medicalVisualStyle: z.string().trim().min(1),
+  ctaPositioning: z.string().trim().min(1),
+  logoPlacementStyle: z.string().trim().min(1),
+  typographyStyle: z.string().trim().min(1),
+  overallAesthetic: z.string().trim().min(1),
+});
+
+export function parseStyleAttributes(raw: unknown): StyleAttributes | null {
+  const parsed = styleAttributesSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
 }
 
 // ─── Analysis prompt ──────────────────────────────────────────────────────────
@@ -132,7 +165,13 @@ export async function analyzeDesignImage(
       .replace(/```\s*$/i, "")
       .trim();
 
-    const parsed = JSON.parse(cleaned) as StyleAttributes;
+    const parsed = parseStyleAttributes(JSON.parse(cleaned));
+    if (!parsed) {
+      console.error(
+        "[brand-analyzer] Gemini returned invalid style attributes",
+      );
+      return null;
+    }
     return parsed;
   } catch (err) {
     console.error("[brand-analyzer] Gemini Vision analysis failed:", err);
@@ -161,8 +200,34 @@ Return ONLY a valid JSON object:
   "medicalVisualStyle": "what types of medical visuals define this brand",
   "ctaPositioning": "where and how this brand places calls to action",
   "logoPlacementStyle": "the brand's logo usage conventions",
+  "typographyStyle": "the brand's Arabic and Latin typography conventions",
   "overallAesthetic": "a 2-3 sentence description that a designer could use to create new on-brand designs without seeing the originals"
-}`;
+    }`;
+
+function buildDeterministicBrandProfile(
+  analyses: StyleAttributes[],
+  designCount: number,
+): BrandProfile {
+  const first = analyses[0]!;
+  return {
+    dominantColors: [
+      ...new Set(analyses.flatMap((analysis) => analysis.dominantColors)),
+    ]
+      .slice(0, 5)
+      .join(", "),
+    colorPalette: first.colorMood,
+    layoutStyle: first.layoutStyle,
+    imageComposition: first.imageComposition,
+    brandingStyle: first.brandingStyle,
+    medicalVisualStyle: first.medicalVisualStyle,
+    ctaPositioning: first.ctaPositioning,
+    logoPlacementStyle: first.logoPlacementStyle,
+    typographyStyle: first.typographyStyle,
+    overallAesthetic: first.overallAesthetic,
+    designCount,
+    rawProfile: JSON.stringify(analyses),
+  };
+}
 
 export async function buildBrandProfile(
   analyses: StyleAttributes[],
@@ -182,6 +247,7 @@ export async function buildBrandProfile(
       medicalVisualStyle: a.medicalVisualStyle,
       ctaPositioning: a.ctaPositioning,
       logoPlacementStyle: a.logoPlacementStyle,
+      typographyStyle: a.typographyStyle,
       overallAesthetic: a.overallAesthetic,
       designCount,
       rawProfile: JSON.stringify(analyses),
@@ -191,21 +257,7 @@ export async function buildBrandProfile(
 
   if (!ENV.geminiApiKey) {
     // Simple aggregation without AI
-    const allColors = analyses.flatMap((a) => a.dominantColors).slice(0, 5);
-    const profile: BrandProfile = {
-      dominantColors: [...new Set(allColors)].join(", "),
-      colorPalette: analyses[0]!.colorMood,
-      layoutStyle: analyses[0]!.layoutStyle,
-      imageComposition: analyses[0]!.imageComposition,
-      brandingStyle: analyses[0]!.brandingStyle,
-      medicalVisualStyle: analyses[0]!.medicalVisualStyle,
-      ctaPositioning: analyses[0]!.ctaPositioning,
-      logoPlacementStyle: analyses[0]!.logoPlacementStyle,
-      overallAesthetic: analyses[0]!.overallAesthetic,
-      designCount,
-      rawProfile: JSON.stringify(analyses),
-    };
-    return profile;
+    return buildDeterministicBrandProfile(analyses, designCount);
   }
 
   try {
@@ -227,10 +279,7 @@ export async function buildBrandProfile(
       .replace(/```\s*$/i, "")
       .trim();
 
-    const agg = JSON.parse(cleaned) as Omit<
-      BrandProfile,
-      "designCount" | "rawProfile"
-    >;
+    const agg = brandProfileFieldsSchema.parse(JSON.parse(cleaned));
     return {
       ...agg,
       designCount,
@@ -238,7 +287,7 @@ export async function buildBrandProfile(
     };
   } catch (err) {
     console.error("[brand-analyzer] Aggregation failed:", err);
-    return null;
+    return buildDeterministicBrandProfile(analyses, designCount);
   }
 }
 
@@ -252,6 +301,8 @@ export type PartialBrandProfile = {
   brandingStyle?: string | null;
   medicalVisualStyle?: string | null;
   ctaPositioning?: string | null;
+  logoPlacementStyle?: string | null;
+  typographyStyle?: string | null;
   overallAesthetic?: string | null;
 };
 
@@ -274,6 +325,8 @@ STRICTLY follow this brand's visual identity (do NOT create generic medical imag
 - Branding style: ${brandProfile.brandingStyle ?? "trustworthy, clinical"}
 - Medical visual style: ${brandProfile.medicalVisualStyle ?? "real clinical photography"}
 - CTA positioning: ${brandProfile.ctaPositioning ?? "bottom of frame"}
+- Logo placement: ${brandProfile.logoPlacementStyle ?? "subtle, consistent placement"}
+- Typography: ${brandProfile.typographyStyle ?? "clear Arabic and Latin hierarchy"}
 - Overall aesthetic: ${brandProfile.overallAesthetic ?? "clean medical ophthalmology center"}
 
 The image should look like it belongs to the same brand family as the center's existing designs. Do NOT copy any specific design — create a fresh composition that matches the brand DNA.
