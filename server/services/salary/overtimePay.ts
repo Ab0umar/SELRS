@@ -28,6 +28,7 @@ export function calculateOvertimeDayPay(input: {
   compensationBase: number;
   workedMinutes: number;
   kind: OvertimeDayKind;
+  scheduledWorkingDays?: number;
 }): OvertimeDayPay {
   const dailyRate = input.compensationBase / PAYROLL_DAY_DIVISOR;
 
@@ -53,7 +54,10 @@ export function calculateOvertimeDayPay(input: {
     0,
     input.workedMinutes - DAILY_WORK_MINUTES,
   );
-  const minuteRate = dailyRate / DAILY_WORK_MINUTES;
+  const scheduledDays = input.scheduledWorkingDays ?? PAYROLL_DAY_DIVISOR;
+  const minuteRate = scheduledDays > 0
+    ? input.compensationBase / scheduledDays / DAILY_WORK_MINUTES
+    : 0;
   return {
     kind: input.kind,
     overtimeMinutes,

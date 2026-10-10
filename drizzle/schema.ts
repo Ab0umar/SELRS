@@ -2266,6 +2266,9 @@ export const salaryPayroll = mysqlTable(
     absentDeduction: decimal("absent_deduction", { precision: 12, scale: 2 })
       .default("0")
       .notNull(),
+    leaveDeduction: decimal("leave_deduction", { precision: 12, scale: 2 })
+      .default("0")
+      .notNull(),
     lateDeduction: decimal("late_deduction", { precision: 12, scale: 2 })
       .default("0")
       .notNull(),

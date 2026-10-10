@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { payrollSnapshot } from "../../shared/payrollSnapshot";
 import {
   router,
   makeSalaryProcedure,
@@ -21,10 +22,10 @@ import {
   salaryRaiseHistory,
   salaryConfig,
   salaryHolidays,
+  attendanceHolidays,
   attendanceEmployees,
   attendanceDaily,
   attendancePunches,
-  attendanceMonthlyReport,
   shiftStaff,
   shiftAttendance,
   shiftStaffCycle,
@@ -40,7 +41,6 @@ import {
   and,
   gte,
   lte,
-  lt,
   gt,
   isNull,
   or,
@@ -52,6 +52,7 @@ import {
   PayrollComputeService,
   calcPentacamPool,
 } from "../services/salary/payrollCompute.service";
+import { serializePayrollDeductions } from "../services/salary/payrollDeductionsResponse";
 import { normalizeLateTiers } from "../services/salary/lateDeduction";
 import {
   getSinglePunchDayKeys,
@@ -66,56 +67,43 @@ const allowanceInput = z.object({
   workNatureAllowance: z.number().min(0).optional().default(0),
   receptionAllowance: z.number().min(0).optional().default(0),
   yearlyRaise: z.number().min(0).optional().default(0),
-  insuranceDeduction: z.number().min(0).optional().default(0),
+  insuranceDeduction: z.number().min(0).optional(),
 });
 
-const FULL_SHIFT_MINUTES = 6 * 60;
-const HALF_SHIFT_MINUTES = 4 * 60;
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "تاريخ غير صالح");
 
-function shiftDurationMinutes(
-  startTime: string | null | undefined,
-  endTime: string | null | undefined,
-  fallbackMinutes: number,
-): number {
-  if (!startTime || !endTime) return fallbackMinutes;
-  const [startHour, startMinute] = String(startTime).split(":").map(Number);
-  const [endHour, endMinute] = String(endTime).split(":").map(Number);
-  let duration = endHour * 60 + endMinute - (startHour * 60 + startMinute);
-  if (duration < 0) duration += 24 * 60;
-  return duration > 0 ? duration : fallbackMinutes;
+// mysql2 returns [ResultSetHeader, ...] from insert
+function insertIdOf(result: any): number | undefined {
+  const id = Array.isArray(result)
+    ? result[0]?.insertId
+    : result?.insertId;
+  return id == null ? undefined : Number(id);
 }
 
-function shiftBaseMinutes(durationMinutes: number): number {
-  return Math.abs(durationMinutes - HALF_SHIFT_MINUTES) <=
-    Math.abs(durationMinutes - FULL_SHIFT_MINUTES)
-    ? HALF_SHIFT_MINUTES
-    : FULL_SHIFT_MINUTES;
+function basicTotalOf(row: any): number {
+  return (
+    Number(row.basicAmount ?? 0) +
+    Number(row.socialAllowance ?? 0) +
+    Number(row.costOfLivingAllowance ?? 0) +
+    Number(row.transportAllowance ?? 0) +
+    Number(row.workNatureAllowance ?? 0) +
+    Number(row.receptionAllowance ?? 0) +
+    Number(row.yearlyRaise ?? 0)
+  );
 }
 
-function splitShiftMinutesIntoUnits(
-  shifts: { durationMinutes: number; baseMinutes: number }[],
-): {
-  big: number;
-  small: number;
-} {
-  let big = 0;
-  let small = 0;
-  let extraMinutes = 0;
-
-  for (const { durationMinutes, baseMinutes } of shifts) {
-    if (baseMinutes === FULL_SHIFT_MINUTES) {
-      big++;
-    } else {
-      small++;
-    }
-    extraMinutes += Math.max(0, durationMinutes - baseMinutes);
+function dateKeyOf(value: any): string {
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
   }
-
-  big += Math.floor(extraMinutes / FULL_SHIFT_MINUTES);
-  extraMinutes %= FULL_SHIFT_MINUTES;
-  small += Math.floor(extraMinutes / HALF_SHIFT_MINUTES);
-  return { big, small };
+  return String(value ?? "").slice(0, 10);
 }
+
+import {
+  buildShiftBaseMinutesMap,
+  computeShiftStaffPay,
+  shiftPunchDeductionPct,
+} from "../services/salary/shiftUnits";
 
 function dateRangeToYearMonths(
   fromDate: string,
@@ -217,8 +205,8 @@ async function resolveMyShiftStaff(
 }
 
 export const salaryRouter = router({
-  // ── Basics ──────────────────────────────────────────────
-  listBasics: makeSalaryProcedure("/salary").query(async () => {
+  // Basics
+  listBasics: makeSalaryProcedure(["/salary/basics", "/salary/current-data", "/salary/pools", "/salary/payroll", "/salary/penalties"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const rows = await db
@@ -249,19 +237,63 @@ export const salaryRouter = router({
     return rows;
   }),
 
-  setBasic: makeSalaryWriteProcedure("/salary")
+  setBasic: makeSalaryWriteProcedure(["/salary/basics", "/salary/current-data"])
     .input(
       allowanceInput.extend({
         empCd: z.string().min(1),
         section: z.enum(["مركز", "عيادة"]),
-        effectiveFrom: z.string(),
-        effectiveTo: z.string().nullable().optional(),
+        effectiveFrom: isoDate,
+        effectiveTo: isoDate.nullable().optional().or(z.literal("")),
         notes: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      if (input.effectiveTo && input.effectiveTo < input.effectiveFrom) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "تاريخ النهاية يجب أن يكون بعد تاريخ البداية",
+        });
+      }
+      const existing = await db
+        .select()
+        .from(salaryBasics)
+        .where(
+          and(
+            eq(salaryBasics.empCd, input.empCd),
+            eq(salaryBasics.section, input.section),
+          ),
+        );
+      const newTo = input.effectiveTo || "9999-12-31";
+      const overlapping = existing.filter((row: any) => {
+        const from = dateKeyOf(row.effectiveFrom);
+        const to = row.effectiveTo ? dateKeyOf(row.effectiveTo) : "9999-12-31";
+        return from <= newTo && to >= input.effectiveFrom;
+      });
+      // An open-ended older row is closed the day before the new one starts;
+      // any other overlap is ambiguous and rejected.
+      for (const row of overlapping as any[]) {
+        const from = dateKeyOf(row.effectiveFrom);
+        if (!row.effectiveTo && from < input.effectiveFrom) {
+          const dayBefore = new Date(`${input.effectiveFrom}T12:00:00`);
+          dayBefore.setDate(dayBefore.getDate() - 1);
+          await db
+            .update(salaryBasics)
+            .set({ effectiveTo: dateKeyOf(dayBefore) as any })
+            .where(eq(salaryBasics.id, row.id));
+        } else {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `يوجد راتب آخر لنفس الموظف يتداخل مع هذه الفترة (من ${from})`,
+          });
+        }
+      }
+      const latest = [...existing].sort((a: any, b: any) =>
+        dateKeyOf(b.effectiveFrom).localeCompare(dateKeyOf(a.effectiveFrom)),
+      )[0] as any;
+      const insuranceDeduction =
+        input.insuranceDeduction ?? Number(latest?.insuranceDeduction ?? 0);
       const result = await db.insert(salaryBasics).values({
         empCd: input.empCd,
         section: input.section,
@@ -272,15 +304,15 @@ export const salaryRouter = router({
         workNatureAllowance: String(input.workNatureAllowance ?? 0) as any,
         receptionAllowance: String(input.receptionAllowance ?? 0) as any,
         yearlyRaise: String(input.yearlyRaise ?? 0) as any,
-        insuranceDeduction: String(input.insuranceDeduction ?? 0) as any,
+        insuranceDeduction: String(insuranceDeduction) as any,
         effectiveFrom: input.effectiveFrom as any,
         effectiveTo: input.effectiveTo ? (input.effectiveTo as any) : null,
         notes: input.notes,
       });
-      return { id: (result as any).insertId };
+      return { id: insertIdOf(result) };
     }),
 
-  updateBasic: makeSalaryWriteProcedure("/salary")
+  updateBasic: makeSalaryWriteProcedure(["/salary/basics", "/salary/current-data", "/salary/penalties"])
     .input(
       z.object({
         id: z.number().int(),
@@ -293,8 +325,8 @@ export const salaryRouter = router({
         receptionAllowance: z.number().min(0).optional(),
         yearlyRaise: z.number().min(0).optional(),
         insuranceDeduction: z.number().min(0).optional(),
-        effectiveFrom: z.string().optional(),
-        effectiveTo: z.string().nullable().optional(),
+        effectiveFrom: isoDate.optional(),
+        effectiveTo: isoDate.nullable().optional().or(z.literal("")),
         notes: z.string().optional(),
       }),
     )
@@ -322,7 +354,7 @@ export const salaryRouter = router({
       if (input.effectiveFrom !== undefined)
         upd.effectiveFrom = input.effectiveFrom;
       if (input.effectiveTo !== undefined)
-        upd.effectiveTo = input.effectiveTo ?? null;
+        upd.effectiveTo = input.effectiveTo || null;
       if (input.notes !== undefined) upd.notes = input.notes;
       if (Object.keys(upd).length)
         await db
@@ -332,7 +364,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteBasic: makeSalaryWriteProcedure("/salary")
+  deleteBasic: makeSalaryWriteProcedure(["/salary/basics", "/salary/current-data"])
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -341,7 +373,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  // ── Penalties ────────────────────────────────────────────
+  // Penalties
   listPenalties: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
@@ -390,7 +422,7 @@ export const salaryRouter = router({
         // one of amount or penaltyDays is required
         amount: z.number().min(0).default(0),
         penaltyDays: z.number().min(0.25).optional(),
-        penaltyDate: z.string().optional(),
+        penaltyDate: isoDate.optional().or(z.literal("")),
         reason: z.string().optional(),
       }),
     )
@@ -403,12 +435,10 @@ export const salaryRouter = router({
         month: input.month,
         amount: String(input.amount) as any,
         penaltyDays: input.penaltyDays ?? null,
-        penaltyDate: input.penaltyDate
-          ? (sql.raw(`'${input.penaltyDate}'`) as any)
-          : null,
+        penaltyDate: input.penaltyDate ? (input.penaltyDate as any) : null,
         reason: input.reason,
       });
-      return { id: (result as any).insertId };
+      return { id: insertIdOf(result) };
     }),
 
   updatePenalty: makeSalaryWriteProcedure("/salary/penalties")
@@ -420,7 +450,7 @@ export const salaryRouter = router({
         month: z.number().int(),
         amount: z.number().min(0).default(0),
         penaltyDays: z.number().min(0.25).optional(),
-        penaltyDate: z.string().optional(),
+        penaltyDate: isoDate.optional().or(z.literal("")),
         reason: z.string().optional(),
       }),
     )
@@ -435,9 +465,7 @@ export const salaryRouter = router({
           month: input.month,
           amount: String(input.amount) as any,
           penaltyDays: input.penaltyDays ?? null,
-          penaltyDate: input.penaltyDate
-            ? (sql.raw(`'${input.penaltyDate}'`) as any)
-            : null,
+          penaltyDate: input.penaltyDate ? (input.penaltyDate as any) : null,
           reason: input.reason ?? null,
         })
         .where(eq(salaryPenalties.id, input.id));
@@ -453,8 +481,8 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  // ── Advances ─────────────────────────────────────────────
-  listAdvances: makeSalaryProcedure("/salary")
+  // Advances
+  listAdvances: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -475,7 +503,7 @@ export const salaryRouter = router({
         );
     }),
 
-  addAdvance: makeSalaryWriteProcedure("/salary")
+  addAdvance: makeSalaryWriteProcedure("/salary/penalties")
     .input(
       z.object({
         empCd: z.string().min(1),
@@ -495,10 +523,10 @@ export const salaryRouter = router({
         amount: String(input.amount) as any,
         reason: input.reason,
       });
-      return { id: (result as any).insertId };
+      return { id: insertIdOf(result) };
     }),
 
-  deleteAdvance: makeSalaryWriteProcedure("/salary")
+  deleteAdvance: makeSalaryWriteProcedure("/salary/penalties")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -509,13 +537,15 @@ export const salaryRouter = router({
 
   getEmployeeFunds: makeSalaryProcedure("/salary/funds")
     .input(
-      z.object({
-        fromDate: z.string().date(),
-        toDate: z.string().date(),
-      }).refine((value) => value.fromDate <= value.toDate, {
-        message: "تاريخ البداية يجب أن يسبق تاريخ النهاية",
-        path: ["toDate"],
-      }),
+      z
+        .object({
+          fromDate: z.string().date(),
+          toDate: z.string().date(),
+        })
+        .refine((value) => value.fromDate <= value.toDate, {
+          message: "تاريخ البداية يجب أن يسبق تاريخ النهاية",
+          path: ["toDate"],
+        }),
     )
     .query(async ({ input }) => {
       const db = await getDb();
@@ -699,7 +729,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  // ── Commission Pools ─────────────────────────────────────
+  // Commission Pools
   getCommissionPool: makeSalaryProcedure("/salary/pools")
     .input(
       z.object({
@@ -756,12 +786,20 @@ export const salaryRouter = router({
         pentacamPool: input.pentacamPool,
         pentacamDrPool: input.pentacamDrPool,
       });
+      // Same 26th→25th period the payroll page computes and saves.
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const prev = new Date(input.year, input.month - 2, 26);
       const rows = await PayrollComputeService.compute(
         input.year,
         input.month,
         "مركز",
+        undefined,
+        `${prev.getFullYear()}-${pad(prev.getMonth() + 1)}-26`,
+        `${input.year}-${pad(input.month)}-25`,
       );
-      const saved = await PayrollComputeService.savePayroll(rows);
+      const saved = await PayrollComputeService.savePayroll(rows, {
+        replacePeriod: { year: input.year, month: input.month, section: "مركز" },
+      });
       return { success: true, saved };
     }),
 
@@ -939,7 +977,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  // ── Payroll ──────────────────────────────────────────────
+  // Payroll
   computePayroll: makeSalaryWriteProcedure("/salary/payroll")
     .input(
       z.object({
@@ -959,7 +997,13 @@ export const salaryRouter = router({
         input.fromDate,
         input.toDate,
       );
-      const saved = await PayrollComputeService.savePayroll(rows);
+      const saved = await PayrollComputeService.savePayroll(rows, {
+        replacePeriod: {
+          year: input.year,
+          month: input.month,
+          section: input.section,
+        },
+      });
       return { saved, rows };
     }),
 
@@ -1012,8 +1056,8 @@ export const salaryRouter = router({
       return { ok: true };
     }),
 
-  listSupervisionMembers: makeSalaryProcedure("/salary/basics")
-    .query(async () => {
+  listSupervisionMembers: makeSalaryProcedure(["/salary/basics", "/salary/payroll"]).query(
+    async () => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       return db
@@ -1030,7 +1074,8 @@ export const salaryRouter = router({
           eq(salarySupervisionMembers.empCd, attendanceEmployees.empCd),
         )
         .orderBy(attendanceEmployees.fullName);
-    }),
+    },
+  ),
 
   addSupervisionMember: makeSalaryWriteProcedure("/salary/basics")
     .input(z.object({ empCd: z.string().min(1) }))
@@ -1069,8 +1114,25 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
-      if (input.fromDate || input.toDate) {
-        // Dynamic on-the-fly computation
+      // A finalized month is frozen: always serve the saved rows for it.
+      const finalRows =
+        input.fromDate || input.toDate
+          ? await db
+              .select({ id: salaryPayroll.id })
+              .from(salaryPayroll)
+              .where(
+                and(
+                  eq(salaryPayroll.year, input.year),
+                  eq(salaryPayroll.month, input.month),
+                  eq(salaryPayroll.section, input.section),
+                  eq(salaryPayroll.payrollStatus, "final"),
+                ),
+              )
+              .limit(1)
+          : [];
+
+      if ((input.fromDate || input.toDate) && finalRows.length === 0) {
+        // Dynamic on-the-fly computation (preview; no notifications on read)
         const dynamicRows = await PayrollComputeService.compute(
           input.year,
           input.month,
@@ -1078,9 +1140,9 @@ export const salaryRouter = router({
           undefined,
           input.fromDate,
           input.toDate,
+          { notify: false },
         );
 
-        // Fetch employee details to join
         const empDetails = await db
           .select({
             empCd: attendanceEmployees.empCd,
@@ -1093,7 +1155,6 @@ export const salaryRouter = router({
 
         const empMap = new Map(empDetails.map((e: any) => [e.empCd, e]));
 
-        // Fetch shift staff names
         const shiftStaffRows = await db
           .select({
             id: shiftStaff.id,
@@ -1148,14 +1209,7 @@ export const salaryRouter = router({
             earlyLeaveMinutes: row.earlyLeaveMinutes,
             overtimeMinutes: row.overtimeMinutes,
             leaveDays: row.leaveDays,
-            absentDeduction: String(row.absentDeduction),
-            missingCheckoutDeduction: String(row.missingCheckoutDeduction ?? 0),
-            lateDeduction: String(row.lateDeduction),
-            earlyLeaveDeduction: String(row.earlyLeaveDeduction),
-            penaltyDeduction: String(row.penaltyDeduction),
-            advancesDeduction: String(row.advancesDeduction),
-            insuranceDeduction: String(row.insuranceDeduction),
-            totalDeductions: String(row.totalDeductions),
+            ...serializePayrollDeductions(row),
             deductionPct: String(row.deductionPct),
             leaveMultiplier: String(row.leaveMultiplier),
             netBasic: String(row.netBasic),
@@ -1199,6 +1253,7 @@ export const salaryRouter = router({
           overtimeMinutes: salaryPayroll.overtimeMinutes,
           leaveDays: salaryPayroll.leaveDays,
           absentDeduction: salaryPayroll.absentDeduction,
+          leaveDeduction: salaryPayroll.leaveDeduction,
           lateDeduction: salaryPayroll.lateDeduction,
           earlyLeaveDeduction: salaryPayroll.earlyLeaveDeduction,
           penaltyDeduction: salaryPayroll.penaltyDeduction,
@@ -1279,7 +1334,7 @@ export const salaryRouter = router({
       });
     }),
 
-  listPayrollDeductions: makeSalaryProcedure("/salary/payroll")
+  listPayrollDeductions: makeSalaryProcedure(["/salary/payroll", "/salary/penalties"])
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1289,6 +1344,7 @@ export const salaryRouter = router({
         .select({
           empCd: salaryPayroll.empCd,
           absentDeduction: salaryPayroll.absentDeduction,
+          leaveDeduction: salaryPayroll.leaveDeduction,
           lateDeduction: salaryPayroll.lateDeduction,
           earlyLeaveDeduction: salaryPayroll.earlyLeaveDeduction,
           penaltyDeduction: salaryPayroll.penaltyDeduction,
@@ -1314,6 +1370,7 @@ export const salaryRouter = router({
 
       return rows.map((row: any) => {
         const absent = Number(row.absentDeduction ?? 0);
+        const leave = Number(row.leaveDeduction ?? 0);
         const late = Number(row.lateDeduction ?? 0);
         const earlyLeave = Number(row.earlyLeaveDeduction ?? 0);
         const penalty = Number(row.penaltyDeduction ?? 0);
@@ -1324,31 +1381,47 @@ export const salaryRouter = router({
           ...row,
           missingCheckoutDeduction: Math.max(
             0,
-            total - absent - late - earlyLeave - penalty - advances - insurance,
+            total -
+              absent -
+              leave -
+              late -
+              earlyLeave -
+              penalty -
+              advances -
+              insurance,
           ),
         };
       });
     }),
 
   finalizePayroll: makeSalaryWriteProcedure("/salary/payroll")
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        section: z.enum(["مركز", "عيادة"]),
+        fromDate: z.string().date(),
+        toDate: z.string().date(),
+        expectedSnapshot: z.string(),
+      }),
+    )
     .mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-      await db
-        .update(salaryPayroll)
-        .set({ payrollStatus: "final" })
-        .where(
-          and(
-            eq(salaryPayroll.year, input.year),
-            eq(salaryPayroll.month, input.month),
-          ),
-        );
+      if (input.fromDate > input.toDate) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "نطاق التاريخ غير صالح" });
+      }
+      const rows = await PayrollComputeService.compute(input.year, input.month, input.section, undefined, input.fromDate, input.toDate, { notify: false });
+      if (!rows.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا توجد رواتب لاعتمادها" });
+      }
+      if (payrollSnapshot(rows) !== input.expectedSnapshot) {
+        throw new TRPCError({ code: "CONFLICT", message: "تغيرت بيانات الرواتب. حدّث الكشف وراجعه قبل الاعتماد." });
+      }
+      await PayrollComputeService.savePayroll(rows, { replacePeriod: { year: input.year, month: input.month, section: input.section }, finalize: true });
       return { success: true };
     }),
 
-  // ── Raise History ────────────────────────────────────────
-  listRaiseHistory: makeSalaryProcedure("/salary")
+  // Raise History
+  listRaiseHistory: makeSalaryProcedure("/salary/basics")
     .input(z.object({ empCd: z.string().min(1) }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1360,7 +1433,7 @@ export const salaryRouter = router({
         .orderBy(desc(salaryRaiseHistory.year));
     }),
 
-  setRaise: makeSalaryWriteProcedure("/salary")
+  setRaise: makeSalaryWriteProcedure("/salary/basics")
     .input(
       z.object({
         empCd: z.string().min(1),
@@ -1389,7 +1462,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteRaise: makeSalaryWriteProcedure("/salary")
+  deleteRaise: makeSalaryWriteProcedure("/salary/basics")
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1400,18 +1473,20 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  // ── Salary Config ────────────────────────────────────────
-  getAttendanceRates: makeSalaryProcedure("/salary").query(async () => {
+  // Salary Config
+  getAttendanceRates: makeSalaryProcedure("/salary/settings").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const rows = await db
       .select()
       .from(salaryConfig)
       .where(
-        eq(salaryConfig.key, "attendance_rate_3") ||
-          eq(salaryConfig.key, "attendance_rate_5") ||
-          eq(salaryConfig.key, "attendance_rate_7") ||
-          (eq(salaryConfig.key, "attendance_rate_10") as any),
+        inArray(salaryConfig.key, [
+          "attendance_rate_3",
+          "attendance_rate_5",
+          "attendance_rate_7",
+          "attendance_rate_10",
+        ]),
       );
     const map = Object.fromEntries(
       rows.map((r: any) => [r.key, Number(r.value)]),
@@ -1424,7 +1499,7 @@ export const salaryRouter = router({
     };
   }),
 
-  setAttendanceRates: makeSalaryWriteProcedure("/salary")
+  setAttendanceRates: makeSalaryWriteProcedure("/salary/settings")
     .input(
       z.object({
         rate3: z.number().min(0).max(1),
@@ -1451,7 +1526,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  getDeductionsEnabled: makeSalaryProcedure("/salary").query(async () => {
+  getDeductionsEnabled: makeSalaryProcedure("/salary/settings").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const rows = await db
@@ -1462,7 +1537,7 @@ export const salaryRouter = router({
     return rows[0]?.value !== "false";
   }),
 
-  setDeductionsEnabled: makeSalaryWriteProcedure("/salary")
+  setDeductionsEnabled: makeSalaryWriteProcedure("/salary/settings")
     .input(z.object({ enabled: z.boolean() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1477,7 +1552,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  getLateTiers: makeSalaryProcedure("/salary").query(async () => {
+  getLateTiers: makeSalaryProcedure("/salary/settings").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const rows = await db
@@ -1498,7 +1573,7 @@ export const salaryRouter = router({
     ];
   }),
 
-  setLateTiers: makeSalaryWriteProcedure("/salary")
+  setLateTiers: makeSalaryWriteProcedure("/salary/settings")
     .input(
       z.array(
         z.object({
@@ -1524,7 +1599,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  listEmployees: makeSalaryProcedure("/salary")
+  listEmployees: makeSalaryProcedure(["/salary/basics", "/salary/current-data", "/salary/penalties", "/salary/settings", "/salary/shift-staff"])
     .input(
       z.object({ section: z.enum(["مركز", "عيادة"]).optional() }).optional(),
     )
@@ -1565,7 +1640,7 @@ export const salaryRouter = router({
       }));
     }),
 
-  getAbsentDays: makeSalaryProcedure("/salary")
+  getAbsentDays: makeSalaryProcedure(["/salary/penalties", "/salary/absent-report"])
     .input(z.object({ from: z.string(), to: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1600,7 +1675,7 @@ export const salaryRouter = router({
       });
     }),
 
-  listLateDays: makeSalaryProcedure("/salary")
+  listLateDays: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1636,7 +1711,7 @@ export const salaryRouter = router({
       });
     }),
 
-  listAccAdvancesLinked: makeSalaryProcedure("/salary")
+  listAccAdvancesLinked: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1657,17 +1732,48 @@ export const salaryRouter = router({
            ORDER BY e.full_name, MAX(a.employee)`,
         ),
       )) as any;
-      return (rows as any[]).map((r: any) => ({
-        empCd: String(r.emp_cd ?? ""),
-        employee: String(r.employee ?? ""),
-        empName: r.fullName ? String(r.fullName) : String(r.employee ?? ""),
-        totalAdvance: Number(r.totalAdvance ?? 0),
-        totalRepaid: Number(r.totalRepaid ?? 0),
-        net: Number(r.net ?? 0),
-      }));
+      // Advances imported for this payroll month (or later) are not repaid in
+      // accounting yet, so they must not be offered again. Earlier months were
+      // deducted and show up in accounting as repayments.
+      const [targetYear, targetMonth] = input.toDate
+        .slice(0, 7)
+        .split("-")
+        .map(Number);
+      const imported = await db
+        .select({
+          empCd: salaryAdvances.empCd,
+          total: sql<string>`COALESCE(SUM(${salaryAdvances.amount}), 0)`,
+        })
+        .from(salaryAdvances)
+        .where(
+          and(
+            sql`${salaryAdvances.reason} LIKE 'من المحاسبة%'`,
+            sql`(${salaryAdvances.year} * 12 + ${salaryAdvances.month}) >= ${targetYear * 12 + targetMonth}`,
+          ),
+        )
+        .groupBy(salaryAdvances.empCd);
+      const importedByEmp = new Map<string, number>(
+        imported.map((r: any) => [String(r.empCd), Number(r.total ?? 0)]),
+      );
+      return (rows as any[])
+        .map((r: any) => {
+          const empCd = String(r.emp_cd ?? "");
+          const net = Number(r.net ?? 0);
+          const alreadyImported = importedByEmp.get(empCd) ?? 0;
+          return {
+            empCd,
+            employee: String(r.employee ?? ""),
+            empName: r.fullName ? String(r.fullName) : String(r.employee ?? ""),
+            totalAdvance: Number(r.totalAdvance ?? 0),
+            totalRepaid: Number(r.totalRepaid ?? 0),
+            alreadyImported,
+            net: Math.max(0, Math.round((net - alreadyImported) * 100) / 100),
+          };
+        })
+        .filter((r) => r.net > 0);
     }),
 
-  listMissingCheckoutExclusions: makeSalaryProcedure("/salary")
+  listMissingCheckoutExclusions: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1690,7 +1796,7 @@ export const salaryRouter = router({
       }));
     }),
 
-  toggleMissingCheckoutExclusion: makeSalaryWriteProcedure("/salary")
+  toggleMissingCheckoutExclusion: makeSalaryWriteProcedure("/salary/penalties")
     .input(
       z.object({
         empCd: z.string(),
@@ -1726,26 +1832,39 @@ export const salaryRouter = router({
         .from(attendanceEmployees)
         .where(eq(attendanceEmployees.empCd, input.empCd))
         .limit(1);
-      const section = employee[0]?.department === "عيادة" ? "عيادة" : "مركز";
+      // Same department matching as the payroll compute; an employee of
+      // "المركز والعيادة" is paid in both sections.
+      const department = String(employee[0]?.department ?? "");
+      const sections = [
+        ...(department.includes("مركز") || !department.includes("عياد")
+          ? ["مركز"]
+          : []),
+        ...(department.includes("عياد") ? ["عيادة"] : []),
+      ];
       const periodEnd = input.toDate ?? input.workDate;
       const [year, month] = String(periodEnd)
         .slice(0, 7)
         .split("-")
         .map(Number);
-      const rows = await PayrollComputeService.compute(
-        year,
-        month,
-        section,
-        undefined,
-        input.fromDate,
-        input.toDate,
-      );
-      await PayrollComputeService.savePayroll(rows);
+      let recalculated = 0;
+      for (const section of sections) {
+        const rows = await PayrollComputeService.compute(
+          year,
+          month,
+          section,
+          undefined,
+          input.fromDate,
+          input.toDate,
+        );
+        recalculated += await PayrollComputeService.savePayroll(rows, {
+          replacePeriod: { year, month, section },
+        });
+      }
 
-      return { success: true, recalculated: rows.length, section };
+      return { success: true, recalculated, section: sections.join("،") };
     }),
 
-  listMissingCheckoutDays: makeSalaryProcedure("/salary")
+  listMissingCheckoutDays: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1792,7 +1911,7 @@ export const salaryRouter = router({
         );
     }),
 
-  listEarlyLeaveDays: makeSalaryProcedure("/salary")
+  listEarlyLeaveDays: makeSalaryProcedure("/salary/penalties")
     .input(z.object({ fromDate: z.string(), toDate: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1828,7 +1947,7 @@ export const salaryRouter = router({
       });
     }),
 
-  setCommissionFlags: makeSalaryWriteProcedure("/salary/pools")
+  setCommissionFlags: makeSalaryWriteProcedure(["/salary/pools", "/salary/settings"])
     .input(
       z.object({
         empCd: z.string(),
@@ -1866,7 +1985,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  setEmployeeSectionSettings: makeSalaryWriteProcedure("/salary/pools")
+  setEmployeeSectionSettings: makeSalaryWriteProcedure(["/salary/pools", "/salary/settings"])
     .input(
       z.object({
         empCd: z.string().min(1),
@@ -1905,7 +2024,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  setEmployeeCommissionSettingsBulk: makeSalaryWriteProcedure("/salary/pools")
+  setEmployeeCommissionSettingsBulk: makeSalaryWriteProcedure(["/salary/pools", "/salary/settings"])
     .input(
       z.object({
         empCds: z.array(z.string().min(1)).min(1),
@@ -1966,8 +2085,8 @@ export const salaryRouter = router({
       return { success: true, updated: input.empCds.length };
     }),
 
-  // ── Shift Staff ──────────────────────────────────────────
-  listShiftStaff: makeSalaryProcedure("/salary").query(async () => {
+  // Shift Staff
+  listShiftStaff: makeSalaryProcedure(["/salary/basics", "/salary/current-data", "/salary/payroll", "/salary/settings", "/salary/shift-staff"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db
@@ -1976,7 +2095,7 @@ export const salaryRouter = router({
       .orderBy(shiftStaff.type, shiftStaff.name);
   }),
 
-  addShiftStaff: makeSalaryWriteProcedure("/salary")
+  addShiftStaff: makeSalaryWriteProcedure(["/salary/basics", "/salary/shift-staff"])
     .input(
       z.object({
         name: z.string().min(1),
@@ -1998,18 +2117,18 @@ export const salaryRouter = router({
         mainShiftMinutes: input.mainShiftMinutes,
         empCd: input.empCd ?? null,
       });
-      return { id: (result as any).insertId };
+      return { id: insertIdOf(result) };
     }),
 
-  updateShiftStaff: makeSalaryWriteProcedure("/salary")
+  updateShiftStaff: makeSalaryWriteProcedure(["/salary/basics", "/salary/shift-staff"])
     .input(
       z.object({
         id: z.number(),
         name: z.string().min(1),
         type: z.enum(["doctor", "tech"]),
         ratePerShift: z.number().min(0),
-        rateSmallShift: z.number().min(0).default(0),
-        mainShiftMinutes: z.number().int().min(1).max(1440).default(360),
+        rateSmallShift: z.number().min(0).optional(),
+        mainShiftMinutes: z.number().int().min(1).max(1440).optional(),
         active: z.boolean(),
         empCd: z.string().optional(),
         userId: z.number().int().nullable().optional(),
@@ -2024,8 +2143,13 @@ export const salaryRouter = router({
           name: input.name,
           type: input.type,
           ratePerShift: String(input.ratePerShift) as any,
-          rateSmallShift: String(input.rateSmallShift ?? 0) as any,
-          mainShiftMinutes: input.mainShiftMinutes,
+          // Omitted fields keep their stored values.
+          ...(input.rateSmallShift !== undefined
+            ? { rateSmallShift: String(input.rateSmallShift) }
+            : {}),
+          ...(input.mainShiftMinutes !== undefined
+            ? { mainShiftMinutes: input.mainShiftMinutes }
+            : {}),
           active: input.active,
           empCd: input.empCd ?? null,
           userId: input.userId ?? null,
@@ -2034,19 +2158,33 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  deleteShiftStaff: makeSalaryWriteProcedure("/salary")
+  deleteShiftStaff: makeSalaryWriteProcedure(["/salary/basics", "/salary/shift-staff"])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      // Staff with roster history are deactivated so past payroll can still
+      // be recomputed; only never-used records are removed.
+      const history = await db
+        .select({ id: shiftAttendance.id })
+        .from(shiftAttendance)
+        .where(eq(shiftAttendance.staffId, input.id))
+        .limit(1);
+      if (history.length > 0) {
+        await db
+          .update(shiftStaff)
+          .set({ active: false } as any)
+          .where(eq(shiftStaff.id, input.id));
+        return { success: true, deactivated: true };
+      }
       await db
         .delete(shiftStaffCycle)
         .where(eq(shiftStaffCycle.staffId, input.id));
       await db.delete(shiftStaff).where(eq(shiftStaff.id, input.id));
-      return { success: true };
+      return { success: true, deactivated: false };
     }),
 
-  getShiftSchedule: makePageProcedure("/attendance/shift-schedule")
+  getShiftSchedule: makeSalaryProcedure(["/attendance/shift-schedule", "/salary/payroll"])
     .input(
       z.object({
         year: z.number(),
@@ -2075,7 +2213,7 @@ export const salaryRouter = router({
       return { staff, attendance };
     }),
 
-  // ── Self-service shift procedures (any logged-in user) ──────────────────
+  // Self-service shift procedures (any logged-in user)
   getShiftScheduleForStaff: makePageProcedure("/attendance/shift-schedule")
     .input(
       z.object({
@@ -2119,12 +2257,15 @@ export const salaryRouter = router({
       z.object({
         year: z.number().int(),
         month: z.number().int(),
-        workDate: z.string(),
+        workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
         endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
       }),
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input: rawInput, ctx }) => {
+      // Stamp the work date's own calendar month, like addShiftsBulk does.
+      const [workYear, workMonth] = rawInput.workDate.split("-").map(Number);
+      const input = { ...rawInput, year: workYear, month: workMonth };
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const staff = await resolveMyShiftStaff(db, ctx.user);
@@ -2205,7 +2346,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  listUsersForShiftLink: makeSalaryProcedure("/salary").query(async () => {
+  listUsersForShiftLink: makeSalaryProcedure(["/salary/basics", "/salary/shift-staff"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     const { users } = await import("../../drizzle/schema");
@@ -2221,7 +2362,7 @@ export const salaryRouter = router({
       .orderBy(users.name);
   }),
 
-  linkUserToShiftStaff: makeSalaryWriteProcedure("/salary")
+  linkUserToShiftStaff: makeSalaryWriteProcedure(["/salary/basics", "/salary/shift-staff"])
     .input(
       z.object({
         staffId: z.number().int(),
@@ -2356,25 +2497,49 @@ export const salaryRouter = router({
     }),
 
   clearRoster: makePageWriteProcedure("/attendance/shift-schedule")
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
-    .mutation(async ({ input }) => {
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Staff hold write access to this page for their own entries; wiping
+      // everyone's roster is a manager action.
+      if (!["admin", "manager"].includes(String(ctx.user.role ?? ""))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Managers only" });
+      }
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db
         .delete(shiftAttendance)
         .where(
-          and(
-            eq(shiftAttendance.year, input.year),
-            eq(shiftAttendance.month, input.month),
-          ),
+          input.fromDate && input.toDate
+            ? and(
+                gte(shiftAttendance.workDate, input.fromDate as any),
+                lte(shiftAttendance.workDate, input.toDate as any),
+              )
+            : and(
+                eq(shiftAttendance.year, input.year),
+                eq(shiftAttendance.month, input.month),
+              ),
         );
       return { success: true };
     }),
 
-  // ── Official Holidays ─────────────────────────────────────
+  // Official Holidays
   // Readable by all authenticated users (needed for the roster view)
   listHolidays: protectedProcedure
-    .input(z.object({ year: z.number().int(), month: z.number().int() }))
+    .input(
+      z.object({
+        year: z.number().int(),
+        month: z.number().int(),
+        fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
@@ -2382,17 +2547,22 @@ export const salaryRouter = router({
         .select()
         .from(salaryHolidays)
         .where(
-          and(
-            eq(salaryHolidays.year, input.year),
-            eq(salaryHolidays.month, input.month),
-          ),
+          input.fromDate && input.toDate
+            ? and(
+                gte(salaryHolidays.date, input.fromDate as any),
+                lte(salaryHolidays.date, input.toDate as any),
+              )
+            : and(
+                eq(salaryHolidays.year, input.year),
+                eq(salaryHolidays.month, input.month),
+              ),
         );
     }),
 
   addHoliday: makeSalaryWriteProcedure("/salary")
     .input(
       z.object({
-        date: z.string(),
+        date: isoDate,
         name: z.string().default(""),
         year: z.number().int(),
         month: z.number().int(),
@@ -2401,13 +2571,15 @@ export const salaryRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      // year/month always follow the holiday date itself
+      const [dateYear, dateMonth] = input.date.split("-").map(Number);
       await db
         .insert(salaryHolidays)
         .values({
           date: input.date as any,
           name: input.name,
-          year: input.year,
-          month: input.month,
+          year: dateYear,
+          month: dateMonth,
         })
         .onDuplicateKeyUpdate({ set: { name: input.name } });
       return { success: true };
@@ -2422,7 +2594,7 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  computeShiftPayroll: makeSalaryProcedure("/salary/payroll")
+  computeShiftPayroll: makeSalaryProcedure(["/salary/payroll", "/salary/shift-payroll"])
     .input(
       z.object({
         year: z.number(),
@@ -2435,320 +2607,201 @@ export const salaryRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
-      // Resolve effective date range
       const mm = String(input.month).padStart(2, "0");
       const lastDay = new Date(input.year, input.month, 0).getDate();
       const rangeFrom = input.fromDate ?? `${input.year}-${mm}-01`;
       const rangeTo =
         input.toDate ??
         `${input.year}-${mm}-${String(lastDay).padStart(2, "0")}`;
-      const rangeFromParts = rangeFrom.split("-").map(Number);
-      const rangeToParts = rangeTo.split("-").map(Number);
 
-      // Collect all year/month pairs in the range for shiftAttendance query
-      const yearMonthPairs: { year: number; month: number }[] = [];
-      let cur = new Date(rangeFromParts[0], rangeFromParts[1] - 1, 1);
-      const end = new Date(rangeToParts[0], rangeToParts[1] - 1, 1);
-      while (cur <= end) {
-        yearMonthPairs.push({
-          year: cur.getFullYear(),
-          month: cur.getMonth() + 1,
-        });
-        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-      }
-
-      const [staff, attendanceAll, monthlyReports, basics, shiftDefs] =
-        await Promise.all([
-          db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
-          Promise.all(
-            yearMonthPairs.map(({ year, month }) =>
-              db
-                .select()
-                .from(shiftAttendance)
-                .where(
-                  and(
-                    eq(shiftAttendance.year, year),
-                    eq(shiftAttendance.month, month),
-                  ),
-                ),
-            ),
-          ).then((results) =>
-            results.flat().filter((a: any) => {
-              const raw = a.workDate;
-              const d =
-                raw instanceof Date
-                  ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, "0")}-${String(raw.getDate()).padStart(2, "0")}`
-                  : String(raw).slice(0, 10);
-              return d >= rangeFrom && d <= rangeTo;
-            }),
-          ),
-          db
-            .select()
-            .from(attendanceMonthlyReport)
-            .where(
-              and(
-                eq(attendanceMonthlyReport.year, input.year),
-                eq(attendanceMonthlyReport.month, input.month),
-              ),
-            ),
-          db
-            .select()
-            .from(salaryBasics)
-            .where(
-              and(
-                lte(salaryBasics.effectiveFrom, rangeTo as any),
-                or(
-                  isNull(salaryBasics.effectiveTo),
-                  gte(salaryBasics.effectiveTo, rangeFrom as any),
-                ),
-              ),
-            ),
-          db.select().from(attendanceShifts),
-        ]);
-
-      const overrideRows = await db
-        .select()
-        .from(shiftPayrollAttendanceOverrides)
-        .where(
-          and(
-            eq(shiftPayrollAttendanceOverrides.year, input.year),
-            eq(shiftPayrollAttendanceOverrides.month, input.month),
-          ),
-        );
-      const overrideMap = new Map(overrideRows.map((o: any) => [o.staffId, o]));
-      const deductionsConfig = await db
-        .select({ value: salaryConfig.value })
-        .from(salaryConfig)
-        .where(eq(salaryConfig.key, "salary_deductions_enabled"))
-        .limit(1);
-      const deductionsEnabled = deductionsConfig[0]?.value !== "false";
-
-      // Each shift keeps its configured base: 6 hours for large, 4 for small.
-      const shiftBaseMinutesMap = new Map<string, number>();
-      for (const sd of shiftDefs as any[]) {
-        const duration = shiftDurationMinutes(
-          sd.startTime,
-          sd.endTime,
-          FULL_SHIFT_MINUTES,
-        );
-        shiftBaseMinutesMap.set(
-          sd.name as string,
-          sd.shiftSize === "small"
-            ? HALF_SHIFT_MINUTES
-            : sd.shiftSize === "big"
-              ? FULL_SHIFT_MINUTES
-              : shiftBaseMinutes(duration),
-        );
-      }
-
-      const attendance = attendanceAll;
-
-      // For staff linked to attendance employees, fetch fingerprint daily presence and deductions
-      const linkedEmpCds = staff
-        .filter((s: any) => s.empCd)
-        .map((s: any) => s.empCd!);
-      const deductionMap = new Map<string, number>();
-      if (linkedEmpCds.length > 0) {
-        const dailyRows = await db
-          .select({
-            empCd: attendanceDaily.empCd,
-            workDate: attendanceDaily.workDate,
-            status: attendanceDaily.status,
-          })
-          .from(attendanceDaily)
+      const [
+        allStaff,
+        attendanceAll,
+        basics,
+        shiftDefs,
+        overrideRows,
+        deductionsConfig,
+        salaryHolidayRows,
+        attendanceHolidayRows,
+      ] = await Promise.all([
+        db.select().from(shiftStaff),
+        db
+          .select()
+          .from(shiftAttendance)
           .where(
             and(
-              inArray(attendanceDaily.empCd, linkedEmpCds),
-              gte(attendanceDaily.workDate, rangeFrom as any),
-              lte(attendanceDaily.workDate, rangeTo as any),
+              gte(shiftAttendance.workDate, rangeFrom as any),
+              lte(shiftAttendance.workDate, rangeTo as any),
             ),
-          );
-        // Calculate deductions for linked employees
-        for (const empCd of linkedEmpCds) {
-          const report = monthlyReports.find((r: any) => r.empCd === empCd);
-          const basicRow = basics
-            .filter((b: any) => b.empCd === empCd)
-            .sort((a: any, b: any) =>
-              String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)),
-            )[0];
-          if (report && basicRow) {
-            const basic =
-              Number(basicRow.basicAmount) +
-              Number((basicRow as any).socialAllowance ?? 0) +
-              Number((basicRow as any).costOfLivingAllowance ?? 0) +
-              Number((basicRow as any).transportAllowance ?? 0) +
-              Number((basicRow as any).workNatureAllowance ?? 0) +
-              Number((basicRow as any).receptionAllowance ?? 0) +
-              Number((basicRow as any).yearlyRaise ?? 0);
-            const lateMinutes = report.totalLateMins ?? 0;
-            const earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
-            const empDailyRows = dailyRows.filter(
-              (d: any) => d.empCd === empCd,
-            );
-            const missingCheckoutDays = empDailyRows.filter(
-              (d: any) => d.status === "missing_checkout",
-            ).length;
-            const workingDays =
-              empDailyRows.filter((d: any) => d.status !== "holiday").length ||
-              1;
-            const dailyRate = basic / workingDays;
-            const minuteRate = dailyRate / 360;
-            const totalDeduction =
-              (lateMinutes + earlyLeaveMinutes) * minuteRate +
-              missingCheckoutDays * dailyRate * 0.25;
-            deductionMap.set(empCd, Math.min(1, totalDeduction / basic));
-          }
-        }
-      }
+          ),
+        db
+          .select()
+          .from(salaryBasics)
+          .where(
+            and(
+              eq(salaryBasics.section, "مركز"),
+              lte(salaryBasics.effectiveFrom, rangeTo as any),
+              or(
+                isNull(salaryBasics.effectiveTo),
+                gte(salaryBasics.effectiveTo, rangeFrom as any),
+              ),
+            ),
+          ),
+        db.select().from(attendanceShifts),
+        db
+          .select()
+          .from(shiftPayrollAttendanceOverrides)
+          .where(
+            and(
+              eq(shiftPayrollAttendanceOverrides.year, input.year),
+              eq(shiftPayrollAttendanceOverrides.month, input.month),
+            ),
+          ),
+        db
+          .select({ value: salaryConfig.value })
+          .from(salaryConfig)
+          .where(eq(salaryConfig.key, "salary_deductions_enabled"))
+          .limit(1),
+        db
+          .select({ date: salaryHolidays.date })
+          .from(salaryHolidays)
+          .where(
+            and(
+              gte(salaryHolidays.date, rangeFrom as any),
+              lte(salaryHolidays.date, rangeTo as any),
+            ),
+          ),
+        db
+          .select({
+            date: attendanceHolidays.date,
+            paid: attendanceHolidays.paid,
+          })
+          .from(attendanceHolidays)
+          .where(
+            and(
+              gte(attendanceHolidays.date, rangeFrom as any),
+              lte(attendanceHolidays.date, rangeTo as any),
+            ),
+          ),
+      ]);
+      const deductionsEnabled = deductionsConfig[0]?.value !== "false";
+      const overrideMap = new Map(overrideRows.map((o: any) => [o.staffId, o]));
+      const baseMinutesMap = buildShiftBaseMinutesMap(shiftDefs as any[]);
+      // Same holiday set the saved payroll uses: roster days on them are off.
+      const holidayKeys = new Set(
+        [
+          ...salaryHolidayRows,
+          ...attendanceHolidayRows.filter((h: any) => h.paid),
+        ].map((h: any) => dateKeyOf(h.date)),
+      );
+      const attendance = attendanceAll.filter(
+        (a: any) => !holidayKeys.has(dateKeyOf(a.workDate)),
+      );
+      const staff = allStaff.filter(
+        (s: any) => s.active || attendance.some((a: any) => a.staffId === s.id),
+      );
+
+      const linkedEmpCds = staff
+        .filter((s: any) => s.empCd)
+        .map((s: any) => s.empCd as string);
+      const dailyRows = linkedEmpCds.length
+        ? await db
+            .select({
+              empCd: attendanceDaily.empCd,
+              status: attendanceDaily.status,
+              lateMinutes: attendanceDaily.lateMinutes,
+              earlyLeaveMin: attendanceDaily.earlyLeaveMin,
+            })
+            .from(attendanceDaily)
+            .where(
+              and(
+                inArray(attendanceDaily.empCd, linkedEmpCds),
+                gte(attendanceDaily.workDate, rangeFrom as any),
+                lte(attendanceDaily.workDate, rangeTo as any),
+              ),
+            )
+        : [];
 
       return staff.map((s: any) => {
         const rows = attendance.filter((a: any) => a.staffId === s.id);
-        const rateBig = Number(s.ratePerShift);
-        const mainShiftMinutes = Number(s.mainShiftMinutes ?? 360) || 360;
-        const hourlyRate = rateBig / mainShiftMinutes;
-        // A small shift is four hours. Its displayed value and any manual
-        // attendance override must use the same hourly rate as a full shift.
-        const rateSmall =
-          Math.round(hourlyRate * HALF_SHIFT_MINUTES * 100) / 100;
-        const byShift: Record<
-          string,
-          { scheduled: number; attended: number; rate: number }
-        > = {};
-        let attended = 0;
-        let scheduledMinutes = 0;
-        let attendedMinutes = 0;
-        const scheduledShiftMinutes: {
-          durationMinutes: number;
-          baseMinutes: number;
-        }[] = [];
-        const attendedShiftMinutes: {
-          durationMinutes: number;
-          baseMinutes: number;
-        }[] = [];
-
-        // The roster entry is the source of truth for both the shift and its
-        // attendance state. A day-level punch cannot identify which one of
-        // multiple shifts was worked and must not mark every shift present.
-        for (const a of rows) {
-          const present = Boolean(a.present);
-          if (present) attended++;
-          const durationMinutes = shiftDurationMinutes(
-            a.startTime,
-            a.endTime,
-            mainShiftMinutes,
-          );
-          const baseMinutes =
-            shiftBaseMinutesMap.get(a.shiftName) ??
-            shiftBaseMinutes(durationMinutes);
-          const rate = Math.round(hourlyRate * durationMinutes * 100) / 100;
-          scheduledMinutes += durationMinutes;
-          scheduledShiftMinutes.push({ durationMinutes, baseMinutes });
-          if (present) {
-            attendedMinutes += durationMinutes;
-            attendedShiftMinutes.push({ durationMinutes, baseMinutes });
-          }
-          if (!byShift[a.shiftName])
-            byShift[a.shiftName] = { scheduled: 0, attended: 0, rate };
-          byShift[a.shiftName].scheduled++;
-          if (present) byShift[a.shiftName].attended++;
+        let punchDeductionPct = 0;
+        if (s.empCd) {
+          const basicRow = basics
+            .filter((b: any) => b.empCd === s.empCd)
+            .sort((a: any, b: any) =>
+              dateKeyOf(b.effectiveFrom).localeCompare(
+                dateKeyOf(a.effectiveFrom),
+              ),
+            )[0] as any;
+          const empDaily = dailyRows.filter((d: any) => d.empCd === s.empCd);
+          punchDeductionPct = shiftPunchDeductionPct({
+            basic: basicRow ? basicTotalOf(basicRow) : 0,
+            scheduled: rows.length,
+            lateMinutes: empDaily.reduce(
+              (sum: number, d: any) => sum + Number(d.lateMinutes ?? 0),
+              0,
+            ),
+            earlyLeaveMinutes: empDaily.reduce(
+              (sum: number, d: any) => sum + Number(d.earlyLeaveMin ?? 0),
+              0,
+            ),
+            missingCheckoutDays: empDaily.filter(
+              (d: any) => d.status === "missing_checkout",
+            ).length,
+            deductionsEnabled,
+          });
         }
-
-        const scheduledUnits = splitShiftMinutesIntoUnits(
-          scheduledShiftMinutes,
-        );
-        const attendedUnits = splitShiftMinutesIntoUnits(attendedShiftMinutes);
-        let bigScheduled = scheduledUnits.big;
-        let smallScheduled = scheduledUnits.small;
-        let bigAttended = attendedUnits.big;
-        let smallAttended = attendedUnits.small;
-
-        // Manual override: accountant-entered attended counts win over computed attendance.
-        const override = overrideMap.get(s.id) as
-          | { bigAttended: number | null; smallAttended: number | null }
-          | undefined;
-        const hasBigOverride = override?.bigAttended != null;
-        const hasSmallOverride = override?.smallAttended != null;
-        const hasOverride = hasBigOverride || hasSmallOverride;
-        if (hasBigOverride) bigAttended = override!.bigAttended as number;
-        if (hasSmallOverride) smallAttended = override!.smallAttended as number;
-
-        // Calculate pay per shift type
-        const scheduled = rows.length;
-        const absent = rows.length - attended;
-        const bigAbsent = Math.max(0, bigScheduled - bigAttended);
-        const smallAbsent = Math.max(0, smallScheduled - smallAttended);
-        const bigTotal = Math.round(bigScheduled * rateBig * 100) / 100;
-        const smallTotal = Math.round(smallScheduled * rateSmall * 100) / 100;
-        const scheduledHourlyPay =
-          Math.round(hourlyRate * scheduledMinutes * 100) / 100;
-        const attendedHourlyPay =
-          Math.round(hourlyRate * attendedMinutes * 100) / 100;
-        const basicSalary = !deductionsEnabled
-          ? scheduledHourlyPay
-          : hasOverride
-            ? Math.round(
-                (bigAttended * rateBig + smallAttended * rateSmall) * 100,
-              ) / 100
-            : scheduledHourlyPay;
-        const absentDeduction = !deductionsEnabled
-          ? 0
-          : hasOverride
-            ? Math.round(
-                (bigAbsent * rateBig + smallAbsent * rateSmall) * 100,
-              ) / 100
-            : Math.round((scheduledHourlyPay - attendedHourlyPay) * 100) / 100;
-        const punchDeductionPct =
-          deductionsEnabled && s.empCd ? (deductionMap.get(s.empCd) ?? 0) : 0;
-        const punchDeduction =
-          Math.round(basicSalary * punchDeductionPct * 100) / 100;
-        const netPay =
-          Math.round((basicSalary - absentDeduction - punchDeduction) * 100) /
-          100;
-        const totalPay = netPay;
-
+        const pay = computeShiftStaffPay({
+          rows,
+          rateBig: Number(s.ratePerShift),
+          mainShiftMinutes: Number(s.mainShiftMinutes ?? 360) || 360,
+          baseMinutesMap,
+          override: overrideMap.get(s.id) as any,
+          deductionsEnabled,
+          punchDeductionPct,
+        });
         return {
           id: s.id,
           name: s.name,
           type: s.type,
           empCd: s.empCd ?? null,
-          ratePerShift: rateBig,
-          rateSmallShift: rateSmall,
-          hourlyRate,
-          mainShiftMinutes,
-          scheduledMinutes,
-          attendedMinutes,
-          scheduled,
-          attended,
-          absent,
-          // Big/small breakdown
-          bigScheduled,
-          bigAttended,
-          bigAbsent,
-          bigTotal,
-          smallScheduled,
-          smallAttended,
-          smallAbsent,
-          smallTotal,
-          basicSalary,
-          absentDeduction,
-          punchDeduction,
-          totalPay,
-          byShift,
-          hasAttendanceOverride: hasOverride,
-          hasBigAttendanceOverride: hasBigOverride,
-          hasSmallAttendanceOverride: hasSmallOverride,
+          ratePerShift: Number(s.ratePerShift),
+          rateSmallShift: pay.rateSmall,
+          hourlyRate: pay.hourlyRate,
+          mainShiftMinutes: pay.mainShiftMinutes,
+          scheduledMinutes: pay.scheduledMinutes,
+          attendedMinutes: pay.attendedMinutes,
+          scheduled: pay.scheduled,
+          attended: pay.attended,
+          absent: pay.absent,
+          bigScheduled: pay.bigScheduled,
+          bigAttended: pay.bigAttended,
+          bigAbsent: pay.bigAbsent,
+          bigTotal: pay.bigTotal,
+          smallScheduled: pay.smallScheduled,
+          smallAttended: pay.smallAttended,
+          smallAbsent: pay.smallAbsent,
+          smallTotal: pay.smallTotal,
+          basicSalary: pay.basicSalary,
+          absentDeduction: pay.absentDeduction,
+          punchDeduction: pay.punchDeduction,
+          totalPay: pay.netPay,
+          byShift: pay.byShift,
+          hasAttendanceOverride: pay.hasOverride,
+          hasBigAttendanceOverride: pay.hasBigOverride,
+          hasSmallAttendanceOverride: pay.hasSmallOverride,
         };
       });
     }),
 
-  setShiftAttendanceOverride: makeSalaryWriteProcedure("/salary/payroll")
+  setShiftAttendanceOverride: makeSalaryWriteProcedure(["/salary/payroll", "/salary/shift-payroll"])
     .input(
       z.object({
         staffId: z.number(),
         year: z.number(),
         month: z.number(),
-        bigAttended: z.number().min(0).nullable(),
-        smallAttended: z.number().min(0).nullable(),
+        bigAttended: z.number().int().min(0).nullable(),
+        smallAttended: z.number().int().min(0).nullable(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -2802,21 +2855,21 @@ export const salaryRouter = router({
       return { ok: true };
     }),
 
-  // ── Shift Definitions ────────────────────────────────────
-  listShiftDefinitions: makeSalaryProcedure("/salary").query(async () => {
+  // Shift Definitions
+  listShiftDefinitions: makeSalaryProcedure(["/salary/payroll", "/salary/shift-staff"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db.select().from(attendanceShifts);
   }),
 
-  // ── Shift Cycles ─────────────────────────────────────────
-  getStaffCycles: makeSalaryProcedure("/salary/payroll").query(async () => {
+  // Shift Cycles
+  getStaffCycles: makeSalaryProcedure(["/salary/payroll", "/salary/shift-staff"]).query(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
     return db.select().from(shiftStaffCycle);
   }),
 
-  setStaffCycle: makeSalaryWriteProcedure("/salary/payroll")
+  setStaffCycle: makeSalaryWriteProcedure(["/salary/payroll", "/salary/shift-staff"])
     .input(
       z.object({
         staffId: z.number(),
@@ -2842,7 +2895,9 @@ export const salaryRouter = router({
         ),
       );
       if (uniqueCycleEntries.size !== input.cycle.length) {
-        throw new Error("لا يمكن إضافة نفس وقت الشفت أكثر من مرة في اليوم نفسه");
+        throw new Error(
+          "لا يمكن إضافة نفس وقت الشفت أكثر من مرة في اليوم نفسه",
+        );
       }
       // Replace all cycle entries for this staff member
       await db
@@ -2863,66 +2918,105 @@ export const salaryRouter = router({
       return { success: true };
     }),
 
-  clearGeneratedShiftAttendance: makeSalaryWriteProcedure("/salary/payroll")
+  clearGeneratedShiftAttendance: makeSalaryWriteProcedure(["/salary/payroll", "/salary/shift-staff"])
     .input(
       z.object({ staffId: z.number(), year: z.number(), month: z.number() }),
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
+      const previousMonth = new Date(input.year, input.month - 2, 26);
+      const rangeFrom = `${previousMonth.getFullYear()}-${String(previousMonth.getMonth() + 1).padStart(2, "0")}-26`;
+      const rangeTo = `${input.year}-${String(input.month).padStart(2, "0")}-25`;
       await db
         .delete(shiftAttendance)
         .where(
           and(
             eq(shiftAttendance.staffId, input.staffId),
-            eq(shiftAttendance.year, input.year),
-            eq(shiftAttendance.month, input.month),
+            gte(shiftAttendance.workDate, rangeFrom as any),
+            lte(shiftAttendance.workDate, rangeTo as any),
+            eq(shiftAttendance.notes, "[generated:staff-cycle]"),
           ),
         );
       return { success: true };
     }),
 
-  generateFromCycles: makeSalaryWriteProcedure("/salary/payroll")
-    .input(z.object({ year: z.number(), month: z.number() }))
+  generateFromCycles: makeSalaryWriteProcedure(["/salary/payroll", "/salary/shift-staff"])
+    .input(
+      z.object({
+        year: z.number(),
+        month: z.number(),
+        fromDate: isoDate.optional(),
+        toDate: isoDate.optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
-      const [cycles, staff] = await Promise.all([
-        db.select().from(shiftStaffCycle),
-        db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
-      ]);
+      // Default to the roster period: 26th of the previous month → 25th.
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const prev = new Date(input.year, input.month - 2, 26);
+      const rangeFrom =
+        input.fromDate ?? `${prev.getFullYear()}-${pad(prev.getMonth() + 1)}-26`;
+      const rangeTo = input.toDate ?? `${input.year}-${pad(input.month)}-25`;
 
-      const daysInMonth = new Date(input.year, input.month, 0).getDate();
+      const [cycles, staff, salaryHolidayRows, attendanceHolidayRows] =
+        await Promise.all([
+          db.select().from(shiftStaffCycle),
+          db.select().from(shiftStaff).where(eq(shiftStaff.active, true)),
+          db
+            .select({ date: salaryHolidays.date })
+            .from(salaryHolidays)
+            .where(
+              and(
+                gte(salaryHolidays.date, rangeFrom as any),
+                lte(salaryHolidays.date, rangeTo as any),
+              ),
+            ),
+          db
+            .select({ date: attendanceHolidays.date })
+            .from(attendanceHolidays)
+            .where(
+              and(
+                gte(attendanceHolidays.date, rangeFrom as any),
+                lte(attendanceHolidays.date, rangeTo as any),
+              ),
+            ),
+        ]);
+      const holidayKeys = new Set(
+        [...salaryHolidayRows, ...attendanceHolidayRows].map((h: any) =>
+          dateKeyOf(h.date),
+        ),
+      );
+
       let inserted = 0;
-
       for (const s of staff) {
         const staffCycles = cycles.filter((c: any) => c.staffId === s.id);
         if (staffCycles.length === 0) continue;
 
-        for (let day = 1; day <= daysInMonth; day++) {
-          const d = new Date(input.year, input.month - 1, day);
-          const dow = d.getDay(); // 0=Sun
+        for (
+          let d = new Date(`${rangeFrom}T12:00:00`);
+          dateKeyOf(d) <= rangeTo;
+          d.setDate(d.getDate() + 1)
+        ) {
+          const workDate = dateKeyOf(d);
+          if (holidayKeys.has(workDate)) continue;
           const cycleEntries = staffCycles.filter(
-            (c: any) => c.dayOfWeek === dow,
+            (c: any) => c.dayOfWeek === d.getDay(),
           );
-          if (cycleEntries.length === 0) continue;
-
-          const mm = String(input.month).padStart(2, "0");
-          const dd = String(day).padStart(2, "0");
-          const workDate = `${input.year}-${mm}-${dd}`;
-
           for (const cycleEntry of cycleEntries) {
             await db
               .insert(shiftAttendance)
               .values({
                 staffId: s.id,
-                year: input.year,
-                month: input.month,
+                year: d.getFullYear(),
+                month: d.getMonth() + 1,
                 workDate: workDate as any,
                 shiftName: cycleEntry.shiftName,
                 startTime: cycleEntry.startTime,
                 endTime: cycleEntry.endTime,
+                notes: "[generated:staff-cycle]",
                 present: true,
               })
               .onDuplicateKeyUpdate({
@@ -2931,7 +3025,7 @@ export const salaryRouter = router({
                   startTime: cycleEntry.startTime,
                   endTime: cycleEntry.endTime,
                 },
-              }); // no-op: safe to re-run without resetting absences
+              }); // keeps existing present/absent state
             inserted++;
           }
         }
@@ -2945,11 +3039,19 @@ export const salaryRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
-      const [payAgg] = await db
+      const payRows: {
+        section: string;
+        totalPay: string;
+        totalCommission: string;
+        staffCount: number;
+        finalCount: number;
+      }[] = await db
         .select({
+          section: salaryPayroll.section,
           totalPay: sql<string>`COALESCE(SUM(${salaryPayroll.totalPay}), 0)`,
           totalCommission: sql<string>`COALESCE(SUM(${salaryPayroll.totalCommission}), 0)`,
           staffCount: sql<number>`COUNT(*)`,
+          finalCount: sql<number>`COALESCE(SUM(${salaryPayroll.payrollStatus} = 'final'), 0)`,
         })
         .from(salaryPayroll)
         .where(
@@ -2957,7 +3059,30 @@ export const salaryRouter = router({
             eq(salaryPayroll.year, input.year),
             eq(salaryPayroll.month, input.month),
           ),
-        );
+        )
+        .groupBy(salaryPayroll.section);
+      // Penalties carry no section, so they follow the employee's payroll row.
+      const penRows: { section: string; total: string }[] = await db
+        .select({
+          section: salaryPayroll.section,
+          total: sql<string>`COALESCE(SUM(${salaryPenalties.amount}), 0)`,
+        })
+        .from(salaryPenalties)
+        .innerJoin(
+          salaryPayroll,
+          and(
+            eq(salaryPayroll.empCd, salaryPenalties.empCd),
+            eq(salaryPayroll.year, salaryPenalties.year),
+            eq(salaryPayroll.month, salaryPenalties.month),
+          ),
+        )
+        .where(
+          and(
+            eq(salaryPenalties.year, input.year),
+            eq(salaryPenalties.month, input.month),
+          ),
+        )
+        .groupBy(salaryPayroll.section);
       const [penAgg] = await db
         .select({
           total: sql<string>`COALESCE(SUM(${salaryPenalties.amount}), 0)`,
@@ -2969,11 +3094,27 @@ export const salaryRouter = router({
             eq(salaryPenalties.month, input.month),
           ),
         );
+      const bySection = (name: string) => {
+        const pay = payRows.find((row) => row.section === name);
+        const pen = penRows.find((row) => row.section === name);
+        return {
+          totalPay: Number(pay?.totalPay ?? 0),
+          totalCommissions: Number(pay?.totalCommission ?? 0),
+          staffCount: Number(pay?.staffCount ?? 0),
+          finalCount: Number(pay?.finalCount ?? 0),
+          totalPenalties: Number(pen?.total ?? 0),
+        };
+      };
+      const sumOf = (pick: (row: (typeof payRows)[number]) => unknown) =>
+        payRows.reduce((acc, row) => acc + Number(pick(row) ?? 0), 0);
       return {
-        totalPay: Number(payAgg?.totalPay ?? 0),
-        totalCommissions: Number(payAgg?.totalCommission ?? 0),
-        staffCount: Number(payAgg?.staffCount ?? 0),
+        totalPay: sumOf((row) => row.totalPay),
+        totalCommissions: sumOf((row) => row.totalCommission),
+        staffCount: sumOf((row) => row.staffCount),
+        finalCount: sumOf((row) => row.finalCount),
         totalPenalties: Number(penAgg?.total ?? 0),
+        center: bySection("مركز"),
+        clinic: bySection("عيادة"),
       };
     }),
 });

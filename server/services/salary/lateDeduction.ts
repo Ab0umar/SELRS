@@ -38,8 +38,7 @@ export function normalizeLateTiers(tiers: LateTier[]): LateTier[] {
     const previous = tiers[index - 1];
     return {
       ...tier,
-      minMin:
-        previous.maxMin === null ? tier.minMin : previous.maxMin + 1,
+      minMin: previous.maxMin === null ? tier.minMin : previous.maxMin + 1,
     };
   });
 }
@@ -82,6 +81,7 @@ export function calcMissingPunchDeduction(
 
 export function sumPayrollDeductions(values: {
   absent: number;
+  leave?: number;
   missingCheckout: number;
   late: number;
   earlyLeave: number;
@@ -91,6 +91,7 @@ export function sumPayrollDeductions(values: {
 }): number {
   return round2(
     values.absent +
+      (values.leave ?? 0) +
       values.missingCheckout +
       values.late +
       values.earlyLeave +

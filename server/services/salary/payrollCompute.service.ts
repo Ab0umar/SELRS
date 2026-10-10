@@ -1,12 +1,13 @@
 import { getDb, getSystemSetting } from "../../db";
+import { aggregateAttendanceDays } from "../attendance/dailyAggregation";
 import {
   attendanceEmployees,
-  attendanceMonthlyReport,
   attendanceDaily,
   attendancePunches,
   attendanceOvertimeDays,
   attendanceShifts,
   attendanceLeaves,
+  attendanceLeaveBalances,
   attendanceHolidays,
   salaryBasics,
   salaryPenalties,
@@ -20,8 +21,19 @@ import {
   salaryMissingCheckoutExclude,
   salaryEmployeeSectionSettings,
   employeeAttendanceMapping,
+  shiftPayrollAttendanceOverrides,
 } from "../../../drizzle/schema";
-import { eq, and, gte, lte, isNull, or, inArray } from "drizzle-orm";
+import {
+  eq,
+  and,
+  gte,
+  lte,
+  isNull,
+  or,
+  inArray,
+  notInArray,
+  like,
+} from "drizzle-orm";
 import { computeMarkazEffectivePools } from "./commissionPoolsMssql.service";
 import {
   calcAdjustedCommission,
@@ -44,9 +56,25 @@ import {
 import {
   calculateOvertimeCompensationBase,
   calculateOvertimeDayPay,
+  DAILY_WORK_MINUTES,
   type OvertimeDayPay,
 } from "./overtimePay";
 import { getSinglePunchDayKeys } from "./singlePunchDays";
+import { loadLeaveDayExclusions } from "../attendance/leaveDayExclusions";
+import {
+  buildShiftBaseMinutesMap,
+  computeShiftStaffPay,
+  shiftPunchDeductionPct,
+} from "./shiftUnits";
+import {
+  accountLeaveDays,
+  countCommissionAffectingLeaveDays,
+} from "../attendance/leaveAccounting";
+import {
+  absenceDeduction as calculateAbsenceDeduction,
+  penaltyDaysDeduction,
+  salaryLeaveDeduction,
+} from "./monthlyDayDeductions";
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -55,6 +83,7 @@ function round2(n: number): number {
 export function roundPayrollMoney(row: PayrollRow): PayrollRow {
   const basicSalary = Math.round(row.basicSalary);
   const absentDeduction = Math.round(row.absentDeduction);
+  const leaveDeduction = Math.round(row.leaveDeduction);
   const missingCheckoutDeduction = Math.round(row.missingCheckoutDeduction);
   const lateDeduction = Math.round(row.lateDeduction);
   const earlyLeaveDeduction = Math.round(row.earlyLeaveDeduction);
@@ -63,6 +92,7 @@ export function roundPayrollMoney(row: PayrollRow): PayrollRow {
   const insuranceDeduction = Math.round(row.insuranceDeduction);
   const totalDeductions = sumPayrollDeductions({
     absent: absentDeduction,
+    leave: leaveDeduction,
     missingCheckout: missingCheckoutDeduction,
     late: lateDeduction,
     earlyLeave: earlyLeaveDeduction,
@@ -91,6 +121,7 @@ export function roundPayrollMoney(row: PayrollRow): PayrollRow {
     ...row,
     basicSalary,
     absentDeduction,
+    leaveDeduction,
     missingCheckoutDeduction,
     lateDeduction,
     earlyLeaveDeduction,
@@ -165,6 +196,12 @@ function attendanceCommissionRate(
   if (leaveDays <= 7) return rates.r7;
   if (leaveDays <= 10) return rates.r10;
   return 0;
+}
+
+function toDateKey(value: any): string {
+  return value instanceof Date
+    ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+    : String(value ?? "").slice(0, 10);
 }
 
 async function loadAttendanceRates(
@@ -258,6 +295,7 @@ export interface PayrollRow {
   overtimeMinutes: number;
   leaveDays: number;
   absentDeduction: number;
+  leaveDeduction: number;
   missingCheckoutDeduction: number;
   lateDeduction: number;
   earlyLeaveDeduction: number;
@@ -289,7 +327,9 @@ export class PayrollComputeService {
     filterEmpCd?: string,
     fromDate?: string,
     toDate?: string,
+    options: { notify?: boolean } = {},
   ): Promise<PayrollRow[]> {
+    const notify = options.notify !== false;
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
@@ -306,9 +346,13 @@ export class PayrollComputeService {
           .from(attendanceEmployees)
           .where(
             and(
+              // Department spellings vary ("العيادة", "المركز والعيادة", ...).
               or(
                 eq(attendanceEmployees.department, section),
-                eq(attendanceEmployees.department, "المركز والعيادة"),
+                like(
+                  attendanceEmployees.department,
+                  section === "عيادة" ? "%عياد%" : "%مركز%",
+                ),
               ),
               or(
                 eq(attendanceEmployees.active, true),
@@ -376,7 +420,6 @@ export class PayrollComputeService {
     const [
       poolRows,
       basics,
-      monthlyReports,
       dailyRows,
       penalties,
       advances,
@@ -386,6 +429,7 @@ export class PayrollComputeService {
       shiftDefs,
       mcExcludeRows,
       sickLeaveRows,
+      leaveBalanceRows,
       overtimeDayRows,
       rawPunchRows,
     ] = await Promise.all([
@@ -409,15 +453,6 @@ export class PayrollComputeService {
               isNull(salaryBasics.effectiveTo),
               gte(salaryBasics.effectiveTo, firstDay as any),
             ),
-          ),
-        ),
-      db
-        .select()
-        .from(attendanceMonthlyReport)
-        .where(
-          and(
-            eq(attendanceMonthlyReport.year, year),
-            eq(attendanceMonthlyReport.month, month),
           ),
         ),
       db
@@ -505,21 +540,36 @@ export class PayrollComputeService {
             lte(salaryMissingCheckoutExclude.workDate, lastDay as any),
           ),
         ),
-      db
-        .select({
-          empCd: attendanceLeaves.empCd,
-          dateFrom: attendanceLeaves.dateFrom,
-          dateTo: attendanceLeaves.dateTo,
-        })
-        .from(attendanceLeaves)
-        .where(
-          and(
-            eq(attendanceLeaves.type, "sick"),
-            eq(attendanceLeaves.approved, true),
-            lte(attendanceLeaves.dateFrom, lastDay as any),
-            gte(attendanceLeaves.dateTo, firstDay as any),
-          ),
-        ),
+      employeeCodes.length
+        ? db
+            .select({
+              empCd: attendanceLeaves.empCd,
+              dateFrom: attendanceLeaves.dateFrom,
+              dateTo: attendanceLeaves.dateTo,
+              type: attendanceLeaves.type,
+              notAffectCommission: attendanceLeaves.notAffectCommission,
+            })
+            .from(attendanceLeaves)
+            .where(
+              and(
+                inArray(attendanceLeaves.empCd, employeeCodes),
+                eq(attendanceLeaves.approved, true),
+                lte(attendanceLeaves.dateFrom, `${year}-12-31` as any),
+                gte(attendanceLeaves.dateTo, `${year}-01-01` as any),
+              ),
+            )
+        : Promise.resolve([]),
+      employeeCodes.length
+        ? db
+            .select()
+            .from(attendanceLeaveBalances)
+            .where(
+              and(
+                inArray(attendanceLeaveBalances.empCd, employeeCodes),
+                eq(attendanceLeaveBalances.year, year),
+              ),
+            )
+        : Promise.resolve([]),
       db
         .select()
         .from(attendanceOvertimeDays)
@@ -552,6 +602,14 @@ export class PayrollComputeService {
         : Promise.resolve([]),
     ]);
 
+    // Group once: the per-employee loops below would otherwise rescan every row.
+    const dailyRowsByEmp = new Map<string, any[]>();
+    for (const row of dailyRows as any[]) {
+      const list = dailyRowsByEmp.get(row.empCd) ?? [];
+      list.push(row);
+      dailyRowsByEmp.set(row.empCd, list);
+    }
+
     const overtimeEnabledDays = new Map(
       (overtimeDayRows as any[]).map((row) => {
         const date = row.workDate;
@@ -572,7 +630,10 @@ export class PayrollComputeService {
 
     // Set of holiday date strings YYYY-MM-DD (not Fridays — already excluded from roster)
     const holidayDates = new Set<string>(
-      [...salaryHolidayRows, ...attendanceHolidayRows]
+      [
+        ...salaryHolidayRows,
+        ...attendanceHolidayRows.filter((holiday: any) => holiday.paid),
+      ]
         .map((h: any) => {
           const d = h.date as any;
           return d instanceof Date
@@ -594,36 +655,44 @@ export class PayrollComputeService {
     );
     const singlePunchDaySet = getSinglePunchDayKeys(rawPunchRows as any[]);
 
-    // Set of "empCd|YYYY-MM-DD" for approved sick leave days within this month
-    const sickDatesSet = new Set<string>();
-    for (const sl of sickLeaveRows as any[]) {
-      const from = String(
-        sl.dateFrom instanceof Date
-          ? sl.dateFrom.toISOString().slice(0, 10)
-          : sl.dateFrom,
-      ).slice(0, 10);
-      const to = String(
-        sl.dateTo instanceof Date
-          ? sl.dateTo.toISOString().slice(0, 10)
-          : sl.dateTo,
-      ).slice(0, 10);
-      const cur = new Date(from + "T00:00:00");
-      const end = new Date(to + "T00:00:00");
-      while (cur <= end) {
-        const ds = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
-        if (ds >= firstDay && ds <= lastDay)
-          sickDatesSet.add(`${sl.empCd}|${ds}`);
-        cur.setDate(cur.getDate() + 1);
-      }
+    const leaveBalanceByEmp = new Map(
+      (leaveBalanceRows as any[]).map((row) => [
+        row.empCd,
+        Number(row.annualAllocation ?? 21) + Number(row.carryOver ?? 0),
+      ]),
+    );
+    const leavesByEmp = new Map<string, any[]>();
+    for (const leave of sickLeaveRows as any[]) {
+      const rows = leavesByEmp.get(leave.empCd) ?? [];
+      rows.push(leave);
+      leavesByEmp.set(leave.empCd, rows);
+    }
+    const salaryLeaveDatesByEmp = new Map<string, Set<string>>();
+    const salaryLeaveCommissionDatesByEmp = new Map<string, Set<string>>();
+    // Paid holidays and weekly rest days inside a leave are not leave days.
+    const isRestOrHoliday = await loadLeaveDayExclusions(
+      db,
+      employeeCodes,
+      year,
+    );
+    for (const empCd of employeeCodes) {
+      const usage = accountLeaveDays(
+        leavesByEmp.get(empCd) ?? [],
+        leaveBalanceByEmp.get(empCd) ?? 21,
+        year,
+        (key) => isRestOrHoliday(empCd, key),
+      );
+      salaryLeaveDatesByEmp.set(empCd, usage.salaryDateKeys);
+      salaryLeaveCommissionDatesByEmp.set(
+        empCd,
+        usage.salaryCommissionDateKeys,
+      );
     }
 
-    // Number of holiday working days (exclude Fridays = day 5)
-    const holidayWorkingDaysCount = [...holidayDates].filter(
-      (ds) => new Date(ds + "T00:00:00").getDay() !== 5,
-    ).length;
+
 
     const pool =
-      poolRows.find((p: any) => p.section === section) ?? poolRows[0];
+      poolRows.find((p: any) => p.section === section);
     const allowancePool =
       poolRows.find(
         (p: any) =>
@@ -675,7 +744,7 @@ export class PayrollComputeService {
       const rows = basics
         .filter((b: any) => b.empCd === emp.empCd)
         .sort((a: any, b: any) =>
-          String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)),
+          toDateKey(b.effectiveFrom).localeCompare(toDateKey(a.effectiveFrom)),
         );
       if (rows.length > 0) {
         const r = rows[0];
@@ -715,6 +784,19 @@ export class PayrollComputeService {
       employees.map((emp: any) => [String(emp.empCd), emp]),
     );
     const getShiftEmployeeSettings = (staff: any) => {
+      // A linked employee with a salary line earns every commission and the
+      // overtime on that line; the shift line carries basic shift pay only.
+      if (staff.empCd && empBasicMap.has(String(staff.empCd))) {
+        return {
+          attendanceRate: 0,
+          commissionMultiplier: 1,
+          commAttendance: false,
+          commExam: false,
+          commPentacam: false,
+          commDay10: false,
+          commOvertime: false,
+        };
+      }
       const employee = staff.empCd
         ? employeeSettingsMap.get(String(staff.empCd))
         : null;
@@ -738,6 +820,16 @@ export class PayrollComputeService {
       };
     };
 
+    // Employees linked to a shift-roster member get basic pay from the shift
+    // line; their employee line keeps commissions only, with no basic or deductions.
+    const shiftPaidEmpCds = new Set<string>(
+      isMarkaz
+        ? (await db.select().from(shiftStaff))
+            .filter((ss: any) => ss.empCd)
+            .map((ss: any) => String(ss.empCd))
+        : [],
+    );
+
     const sumAllBasics = Array.from(empBasicMap.values()).reduce(
       (s, b) => s + b,
       0,
@@ -749,19 +841,20 @@ export class PayrollComputeService {
     for (const emp of employees) {
       const basic = empBasicMap.get(emp.empCd);
       if (!basic) continue;
-      const report = monthlyReports.find((r: any) => r.empCd === emp.empCd);
-      const empDailyRows = dailyRows.filter((d: any) => d.empCd === emp.empCd);
-      const wDays = empDailyRows.filter(
-        (d: any) => d.status !== "holiday",
+      const empDailyRows = dailyRowsByEmp.get(emp.empCd) ?? [];
+      const empAttendanceDays = aggregateAttendanceDays(empDailyRows as any[]);
+      const wDays = empAttendanceDays.filter(
+        (day: any) => day.status !== "holiday",
       ).length;
       let rawAbsent = 0,
         lateMins = 0,
         earlyMins = 0,
         missingCoDays = 0;
-      rawAbsent = empDailyRows.filter((d: any) => d.status === "absent").length;
+      rawAbsent = empAttendanceDays.filter(
+        (d: any) => d.status === "absent",
+      ).length;
       missingCoDays = [...singlePunchDaySet].filter(
-        (key) =>
-          key.startsWith(`${emp.empCd}|`) && !mcExcludeSet.has(key),
+        (key) => key.startsWith(`${emp.empCd}|`) && !mcExcludeSet.has(key),
       ).length;
       lateMins = empDailyRows.reduce(
         (s: any, d: any) => s + (d.lateMinutes ?? 0),
@@ -771,18 +864,26 @@ export class PayrollComputeService {
         (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
         0,
       );
-      const absentD = Math.max(0, rawAbsent - holidayWorkingDaysCount);
+      // Holiday days already carry status "holiday", so they are never absent.
+      const absentD = rawAbsent;
       const dayRate = wDays > 0 ? basic / wDays : 0;
       const minRate = dayRate / 360;
       const deductions = deductionsEnabled
         ? round2(
-              absentD * dayRate +
+            calculateAbsenceDeduction(basic, absentD) +
               calcMissingPunchDeduction(missingCoDays, dayRate) +
               lateMins * minRate +
               earlyMins * minRate +
               penalties
                 .filter((p: any) => p.empCd === emp.empCd)
-                .reduce((s: any, p: any) => s + Number(p.amount), 0) +
+                .reduce(
+                  (s: any, p: any) =>
+                    s +
+                    (p.penaltyDays
+                      ? penaltyDaysDeduction(basic, Number(p.penaltyDays))
+                      : Number(p.amount)),
+                  0,
+                ) +
               advances
                 .filter((a: any) => a.empCd === emp.empCd)
                 .reduce((s: any, a: any) => s + Number(a.amount), 0),
@@ -802,7 +903,12 @@ export class PayrollComputeService {
 
     // Load shift staff for مركز — they share the same exam/pentacam pools
     const activeShiftStaff = isMarkaz
-      ? (await db.select().from(shiftStaff)).filter((ss: any) => ss.active)
+      ? (await db.select().from(shiftStaff)).filter(
+          (ss: any) =>
+            ss.active ||
+            // deactivated staff are still paid for roster days in this period
+            shiftAttendanceRows.some((a: any) => a.staffId === ss.id),
+        )
       : [];
     const shiftAttRows = activeShiftStaff.length > 0 ? shiftAttendanceRows : [];
 
@@ -812,15 +918,23 @@ export class PayrollComputeService {
         : String(d).slice(0, 10);
     }
 
-    // Build shift-name → size map (same logic as salary.ts router)
-    const shiftDurationMinutesMap = new Map<string, number>();
-    for (const sd of shiftDefs as any[]) {
-      const [sh, sm] = String(sd.startTime).split(":").map(Number);
-      const [eh, em] = String(sd.endTime).split(":").map(Number);
-      let durationMinutes = eh * 60 + em - (sh * 60 + sm);
-      if (durationMinutes <= 0) durationMinutes += 24 * 60;
-      shiftDurationMinutesMap.set(sd.name as string, durationMinutes);
-    }
+    // Same shift rules as the /salary/shift-payroll page (shared calculator).
+    const shiftBaseMinutesMap = buildShiftBaseMinutesMap(shiftDefs as any[]);
+    const shiftOverrideRows =
+      activeShiftStaff.length > 0
+        ? await db
+            .select()
+            .from(shiftPayrollAttendanceOverrides)
+            .where(
+              and(
+                eq(shiftPayrollAttendanceOverrides.year, year),
+                eq(shiftPayrollAttendanceOverrides.month, month),
+              ),
+            )
+        : [];
+    const shiftOverrideMap = new Map(
+      shiftOverrideRows.map((o: any) => [o.staffId, o]),
+    );
 
     type ShiftStats = {
       scheduled: number;
@@ -838,103 +952,48 @@ export class PayrollComputeService {
         const ds = fmtDate(a.workDate);
         return a.staffId === ss.id && !holidayDates.has(ds);
       });
-      const scheduled = rows.length;
 
-      // A punch is day-level data and cannot identify a specific shift when
-      // more than one exists on the same date. The roster attendance flag is
-      // therefore authoritative for shift counts.
-      const attended = rows.filter((a: any) => a.present).length;
-
-      const rateBig = Number(ss.ratePerShift);
-      const mainShiftMinutes = Number(ss.mainShiftMinutes ?? 360) || 360;
-
-      // For linked employees, apply punch deductions; otherwise, just attendance ratio
       let deductionPct = 0;
       if (ss.empCd) {
-        let lateMinutes = 0;
-        let earlyLeaveMinutes = 0;
-        let hasData = false;
-
-        if (fromDate || toDate) {
-          const empDailyRows = dailyRows.filter(
-            (d: any) => d.empCd === ss.empCd,
-          );
-          lateMinutes = empDailyRows.reduce(
-            (s: any, d: any) => s + (d.lateMinutes ?? 0),
+        const empDailyRows = dailyRowsByEmp.get(ss.empCd) ?? [];
+        deductionPct = shiftPunchDeductionPct({
+          basic: empBasicMap.get(ss.empCd) ?? 0,
+          scheduled: rows.length,
+          lateMinutes: empDailyRows.reduce(
+            (s: number, d: any) => s + Number(d.lateMinutes ?? 0),
             0,
-          );
-          earlyLeaveMinutes = empDailyRows.reduce(
-            (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
+          ),
+          earlyLeaveMinutes: empDailyRows.reduce(
+            (s: number, d: any) => s + Number(d.earlyLeaveMin ?? 0),
             0,
-          );
-          hasData = true;
-        } else {
-          const report = monthlyReports.find((r: any) => r.empCd === ss.empCd);
-          if (report) {
-            lateMinutes = report.totalLateMins ?? 0;
-            earlyLeaveMinutes = report.totalEarlyLeaveMins ?? 0;
-            hasData = true;
-          }
-        }
-
-        if (hasData) {
-          const basic = empBasicMap.get(ss.empCd) ?? 0;
-          if (basic > 0 && scheduled > 0) {
-            const dailyRate = basic / scheduled;
-            const minuteRate = dailyRate / 360;
-            const totalDeduction = round2(
-              (lateMinutes + earlyLeaveMinutes) * minuteRate,
-            );
-            deductionPct = deductionsEnabled
-              ? Math.min(1, totalDeduction / basic)
-              : 0;
-          }
-        }
+          ),
+          missingCheckoutDays: empDailyRows.filter(
+            (d: any) => d.status === "missing_checkout",
+          ).length,
+          deductionsEnabled,
+        });
       }
 
-      // Every shift is paid hourly from the main large-shift price.
-      const byShift: Record<
-        string,
-        { scheduled: number; attended: number; rate: number }
-      > = {};
-      for (const a of rows) {
-        const isPresent = Boolean(a.present);
-        const durationMinutes =
-          shiftDurationMinutesMap.get(a.shiftName) ?? mainShiftMinutes;
-        const r = round2((rateBig * durationMinutes) / mainShiftMinutes);
-        if (!byShift[a.shiftName])
-          byShift[a.shiftName] = { scheduled: 0, attended: 0, rate: r };
-        byShift[a.shiftName].scheduled++;
-        if (isPresent) byShift[a.shiftName].attended++;
-      }
+      const pay = computeShiftStaffPay({
+        rows,
+        rateBig: Number(ss.ratePerShift),
+        mainShiftMinutes: Number(ss.mainShiftMinutes ?? 360) || 360,
+        baseMinutesMap: shiftBaseMinutesMap,
+        override: shiftOverrideMap.get(ss.id) as any,
+        deductionsEnabled,
+        punchDeductionPct: deductionPct,
+      });
 
-      const basicSalary = round2(
-        Object.values(byShift).reduce((s, b) => s + b.scheduled * b.rate, 0),
-      );
-      const absentDeduction = deductionsEnabled
-        ? round2(
-            Object.values(byShift).reduce(
-              (s, b) => s + Math.max(0, b.scheduled - b.attended) * b.rate,
-              0,
-            ),
-          )
-        : 0;
-      const punchDeduction = round2(basicSalary * deductionPct);
-      const netPay = round2(basicSalary - absentDeduction - punchDeduction);
-
-      const commMult = deductionsEnabled
-        ? (scheduled > 0 ? attended / scheduled : 1) * (1 - deductionPct)
-        : 1;
       shiftStatsMap.set(ss.id, {
-        scheduled,
-        attended,
-        commMult,
-        grossPay: basicSalary,
-        shiftPay: round2(
-          Object.values(byShift).reduce((s, b) => s + b.attended * b.rate, 0),
-        ),
-        deductionPct,
-        netPay,
+        scheduled: pay.scheduled,
+        attended: pay.attended,
+        commMult: deductionsEnabled
+          ? pay.attendedRatio * (1 - pay.punchDeductionPct)
+          : 1,
+        grossPay: pay.basicSalary,
+        shiftPay: round2(pay.basicSalary - pay.absentDeduction),
+        deductionPct: pay.punchDeductionPct,
+        netPay: pay.netPay,
       });
     }
 
@@ -998,12 +1057,17 @@ export class PayrollComputeService {
         commOvertime: true,
       };
 
-      const report = monthlyReports.find((r: any) => r.empCd === emp.empCd);
-      const empDailyRows = dailyRows.filter((d: any) => d.empCd === emp.empCd);
+      const empDailyRows = dailyRowsByEmp.get(emp.empCd) ?? [];
+      const empAttendanceDays = aggregateAttendanceDays(empDailyRows as any[]);
 
       // Working days = scheduled days (all statuses except holiday)
-      const workingDays = dailyRows.filter(
-        (d: any) => d.empCd === emp.empCd && d.status !== "holiday",
+      const overtimeScheduledDays = new Set(
+        empDailyRows
+          .filter((day: any) => day.shiftId && !holidayDates.has(fmtDate(day.workDate)))
+          .map((day: any) => fmtDate(day.workDate)),
+      ).size;
+      const workingDays = empAttendanceDays.filter(
+        (day: any) => day.status !== "holiday",
       ).length;
 
       // Official holidays count as paid non-working days — don't deduct absence for them
@@ -1014,12 +1078,11 @@ export class PayrollComputeService {
       let leaveDays = 0;
 
       let missingCheckoutDays = 0;
-      rawAbsentDays = empDailyRows.filter(
-        (d: any) => d.status === "absent",
+      rawAbsentDays = empAttendanceDays.filter(
+        (day: any) => day.status === "absent",
       ).length;
       missingCheckoutDays = [...singlePunchDaySet].filter(
-        (key) =>
-          key.startsWith(`${emp.empCd}|`) && !mcExcludeSet.has(key),
+        (key) => key.startsWith(`${emp.empCd}|`) && !mcExcludeSet.has(key),
       ).length;
       lateMinutes = empDailyRows.reduce(
         (s: any, d: any) => s + (d.lateMinutes ?? 0),
@@ -1029,12 +1092,11 @@ export class PayrollComputeService {
         (s: any, d: any) => s + (d.earlyLeaveMin ?? 0),
         0,
       );
-      leaveDays = empDailyRows.filter(
-        (d: any) =>
-          d.status === "leave" &&
-          d.leaveType !== "sick" &&
-          !d.leaveNotAffectCommission,
-      ).length;
+      leaveDays = countCommissionAffectingLeaveDays(
+        (empAttendanceDays as any[]).filter(
+          (day) => !holidayDates.has(String(day.workDate)),
+        ),
+      );
       const overtimeDays: Array<
         OvertimeDayPay & { dateKey: string; workedMinutes: number }
       > = empDailyRows.flatMap((day: any) => {
@@ -1058,15 +1120,29 @@ export class PayrollComputeService {
         const enabled = overtimeEnabledDays.get(`${emp.empCd}|${dateKey}`);
         const isEnabled =
           flags.commOvertime &&
-          (kind === "regular" ? enabled?.out === true : enabled?.day !== false);
+          (kind === "regular"
+            ? enabled?.out === true || enabled?.in === true
+            : kind === "weekly_rest"
+              ? enabled?.day === true
+              : enabled?.day !== false);
         if (!isEnabled) return [];
+        // Regular days pay only the materializer's approved overtime minutes.
+        const workedMinutes =
+          kind === "regular"
+            ? DAILY_WORK_MINUTES +
+              Math.min(
+                Number(day.overtimeMinutes ?? 0),
+                (enabled?.out ? Number(day.overtimeOutMinutes ?? 0) : 0) +
+                (enabled?.in ? Number(day.overtimeInMinutes ?? 0) : 0),
+              )
+            : actualMinutes;
         return [
           {
             dateKey,
-            workedMinutes: actualMinutes,
+            workedMinutes,
             ...calculateOvertimeDayPay({
               compensationBase: basic,
-              workedMinutes: actualMinutes,
+              workedMinutes,
               kind,
             }),
           },
@@ -1078,6 +1154,7 @@ export class PayrollComputeService {
       );
       for (const overtimeDay of overtimeDays) {
         if (
+          !notify ||
           !overtimeDay.requiresAlternativeDay ||
           !notificationSettings.attendance.enabled
         ) {
@@ -1118,22 +1195,37 @@ export class PayrollComputeService {
         });
         sentLateWarningKeys.add(restDayWarningKey);
       }
-      const absentDays = Math.max(0, rawAbsentDays - holidayWorkingDaysCount);
+      // Holiday days already carry status "holiday", so they are never absent.
+      const absentDays = rawAbsentDays;
 
       const dailyRate = workingDays > 0 ? basic / workingDays : 0;
       const minuteRate = dailyRate / 360; // 6h × 60min
 
       const absentDeduction = deductionsEnabled
-        ? round2(absentDays * dailyRate)
+        ? calculateAbsenceDeduction(basic, absentDays)
+        : 0;
+      const salaryLeaveDates =
+        salaryLeaveDatesByEmp.get(emp.empCd) ?? new Set();
+      const salaryLeaveCommissionDates =
+        salaryLeaveCommissionDatesByEmp.get(emp.empCd) ?? new Set();
+      const salaryLeaveDays = [...salaryLeaveDates].filter(
+        (dateKey) => dateKey >= firstDay && dateKey <= lastDay,
+      ).length;
+      const salaryLeaveCommissionDays = [...salaryLeaveCommissionDates].filter(
+        (dateKey) => dateKey >= firstDay && dateKey <= lastDay,
+      ).length;
+      const leaveDeduction = deductionsEnabled
+        ? salaryLeaveDeduction(basic, salaryLeaveDays)
+        : 0;
+      const leaveCommissionDeduction = deductionsEnabled
+        ? salaryLeaveDeduction(basic, salaryLeaveCommissionDays)
         : 0;
       const missingCheckoutDeduction = deductionsEnabled
         ? calcMissingPunchDeduction(missingCheckoutDays, dailyRate)
         : 0;
 
       // Per-day late tier deduction — always use daily rows for tier classification
-      const empDailyRowsForLate = dailyRows.filter(
-        (d: any) => d.empCd === emp.empCd,
-      );
+      const empDailyRowsForLate = empDailyRows;
       const lateDeduction = deductionsEnabled
         ? round2(
             [...empDailyRowsForLate]
@@ -1218,6 +1310,7 @@ export class PayrollComputeService {
       ].some((count) => count >= 2);
       const lateWarningKey = `late-linear-weekly-2:${emp.empCd}:${firstDay}:${lastDay}`;
       if (
+        notify &&
         hasRepeatedLinearLateInWeek &&
         notificationSettings.attendance.enabled &&
         !sentLateWarningKeys.has(lateWarningKey)
@@ -1264,7 +1357,8 @@ export class PayrollComputeService {
             penalties
               .filter((p: any) => p.empCd === emp.empCd)
               .reduce((s: any, p: any) => {
-                if (p.penaltyDays) return s + Number(p.penaltyDays) * dailyRate;
+                if (p.penaltyDays)
+                  return s + penaltyDaysDeduction(basic, Number(p.penaltyDays));
                 return s + Number(p.amount);
               }, 0),
           )
@@ -1279,13 +1373,14 @@ export class PayrollComputeService {
       const basicRow = basics
         .filter((b: any) => b.empCd === emp.empCd)
         .sort((a: any, b: any) =>
-          String(b.effectiveFrom).localeCompare(String(a.effectiveFrom)),
+          toDateKey(b.effectiveFrom).localeCompare(toDateKey(a.effectiveFrom)),
         )[0];
       const insuranceDeduction = round2(
         Number((basicRow as any)?.insuranceDeduction ?? 0),
       );
       const totalDeductions = sumPayrollDeductions({
         absent: absentDeduction,
+        leave: leaveDeduction,
         missingCheckout: missingCheckoutDeduction,
         late: lateDeduction,
         earlyLeave: earlyLeaveDeduction,
@@ -1309,6 +1404,7 @@ export class PayrollComputeService {
       // Insurance affects take-home salary only, not commission eligibility.
       const deductionsForComm = round2(
         absentDeduction +
+          leaveCommissionDeduction +
           missingCheckoutDeduction +
           lateDeduction +
           earlyLeaveDeduction +
@@ -1389,6 +1485,7 @@ export class PayrollComputeService {
           0,
           basic -
             absentDeduction -
+            leaveCommissionDeduction -
             missingCheckoutDeduction -
             lateDeduction -
             earlyLeaveDeduction -
@@ -1409,6 +1506,7 @@ export class PayrollComputeService {
                 sum +
                 calculateOvertimeDayPay({
                   compensationBase: overtimeCompensationBase,
+                  scheduledWorkingDays: overtimeScheduledDays,
                   workedMinutes: day.workedMinutes,
                   kind: day.kind,
                 }).overtimePay,
@@ -1417,8 +1515,7 @@ export class PayrollComputeService {
           )
         : 0;
       const totalPay = round2(netBasic + totalCommission + overtimePay);
-
-      results.push({
+      const row: PayrollRow = {
         empCd: emp.empCd,
         year,
         month,
@@ -1431,6 +1528,7 @@ export class PayrollComputeService {
         overtimeMinutes,
         leaveDays,
         absentDeduction,
+        leaveDeduction,
         missingCheckoutDeduction,
         lateDeduction,
         earlyLeaveDeduction,
@@ -1452,7 +1550,27 @@ export class PayrollComputeService {
         totalCommission,
         overtimePay,
         totalPay,
-      });
+      };
+      // Linked to the shift roster: basic and attendance deductions sit on the
+      // shift line. This line keeps commissions and overtime, less personal deductions.
+      if (shiftPaidEmpCds.has(emp.empCd)) {
+        const personalDeductions = round2(
+          penaltyDeduction + advancesDeduction + insuranceDeduction,
+        );
+        Object.assign(row, {
+          basicSalary: 0,
+          absentDeduction: 0,
+          leaveDeduction: 0,
+          missingCheckoutDeduction: 0,
+          lateDeduction: 0,
+          earlyLeaveDeduction: 0,
+          totalDeductions: personalDeductions,
+          deductionPct: 0,
+          netBasic: 0,
+          totalPay: round2(totalCommission + overtimePay - personalDeductions),
+        });
+      }
+      results.push(row);
     }
 
     // Add shift staff rows (مركز only)
@@ -1480,6 +1598,11 @@ export class PayrollComputeService {
       const totalDeductions = round2(absentDeduction + punchDeduction);
       const netBasic = netPay;
       const settings = getShiftEmployeeSettings(ss);
+      const overtimeScheduledDays = new Set(
+        shiftAttRows
+          .filter((entry: any) => entry.staffId === ss.id && !holidayDates.has(fmtDate(entry.workDate)))
+          .map((entry: any) => fmtDate(entry.workDate)),
+      ).size;
       const overtimeDays: Array<
         OvertimeDayPay & { dateKey: string; workedMinutes: number }
       > = ss.empCd
@@ -1490,7 +1613,7 @@ export class PayrollComputeService {
               const dateKey = fmtDate(day.workDate);
               const firstIn = new Date(day.firstIn).getTime();
               const lastOut = new Date(day.lastOut).getTime();
-              const workedMinutes = Math.max(
+              let workedMinutes = Math.max(
                 0,
                 Math.round((lastOut - firstIn) / 60_000),
               );
@@ -1503,9 +1626,20 @@ export class PayrollComputeService {
               const isEnabled =
                 settings.commOvertime &&
                 (kind === "regular"
-                  ? enabled?.out === true
-                  : enabled?.day !== false);
+                  ? enabled?.out === true || enabled?.in === true
+                  : kind === "weekly_rest"
+                    ? enabled?.day === true
+                    : enabled?.day !== false);
               if (!isEnabled) return [];
+              if (kind === "regular") {
+                workedMinutes =
+                  DAILY_WORK_MINUTES +
+                  Math.min(
+                    Number(day.overtimeMinutes ?? 0),
+                    (enabled?.out ? Number(day.overtimeOutMinutes ?? 0) : 0) +
+                    (enabled?.in ? Number(day.overtimeInMinutes ?? 0) : 0),
+                  );
+              }
 
               return [
                 {
@@ -1580,6 +1714,7 @@ export class PayrollComputeService {
                 sum +
                 calculateOvertimeDayPay({
                   compensationBase: overtimeCompensationBase,
+                  scheduledWorkingDays: overtimeScheduledDays,
                   workedMinutes: day.workedMinutes,
                   kind: day.kind,
                 }).overtimePay,
@@ -1602,6 +1737,7 @@ export class PayrollComputeService {
         overtimeMinutes,
         leaveDays: 0,
         absentDeduction,
+        leaveDeduction: 0,
         missingCheckoutDeduction: 0,
         lateDeduction: punchDeduction,
         earlyLeaveDeduction: 0,
@@ -1713,6 +1849,7 @@ export class PayrollComputeService {
         overtimeMinutes: 0,
         leaveDays: 0,
         absentDeduction,
+        leaveDeduction: 0,
         missingCheckoutDeduction: 0,
         lateDeduction: punchDeduction,
         earlyLeaveDeduction: 0,
@@ -1740,15 +1877,69 @@ export class PayrollComputeService {
     return results.map(roundPayrollMoney);
   }
 
-  static async savePayroll(rows: PayrollRow[]): Promise<number> {
+  static async savePayroll(
+    rows: PayrollRow[],
+    options: {
+      /** Full recompute of year/month/section: drop draft rows no longer produced. */
+      replacePeriod?: { year: number; month: number; section: string };
+      finalize?: boolean;
+    } = {},
+  ): Promise<number> {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
 
     const now = new Date();
     let saved = 0;
 
+    await db.transaction(async (tx: any) => {
+    // Lock the period before checking status; finalization and recompute use
+    // the same lock so neither can overwrite a concurrently finalized row.
+    const periodKeys = Array.from(
+      new Set(rows.map((r) => `${r.year}|${r.month}|${r.section}`)),
+    );
+    const finalKeys = new Set<string>();
+    for (const key of periodKeys) {
+      const [y, m, section] = key.split("|");
+      const lockedRows = await tx
+        .select({ empCd: salaryPayroll.empCd, status: salaryPayroll.payrollStatus })
+        .from(salaryPayroll)
+        .where(
+          and(
+            eq(salaryPayroll.year, Number(y)),
+            eq(salaryPayroll.month, Number(m)),
+            eq(salaryPayroll.section, section),
+          ),
+        ).for("update");
+      for (const f of lockedRows) {
+        if (f.status === "final") finalKeys.add(`${key}|${f.empCd}`);
+      }
+    }
+
+    const period = options.replacePeriod;
+    if (period) {
+      const keep = rows
+        .filter(
+          (r) =>
+            r.year === period.year &&
+            r.month === period.month &&
+            r.section === period.section,
+        )
+        .map((r) => r.empCd);
+      await tx.delete(salaryPayroll).where(
+        and(
+          eq(salaryPayroll.year, period.year),
+          eq(salaryPayroll.month, period.month),
+          eq(salaryPayroll.section, period.section),
+          eq(salaryPayroll.payrollStatus, "draft"),
+          keep.length ? notInArray(salaryPayroll.empCd, keep) : undefined,
+        ),
+      );
+    }
     for (const r of rows) {
-      await db
+      if (finalKeys.has(`${r.year}|${r.month}|${r.section}|${r.empCd}`)) {
+        continue;
+      }
+      await tx
         .insert(salaryPayroll)
         .values({
           empCd: r.empCd,
@@ -1763,6 +1954,7 @@ export class PayrollComputeService {
           overtimeMinutes: r.overtimeMinutes,
           leaveDays: r.leaveDays,
           absentDeduction: String(r.absentDeduction) as any,
+          leaveDeduction: String(r.leaveDeduction) as any,
           lateDeduction: String(r.lateDeduction) as any,
           earlyLeaveDeduction: String(r.earlyLeaveDeduction) as any,
           penaltyDeduction: String(r.penaltyDeduction) as any,
@@ -1783,11 +1975,12 @@ export class PayrollComputeService {
           totalCommission: String(r.totalCommission) as any,
           overtimePay: String(r.overtimePay) as any,
           totalPay: String(r.totalPay) as any,
-          payrollStatus: "draft",
+          payrollStatus: options.finalize ? "final" : "draft",
           computedAt: now,
         })
         .onDuplicateKeyUpdate({
           set: {
+            payrollStatus: options.finalize ? "final" : "draft",
             basicSalary: String(r.basicSalary) as any,
             workingDays: r.workingDays,
             absentDays: r.absentDays,
@@ -1796,6 +1989,7 @@ export class PayrollComputeService {
             overtimeMinutes: r.overtimeMinutes,
             leaveDays: r.leaveDays,
             absentDeduction: String(r.absentDeduction) as any,
+            leaveDeduction: String(r.leaveDeduction) as any,
             lateDeduction: String(r.lateDeduction) as any,
             earlyLeaveDeduction: String(r.earlyLeaveDeduction) as any,
             penaltyDeduction: String(r.penaltyDeduction) as any,
@@ -1821,6 +2015,7 @@ export class PayrollComputeService {
         });
       saved++;
     }
+    });
 
     return saved;
   }
