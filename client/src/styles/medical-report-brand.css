@@ -13,7 +13,8 @@
 
 .medical-report-page {
   box-sizing: border-box;
-  width: 210mm;
+  width: min(100%, 210mm);
+  max-width: 210mm;
   min-height: 297mm;
   margin-inline: auto;
   border: 1px solid var(--report-border);
@@ -93,9 +94,10 @@
 
   .medical-report-page {
     box-sizing: border-box !important;
-    width: auto !important;
-    max-width: none !important;
-    min-height: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-width: 210mm !important;
+    min-height: 297mm !important;
     height: auto !important;
     margin: 0 !important;
     border: 0 !important;
@@ -228,4 +230,3 @@
     color-adjust: exact !important;
   }
 }
-

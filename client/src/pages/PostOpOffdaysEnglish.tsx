@@ -114,7 +114,7 @@ export default function PostOpOffdaysEnglish() {
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div>
-            <h1 className="text-lg font-extrabold text-[#00355f]">
+            <h1 className="text-2xl font-extrabold text-[#00355f]">
               Certificate of Medical Necessity
             </h1>
             <p className="text-xs font-semibold text-[#727780]">
@@ -234,7 +234,7 @@ export default function PostOpOffdaysEnglish() {
                 <div className="grid grid-cols-[1fr_1fr] gap-4">
                   <label>
                     <FieldLabel>Procedure</FieldLabel>
-                    <Input
+                    <Input aria-label="PRK / LASIK / Femto LASIK"
                       value={procedure}
                       onChange={(event) => setProcedure(event.target.value)}
                       className="mt-1 border-[#c2c7d1] font-semibold"

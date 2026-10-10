@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRoute } from "wouter";
-import { Download, Printer, Save } from "lucide-react";
+import { Printer, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import PatientPicker from "@/components/PatientPicker";
-import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
+import {
+  ClinicalReportFrame,
+  ReportQueryState,
+} from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -230,6 +233,15 @@ export default function PrePostOpReport({
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
 
+  const reportQueries = [patientQuery, surgeriesQuery, glassesQuery, autorefQuery];
+  const reportLoading =
+    Boolean(patientId) && reportQueries.some((query) => query.isLoading);
+  const reportError =
+    Boolean(patientId) && reportQueries.some((query) => query.isError);
+  const retryReportQueries = () => {
+    void Promise.all(reportQueries.map((query) => query.refetch()));
+  };
+
   const patient = patientQuery.data as any;
   const surgeries = (surgeriesQuery.data as any[] | undefined) ?? [];
   const glassesRecords = (glassesQuery.data as any[] | undefined) ?? [];
@@ -424,6 +436,18 @@ export default function PrePostOpReport({
 
   if (!isAuthenticated) return null;
 
+  if (patientId && (reportLoading || reportError)) {
+    return (
+      <div className="prepost-report-root medical-report-brand min-h-screen bg-[#eef5f7] p-4 text-[#161d1f]">
+        <ReportQueryState
+          loading={reportLoading}
+          error={reportError}
+          onRetry={retryReportQueries}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="prepost-report-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]">
       <style>{`
@@ -479,7 +503,7 @@ export default function PrePostOpReport({
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div>
-            <h1 className="text-lg font-extrabold text-[#00355f]">
+            <h1 className="text-2xl font-extrabold text-[#00355f]">
               Pre & Post Op Report
             </h1>
             <p className="text-xs font-semibold text-[#727780]">
@@ -527,28 +551,17 @@ export default function PrePostOpReport({
               {createSurgeryMutation.isPending ||
               updateSurgeryMutation.isPending
                 ? "جارٍ الحفظ…"
-                : "Save"}
+                : "حفظ"}
             </Button>
             {!hidePrintButton && (
-              <>
-                <Button
-                  type="button"
-                  className="bg-[#00355f] text-white"
-                  onClick={() => window.print()}
-                >
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-[#c2c7d1]"
-                  onClick={() => window.print()}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  PDF
-                </Button>
-              </>
+              <Button
+                type="button"
+                className="bg-[#00355f] text-white"
+                onClick={() => window.print()}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                طباعة / حفظ PDF
+              </Button>
             )}
           </div>
         </div>
@@ -566,6 +579,7 @@ export default function PrePostOpReport({
             phone: patient?.phone,
             occupation: patient?.occupation,
           }}
+          onPatientChange={{ name: setPatientName, code: setPatientCode, birthDate: setPatientDob }}
           signatureLabel="Doctor Signature & Stamp / توقيع وختم الطبيب"
         >
           <div className="flex flex-col gap-6">
@@ -610,7 +624,7 @@ export default function PrePostOpReport({
               </div>
               <label className="col-span-6 min-w-0">
                 <FieldLabel>العملية</FieldLabel>
-                <Input
+                <Input aria-label="PRK / LASIK / Femto LASIK"
                   value={procedure}
                   onChange={(event) => setProcedure(event.target.value)}
                   className="mt-1 h-8 border-transparent bg-transparent text-center font-semibold shadow-none hover:border-[#c2c7d1] focus:border-[#00355f]"
@@ -658,7 +672,7 @@ export default function PrePostOpReport({
 
             <section className="border border-[#0f4c81] bg-[#d2e4ff] p-4">
               <FieldLabel>Planned Treatment</FieldLabel>
-              <Input
+              <Input aria-label="Planned treatment"
                 value={procedure}
                 onChange={(event) => setProcedure(event.target.value)}
                 className="mt-1 h-10 border-transparent bg-transparent px-0 text-xl font-extrabold text-[#00355f] shadow-none hover:border-[#0f4c81]/40 focus-visible:border-[#0f4c81] focus-visible:ring-0 print:border-0 print:px-0"
@@ -712,7 +726,7 @@ export default function PrePostOpReport({
             <section className="grid grid-cols-[1fr_72mm] gap-8 border-t border-[#c2c7d1] pt-5">
               <label>
                 <FieldLabel>Clinical Notes</FieldLabel>
-                <Textarea
+                <Textarea aria-label="Procedure notes, complications, attachments, and follow-up instructions."
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   className="mt-2 min-h-[96px] resize-none border-dashed border-[#c2c7d1] bg-[#f4fafd]"

@@ -5,6 +5,7 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import "@/styles/clinical-workspace.css";
 import PatientPicker from "@/components/PatientPicker";
 import { trpc } from "@/lib/trpc";
 import {
@@ -20,7 +21,6 @@ import {
   User,
 } from "lucide-react";
 
-// Sub-components
 import ClinicalReport from "./ClinicalReport";
 import PrePostOpReport from "./PrePostOpReport";
 import PostOpOffdays from "./PostOpOffdays";
@@ -43,7 +43,7 @@ export type ClinicalReportsPageProps = {
 };
 
 export default function ClinicalReportsPage({
-  defaultTab = "clinical",
+  defaultTab = "offdays",
   embeddedInHub = false,
 }: ClinicalReportsPageProps = {}) {
   const { isAuthenticated } = useAuth();
@@ -179,7 +179,7 @@ export default function ClinicalReportsPage({
   }, [isAuthenticated, setLocation]);
 
   return (
-    <div className="w-full bg-background text-foreground print:bg-white">
+    <div dir="rtl" className="mobile-flat-clinical clinical-workspace w-full bg-background text-foreground print:bg-white">
       <style>{`
         @media print {
           /* Letterhead ~5cm via sheet padding-top in medical-report-brand.css */
@@ -217,8 +217,9 @@ export default function ClinicalReportsPage({
       `}</style>
       <div className="w-full space-y-4 p-3 sm:p-5 print:p-0 print:space-y-0">
         {!embeddedInHub && (
-          <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm print:hidden space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3" >
+          <div className="mobile-unframed-content rounded-2xl border border-border/80 bg-card p-4 shadow-sm print:hidden space-y-3">
+            <div className="records-page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3" >
+              <h1 className="text-2xl font-semibold">التقارير الطبية</h1>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -233,10 +234,10 @@ export default function ClinicalReportsPage({
             </div>
 
             {/* Unified Patient Search Bar and Global Print Button wired to ALL tabs */}
-            <div className="pt-3 border-t border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="mobile-report-toolbar pt-3 border-t border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex-1 max-w-xl" dir="rtl">
                 <PatientPicker
-                  label="البحث عن مريض بالمركز وتفعيل لكافة التقارير:"
+                  label="المريض"
                   placeholder="ابحث باسم المريض، كود الملف (مثال: 0412)، أو رقم الهاتف…"
                   initialPatientId={selectedPatientId}
                   onSelect={(p) => handlePatientSelect(p?.id ? Number(p.id) : undefined)}
@@ -265,7 +266,7 @@ export default function ClinicalReportsPage({
                 <Button
                   type="button"
                   onClick={() => window.print()}
-                  className="h-10 px-5 bg-sky-700 hover:bg-sky-800 text-white font-bold flex items-center gap-2 shadow-sm text-sm shrink-0"
+                  className="h-10 px-5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold flex items-center gap-2 shadow-sm text-sm shrink-0"
                   title="طباعة التقرير المفتوح حالياً أو حفظ كملف PDF"
                 >
                   <Printer className="w-4 h-4" />
@@ -277,59 +278,30 @@ export default function ClinicalReportsPage({
         )}
 
         <Tabs
+          dir="rtl"
           value={activeTab}
           onValueChange={handleTabChange}
           className="w-full space-y-4 print:space-y-0"
         >
           <div className="overflow-x-auto pb-1 [scrollbar-width:none] print:hidden">
             <TabsList className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1">
-              <TabsTrigger
-                value="referral"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <Send className="h-4 w-4 shrink-0 text-primary" />
-                <span>خطاب الإحالة</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="condition"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <FileWarning className="h-4 w-4 shrink-0 text-primary" />
-                <span>تقرير حالة طبية</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="offdays"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <CalendarOff className="h-4 w-4 shrink-0 text-primary" />
-                <span>إجازة ما بعد العملية</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="pre-post-op"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <FileCheck2 className="h-4 w-4 shrink-0 text-primary" />
-                <span>تقرير ما قبل وبعد العملية</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="clinical"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <FileText className="h-4 w-4 shrink-0 text-primary" />
-                <span>التقرير الشامل</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="medical-report"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <Printer className="h-4 w-4 shrink-0 text-primary" />
-                <span>التقرير الطبي </span>
-              </TabsTrigger>
+              {[
+                { value: "offdays", label: "إجازة ما بعد العملية", icon: CalendarOff },
+                { value: "pre-post-op", label: "تقرير قبل وبعد", icon: FileCheck2 },
+                { value: "referral", label: "خطاب الإحالة", icon: Send },
+                { value: "medical-report", label: "تقرير طبي", icon: Printer },
+                { value: "condition", label: "تقرير حالة طبية", icon: FileWarning },
+                { value: "clinical", label: "التقرير الشامل", icon: FileText },
+              ].map(({ value, label, icon: Icon }) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-primary" />
+                  <span>{label}</span>
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 

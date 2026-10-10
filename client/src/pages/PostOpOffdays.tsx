@@ -246,18 +246,18 @@ export default function PostOpOffdays({
 `}</style>
 
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-4">
           <div>
-            <h1 className="text-lg font-extrabold text-[#00355f]">
+            <h1 className="text-2xl font-extrabold text-[#00355f]">
               Post-Op Offdays Certificate
             </h1>
             <p className="text-xs font-semibold text-[#727780]">
               شهادة إجازة مرضية بعد العملية
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto">
             {!hideHeaderSearch && (
-              <div className="w-72">
+              <div className="min-w-0 flex-1 basis-full sm:basis-72 sm:max-w-80">
                 <PatientPicker
                   initialPatientId={patientId}
                   onSelect={(selected) => {
@@ -303,7 +303,7 @@ export default function PostOpOffdays({
         </div>
       </header>
 
-      <div className="offdays-print-shell flex justify-center p-8" dir="rtl">
+      <div className="offdays-print-shell flex min-w-0 justify-center p-2 sm:p-4" dir="rtl">
         <ClinicalReportFrame
           title="Post-Operative Leave Report | تقرير إجازة ما بعد العملية"
           generatedDate={operationDate}
@@ -315,16 +315,19 @@ export default function PostOpOffdays({
             phone: patient?.phone,
             occupation: patient?.occupation,
           }}
+          onPatientChange={{ name: setPatientName, code: setPatientCode, birthDate: setPatientDob }}
           signatureLabel="توقيع الطبيب المعالج"
         >
           <div className="flex flex-col">
             <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
               <h3 className="mb-3 text-lg font-bold text-[#00355f]">إفادة</h3>
               <Textarea
+                aria-label="نص الإفادة"
                 value={certificateStatement}
                 onChange={(event) => setCertificateStatement(event.target.value)}
-                className="offdays-statement block !w-full !max-w-none min-h-28 resize-none border-[#c2c7d1] bg-white px-3 py-2 text-lg font-bold leading-6 text-[#161d1f] shadow-none [field-sizing:fixed] focus-visible:ring-[#00355f]"
+                className="offdays-statement block print:hidden !w-full !max-w-none min-h-28 resize-none border-[#c2c7d1] bg-white px-3 py-2 text-lg font-bold leading-6 text-[#161d1f] shadow-none [field-sizing:fixed] focus-visible:ring-[#00355f]"
               />
+              <p className="hidden print:block whitespace-pre-wrap break-words">{certificateStatement}</p>
             </section>
 
             <section className="hidden">
@@ -362,7 +365,7 @@ export default function PostOpOffdays({
               </label>
             </section>
 
-            <label className="no-print mb-3 flex items-center gap-2 text-sm font-bold text-[#00355f]">
+            <label className="no-print mb-3 flex min-h-11 items-center gap-3 text-sm font-bold text-[#00355f]">
               <Checkbox
                 checked={includePostOpStatus}
                 onCheckedChange={(checked) =>
@@ -404,12 +407,14 @@ export default function PostOpOffdays({
                     </td>
                     <td className="border border-[#c2c7d1] p-0 align-middle" rowSpan={2}>
                       <Textarea
+                        aria-label="طريقة العملية"
                         value={method}
                         onChange={(event) => setMethod(event.target.value)}
                         rows={5}
-                        className="h-[120px] min-h-[120px] resize-none border-0 px-3 py-2 text-center text-lg font-bold leading-6"
+                        className="print:hidden h-[120px] min-h-[120px] resize-none border-0 px-3 py-2 text-center text-lg font-bold leading-6"
                         placeholder="PRK / LASIK"
                       />
+                      <div className="hidden print:block whitespace-pre-wrap break-words px-3 py-2 text-center">{method}</div>
                     </td>
                   </tr>
                   <tr>

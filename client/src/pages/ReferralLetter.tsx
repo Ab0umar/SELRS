@@ -4,18 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Download, Printer, Save } from "lucide-react";
+import { ArrowRight, Printer, Save } from "lucide-react";
 import PatientPicker from "@/components/PatientPicker";
-import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
+import {
+  ClinicalReportFrame,
+  ReportQueryState,
+} from "@/components/reports/ClinicalReportFrame";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { ReferralDoctorPicker } from "@/components/reports/ReferralDoctorPicker";
+import { referralDoctorSnapshot } from "../../../shared/referral-doctors";
 
 const TODAY = new Date().toISOString().split("T")[0];
 const REF_ID = `REF-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 
 interface FormData {
   patientName: string;
+  patientBirthDate: string;
   patientAge: string;
   patientGender: string;
   patientId: string;
@@ -42,6 +48,9 @@ interface FormData {
   referredPhysicianTitle: string;
   referredFacility: string;
   referredDept: string;
+  referralDoctorId: number | null;
+  referredAddress: string;
+  referredSchedule: string;
   physicianName: string;
   physicianTitle: string;
   physicianLicense: string;
@@ -49,6 +58,7 @@ interface FormData {
 
 const initialForm: FormData = {
   patientName: "",
+  patientBirthDate: "",
   patientAge: "",
   patientGender: "",
   patientId: "",
@@ -71,6 +81,9 @@ const initialForm: FormData = {
   referredPhysicianTitle: "",
   referredFacility: "",
   referredDept: "",
+  referralDoctorId: null,
+  referredAddress: "",
+  referredSchedule: "",
   physicianName: "",
   physicianTitle: "استشاري طب وجراحة العيون",
   physicianLicense: "",
@@ -150,6 +163,11 @@ export default function ReferralLetter({
   const [includeClinicalFindings, setIncludeClinicalFindings] = useState(false);
 
   useEffect(() => {
+    setForm(initialForm);
+    setExistingLetterId(undefined);
+  }, [patientId]);
+
+  useEffect(() => {
     if (hideHeaderSearch || onSelectPatient) {
       setPatientId(propPatientId);
     } else if (propPatientId !== undefined) {
@@ -183,6 +201,22 @@ export default function ReferralLetter({
     { patientId: patientId ?? 0 },
     { enabled: Boolean(patientId), refetchOnWindowFocus: false },
   );
+
+  const reportQueries = [
+    patientQuery,
+    glassesQuery,
+    autorefQuery,
+    examinationsQuery,
+    reportsQuery,
+    lettersQuery,
+  ];
+  const reportLoading =
+    Boolean(patientId) && reportQueries.some((query) => query.isLoading);
+  const reportError =
+    Boolean(patientId) && reportQueries.some((query) => query.isError);
+  const retryReportQueries = () => {
+    void Promise.all(reportQueries.map((query) => query.refetch()));
+  };
 
   const patient = patientQuery.data as any;
   const glassesRecords = (glassesQuery.data as any[] | undefined) ?? [];
@@ -308,6 +342,9 @@ export default function ReferralLetter({
         letter.referredPhysicianTitle || p.referredPhysicianTitle,
       referredFacility: letter.referredFacility || p.referredFacility,
       referredDept: letter.referredDept || p.referredDept,
+      referralDoctorId: letter.referralDoctorId ?? null,
+      referredAddress: letter.referredAddress ?? "",
+      referredSchedule: letter.referredSchedule ?? "",
       physicianName: letter.physicianName || p.physicianName,
       physicianTitle: letter.physicianTitle || p.physicianTitle,
       physicianLicense: letter.physicianLicense || p.physicianLicense,
@@ -342,10 +379,13 @@ export default function ReferralLetter({
         fundus: form.fundus || undefined,
         diagnosisTags: form.diagnosisTags || undefined,
         reasonForReferral: form.reasonForReferral || undefined,
-        referredPhysician: form.referredPhysician || undefined,
-        referredPhysicianTitle: form.referredPhysicianTitle || undefined,
-        referredFacility: form.referredFacility || undefined,
-        referredDept: form.referredDept || undefined,
+        referredPhysician: form.referredPhysician,
+        referredPhysicianTitle: form.referredPhysicianTitle,
+        referredFacility: form.referredFacility,
+        referredDept: form.referredDept,
+        referralDoctorId: form.referralDoctorId,
+        referredAddress: form.referredAddress,
+        referredSchedule: form.referredSchedule,
         physicianName: form.physicianName || undefined,
         physicianTitle: form.physicianTitle || undefined,
         physicianLicense: form.physicianLicense || undefined,
@@ -366,7 +406,6 @@ export default function ReferralLetter({
       setForm((p) => ({ ...p, [key]: e.target.value }));
 
   const handlePrint = () => window.print();
-  const handleDownloadPDF = () => window.print();
 
   const iopODNum = Number(form.iopOD);
   const iopOSNum = Number(form.iopOS);
@@ -381,10 +420,19 @@ export default function ReferralLetter({
         generatedDate={form.examDate}
         patient={{
           name: form.patientName,
+          birthDate: form.patientBirthDate,
           code: form.patientId,
           age: form.patientAge,
           phone: form.contact,
           occupation: form.nationality,
+        }}
+        onPatientChange={{
+          birthDate: (value) => setForm((previous) => ({ ...previous, patientBirthDate: value })),
+          name: (value) => setForm((previous) => ({ ...previous, patientName: value })),
+          code: (value) => setForm((previous) => ({ ...previous, patientId: value })),
+          age: (value) => setForm((previous) => ({ ...previous, patientAge: value })),
+          phone: (value) => setForm((previous) => ({ ...previous, contact: value })),
+          occupation: (value) => setForm((previous) => ({ ...previous, nationality: value })),
         }}
         signatureLabel="Signature & Stamp / التوقيع والختم"
       >
@@ -396,7 +444,7 @@ export default function ReferralLetter({
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Full Name / الاسم الكامل
                 </label>
-                <Input
+                <Input aria-label="اسم المريض"
                   className={`${FIELD} text-base font-bold`}
                   value={form.patientName}
                   onChange={set("patientName")}
@@ -407,7 +455,7 @@ export default function ReferralLetter({
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Patient ID / رقم المريض
                 </label>
-                <Input
+                <Input aria-label="P-0000000"
                   className={`${FIELD} text-base font-mono`}
                   value={form.patientId}
                   onChange={set("patientId")}
@@ -419,13 +467,13 @@ export default function ReferralLetter({
                   Age &amp; Gender / العمر والجنس
                 </label>
                 <div className="flex gap-2">
-                  <Input
+                  <Input aria-label="45"
                     className={`${FIELD} text-base w-16`}
                     value={form.patientAge}
                     onChange={set("patientAge")}
                     placeholder="45"
                   />
-                  <Input
+                  <Input aria-label="ذكر"
                     className={`${FIELD} text-base`}
                     value={form.patientGender}
                     onChange={set("patientGender")}
@@ -437,7 +485,7 @@ export default function ReferralLetter({
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Nationality / الجنسية
                 </label>
-                <Input
+                <Input aria-label="—"
                   className={`${FIELD} text-base`}
                   value={form.nationality}
                   onChange={set("nationality")}
@@ -448,7 +496,7 @@ export default function ReferralLetter({
                 <label className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
                   Contact / التواصل
                 </label>
-                <Input
+                <Input aria-label="+20 ..."
                   className={`${FIELD} text-base`}
                   dir="ltr"
                   value={form.contact}
@@ -479,14 +527,14 @@ export default function ReferralLetter({
               <div className="flex flex-1 items-center justify-center gap-5 text-center text-[12px] font-bold uppercase">
                 <label className="flex items-center gap-1">
                   UCVA
-                  <Input
+                  <Input aria-label="…"
                     className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaOD}
                     onChange={set("vaOD")}
                     placeholder="…"
                   />
                   /
-                  <Input
+                  <Input aria-label="…"
                     className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaOS}
                     onChange={set("vaOS")}
@@ -495,14 +543,14 @@ export default function ReferralLetter({
                 </label>
                 <label className="flex items-center gap-1">
                   BCVA
-                  <Input
+                  <Input aria-label="…"
                     className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaBestOD}
                     onChange={set("vaBestOD")}
                     placeholder="…"
                   />
                   /
-                  <Input
+                  <Input aria-label="…"
                     className={`${FIELD} w-8 text-center text-sm font-bold`}
                     value={form.vaBestOS}
                     onChange={set("vaBestOS")}
@@ -511,14 +559,14 @@ export default function ReferralLetter({
                 </label>
                 <label className="flex items-center gap-1">
                   IOP
-                  <Input
+                  <Input aria-label="…"
                     className={`${FIELD} w-8 text-center text-sm font-bold ${iopODNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOD}
                     onChange={set("iopOD")}
                     placeholder="…"
                   />
                   /
-                  <Input
+                  <Input aria-label="…"
                     className={`${FIELD} w-8 text-center text-sm font-bold ${iopOSNum > 21 ? "text-destructive" : ""}`}
                     value={form.iopOS}
                     onChange={set("iopOS")}
@@ -602,7 +650,7 @@ export default function ReferralLetter({
                 <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
                   Slit Lamp
                 </p>
-                <Textarea
+                <Textarea aria-label="OD: … OS: ..."
                   className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`}
                   rows={3}
                   value={form.slitLamp}
@@ -614,7 +662,7 @@ export default function ReferralLetter({
                 <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
                   Fundus
                 </p>
-                <Textarea
+                <Textarea aria-label="OD: … OS: ..."
                   className={`${FIELD} text-[13px] w-full resize-none min-h-[56px]`}
                   rows={3}
                   value={form.fundus}
@@ -646,7 +694,7 @@ export default function ReferralLetter({
                     </span>
                   ))}
               </div>
-              <Input
+              <Input aria-label="افصل التشخيصات بفاصلة: جلوكوما, قصر نظر"
                 className={`${FIELD} text-[11px] print:hidden border-b border-dotted border-border/70 w-full`}
                 value={form.diagnosisTags}
                 onChange={set("diagnosisTags")}
@@ -657,7 +705,7 @@ export default function ReferralLetter({
               <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">
                 Reason for Referral
               </h3>
-              <Textarea
+              <Textarea aria-label="سبب التحويل والإجراء المطلوب…"
                 className={`${FIELD} text-[13px] italic bg-muted/40 p-3 rounded-lg w-full resize-none min-h-[70px]`}
                 rows={3}
                 value={form.reasonForReferral}
@@ -672,18 +720,29 @@ export default function ReferralLetter({
             <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider mb-3">
               Referred To
             </h3>
+            {!readOnly && <ReferralDoctorPicker
+              value={form.referralDoctorId}
+              onSelect={(doctor) => setForm((previous) => ({
+                ...previous,
+                ...(doctor ? referralDoctorSnapshot(doctor) : {
+                  referralDoctorId: null, referredPhysician: "", referredDept: "",
+                  referredFacility: "", referredAddress: "", referredSchedule: "",
+                }),
+                referredPhysicianTitle: "",
+              }))}
+            />}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
                   Physician Name
                 </label>
-                <Input
+                <Input aria-label="د. ..."
                   className={`${FIELD} text-base font-bold`}
                   value={form.referredPhysician}
-                  onChange={set("referredPhysician")}
+                  onChange={(event) => setForm((previous) => ({ ...previous, referredPhysician: event.target.value, referralDoctorId: null }))}
                   placeholder="د. ..."
                 />
-                <Input
+                <Input aria-label="استشاري ..."
                   className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
                   value={form.referredPhysicianTitle}
                   onChange={set("referredPhysicianTitle")}
@@ -694,19 +753,27 @@ export default function ReferralLetter({
                 <label className="text-[10px] text-slate-600 dark:text-slate-400 uppercase block">
                   Facility
                 </label>
-                <Input
+                <Input aria-label="المستشفى / المركز"
                   className={`${FIELD} text-base font-bold`}
                   value={form.referredFacility}
                   onChange={set("referredFacility")}
                   placeholder="المستشفى / المركز"
                 />
-                <Input
+                <Input aria-label="القسم"
                   className={`${FIELD} text-[12px] text-slate-500 dark:text-slate-400`}
                   value={form.referredDept}
                   onChange={set("referredDept")}
                   placeholder="القسم"
                 />
               </div>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="text-sm">العنوان
+                {readOnly ? <p className="whitespace-pre-wrap break-words">{form.referredAddress}</p> : <Textarea className={`${FIELD} w-full resize-none`} value={form.referredAddress} onChange={set("referredAddress")} maxLength={2000} />}
+              </label>
+              <label className="text-sm">المواعيد
+                {readOnly ? <p className="whitespace-pre-wrap break-words">{form.referredSchedule}</p> : <Textarea className={`${FIELD} w-full resize-none`} value={form.referredSchedule} onChange={set("referredSchedule")} maxLength={2000} />}
+              </label>
             </div>
           </section>
 
@@ -716,13 +783,13 @@ export default function ReferralLetter({
               <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">
                 Referring Clinician / الطبيب المحوِّل
               </p>
-              <Input
+              <Input aria-label="د. ..."
                 className={`${FIELD} text-base font-bold`}
                 value={form.physicianName}
                 onChange={set("physicianName")}
                 placeholder="د. ..."
               />
-              <Input
+              <Input aria-label="استشاري طب وجراحة العيون"
                 className={`${FIELD} text-[13px]`}
                 value={form.physicianTitle}
                 onChange={set("physicianTitle")}
@@ -733,7 +800,7 @@ export default function ReferralLetter({
                 dir="ltr"
               >
                 <span className="text-[11px]">License:</span>
-                <Input
+                <Input aria-label="MOH-EYE-0000"
                   className={`${FIELD} text-[11px] w-32`}
                   value={form.physicianLicense}
                   onChange={set("physicianLicense")}
@@ -832,10 +899,10 @@ export default function ReferralLetter({
               </Button>
               <Button
                 size="sm"
-                className="bg-primary hover:opacity-90 text-white font-bold gap-1.5"
-                onClick={handleDownloadPDF}
+                className="bg-primary hover:opacity-90 text-primary-foreground font-bold gap-1.5"
+                onClick={handlePrint}
               >
-                <Download className="h-3.5 w-3.5" /> Print PDF
+                <Printer className="h-3.5 w-3.5" /> طباعة / حفظ PDF
               </Button>
             </>
           )}
@@ -843,8 +910,18 @@ export default function ReferralLetter({
       </header>
 
       <main className="print:p-0 px-4 py-8">
-        <div className="print:hidden">{renderBody()}</div>
-        <div className="hidden print:block">{renderBody(true)}</div>
+        {patientId && (reportLoading || reportError) ? (
+          <ReportQueryState
+            loading={reportLoading}
+            error={reportError}
+            onRetry={retryReportQueries}
+          />
+        ) : (
+          <>
+            <div className="print:hidden">{renderBody()}</div>
+            <div className="hidden print:block">{renderBody(true)}</div>
+          </>
+        )}
       </main>
     </div>
   );

@@ -10,6 +10,8 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { DateInput } from "@/components/ui/date-input";
 import PatientPicker from "@/components/PatientPicker";
+import { ReportQueryState } from "@/components/reports/ClinicalReportFrame";
+import { ReportPatientField } from "@/components/reports/ReportPatientField";
 import {
   displaySheetDate,
   formatSheetDate,
@@ -113,6 +115,23 @@ export default function ClinicalReport({
     { patientId: activePatientId ?? 0 },
     { enabled: Boolean(activePatientId), refetchOnWindowFocus: false },
   );
+
+  const reportQueries = [
+    patientQuery,
+    examinationsQuery,
+    reportsQuery,
+    visitsQuery,
+    glassesRecordsQuery,
+    autorefractometryQuery,
+    medicalHistoryQuery,
+  ];
+  const reportLoading =
+    Boolean(activePatientId) && reportQueries.some((query) => query.isLoading);
+  const reportError =
+    Boolean(activePatientId) && reportQueries.some((query) => query.isError);
+  const retryReportQueries = () => {
+    void Promise.all(reportQueries.map((query) => query.refetch()));
+  };
 
   const patient = patientQuery.data as any;
   const latestExam = (examinationsQuery.data as any[] | undefined)?.[0];
@@ -446,7 +465,7 @@ export default function ClinicalReport({
               onClick={handlePrint}
               type="button"
             >
-              <Printer className="h-4 w-4 ml-1" /> طباعة / تصدير PDF
+              <Printer className="h-4 w-4 ml-1" /> طباعة / حفظ PDF
             </Button>
           )}
         </div>
@@ -459,7 +478,7 @@ export default function ClinicalReport({
           <div className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
             <div />
             <div className="text-left clinical-ltr">
-              <h1 className="text-xl font-extrabold uppercase tracking-tight text-foreground">
+              <h1 className="text-2xl font-extrabold uppercase tracking-tight text-foreground">
                 Clinical Report | تقرير طبي
               </h1>
               <p className="text-xs text-muted-foreground">
@@ -476,10 +495,12 @@ export default function ClinicalReport({
             </div>
           </div>
 
-          {!activePatientId ? (
-            <div className="p-8 text-center text-muted-foreground">
-              اختر مريضاً لعرض التقرير
-            </div>
+          {activePatientId && (reportError || reportLoading) ? (
+            <ReportQueryState
+              loading={reportLoading}
+              error={reportError}
+              onRetry={retryReportQueries}
+            />
           ) : (
             <>
               {/* Patient Info + Allergies/Chronic */}
@@ -512,39 +533,25 @@ export default function ClinicalReport({
                     <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       السن:
                     </p>
-                    <p className="w-full text-center text-sm font-bold">
-                      {patient?.age ?? "—"}
-                    </p>
+                    <ReportPatientField label="السن" value={patient?.age} />
                   </div>
                   <div className="col-span-5 min-w-0">
                     <p className="mb-1 whitespace-nowrap text-[10px] text-muted-foreground uppercase font-bold">
                       تاريخ الميلاد:
                     </p>
-                    <p
-                      className="w-full whitespace-nowrap text-center text-sm font-bold"
-                      dir="ltr"
-                    >
-                      {patientDob ? displaySheetDate(patientDob) : "—"}
-                    </p>
+                    <ReportPatientField label="تاريخ الميلاد" type="date" value={patientDob} onChange={setPatientDob} />
                   </div>
                   <div className="col-span-4 min-w-0">
                     <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       موبايل:
                     </p>
-                    <p
-                      className="shrink-0 whitespace-nowrap text-sm font-bold"
-                      dir="ltr"
-                    >
-                      {patient?.phone || "—"}
-                    </p>
+                    <ReportPatientField label="موبايل" type="tel" value={patient?.phone} />
                   </div>
                   <div className="col-span-3 min-w-0">
                     <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
                       الوظيفة:
                     </p>
-                    <p className="min-w-0 truncate text-sm font-bold">
-                      {patient?.occupation || "—"}
-                    </p>
+                    <ReportPatientField label="الوظيفة" value={patient?.occupation} />
                   </div>
                 </div>
                 <div
@@ -718,7 +725,7 @@ export default function ClinicalReport({
                 <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
                   Final Diagnosis
                 </h3>
-                <Textarea
+                <Textarea aria-label="Diagnosis…"
                   className="text-sm mb-4 print:border-0 print:p-0 print:resize-none"
                   rows={2}
                   placeholder="Diagnosis…"
@@ -730,7 +737,7 @@ export default function ClinicalReport({
                     <p className="text-[10px] text-primary font-bold uppercase mb-2">
                       Recommendations
                     </p>
-                    <Textarea
+                    <Textarea aria-label="Recommendations…"
                       className="text-[12px] print:border-0 print:p-0 print:resize-none"
                       rows={4}
                       placeholder="Recommendations…"

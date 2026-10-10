@@ -67,7 +67,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
 
   return (
     <div className="border-t border-border/50 pt-2">
-      <button
+      <Button variant="bare"
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -79,12 +79,12 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
         ) : (
           <ChevronDown className="size-3" />
         )}
-      </button>
+      </Button>
 
       {open && (
         <div className="px-3 pb-2 space-y-1.5">
           {patientReferrals.length === 0 && !adding && (
-            <p className="text-[11px] text-muted-foreground text-end">
+            <p className="text-[13px] text-muted-foreground text-end">
               لا يوجد أطباء مرتبطون
             </p>
           )}
@@ -94,7 +94,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
               key={r.id}
               className="flex items-center justify-between gap-1 rounded-lg bg-muted/40 px-2 py-1"
             >
-              <button
+              <Button variant="bare"
                 type="button"
                 title={r.isActive ? "إلغاء الربط" : "تفعيل"}
                 onClick={() =>
@@ -112,10 +112,10 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
                 ) : (
                   <Link2Off className="size-3.5" />
                 )}
-              </button>
+              </Button>
               <span
                 className={cn(
-                  "flex-1 text-end text-[11px] truncate",
+                  "flex-1 text-end text-[13px] truncate",
                   r.isActive
                     ? "text-foreground"
                     : "text-muted-foreground line-through",
@@ -152,7 +152,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
               <div className="flex gap-1">
                 <Button
                   size="sm"
-                  className="h-6 flex-1 text-[11px]"
+                  className="h-6 flex-1 text-[13px]"
                   disabled={create.isPending || !selectedDoctorId}
                   onClick={() =>
                     create.mutate({
@@ -166,7 +166,7 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 text-[11px]"
+                  className="h-6 text-[13px]"
                   onClick={() => {
                     setAdding(false);
                     setSelectedDoctorId("");
@@ -179,14 +179,14 @@ export function ExternalDoctorReferralPanel({ patientCode }: Props) {
           )}
 
           {!adding && (
-            <button
+            <Button variant="bare"
               type="button"
               onClick={() => setAdding(true)}
-              className="flex w-full items-center justify-end gap-1 text-[11px] text-primary hover:underline"
+              className="flex w-full items-center justify-end gap-1 text-[13px] text-primary hover:underline"
             >
               <PlusCircle className="size-3" />
               إضافة طبيب
-            </button>
+            </Button>
           )}
         </div>
       )}

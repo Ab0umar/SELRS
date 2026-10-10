@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
-import { Download, Printer, Save, Settings2, Trash2 } from "lucide-react";
+import { Printer, Save, Settings2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PatientPicker from "@/components/PatientPicker";
-import { ClinicalReportFrame } from "@/components/reports/ClinicalReportFrame";
+import {
+  ClinicalReportFrame,
+  ReportQueryState,
+} from "@/components/reports/ClinicalReportFrame";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -88,6 +91,14 @@ export default function MedicalConditionReport({
 
   const templatesQuery =
     trpc.medical.getMedicalConditionReportTemplates.useQuery();
+  const reportQueries = [patientQuery, reportsQuery, templatesQuery];
+  const reportLoading =
+    Boolean(patientId) && reportQueries.some((query) => query.isLoading);
+  const reportError =
+    Boolean(patientId) && reportQueries.some((query) => query.isError);
+  const retryReportQueries = () => {
+    void Promise.all(reportQueries.map((query) => query.refetch()));
+  };
   const templates = (templatesQuery.data as any[] | undefined) ?? [];
   const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
 
@@ -217,6 +228,18 @@ export default function MedicalConditionReport({
 
   if (!isAuthenticated) return null;
 
+  if (patientId && (reportLoading || reportError)) {
+    return (
+      <div className="medical-condition-report-root medical-report-brand min-h-screen bg-[#eef5f7] p-4 text-[#161d1f]">
+        <ReportQueryState
+          loading={reportLoading}
+          error={reportError}
+          onRetry={retryReportQueries}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="medical-condition-report-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]">
       <style>{`
@@ -262,7 +285,7 @@ export default function MedicalConditionReport({
       <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div>
-            <h1 className="text-lg font-extrabold text-[#00355f] ">
+            <h1 className="text-2xl font-extrabold text-[#00355f] ">
               Medical Condition Report
             </h1>
             <p className="text-xs font-semibold text-[#727780]">
@@ -313,28 +336,17 @@ export default function MedicalConditionReport({
               disabled={saveReportMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {saveReportMutation.isPending ? "جارٍ الحفظ…" : "Save"}
+              {saveReportMutation.isPending ? "جارٍ الحفظ…" : "حفظ"}
             </Button>
             {!hidePrintButton && (
-              <>
-                <Button
-                  type="button"
-                  className="bg-[#00355f] text-white"
-                  onClick={() => window.print()}
-                >
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-[#c2c7d1]"
-                  onClick={() => window.print()}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  PDF
-                </Button>
-              </>
+              <Button
+                type="button"
+                className="bg-[#00355f] text-white"
+                onClick={() => window.print()}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                طباعة / حفظ PDF
+              </Button>
             )}
           </div>
         </div>
@@ -352,6 +364,7 @@ export default function MedicalConditionReport({
             phone: patient?.phone,
             occupation: patient?.occupation,
           }}
+          onPatientChange={{ name: setPatientName, code: setPatientCode, birthDate: setPatientDob }}
           signatureLabel="توقيع الطبيب المعالج"
         >
           <div className="flex flex-col">
@@ -482,7 +495,7 @@ export default function MedicalConditionReport({
               <h3 className="mb-2 text-sm font-bold text-[#00355f]">
                 المضاعفات / Complications
               </h3>
-              <Textarea
+              <Textarea aria-label="اذكر أي مضاعفات ملاحظة، إن وجدت…"
                 value={complications}
                 onChange={(event) => setComplications(event.target.value)}
                 rows={4}
@@ -495,7 +508,7 @@ export default function MedicalConditionReport({
               <h3 className="mb-2 text-sm font-bold text-[#00355f]">
                 خطة المتابعة / Follow-up Plan
               </h3>
-              <Textarea
+              <Textarea aria-label="اذكر توصيات المتابعة والموعد القادم…"
                 value={followUpPlan}
                 onChange={(event) => setFollowUpPlan(event.target.value)}
                 rows={4}

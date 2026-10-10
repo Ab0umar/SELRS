@@ -187,7 +187,7 @@ type ReportRow = {
   visitDate?: string;
 };
 
-export default function MedicalReports() {
+export default function MedicalReports({ recordsCategory }: { recordsCategory?: "labs" | "xrays" | "consult" | "tests-rays"; params?: Record<string, string | undefined> } = {}) {
   const { user, isAuthenticated } = useAuth();
   const [loc, setLocation] = useLocation();
   const inHubReports = loc.startsWith("/patient-hub/reports");
@@ -750,7 +750,8 @@ export default function MedicalReports() {
     const q = overviewSearch.trim().toLowerCase();
     return overviewRows.filter((row) => {
       const cat = categorizeMedicalReport(row as any);
-      if (overviewType !== "all" && cat !== overviewType) return false;
+      const category = recordsCategory ?? overviewType;
+      if (category === "tests-rays" ? cat !== "labs" && cat !== "xrays" : category !== "all" && cat !== category) return false;
       if (!q) return true;
       const hay = [
         row.patientName,
@@ -766,12 +767,15 @@ export default function MedicalReports() {
         .join(" ");
       return hay.includes(q);
     });
-  }, [overviewRows, overviewSearch, overviewType]);
+  }, [overviewRows, overviewSearch, overviewType, recordsCategory]);
 
-  const patientDoctorReportRows = (reportsQuery.data ?? []) as Record<
+  const patientDoctorReportRows = ((reportsQuery.data ?? []) as Record<
     string,
     unknown
-  >[];
+  >[]).filter(row => {
+    const category = categorizeMedicalReport(row);
+    return !recordsCategory || (recordsCategory === "tests-rays" ? category === "labs" || category === "xrays" : category === recordsCategory);
+  });
 
   // Inline form panel — below hub table
   const FormPanel = () => (
@@ -966,7 +970,7 @@ export default function MedicalReports() {
                 </div>
                 <div>
                   <Label>التشخيص</Label>
-                  <Input
+                  <Input aria-label="ابحث عن تشخيص…"
                     value={diseaseSearch}
                     onChange={(e) => setDiseaseSearch(e.target.value)}
                     placeholder="ابحث عن تشخيص…"
@@ -1076,7 +1080,7 @@ export default function MedicalReports() {
                       تحميل من صفحة الروشتة
                     </Button>
                   </div>
-                  <Textarea
+                  <Textarea aria-label="أدخل الأدوية والتعليمات"
                     value={formData.prescription}
                     onChange={(e) =>
                       setFormData({ ...formData, prescription: e.target.value })
@@ -1195,12 +1199,12 @@ export default function MedicalReports() {
                   placeholder="بحث بالاسم أو عنوان التقرير…"
                 />
               </div>
-              <FilterBar
+              {!recordsCategory && <FilterBar
                 filters={OVERVIEW_FILTERS}
                 selected={overviewType}
                 onSelect={setOverviewType}
                 className="sm:justify-end"
-              />
+              />}
             </div>
 
             <div className="mb-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm print:hidden">
@@ -1215,7 +1219,7 @@ export default function MedicalReports() {
                     : "لا توجد تقارير مطابقة للتصفية."}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
                   <table className="min-w-[980px] w-full text-right text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
@@ -1479,7 +1483,7 @@ export default function MedicalReports() {
                 <div className="border-b bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
                   <span>التقارير الطبية المحفوظة للمريض</span>
                 </div>
-                <div className="overflow-x-auto">
+                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
                   <table className="w-full text-right text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40 font-semibold">

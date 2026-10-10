@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import PatientPicker from "@/components/PatientPicker";
+import { ReportQueryState } from "@/components/reports/ClinicalReportFrame";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -171,6 +172,20 @@ export default function PrintableMedicalReport({
     { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false },
   );
 
+  const reportQueries = [
+    patientQuery,
+    examinationsQuery,
+    glassesRecordsQuery,
+    autorefQuery,
+  ];
+  const reportLoading =
+    Boolean(selectedPatientId) && reportQueries.some((query) => query.isLoading);
+  const reportError =
+    Boolean(selectedPatientId) && reportQueries.some((query) => query.isError);
+  const retryReportQueries = () => {
+    void Promise.all(reportQueries.map((query) => query.refetch()));
+  };
+
   // Update reports automatically when live DB data arrives
   useEffect(() => {
     if (!selectedPatientId) {
@@ -324,6 +339,18 @@ export default function PrintableMedicalReport({
 
   const printReport = () => window.print();
 
+  if (selectedPatientId && (reportLoading || reportError)) {
+    return (
+      <div className="min-h-screen bg-muted/30 p-4">
+        <ReportQueryState
+          loading={reportLoading}
+          error={reportError}
+          onRetry={retryReportQueries}
+        />
+      </div>
+    );
+  }
+
   return (
     <main className="w-full min-h-[calc(100vh-220px)] bg-slate-100 dark:bg-slate-900/40 rounded-xl px-2 sm:px-4 py-6 print:bg-white print:p-0 print:rounded-none">
       <style>{`
@@ -358,10 +385,10 @@ export default function PrintableMedicalReport({
 
           .printable-report-sheet {
             box-sizing: border-box !important;
-            width: auto !important;
-            max-width: none !important;
-            min-width: 0 !important;
-            min-height: 0 !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-width: 210mm !important;
+            min-height: 297mm !important;
             max-height: none !important;
             margin: 0 !important;
             /* ~5cm letterhead; tighter content for single page */
@@ -440,8 +467,8 @@ export default function PrintableMedicalReport({
           {/* Top Bar: Search, Language Tabs & Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-sky-700 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                📄
+              <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                <FileText className="size-4" aria-hidden />
               </div>
               <div>
                 <h3 className="text-sm font-bold tracking-tight" style={{ direction: "ltr" }}>
