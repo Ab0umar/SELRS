@@ -249,3 +249,39 @@ artifacts/
 .codex-remote-attachments/
 .impeccable/live/
 docs/graphify-out/
+
+# Regenerated Capacitor web bundle (source: dist/public)
+/android/app/src/main/assets/public/
+
+# Local verification/build artifacts; retain researched catalog references
+/outputs/*
+!/outputs/*-reference-sources-*.md
+/anti-slop/
+/.design-shots/
+/ACCOUNTING_REDESIGN_STATUS.md
+/ATTENDANCE_REFINEMENT_STATUS.md
+/CLINICAL_WORKSPACE_REDESIGN_STATUS.md
+/SALARY_REFINEMENT_STATUS.md
+
+# Host-specific agent settings, temporary plans, and redundant skill copies
+/.bolt/
+/.claude/settings.json
+/.claude/plans/
+/.codex/skills/antislop/
+/.codex/skills/antislop-code/
+/.codex/skills/antislop-copywriting/
+/.codex/skills/antislop-human/
+/.codex/skills/antislop-layoutmobile/
+/.codex/skills/antislop-ui/
+/.grok/skills/antislop/
+/.grok/skills/antislop-code/
+/.grok/skills/antislop-copywriting/
+/.grok/skills/antislop-human/
+/.grok/skills/antislop-layoutmobile/
+/.grok/skills/antislop-ui/
+/.zcode/skills/antislop/
+/.zcode/skills/antislop-code/
+/.zcode/skills/antislop-copywriting/
+/.zcode/skills/antislop-human/
+/.zcode/skills/antislop-layoutmobile/
+/.zcode/skills/antislop-ui/
