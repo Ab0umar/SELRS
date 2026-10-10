@@ -7,9 +7,11 @@ import {
   BookImage,
   CheckCircle2,
   Clock,
+  AlertCircle,
   Loader2,
   Palette,
   RefreshCw,
+  RotateCcw,
   Sparkles,
   Trash2,
   Upload,
@@ -17,6 +19,15 @@ import {
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 type AcceptedMimeType = (typeof ACCEPTED_TYPES)[number];
+type PageRole = "center" | "doctor";
+
+type ReferenceDesign = {
+  id: number;
+  fileUrl: string;
+  originalName: string;
+  analysisStatus?: string | null;
+  analysisError?: string | null;
+};
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -29,32 +40,46 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export default function BrandLibrary() {
+  const [pageRole, setPageRole] = useState<PageRole>("center");
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
-  const rebuildStartedAt = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
 
-  const designsQuery = trpc.marketing.listReferenceDesigns.useQuery();
-  const profileQuery = trpc.marketing.getBrandProfile.useQuery(undefined, {
-    refetchInterval: rebuilding ? 5000 : false,
+  const designsQuery = trpc.marketing.listReferenceDesigns.useQuery({
+    pageRole,
   });
+  const profileQuery = trpc.marketing.getBrandProfile.useQuery(
+    { pageRole },
+    { refetchInterval: rebuilding ? 5000 : false },
+  );
 
-  // Detect when the background rebuild completes
   useEffect(() => {
-    if (!rebuilding) return;
-    const builtAt = profileQuery.data?.builtAt;
-    if (builtAt && new Date(builtAt).getTime() > rebuildStartedAt.current) {
+    const status = profileQuery.data?.rebuildStatus;
+    if (status === "running") setRebuilding(true);
+    if (rebuilding && status === "completed") {
       setRebuilding(false);
       toast.success("تم إعادة بناء ملف العلامة التجارية");
-      void utils.marketing.listReferenceDesigns.invalidate();
+      void utils.marketing.listReferenceDesigns.invalidate({ pageRole });
     }
-  }, [profileQuery.data?.builtAt, rebuilding, utils]);
+    if (rebuilding && status === "failed") {
+      setRebuilding(false);
+      toast.error(
+        profileQuery.data?.rebuildError ?? "فشل بناء ملف العلامة التجارية",
+      );
+    }
+  }, [
+    profileQuery.data?.rebuildError,
+    profileQuery.data?.rebuildStatus,
+    rebuilding,
+    pageRole,
+    utils,
+  ]);
 
   const uploadMutation = trpc.marketing.uploadReferenceDesign.useMutation({
     onSuccess: () => {
-      void utils.marketing.listReferenceDesigns.invalidate();
+      void utils.marketing.listReferenceDesigns.invalidate({ pageRole });
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
@@ -62,17 +87,29 @@ export default function BrandLibrary() {
   const deleteMutation = trpc.marketing.deleteReferenceDesign.useMutation({
     onSuccess: () => {
       toast.success("تم حذف التصميم");
-      void utils.marketing.listReferenceDesigns.invalidate();
+      void utils.marketing.listReferenceDesigns.invalidate({ pageRole });
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const retryMutation = trpc.marketing.retryReferenceDesignAnalysis.useMutation(
+    {
+      onSuccess: () => {
+        toast.info("جارٍ إعادة تحليل التصميم");
+        void utils.marketing.listReferenceDesigns.invalidate({ pageRole });
+      },
+      onError: (err: { message: string }) => toast.error(err.message),
+    },
+  );
+
   const rebuildMutation = trpc.marketing.rebuildBrandProfile.useMutation({
-    onSuccess: () => {
-      rebuildStartedAt.current = Date.now();
-      setRebuilding(true);
+    onSuccess: (result) => {
+      setRebuilding(result.started || result.alreadyRunning);
+      void utils.marketing.getBrandProfile.invalidate({ pageRole });
       toast.info(
-        "جارٍ بناء ملف العلامة التجارية في الخلفية — قد يستغرق بضع دقائق",
+        result.started
+          ? "جارٍ بناء ملف العلامة التجارية — قد يستغرق بضع دقائق"
+          : "إعادة بناء الملف تعمل بالفعل",
       );
     },
     onError: (err: { message: string }) => toast.error(err.message),
@@ -97,6 +134,7 @@ export default function BrandLibrary() {
           filename: file.name,
           mimeType: file.type as AcceptedMimeType,
           base64Data,
+          pageRole,
           fileSize: file.size,
         });
         uploaded++;
@@ -112,27 +150,47 @@ export default function BrandLibrary() {
     }
   }
 
-  const designs = designsQuery.data ?? [];
+  const designs = (designsQuery.data ?? []) as ReferenceDesign[];
   const profile = profileQuery.data;
+  const profileStatus = profile?.rebuildStatus ?? "idle";
+  const hasBuiltProfile = Boolean(profile?.builtAt);
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-bold text-foreground">
+          <h1 className="text-2xl font-bold text-foreground">
             مكتبة العلامة التجارية
           </h1>
           <p className="text-sm text-muted-foreground">
             ارفع تصاميمك المرجعية حتى تتعلم الأداة أسلوب علامتك التجارية
           </p>
+          <div className="mt-3 inline-flex rounded-lg border border-border bg-muted/20 p-1">
+            {(
+              [
+                ["center", "هوية المركز"],
+                ["doctor", "هوية الدكتور"],
+              ] as const
+            ).map(([role, label]) => (
+              <Button variant="bare"
+                key={role}
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${pageRole === role ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setPageRole(role)}
+                aria-pressed={pageRole === role}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
         </div>
         <Button
           size="sm"
           variant="ghost"
           aria-label="تحديث"
           onClick={() => {
-            void utils.marketing.listReferenceDesigns.invalidate();
-            void utils.marketing.getBrandProfile.invalidate();
+            void utils.marketing.listReferenceDesigns.invalidate({ pageRole });
+            void utils.marketing.getBrandProfile.invalidate({ pageRole });
           }}
         >
           <RefreshCw className="h-4 w-4" />
@@ -201,7 +259,17 @@ export default function BrandLibrary() {
             <h2 className="text-sm font-semibold text-foreground">
               ملف العلامة التجارية
             </h2>
-            {profile ? (
+            {profileStatus === "running" ? (
+              <Badge className="bg-primary/15 text-primary text-xs">
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                جارٍ البناء
+              </Badge>
+            ) : profileStatus === "failed" ? (
+              <Badge className="bg-destructive/15 text-destructive text-xs">
+                <AlertCircle className="mr-1 h-3 w-3" />
+                فشل البناء
+              </Badge>
+            ) : hasBuiltProfile ? (
               <Badge className="bg-success/15 text-success text-xs">
                 <CheckCircle2 className="mr-1 h-3 w-3" />
                 مُنشأ من {profile.designCount} تصميم
@@ -215,7 +283,7 @@ export default function BrandLibrary() {
           <Button
             size="sm"
             variant="default"
-            onClick={() => rebuildMutation.mutate()}
+            onClick={() => rebuildMutation.mutate({ pageRole })}
             disabled={
               rebuildMutation.isPending || rebuilding || designs.length === 0
             }
@@ -227,7 +295,7 @@ export default function BrandLibrary() {
             )}
             {rebuilding
               ? "جارٍ البناء…"
-              : profile
+              : hasBuiltProfile
                 ? "إعادة بناء الملف"
                 : "بناء الملف"}
           </Button>
@@ -238,53 +306,89 @@ export default function BrandLibrary() {
             <Loader2 className="h-4 w-4 animate-spin" />
             جارٍ التحميل…
           </div>
-        ) : profile ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <ProfileField
-              label="الألوان الأساسية"
-              value={profile.dominantColors}
-            />
-            <ProfileField label="لوحة الألوان" value={profile.colorPalette} />
-            <ProfileField label="أسلوب التخطيط" value={profile.layoutStyle} />
-            <ProfileField
-              label="تكوين الصورة"
-              value={profile.imageComposition}
-            />
-            <ProfileField
-              label="أسلوب العلامة التجارية"
-              value={profile.brandingStyle}
-            />
-            <ProfileField
-              label="الأسلوب الطبي البصري"
-              value={profile.medicalVisualStyle}
-            />
-            <ProfileField label="موضع CTA" value={profile.ctaPositioning} />
-            <ProfileField
-              label="موضع الشعار"
-              value={profile.logoPlacementStyle}
-            />
-            {profile.overallAesthetic && (
-              <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-                <p className="text-xs font-semibold text-primary mb-1">
-                  الهوية البصرية الكاملة
-                </p>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {profile.overallAesthetic}
-                </p>
+        ) : (
+          <>
+            {profileStatus === "running" && (
+              <div
+                className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                يتم تحليل التصاميم وبناء الملف في الخلفية…
               </div>
             )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-6 text-center flex-col">
-            <BookImage className="h-6 w-6 text-muted-foreground/40 mx-auto" />
-            <p className="text-sm text-muted-foreground">
-              ارفع تصاميم مرجعية ثم اضغط "بناء الملف" لاستخراج هوية علامتك
-              التجارية
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              بعد البناء، سيتم توليد صور مستقبلية تتوافق مع أسلوب مركزك
-            </p>
-          </div>
+            {profileStatus === "failed" && (
+              <div
+                className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-foreground"
+                role="alert"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                <span>
+                  {profile.rebuildError ?? "تعذر بناء ملف العلامة التجارية"} —
+                  يمكنك إعادة المحاولة.
+                </span>
+              </div>
+            )}
+            {hasBuiltProfile ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ProfileField
+                  label="الألوان الأساسية"
+                  value={profile.dominantColors}
+                />
+                <ProfileField
+                  label="لوحة الألوان"
+                  value={profile.colorPalette}
+                />
+                <ProfileField
+                  label="أسلوب التخطيط"
+                  value={profile.layoutStyle}
+                />
+                <ProfileField
+                  label="تكوين الصورة"
+                  value={profile.imageComposition}
+                />
+                <ProfileField
+                  label="أسلوب العلامة التجارية"
+                  value={profile.brandingStyle}
+                />
+                <ProfileField
+                  label="الأسلوب الطبي البصري"
+                  value={profile.medicalVisualStyle}
+                />
+                <ProfileField label="موضع CTA" value={profile.ctaPositioning} />
+                <ProfileField
+                  label="موضع الشعار"
+                  value={profile.logoPlacementStyle}
+                />
+                <ProfileField
+                  label="أسلوب الخطوط"
+                  value={profile.typographyStyle}
+                />
+                {profile.overallAesthetic && (
+                  <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+                    <p className="text-xs font-semibold text-primary mb-1">
+                      الهوية البصرية الكاملة
+                    </p>
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {profile.overallAesthetic}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : profileStatus !== "running" ? (
+              <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-6 text-center flex-col">
+                <BookImage className="h-6 w-6 text-muted-foreground/40 mx-auto" />
+                <p className="text-sm text-muted-foreground">
+                  ارفع تصاميم مرجعية ثم اضغط "بناء الملف" لاستخراج هوية علامتك
+                  التجارية
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  بعد البناء، سيتم توليد صور مستقبلية تتوافق مع أسلوب مركزك
+                </p>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -309,8 +413,9 @@ export default function BrandLibrary() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {designs.map((design: any) => {
-              const analyzed = Boolean(design.styleAttributes);
+            {designs.map((design) => {
+              const analysisStatus = design.analysisStatus ?? "pending";
+              const analyzed = analysisStatus === "analyzed";
               return (
                 <div
                   key={design.id}
@@ -329,7 +434,7 @@ export default function BrandLibrary() {
                       }}
                     />
                     {/* Overlay on hover */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                       <Button
                         size="sm"
                         variant="destructive"
@@ -354,6 +459,16 @@ export default function BrandLibrary() {
                           <CheckCircle2 className="mr-0.5 h-2.5 w-2.5" />
                           محلَّل
                         </Badge>
+                      ) : analysisStatus === "analyzing" ? (
+                        <Badge className="bg-primary/15 text-primary text-[10px] px-1.5 py-0">
+                          <Loader2 className="mr-0.5 h-2.5 w-2.5 animate-spin" />
+                          جارٍ التحليل
+                        </Badge>
+                      ) : analysisStatus === "failed" ? (
+                        <Badge className="bg-destructive/15 text-destructive text-[10px] px-1.5 py-0">
+                          <AlertCircle className="mr-0.5 h-2.5 w-2.5" />
+                          فشل التحليل
+                        </Badge>
                       ) : (
                         <Badge className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0">
                           <Clock className="mr-0.5 h-2.5 w-2.5" />
@@ -361,6 +476,29 @@ export default function BrandLibrary() {
                         </Badge>
                       )}
                     </div>
+                    {analysisStatus === "failed" && (
+                      <div className="mt-1 flex items-start justify-between gap-1">
+                        <p
+                          className="line-clamp-2 text-[10px] text-destructive"
+                          role="alert"
+                        >
+                          {design.analysisError ?? "تعذر تحليل التصميم"}
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 shrink-0 px-1.5 text-[10px]"
+                          onClick={() =>
+                            retryMutation.mutate({ id: design.id })
+                          }
+                          disabled={retryMutation.isPending}
+                        >
+                          <RotateCcw className="mr-1 h-3 w-3" />
+                          إعادة التحليل
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

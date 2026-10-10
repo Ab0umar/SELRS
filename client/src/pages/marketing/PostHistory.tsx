@@ -56,7 +56,7 @@ export default function PostHistory() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground">سجل المنشورات</h1>
+        <h1 className="text-2xl font-bold text-foreground">سجل المنشورات</h1>
         <Button
           size="sm"
           variant="ghost"
@@ -70,7 +70,7 @@ export default function PostHistory() {
       {/* Filter tabs */}
       <div className="flex gap-2">
         {(["published", "failed", "all"] as const).map((f) => (
-          <button
+          <Button variant="bare"
             key={f}
             onClick={() => setFilter(f)}
             aria-pressed={filter === f}
@@ -81,7 +81,7 @@ export default function PostHistory() {
             }`}
           >
             {f === "published" ? "منشورة" : f === "failed" ? "فاشلة" : "الكل"}
-          </button>
+          </Button>
         ))}
       </div>
 

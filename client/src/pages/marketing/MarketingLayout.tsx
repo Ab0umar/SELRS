@@ -74,8 +74,8 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
       dir="rtl"
     >
       {/* Header */}
-      <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
+      <div className="records-page-header border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent">
+        <div data-module-content-start className="mx-auto w-full px-3 py-4 sm:px-4 lg:px-5">
           <div className="flex items-center gap-2 mb-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <span className="h-2 w-2 rounded-full bg-primary" />
@@ -94,7 +94,7 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
       {/* Body */}
       <div className="flex flex-col">
         {/* Horizontal Top Navigation Bar (all breakpoints) */}
-        <nav className="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-border bg-card/50 px-3 py-2 scrollbar-none sm:px-4 lg:px-5 print:hidden">
+        <nav aria-label="أقسام الوحدة" className="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-border bg-card/50 px-3 py-2 scrollbar-none sm:px-4 lg:px-5 print:hidden">
           {navItems.map((item) => {
             const active = isActive(location, item.href, item.exact);
             return (
@@ -102,6 +102,7 @@ export default function MarketingLayout({ children }: MarketingLayoutProps) {
                 key={item.href}
                 href={item.href}
                 title={item.label}
+                aria-current={active ? "page" : undefined}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all ${
                   active
                     ? "bg-primary text-primary-foreground shadow-sm"

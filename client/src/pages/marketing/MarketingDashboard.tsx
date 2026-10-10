@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import ManusGenerationJobs from "./ManusGenerationJobs";
 import {
   CalendarDays,
   CheckCircle2,
@@ -30,9 +31,11 @@ const DAY_LABELS: Record<string, string> = {
   tuesday: "الثلاثاء — المياه البيضاء والقرنية",
   thursday: "الخميس — صحة العيون العامة",
 };
+type PageRole = "center" | "doctor";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   draft: { label: "مسودة", className: "bg-muted text-muted-foreground" },
+  publishing: { label: "جاري النشر", className: "bg-info/15 text-info" },
   published: { label: "منشور", className: "bg-success/15 text-success" },
   failed: { label: "فشل", className: "bg-destructive/15 text-destructive" },
   scheduled: { label: "مجدول", className: "bg-info/15 text-info" },
@@ -54,6 +57,9 @@ export default function MarketingDashboard() {
     "saturday" | "tuesday" | "thursday"
   >("saturday");
   const [publishId, setPublishId] = useState<number | null>(null);
+  const [publishPageRoles, setPublishPageRoles] = useState<
+    Record<number, PageRole>
+  >({});
   const [preview, setPreview] = useState<GeneratedPreview | null>(null);
 
   const utils = trpc.useUtils();
@@ -66,8 +72,8 @@ export default function MarketingDashboard() {
 
   const generateMutation = trpc.marketing.generatePost.useMutation({
     onSuccess: (data) => {
-      setPreview(data);
-      toast.success(`تم توليد منشور عن: ${data.topic}`);
+      toast.info(`بدأ تجهيز النص والصورة عن: ${data.topic}`);
+      void utils.marketing.generationJobs.invalidate();
       void utils.marketing.dashboardSummary.invalidate();
       void utils.marketing.listPosts.invalidate();
     },
@@ -101,8 +107,11 @@ export default function MarketingDashboard() {
         toast.info(`تم التخطي: ${data.skipped}`);
       } else if (data.ok) {
         toast.success(
-          data.published ? "تم النشر على Facebook" : "تم حفظ المنشور كمسودة",
+          data.jobId
+            ? "بدأ تجهيز المسودة بالنص والصورة"
+            : "تم حفظ المنشور كمسودة",
         );
+        void utils.marketing.generationJobs.invalidate();
         void utils.marketing.dashboardSummary.invalidate();
         void utils.marketing.listPosts.invalidate();
       } else {
@@ -118,6 +127,7 @@ export default function MarketingDashboard() {
   const recentPosts = summary?.recentPosts ?? [];
   const counts = summary?.counts ?? {
     draft: 0,
+    publishing: 0,
     published: 0,
     failed: 0,
     scheduled: 0,
@@ -138,6 +148,13 @@ export default function MarketingDashboard() {
       icon: FileText,
       tone: "text-muted-foreground",
       accent: "bg-muted/20 border-border",
+    },
+    {
+      label: "جاري النشر",
+      value: counts.publishing,
+      icon: Loader2,
+      tone: "text-info",
+      accent: "bg-info/10 border-info/20",
     },
     {
       label: "منشورة",
@@ -163,9 +180,9 @@ export default function MarketingDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="mobile-flat-marketing space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mobile-summary-cards grid grid-cols-2 gap-3 sm:grid-cols-6">
         {statCards.map((card) => (
           <div
             key={card.label}
@@ -202,7 +219,7 @@ export default function MarketingDashboard() {
         <div className="flex flex-wrap gap-3">
           {/* Generate Post */}
           <div className="flex items-center gap-2">
-            <select
+            <select aria-label="يوم توليد المنشور"
               value={generateDay}
               onChange={(e) =>
                 setGenerateDay(e.target.value as typeof generateDay)
@@ -216,7 +233,12 @@ export default function MarketingDashboard() {
             <Button
               size="sm"
               variant="default"
-              onClick={() => generateMutation.mutate({ postDay: generateDay })}
+              onClick={() =>
+                generateMutation.mutate({
+                  postDay: generateDay,
+                  requestId: crypto.randomUUID(),
+                })
+              }
               disabled={generateMutation.isPending}
             >
               {generateMutation.isPending ? (
@@ -224,7 +246,9 @@ export default function MarketingDashboard() {
               ) : (
                 <Sparkles className="mr-1.5 h-4 w-4" />
               )}
-              {generateMutation.isPending ? "جارٍ التوليد…" : "توليد منشور"}
+              {generateMutation.isPending
+                ? "جارٍ بدء التوليد…"
+                : "توليد النص والصورة"}
             </Button>
           </div>
 
@@ -269,7 +293,7 @@ export default function MarketingDashboard() {
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>
-              Gemini AI يولّد محتوى عن{" "}
+              بدء تجهيز النص والصورة عن{" "}
               <strong>{DAY_LABELS[generateDay]}</strong>…
             </span>
           </div>
@@ -277,6 +301,21 @@ export default function MarketingDashboard() {
       </div>
 
       {/* Generated Content Preview */}
+      <ManusGenerationJobs
+        onCompleted={(postId) => {
+          void utils.marketing.getPost
+            .fetch({ id: postId })
+            .then((post) => {
+              if (post)
+                setPreview({
+                  ...post,
+                  content: post.content ?? "",
+                  topic: post.topic ?? "",
+                });
+            })
+            .catch(() => toast.error("تعذر تحميل معاينة المسودة"));
+        }}
+      />
       {preview && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-4">
           <div className="flex items-start justify-between gap-3">
@@ -296,13 +335,13 @@ export default function MarketingDashboard() {
                   فتح المسودات
                 </Button>
               </Link>
-              <button
+              <Button variant="bare"
                 onClick={() => setPreview(null)}
                 aria-label="إغلاق المعاينة"
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 ✕
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -319,7 +358,7 @@ export default function MarketingDashboard() {
           {/* Idea */}
           {preview.idea && (
             <div className="flex gap-2">
-              <Lightbulb className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <Lightbulb className="h-4 w-4 text-warning-text shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold text-foreground/50 mb-0.5">
                   الفكرة التسويقية
@@ -434,24 +473,51 @@ export default function MarketingDashboard() {
                       {badge.label}
                     </Badge>
                     {post.status === "draft" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setPublishId(post.id);
-                          publishMutation.mutate({ id: post.id });
-                        }}
-                        disabled={
-                          publishMutation.isPending && publishId === post.id
-                        }
-                      >
-                        {publishMutation.isPending && publishId === post.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Send className="h-3.5 w-3.5" />
-                        )}
-                        <span className="mr-1.5">نشر الآن</span>
-                      </Button>
+                      <>
+                        <select
+                          aria-label="صفحة النشر"
+                          value={
+                            publishPageRoles[post.id] ??
+                            post.pageRole ??
+                            "center"
+                          }
+                          onChange={(event) =>
+                            setPublishPageRoles((current) => ({
+                              ...current,
+                              [post.id]: event.target.value as PageRole,
+                            }))
+                          }
+                          className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+                        >
+                          <option value="center">المركز</option>
+                          <option value="doctor">الدكتور</option>
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPublishId(post.id);
+                            publishMutation.mutate({
+                              id: post.id,
+                              pageRole:
+                                publishPageRoles[post.id] ??
+                                post.pageRole ??
+                                "center",
+                            });
+                          }}
+                          disabled={
+                            publishMutation.isPending && publishId === post.id
+                          }
+                        >
+                          {publishMutation.isPending &&
+                          publishId === post.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5" />
+                          )}
+                          <span className="mr-1.5">نشر الآن</span>
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -504,7 +570,7 @@ function SchedulerCard({
   if (isLoading) return null;
 
   const status = data?.schedulerStatus ?? "idle";
-  const active = data?.autoPublish && data?.fbConnected;
+  const active = data?.autoPublish;
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -618,8 +684,8 @@ function SchedulerCard({
         </p>
       )}
       {data?.autoPublish && !data?.fbConnected && (
-        <p className="mt-2 text-xs text-warning">
-          Facebook غير مربوط — سيتم حفظ المنشورات كمسودات فقط
+        <p className="mt-2 text-xs text-warning-text">
+          Facebook غير مربوط — النشر التلقائي متوقف لحد ما تربط الصفحة
         </p>
       )}
     </div>

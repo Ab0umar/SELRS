@@ -19,6 +19,22 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+
+type PageRole = "center" | "doctor";
+type FacebookPageSettings = {
+  pageRole: PageRole;
+  pageId: string;
+  pageName: string;
+  contentName: string | null;
+  connected: boolean;
+  autoPublish: boolean;
+  saturdayEnabled: boolean;
+  tuesdayEnabled: boolean;
+  thursdayEnabled: boolean;
+  publishHour: number;
+  topicDirection: "forward" | "reverse";
+};
 
 // ─── Page selection dialog ────────────────────────────────────────────────────
 
@@ -104,6 +120,7 @@ function PageSelectDialog({
 export default function MarketingSettings() {
   const searchStr = useSearch();
   const utils = trpc.useUtils();
+  const [pageRole, setPageRole] = useState<PageRole>("center");
 
   // Parse query params for OAuth callback feedback
   const searchParams = new URLSearchParams(searchStr);
@@ -129,6 +146,15 @@ export default function MarketingSettings() {
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
+
+  const pageSettingsMutation =
+    trpc.marketing.updateFacebookPageSettings.useMutation({
+      onSuccess: () => {
+        toast.success("تم حفظ إعدادات الصفحة");
+        void utils.marketing.getFacebookStatus.invalidate();
+      },
+      onError: (err: { message: string }) => toast.error(err.message),
+    });
 
   const getOAuthUrlMutation = trpc.marketing.getOAuthUrl.useMutation({
     onSuccess: (data) => {
@@ -193,30 +219,59 @@ export default function MarketingSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const pendingRole = fbStatusQuery.data?.pendingRole;
+    if (pendingRole) setPageRole(pendingRole);
+  }, [fbStatusQuery.data?.pendingRole]);
+
   const settings = settingsQuery.data;
   const fbStatus = fbStatusQuery.data;
+  const selectedPage = (
+    fbStatus?.pages as FacebookPageSettings[] | undefined
+  )?.find((page) => page.pageRole === pageRole);
+  const pageConnected = Boolean(
+    selectedPage?.connected || (pageRole === "center" && fbStatus?.connected),
+  );
 
   const [form, setForm] = useState({
     clinicName: "مركزك لطب العيون",
+    contentName: "مركزك لطب العيون",
     autoPublish: false,
     saturdayEnabled: true,
     tuesdayEnabled: true,
     thursdayEnabled: true,
     publishHour: 9,
+    topicDirection: "forward" as "forward" | "reverse",
   });
 
   useEffect(() => {
     if (settings) {
       setForm({
         clinicName: settings.clinicName ?? "مركزك لطب العيون",
+        contentName: settings.clinicName ?? "مركزك لطب العيون",
         autoPublish: settings.autoPublish,
         saturdayEnabled: settings.saturdayEnabled,
         tuesdayEnabled: settings.tuesdayEnabled,
         thursdayEnabled: settings.thursdayEnabled,
         publishHour: settings.publishHour,
+        topicDirection: "forward",
       });
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (!selectedPage) return;
+    setForm((current) => ({
+      ...current,
+      contentName: selectedPage.contentName ?? selectedPage.pageName,
+      autoPublish: selectedPage.autoPublish,
+      saturdayEnabled: selectedPage.saturdayEnabled,
+      tuesdayEnabled: selectedPage.tuesdayEnabled,
+      thursdayEnabled: selectedPage.thursdayEnabled,
+      publishHour: selectedPage.publishHour,
+      topicDirection: selectedPage.topicDirection,
+    }));
+  }, [selectedPage]);
 
   const ToggleRow = ({
     label,
@@ -236,17 +291,20 @@ export default function MarketingSettings() {
           <div className="text-xs text-muted-foreground">{description}</div>
         )}
       </div>
-      <button
+      <Button variant="bare"
         type="button"
         onClick={() => onChange(!value)}
-        className="shrink-0 focus:outline-none"
+        role="switch"
+        aria-checked={value}
+        aria-label={label}
+        className="shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {value ? (
           <ToggleRight className="h-7 w-7 text-primary" />
         ) : (
           <ToggleLeft className="h-7 w-7 text-muted-foreground" />
         )}
-      </button>
+      </Button>
     </div>
   );
 
@@ -254,13 +312,32 @@ export default function MarketingSettings() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-bold text-foreground">إعدادات التسويق</h1>
+      <h1 className="text-2xl font-bold text-foreground">إعدادات التسويق</h1>
+
+      <div className="inline-flex rounded-lg border border-border bg-muted/20 p-1">
+        {(
+          [
+            ["center", "صفحة المركز"],
+            ["doctor", "صفحة الدكتور"],
+          ] as const
+        ).map(([role, label]) => (
+          <Button variant="bare"
+            key={role}
+            type="button"
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${pageRole === role ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setPageRole(role)}
+            aria-pressed={pageRole === role}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
 
       {/* Page selection dialog */}
       {showPageSelect && pendingPages.length > 0 && (
         <PageSelectDialog
           pages={pendingPages}
-          onSelect={(pageId) => selectPageMutation.mutate({ pageId })}
+          onSelect={(pageId) => selectPageMutation.mutate({ pageId, pageRole })}
           onClose={() => {
             setShowPageSelect(false);
             window.history.replaceState(null, "", window.location.pathname);
@@ -271,18 +348,18 @@ export default function MarketingSettings() {
 
       {/* Facebook Connect */}
       <div
-        className={`rounded-xl border bg-card p-4 ${fbStatus?.connected ? "border-[#1877F2]/30" : "border-border"}`}
+        className={`rounded-xl border bg-card p-4 ${pageConnected ? "border-[#1877F2]/30" : "border-border"}`}
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <Facebook className="h-4 w-4 text-[#1877F2]" />
             <h2 className="text-sm font-semibold text-foreground">
-              ربط صفحة Facebook
+              ربط {pageRole === "doctor" ? "صفحة الدكتور" : "صفحة المركز"}
             </h2>
           </div>
           {fbStatusQuery.isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : fbStatus?.connected ? (
+          ) : pageConnected ? (
             <Badge className="bg-success/15 text-success text-xs">
               <Wifi className="mr-1 h-3 w-3" />
               متصل
@@ -302,10 +379,10 @@ export default function MarketingSettings() {
               <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  {fbStatus.pageName}
+                  {selectedPage?.pageName ?? fbStatus?.pageName}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  معرف الصفحة: {fbStatus.pageId}
+                  معرف الصفحة: {selectedPage?.pageId ?? fbStatus?.pageId}
                 </p>
               </div>
             </div>
@@ -334,7 +411,7 @@ export default function MarketingSettings() {
                 variant="outline"
                 onClick={() => {
                   setTestResult(null);
-                  testMutation.mutate();
+                  testMutation.mutate({ pageRole });
                 }}
                 disabled={testMutation.isPending}
               >
@@ -349,7 +426,7 @@ export default function MarketingSettings() {
                 size="sm"
                 variant="outline"
                 className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive"
-                onClick={() => disconnectMutation.mutate()}
+                onClick={() => disconnectMutation.mutate({ pageRole })}
                 disabled={disconnectMutation.isPending}
               >
                 {disconnectMutation.isPending ? (
@@ -365,8 +442,8 @@ export default function MarketingSettings() {
           /* Disconnected state */
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              ربط صفحة Facebook الخاصة بالمركز لتفعيل النشر المباشر. تأكد من
-              إعداد{" "}
+              ربط {pageRole === "doctor" ? "صفحة الدكتور" : "صفحة المركز"}{" "}
+              لتفعيل النشر المباشر. تأكد من إعداد{" "}
               <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">
                 FB_APP_ID
               </code>{" "}
@@ -379,8 +456,8 @@ export default function MarketingSettings() {
 
             {!fbStatus?.appConfigured && !fbStatusQuery.isLoading && (
               <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5">
-                <Settings className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-                <div className="text-xs text-warning">
+                <Settings className="mt-0.5 h-4 w-4 shrink-0 text-warning-text" />
+                <div className="text-xs text-warning-text">
                   <span className="font-semibold">FB_APP_ID</span> أو{" "}
                   <span className="font-semibold">FB_APP_SECRET</span> غير
                   مهيأين في الخادم. أضفهما في ملف{" "}
@@ -395,8 +472,8 @@ export default function MarketingSettings() {
             <Button
               size="sm"
               variant="default"
-              className="bg-[#1877F2] hover:bg-[#166FE5]"
-              onClick={() => getOAuthUrlMutation.mutate()}
+              className="bg-[#1668d9] text-white hover:bg-[#1259bd]"
+              onClick={() => getOAuthUrlMutation.mutate({ pageRole })}
               disabled={
                 getOAuthUrlMutation.isPending || !fbStatus?.appConfigured
               }
@@ -406,27 +483,31 @@ export default function MarketingSettings() {
               ) : (
                 <Facebook className="mr-1.5 h-4 w-4" />
               )}
-              ربط صفحة Facebook
+              ربط الصفحة
             </Button>
           </div>
         )}
       </div>
 
-      {/* Clinic name */}
+      {/* Page content name */}
       <div className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-1 text-sm font-semibold text-foreground">
-          اسم المركز
+          {pageRole === "center" ? "اسم المركز" : "اسم الدكتور"}
         </h2>
         <p className="mb-3 text-xs text-muted-foreground">
-          يُستخدم في المحتوى المُولَّد تلقائياً
+          الاسم ده خاص بالمحتوى المُولَّد للصفحة الحالية فقط
         </p>
-        <input
+        <Input bare
           type="text"
-          value={form.clinicName}
+          value={form.contentName}
           onChange={(e) =>
-            setForm((f) => ({ ...f, clinicName: e.target.value }))
+            setForm((f) => ({ ...f, contentName: e.target.value }))
           }
-          placeholder="مثال: مركز عيون الشروق"
+          placeholder={
+            pageRole === "center"
+              ? "مثال: مركز عيون الشروق"
+              : "مثال: د. أحمد علي"
+          }
           dir="rtl"
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
@@ -438,7 +519,7 @@ export default function MarketingSettings() {
           النشر التلقائي
         </h2>
         <p className="mb-3 text-xs text-muted-foreground">
-          تحكم في جدولة النشر التلقائي لكل يوم
+          توليد النص والصورة ونشرهما تلقائيًا على Facebook بعد اكتمال التوليد
         </p>
 
         {settingsQuery.isLoading ? (
@@ -449,7 +530,7 @@ export default function MarketingSettings() {
           <div className="divide-y divide-border">
             <ToggleRow
               label="النشر التلقائي"
-              description="تفعيل النشر التلقائي حسب الجدول"
+              description="توليد النص والصورة ونشرهما حسب الجدول"
               value={form.autoPublish}
               onChange={(v) => setForm((f) => ({ ...f, autoPublish: v }))}
             />
@@ -472,6 +553,29 @@ export default function MarketingSettings() {
               onChange={(v) => setForm((f) => ({ ...f, thursdayEnabled: v }))}
             />
             <div className="flex items-center justify-between gap-4 py-3">
+              <div>
+                <div className="text-sm font-medium text-foreground">
+                  ترتيب المواضيع
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  صفحة المركز تبدأ من أول القائمة، وصفحة الدكتور من آخرها
+                </div>
+              </div>
+              <select aria-label="اتجاه الموضوعات"
+                value={form.topicDirection}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    topicDirection: e.target.value as "forward" | "reverse",
+                  }))
+                }
+                className="rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="forward">من البداية للنهاية</option>
+                <option value="reverse">بالعكس</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <div>
@@ -479,11 +583,11 @@ export default function MarketingSettings() {
                     وقت النشر
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    الساعة المحلية لنشر المحتوى
+                    الساعة المحلية لبدء التوليد والنشر
                   </div>
                 </div>
               </div>
-              <select
+              <select aria-label="ساعة النشر"
                 value={form.publishHour}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -506,8 +610,26 @@ export default function MarketingSettings() {
         <div className="mt-4 flex justify-end">
           <Button
             size="sm"
-            onClick={() => updateMutation.mutate(form)}
-            disabled={updateMutation.isPending}
+            onClick={() => {
+              if (pageRole === "center") {
+                updateMutation.mutate({ clinicName: form.contentName });
+              }
+              if (selectedPage) {
+                pageSettingsMutation.mutate({
+                  pageRole,
+                  contentName: form.contentName,
+                  autoPublish: form.autoPublish,
+                  saturdayEnabled: form.saturdayEnabled,
+                  tuesdayEnabled: form.tuesdayEnabled,
+                  thursdayEnabled: form.thursdayEnabled,
+                  publishHour: form.publishHour,
+                  topicDirection: form.topicDirection,
+                });
+              }
+            }}
+            disabled={
+              updateMutation.isPending || pageSettingsMutation.isPending
+            }
           >
             {updateMutation.isPending ? (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />

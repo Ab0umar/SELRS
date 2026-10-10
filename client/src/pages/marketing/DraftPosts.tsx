@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import ManusGenerationJobs from "./ManusGenerationJobs";
 import {
   Dialog,
   DialogContent,
@@ -19,19 +20,31 @@ import {
   Trash2,
   ZoomIn,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const DAY_LABELS: Record<string, string> = {
   saturday: "السبت — تصحيح الإبصار",
   tuesday: "الثلاثاء — المياه البيضاء",
   thursday: "الخميس — صحة عامة",
 };
+type PageRole = "center" | "doctor";
 
 export default function DraftPosts() {
+  const [editing, setEditing] = useState<{
+    id: number;
+    title: string;
+    content: string;
+    cta: string;
+    hashtags: string;
+  } | null>(null);
   const [publishId, setPublishId] = useState<number | null>(null);
   const [imageGenId, setImageGenId] = useState<number | null>(null);
   const [limit, setLimit] = useState(25);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [pickerPostId, setPickerPostId] = useState<number | null>(null);
+  const [publishPageRoles, setPublishPageRoles] = useState<
+    Record<number, PageRole>
+  >({});
 
   const utils = trpc.useUtils();
 
@@ -57,7 +70,8 @@ export default function DraftPosts() {
   const generateImageMutation = trpc.marketing.generateImageForPost.useMutation(
     {
       onSuccess: () => {
-        toast.success("تم توليد الصورة بنجاح");
+        toast.info("بدأ توليد الصورة؛ يمكنك متابعة المهمة أدناه");
+        void utils.marketing.generationJobs.invalidate();
         setImageGenId(null);
         void utils.marketing.listPosts.invalidate();
       },
@@ -79,26 +93,42 @@ export default function DraftPosts() {
 
   const updatePostMutation = trpc.marketing.updatePost.useMutation({
     onSuccess: () => {
-      toast.success("تم تعيين صورة القالب");
+      toast.success("تم حفظ المسودة");
+      setEditing(null);
       setPickerPostId(null);
       void utils.marketing.listPosts.invalidate();
     },
     onError: (err: { message: string }) => toast.error(err.message),
   });
 
+  const pickerPageRole =
+    (
+      listQuery.data as
+        Array<{ id: number; pageRole?: "center" | "doctor" }> | undefined
+    )?.find((post) => post.id === pickerPostId)?.pageRole ?? "center";
   const designsQuery = trpc.marketing.listReferenceDesigns.useQuery(
-    undefined,
+    { pageRole: pickerPageRole },
     { enabled: pickerPostId !== null },
   );
 
   const posts = listQuery.data ?? [];
+  const jobsQuery = trpc.marketing.generationJobs.useQuery(undefined, {
+    refetchInterval: 5000,
+  });
+  const imagePending = (postId: number) =>
+    jobsQuery.data?.some(
+      (job) =>
+        job.postId === postId &&
+        (job.state === "starting" || job.state === "running"),
+    ) ?? false;
   const designs = designsQuery.data ?? [];
 
   return (
     <div className="space-y-4">
+      <ManusGenerationJobs />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-foreground">المسودات</h1>
+          <h1 className="text-2xl font-bold text-foreground">المسودات</h1>
           <p className="text-sm text-muted-foreground">
             {posts.length} مسودة في الانتظار
           </p>
@@ -227,6 +257,22 @@ export default function DraftPosts() {
 
                   {/* Actions */}
                   <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={imagePending(post.id)}
+                      onClick={() =>
+                        setEditing({
+                          id: post.id,
+                          title: post.title,
+                          content: post.content ?? "",
+                          cta: post.cta ?? "",
+                          hashtags: post.hashtags ?? "",
+                        })
+                      }
+                    >
+                      مراجعة وتعديل النص
+                    </Button>
                     {/* Pick from brand library — always visible */}
                     <Button
                       size="sm"
@@ -248,8 +294,9 @@ export default function DraftPosts() {
                           generateImageMutation.mutate({ postId: post.id });
                         }}
                         disabled={
-                          generateImageMutation.isPending &&
-                          imageGenId === post.id
+                          imagePending(post.id) ||
+                          (generateImageMutation.isPending &&
+                            imageGenId === post.id)
                         }
                       >
                         {generateImageMutation.isPending &&
@@ -262,16 +309,40 @@ export default function DraftPosts() {
                       </Button>
                     )}
 
+                    <select
+                      aria-label="صفحة النشر"
+                      value={
+                        publishPageRoles[post.id] ?? post.pageRole ?? "center"
+                      }
+                      onChange={(event) =>
+                        setPublishPageRoles((current) => ({
+                          ...current,
+                          [post.id]: event.target.value as PageRole,
+                        }))
+                      }
+                      className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+                    >
+                      <option value="center">صفحة المركز</option>
+                      <option value="doctor">صفحة الدكتور</option>
+                    </select>
+
                     <Button
                       size="sm"
                       variant="default"
                       className="gap-1.5 text-xs"
                       onClick={() => {
                         setPublishId(post.id);
-                        publishMutation.mutate({ id: post.id });
+                        publishMutation.mutate({
+                          id: post.id,
+                          pageRole:
+                            publishPageRoles[post.id] ??
+                            post.pageRole ??
+                            "center",
+                        });
                       }}
                       disabled={
-                        publishMutation.isPending && publishId === post.id
+                        imagePending(post.id) ||
+                        (publishMutation.isPending && publishId === post.id)
                       }
                     >
                       {publishMutation.isPending && publishId === post.id ? (
@@ -312,8 +383,91 @@ export default function DraftPosts() {
       </div>
 
       {/* Brand library picker */}
-      <Dialog open={pickerPostId !== null} onOpenChange={(open) => { if (!open) setPickerPostId(null); }}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
+      <Dialog
+        open={editing !== null}
+        onOpenChange={(open) => {
+          if (!open && !updatePostMutation.isPending) setEditing(null);
+        }}
+      >
+        <DialogContent
+          dir="rtl"
+          className="max-w-2xl max-h-[85vh] overflow-y-auto"
+        >
+          <DialogHeader>
+            <DialogTitle>مراجعة المسودة</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                updatePostMutation.mutate(editing);
+              }}
+            >
+              <label className="block text-sm">
+                العنوان
+                <Input bare
+                  required
+                  maxLength={255}
+                  className="mt-1 w-full rounded-md border border-input bg-background p-2"
+                  value={editing.title}
+                  onChange={(event) =>
+                    setEditing({ ...editing, title: event.target.value })
+                  }
+                />
+              </label>
+              <label className="block text-sm">
+                نص المنشور
+                <textarea
+                  required
+                  rows={8}
+                  className="mt-1 w-full rounded-md border border-input bg-background p-2"
+                  value={editing.content}
+                  onChange={(event) =>
+                    setEditing({ ...editing, content: event.target.value })
+                  }
+                />
+              </label>
+              <label className="block text-sm">
+                دعوة للتواصل
+                <textarea
+                  maxLength={500}
+                  rows={2}
+                  className="mt-1 w-full rounded-md border border-input bg-background p-2"
+                  value={editing.cta}
+                  onChange={(event) =>
+                    setEditing({ ...editing, cta: event.target.value })
+                  }
+                />
+              </label>
+              <label className="block text-sm">
+                الهاشتاجات
+                <textarea
+                  rows={2}
+                  className="mt-1 w-full rounded-md border border-input bg-background p-2"
+                  value={editing.hashtags}
+                  onChange={(event) =>
+                    setEditing({ ...editing, hashtags: event.target.value })
+                  }
+                />
+              </label>
+              <Button type="submit" disabled={updatePostMutation.isPending}>
+                {updatePostMutation.isPending ? "جارٍ الحفظ…" : "حفظ المسودة"}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={pickerPostId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPickerPostId(null);
+        }}
+      >
+        <DialogContent
+          className="max-w-2xl max-h-[80vh] overflow-y-auto"
+          dir="rtl"
+        >
           <DialogHeader>
             <DialogTitle>اختر صورة من مكتبة التصميمات</DialogTitle>
           </DialogHeader>
@@ -323,18 +477,22 @@ export default function DraftPosts() {
             </div>
           ) : designs.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              لا توجد تصميمات في المكتبة — ارفع تصاميمك في صفحة مكتبة العلامة التجارية
+              لا توجد تصميمات في المكتبة — ارفع تصاميمك في صفحة مكتبة العلامة
+              التجارية
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {designs.map((d: any) => (
-                <button
+                <Button variant="bare"
                   key={d.id}
                   type="button"
                   className="group relative overflow-hidden rounded-lg border-2 border-transparent hover:border-primary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   onClick={() => {
                     if (pickerPostId !== null) {
-                      updatePostMutation.mutate({ id: pickerPostId, imageUrl: d.fileUrl });
+                      updatePostMutation.mutate({
+                        id: pickerPostId,
+                        imageUrl: d.fileUrl,
+                      });
                     }
                   }}
                   disabled={updatePostMutation.isPending}
@@ -350,7 +508,7 @@ export default function DraftPosts() {
                       {d.originalName}
                     </p>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -358,7 +516,12 @@ export default function DraftPosts() {
       </Dialog>
 
       {/* Full-image lightbox */}
-      <Dialog open={!!lightboxUrl} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>
+      <Dialog
+        open={!!lightboxUrl}
+        onOpenChange={(open) => {
+          if (!open) setLightboxUrl(null);
+        }}
+      >
         <DialogContent className="max-w-3xl p-2 bg-black border-0">
           {lightboxUrl && (
             <img
