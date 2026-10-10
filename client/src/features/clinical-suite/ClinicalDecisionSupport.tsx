@@ -33,7 +33,9 @@ const isLaser = (procedure: Procedure) => !["IOL", "ICL"].includes(procedure);
 
 export function ClinicalDecisionSupport() {
   const [patientId, setPatientId] = useState<number>();
-  const [patientName, setPatientName] = useState("Unregistered / Trial Patient");
+  const [patientName, setPatientName] = useState(
+    "Unregistered / Trial Patient",
+  );
   const [patientAge, setPatientAge] = useState<number>();
   const [trialMode, setTrialMode] = useState(true);
   const [eye, setEye] = useState<Eye>("od");
@@ -142,87 +144,120 @@ export function ClinicalDecisionSupport() {
     <section dir="ltr" lang="en" className="space-y-4 text-left">
       {patientId && (
         <div className="flex justify-end">
-          <Button onClick={save} disabled={saveMutation.isPending}>
+          <Button
+            onClick={save}
+            disabled={
+              saveMutation.isPending ||
+              (Boolean(patientId) && !entryQuery.isSuccess)
+            }
+          >
             <Save aria-hidden="true" />
             {saveMutation.isPending ? "Saving..." : "Save to Patient Record"}
           </Button>
         </div>
       )}
-      <div className="flex flex-nowrap items-start gap-3">
-          <div className="w-64 space-y-1.5">
-            <PatientPicker
-              locale="en"
-              label="Patient Search (optional)"
-              placeholder="Search by patient name, code, or phone..."
-              onSelect={(patient) => {
-                setTrialMode(false);
-                setPatientId(patient.id);
-                setPatientName(patient.fullName);
-                const dateOfBirth = patient.dateOfBirth
-                  ? new Date(patient.dateOfBirth)
-                  : null;
-                const calculatedAge =
-                  dateOfBirth && !Number.isNaN(dateOfBirth.getTime())
-                    ? Math.floor(
-                        (Date.now() - dateOfBirth.getTime()) / 31_556_952_000,
-                      )
-                    : undefined;
-                setPatientAge(patient.age ?? calculatedAge);
-                setPlan(createInitialClinicalPlan());
-                setSourceAvailability({
-                  od: { cct: false, refraction: false },
-                  os: { cct: false, refraction: false },
-                });
-                setScreening({
-                  refractionStable: false,
-                  tomographyReviewedNormal: false,
-                  ocularSurfaceControlled: false,
-                });
-              }}
-            />
-          </div>
-          <div className="w-44 space-y-1.5">
-            <Label htmlFor="clinical-procedure">Procedure Type</Label>
-            <Select
-              value={procedure}
-              onValueChange={(value) => applyProcedure(value as Procedure)}
-            >
-              <SelectTrigger id="clinical-procedure">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem dir="ltr" value="PRK">
-                  PRK
-                </SelectItem>
-                <SelectItem dir="ltr" value="LASIK">
-                  LASIK
-                </SelectItem>
-                <SelectItem dir="ltr" value="FS">
-                  FS, Femto-Smile
-                </SelectItem>
-                <SelectItem dir="ltr" value="FL">
-                  FL, Femto-LASIK
-                </SelectItem>
-                <SelectItem dir="ltr" value="IOL">
-                  IOL
-                </SelectItem>
-                <SelectItem dir="ltr" value="ICL">
-                  ICL
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-40 space-y-1.5">
-            <Label>Eye</Label>
-            <Tabs value={eye} onValueChange={(value) => setEye(value as Eye)}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="od">OD</TabsTrigger>
-                <TabsTrigger value="os">OS</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+      <div className="flex min-w-0 flex-wrap items-start gap-3">
+        <div className="w-full min-w-0 space-y-1.5 sm:w-64">
+          <PatientPicker
+            locale="en"
+            label="Patient Search (optional)"
+            placeholder="Search by patient name, code, or phone..."
+            onSelect={(patient) => {
+              setTrialMode(false);
+              setPatientId(patient.id);
+              setPatientName(patient.fullName);
+              const dateOfBirth = patient.dateOfBirth
+                ? new Date(patient.dateOfBirth)
+                : null;
+              const calculatedAge =
+                dateOfBirth && !Number.isNaN(dateOfBirth.getTime())
+                  ? Math.floor(
+                      (Date.now() - dateOfBirth.getTime()) / 31_556_952_000,
+                    )
+                  : undefined;
+              setPatientAge(patient.age ?? calculatedAge);
+              setPlan(createInitialClinicalPlan());
+              setSourceAvailability({
+                od: { cct: false, refraction: false },
+                os: { cct: false, refraction: false },
+              });
+              setScreening({
+                refractionStable: false,
+                tomographyReviewedNormal: false,
+                ocularSurfaceControlled: false,
+              });
+            }}
+          />
+        </div>
+        <div className="w-full min-w-0 space-y-1.5 sm:w-44">
+          <Label htmlFor="clinical-procedure">Procedure Type</Label>
+          <Select
+            value={procedure}
+            onValueChange={(value) => applyProcedure(value as Procedure)}
+          >
+            <SelectTrigger id="clinical-procedure">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem dir="ltr" value="PRK">
+                PRK
+              </SelectItem>
+              <SelectItem dir="ltr" value="LASIK">
+                LASIK
+              </SelectItem>
+              <SelectItem dir="ltr" value="FS">
+                FS, Femto-Smile
+              </SelectItem>
+              <SelectItem dir="ltr" value="FL">
+                FL, Femto-LASIK
+              </SelectItem>
+              <SelectItem dir="ltr" value="IOL">
+                IOL
+              </SelectItem>
+              <SelectItem dir="ltr" value="ICL">
+                ICL
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full min-w-0 space-y-1.5 sm:w-40">
+          <Label>Eye</Label>
+          <Tabs value={eye} onValueChange={(value) => setEye(value as Eye)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="od">OD</TabsTrigger>
+              <TabsTrigger value="os">OS</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
-      <>
+      {patientId && entryQuery.isLoading ? (
+        <div
+          role="status"
+          className="rounded-lg border border-border bg-muted/20 p-4 text-sm text-muted-foreground"
+        >
+          Loading the saved clinical decision plan…
+        </div>
+      ) : patientId && entryQuery.isError ? (
+        <div
+          role="alert"
+          className="flex flex-col items-start gap-3 rounded-lg border border-warning/50 bg-warning/10 p-4 text-sm"
+        >
+          <p>
+            Unable to load the saved clinical decision plan. The form is locked
+            until it is retrieved.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => void entryQuery.refetch()}
+            disabled={entryQuery.isFetching}
+          >
+            {entryQuery.isFetching ? "Retrying…" : "Retry"}
+          </Button>
+        </div>
+      ) : (
+        <>
           <Card className="p-2.5">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <span className="text-xs font-semibold text-muted-foreground shrink-0">
@@ -235,10 +270,7 @@ export function ClinicalDecisionSupport() {
                   ["ocularSurfaceControlled", "Ocular surface reviewed"],
                 ] as const
               ).map(([key, label]) => (
-                <label
-                  key={key}
-                  className="flex items-center gap-1.5 text-xs"
-                >
+                <label key={key} className="flex items-center gap-1.5 text-xs">
                   <Checkbox
                     checked={screening[key]}
                     onCheckedChange={(checked) =>
@@ -254,11 +286,11 @@ export function ClinicalDecisionSupport() {
               <span className="text-xs text-muted-foreground">
                 Age: {patientAge ?? "N/A"}
               </span>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-[13px]">
                 {eye.toUpperCase()} CCT:{" "}
                 {sourceAvailability[eye].cct ? "Loaded" : "Missing"}
               </Badge>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-[13px]">
                 {eye.toUpperCase()} Refraction:{" "}
                 {sourceAvailability[eye].refraction ? "Loaded" : "Missing"}
               </Badge>
@@ -325,8 +357,10 @@ export function ClinicalDecisionSupport() {
                 <>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <Card className="p-3">
-                      <span className="block text-[10px] text-muted-foreground">
-                        {procedure === "FS" ? "Lenticule Thickness" : "Ablation Depth"}
+                      <span className="block text-[13px] text-muted-foreground">
+                        {procedure === "FS"
+                          ? "Lenticule Thickness"
+                          : "Ablation Depth"}
                       </span>
                       <strong className="font-mono">
                         {result.ablationDepthUm === null
@@ -335,7 +369,7 @@ export function ClinicalDecisionSupport() {
                       </strong>
                     </Card>
                     <Card className="p-3">
-                      <span className="block text-[10px] text-muted-foreground">
+                      <span className="block text-[13px] text-muted-foreground">
                         Residual Stromal Bed (RSB)
                       </span>
                       <strong className="font-mono">
@@ -345,7 +379,7 @@ export function ClinicalDecisionSupport() {
                       </strong>
                     </Card>
                     <Card className="p-3">
-                      <span className="block text-[10px] text-muted-foreground">
+                      <span className="block text-[13px] text-muted-foreground">
                         Percent Tissue Altered (PTA)
                       </span>
                       <strong className="font-mono">
@@ -393,7 +427,7 @@ export function ClinicalDecisionSupport() {
                     </p>
                   </Card>
                   <Card className="p-3">
-                    <span className="mb-2 block text-[11px] text-muted-foreground">
+                    <span className="mb-2 block text-[13px] text-muted-foreground">
                       Schematic Corneal Cross-Section
                     </span>
                     <svg
@@ -449,6 +483,7 @@ export function ClinicalDecisionSupport() {
             </div>
           </div>
         </>
+      )}
     </section>
   );
 }

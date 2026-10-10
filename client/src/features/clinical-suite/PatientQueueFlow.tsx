@@ -119,7 +119,7 @@ export function PatientQueueFlow() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1 text-[10px]">
+          <Badge variant="outline" className="gap-1 text-[13px]">
             <Database className="h-3 w-3" aria-hidden="true" />
             طابور اليوم
           </Badge>
@@ -263,7 +263,7 @@ export function PatientQueueFlow() {
           ["تم الفحص", counts.treated.length],
         ].map(([label, count]) => (
           <Card key={String(label)} className="p-3">
-            <span className="block text-[10px] text-muted-foreground">
+            <span className="block text-[13px] text-muted-foreground">
               {label}
             </span>
             <span className="mt-1 block font-mono text-lg font-bold">

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { localISODate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ReceiptRecord {
   rcptNo: string;
@@ -150,10 +151,10 @@ export function RevenueLedgerPreview() {
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"
-            className={`text-[10px] flex items-center gap-1 ${
+            className={`text-[13px] flex items-center gap-1 ${
               hasLiveData
                 ? "border-emerald-500/40 text-emerald-500 bg-emerald-500/10"
-                : "border-blue-500/40 text-blue-500 bg-blue-500/10"
+                : "border-primary/40 text-primary bg-primary/10"
             }`}
           >
             <Database className="w-3 h-3" />
@@ -180,7 +181,7 @@ export function RevenueLedgerPreview() {
             </SelectContent>
           </Select>
 
-          <button
+          <Button variant="bare"
             type="button"
             onClick={() => {
               void summaryQuery.refetch();
@@ -196,7 +197,7 @@ export function RevenueLedgerPreview() {
                 transactionsQuery.isFetching ? "animate-spin" : ""
               }`}
             />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -204,7 +205,7 @@ export function RevenueLedgerPreview() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="p-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[13px] font-medium text-muted-foreground">
               الإجمالي قبل الخصم
             </span>
             <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
@@ -216,7 +217,7 @@ export function RevenueLedgerPreview() {
           <span
             dir="ltr"
             lang="en"
-            className="text-[10px] text-muted-foreground"
+            className="text-[13px] text-muted-foreground"
           >
             Gross Revenue
           </span>
@@ -224,10 +225,10 @@ export function RevenueLedgerPreview() {
 
         <Card className="p-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-[13px] font-medium text-muted-foreground">
               إجمالي الخصومات
             </span>
-            <span className="text-[11px] text-amber-500 font-mono">-%</span>
+            <span className="text-[13px] text-amber-500 font-mono">-%</span>
           </div>
           <div className="text-base sm:text-lg font-bold font-mono text-amber-500 mt-1">
             -{totals.discount.toLocaleString()}{" "}
@@ -236,7 +237,7 @@ export function RevenueLedgerPreview() {
           <span
             dir="ltr"
             lang="en"
-            className="text-[10px] text-muted-foreground"
+            className="text-[13px] text-muted-foreground"
           >
             Total Discounts
           </span>
@@ -244,7 +245,7 @@ export function RevenueLedgerPreview() {
 
         <Card className="p-3 border-emerald-500/30 bg-emerald-500/5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+            <span className="text-[13px] font-medium text-emerald-600 dark:text-emerald-400">
               صافي الإيراد الفعلي
             </span>
             <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
@@ -256,30 +257,30 @@ export function RevenueLedgerPreview() {
           <span
             dir="ltr"
             lang="en"
-            className="text-[10px] text-muted-foreground"
+            className="text-[13px] text-muted-foreground"
           >
             Net Center + Doctor
           </span>
         </Card>
 
-        <Card className="p-3 border-blue-500/30 bg-blue-500/5">
+        <Card className="p-3 border-primary/30 bg-primary/5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+            <span className="text-[13px] font-medium text-primary">
               حصص الأطباء
             </span>
             <Badge
               dir="ltr"
               lang="en"
               variant="outline"
-              className="text-[9px] h-4"
+              className="text-[13px] h-4"
             >
               Share
             </Badge>
           </div>
-          <div className="text-base sm:text-lg font-bold font-mono text-blue-600 dark:text-blue-400 mt-1">
+          <div className="text-base sm:text-lg font-bold font-mono text-primary mt-1">
             غير متاحة
           </div>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-[13px] text-muted-foreground">
             لا توجد قاعدة حصة في مصدر البيانات
           </span>
         </Card>
@@ -295,7 +296,7 @@ export function RevenueLedgerPreview() {
                 <TableHead>كود / اسم المريض</TableHead>
                 <TableHead>الخدمة الطبية</TableHead>
                 <TableHead>الطبيب المعالج</TableHead>
-                <TableHead className="text-right">الصافي</TableHead>
+                <TableHead className="text-start">الصافي</TableHead>
                 <TableHead className="text-center w-24">الوقت</TableHead>
               </TableRow>
             </TableHeader>
@@ -311,7 +312,7 @@ export function RevenueLedgerPreview() {
                     <div dir="auto" className="font-medium">
                       {row.patientName || "—"}
                     </div>
-                    <div className="text-[10px] text-muted-foreground font-mono">
+                    <div className="text-[13px] text-muted-foreground font-mono">
                       كود: {row.patientCode}
                     </div>
                   </TableCell>
@@ -321,10 +322,10 @@ export function RevenueLedgerPreview() {
                   <TableCell dir="auto" className="text-xs font-medium">
                     {row.doctorName || "—"}
                   </TableCell>
-                  <TableCell className="text-right font-mono font-semibold text-emerald-500">
+                  <TableCell className="text-start font-mono font-semibold text-emerald-500">
                     {row.netAmount.toLocaleString()} ج.م
                   </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">
+                  <TableCell className="text-center font-mono text-[13px] text-muted-foreground">
                     {row.time}
                   </TableCell>
                 </TableRow>
@@ -354,7 +355,7 @@ export function RevenueLedgerPreview() {
           </Table>
         </CardContent>
       </Card>
-      <div className="flex justify-between items-center text-[11px] text-muted-foreground px-1">
+      <div className="flex justify-between items-center text-[13px] text-muted-foreground px-1">
         <span>
           مربوط بجدول <bdi dir="ltr">MSSQL</bdi>: <bdi dir="ltr">PAPAT_SRV</bdi>{" "}
           مع <bdi dir="ltr">PAJRNRCVH</bdi> عبر <bdi dir="ltr">PAT_CD</bdi>

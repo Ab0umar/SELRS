@@ -66,7 +66,7 @@ export function BiometricAttendanceMonitor() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <Clock className="h-4 w-4 text-blue-500" aria-hidden="true" />
+            <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
             مراقبة ومزامنة البصمة الحيوية
           </h2>
           <p className="text-xs text-muted-foreground">
@@ -113,13 +113,13 @@ export function BiometricAttendanceMonitor() {
                   {isOnline ? "متصل بالشبكة" : "غير متصل"}
                 </Badge>
               </div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
                 إجمالي حركات البصمة المسجلة: {device?.punchCount ?? 0} حركة
               </p>
             </div>
           </div>
           <div className="text-center text-xs">
-            <span className="block text-[10px] text-muted-foreground">
+            <span className="block text-[13px] text-muted-foreground">
               موظفو المركز
             </span>
             <span className="font-mono font-bold text-foreground">
@@ -148,6 +148,39 @@ export function BiometricAttendanceMonitor() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {employeesQuery.isLoading && (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="py-8 text-center text-muted-foreground"
+                  >
+                    <span role="status" aria-live="polite">
+                      جاري تحميل بيانات الموظفين…
+                    </span>
+                  </TableCell>
+                </TableRow>
+              )}
+              {employeesQuery.isError && (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="py-6 text-center text-destructive"
+                    role="alert"
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      <span>تعذر تحميل بيانات الموظفين.</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => employeesQuery.refetch()}
+                      >
+                        إعادة المحاولة
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
               {employees.map((employee) => (
                 <TableRow key={employee.empCode}>
                   <TableCell className="font-mono">
