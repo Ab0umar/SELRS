@@ -1,5 +1,6 @@
 import { ArrowRight, Home } from "lucide-react";
 import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
 
 type PageHeaderProps = {
   backTo: string;
@@ -28,22 +29,22 @@ export default function PageHeader({
       dir="rtl"
     >
       <div className="mx-auto flex max-w-[1440px] items-center justify-end gap-2 px-3 py-2 sm:px-4">
-        <button
+        <Button variant="bare"
           type="button"
           onClick={handleBack}
           className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-muted-foreground bg-muted/60"
         >
           <ArrowRight className="h-4 w-4 shrink-0" />
           {label}
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
           type="button"
           onClick={() => setLocation("/dashboard")}
           className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-muted-foreground bg-muted/60"
         >
           <Home className="h-4 w-4 shrink-0" />
           الصفحة الرئيسية
-        </button>
+        </Button>
       </div>
     </div>
   );

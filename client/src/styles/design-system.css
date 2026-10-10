@@ -1,0 +1,406 @@
+/* Loaded after the platform stylesheet; screen tokens never alter clinical print layouts. */
+@media screen {
+  [data-operational-module],
+  [data-module-content-start],
+  .selrs-app-content > .clinical-workspace > div,
+  .selrs-app-content > [data-admin-hub] > main {
+    padding-top: 8px !important;
+  }
+  :root {
+    --radius: 1rem;
+    --background: #ffffff;
+    --canvas: #f3f5f8;
+    --foreground: #20252b;
+    --card: #ffffff;
+    --card-foreground: #20252b;
+    --popover: #ffffff;
+    --popover-foreground: #20252b;
+    --primary: #003d82;
+    --primary-foreground: #ffffff;
+    --secondary: #ff9500;
+    --secondary-foreground: #20252b;
+    --muted: #ffffff;
+    --muted-foreground: #57616d;
+    --accent: #ff9500;
+    --accent-foreground: #20252b;
+    --border: #ced4db;
+    --input: #858f9b;
+    --ring: #003d82;
+    --destructive: #b91c1c;
+    --destructive-foreground: #ffffff;
+    --destructive-text: #b91c1c;
+    --error: #b91c1c;
+    --error-foreground: #ffffff;
+    --success: #087443;
+    --success-foreground: #ffffff;
+    --success-text: #087443;
+    --info: #0058a8;
+    --info-foreground: #ffffff;
+    --warning: #ffcf70;
+    --warning-foreground: #452c00;
+    --warning-text: #795000;
+    --sidebar: var(--card);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+    --bento-shadow-soft: 0 1px 2px rgba(0, 61, 130, 0.07);
+    --bento-shadow-hover: 0 12px 28px rgba(0, 61, 130, 0.12);
+  }
+
+  .dark {
+    --background: #17191c;
+    --foreground: #f1f3f5;
+    --card: #17191c;
+    --card-foreground: #f1f3f5;
+    --popover: #202328;
+    --popover-foreground: #f1f3f5;
+    --primary: #8bbcff;
+    --primary-foreground: #14263d;
+    --secondary: #ffad42;
+    --secondary-foreground: #20252b;
+    --muted: #2b3037;
+    --muted-foreground: #b8c0ca;
+    --accent: #293c53;
+    --accent-foreground: #c1d9ff;
+    --border: #515b68;
+    --input: #8794a4;
+    --ring: #8bbcff;
+    --destructive: #fca5a5;
+    --destructive-foreground: #491515;
+    --destructive-text: #fca5a5;
+    --error: #fca5a5;
+    --error-foreground: #491515;
+    --success: #6ee7b7;
+    --success-foreground: #053b27;
+    --success-text: #6ee7b7;
+    --info: #93c5fd;
+    --info-foreground: #14263d;
+    --warning: #ffcf70;
+    --warning-foreground: #452c00;
+    --warning-text: #ffcf70;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+  .selrs-page-bg {
+    background: var(--background) !important;
+  }
+  .selrs-app-content,
+  .selrs-page-bg > main,
+  .page-layout,
+  .page-card,
+  [data-operational-module] {
+    background-color: var(--background);
+    background-image: none;
+  }
+  html:not(.dark)
+    :is(
+      [data-slot="tabs-trigger"][data-state="active"],
+      .medical-records-nav button[aria-current="page"]
+    ) {
+    background: var(--secondary) !important;
+    color: var(--secondary-foreground) !important;
+    border-color: var(--secondary) !important;
+  }
+  html:not(.dark) .medical-records-sidebar {
+    background: var(--primary) !important;
+    border-color: var(--primary);
+  }
+  html:not(.dark)
+    .medical-records-sidebar
+    :is(button, .medical-records-nav-label) {
+    color: var(--primary-foreground) !important;
+  }
+  html:not(.dark)
+    .medical-records-sidebar
+    button:hover:not([aria-current="page"]) {
+    background: #002d61 !important;
+  }
+  html:not(.dark) .medical-records-sidebar button[aria-current="page"] {
+    background: #ff9500 !important;
+    color: #20252b !important;
+  }
+  html:not(.dark) .medical-records-sidebar .medical-records-main-links {
+    border-color: #ffffff40;
+  }
+  html:not(.dark)
+    .selrs-app-content
+    :is(table thead, table thead tr, table thead th) {
+    background: #003d82 !important;
+    color: #ffffff !important;
+    border-color: #ffffff40;
+  }
+  html:not(.dark) .selrs-app-content :is(table thead button, table thead svg) {
+    color: #ffffff !important;
+  }
+  html:not(.dark) .medical-records-heading {
+    border-bottom: 3px solid #003d82;
+  }
+  html:not(.dark) .medical-records-heading h1 {
+    color: #003d82;
+  }
+  html:not(.dark) .selrs-app-content,
+  html:not(.dark) body,
+  html:not(.dark) [data-app-scroll-container] {
+    background-color: var(--canvas);
+  }
+  html:not(.dark) [data-app-top-nav] {
+    background: var(--primary) !important;
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+    border-bottom-width: 0;
+  }
+  html:not(.dark) [data-app-top-nav] :is(button, [role="button"]) {
+    background: rgb(255 255 255 / 0.14) !important;
+    color: var(--primary-foreground) !important;
+    border-color: rgb(255 255 255 / 0.32) !important;
+  }
+  html:not(.dark) [data-app-top-nav] [class*="bg-card"] {
+    background: rgb(255 255 255 / 0.12) !important;
+    border-color: rgb(255 255 255 / 0.32) !important;
+  }
+  html:not(.dark) [data-app-top-nav] :is(button, [role="button"]):hover {
+    background: rgb(255 255 255 / 0.24) !important;
+  }
+  html:not(.dark)
+    [data-app-top-nav]
+    :is([class*="text-muted-foreground"], [class*="text-foreground"]) {
+    color: var(--primary-foreground) !important;
+  }
+  /* Solid app bar: DESIGN.md keeps decorative gradients out of navigation. */
+  @media (min-width: 768px) {
+    html:not(.dark) [data-app-top-nav] {
+      background: var(--primary) !important;
+    }
+  }
+  html:not(.dark) [data-app-top-nav] nav button.bg-secondary {
+    background: #ff9500 !important;
+    color: #20252b !important;
+    border-color: #ff9500 !important;
+  }
+  html:not(.dark) [data-app-top-nav] nav button.bg-secondary * {
+    color: #20252b !important;
+  }
+  :where(button, input, textarea, select, a, [role="tab"]) {
+    letter-spacing: 0;
+  }
+  :where(input, select, textarea) {
+    font-family: inherit;
+  }
+  html:not(.dark) :where(input, select, textarea) {
+    border-color: var(--input) !important;
+  }
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .page-layout {
+    min-width: 0;
+  }
+  :where(.overflow-x-auto, .overflow-auto):has(> table) {
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  :where(
+    [data-slot="button"],
+    [data-slot="tabs-trigger"],
+    [data-slot="select-trigger"]
+  ) {
+    min-height: 44px;
+  }
+  :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Touch devices: every control keeps a 44px hit area (checkboxes and switches
+   keep their own size; table-embedded and print content is left alone). */
+@media screen and (pointer: coarse) {
+  :where(
+    button,
+    [role="button"],
+    [role="tab"],
+    [data-slot="button"],
+    [data-slot="select-trigger"]
+  ):not([role="checkbox"], [role="switch"], [data-slot="checkbox"], [data-slot="switch"]):not(
+      [data-print-document] *
+    ) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Attendance pages are used on phones at the reception desk: on touch devices
+   every control gets at least a 44x44px hit area (checkboxes and switches keep
+   their own size). The wrapper uses display: contents, so layout is untouched. */
+@media (pointer: coarse) {
+  .attendance-touch
+    :is(button, [role="button"], [role="tab"], a[href], summary, select):not(
+      [role="checkbox"]
+    ):not([role="switch"]) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .attendance-touch input:not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
+  }
+}
+
+.attendance-touch
+  :is(button, [role="button"], [role="tab"], select):not([role="checkbox"]):not(
+    [role="switch"]
+  ) {
+  min-height: 44px;
+}
+
+.attendance-touch
+  :is(button, [role="button"], [role="tab"]):not([role="checkbox"]):not(
+    [role="switch"]
+  ) {
+  min-width: 44px;
+}
+
+.attendance-touch
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Mobile readability and touch (DESIGN.md: 13px minimum supporting text,
+   16px inputs so iOS does not zoom on focus, 44px control height).
+   web.css and mobile.css compile their own Tailwind theme, so the text-xs size
+   is set here, unlayered, where it wins over their theme layer. Dense A4
+   clinical sheets and print documents keep their own field sizes. */
+@media screen {
+  :root {
+    --text-xs: 13px;
+    --text-xs--line-height: 1.25rem;
+  }
+}
+@media screen and (max-width: 640px) {
+  :is(
+      input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
+      select,
+      textarea
+    ):not(.sheet-layout *, .a4-page-card *, [data-print-document] *) {
+    font-size: 16px;
+  }
+}
+@media screen and (max-width: 640px), screen and (pointer: coarse) {
+  :is(
+      input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
+      select,
+      [data-slot="select-trigger"]
+    ):not(.sheet-layout *, .a4-page-card *, [data-print-document] *) {
+    min-height: 44px;
+  }
+}
+
+/* Clinical sheet headers use fixed navy ink for the paper. On screen in dark
+   mode the sheet surface is dark, so use theme tokens there; print keeps navy. */
+@media screen {
+  .dark :is(.sheet-print-clinic-name, .sheet-print-type) {
+    color: var(--primary) !important;
+  }
+  .dark .sheet-print-clinic-tagline {
+    color: var(--muted-foreground) !important;
+  }
+}
+
+/* Typography (DESIGN.md): Inter for Latin, Cairo for Arabic, IBM Plex Mono for codes.
+   web.css and mobile.css compile their own Tailwind theme, so the font tokens are set here. */
+@media screen {
+  :root {
+    --font-sans: "Inter", "Cairo", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+  }
+  button {
+    font-family: inherit;
+  }
+}
+
+/* Paper surfaces (clinical sheets, summaries, prescriptions) stay light in dark
+   mode (DESIGN.md: print output remains light). Give them the light tokens so
+   token-based text and borders inside stay readable on the white paper. */
+@media screen {
+  .dark
+    :is(
+      .lasik-print-root,
+      .specialist-print-root,
+      .followup-print-root,
+      .referral-print-root,
+      .consultant-main-print-root,
+      .a4-page-card,
+      .print-page-center-a4,
+      .lasik-sheet,
+      .clinical-report-root,
+      .clinical-report-frame,
+      .clinical-report-content,
+      .medical-condition-report-root,
+      .medical-report-page,
+      .patient-summary-print-root,
+      .prepost-report-root,
+      .post-op-offdays-root,
+      .post-op-offdays-en-root,
+      .request-tests-print-content,
+      .request-tests-paper,
+      .request-tests-root,
+      .prescription-print-content,
+      .prescription-paper,
+      .prescription-root,
+      .refraction-print-card,
+      .refraction-print-wrapper,
+      .refraction-print-section,
+      .specialist-sheet,
+      .mcr-paper,
+      .prepost-paper,
+      .offdays-paper,
+      .offdays-en-paper,
+      [data-accounting-print-root],
+      [data-print-prescription-content],
+      [data-mobile-pdf-root]
+    ) {
+    --background: #ffffff;
+    --foreground: #20252b;
+    --card: #ffffff;
+    --card-foreground: #20252b;
+    --popover: #ffffff;
+    --popover-foreground: #20252b;
+    --muted: #ffffff;
+    --muted-foreground: #57616d;
+    --primary: #003d82;
+    --primary-foreground: #ffffff;
+    --accent: #ff9500;
+    --accent-foreground: #20252b;
+    --border: #ced4db;
+    --input: #858f9b;
+    --ring: #003d82;
+    --success: #087443;
+    --success-text: #087443;
+    --destructive: #b91c1c;
+    --destructive-text: #b91c1c;
+    --error: #b91c1c;
+    --warning-text: #795000;
+    --info: #0058a8;
+  }
+}

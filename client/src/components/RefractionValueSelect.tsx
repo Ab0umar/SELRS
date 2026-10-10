@@ -17,6 +17,8 @@ type RefractionValueSelectProps = {
   triggerClassName?: string;
   defaultValue?: string;
   allowEmpty?: boolean;
+  "aria-label"?: string;
+  id?: string;
 };
 
 export default function RefractionValueSelect({
@@ -28,6 +30,8 @@ export default function RefractionValueSelect({
   triggerClassName,
   defaultValue,
   allowEmpty = true,
+  "aria-label": ariaLabel,
+  id,
 }: RefractionValueSelectProps) {
   const normalizedValue = String(value ?? "").trim();
   // Ranges with a zero/dash entry (sphere, cylinder) default blank values to
@@ -37,25 +41,39 @@ export default function RefractionValueSelect({
     normalizedValue || (hasZeroDash ? ZERO_DASH_VALUE : EMPTY_SELECT_VALUE);
 
   return (
-    <Select
-      value={effectiveValue}
-      onValueChange={(nextValue) =>
-        onChange(nextValue === EMPTY_SELECT_VALUE ? "" : nextValue)
-      }
-    >
-      <SelectTrigger className={cn("w-full", triggerClassName)}>
-        <SelectValue placeholder={placeholder ?? "----"} />
-      </SelectTrigger>
-      <SelectContent className={className} position="item-aligned">
-        {!hasZeroDash && (
-          <SelectItem value={EMPTY_SELECT_VALUE}>----</SelectItem>
-        )}
-        {options.map((option) => (
-          <SelectItem key={option} value={option}>
-            {option}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <span className="block w-full print:contents">
+      <Select
+        value={effectiveValue}
+        onValueChange={(nextValue) =>
+          onChange(nextValue === EMPTY_SELECT_VALUE ? "" : nextValue)
+        }
+      >
+        <SelectTrigger
+          id={id}
+          aria-label={ariaLabel ?? placeholder ?? "قيمة القياس"}
+          className={cn("w-full print:hidden", triggerClassName)}
+        >
+          <SelectValue placeholder={placeholder ?? "----"} />
+        </SelectTrigger>
+        <SelectContent className={className} position="item-aligned">
+          {!hasZeroDash && (
+            <SelectItem value={EMPTY_SELECT_VALUE}>----</SelectItem>
+          )}
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* Print shows the raw value as plain text over a fill-in line; an
+          unset cell prints blank instead of the dropdown's "---" default. */}
+      <span
+        aria-hidden
+        className="hidden print:block print:w-full print:border-b print:border-[#737685] print:min-h-[1.4em] print:text-center print:text-sm print:leading-relaxed"
+      >
+        {normalizedValue}
+      </span>
+    </span>
   );
 }

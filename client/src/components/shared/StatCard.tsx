@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /** Mobile: all summary cards in one horizontal row (scroll). From `sm`: use with `sm:grid sm:grid-cols-*`. */
 export const STAT_CARDS_MOBILE_ROW =
-  "flex flex-nowrap gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:overflow-visible sm:pb-0";
+  "mobile-summary-cards flex flex-nowrap gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:overflow-visible sm:pb-0";
 
 interface StatCardProps {
   title?: string;
@@ -49,6 +49,7 @@ export function StatCard({
 
   return (
     <div
+      data-summary-card
       className={cn(
         "min-w-[5.75rem] max-w-[42vw] shrink-0 rounded-xl border bg-card p-2 shadow-sm sm:min-w-0 sm:max-w-none sm:shrink sm:p-3",
         className,
@@ -56,7 +57,7 @@ export function StatCard({
       dir="rtl"
     >
       <div className="mb-1.5 flex items-center justify-between gap-1 sm:mb-2">
-        <span className="line-clamp-2 min-w-0 text-[10px] font-semibold leading-tight text-muted-foreground sm:text-xs">
+        <span className="line-clamp-2 min-w-0 text-[13px] font-semibold leading-tight text-muted-foreground sm:text-xs">
           {displayLabel}
         </span>
         {icon ? (
@@ -74,7 +75,7 @@ export function StatCard({
           </div>
         ) : null}
       </div>
-      <div className="text-base font-black tabular-nums tracking-tight sm:text-lg">
+      <div className="text-base font-black tabular-nums sm:text-lg">
         {value}
       </div>
       {trendDir || change || description ? (
@@ -82,7 +83,7 @@ export function StatCard({
           {trendDir ? (
             <div
               className={cn(
-                "flex items-center gap-0.5 text-[10px] font-semibold",
+                "flex items-center gap-0.5 text-[13px] font-semibold",
                 trendDir === "up" ? "text-primary" : "text-destructive",
               )}
             >
@@ -97,7 +98,7 @@ export function StatCard({
           {description ? (
             <span
               className={cn(
-                "text-[10px]",
+                "text-[13px]",
                 descriptionClassName ?? "text-muted-foreground",
               )}
             >

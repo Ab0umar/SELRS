@@ -108,16 +108,16 @@ export default function ForcePasswordChange() {
       className="relative flex min-h-screen items-center justify-center overflow-hidden selrs-login-bg p-4"
     >
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute right-[-5rem] top-[-4rem] h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-[-3rem] left-[-4rem] h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute start-[-5rem] top-[-4rem] h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-[-3rem] end-[-4rem] h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
       </div>
       <Card className="selrs-glass-card relative w-full max-w-xl overflow-hidden border-white/80 bg-background/90 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
         <div
-          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-secondary"
+          className="absolute inset-x-0 top-0 h-1 bg-primary"
           aria-hidden
         />
         <CardHeader className="relative">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-warning/50 bg-warning/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-warning/90">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-warning/50 bg-warning/10 px-3 py-1 text-[13px] font-semibold uppercase text-warning-text/90">
             <ShieldAlert className="h-3.5 w-3.5" />
             Security Step
           </div>

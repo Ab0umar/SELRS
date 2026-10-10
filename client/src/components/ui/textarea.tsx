@@ -8,6 +8,8 @@ function Textarea({
   onKeyDown,
   onCompositionStart,
   onCompositionEnd,
+  ref,
+  placeholder,
   ...props
 }: React.ComponentProps<"textarea">) {
   // Get dialog composition context if available (will be no-op if not inside Dialog)
@@ -51,8 +53,33 @@ function Textarea({
     },
   });
 
+  // Fields with only a placeholder get it as their accessible name (DESIGN.md: controls have labels).
+  const setRef = React.useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      if (
+        el &&
+        !el.getAttribute("aria-label") &&
+        !el.getAttribute("aria-labelledby") &&
+        !el.getAttribute("title") &&
+        !el.labels?.length
+      ) {
+        const sibling =
+          el.previousElementSibling?.tagName === "LABEL"
+            ? el.previousElementSibling
+            : null;
+        const text = sibling?.textContent?.trim() || placeholder;
+        if (text) el.setAttribute("aria-label", text);
+      }
+      if (typeof ref === "function") ref(el);
+      else if (ref) (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+    },
+    [ref, placeholder],
+  );
+
   return (
     <textarea
+      ref={setRef}
+      placeholder={placeholder}
       data-slot="textarea"
       className={cn(
         "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20:ring-destructive/40 aria-invalid:border-destructive flex field-sizing-content min-h-16 w-full resize-none rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",

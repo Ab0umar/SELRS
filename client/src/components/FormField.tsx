@@ -21,7 +21,7 @@ export function FormField({
     <div className="space-y-2">
       <label className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
         {label}
-        {required && <span className="text-destructive ml-1">*</span>}
+        {required && <span className="text-destructive me-1">*</span>}
       </label>
       <div
         className={cn(

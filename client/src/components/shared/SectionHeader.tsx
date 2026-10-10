@@ -23,7 +23,7 @@ export function SectionHeader({
       dir="rtl"
     >
       <div className="flex min-w-0 items-center gap-2">
-        <h2 className="text-base font-black tracking-tight text-foreground sm:text-lg">
+        <h2 className="text-base font-black text-foreground sm:text-lg">
           {title}
         </h2>
         {badge}

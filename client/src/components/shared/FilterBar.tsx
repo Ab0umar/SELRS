@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface FilterOption {
   value: string;
@@ -33,7 +34,7 @@ export function FilterBar({
         dir="rtl"
       >
         {filters.map(({ value, label }) => (
-          <button
+          <Button variant="bare"
             key={value}
             type="button"
             onClick={() => onSelect(value)}
@@ -46,7 +47,7 @@ export function FilterBar({
             )}
           >
             {label}
-          </button>
+          </Button>
         ))}
       </div>
     );

@@ -74,7 +74,7 @@
     font-size: 0.825rem;
     font-weight: 700;
     color: var(--muted-foreground);
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
   }
 
   [data-operational-module="accounting"] td {
@@ -118,8 +118,6 @@
     color: var(--foreground);
   }
 
-
-
   /* Date fields must never clip dd/MM/yyyy + calendar button */
   [data-operational-module="accounting"] [data-slot="popover-trigger"],
   [data-operational-module="accounting"] button:has(svg.lucide-calendar),
@@ -127,23 +125,26 @@
     overflow: visible;
   }
 
-  [data-operational-module="accounting"] div:has(> input[inputmode="numeric"][dir="ltr"]) {
+  [data-operational-module="accounting"]
+    div:has(> input[inputmode="numeric"][dir="ltr"]) {
     min-width: 10.5rem;
     max-width: 100%;
     overflow: visible !important;
   }
-
 
   /* add-filter layout: date fields never clip */
   [data-operational-module="accounting"] label:has(input[inputmode="numeric"]) {
     min-width: 10.5rem;
   }
 
-
   /* DateInput: never let neighbors overlap the calendar button */
   [data-operational-module="accounting"] .accounting-page [data-date-input],
-  [data-operational-module="accounting"] .accounting-page span:has(> button svg.lucide-calendar),
-  [data-operational-module="accounting"] .accounting-page div.inline-flex:has(button svg.lucide-calendar) {
+  [data-operational-module="accounting"]
+    .accounting-page
+    span:has(> button svg.lucide-calendar),
+  [data-operational-module="accounting"]
+    .accounting-page
+    div.inline-flex:has(button svg.lucide-calendar) {
     flex-shrink: 0 !important;
     min-width: 11rem;
     max-width: 100%;
@@ -155,17 +156,20 @@
   [data-operational-module="salary"] label.flex.flex-col {
     gap: 0.25rem;
   }
-  [data-operational-module="salary"] .flex.w-fit.max-w-full.flex-wrap.items-end {
+  [data-operational-module="salary"]
+    .flex.w-fit.max-w-full.flex-wrap.items-end {
     gap: 0.5rem;
     align-items: flex-end;
   }
-  [data-operational-module="salary"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  [data-operational-module="salary"]
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
   [data-operational-module="salary"] textarea,
   [data-operational-module="salary"] [data-slot="input"],
   [data-operational-module="salary"] button[data-slot="select-trigger"] {
     min-height: 2.75rem;
   }
-  [data-operational-module="salary"] div.inline-flex:has(button svg.lucide-calendar) {
+  [data-operational-module="salary"]
+    div.inline-flex:has(button svg.lucide-calendar) {
     flex-shrink: 0 !important;
     min-width: 11rem;
     max-width: 100%;
@@ -180,17 +184,20 @@
   [data-operational-module="attendance"] label.flex.flex-col {
     gap: 0.25rem;
   }
-  [data-operational-module="attendance"] .flex.w-fit.max-w-full.flex-wrap.items-end {
+  [data-operational-module="attendance"]
+    .flex.w-fit.max-w-full.flex-wrap.items-end {
     gap: 0.5rem;
     align-items: flex-end;
   }
-  [data-operational-module="attendance"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  [data-operational-module="attendance"]
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
   [data-operational-module="attendance"] textarea,
   [data-operational-module="attendance"] [data-slot="input"],
   [data-operational-module="attendance"] button[data-slot="select-trigger"] {
     min-height: 2.75rem;
   }
-  [data-operational-module="attendance"] div.inline-flex:has(button svg.lucide-calendar) {
+  [data-operational-module="attendance"]
+    div.inline-flex:has(button svg.lucide-calendar) {
     flex-shrink: 0 !important;
     min-width: 11rem;
     max-width: 100%;
@@ -204,21 +211,31 @@
   /* accounting unified input spacing */
   [data-operational-module="accounting"] .accounting-page label.flex.flex-col,
   [data-operational-module="accounting"] .accounting-add-filter > label,
-  [data-operational-module="accounting"] .accounting-add-filter > div.flex.flex-col {
+  [data-operational-module="accounting"]
+    .accounting-add-filter
+    > div.flex.flex-col {
     gap: 0.25rem; /* gap-1 */
   }
   [data-operational-module="accounting"] .accounting-add-filter,
-  [data-operational-module="accounting"] .accounting-page [dir="rtl"].flex.flex-wrap.items-end {
+  [data-operational-module="accounting"]
+    .accounting-page
+    [dir="rtl"].flex.flex-wrap.items-end {
     gap: 0.5rem; /* gap-2 */
     align-items: flex-end;
   }
-  [data-operational-module="accounting"] .accounting-page input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  [data-operational-module="accounting"]
+    .accounting-page
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
   [data-operational-module="accounting"] .accounting-page textarea,
   [data-operational-module="accounting"] .accounting-page [data-slot="input"],
-  [data-operational-module="accounting"] .accounting-page button[data-slot="select-trigger"] {
+  [data-operational-module="accounting"]
+    .accounting-page
+    button[data-slot="select-trigger"] {
     min-height: 2.75rem; /* h-11 */
   }
-  [data-operational-module="accounting"] .accounting-page .flex.w-fit.max-w-full.flex-wrap.items-end {
+  [data-operational-module="accounting"]
+    .accounting-page
+    .flex.w-fit.max-w-full.flex-wrap.items-end {
     gap: 0.5rem;
   }
 
@@ -262,7 +279,7 @@
   --popover: oklch(0.998 0.004 248);
   --popover-foreground: oklch(0.24 0.024 253);
   --secondary: oklch(0.68 0.18 45);
-  --secondary-foreground: oklch(0.985 0.006 55);
+  --secondary-foreground: oklch(0.24 0.024 253);
   --muted: oklch(0.945 0.016 248);
   --muted-foreground: oklch(0.5 0.03 253);
   --accent: oklch(0.925 0.04 248);
@@ -270,7 +287,7 @@
   --destructive: oklch(0.57 0.2 27);
   --destructive-foreground: oklch(0.985 0.006 55);
   --success: oklch(0.62 0.14 154);
-  --success-foreground: oklch(0.985 0.006 145);
+  --success-foreground: oklch(0.18 0.02 154);
   --info: oklch(0.58 0.17 257);
   --info-foreground: oklch(0.985 0.006 245);
   --warning: oklch(0.73 0.15 83);
@@ -278,7 +295,7 @@
   --error: oklch(0.57 0.2 27);
   --error-foreground: oklch(0.985 0.006 55);
   --border: oklch(0.89 0.018 248);
-  --input: oklch(0.998 0.004 248);
+  --input: oklch(0.6 0.025 248);
   --ring: oklch(0.58 0.17 257);
 
   --sidebar: oklch(0.966 0.014 248);
@@ -304,27 +321,27 @@
   --card-foreground: oklch(0.97 0.004 60);
   --popover: oklch(0.22 0.01 265);
   --popover-foreground: oklch(0.97 0.004 60);
-  --primary: oklch(0.75 0.16 76);
+  --primary: oklch(0.78 0.1 257);
   --primary-foreground: oklch(0.12 0.015 265);
   --secondary: oklch(0.82 0.13 76);
   --secondary-foreground: oklch(0.12 0.015 265);
   --muted: oklch(0.22 0.01 265);
-  --muted-foreground: oklch(0.52 0.01 265);
-  --accent: oklch(0.82 0.13 76);
-  --accent-foreground: oklch(0.12 0.015 265);
-  --destructive: oklch(0.62 0.22 25);
+  --muted-foreground: oklch(0.75 0.01 265);
+  --accent: oklch(0.28 0.025 257);
+  --accent-foreground: oklch(0.97 0.004 60);
+  --destructive: oklch(0.52 0.17 25);
   --destructive-foreground: oklch(0.97 0.004 60);
   --success: oklch(0.68 0.15 145);
-  --success-foreground: oklch(0.97 0.004 60);
+  --success-foreground: oklch(0.12 0.015 265);
   --info: oklch(0.67 0.14 230);
-  --info-foreground: oklch(0.97 0.004 60);
+  --info-foreground: oklch(0.12 0.015 265);
   --warning: oklch(0.78 0.16 75);
   --warning-foreground: oklch(0.12 0.015 265);
-  --error: oklch(0.62 0.22 25);
+  --error: oklch(0.52 0.17 25);
   --error-foreground: oklch(0.97 0.004 60);
   --border: oklch(0.24 0.01 265);
-  --input: oklch(0.22 0.01 265);
-  --ring: oklch(0.75 0.16 76);
+  --input: oklch(0.6 0.01 265);
+  --ring: oklch(0.78 0.1 257);
 
   --chart-1: oklch(0.75 0.16 76);
   --chart-2: oklch(0.82 0.13 76);
@@ -334,12 +351,12 @@
 
   --sidebar: oklch(0.17 0.012 265);
   --sidebar-foreground: oklch(0.97 0.004 60);
-  --sidebar-primary: oklch(0.75 0.16 76);
+  --sidebar-primary: oklch(0.78 0.1 257);
   --sidebar-primary-foreground: oklch(0.12 0.015 265);
-  --sidebar-accent: oklch(0.82 0.13 76);
-  --sidebar-accent-foreground: oklch(0.12 0.015 265);
+  --sidebar-accent: oklch(0.28 0.025 257);
+  --sidebar-accent-foreground: oklch(0.97 0.004 60);
   --sidebar-border: oklch(0.24 0.01 265);
-  --sidebar-ring: oklch(0.75 0.16 76);
+  --sidebar-ring: oklch(0.78 0.1 257);
 
   --destructive-text: oklch(0.62 0.22 25);
   --success-text: oklch(0.68 0.15 145);
@@ -348,7 +365,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
 
   button:focus-visible,
@@ -394,7 +411,7 @@
 
   /* Slightly denser typography on desktop; mobile keeps its own scale in the mq below */
   html {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.45;
     font-family: var(--font-arabic);
     /* Block the native browser/WebView swipe-down-to-reload gesture app-wide —
@@ -440,19 +457,7 @@
       "kern" 1,
       "liga" 1,
       "tnum" 1;
-    background-image:
-      radial-gradient(
-        circle at 82% -8%,
-        oklch(0.72 0.11 257 / 0.18),
-        transparent 30%
-      ),
-      radial-gradient(
-        circle at 10% 6%,
-        oklch(0.78 0.11 55 / 0.12),
-        transparent 24%
-      ),
-      linear-gradient(180deg, oklch(0.992 0.006 248), var(--background) 58%);
-    background-attachment: fixed;
+    background-image: none;
   }
   .dark body {
     background-image: none;
@@ -565,8 +570,8 @@
     white-space: normal !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
-    font-size: clamp(0.56rem, 2.25vw, 0.72rem) !important;
-    line-height: 1.25 !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
   }
 
   table :is(input, select, textarea, button) {
@@ -682,10 +687,10 @@ img {
 
 @media (max-width: 640px) {
   html {
-    font-size: 14px;
+    font-size: 16px;
   }
   body {
-    line-height: 1.35;
+    line-height: 1.5;
   }
   h1 {
     font-size: 1.35rem;
@@ -897,18 +902,7 @@ img {
 
   .selrs-page-bg {
     background-color: var(--background);
-    background-image:
-      radial-gradient(
-        circle at 82% -8%,
-        oklch(0.72 0.11 257 / 0.18),
-        transparent 30%
-      ),
-      radial-gradient(
-        circle at 10% 6%,
-        oklch(0.78 0.11 55 / 0.12),
-        transparent 24%
-      ),
-      linear-gradient(180deg, oklch(0.992 0.006 248), var(--background) 58%);
+    background-image: none;
   }
 
   .dark .selrs-page-bg {
@@ -918,7 +912,7 @@ img {
 
   /* Sidebar panel — matches selrs.cc dashboard shell */
   .selrs-sidebar-bg {
-    background: linear-gradient(180deg, var(--sidebar), var(--card));
+    background: var(--sidebar);
   }
 
   .dark .selrs-sidebar-bg {
@@ -1037,11 +1031,11 @@ img {
 
   /* Bento One page language: every module gets a calm tiled surface without per-page rewrites. */
   .page-layout h1 {
-    @apply text-2xl font-black tracking-tight text-foreground md:text-3xl;
+    @apply text-2xl font-black text-foreground md:text-3xl;
   }
 
   .page-layout h2 {
-    @apply text-xl font-bold tracking-tight text-foreground;
+    @apply text-xl font-bold text-foreground;
   }
 
   .page-layout h3 {
@@ -1056,11 +1050,7 @@ img {
   .page-layout .rounded-xl.border.border-border.bg-card {
     border-color: color-mix(in oklch, var(--border) 86%, var(--primary));
     border-radius: 1.25rem;
-    background: linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--card) 94%, var(--primary)) 0%,
-      var(--card) 46%
-    );
+    background: var(--card);
     box-shadow: var(--bento-shadow-soft);
   }
 
@@ -1505,7 +1495,7 @@ select {
 
 .auto-air-grid input[data-slot="input"]:focus-visible {
   border-color: #003d82 !important;
-  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent) !important;
 }
 
 /* Compact inputs for Lasik tables to fit A4 */
@@ -1691,7 +1681,7 @@ select {
 
 .examination-plain-grid input[data-slot="input"]:focus-visible {
   border-color: #003d82 !important;
-  box-shadow: 0 0 0 2px rgba(0, 61, 130, 0.2) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent) !important;
 }
 
 .examination-plain-grid > .grid {
@@ -1756,7 +1746,7 @@ select {
 }
 
 .examination-page .sheet-layout input[data-slot="input"]:focus-visible {
-  border-color: var(--ring) !important;
+  border-color: #003d82 !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
 }
 
@@ -2148,30 +2138,18 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
   }
 
   [data-admin-hub] .admin-hub-hero {
-    background-image:
-      radial-gradient(
-        circle at 12% 15%,
-        color-mix(in oklch, var(--secondary) 13%, transparent),
-        transparent 24%
-      ),
-      radial-gradient(
-        circle at 90% 5%,
-        color-mix(in oklch, var(--primary) 12%, transparent),
-        transparent 28%
-      );
+    background-image: none;
   }
 
   [data-admin-hub] .admin-hub-page-surface {
     border: 1px solid var(--admin-hub-line);
     border-radius: 1.5rem;
-    background: var(--admin-hub-surface);
-    padding: clamp(1rem, 2vw, 1.75rem);
+    background: var(--card);
+    padding: 1rem;
     box-shadow: var(--admin-hub-soft-shadow);
   }
 
-  [data-admin-hub] .admin-hub-page-surface [data-slot="card"],
-  [data-admin-hub] .admin-hub-page-surface section,
-  [data-admin-hub] .admin-hub-page-surface article {
+  [data-admin-hub] .admin-hub-page-surface [data-slot="card"] {
     border-color: var(--admin-hub-line);
     border-radius: 1.15rem;
     box-shadow: 0 2px 8px oklch(0.28 0.04 257 / 0.04);
@@ -2239,9 +2217,7 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
       border-radius: 1.15rem;
     }
 
-    [data-admin-hub] .admin-hub-page-surface [data-slot="card"],
-    [data-admin-hub] .admin-hub-page-surface section,
-    [data-admin-hub] .admin-hub-page-surface article {
+    [data-admin-hub] .admin-hub-page-surface [data-slot="card"] {
       border-radius: 0.95rem;
     }
   }
@@ -3464,4 +3440,28 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
       min-width: 0;
     }
   }
+}
+
+/* Empty date/text fields print blank, not their placeholder hint (also in
+   the on-screen print preview and the cloned print document). */
+@media print {
+  .lasik-sheet input::placeholder,
+  .lasik-sheet textarea::placeholder,
+  .specialist-sheet input::placeholder,
+  .specialist-sheet textarea::placeholder,
+  .sheet-followup-body input::placeholder,
+  .sheet-followup-body textarea::placeholder {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    opacity: 0 !important;
+  }
+}
+.print-view-active input::placeholder,
+.print-view-active textarea::placeholder,
+[data-print-document] input::placeholder,
+[data-print-document] textarea::placeholder,
+[data-print-followup-body="true"] input::placeholder {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  opacity: 0 !important;
 }

@@ -9,8 +9,14 @@ function Input({
   onKeyDown,
   onCompositionStart,
   onCompositionEnd,
+  ref,
+  placeholder,
+  bare = false,
   ...props
-}: React.ComponentProps<"input">) {
+}: React.ComponentProps<"input"> & {
+  /** Keep the field's own classes and layout; only naming, IME handling and the focus ring are shared. */
+  bare?: boolean;
+}) {
   // Get dialog composition context if available (will be no-op if not inside Dialog)
   const dialogComposition = useDialogComposition();
 
@@ -51,14 +57,46 @@ function Input({
     },
   });
 
+  // Fields with only a placeholder get it as their accessible name (DESIGN.md: controls have labels).
+  const setRef = React.useCallback(
+    (el: HTMLInputElement | null) => {
+      if (
+        el &&
+        !el.getAttribute("aria-label") &&
+        !el.getAttribute("aria-labelledby") &&
+        !el.getAttribute("title") &&
+        !el.labels?.length
+      ) {
+        // Name unlinked fields from a sibling <label> in the same wrapper, then from the placeholder.
+        const wrapperLabels = el.parentElement
+          ? Array.from(el.parentElement.children).filter((c) => c.tagName === "LABEL")
+          : [];
+        const sibling =
+          el.previousElementSibling?.tagName === "LABEL"
+            ? el.previousElementSibling
+            : wrapperLabels.length === 1
+              ? wrapperLabels[0]
+              : null;
+        const text = sibling?.textContent?.trim() || placeholder;
+        if (text) el.setAttribute("aria-label", text);
+      }
+      if (typeof ref === "function") ref(el);
+      else if (ref) (ref as React.MutableRefObject<HTMLInputElement | null>).current = el;
+    },
+    [ref, placeholder],
+  );
+
   return (
     <input
+      ref={setRef}
+      placeholder={placeholder}
       type={type}
       data-slot="input"
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary text-foreground border-input h-10 sm:h-9 w-full max-w-full print:max-w-none min-w-0 rounded-md border bg-transparent px-3 py-2 sm:py-1 text-base sm:text-sm shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20:ring-destructive/40 aria-invalid:border-destructive",
+        bare && "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+        !bare && "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground text-foreground border-input min-h-11 h-11 w-full max-w-full print:max-w-none print:min-h-0 min-w-0 rounded-md border bg-card px-3 py-2 text-base sm:text-sm transition-colors outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+        !bare && "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        !bare && "aria-invalid:border-destructive",
         className,
       )}
       onCompositionStart={handleCompositionStart}

@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#003D82" />
     <meta name="color-scheme" content="light" />
     <meta
@@ -68,6 +68,12 @@
         background-size: clamp(138px, 20vw, 184px) clamp(138px, 20vw, 184px);
         will-change: clip-path, filter, opacity;
         animation: boot-lid-wipe 2.7s ease-in-out infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-splash-logo-frame::before {
+          animation: none;
+        }
       }
 
       @keyframes boot-lid-wipe {

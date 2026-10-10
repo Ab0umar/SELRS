@@ -222,7 +222,7 @@ export default function ComponentsShowcase() {
           <h2 className="text-3xl font-bold tracking-tight mb-6">
             Shadcn/ui Component Library
           </h2>
-          <Button variant="outline" size="icon" onClick={toggleTheme}>
+          <Button variant="outline" size="icon" onClick={toggleTheme} aria-label="تبديل المظهر" title="تبديل المظهر">
             {theme === "light" ? (
               <Moon className="h-5 w-5" />
             ) : (
@@ -267,7 +267,7 @@ export default function ComponentsShowcase() {
                       <p className="text-sm text-muted-foreground mb-1">
                         Secondary Foreground
                       </p>
-                      <p className="text-secondary-foreground text-lg">
+                      <p className="bg-secondary text-secondary-foreground text-lg px-3 py-1 rounded-md">
                         Secondary action text color
                       </p>
                     </div>
@@ -384,7 +384,7 @@ export default function ComponentsShowcase() {
                   <Button variant="link">Link</Button>
                   <Button size="sm">Small</Button>
                   <Button size="lg">Large</Button>
-                  <Button size="icon">
+                  <Button size="icon" aria-label="تأكيد" title="تأكيد">
                     <Check className="h-4 w-4" />
                   </Button>
                 </div>

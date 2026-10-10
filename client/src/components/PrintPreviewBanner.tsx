@@ -13,9 +13,9 @@ export default function PrintPreviewBanner({
   onPrint,
 }: PrintPreviewBannerProps) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-right print:hidden">
+    <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-start print:hidden">
       <div className="min-w-0">
-        <div className="text-xs font-bold uppercase tracking-[0.24em] text-primary">
+        <div className="text-xs font-bold uppercase text-primary">
           Print Preview
         </div>
         <div className="mt-1 text-sm font-bold text-foreground">{title}</div>
@@ -29,7 +29,7 @@ export default function PrintPreviewBanner({
         onClick={onPrint}
         className="shrink-0 bg-primary hover:bg-primary/90"
       >
-        <Printer className="ml-2 h-4 w-4" />
+        <Printer className="me-2 h-4 w-4" />
         طباعة الآن
       </Button>
     </div>

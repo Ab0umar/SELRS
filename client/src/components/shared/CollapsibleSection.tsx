@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -21,10 +22,10 @@ export function CollapsibleSection({
 
   return (
     <div className={cn("rounded-xl border bg-card overflow-hidden", className)}>
-      <button
+      <Button variant="bare"
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full px-4 py-3 text-right hover:bg-muted/30 transition-colors"
+        className="flex items-center justify-between w-full px-4 py-3 text-start hover:bg-muted/30 transition-colors"
       >
         <div className="flex items-center gap-2.5">
           {icon ? (
@@ -38,7 +39,7 @@ export function CollapsibleSection({
             open && "rotate-180",
           )}
         />
-      </button>
+      </Button>
 
       <div className={cn(open ? "block" : "hidden")}>{children}</div>
     </div>

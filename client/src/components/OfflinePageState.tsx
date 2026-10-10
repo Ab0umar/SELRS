@@ -16,21 +16,21 @@ export function OfflinePageState({
   onRetry,
 }: Props) {
   return (
-    <Card className="overflow-hidden border-warning/80 bg-gradient-to-br from-warning/10 via-background to-secondary/10 shadow-sm">
+    <Card className="overflow-hidden border-warning/80 bg-warning/10 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <div className="rounded-2xl border border-warning/50 bg-background/80 p-2 text-warning/90 shadow-sm">
+          <div className="rounded-2xl border border-warning/50 bg-background/80 p-2 text-warning-text/90 shadow-sm">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-warning/90/80">
+            <div className="text-xs font-semibold uppercase text-warning-text/90/80">
               Offline State
             </div>
-            <CardTitle className="text-base text-warning">{title}</CardTitle>
+            <CardTitle className="text-base text-warning-text">{title}</CardTitle>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
+      <CardContent className="flex flex-col gap-3 text-sm text-warning-text sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-2xl leading-6">{body}</p>
         {onRetry ? (
           <Button

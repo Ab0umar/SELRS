@@ -23,7 +23,7 @@ function readClientTsxFiles(dir = resolve(clientRoot, "src")): string {
 
 describe("color token regressions", () => {
   it("keeps primary as SELRS navy and reserves orange for secondary accents", () => {
-    const source = readClientFile("src/index.css").toLowerCase();
+    const source = readClientFile("src/styles/design-system.css").toLowerCase();
 
     expect(source).toContain("--primary: #003d82;");
     expect(source).toContain("--secondary: #ff9500;");
@@ -36,9 +36,9 @@ describe("color token regressions", () => {
     expect(source).not.toContain(
       "bg-primary text-sm font-bold text-card-foreground",
     );
-    expect(source).toContain(
-      "bg-primary text-sm font-bold text-primary-foreground",
-    );
+    expect(source).toMatch(/<Button type="submit"/);
+    const button = readClientFile("src/components/ui/button.tsx");
+    expect(button).toContain("bg-primary text-primary-foreground");
   });
 
   it("does not render a theme toggle when the product is light-theme only", () => {

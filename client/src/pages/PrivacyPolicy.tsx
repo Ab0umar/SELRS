@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
 
       <section className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">البيانات التي نجمعها</h2>
-        <ul className="list-disc space-y-1 pr-5 text-sm text-muted-foreground">
+        <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
           <li>
             معرّف صفحة Facebook ورمز الوصول الخاص بها لأغراض النشر التلقائي.
           </li>
@@ -28,7 +28,7 @@ export default function PrivacyPolicy() {
 
       <section className="mb-6">
         <h2 className="mb-2 text-lg font-semibold">كيف نستخدم البيانات</h2>
-        <ul className="list-disc space-y-1 pr-5 text-sm text-muted-foreground">
+        <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
           <li>
             نشر المحتوى الطبي التسويقي على صفحة Facebook الخاصة بالمركز فقط.
           </li>
@@ -50,7 +50,7 @@ export default function PrivacyPolicy() {
         <p className="mb-2 text-sm text-muted-foreground">
           يطلب هذا التطبيق الصلاحيات التالية:
         </p>
-        <ul className="list-disc space-y-1 pr-5 text-sm text-muted-foreground">
+        <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
           <li>
             <strong>pages_show_list</strong> — لعرض قائمة الصفحات المُدارة.
           </li>

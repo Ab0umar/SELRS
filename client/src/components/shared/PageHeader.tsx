@@ -3,6 +3,7 @@ import { Home, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 interface PageHeaderProps {
   title: string;
@@ -37,7 +38,7 @@ export function PageHeader({
       dir="rtl"
     >
       {hasTitle ? (
-        <div className="flex min-w-0 items-center gap-3">
+        <div data-page-heading className="flex min-w-0 items-center gap-3">
           {icon ? (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary [&_svg]:h-5 [&_svg]:w-5">
               {icon}
@@ -45,7 +46,7 @@ export function PageHeader({
           ) : null}
           <div className="min-w-0">
             {title ? (
-              <h1 className="truncate text-lg font-bold leading-tight text-foreground">
+              <h1 className="truncate text-2xl font-bold leading-tight text-foreground">
                 {title}
               </h1>
             ) : null}
@@ -57,13 +58,13 @@ export function PageHeader({
           </div>
         </div>
       ) : null}
-      <div className="flex items-center gap-2">
+      <div data-page-header-actions className="flex items-center gap-2">
         {actions || action ? (
-          <div className="flex items-center gap-2 shrink-0">
+          <div data-page-commands className="flex items-center gap-2 shrink-0">
             {actions || action}
           </div>
         ) : null}
-        <button
+        <Button variant="bare"
           type="button"
           aria-label="الصفحة الرئيسية"
           title="الصفحة الرئيسية"
@@ -71,8 +72,8 @@ export function PageHeader({
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted"
         >
           <Home className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
           type="button"
           aria-label="تسجيل الخروج"
           title="تسجيل الخروج"
@@ -81,7 +82,7 @@ export function PageHeader({
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted disabled:opacity-50"
         >
           <LogOut className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

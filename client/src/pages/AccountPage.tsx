@@ -38,6 +38,7 @@ export default function AccountPage() {
   return (
     <div className="w-full bg-background text-foreground" dir="rtl">
       <div className="w-full space-y-4 p-3 sm:p-5">
+        <h1 className="sr-only">الحساب</h1>
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}

@@ -85,13 +85,13 @@ export function ServicesHubNav({ active, className }: ServicesHubNavProps) {
   return (
     <div className={cn("space-y-2", className)} dir="rtl">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[13px] font-semibold uppercase text-muted-foreground">
           التنقل المتصل
         </div>
         {location === "/services-hub" ? null : (
           <Link
             href="/services-hub"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary underline-offset-4 hover:underline"
+            className="inline-flex items-center gap-1 text-[13px] font-semibold text-primary underline-offset-4 hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
             العودة إلى المركز
@@ -123,7 +123,7 @@ export function ServicesHubNav({ active, className }: ServicesHubNavProps) {
               >
                 <Icon className="h-5 w-5" />
               </div>
-              <div className="min-w-0 flex-1 text-right">
+              <div className="min-w-0 flex-1 text-start">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="truncate text-sm font-bold text-foreground">
                     {item.title}
@@ -134,7 +134,7 @@ export function ServicesHubNav({ active, className }: ServicesHubNavProps) {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
                   {item.description}
                 </p>
               </div>

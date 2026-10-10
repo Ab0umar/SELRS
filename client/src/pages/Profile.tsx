@@ -178,10 +178,10 @@ export default function Profile({
             {/* Header & Account Identity Capsule */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-border/60">
               <div>
-                <div className="mb-1.5 text-[10px] font-black tracking-[0.16em] text-primary">
+                <div className="mb-1.5 text-[13px] font-black text-primary">
                   USER ACCOUNT & PROFILE
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-black text-foreground">
                   الحساب والملف الشخصي
                 </h2>
                 <p className="text-xs sm:text-sm font-bold text-muted-foreground mt-1">
@@ -212,7 +212,7 @@ export default function Profile({
             <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-[0_6px_20px_rgba(42,79,154,0.05)]">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex size-14 sm:size-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-xl sm:text-2xl font-black text-white shadow-md shadow-blue-900/15">
+                  <div className="flex size-14 sm:size-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-xl sm:text-2xl font-black text-primary-foreground shadow-md shadow-blue-900/15">
                     {initials}
                   </div>
                   <div>
@@ -232,7 +232,7 @@ export default function Profile({
 
                 <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="size-2 rounded-full bg-emerald-500" />
                     الحساب نشط
                   </span>
                 </div>
@@ -292,16 +292,16 @@ export default function Profile({
                     <Label className="text-xs font-bold text-foreground">
                       الاسم الكامل
                     </Label>
-                    <span className="text-[10px] font-bold text-muted-foreground">
+                    <span className="text-[13px] font-bold text-muted-foreground">
                       يُحدد بواسطة إدارة النظام
                     </span>
                   </div>
                   <div className="relative">
-                    <UserIcon className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-                    <Input
+                    <UserIcon className="size-4 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2" />
+                    <Input aria-label="الاسم الكامل"
                       value={name}
                       readOnly
-                      className="pr-9 bg-muted/40 border-border/60 text-muted-foreground rounded-xl text-xs sm:text-sm h-10"
+                      className="ps-9 bg-muted/40 border-border/60 text-muted-foreground rounded-xl text-xs sm:text-sm h-10"
                     />
                   </div>
                 </div>
@@ -311,14 +311,14 @@ export default function Profile({
                     اسم المستخدم (تسجيل الدخول)
                   </Label>
                   <div className="relative">
-                    <span className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 font-bold text-xs">
+                    <span className="size-4 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2 font-bold text-xs">
                       @
                     </span>
-                    <Input
+                    <Input aria-label="اسم المستخدم…"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="اسم المستخدم…"
-                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="ps-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-ring/20 transition shadow-2xs"
                     />
                   </div>
                 </div>
@@ -328,13 +328,13 @@ export default function Profile({
                     البريد الإلكتروني
                   </Label>
                   <div className="relative">
-                    <Mail className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-                    <Input
+                    <Mail className="size-4 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2" />
+                    <Input aria-label="example@selrs.cc"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="example@selrs.cc"
-                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="ps-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-ring/20 transition shadow-2xs"
                     />
                   </div>
                 </div>
@@ -343,7 +343,7 @@ export default function Profile({
                   <Button
                     onClick={onSaveProfile}
                     disabled={saving}
-                    className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-md shadow-blue-900/10 text-xs gap-1.5"
+                    className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-black/10 text-xs gap-1.5"
                   >
                     {saving ? "...جاري الحفظ" : "حفظ التعديلات"}
                   </Button>
@@ -370,13 +370,13 @@ export default function Profile({
                     كلمة المرور الحالية
                   </Label>
                   <div className="relative">
-                    <Lock className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-                    <Input
+                    <Lock className="size-4 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2" />
+                    <Input aria-label="••••••••"
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="ps-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-ring/20 transition shadow-2xs"
                     />
                   </div>
                 </div>
@@ -386,13 +386,13 @@ export default function Profile({
                     كلمة المرور الجديدة
                   </Label>
                   <div className="relative">
-                    <KeyRound className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-                    <Input
+                    <KeyRound className="size-4 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2" />
+                    <Input aria-label="••••••••"
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="ps-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-ring/20 transition shadow-2xs"
                     />
                   </div>
                 </div>
@@ -402,13 +402,13 @@ export default function Profile({
                     تأكيد كلمة المرور الجديدة
                   </Label>
                   <div className="relative">
-                    <CheckCircle2 className="size-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-                    <Input
+                    <CheckCircle2 className="size-4 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2" />
+                    <Input aria-label="••••••••"
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pr-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-blue-100 transition shadow-2xs"
+                      className="ps-9 rounded-xl border-border/60 text-xs sm:text-sm h-10 focus:border-primary focus:ring-2 focus:ring-ring/20 transition shadow-2xs"
                     />
                   </div>
                 </div>
@@ -417,7 +417,7 @@ export default function Profile({
                   <Button
                     onClick={onChangePassword}
                     disabled={changePasswordMutation.isPending}
-                    className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-md shadow-blue-900/10 text-xs gap-1.5"
+                    className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-black/10 text-xs gap-1.5"
                   >
                     {changePasswordMutation.isPending
                       ? "...جاري التحديث"
@@ -444,12 +444,12 @@ export default function Profile({
                 {(["light", "dark"] as ThemePref[]).map((option) => {
                   const isSelected = pref === option;
                   return (
-                    <button
+                    <Button variant="bare"
                       key={option}
                       type="button"
                       onClick={() => setPref(option)}
                       className={cn(
-                        "flex items-center gap-3 p-4 rounded-xl border transition-all text-right cursor-pointer",
+                        "flex items-center gap-3 p-4 rounded-xl border transition-all text-start cursor-pointer",
                         isSelected
                           ? "border-primary bg-primary/10 shadow-sm"
                           : "border-border/60 bg-card hover:bg-muted/40",
@@ -473,7 +473,7 @@ export default function Profile({
                         <div className="text-xs font-bold text-foreground">
                           {option === "light" ? "المظهر الفاتح" : "المظهر الداكن"}
                         </div>
-                        <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                        <div className="text-[13px] text-muted-foreground font-semibold mt-0.5">
                           {option === "light"
                             ? "مناسب للإضاءة الطبيعية والنهار"
                             : "مريح للعين في الإضاءة الخافتة"}
@@ -482,7 +482,7 @@ export default function Profile({
                       {isSelected && (
                         <Check className="size-4 text-primary" />
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>

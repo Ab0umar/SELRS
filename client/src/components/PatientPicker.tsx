@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Search, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type PatientOption = {
   id: number;
@@ -149,7 +150,7 @@ export default function PatientPicker({
             </div>
           )}
           {filteredResults.map((patient) => (
-            <button
+            <Button variant="bare"
               key={patient.id}
               type="button"
               className={`w-full px-3 py-3 transition-colors hover:bg-accent ${isEnglish ? "text-left" : "text-right"}`}
@@ -180,7 +181,7 @@ export default function PatientPicker({
                   {formatPhone(patient.phone)}
                 </div>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       )}

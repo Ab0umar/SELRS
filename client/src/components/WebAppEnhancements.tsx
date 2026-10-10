@@ -471,14 +471,14 @@ function AppNotificationPanel() {
     if (kind === "info")
       return "border-primary/20 bg-primary/5 text-foreground";
     if (kind === "warning")
-      return "border-warning/40 bg-warning/10 text-warning";
+      return "border-warning/40 bg-warning/10 text-warning-text";
     if (kind === "error")
       return "border-destructive/30 bg-destructive/10 text-destructive";
     return "border-border bg-muted text-muted-foreground";
   };
 
   return (
-    <div className="fixed top-4 right-4 z-[950] w-80 max-w-[95vw] space-y-2 rounded-xl p-2 backdrop-blur print:hidden">
+    <div className="fixed top-4 start-4 z-[950] w-80 max-w-[95vw] space-y-2 rounded-xl p-2 backdrop-blur print:hidden">
       {recent.map((item) => (
         <article
           key={item.id}
@@ -486,9 +486,9 @@ function AppNotificationPanel() {
             item.kind,
           )}`}
         >
-          <div className="flex items-center justify-between text-xs uppercase tracking-wide text-opacity-80">
+          <div className="flex items-center justify-between text-xs uppercase text-opacity-80">
             <span>{roleLabel(item)}</span>
-            <span className="whitespace-nowrap text-[10px] font-semibold">
+            <span className="whitespace-nowrap text-[13px] font-semibold">
               {item.createdAt
                 ? new Date(item.createdAt).toLocaleTimeString("en-EG", {
                     hour: "2-digit",
