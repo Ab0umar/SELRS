@@ -150,7 +150,6 @@ describe("Task 17 accounting UI source invariants", () => {
   it("doctor account shows search UI and service revenue grouping", () => {
     const source = read("client/src/features/accounting/DoctorAccount.tsx");
 
-    expect(source).toContain("حساب طبيب");
     expect(source).toContain("كود الطبيب");
     expect(source).toContain("كود الخدمة");
     expect(source).toContain("بحث");

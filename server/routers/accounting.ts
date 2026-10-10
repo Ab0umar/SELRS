@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { matchAdvanceEmployee } from "../services/accounting/advanceEmployee";
 import { z } from "zod";
 import { execFile as execFileCb } from "child_process";
 import { promisify } from "node:util";
@@ -1244,8 +1245,8 @@ export const accountingRouter = router({
     .input(
       z.object({
         txDate: z.string(),
-        income: z.number().min(0).default(0),
-        expense: z.number().min(0).default(0),
+        income: z.number().finite().default(0),
+        expense: z.number().finite().default(0),
         notes: z.string().max(500).default(""),
         remarks: z.string().max(500).default(""),
       }),
@@ -1295,8 +1296,8 @@ export const accountingRouter = router({
       z.object({
         id: z.number().int(),
         txDate: z.string(),
-        income: z.number().min(0).default(0),
-        expense: z.number().min(0).default(0),
+        income: z.number().finite().default(0),
+        expense: z.number().finite().default(0),
         notes: z.string().max(500).default(""),
         remarks: z.string().max(500).default(""),
       }),
@@ -1899,6 +1900,10 @@ async function resolveMirror(
   const date = txDate;
 
   if (table === "accAdvances") {
+    const [employeeRows] = (await db.execute(sql.raw(
+      "SELECT name, NULL AS empCd FROM accEmployees WHERE name IS NOT NULL UNION ALL SELECT full_name AS name, emp_cd AS empCd FROM attendance_employees WHERE full_name IS NOT NULL",
+    ))) as [Array<{ name: string; empCd: string | null }>];
+    const employee = matchAdvanceEmployee(notes, employeeRows);
     const advance = isOut ? sq(mirrorAmount) : sq(null); // expense = سلفة خارجة
     const repayment = isOut ? sq(null) : sq(mirrorAmount); // income  = سداد داخل
     const [lastRes] = (await db.execute(
@@ -1910,7 +1915,7 @@ async function resolveMirror(
       Number((lastRes as any[])[0]?.t ?? 0) +
       (isOut ? mirrorAmount : 0) -
       (isOut ? 0 : mirrorAmount);
-    insertSql = `INSERT INTO accAdvances (txDate, advance, repayment, notes, total) VALUES (${sq(date)}, ${advance}, ${repayment}, ${notesVal}, ${sq(runningTotal)})`;
+    insertSql = `INSERT INTO accAdvances (txDate, advance, repayment, notes, total, employee, emp_cd) VALUES (${sq(date)}, ${advance}, ${repayment}, ${notesVal}, ${sq(runningTotal)}, ${sq(employee?.name ?? null)}, ${sq(employee?.empCd ?? null)})`;
   } else if (table === "accHome" || table === "accInstapay") {
     const inAmt = isOut ? 0 : mirrorAmount;
     const outAmt = isOut ? mirrorAmount : 0;

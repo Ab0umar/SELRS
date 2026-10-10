@@ -42,6 +42,7 @@ type ServiceInput = {
 
 type LimitInput = {
   limit?: number;
+  offset?: number;
 };
 
 export type DashboardSummarySqlInput = SectionInput & { date?: string };
@@ -422,7 +423,14 @@ export function buildReceiptsInquirySql(
     params.trTy = input.trTy;
   }
 
-  const top = topClause(input.limit, params);
+  const offset = Math.max(0, input.offset ?? 0);
+  const top = offset === 0 ? topClause(input.limit, params) : "";
+  if (offset > 0) {
+    params.offset = offset;
+    params.limit = input.limit ?? 501;
+  }
+  const pagination =
+    offset > 0 ? " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY" : "";
   const sql = `
 SELECT DISTINCT ${top}
   h.SEC_CD AS secCd,
@@ -441,7 +449,7 @@ SELECT DISTINCT ${top}
   h.ENTEREDBY AS enteredBy
 ${receiptsInquiryTables(patientFiltered)}
 ${andWhere(where)}
-ORDER BY trDate DESC, trNo DESC`.trim();
+ORDER BY trDate DESC, trNo DESC${pagination}`.trim();
 
   return { sql, params: cleanParams(params) };
 }

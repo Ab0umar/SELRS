@@ -181,6 +181,7 @@ export const receiptsInquiryInputSchema = z.object({
   trNo: codeStringSchema.optional(),
   trTy: z.number().int().optional(),
   limit: z.number().int().positive().optional(),
+  offset: z.number().int().nonnegative().optional(),
 });
 
 export const receiptsInquiryOutputSchema = z.array(receiptHeaderSchema);
