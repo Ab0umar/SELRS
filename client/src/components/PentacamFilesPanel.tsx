@@ -134,7 +134,7 @@ export default function PentacamFilesPanel({
             <div className="overflow-hidden rounded-[1.5rem] border border-border bg-foreground/95 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
               <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                 <div className="min-w-0">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-foreground/65">
+                  <div className="text-[13px] font-semibold uppercase text-primary-foreground/65">
                     Preview
                   </div>
                   <div className="mt-1 truncate text-sm font-semibold text-primary-foreground">
@@ -207,9 +207,9 @@ export default function PentacamFilesPanel({
                       </Badge>
                     </div>
 
-                    <button
+                    <Button variant="bare"
                       type="button"
-                      className="group block w-full text-left"
+                      className="group block w-full text-end"
                       onClick={() => setPreviewIndex(index)}
                     >
                       <PentacamThumbnail
@@ -218,16 +218,16 @@ export default function PentacamFilesPanel({
                         className="h-36 w-full rounded-xl border border-border bg-muted/30 object-cover"
                         loading={index < (compact ? 6 : 12) ? "eager" : "lazy"}
                       />
-                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-primary-foreground opacity-90 transition-opacity group-hover:opacity-100">
+                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-foreground/85 px-2.5 py-1 text-[13px] font-semibold text-primary-foreground opacity-90 transition-opacity group-hover:opacity-100">
                         <Eye className="h-3.5 w-3.5" />
                         معاينة
                       </div>
-                    </button>
+                    </Button>
 
                     <div className="text-xs font-medium break-all text-foreground">
                       {row.fileName}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-[13px] text-muted-foreground">
                       {formatDate(row.capturedAt || row.importedAt)}
                     </div>
                     <div className="flex flex-wrap gap-2">

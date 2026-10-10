@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChevronDown,
   ChevronUp,
-  FolderCog,
   Printer,
   RefreshCw,
   ScanSearch,
@@ -18,6 +17,7 @@ import AuthenticatedImage, {
 } from "@/components/AuthenticatedImage";
 import PentacamThumbnail from "@/components/PentacamThumbnail";
 import { DateInput } from "@/components/ui/date-input";
+import { Input } from "@/components/ui/input";
 
 type LocalExportItem = {
   name: string;
@@ -616,45 +616,36 @@ export default function LocalPentacamExportsPanel({
   }, [nameFilter, dateFrom, dateTo]);
 
   return (
-    <Card className="overflow-hidden border-border/80 bg-background/95 shadow-sm">
-      <CardHeader className="space-y-3 pb-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary text-primary-foreground">
-              <FolderCog className="h-3.5 w-3.5" />
-              Pentacam Intake
-            </div>
-            <div>
-              <CardTitle className="text-base text-foreground">
-                Local Pentacam Exports
-              </CardTitle>
-              <div className="mt-1 text-sm text-muted-foreground">
-                Review and import Pentacam images from the local export folder.
-              </div>
-            </div>
+    <Card className="exports-panel overflow-hidden border-border/80 bg-background/95 shadow-sm">
+      <CardHeader className="exports-heading space-y-3 pb-3">
+        <div className="exports-heading-main flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <CardTitle className="text-base text-foreground">
+              الصور المحلية
+            </CardTitle>
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-full border border-border bg-muted px-3 py-1">
-                Total files: {items.length}
+                الملفات: {items.length}
               </span>
               <span className="rounded-full border border-border bg-muted px-3 py-1">
-                Filtered: {filteredItems.length}
+                نتائج البحث: {filteredItems.length}
               </span>
               <span className="rounded-full border border-border bg-muted px-3 py-1">
-                Selected: {selectedNames.length}
+                المحدد: {selectedNames.length}
               </span>
               <span className="rounded-full border border-border bg-muted px-3 py-1">
-                Patient:{" "}
-                {targetPatientId > 0 ? `#${targetPatientId}` : "not selected"}
+                المريض:{" "}
+                {targetPatientId > 0 ? `#${targetPatientId}` : "غير محدد"}
               </span>
             </div>
           </div>
-          <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-2xl border border-border bg-background/95 p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="exports-actions sticky top-2 z-20 flex flex-col gap-2 rounded-2xl border border-border bg-background/95 p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setExpanded((prev) => !prev)}
-              title={expanded ? "Collapse" : "Expand"}
+              title={expanded ? "طي الصور" : "عرض الصور"}
               className="gap-2 border-border bg-background"
             >
               {expanded ? (
@@ -662,7 +653,7 @@ export default function LocalPentacamExportsPanel({
               ) : (
                 <ChevronDown className="h-4 w-4" />
               )}
-              {expanded ? "Collapse" : "Expand"}
+              {expanded ? "طي الصور" : "عرض الصور"}
             </Button>
             <Button
               type="button"
@@ -673,7 +664,7 @@ export default function LocalPentacamExportsPanel({
               className="gap-2 border-border bg-background"
             >
               <Printer className="h-4 w-4" />
-              Print Selected ({selectedItems.length})
+              طباعة المحدد ({selectedItems.length})
             </Button>
             <Button
               type="button"
@@ -685,8 +676,8 @@ export default function LocalPentacamExportsPanel({
             >
               <ScanSearch className="h-4 w-4" />
               {autoImportMutation.isPending
-                ? "Auto-linking…"
-                : `Auto-wire ALL (${items.length})`}
+                ? "جارٍ الربط…"
+                : `ربط الكل (${items.length})`}
             </Button>
             <Button
               type="button"
@@ -698,19 +689,18 @@ export default function LocalPentacamExportsPanel({
             >
               <ScanSearch className="h-4 w-4" />
               {autoImportMutation.isPending
-                ? "Auto-linking…"
-                : `Auto-wire filtered (${filteredItems.length})`}
+                ? "جارٍ الربط…"
+                : `ربط نتائج البحث (${filteredItems.length})`}
             </Button>
             <Button
               type="button"
               size="sm"
               onClick={importSelected}
               disabled={!canImport}
-              className="bg-foreground text-primary-foreground hover:bg-muted/80"
             >
               {importMutation.isPending
-                ? "Saving…"
-                : `Save Selected (${selectedNames.length})`}
+                ? "جارٍ الحفظ…"
+                : `حفظ المحدد (${selectedNames.length})`}
             </Button>
             <Button
               type="button"
@@ -723,7 +713,7 @@ export default function LocalPentacamExportsPanel({
               <RefreshCw
                 className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
               />
-              Refresh
+              تحديث
             </Button>
           </div>
         </div>
@@ -731,24 +721,27 @@ export default function LocalPentacamExportsPanel({
       {expanded ? (
         <CardContent>
           {targetPatientId <= 0 ? (
-            <div className="mb-3 rounded-2xl border border-warning/50 bg-warning/10/80 px-4 py-3 text-sm text-warning">
-              Select a patient above, then choose images and click import.
+            <div className="mb-3 rounded-2xl border border-warning/50 bg-warning/10/80 px-4 py-3 text-sm text-warning-text">
+              اختر المريض لربط الصور المحددة به.
             </div>
           ) : null}
           <div className="mb-4 grid grid-cols-1 gap-2 rounded-2xl border border-border bg-muted/70 p-3 sm:grid-cols-3">
-            <input
+            <Input bare
               type="text"
               value={nameFilter}
               onChange={(e) => setNameFilter(e.target.value)}
-              placeholder="Filter by name/code/file"
+              placeholder="الاسم أو الكود أو اسم الملف"
+              aria-label="البحث في الصور"
               className="h-9 rounded border px-2 text-sm"
             />
             <DateInput
+              aria-label="من تاريخ"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="h-9 rounded border px-2 text-sm"
             />
             <DateInput
+              aria-label="إلى تاريخ"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="h-9 rounded border px-2 text-sm"
@@ -766,7 +759,7 @@ export default function LocalPentacamExportsPanel({
                   setSelected(next);
                 }}
               >
-                Select visible
+                تحديد المعروض
               </Button>
               <Button
                 type="button"
@@ -774,11 +767,11 @@ export default function LocalPentacamExportsPanel({
                 size="sm"
                 onClick={() => setSelected({})}
               >
-                Clear
+                إلغاء التحديد
               </Button>
-              <div className="text-xs text-muted-foreground sm:ml-auto">
-                Showing {Math.min(visibleCount, filteredItems.length)} of{" "}
-                {filteredItems.length} (total {items.length})
+              <div className="text-xs text-muted-foreground sm:me-auto">
+                عرض {Math.min(visibleCount, filteredItems.length)} من{" "}
+                {filteredItems.length} (الإجمالي {items.length})
               </div>
             </div>
           ) : null}
@@ -798,7 +791,7 @@ export default function LocalPentacamExportsPanel({
                 Unmatched Suggestions ({unmatchedSuggestions.length}) - Manual
                 linking only
               </div>
-              <div className="space-y-2 max-h-72 overflow-auto pr-1">
+              <div className="space-y-2 max-h-72 overflow-auto ps-1">
                 {unmatchedSuggestions.map((entry) => (
                   <div
                     key={entry.fileName}
@@ -808,7 +801,7 @@ export default function LocalPentacamExportsPanel({
                       {entry.fileName}
                     </div>
                     <div className="flex items-center gap-2">
-                      <input
+                      <Input bare aria-label="Search patient Arabic/English"
                         type="text"
                         value={manualSearchTermByFile[entry.fileName] ?? ""}
                         onChange={(e) =>
@@ -860,10 +853,13 @@ export default function LocalPentacamExportsPanel({
               </div>
             </div>
           ) : null}
-          <div className="mb-4 space-y-2 rounded-2xl border border-border bg-muted/70 p-3">
+          <details className="exports-audit mb-4 space-y-2 rounded-md border border-border p-3">
+            <summary className="cursor-pointer text-sm">
+              مراجعة الروابط غير المتطابقة ({mismatchedLinks.length})
+            </summary>
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-medium">
-                Mismatched Existing Links ({mismatchedLinks.length})
+                الروابط غير المتطابقة ({mismatchedLinks.length})
               </div>
               <div className="flex gap-2">
                 <Button
@@ -873,7 +869,7 @@ export default function LocalPentacamExportsPanel({
                   onClick={loadMismatchedLinks}
                   disabled={mismatchLoading}
                 >
-                  {mismatchLoading ? "Scanning…" : "Scan mismatches"}
+                  {mismatchLoading ? "جارٍ الفحص…" : "فحص الروابط"}
                 </Button>
                 <Button
                   type="button"
@@ -883,13 +879,13 @@ export default function LocalPentacamExportsPanel({
                   disabled={unlinkMismatchedMutation.isPending}
                 >
                   {unlinkMismatchedMutation.isPending
-                    ? "Unlinking…"
-                    : "Unlink obvious"}
+                    ? "جارٍ إلغاء الربط…"
+                    : "إلغاء الروابط الخاطئة المؤكدة"}
                 </Button>
               </div>
             </div>
             {mismatchedLinks.length > 0 ? (
-              <div className="space-y-2 max-h-72 overflow-auto pr-1">
+              <div className="space-y-2 max-h-72 overflow-auto ps-1">
                 {mismatchedLinks.map((row) => (
                   <div
                     key={`mismatch-${row.resultId}`}
@@ -938,7 +934,7 @@ export default function LocalPentacamExportsPanel({
                         </Button>
                       </div>
                     ) : (
-                      <div className="text-warning">
+                      <div className="text-warning-text">
                         Ambiguous: manual decision required.
                       </div>
                     )}
@@ -947,10 +943,10 @@ export default function LocalPentacamExportsPanel({
               </div>
             ) : (
               <div className="text-xs text-muted-foreground">
-                Run scan to load mismatched linked files.
+                لم يتم فحص الروابط بعد.
               </div>
             )}
-          </div>
+          </details>
           {hasItems ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {visibleItems.map((item, index) => (
@@ -969,7 +965,7 @@ export default function LocalPentacamExportsPanel({
                         }))
                       }
                     />
-                    Select
+                    تحديد
                   </label>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" asChild>
@@ -979,7 +975,7 @@ export default function LocalPentacamExportsPanel({
                         rel="noreferrer"
                         download={item.name}
                       >
-                        Download
+                        تنزيل
                       </a>
                     </Button>
                     <Button
@@ -1010,10 +1006,10 @@ export default function LocalPentacamExportsPanel({
                     />
                   </a>
                   <div className="text-xs break-all">{item.name}</div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-[13px] text-muted-foreground">
                     {formatDate(item.mtime)}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-[13px] text-muted-foreground">
                     {formatSize(item.size)}
                   </div>
                 </div>
@@ -1028,7 +1024,7 @@ export default function LocalPentacamExportsPanel({
                 size="sm"
                 onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
               >
-                Load more
+                عرض المزيد
               </Button>
             </div>
           ) : null}

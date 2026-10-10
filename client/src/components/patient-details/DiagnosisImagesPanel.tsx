@@ -300,7 +300,7 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
                 <Eye className="size-5 text-white" />
               </div>
               <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1">
-                <p className="text-[10px] text-white truncate" dir="auto">
+                <p className="text-[13px] text-white truncate" dir="auto">
                   {img.fileName}
                 </p>
               </div>
@@ -314,9 +314,9 @@ export function DiagnosisImagesPanel({ patientId, readOnly = false }: Props) {
         onOpenChange={(open) => !open && closeEditor()}
       >
         <DialogContent dir="rtl" className="sm:max-w-lg">
-          <DialogHeader className="text-right">
+          <DialogHeader className="text-start">
             <DialogTitle>تعديل الصورة</DialogTitle>
-            <DialogDescription className="text-right">
+            <DialogDescription className="text-start">
               حرّك الصورة بحرية، كبّر أو صغّر، ودوّرها قبل الحفظ.
             </DialogDescription>
           </DialogHeader>

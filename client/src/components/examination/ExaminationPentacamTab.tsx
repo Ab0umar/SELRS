@@ -52,6 +52,7 @@ export default function ExaminationPentacamTab({
                     <Label className="text-xs">K1/K2</Label>
                     <div className="grid grid-cols-2 gap-1">
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.od.k1}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -65,6 +66,7 @@ export default function ExaminationPentacamTab({
                         className={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.od.k2}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -83,6 +85,7 @@ export default function ExaminationPentacamTab({
                     <Label className="text-xs">AX</Label>
                     <div className="grid grid-cols-2 gap-1">
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.od.ax1}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -96,6 +99,7 @@ export default function ExaminationPentacamTab({
                         className={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.od.ax2}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -113,6 +117,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Thinnest Point</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.od.thinnest}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -132,6 +137,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Corneal Apex</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.od.apex}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -148,6 +154,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Residual Stroma</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.od.residual}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -167,6 +174,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Planned TTT</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.od.ttt}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -183,6 +191,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Ablation</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.od.ablation}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -213,6 +222,7 @@ export default function ExaminationPentacamTab({
                     <Label className="text-xs">K1/K2</Label>
                     <div className="grid grid-cols-2 gap-1">
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.os.k1}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -226,6 +236,7 @@ export default function ExaminationPentacamTab({
                         className={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.os.k2}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -244,6 +255,7 @@ export default function ExaminationPentacamTab({
                     <Label className="text-xs">AX</Label>
                     <div className="grid grid-cols-2 gap-1">
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.os.ax1}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -257,6 +269,7 @@ export default function ExaminationPentacamTab({
                         className={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={examData.pentacam.os.ax2}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -274,6 +287,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Thinnest Point</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.os.thinnest}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -293,6 +307,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Corneal Apex</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.os.apex}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -309,6 +324,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Residual Stroma</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.os.residual}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -328,6 +344,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Planned TTT</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.os.ttt}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -344,6 +361,7 @@ export default function ExaminationPentacamTab({
                   <div className="grid grid-cols-[60px_1fr] items-center gap-2">
                     <Label className="text-xs">Ablation</Label>
                     <Input
+                      aria-label="قيمة القياس"
                       value={examData.pentacam.os.ablation}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -369,7 +387,6 @@ export default function ExaminationPentacamTab({
               className="max-w-4xl mx-auto mt-2 overflow-x-auto grid grid-cols-2 gap-4"
               dir="ltr"
             >
-              {/* RT (Right Eye) */}
               <div className="border rounded-lg overflow-hidden">
                 <div className="bg-primary text-primary-foreground font-bold p-2 text-center">
                   RT فحص القرنية
@@ -380,6 +397,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold w-24">K1</td>
                       <td className="border p-2">
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.od.k1}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -402,6 +420,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2" rowSpan={2}>
                         <div className="flex flex-col h-full">
                           <Input
+                            aria-label="قيمة القياس"
                             value={examData.pentacam.od.ax1}
                             onChange={(e) =>
                               setExamData((prev) => ({
@@ -419,6 +438,7 @@ export default function ExaminationPentacamTab({
                           />
                           <div className="border-t"></div>
                           <Input
+                            aria-label="قيمة القياس"
                             value={examData.pentacam.od.ax2}
                             onChange={(e) =>
                               setExamData((prev) => ({
@@ -441,6 +461,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">K2</td>
                       <td className="border p-2">
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.od.k2}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -459,6 +480,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Thinnest</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.od.thinnest}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -480,6 +502,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Apex</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.od.apex}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -501,6 +524,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Residual</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.od.residual}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -522,6 +546,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">TTT</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.od.ttt}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -543,6 +568,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Ablation</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.od.ablation}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -564,7 +590,6 @@ export default function ExaminationPentacamTab({
                 </table>
               </div>
 
-              {/* LT (Left Eye) */}
               <div className="border rounded-lg overflow-hidden">
                 <div className="bg-primary text-primary-foreground font-bold p-2 text-center">
                   LT فحص القرنية
@@ -575,6 +600,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold w-24">K1</td>
                       <td className="border p-2">
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.os.k1}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -597,6 +623,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2" rowSpan={2}>
                         <div className="flex flex-col h-full">
                           <Input
+                            aria-label="قيمة القياس"
                             value={examData.pentacam.os.ax1}
                             onChange={(e) =>
                               setExamData((prev) => ({
@@ -614,6 +641,7 @@ export default function ExaminationPentacamTab({
                           />
                           <div className="border-t"></div>
                           <Input
+                            aria-label="قيمة القياس"
                             value={examData.pentacam.os.ax2}
                             onChange={(e) =>
                               setExamData((prev) => ({
@@ -636,6 +664,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">K2</td>
                       <td className="border p-2">
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.os.k2}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -654,6 +683,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Thinnest</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.os.thinnest}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -675,6 +705,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Apex</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.os.apex}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -696,6 +727,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Residual</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.os.residual}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -717,6 +749,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">TTT</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.os.ttt}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -738,6 +771,7 @@ export default function ExaminationPentacamTab({
                       <td className="border p-2 font-semibold">Ablation</td>
                       <td className="border p-2" colSpan={3}>
                         <Input
+                          aria-label="قيمة القياس"
                           value={examData.pentacam.os.ablation}
                           onChange={(e) =>
                             setExamData((prev) => ({
@@ -762,19 +796,20 @@ export default function ExaminationPentacamTab({
           )}
 
           <div className="mt-2">
-            <div className="space-y-1 pr-6 flex flex-col items-end w-full">
+            <div className="space-y-1 ps-6 flex flex-col items-end w-full">
               <Label
                 htmlFor="technician-signature"
-                className="font-bold text-right"
+                className="font-bold text-start"
               >
                 توقيع الفني
               </Label>
               <Input
+                aria-label="قيمة القياس"
                 id="technician-signature"
                 name="technician-signature"
                 value={technicianSignature}
                 onChange={(e) => setTechnicianSignature(e.target.value)}
-                className="text-right w-full max-w-sm ms-auto"
+                className="text-start w-full max-w-sm ms-auto"
               />
             </div>
           </div>

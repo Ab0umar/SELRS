@@ -28,22 +28,25 @@ import AdminPentacamFailed from "@/features/admin/AdminPentacamFailed";
 import AdminPentacamDuplicates from "@/features/admin/AdminPentacamDuplicates";
 
 export type PentacamTabKey =
-  | "dashboard"
-  | "sheet"
-  | "linking"
-  | "failed"
-  | "duplicates";
+  "dashboard" | "sheet" | "linking" | "failed" | "duplicates";
 
 export type PentacamPageProps = {
   defaultTab?: PentacamTabKey;
   embeddedInHub?: boolean;
+  navigationHidden?: boolean;
+  activeView?: PentacamTabKey;
+  onViewChange?: (tab: PentacamTabKey) => void;
 };
 
 export default function PentacamPage({
   defaultTab = "sheet",
   embeddedInHub = false,
+  navigationHidden = false,
+  activeView,
+  onViewChange,
 }: PentacamPageProps = {}) {
   const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [location, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
 
@@ -53,8 +56,7 @@ export default function PentacamPage({
   const [, hubLinkingParams] = useRoute("/admin-hub/pentacam-linking/:id");
 
   const routePatientId = useMemo(() => {
-    const raw =
-      sheetsParams?.id ?? adminParams?.id ?? hubLinkingParams?.id;
+    const raw = sheetsParams?.id ?? adminParams?.id ?? hubLinkingParams?.id;
     if (raw) {
       const num = Number(raw);
       if (Number.isFinite(num) && num > 0) return num;
@@ -77,7 +79,8 @@ export default function PentacamPage({
     try {
       const sp = new URLSearchParams(window.location.search);
       const tabParam = sp.get("tab");
-      if (tabParam === "results" || tabParam === "dashboard") return "dashboard";
+      if (tabParam === "results" || tabParam === "dashboard")
+        return "dashboard";
       if (
         tabParam &&
         ["sheet", "linking", "failed", "duplicates"].includes(tabParam)
@@ -98,15 +101,23 @@ export default function PentacamPage({
     return defaultTab;
   }, [location, defaultTab]);
 
-  const [activeTab, setActiveTab] = useState<PentacamTabKey>(initialTab);
+  const isAdminTab = (tab: PentacamTabKey) =>
+    tab === "linking" || tab === "failed" || tab === "duplicates";
+  const visibleInitialTab =
+    !isAdmin && isAdminTab(initialTab) ? "sheet" : initialTab;
+  const [activeTab, setActiveTab] = useState<PentacamTabKey>(visibleInitialTab);
   const [sharedPatientId, setSharedPatientId] = useState<number | undefined>(
     routePatientId,
   );
+  useEffect(() => {
+    if (activeView && (isAdmin || !isAdminTab(activeView)))
+      setActiveTab(activeView);
+  }, [activeView, isAdmin]);
 
   // Keep activeTab in sync if initialTab changes (e.g. navigation via route)
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
+    setActiveTab(visibleInitialTab);
+  }, [visibleInitialTab]);
 
   // Keep sharedPatientId in sync with route params
   useEffect(() => {
@@ -118,7 +129,9 @@ export default function PentacamPage({
   // Handle Tab Switch and update URL search param without full reload
   const handleTabChange = (val: string) => {
     const nextTab = val as PentacamTabKey;
+    if (!isAdmin && isAdminTab(nextTab)) return;
     setActiveTab(nextTab);
+    onViewChange?.(nextTab);
     try {
       const url = new URL(window.location.href);
       url.searchParams.set("tab", nextTab);
@@ -129,30 +142,36 @@ export default function PentacamPage({
   };
 
   // Queries for live counters
-  const statsQuery = trpc.medical.getPentacamDashboardStats.useQuery(undefined, {
-    enabled: isAuthenticated,
-    refetchOnWindowFocus: false,
-    staleTime: 30000,
-  });
+  const statsQuery = trpc.medical.getPentacamDashboardStats.useQuery(
+    undefined,
+    {
+      enabled: isAuthenticated,
+      refetchOnWindowFocus: false,
+      staleTime: 30000,
+    },
+  );
 
   const failedQuery = trpc.medical.listFailedPentacamFiles.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && isAdmin,
     refetchOnWindowFocus: false,
     staleTime: 30000,
   });
 
-  const dupsQuery = trpc.medical.findDuplicateSrv100Uploads.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === "admin",
-    refetchOnWindowFocus: false,
-    staleTime: 30000,
-  });
+  const dupsQuery = trpc.medical.findDuplicateSrv100Uploads.useQuery(
+    undefined,
+    {
+      enabled: isAuthenticated && user?.role === "admin",
+      refetchOnWindowFocus: false,
+      staleTime: 30000,
+    },
+  );
 
   const handleRefreshAll = async () => {
-    await Promise.all([
-      statsQuery.refetch(),
-      failedQuery.refetch(),
-      dupsQuery.refetch(),
-    ]);
+    const refreshes: Promise<unknown>[] = [statsQuery.refetch()];
+    if (isAdmin) {
+      refreshes.push(failedQuery.refetch(), dupsQuery.refetch());
+    }
+    await Promise.all(refreshes);
   };
 
   const isRefreshing =
@@ -162,8 +181,6 @@ export default function PentacamPage({
   const examsTodayCount = statsQuery.data?.examsToday ?? 0;
   const failedCount = failedQuery.data?.length ?? 0;
   const dupsCount = dupsQuery.data?.length ?? 0;
-
-  const isAdmin = user?.role === "admin";
 
   return (
     <div dir="rtl" className="w-full bg-background text-foreground">
@@ -185,19 +202,22 @@ export default function PentacamPage({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs"
+                    className="h-11 gap-1.5 text-xs"
                     onClick={handleRefreshAll}
                     disabled={isRefreshing}
                   >
                     <RefreshCw
-                      className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        isRefreshing && "animate-spin",
+                      )}
                     />
                     <span>تحديث</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-11 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => goBack()}
                   >
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -209,13 +229,18 @@ export default function PentacamPage({
           </div>
         )}
 
-        {/* 5 Tabs for the 5 Pentacam pages in the repo */}
+        {/* Views for Pentacam results and the administrative file workflows. */}
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="w-full space-y-4"
         >
-          <div className="overflow-x-auto pb-1 [scrollbar-width:none]">
+          <div
+            className={cn(
+              "overflow-x-auto pb-1 [scrollbar-width:none]",
+              navigationHidden && "pentacam-navigation",
+            )}
+          >
             <TabsList className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1">
               {/* Tab 1: النتائج */}
               <TabsTrigger
@@ -227,7 +252,7 @@ export default function PentacamPage({
                 {examsTodayCount > 0 && (
                   <Badge
                     variant="secondary"
-                    className="mr-1 h-5 rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary"
+                    className="ms-1 h-5 rounded-full bg-primary/10 px-1.5 text-[13px] font-semibold text-primary"
                   >
                     {examsTodayCount} اليوم
                   </Badge>
@@ -235,47 +260,53 @@ export default function PentacamPage({
               </TabsTrigger>
 
               {/* Tab 2: اخطاء الرفع */}
-              <TabsTrigger
-                value="failed"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-destructive data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
-                <span>اخطاء الرفع</span>
-                {failedCount > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="mr-1 h-5 rounded-full px-1.5 text-[10px] font-semibold"
-                  >
-                    {failedCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger
+                  value="failed"
+                  className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-destructive data-[state=active]:shadow-sm sm:text-sm"
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+                  <span>أخطاء الرفع</span>
+                  {failedCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="ms-1 h-5 rounded-full px-1.5 text-[13px] font-semibold"
+                    >
+                      {failedCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )}
 
               {/* Tab 3: المكرر */}
-              <TabsTrigger
-                value="duplicates"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-amber-600 data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <Copy className="h-4 w-4 shrink-0 text-amber-600" />
-                <span>المكرر</span>
-                {dupsCount > 0 && (
-                  <Badge
-                    variant="outline"
-                    className="mr-1 h-5 rounded-full border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300"
-                  >
-                    {dupsCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger
+                  value="duplicates"
+                  className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-amber-600 data-[state=active]:shadow-sm sm:text-sm"
+                >
+                  <Copy className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span>المكرر</span>
+                  {dupsCount > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="ms-1 h-5 rounded-full border-amber-500/40 bg-amber-500/10 px-1.5 text-[13px] font-semibold text-amber-700 dark:text-amber-300"
+                    >
+                      {dupsCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )}
 
               {/* Tab 4: ربط البنتاكام */}
-              <TabsTrigger
-                value="linking"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <Link2 className="h-4 w-4 shrink-0 text-primary" />
-                <span>ربط البنتاكام</span>
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger
+                  value="linking"
+                  className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
+                >
+                  <Link2 className="h-4 w-4 shrink-0 text-primary" />
+                  <span>ربط البنتاكام</span>
+                </TabsTrigger>
+              )}
 
               {/* Tab 5: شيت البنتاكام */}
               <TabsTrigger
@@ -301,42 +332,62 @@ export default function PentacamPage({
           </TabsContent>
 
           {/* Content: Tab 2 - Pentacam Linking */}
-          <TabsContent value="linking" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
-              <AdminPentacamLinking
-                embedded
-                initialPatientId={sharedPatientId}
-                onSelectPatient={(p) => setSharedPatientId(p?.id ?? undefined)}
-                onSwitchTab={(tab) => handleTabChange(tab)}
-              />
-            </div>
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent
+              value="linking"
+              className="m-0 focus-visible:outline-none"
+            >
+              <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
+                <AdminPentacamLinking
+                  embedded
+                  initialPatientId={sharedPatientId}
+                  onSelectPatient={(p) =>
+                    setSharedPatientId(p?.id ?? undefined)
+                  }
+                  onSwitchTab={(tab) => handleTabChange(tab)}
+                />
+              </div>
+            </TabsContent>
+          )}
 
           {/* Content: Tab 3 - Duplicate Pentacam Files */}
-          <TabsContent value="duplicates" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <div className="mb-4 space-y-1">
-                <h2 className="text-lg font-bold text-foreground">
-                  إدارة وفحص ملفات البنتاكام المكررة
-                </h2>
-                <p className="text-xs text-muted-foreground sm:text-sm">
-                  تنظيف ومطابقة السجلات المكررة في التخزين وقاعدة البيانات بأمان
-                  مع الاحتفاظ بالملف الأصلي.
-                </p>
+          {isAdmin && (
+            <TabsContent
+              value="duplicates"
+              className="m-0 focus-visible:outline-none"
+            >
+              <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+                <div className="mb-4 space-y-1">
+                  <h2 className="text-lg font-bold text-foreground">
+                    إدارة وفحص ملفات البنتاكام المكررة
+                  </h2>
+                  <p className="text-xs text-muted-foreground sm:text-sm">
+                    مراجعة السجلات المكررة في التخزين وقاعدة البيانات مع
+                    الاحتفاظ بالملف الأصلي.
+                  </p>
+                </div>
+                <AdminPentacamDuplicates />
               </div>
-              <AdminPentacamDuplicates />
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* Content: Tab 4 - Failed Pentacam Uploads */}
-          <TabsContent value="failed" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
-              <AdminPentacamFailed hideDuplicates />
-            </div>
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent
+              value="failed"
+              className="m-0 focus-visible:outline-none"
+            >
+              <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
+                <AdminPentacamFailed hideDuplicates />
+              </div>
+            </TabsContent>
+          )}
 
           {/* Content: Tab 5 - Results Dashboard */}
-          <TabsContent value="dashboard" className="m-0 focus-visible:outline-none">
+          <TabsContent
+            value="dashboard"
+            className="m-0 focus-visible:outline-none"
+          >
             <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
               <PentacamResultsDashboard hidePageChrome />
             </div>

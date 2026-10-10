@@ -7,6 +7,7 @@ import {
   medicalReferenceClass,
   type MedicalReference,
 } from "@/lib/medical-reference";
+import { Button } from "@/components/ui/button";
 
 interface PentacamTabProps {
   pentacamRows: Array<{
@@ -64,6 +65,29 @@ export function PentacamTab({ pentacamRows, pentacamFiles }: PentacamTabProps) {
     "بنتاكام Ablation",
   ]);
 
+  const referenceState = refsQuery.isLoading ? (
+    <p
+      className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary"
+      role="status"
+    >
+      جارٍ تحميل الحدود المرجعية لـ Pentacam…
+    </p>
+  ) : refsQuery.isError ? (
+    <div
+      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+      role="alert"
+    >
+      <span>تعذر تحميل الحدود المرجعية؛ ستظل القياسات المعروضة متاحة.</span>
+      <Button variant="bare"
+        type="button"
+        className="rounded-md border border-destructive/50 px-3 py-1.5 text-sm font-medium"
+        onClick={() => void refsQuery.refetch()}
+      >
+        إعادة المحاولة
+      </Button>
+    </div>
+  ) : null;
+
   const RefCell = ({
     value,
     reference,
@@ -92,20 +116,21 @@ export function PentacamTab({ pentacamRows, pentacamFiles }: PentacamTabProps) {
 
   return (
     <div className="space-y-6">
+      {referenceState}
       <Card className="border-border/80 bg-background/92 shadow-sm" dir="ltr">
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle>Pentacam HR Analysis</CardTitle>
-            <span className="font-mono text-[10px] text-muted-foreground">
+            <span className="font-mono text-[13px] text-muted-foreground">
               pentacamresults
             </span>
           </div>
         </CardHeader>
         <CardContent>
           {pentacamRows.length ? (
-            <div className="overflow-x-auto rounded-[1.25rem] border border-border bg-background">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded-[1.25rem] border border-border bg-background">
               <table className="w-full min-w-[720px] border-collapse text-center">
-                <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <thead className="bg-muted text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="border px-3 py-3">Eye</th>
                     <th className="border px-3 py-3">K1</th>
@@ -148,14 +173,14 @@ export function PentacamTab({ pentacamRows, pentacamFiles }: PentacamTabProps) {
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle>Corneal Topography</CardTitle>
-            <span className="font-mono text-[10px] text-muted-foreground">
+            <span className="font-mono text-[13px] text-muted-foreground">
               pentacamresults
             </span>
           </div>
         </CardHeader>
         <CardContent>
           {pentacamRows.length ? (
-            <div className="overflow-x-auto rounded-lg border border-border">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[520px] border-collapse text-center text-sm">
                 <thead className="bg-muted text-xs text-muted-foreground">
                   <tr>
@@ -193,7 +218,7 @@ export function PentacamTab({ pentacamRows, pentacamFiles }: PentacamTabProps) {
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle>Diagnostic Imaging</CardTitle>
-            <span className="font-mono text-[10px] text-muted-foreground">
+            <span className="font-mono text-[13px] text-muted-foreground">
               srv100_uploads / S3
             </span>
           </div>
@@ -223,7 +248,7 @@ export function PentacamTab({ pentacamRows, pentacamFiles }: PentacamTabProps) {
                     <p className="truncate text-xs font-medium" dir="auto">
                       {file.sourceFileName || "صورة بنتاكام"}
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       {file.capturedAt || file.importedAt
                         ? new Date(
                             file.capturedAt || file.importedAt || "",

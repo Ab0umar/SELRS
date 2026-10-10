@@ -484,7 +484,7 @@ export default function PentacamResultsDashboard({
         <div className="flex items-center justify-between gap-2">
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[13px] font-semibold",
               entry.row.eye === "OD"
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary/15 text-primary",
@@ -494,16 +494,16 @@ export default function PentacamResultsDashboard({
           </span>
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              "rounded-full px-2 py-0.5 text-[13px] font-semibold",
               entry.row.quality === "accepted"
                 ? "bg-success/15 text-success"
-                : "bg-warning/20 text-warning/90",
+                : "bg-warning/20 text-warning-text/90",
             )}
           >
             {entry.row.quality === "accepted" ? "مقبول" : "تكرار"}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
           <div className="flex items-center justify-between gap-2">
             <span>K1</span>
             <span className="font-mono text-foreground">
@@ -608,7 +608,7 @@ export default function PentacamResultsDashboard({
 
         {/* Tab Selector */}
         <div className="mb-4 flex border-b border-border">
-          <button
+          <Button variant="bare"
             type="button"
             onClick={() => setViewMode("list")}
             className={cn(
@@ -619,8 +619,8 @@ export default function PentacamResultsDashboard({
             )}
           >
             قائمة السجلات ({listQuery.isLoading ? "…" : (activeFilter === "all" ? groupedPatientRows.length : rowsWithAttention.length)})
-          </button>
-          <button
+          </Button>
+          <Button variant="bare"
             type="button"
             onClick={() => setViewMode("review")}
             className={cn(
@@ -640,7 +640,7 @@ export default function PentacamResultsDashboard({
                 0
               </span>
             )}
-          </button>
+          </Button>
         </div>
 
         {viewMode === "list" ? (
@@ -720,7 +720,7 @@ export default function PentacamResultsDashboard({
                   <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-medium text-primary">
+                        <p className="text-[13px] font-medium text-primary">
                           اليوم
                         </p>
                         <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -729,9 +729,9 @@ export default function PentacamResultsDashboard({
                             : (statsQuery.data?.examsToday ?? 0)}
                         </p>
                       </div>
-                      <div className="text-left">
-                        <Activity className="mr-auto h-4 w-4 text-primary" />
-                        <p className="mt-1 text-[11px] text-primary/70">
+                      <div className="text-end">
+                        <Activity className="ms-auto h-4 w-4 text-primary" />
+                        <p className="mt-1 text-[13px] text-primary/70">
                           {statsQuery.isLoading
                             ? "..."
                             : `${Math.abs(trendDelta)} مقارنة بالأمس`}
@@ -741,7 +741,7 @@ export default function PentacamResultsDashboard({
                   </div>
 
                   <div className="rounded-lg border border-success/20 bg-success/5 px-3 py-2.5">
-                    <p className="text-[11px] font-medium text-success">
+                    <p className="text-[13px] font-medium text-success">
                       مقبولة
                     </p>
                     <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -750,7 +750,7 @@ export default function PentacamResultsDashboard({
                   </div>
 
                   <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5">
-                    <p className="text-[11px] font-medium text-warning-foreground">
+                    <p className="text-[13px] font-medium text-warning-foreground">
                       تحتاج تكرار
                     </p>
                     <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -759,7 +759,7 @@ export default function PentacamResultsDashboard({
                   </div>
 
                   <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
-                    <p className="text-[11px] font-medium text-destructive">
+                    <p className="text-[13px] font-medium text-destructive">
                       شاذة
                     </p>
                     <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -774,7 +774,7 @@ export default function PentacamResultsDashboard({
                       <Label className="text-xs text-muted-foreground">
                         رقم السجل
                       </Label>
-                      <Input
+                      <Input aria-label="pentacam result id"
                         dir="ltr"
                         className="h-9 text-sm"
                         placeholder="pentacam result id"
@@ -789,7 +789,7 @@ export default function PentacamResultsDashboard({
                       <Label className="text-xs text-muted-foreground">
                         رقم الزيارة
                       </Label>
-                      <Input
+                      <Input aria-label="visit id"
                         dir="ltr"
                         className="h-9 text-sm"
                         placeholder="visit id"
@@ -804,7 +804,7 @@ export default function PentacamResultsDashboard({
                       <Label className="text-xs text-muted-foreground">
                         المريض
                       </Label>
-                      <Input
+                      <Input aria-label="patient id"
                         dir="ltr"
                         className="h-9 text-sm"
                         placeholder="patient id"
@@ -843,10 +843,10 @@ export default function PentacamResultsDashboard({
             </div>
 
             <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1100px] text-right text-sm">
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+                <table className="w-full min-w-[1100px] text-start text-sm">
                   <thead>
-                    <tr className="border-b bg-primary/10 text-[11px] font-semibold text-primary sm:text-xs">
+                    <tr className="border-b bg-primary/10 text-[13px] font-semibold text-primary sm:text-xs">
                       <th className="p-2.5 whitespace-nowrap">المريض</th>
                       <th className="p-2.5 whitespace-nowrap">الطبيب</th>
                       <th className="p-2.5 whitespace-nowrap">التاريخ</th>
@@ -919,7 +919,7 @@ export default function PentacamResultsDashboard({
                                       group.attention.severity === "normal"
                                         ? "bg-success/15 text-success"
                                         : group.attention.severity === "repeat"
-                                          ? "bg-warning/20 text-warning/90"
+                                          ? "bg-warning/20 text-warning-text/90"
                                           : "bg-destructive/10 text-destructive",
                                     )}
                                   >
@@ -1024,7 +1024,7 @@ export default function PentacamResultsDashboard({
                                       "rounded-full px-2 py-0.5 text-xs font-semibold",
                                       row.quality === "accepted"
                                         ? "bg-success/15 text-success"
-                                        : "bg-warning/20 text-warning/90",
+                                        : "bg-warning/20 text-warning-text/90",
                                     )}
                                   >
                                     {row.quality === "accepted"
@@ -1099,7 +1099,7 @@ export default function PentacamResultsDashboard({
 
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5">
-                  <p className="text-[11px] font-medium text-warning-foreground">
+                  <p className="text-[13px] font-medium text-warning-foreground">
                     تكرار
                   </p>
                   <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -1107,7 +1107,7 @@ export default function PentacamResultsDashboard({
                   </p>
                 </div>
                 <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5">
-                  <p className="text-[11px] font-medium text-destructive">
+                  <p className="text-[13px] font-medium text-destructive">
                     شاذة
                   </p>
                   <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
@@ -1158,7 +1158,7 @@ export default function PentacamResultsDashboard({
                           <div className="flex shrink-0 items-center gap-1.5">
                             <span
                               className={cn(
-                                "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                "rounded-full px-2 py-0.5 text-[13px] font-semibold",
                                 attention.severity === "abnormal"
                                   ? "bg-destructive/15 text-destructive"
                                   : "bg-warning/20 text-warning-foreground",
@@ -1168,7 +1168,7 @@ export default function PentacamResultsDashboard({
                                 ? "شاذة"
                                 : "تكرار"}
                             </span>
-                            <button
+                            <Button variant="bare"
                               type="button"
                               aria-label="تجاهل التنبيه"
                               onClick={() =>
@@ -1179,7 +1179,7 @@ export default function PentacamResultsDashboard({
                               className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
                             >
                               <CheckCircle2 className="h-4 w-4" />
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
@@ -1189,10 +1189,10 @@ export default function PentacamResultsDashboard({
                               <span
                                 key={`${row.resultId}-${row.eye}-${reason}`}
                                 className={cn(
-                                  "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                                  "rounded-full px-2 py-0.5 text-[13px] font-medium",
                                   attention.severity === "abnormal"
                                     ? "bg-destructive/10 text-destructive"
-                                    : "bg-warning/20 text-warning/90",
+                                    : "bg-warning/20 text-warning-text/90",
                                 )}
                               >
                                 {formatReasonBadge(reason)}
