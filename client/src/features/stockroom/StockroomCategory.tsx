@@ -288,11 +288,11 @@ export default function StockroomCategory() {
         <TabsContent value="inventory" className="space-y-4">
           <div className="flex items-center justify-between gap-2">
             <div className="relative w-full max-w-sm">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ابحث بالاسم أو الكود…" className="pr-9" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input aria-label="ابحث بالاسم أو الكود…" placeholder="ابحث بالاسم أو الكود…" className="ps-9" />
             </div>
             <div className="flex gap-2">
-              <Button
+              <Button aria-label="تحديث" title="تحديث"
                 onClick={() => itemsQuery.refetch()}
                 variant="outline"
                 size="icon"
@@ -308,7 +308,7 @@ export default function StockroomCategory() {
               <Button
                 onClick={() => setIsNewItemDialogOpen(true)}
                 variant="default"
-                className="bg-primary text-white"
+                className="bg-primary text-primary-foreground"
               >
                 <PlusCircle className="me-2 h-4 w-4" />
                 تعريف صنف جديد
@@ -320,13 +320,13 @@ export default function StockroomCategory() {
             <Table>
               <TableHeader className="bg-primary/5">
                 <TableRow>
-                  <TableHead className="text-right">الكود</TableHead>
-                  <TableHead className="text-right">اسم الصنف</TableHead>
-                  <TableHead className="text-right">الكمية</TableHead>
-                  <TableHead className="text-right">السعر</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-right">تاريخ الصلاحية</TableHead>
-                  <TableHead className="text-left">الإجراءات</TableHead>
+                  <TableHead className="text-start">الكود</TableHead>
+                  <TableHead className="text-start">اسم الصنف</TableHead>
+                  <TableHead className="text-start">الكمية</TableHead>
+                  <TableHead className="text-start">السعر</TableHead>
+                  <TableHead className="text-start">الحالة</TableHead>
+                  <TableHead className="text-start">تاريخ الصلاحية</TableHead>
+                  <TableHead className="text-end">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -353,20 +353,20 @@ export default function StockroomCategory() {
                           <TableCell>
                             <Skeleton className="h-4 w-24" />
                           </TableCell>
-                          <TableCell className="text-left">
-                            <Skeleton className="h-8 w-24 ml-auto" />
+                          <TableCell className="text-end">
+                            <Skeleton className="h-8 w-24 me-auto" />
                           </TableCell>
                         </TableRow>
                       ))
                   : itemsQuery.data?.map((item: any) => (
                       <TableRow key={item.id} className="hover:bg-primary/5">
-                        <TableCell className="font-mono text-xs text-muted-foreground text-right">
+                        <TableCell className="font-mono text-xs text-muted-foreground text-start">
                           {item.itemCode || "-"}
                         </TableCell>
-                        <TableCell className="font-medium text-foreground text-right">
+                        <TableCell className="font-medium text-foreground text-start">
                           {item.name}
                         </TableCell>
-                        <TableCell className="font-semibold text-foreground text-right">
+                        <TableCell className="font-semibold text-foreground text-start">
                           {item.quantity}
                         </TableCell>
                         <TableCell className="font-semibold text-foreground text-right" dir="ltr">
@@ -374,7 +374,7 @@ export default function StockroomCategory() {
                             ? `${Number(item.unitPrice).toLocaleString("ar-EG")} ج.م`
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-start">
                           <Badge
                             variant="outline"
                             className={cn(
@@ -385,14 +385,14 @@ export default function StockroomCategory() {
                             {item.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-right">
+                        <TableCell className="text-muted-foreground text-start">
                           {item.expiryDate
                             ? new Date(item.expiryDate).toLocaleDateString(
                                 "ar-EG",
                               )
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-left">
+                        <TableCell className="text-end">
                           <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="outline"
@@ -413,7 +413,7 @@ export default function StockroomCategory() {
                               <ArrowUpFromLine className="me-1.5 h-3.5 w-3.5" />
                               صرف
                             </Button>
-                            <Button
+                            <Button aria-label="تعديل الصنف" title="تعديل الصنف"
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
@@ -465,7 +465,7 @@ export default function StockroomCategory() {
                 إذن استلام كمية
               </h2>
               <div className="flex bg-muted/50 p-1 rounded-md w-full sm:w-[240px]">
-                <button
+                <Button variant="bare"
                   type="button"
                   className={cn(
                     "flex-1 text-sm py-1.5 rounded-sm transition-colors",
@@ -476,8 +476,8 @@ export default function StockroomCategory() {
                   onClick={() => setIsReceivingNewItem(false)}
                 >
                   صنف مسجل
-                </button>
-                <button
+                </Button>
+                <Button variant="bare"
                   type="button"
                   className={cn(
                     "flex-1 text-sm py-1.5 rounded-sm transition-colors",
@@ -488,7 +488,7 @@ export default function StockroomCategory() {
                   onClick={() => setIsReceivingNewItem(true)}
                 >
                   صنف جديد
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -515,7 +515,7 @@ export default function StockroomCategory() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
                   <div className="space-y-2 sm:col-span-2">
                     <Label>اسم الصنف الجديد</Label>
-                    <Input
+                    <Input aria-label="أدخل اسم الصنف…"
                       value={receiveNewName}
                       onChange={(e) => setReceiveNewName(e.target.value)}
                       placeholder="أدخل اسم الصنف…"
@@ -524,7 +524,7 @@ export default function StockroomCategory() {
                   </div>
                   <div className="space-y-2">
                     <Label>الكود (اختياري)</Label>
-                    <Input
+                    <Input aria-label="EDXXX"
                       value={receiveNewCode}
                       onChange={(e) => setReceiveNewCode(e.target.value)}
                       placeholder="EDXXX"
@@ -533,7 +533,7 @@ export default function StockroomCategory() {
                   </div>
                   <div className="space-y-2">
                     <Label>المُورِّد (اختياري)</Label>
-                    <Input
+                    <Input aria-label="اسم الشركة…"
                       value={receiveNewSupplier}
                       onChange={(e) => setReceiveNewSupplier(e.target.value)}
                       placeholder="اسم الشركة…"
@@ -561,7 +561,7 @@ export default function StockroomCategory() {
                 </div>
                 <div className="space-y-2">
                   <Label>الكمية المستلمة</Label>
-                  <Input
+                  <Input aria-label="أدخل الكمية…"
                     type="number"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
@@ -570,7 +570,7 @@ export default function StockroomCategory() {
                 </div>
                 <div className="space-y-2">
                   <Label>سعر الوحدة (ج.م)</Label>
-                  <Input
+                  <Input aria-label="أدخل سعر الوحدة…"
                     type="number"
                     value={unitPrice}
                     onChange={(e) => setUnitPrice(e.target.value)}
@@ -599,7 +599,7 @@ export default function StockroomCategory() {
                 </Button>
                 <Button
                   onClick={handleSubmitAdd}
-                  className="bg-primary text-white"
+                  className="bg-primary text-primary-foreground"
                   disabled={receiveMutation.isPending}
                 >
                   {receiveMutation.isPending
@@ -648,7 +648,7 @@ export default function StockroomCategory() {
 
               <div className="space-y-2">
                 <Label>الكمية المنصرفة</Label>
-                <Input
+                <Input aria-label="أدخل الكمية المطلوبة للصرف…"
                   type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
@@ -658,7 +658,7 @@ export default function StockroomCategory() {
 
               <div className="space-y-2">
                 <Label>اسم الموظف / المستلم</Label>
-                <Input
+                <Input aria-label="أدخل اسم الموظف أو القسم المستلم…"
                   value={employeeName}
                   onChange={(e) => setEmployeeName(e.target.value)}
                   placeholder="أدخل اسم الموظف أو القسم المستلم…"
@@ -720,39 +720,39 @@ export default function StockroomCategory() {
           {editingItem && (
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">الاسم</Label>
+                <Label className="text-start">الاسم</Label>
                 <Input
                   value={editingItem.name}
                   onChange={(e) =>
                     setEditingItem({ ...editingItem, name: e.target.value })
                   }
-                  className="col-span-3 text-right"
+                  className="col-span-3 text-start"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">الكود</Label>
-                <Input
+                <Label className="text-start">الكود</Label>
+                <Input aria-label="اختياري"
                   value={editingItem.itemCode}
                   onChange={(e) =>
                     setEditingItem({ ...editingItem, itemCode: e.target.value })
                   }
-                  className="col-span-3 font-mono text-right"
+                  className="col-span-3 font-mono text-start"
                   placeholder="اختياري"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">المورد</Label>
-                <Input
+                <Label className="text-start">المورد</Label>
+                <Input aria-label="اختياري"
                   value={editingItem.supplier}
                   onChange={(e) =>
                     setEditingItem({ ...editingItem, supplier: e.target.value })
                   }
-                  className="col-span-3 text-right"
+                  className="col-span-3 text-start"
                   placeholder="اختياري"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">الصلاحية</Label>
+                <Label className="text-start">الصلاحية</Label>
                 <DateInput
                   value={editingItem.expiryDate}
                   onChange={(e) =>
@@ -765,8 +765,8 @@ export default function StockroomCategory() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">السعر</Label>
-                <Input
+                <Label className="text-start">السعر</Label>
+                <Input aria-label="اتركه فارغًا بدون تغيير"
                   type="number"
                   min="0"
                   step="0.01"
@@ -778,7 +778,7 @@ export default function StockroomCategory() {
                       unitPrice: e.target.value,
                     })
                   }
-                  className="col-span-3 text-right"
+                  className="col-span-3 text-start"
                   placeholder="اتركه فارغًا بدون تغيير"
                 />
               </div>
@@ -821,43 +821,43 @@ export default function StockroomCategory() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+              <Label htmlFor="name" className="text-start">
                 اسم الصنف
               </Label>
               <Input
                 id="name"
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
-                className="col-span-3 text-right"
+                className="col-span-3 text-start"
                 placeholder="أدخل اسم الصنف…"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="code" className="text-right">
+              <Label htmlFor="code" className="text-start">
                 الكود (SKU)
               </Label>
               <Input
                 id="code"
                 value={newItemCode}
                 onChange={(e) => setNewItemCode(e.target.value)}
-                className="col-span-3 font-mono text-right"
+                className="col-span-3 font-mono text-start"
                 placeholder="EDXXX"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="supplier" className="text-right">
+              <Label htmlFor="supplier" className="text-start">
                 المُورِّد
               </Label>
               <Input
                 id="supplier"
                 value={newItemSupplier}
                 onChange={(e) => setNewItemSupplier(e.target.value)}
-                className="col-span-3 text-right"
+                className="col-span-3 text-start"
                 placeholder="اسم الشركة المُورِّدة…"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">الصلاحية</Label>
+              <Label className="text-start">الصلاحية</Label>
               <div className="col-span-3">
                 <DateInput
                   value={newItemExpiry}
@@ -873,7 +873,7 @@ export default function StockroomCategory() {
             </DialogClose>
             <Button
               onClick={handleCreateNewItem}
-              className="bg-primary text-white"
+              className="bg-primary text-primary-foreground"
               disabled={createItemMutation.isPending}
             >
               {createItemMutation.isPending ? "جاري الحفظ…" : "حفظ الصنف"}

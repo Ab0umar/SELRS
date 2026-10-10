@@ -112,6 +112,8 @@ export default function StockroomReports() {
           <div className="flex gap-2">
             <Button
               onClick={() => reportsQuery.refetch()}
+              aria-label="تحديث"
+              title="تحديث"
               variant="outline"
               size="icon"
               disabled={reportsQuery.isFetching}
@@ -123,7 +125,7 @@ export default function StockroomReports() {
                 )}
               />
             </Button>
-            <Button variant="default" className="bg-primary text-white">
+            <Button variant="default" className="bg-primary text-primary-foreground">
               <Download className="me-2 h-4 w-4" />
               تصدير (Excel)
             </Button>

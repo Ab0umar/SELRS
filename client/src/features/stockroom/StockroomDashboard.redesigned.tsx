@@ -57,12 +57,13 @@ export default function StockroomDashboard() {
   return (
     <div className="space-y-6" dir="rtl">
       <PageHeader
+        className="mobile-compact-header"
         title="المخزن"
         subtitle="مركز رئيسي لإدارة جميع مخزون المركز"
         icon={<Archive className="h-5 w-5 text-primary" />}
         action={
           <div className="flex gap-2">
-            <Button
+            <Button aria-label="تحديث" title="تحديث"
               onClick={() => reportsQuery.refetch()}
               variant="outline"
               size="icon"
@@ -95,7 +96,7 @@ export default function StockroomDashboard() {
 
           return (
             <Link key={category.href} href={category.href}>
-              <div className="group h-full bg-card border border-border/60 rounded-2xl p-5 shadow-xs hover:border-border hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between">
+              <div className="mobile-stock-category group h-full bg-card border border-border/60 rounded-2xl p-5 shadow-xs hover:border-border hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between">
                 <div className="flex items-start justify-between pb-3 border-b border-border/40">
                   <span className="text-xs font-black text-foreground transition-colors group-hover:text-foreground">
                     {category.title}
@@ -112,16 +113,16 @@ export default function StockroomDashboard() {
                     </div>
                   ) : (
                     <>
-                      <div className="text-xl font-black text-foreground font-mono tracking-tight">{total} صنف</div>
-                      <div className="mt-2 space-y-1 text-[10px] font-semibold">
+                      <div className="text-xl font-black text-foreground font-mono">{total} صنف</div>
+                      <div className="mt-2 space-y-1 text-[13px] font-semibold">
                         {low > 0 && (
-                          <p className="text-warning">
+                          <p className="text-warning-text">
                             ⚡ {low} أصناف قليلة المخزون
                           </p>
                         )}
                         {out > 0 && (
-                          <p className="text-destructive font-black animate-pulse">
-                            ⚠️ {out} أصناف نفذت من المخزون
+                          <p className="text-destructive font-black">
+                            {out} أصناف نفذت من المخزون
                           </p>
                         )}
                         {low === 0 && out === 0 && total > 0 && (
