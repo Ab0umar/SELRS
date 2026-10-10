@@ -72,7 +72,7 @@ export default function PatientsHubShell() {
     // actually guards the page being rendered.
     if (!canAccess(permissionPathForHubLink(location))) {
       return (
-        <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
+        <div className="rounded-xl border border-border/80 bg-card p-6 text-start text-sm text-muted-foreground">
           لا تملك صلاحية فتح هذه الصفحة.
         </div>
       );
@@ -84,7 +84,7 @@ export default function PatientsHubShell() {
     if (location === "/patients-hub/visits") return <Redirect to="/visits" />;
 
     return (
-      <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
+      <div className="rounded-xl border border-border/80 bg-card p-6 text-start text-sm text-muted-foreground">
         المسار غير معروف. ارجع إلى{" "}
         <Link
           href="/patients-hub"
@@ -119,8 +119,8 @@ export default function PatientsHubShell() {
             >
               <CardContent className="flex h-full flex-col gap-4 p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-1 text-right">
-                    <h3 className="font-black text-base tracking-tight">
+                  <div className="min-w-0 flex-1 space-y-1 text-start">
+                    <h3 className="font-black text-base">
                       {mod.title}
                     </h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
@@ -179,7 +179,8 @@ export default function PatientsHubShell() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-right"
+      data-module-content-start
+      className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-0 pb-10 text-start"
       dir="rtl"
     >
       {!isHubHome ? (

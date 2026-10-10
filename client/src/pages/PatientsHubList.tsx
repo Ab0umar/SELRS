@@ -158,7 +158,7 @@ const HubPatientCard = memo(function HubPatientCard({
             {serviceLabel(patient.__serviceCodeSingle ?? patient.serviceType)}
           </span>
         </div>
-        <div className="text-sm font-bold text-foreground text-right">
+        <div className="text-sm font-bold text-foreground text-start">
           {patient.fullName || "—"}
         </div>
         <div className="grid grid-cols-2 gap-0.5 rounded-xl border border-border/50 bg-muted/30 px-2.5 py-2 text-xs">
@@ -167,15 +167,15 @@ const HubPatientCard = memo(function HubPatientCard({
             {code}
           </span>
           <span className="text-muted-foreground">نوع الخدمة</span>
-          <span className="text-right text-foreground">
+          <span className="text-start text-foreground">
             {serviceLabel(patient.__serviceCodeSingle ?? patient.serviceType)}
           </span>
           <span className="text-muted-foreground">الطبيب</span>
-          <span className="text-right text-foreground">
+          <span className="text-start text-foreground">
             {patient.treatingDoctor || "—"}
           </span>
           <span className="text-muted-foreground">الوقت</span>
-          <span className="text-right text-foreground">
+          <span className="text-start text-foreground">
             {formatVisitDateTime(patient)}
           </span>
           {patient.phone ? (
@@ -211,7 +211,7 @@ const HubPatientRow = memo(function HubPatientRow({
       <td className="py-1.5 px-2 text-center" dir="ltr">
         {code}
       </td>
-      <td className="py-1.5 px-2 text-right font-medium">
+      <td className="py-1.5 px-2 text-start font-medium">
         {patient.fullName || "—"}
       </td>
       <td className="py-1.5 px-2 text-center">
@@ -337,8 +337,7 @@ export default function PatientsHubList() {
     { enabled: visiblePatientIds.length > 0, staleTime: 60_000 },
   );
   const statuses = statusQuery.data as
-    | Record<number, PatientMedicalStatus>
-    | undefined;
+    Record<number, PatientMedicalStatus> | undefined;
 
   const filteredRows = useMemo<PatientRow[]>(() => {
     if (sheetFilter === "all") return allRows;
@@ -362,13 +361,13 @@ export default function PatientsHubList() {
   };
 
   return (
-    <div className="w-full space-y-3 pb-4 text-right" dir="rtl">
+    <div className="w-full space-y-3 pb-4 text-start" dir="rtl">
       {/* toolbar */}
       <Card className="border-border/80 bg-card shadow-sm">
         <CardContent className="flex flex-wrap items-center gap-2 p-3">
           <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <Search className="absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input aria-label="بحث بالاسم أو الكود أو الهاتف…"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -376,7 +375,7 @@ export default function PatientsHubList() {
                 setCursorHistory([]);
               }}
               placeholder="بحث بالاسم أو الكود أو الهاتف…"
-              className="pr-8 text-sm rounded-lg"
+              className="ps-8 text-sm rounded-lg"
               dir="rtl"
             />
           </div>
@@ -462,10 +461,15 @@ export default function PatientsHubList() {
             </Select>
           )}
           <div className="flex items-center gap-1.5">
-            <label className="text-xs text-muted-foreground whitespace-nowrap">
+            <label
+              htmlFor="patients-hub-date-from"
+              className="text-xs text-muted-foreground whitespace-nowrap"
+            >
               من
             </label>
             <DateInput
+              id="patients-hub-date-from"
+              aria-label="تاريخ بداية الزيارة"
               value={dateFrom}
               onChange={(e) => {
                 setDateFrom(e.target.value);
@@ -474,10 +478,15 @@ export default function PatientsHubList() {
               }}
               className="h-9 w-32 rounded-lg text-xs"
             />
-            <label className="text-xs text-muted-foreground whitespace-nowrap">
+            <label
+              htmlFor="patients-hub-date-to"
+              className="text-xs text-muted-foreground whitespace-nowrap"
+            >
               إلى
             </label>
             <DateInput
+              id="patients-hub-date-to"
+              aria-label="تاريخ نهاية الزيارة"
               value={dateTo}
               onChange={(e) => {
                 setDateTo(e.target.value);
@@ -504,6 +513,47 @@ export default function PatientsHubList() {
             />
           ))}
         </div>
+      ) : patientsQuery.isError ? (
+        <Card className="border-destructive/50 bg-destructive/5 shadow-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5 text-sm">
+            <p className="text-destructive" role="alert">
+              تعذر تحميل قائمة المرضى. أعد المحاولة دون تغيير الفلاتر.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-destructive/50 text-destructive"
+              onClick={() => void patientsQuery.refetch()}
+            >
+              إعادة المحاولة
+            </Button>
+          </CardContent>
+        </Card>
+      ) : sheetFilter !== "all" && statusQuery.isLoading ? (
+        <Card className="border-border/80 bg-card shadow-sm">
+          <CardContent
+            className="py-8 text-center text-sm text-muted-foreground"
+            role="status"
+          >
+            جارٍ تحميل حالة البيانات الطبية…
+          </CardContent>
+        </Card>
+      ) : sheetFilter !== "all" && statusQuery.isError ? (
+        <Card className="border-destructive/50 bg-destructive/5 shadow-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5 text-sm">
+            <p className="text-destructive" role="alert">
+              تعذر تحميل حالة بيانات المرضى المطلوبة لهذا الفلتر.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-destructive/50 text-destructive"
+              onClick={() => void statusQuery.refetch()}
+            >
+              إعادة المحاولة
+            </Button>
+          </CardContent>
+        </Card>
       ) : allRows.length === 0 ? (
         <Card className="border-border/80 bg-card shadow-sm">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -522,7 +572,7 @@ export default function PatientsHubList() {
         </div>
       ) : (
         <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
-          <div className="w-full overflow-x-auto">
+          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="w-full overflow-x-auto">
             <table
               className="min-w-[720px] w-full table-auto text-center text-xs sm:text-sm"
               dir="rtl"
@@ -530,7 +580,7 @@ export default function PatientsHubList() {
               <thead className="bg-muted/95 shadow-[0_1px_0_rgba(148,163,184,0.25)]">
                 <tr className="border-b border-border">
                   <th className="py-2 px-2 whitespace-nowrap">الكود</th>
-                  <th className="py-2 px-2 whitespace-nowrap text-right">
+                  <th className="py-2 px-2 whitespace-nowrap text-start">
                     الاسم
                   </th>
                   <th className="py-2 px-2 whitespace-nowrap">الخدمة</th>
@@ -565,7 +615,10 @@ export default function PatientsHubList() {
               setCursorHistory([]);
             }}
           >
-            <SelectTrigger className="h-8 w-24 rounded-lg text-xs">
+            <SelectTrigger
+              className="h-8 w-24 rounded-lg text-xs"
+              aria-label="عدد السجلات في الصفحة"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -587,6 +640,8 @@ export default function PatientsHubList() {
             className="rounded-lg"
             disabled={currentPage === 1}
             onClick={goPrev}
+            aria-label="الصفحة السابقة"
+            title="الصفحة السابقة"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -596,6 +651,8 @@ export default function PatientsHubList() {
             className="rounded-lg"
             disabled={!hasMore}
             onClick={goNext}
+            aria-label="الصفحة التالية"
+            title="الصفحة التالية"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>

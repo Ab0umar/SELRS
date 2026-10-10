@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { extractHubPatientId } from "@/lib/patientHubNavigation";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -40,15 +41,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-
-const HUB_PATIENT_PATH_RE =
-  /\/patient-hub\/(?:file|summary|reports|doctor|brief|examination|prescription|request-tests|visits|followups|pentacam-dashboard|sheets\/consultant)\/(\d+)/;
-
-function extractHubPatientId(pathWithQuery: string): string | undefined {
-  const pathOnly = pathWithQuery.split("?")[0] ?? "";
-  const m = pathOnly.match(HUB_PATIENT_PATH_RE);
-  return m?.[1];
-}
 
 function readVisitDateFromLocation(): string {
   try {
@@ -451,25 +443,27 @@ export default function PatientHubShell() {
     : null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background" dir="rtl">
+    <div className="patient-hub-mobile-canvas flex min-h-0 flex-1 flex-col bg-background" dir="rtl">
       {/* Combined header: no patient → back + title; patient selected → back + identity + visit */}
       {!pathOnly.startsWith("/patient-hub/brief/") && (
-        <header className="z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm print:border-b-0 print:bg-background">
-          <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-3 py-2.5 sm:px-5">
-            <button
+        <header className="z-20 shrink-0 border-b border-border bg-card print:border-b-0 print:bg-background">
+          <div data-module-content-start className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-3 py-2.5 sm:px-5">
+            <Button variant="bare"
               type="button"
               onClick={() => goBack()}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted"
               aria-label="رجوع"
             >
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </Button>
 
             {patientId ? (
               <>
                 <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <span className="truncate font-semibold leading-tight text-foreground">
-                    {patientQuery.data?.fullName ?? "جاري التحميل…"}
+                  <span className="min-w-0 break-words font-semibold leading-normal text-foreground">
+                    {patientQuery.isError
+                      ? "تعذر تحميل بيانات المريض"
+                      : (patientQuery.data?.fullName ?? "جارٍ التحميل")}
                   </span>
                   {age != null && (
                     <span className="shrink-0 text-xs text-muted-foreground">
@@ -484,30 +478,37 @@ export default function PatientHubShell() {
                   </span>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex w-full flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:shrink-0">
                   {visitsQuery.isLoading ? (
                     <div
                       className="h-7 w-28 animate-pulse rounded-md bg-muted"
                       aria-hidden
                     />
+                  ) : visitsQuery.isError ? (
+                    <span
+                      role="status"
+                      className="text-sm text-destructive-text"
+                    >
+                      تعذر تحميل الزيارات
+                    </span>
                   ) : visits.length === 0 ? (
                     <span className="text-xs text-muted-foreground">
                       لا توجد زيارات
                     </span>
                   ) : (
                     <div className="flex items-center gap-0.5" dir="ltr">
-                      <button
+                      <Button variant="bare"
                         type="button"
                         disabled={currentVisitIdx >= visits.length - 1}
                         onClick={() => {
                           const v = visits[currentVisitIdx + 1];
                           if (v) applyVisitSelection(visitDateKey(v), v.id);
                         }}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                        className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-30"
                         aria-label="زيارة أقدم"
                       >
                         <ChevronLeft className="h-4 w-4" />
-                      </button>
+                      </Button>
                       <div className="min-w-0 px-1 text-center" dir="rtl">
                         <p className="whitespace-nowrap text-sm font-medium leading-none text-foreground">
                           {formatVisitDisplay(
@@ -522,7 +523,7 @@ export default function PatientHubShell() {
                         </p>
                         {visits.length > 1 && (
                           <p
-                            className="mt-0.5 text-[10px] leading-none text-muted-foreground"
+                            className="text-xs leading-normal text-muted-foreground mt-0.5"
                             dir="ltr"
                           >
                             {(currentVisitIdx >= 0 ? currentVisitIdx : 0) + 1} /{" "}
@@ -530,18 +531,18 @@ export default function PatientHubShell() {
                           </p>
                         )}
                       </div>
-                      <button
+                      <Button variant="bare"
                         type="button"
                         disabled={currentVisitIdx <= 0}
                         onClick={() => {
                           const v = visits[currentVisitIdx - 1];
                           if (v) applyVisitSelection(visitDateKey(v), v.id);
                         }}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-30"
+                        className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-30"
                         aria-label="زيارة أحدث"
                       >
                         <ChevronRight className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   )}
                   <Button
@@ -552,6 +553,7 @@ export default function PatientHubShell() {
                     asChild
                   >
                     <Link
+                      aria-label="تغيير المريض"
                       href={`/patient-hub?visitDate=${encodeURIComponent(visitDate)}`}
                     >
                       <Search className="h-3.5 w-3.5" />
@@ -561,7 +563,9 @@ export default function PatientHubShell() {
                 </div>
               </>
             ) : (
-              <h1 className="sr-only">مركز المريض</h1>
+              <h1 className="text-2xl font-semibold text-foreground">
+                مركز المريض
+              </h1>
             )}
           </div>
         </header>
@@ -570,10 +574,9 @@ export default function PatientHubShell() {
       {/* Horizontal tabs — desktop only, patient-specific sections */}
       {patientId ? (
         <div className="hidden shrink-0 border-b border-border/60 bg-background print:hidden md:block">
-          <div
+          <nav
             className="mx-auto flex max-w-[1600px] overflow-x-auto scrollbar-none"
             dir="rtl"
-            role="tablist"
             aria-label="أقسام ملف المريض"
           >
             {navItems.map((item) => {
@@ -583,10 +586,9 @@ export default function PatientHubShell() {
                 <Link
                   key={item.key}
                   href={item.href}
-                  role="tab"
-                  aria-selected={active}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",
+                    "flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm whitespace-nowrap transition-colors",
                     active
                       ? "border-b-primary text-primary font-semibold"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-b-border",
@@ -601,7 +603,7 @@ export default function PatientHubShell() {
                 </Link>
               );
             })}
-          </div>
+          </nav>
         </div>
       ) : null}
 
@@ -609,7 +611,9 @@ export default function PatientHubShell() {
       <main
         className={cn(
           "flex min-h-0 flex-1 flex-col bg-background",
-          patientId ? "pb-14 md:pb-0" : "",
+          patientId
+            ? "pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0 print:pb-0"
+            : "",
         )}
       >
         <Switch>
@@ -822,7 +826,7 @@ export default function PatientHubShell() {
       {/* Mobile bottom nav — 4 primary tabs + المزيد */}
       {patientId ? (
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 flex h-14 border-t border-border/60 bg-background md:hidden print:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card md:hidden print:hidden"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           dir="rtl"
         >
@@ -833,7 +837,8 @@ export default function PatientHubShell() {
               <Link
                 key={item.key}
                 href={item.href}
-                className="relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors"
+                aria-current={active ? "page" : undefined}
+                className="relative flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 transition-colors"
               >
                 {active && (
                   <span
@@ -844,17 +849,17 @@ export default function PatientHubShell() {
                 <Icon
                   className={cn(
                     "h-[20px] w-[20px] shrink-0",
-                    active ? "text-primary" : "text-muted-foreground/70",
+                    active ? "text-primary" : "text-muted-foreground",
                   )}
                   strokeWidth={active ? 2.2 : 1.8}
                   aria-hidden
                 />
                 <span
                   className={cn(
-                    "whitespace-nowrap text-[9px] leading-none",
+                    "text-center text-xs leading-normal",
                     active
                       ? "font-semibold text-primary"
-                      : "font-medium text-muted-foreground/70",
+                      : "font-medium text-muted-foreground",
                   )}
                 >
                   {item.label}
@@ -862,9 +867,9 @@ export default function PatientHubShell() {
               </Link>
             );
           })}
-          <button
+          <Button variant="bare"
             type="button"
-            className="relative flex flex-1 flex-col items-center justify-center gap-0.5"
+            className="relative flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-0.5"
             onClick={() => setMoreOpen(true)}
             aria-label="المزيد"
           >
@@ -872,10 +877,10 @@ export default function PatientHubShell() {
               className="h-[20px] w-[20px] shrink-0 text-muted-foreground/70"
               aria-hidden
             />
-            <span className="whitespace-nowrap text-[9px] font-medium leading-none text-muted-foreground/70">
+            <span className="text-center text-xs font-medium leading-normal text-muted-foreground">
               المزيد
             </span>
-          </button>
+          </Button>
         </nav>
       ) : null}
 
@@ -887,7 +892,7 @@ export default function PatientHubShell() {
           dir="rtl"
         >
           <SheetHeader className="px-6 pb-3 pt-4">
-            <SheetTitle className="text-right text-base font-semibold">
+            <SheetTitle className="text-start text-base font-semibold">
               أقسام أخرى
             </SheetTitle>
           </SheetHeader>

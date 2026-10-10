@@ -1,8 +1,10 @@
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
-import { Clock, Search } from "lucide-react";
+import { Clock, RefreshCw, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
 
 const RECENT_KEY = "hub_recent_patients";
 const MAX_RECENT = 6;
@@ -108,13 +110,12 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
       dir="rtl"
     >
       <div className="w-full max-w-xl">
-        {/* Search input — no floating dropdown, results appear inline below */}
         <div className="relative">
           <Search
             className="pointer-events-none absolute end-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground/50"
             aria-hidden
           />
-          <input
+          <Input bare
             ref={inputRef}
             type="text"
             value={query}
@@ -128,7 +129,6 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
           />
         </div>
 
-        {/* Inline results list */}
         {showResults && (
           <div className="mt-1.5 overflow-hidden rounded-xl border border-border bg-background shadow-sm">
             {searchQuery.isFetching && results.length === 0 && (
@@ -136,17 +136,41 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
                 جاري البحث...
               </p>
             )}
-            {!searchQuery.isFetching && results.length === 0 && (
-              <p className="px-4 py-3.5 text-sm text-muted-foreground">
-                لا توجد نتائج
-              </p>
+            {searchQuery.isError && !searchQuery.isFetching && (
+              <div
+                role="alert"
+                className="flex flex-col items-center gap-3 px-4 py-4 text-center"
+              >
+                <p className="text-sm text-destructive">
+                  تعذر البحث عن المرضى حالياً.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 gap-2"
+                  onClick={() => void searchQuery.refetch()}
+                  disabled={searchQuery.isFetching}
+                >
+                  <RefreshCw className="size-4" aria-hidden />
+                  {searchQuery.isFetching
+                    ? "جارٍ إعادة المحاولة…"
+                    : "إعادة المحاولة"}
+                </Button>
+              </div>
             )}
+            {!searchQuery.isFetching &&
+              !searchQuery.isError &&
+              results.length === 0 && (
+                <p className="px-4 py-3.5 text-sm text-muted-foreground">
+                  لا توجد نتائج
+                </p>
+              )}
             {results.map((patient, i) => (
-              <button
+              <Button variant="bare"
                 key={patient.id}
                 type="button"
                 className={cn(
-                  "flex w-full items-center gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none",
+                  "flex w-full items-center gap-3 px-4 py-3 text-start transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none",
                   i > 0 && "border-t border-border/40",
                 )}
                 onClick={() => handleSelect(patient)}
@@ -176,24 +200,23 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
                 >
                   {patient.patientCode ?? "—"}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
         )}
 
-        {/* Recent patients — only visible when search is empty */}
         {!showResults && recent.length > 0 && (
           <div className="mt-8">
-            <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+            <p className="mb-3 flex items-center gap-1.5 text-[13px] font-semibold uppercase text-muted-foreground/50">
               <Clock className="h-3 w-3" aria-hidden />
               الأخيرون
             </p>
             <div className="divide-y divide-border/40 overflow-hidden rounded-xl border border-border/60">
               {recent.map((r) => (
-                <button
+                <Button variant="bare"
                   key={r.id}
                   type="button"
-                  className="flex w-full items-center gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-start transition-colors hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none"
                   onClick={() => {
                     saveRecent({ ...r, lastVisit: visitDate });
                     navigate(
@@ -221,9 +244,19 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
                   >
                     {r.code}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
+          </div>
+        )}
+        {!showResults && recent.length === 0 && (
+          <div className="mt-8 text-center">
+            <p className="text-base font-semibold text-foreground">
+              ابدأ بالبحث عن مريض
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              استخدم الاسم أو الكود أو رقم الهاتف لفتح ملف المريض.
+            </p>
           </div>
         )}
       </div>
