@@ -59,6 +59,8 @@ export default function SpecialistSheet() {
     doctor: "",
   });
   const [readingValue, setReadingValue] = useState("");
+  const [notes, setNotes] = useState("");
+  const [finalDecision, setFinalDecision] = useState("");
   const [glassesCheck, setGlassesCheck] = useState(false);
   const [xrayCheck, setXrayCheck] = useState(false);
   const [printOffsetXmm, setPrintOffsetXmm] = useState(0);
@@ -70,11 +72,19 @@ export default function SpecialistSheet() {
   );
   const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "sheet_designer_config" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated,
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   const mobileSheetModeQuery = trpc.medical.getSystemSetting.useQuery(
     { key: "mobile_sheet_mode_v1" },
-    { enabled: isAuthenticated, refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated,
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
 
   useEffect(() => {
@@ -113,47 +123,82 @@ export default function SpecialistSheet() {
   );
 
   const patientQuery = trpc.patient.getPatient.useQuery(initialPatientId ?? 0, {
-    enabled: Boolean(initialPatientId),
+    enabled: isAuthenticated && Boolean(initialPatientId),
+    retry: 2,
     refetchOnWindowFocus: false,
   });
-  // Fetch all patient-file data sources instead of sheet-specific data
   const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   const glassesQuery = trpc.medical.getGlassesRecordsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   const autorefQuery = trpc.medical.getAutorefractometryByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   const prescriptionsQuery =
     trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
       { patientId: initialPatientId ?? 0 },
-      { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+      {
+        enabled: isAuthenticated && Boolean(initialPatientId),
+        retry: 2,
+        refetchOnWindowFocus: false,
+      },
     );
   const pentacamQuery = trpc.medical.getPentacamMeasurementsByPatient.useQuery(
     { patientId: initialPatientId ?? 0, limit: 10 },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
-  // Keep sheetQuery for backward compatibility
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
     { patientId: initialPatientId ?? 0, sheetType: "specialist" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: initialPatientId ?? 0, page: "examination" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
+    {
+      enabled: isAuthenticated && Boolean(initialPatientId),
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
   );
   // Auto-print (triggered by usePrintMode below) must wait for the sheet's
   // own data to finish loading — otherwise the print preview/dialog fires
@@ -170,7 +215,6 @@ export default function SpecialistSheet() {
     const socket = connectSheetUpdates({
       patientId: initialPatientId,
       onUpdate: () => {
-        // Refetch all patient-file data sources
         Promise.all([
           sheetQuery.refetch(),
           patientQuery.refetch(),
@@ -185,18 +229,10 @@ export default function SpecialistSheet() {
       },
     });
     return () => socket?.close();
-  }, [
-    initialPatientId,
-    sheetQuery,
-    patientQuery,
-    examinationsQuery,
-    glassesQuery,
-    autorefQuery,
-    visitsQuery,
-    reportsQuery,
-    prescriptionsQuery,
-    pentacamQuery,
-  ]);
+    // query.refetch is stable in @tanstack/react-query; listing the query
+    // objects themselves here would tear the socket down on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPatientId]);
   const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation({
     onSuccess: () => {
       toast.success("تم الحفظ");
@@ -255,49 +291,53 @@ export default function SpecialistSheet() {
 
   useEffect(() => {
     if (!sheetQuery.data) return;
+    let parsed: any;
     try {
-      const parsed = JSON.parse(sheetQuery.data);
-      if (parsed.formData) {
-        setFormData((prev) => ({
-          ...prev,
-          ...parsed.formData,
-          // keep patient info from DB if present
-          patientName: prev.patientName || parsed.formData.patientName,
-          phone: prev.phone || parsed.formData.phone,
-          alternatePhone:
-            prev.alternatePhone || parsed.formData.alternatePhone || "",
-          age: prev.age || parsed.formData.age,
-          dateOfBirth:
-            prev.dateOfBirth || formatSheetDate(parsed.formData.dateOfBirth),
-          address: prev.address || parsed.formData.address,
-        }));
-      }
-      if (parsed.examData?.autorefraction) {
-        const auto = parsed.examData.autorefraction;
-        setFormData((prev) => ({
-          ...prev,
-          ucvaOD: auto.od?.ucva ? auto.od.ucva : prev.ucvaOD,
-          ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
-          bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
-          bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
-          iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
-          iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
-        }));
-      }
-      if (parsed.signatures) {
-        setSignatures({
-          reception: parsed.signatures.reception ?? "",
-          nurse: parsed.signatures.nurse ?? "",
-          technician: parsed.signatures.technician ?? "",
-          doctor: parsed.signatures.doctor ?? "",
-        });
-      }
-      if (parsed.checks) {
-        setGlassesCheck(Boolean(parsed.checks.glasses));
-        setXrayCheck(Boolean(parsed.checks.xray));
-      }
+      parsed = JSON.parse(sheetQuery.data);
     } catch {
-      // ignore malformed data
+      toast.warning("تعذر قراءة بيانات الشيت المحفوظة. قد تظهر الحقول فارغة.");
+      return;
+    }
+    if (parsed.formData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...parsed.formData,
+        // keep patient info from DB if present
+        patientName: prev.patientName || parsed.formData.patientName,
+        phone: prev.phone || parsed.formData.phone,
+        alternatePhone:
+          prev.alternatePhone || parsed.formData.alternatePhone || "",
+        age: prev.age || parsed.formData.age,
+        dateOfBirth:
+          prev.dateOfBirth || formatSheetDate(parsed.formData.dateOfBirth),
+        address: prev.address || parsed.formData.address,
+      }));
+    }
+    if (parsed.examData?.autorefraction) {
+      const auto = parsed.examData.autorefraction;
+      setFormData((prev) => ({
+        ...prev,
+        ucvaOD: auto.od?.ucva ? auto.od.ucva : prev.ucvaOD,
+        ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
+        bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
+        bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
+        iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
+        iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
+      }));
+    }
+    if (parsed.signatures) {
+      setSignatures({
+        reception: parsed.signatures.reception ?? "",
+        nurse: parsed.signatures.nurse ?? "",
+        technician: parsed.signatures.technician ?? "",
+        doctor: parsed.signatures.doctor ?? "",
+      });
+    }
+    setNotes(String(parsed.notes ?? ""));
+    setFinalDecision(String(parsed.finalDecision ?? ""));
+    if (parsed.checks) {
+      setGlassesCheck(Boolean(parsed.checks.glasses));
+      setXrayCheck(Boolean(parsed.checks.xray));
     }
   }, [sheetQuery.data]);
 
@@ -372,6 +412,25 @@ export default function SpecialistSheet() {
     }));
   }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
 
+  const isSaving =
+    saveSheetMutation.isPending || saveRefractionMutation.isPending;
+
+  const specialistDataQueries = [
+    sheetQuery,
+    patientQuery,
+    examinationsQuery,
+    glassesQuery,
+    autorefQuery,
+    visitsQuery,
+    reportsQuery,
+    prescriptionsQuery,
+    pentacamQuery,
+  ];
+  const specialistDataFailed = specialistDataQueries.some((q) => q.isError);
+  const specialistDataLoading =
+    Boolean(initialPatientId) &&
+    (sheetQuery.isLoading || patientQuery.isLoading);
+
   const handleSaveSheet = async () => {
     if (!initialPatientId) {
       toast.error("يرجى اختيار المريض أولاً");
@@ -382,9 +441,15 @@ export default function SpecialistSheet() {
         try {
           return sheetQuery.data ? JSON.parse(sheetQuery.data) : {};
         } catch {
-          return {};
+          return null;
         }
       })();
+      if (existing === null) {
+        toast.error(
+          "تعذر قراءة البيانات المحفوظة؛ تم إلغاء الحفظ لتجنب فقدانها. حدّث الصفحة وحاول مرة أخرى.",
+        );
+        return;
+      }
       const pickValue = (next: string, prev?: string) =>
         next && next.trim() ? next : prev;
       const mergedExamData = {
@@ -430,6 +495,8 @@ export default function SpecialistSheet() {
           formData: { ...(existing.formData ?? {}), ...formData },
           examData: mergedExamData,
           checks: { glasses: glassesCheck, xray: xrayCheck },
+          notes,
+          finalDecision,
         }),
       });
       await saveRefractionMutation.mutateAsync({
@@ -461,6 +528,21 @@ export default function SpecialistSheet() {
     );
   };
 
+  const persistPrintLayout = (patch: {
+    offsetXmm?: number;
+    offsetYmm?: number;
+    scale?: number;
+  }) => {
+    const config = loadSheetDesignerConfig();
+    saveSheetDesignerConfig({
+      ...config,
+      layout: {
+        ...config.layout,
+        specialist: { ...config.layout.specialist, ...patch },
+      },
+    });
+  };
+
   return (
     <div
       className={`min-h-screen bg-[#dde1e7] sheet-layout specialist-page-root ${printMode.printView ? "print-view-active" : ""} ${mobileSheetModeEnabled && !printMode.printView ? "mobile-sheet-mode" : ""}`}
@@ -475,9 +557,9 @@ export default function SpecialistSheet() {
         .refraction-table-center input {
           text-align: center !important;
         }
-        .specialist-sheet, .specialist-sheet * {
-          font-weight: 400 !important;
-          text-decoration: none !important;
+        .specialist-sheet {
+          font-weight: 400;
+          text-decoration: none;
         }
         .specialist-sheet th { font-weight: 600 !important; }
         .specialist-sheet table input { font-weight: 600 !important; }
@@ -572,10 +654,26 @@ export default function SpecialistSheet() {
           .specialist-sheet th {
             page-break-inside: avoid !important;
           }
-          .specialist-sheet table { font-size: 12px !important; }
+          .specialist-sheet table { font-size: 14px !important; }
+          .specialist-sheet table th,
+          .specialist-sheet table td,
+          .specialist-sheet table input,
+          .specialist-sheet table textarea {
+            text-align: center !important;
+            vertical-align: middle !important;
+          }
+          .specialist-sheet .sheet-refraction-table th,
+          .specialist-sheet .sheet-refraction-table td,
+          .specialist-sheet .sheet-refraction-table input {
+            font-size: 15px !important;
+          }
+          .specialist-sheet .sheet-refraction-table tbody td {
+            height: 11mm !important;
+            padding: 3px 4px !important;
+          }
           .specialist-sheet input,
           .specialist-sheet select {
-            font-size: 12px !important;
+            font-size: 14px !important;
             padding-top: 0 !important;
             padding-bottom: 0 !important;
           }
@@ -652,7 +750,6 @@ export default function SpecialistSheet() {
           }
         }
       `}</style>
-      {/* Header */}
       <header
         className={`sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
         dir="ltr"
@@ -667,16 +764,67 @@ export default function SpecialistSheet() {
           >
             رجوع
           </Button>
+          {user?.role === "admin" && !printMode.printView ? (
+            <details className="print:hidden text-xs" dir="rtl">
+              <summary className="cursor-pointer select-none text-muted-foreground hover:text-foreground">
+                إعدادات الطباعة
+              </summary>
+              <div className="mt-2 flex w-52 flex-col gap-1.5 rounded-md border border-border bg-card p-2">
+                <label className="flex items-center justify-between gap-2">
+                  <span>إزاحة أفقية (مم)</span>
+                  <input
+                    type="number"
+                    step="0.5"
+                    className="w-16 rounded border border-border bg-background px-1 py-0.5 text-right"
+                    value={printOffsetXmm}
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      setPrintOffsetXmm(v);
+                      persistPrintLayout({ offsetXmm: v });
+                    }}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-2">
+                  <span>إزاحة رأسية (مم)</span>
+                  <input
+                    type="number"
+                    step="0.5"
+                    className="w-16 rounded border border-border bg-background px-1 py-0.5 text-right"
+                    value={printOffsetYmm}
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      setPrintOffsetYmm(v);
+                      persistPrintLayout({ offsetYmm: v });
+                    }}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-2">
+                  <span>مقياس الطباعة</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    className="w-16 rounded border border-border bg-background px-1 py-0.5 text-right"
+                    value={printScale}
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 1;
+                      setPrintScale(v);
+                      persistPrintLayout({ scale: v });
+                    }}
+                  />
+                </label>
+              </div>
+            </details>
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           <Button
             size="sm"
-            className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground hover:opacity-90 active:scale-95"
+            className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground hover:opacity-90"
             onClick={handleSaveSheet}
-            disabled={saveSheetMutation.isPending}
+            disabled={isSaving}
             type="button"
           >
-            {saveSheetMutation.isPending ? "حفظ…" : "حفظ"}
+            {isSaving ? "حفظ…" : "حفظ"}
           </Button>
           <Button
             size="sm"
@@ -692,14 +840,58 @@ export default function SpecialistSheet() {
 
       {printMode.printView && (
         <PrintPreviewBanner
-          title="مقاس نظاره / اشعه خارجي"
+          title="مقاس نظارة / أشعة خارجي"
           subtitle={formData.patientName || undefined}
           onPrint={handlePrint}
         />
       )}
 
-      {/* Main Content */}
       <div className="py-8 print:py-0 print-page-center-a5">
+        {!printMode.printView && !initialPatientId ? (
+          <div
+            className="print:hidden mx-auto mb-6 max-w-md rounded-xl border border-border bg-card p-4 text-center"
+            dir="rtl"
+          >
+            <p className="mb-3 text-sm font-semibold text-foreground">
+              اختر مريضًا لفتح شيت مقاس النظارة
+            </p>
+            <PatientPicker
+              onSelect={handleSelectPatient}
+              placeholder="ابحث برمز المريض"
+            />
+          </div>
+        ) : null}
+        {!printMode.printView && specialistDataFailed ? (
+          <div
+            role="alert"
+            className="print:hidden mx-auto mb-6 flex max-w-2xl flex-wrap items-center justify-between gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3"
+            dir="rtl"
+          >
+            <p className="text-sm font-semibold text-red-900">
+              تعذر تحميل بيانات المريض. تحقق من الاتصال ثم أعد المحاولة.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                for (const q of specialistDataQueries) {
+                  if (q.isError) q.refetch();
+                }
+              }}
+              className="rounded-md border border-red-400 bg-white px-3 py-1.5 text-xs font-bold text-red-900 hover:bg-red-100"
+            >
+              إعادة المحاولة
+            </button>
+          </div>
+        ) : null}
+        {!printMode.printView && specialistDataLoading ? (
+          <div
+            role="status"
+            className="print:hidden mx-auto mb-6 max-w-2xl rounded-lg border border-border bg-muted px-4 py-2 text-center text-sm text-muted-foreground"
+            dir="rtl"
+          >
+            جارٍ تحميل بيانات المريض…
+          </div>
+        ) : null}
         <div
           data-mobile-pdf-root
           className={`specialist-sheet relative overflow-hidden bg-white text-[#191c1e] font-sans p-8 border border-[#c3c6d6] shadow-sm flex flex-col gap-5 w-[210mm] max-w-full mx-auto ${printMode.printView ? "hidden print:flex" : ""}`}
@@ -707,7 +899,7 @@ export default function SpecialistSheet() {
         >
           <SheetWatermark />
           <SheetPrintHeader
-            sheetType="مقاس نظاره / اشعه خارجي"
+            sheetType="مقاس نظارة / أشعة خارجي"
             sheetTypeContent={
               <div className="flex flex-col gap-1" dir="rtl">
                 <label className="flex items-center gap-2 text-sm font-bold text-[#191c1e]">
@@ -787,31 +979,42 @@ export default function SpecialistSheet() {
             compactEyeTable
           />
 
-          {/* Notes + signatures */}
           <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6">
             <div className="print-specialist-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-8 space-y-4">
                 <div>
-                  <label className="font-bold text-[#003d9b] text-sm">
+                  <label
+                    htmlFor="specialist-notes"
+                    className="font-bold text-[#003d9b] text-sm"
+                  >
                     Comments / ملاحظات:
                   </label>
-                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
-                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                  <Textarea
+                    id="specialist-notes"
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    className="mt-1 min-h-20 resize-none border-0 border-b border-[#c3c6d6] bg-transparent p-1"
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-[#003d9b] text-sm">
+                  <label
+                    htmlFor="specialist-final-decision"
+                    className="font-bold text-[#003d9b] text-sm"
+                  >
                     Final Decision / القرار النهائي:
                   </label>
-                  <div className="border-b border-solid border-[#c3c6d6] h-8" />
+                  <Textarea
+                    id="specialist-final-decision"
+                    value={finalDecision}
+                    onChange={(event) => setFinalDecision(event.target.value)}
+                    className="mt-1 min-h-16 resize-none border-0 border-b border-[#c3c6d6] bg-transparent p-1"
+                  />
                 </div>
               </div>
               <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
-                <div className="text-center font-bold text-[#003d9b] uppercase text-xs border-b border-[#003d9b]/20 pb-2 mb-3">
-                  Office Notes
+                <div className="text-center font-bold text-[#003d9b] text-xs border-b border-[#003d9b]/20 pb-2 mb-3">
+                  Notes | ملاحظات
                 </div>
-                <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
-                <div className="border-b border-solid border-[#003d9b]/40 h-6 mb-2" />
-                <div className="border-b border-solid border-[#003d9b]/40 h-6" />
               </div>
             </div>
             <div className="print-specialist-signatures grid grid-cols-2 md:grid-cols-4 gap-8 pt-4 border-t border-[#c3c6d6]">
@@ -823,7 +1026,7 @@ export default function SpecialistSheet() {
               ].map(([label, val], i) => (
                 <div key={i} className="flex flex-col gap-2">
                   <span
-                    className={`text-[11px] font-bold uppercase ${i === 1 ? "text-[#003d9b]" : "text-[#434654]"}`}
+                    className={`text-[11px] font-bold ${i === 1 ? "text-[#003d9b]" : "text-[#434654]"}`}
                   >
                     {label}
                   </span>
@@ -831,7 +1034,7 @@ export default function SpecialistSheet() {
                     className={`border-b-2 h-9 flex items-end justify-center ${i === 1 ? "border-[#003d9b]" : "border-[#191c1e]"}`}
                   >
                     <span
-                      className={`text-xs italic ${i === 1 ? "text-[#003d9b] font-bold" : "text-[#737685]"}`}
+                      className={`text-xs italic ${i === 1 ? "text-[#003d9b] font-bold" : "text-[#434654]"}`}
                     >
                       {val || ""}
                     </span>
@@ -840,19 +1043,6 @@ export default function SpecialistSheet() {
               ))}
             </div>
           </footer>
-        </div>
-        <div
-          className={`sheet-mobile-actions print:hidden ${printMode.printView ? "hidden" : ""}`}
-        >
-          <Button type="button" variant="outline" onClick={() => goBack()}>
-            رجوع
-          </Button>
-          <Button type="button" variant="outline" onClick={handlePrint}>
-            طباعة
-          </Button>
-          <Button type="button" variant="default" onClick={handleSaveSheet}>
-            حفظ
-          </Button>
         </div>
       </div>
     </div>

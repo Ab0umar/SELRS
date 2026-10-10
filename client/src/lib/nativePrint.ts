@@ -57,12 +57,34 @@ function extractAllCss(): string {
 const OVERLAY_SELECTOR =
   '[data-slot="dialog-overlay"], [data-slot="dialog-content"], [role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]';
 
-function buildScopedPrintHtml(): string {
+export function buildScopedPrintHtml(): string {
   // Read all CSS from the LIVE document (styleSheets only expose cssRules
   // for same-origin sheets that have actually loaded) before cloning.
   const allCss = extractAllCss();
 
   const clone = document.documentElement.cloneNode(true) as HTMLElement;
+  const sourceNodes = [
+    document.documentElement,
+    ...Array.from(document.documentElement.querySelectorAll<HTMLElement>("*")),
+  ];
+  const initialCloneNodes = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>("*"))];
+  const sourceForClone = new WeakMap<HTMLElement, HTMLElement>();
+  initialCloneNodes.forEach((node, index) => {
+    const source = sourceNodes[index];
+    if (!source) return;
+    sourceForClone.set(node, source);
+    // outerHTML serializes attributes/default text, not current form properties.
+    if (source instanceof HTMLInputElement) {
+      node.setAttribute("value", source.type === "password" || source.type === "file" ? "" : source.value);
+      node.toggleAttribute("checked", source.checked);
+    } else if (source instanceof HTMLTextAreaElement) {
+      node.textContent = source.value;
+    } else if (source instanceof HTMLSelectElement && node instanceof HTMLSelectElement) {
+      Array.from(node.options).forEach((option, optionIndex) => {
+        option.toggleAttribute("selected", source.options[optionIndex]?.selected ?? false);
+      });
+    }
+  });
   clone.querySelectorAll('[class~="print:hidden"]').forEach((el) => el.remove());
   clone.querySelectorAll(OVERLAY_SELECTOR).forEach((el) => el.remove());
   // <link rel="stylesheet"> can never resolve under the plugin's null
@@ -118,16 +140,12 @@ function buildScopedPrintHtml(): string {
   // print preview can contain generated wrappers whose class names are not
   // known here; leaving any one of them scrollable lets Android paint a bar on
   // the corresponding paper page.
-  const sourceNodes = [
-    document.documentElement,
-    ...Array.from(document.documentElement.querySelectorAll<HTMLElement>("*")),
-  ];
   const cloneNodes = [
     clone,
     ...Array.from(clone.querySelectorAll<HTMLElement>("*")),
   ];
-  cloneNodes.forEach((cloneNode, index) => {
-    const sourceNode = sourceNodes[index];
+  cloneNodes.forEach((cloneNode) => {
+    const sourceNode = sourceForClone.get(cloneNode);
     if (!sourceNode) return;
     const computed = window.getComputedStyle(sourceNode);
     if (
@@ -174,22 +192,6 @@ function buildScopedPrintHtml(): string {
       overflow-y: hidden !important;
       scrollbar-width: none !important;
       -ms-overflow-style: none !important;
-    }
-
-    [data-print-document="lasik"] .print-page-center-a4 > .lasik-sheet {
-      height: 275mm !important;
-      min-height: 275mm !important;
-      max-height: 275mm !important;
-      box-sizing: border-box !important;
-    }
-
-    [data-print-document="followup"] .followup-print-page,
-    [data-print-document="followup"] .sheet-followup-body {
-      width: 210mm !important;
-      height: 297mm !important;
-      min-height: 297mm !important;
-      max-height: 297mm !important;
-      box-sizing: border-box !important;
     }
 
     html::-webkit-scrollbar,

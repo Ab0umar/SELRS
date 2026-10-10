@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import {
   ArrowRight,
   BookOpenText,
-  FileSpreadsheet,
   Search,
   ShieldCheck,
   FolderCog,
@@ -43,7 +42,7 @@ function formatDate(value?: string | Date | null) {
 function SummaryField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border bg-muted px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="text-[11px] font-semibold text-muted-foreground">
         {label}
       </div>
       <div className="mt-1 text-sm font-medium text-foreground">{value}</div>
@@ -160,20 +159,13 @@ export default function PentacamSheet({
         !embedded && "min-h-screen bg-background",
       )}
     >
-      {!embedded ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-border/40 bg-muted/20"
-        />
-      ) : null}
-
       <main
         className={cn(
           "relative z-10 flex w-full flex-col",
           !embedded ? "min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-6" : "p-0",
         )}
       >
-        <header className="mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
+        <header className="linking-header mb-5 rounded-[1.5rem] border border-border bg-background/95 px-4 py-4 shadow-sm">
           {/* Top row: back + badge */}
           {!embedded ? (
             <div className="mb-4 flex items-center justify-between gap-4">
@@ -192,12 +184,8 @@ export default function PentacamSheet({
           ) : null}
 
           {/* Main header row: title + search + summary */}
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 rounded-full border border-ring/30 bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                عرض JPG
-              </div>
+          <div className="linking-toolbar grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
+            <div className="linking-introduction space-y-1">
               <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
                 البنتاكام
               </h1>
@@ -208,10 +196,12 @@ export default function PentacamSheet({
 
             <div className="space-y-3">
               {/* Search */}
-              <div>
+              <div className="linking-patient-search">
                 <div className="mb-2 flex items-center gap-2">
                   <Search className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">البحث بالكود</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    البحث بالكود
+                  </span>
                 </div>
                 <div className="mb-2">
                   <FilterBar
@@ -231,12 +221,15 @@ export default function PentacamSheet({
                   onSelect={handleSelectPatient}
                   placeholder="ابحث برمز المريض"
                   wrapperClassName="max-w-none ml-0"
-                  locationType={locationType === "all" ? undefined : locationType}
+                  locationType={
+                    locationType === "all" ? undefined : locationType
+                  }
                   allowPatient={(patient) =>
                     locationType === "all" ||
                     patient.locationType === locationType ||
                     !patient.locationType ||
-                    (initialPatientId != null && patient.id === initialPatientId)
+                    (initialPatientId != null &&
+                      patient.id === initialPatientId)
                   }
                 />
               </div>
@@ -246,7 +239,9 @@ export default function PentacamSheet({
                 <div className="rounded-xl border border-border bg-muted/50 p-3">
                   <div className="mb-2 flex items-center gap-2">
                     <BookOpenText className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">ملخص المريض</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      ملخص المريض
+                    </span>
                     {user?.role === "admin" && selectedPatientId && (
                       <Button
                         type="button"
@@ -268,9 +263,12 @@ export default function PentacamSheet({
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="font-bold text-foreground">{selectedPatient.fullName}</div>
+                      <div className="font-bold text-foreground">
+                        {selectedPatient.fullName}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        {selectedPatient.patientCode ?? `#${selectedPatient.id}`}
+                        {selectedPatient.patientCode ??
+                          `#${selectedPatient.id}`}
                       </div>
                     </div>
                   </div>

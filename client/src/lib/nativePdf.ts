@@ -265,6 +265,15 @@ function sanitizeTreeIntoIsolatedDocument(
     applySnapshotSafeStyles(sourceNode, cloneNode, sourceWindow);
     syncFormState(sourceNode, cloneNode);
     syncCanvasContent(sourceNode, cloneNode);
+    // html2canvas paints the placeholder hint of an empty field into the
+    // PDF; a printed sheet must leave it blank.
+    if (
+      (cloneNode instanceof HTMLInputElement ||
+        cloneNode instanceof HTMLTextAreaElement) &&
+      !cloneNode.value
+    ) {
+      cloneNode.removeAttribute("placeholder");
+    }
   });
 
   targetDocument.body.appendChild(cloneRoot);

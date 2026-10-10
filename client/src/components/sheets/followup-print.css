@@ -36,6 +36,11 @@
   vertical-align: middle;
 }
 
+.sheet-followup-body .followup-refraction-row input {
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .sheet-followup-body[data-print-followup-body="true"],
 .sheet-followup-body[data-print-followup-body="true"] * {
   scrollbar-width: none;
@@ -250,8 +255,8 @@
   }
 
   .sheet-followup-body .followup-record-head {
-    height: 20mm !important;
-    min-height: 20mm !important;
+    height: 13mm !important;
+    min-height: 13mm !important;
     overflow: hidden !important;
     border-radius: 0 !important;
   }
@@ -272,7 +277,7 @@
   .sheet-followup-body .followup-record-head span,
   .sheet-followup-body .followup-record-head input,
   .sheet-followup-body .followup-record-head button {
-    font-size: 8px !important;
+    font-size: 10px !important;
     line-height: 1.05 !important;
   }
 
@@ -282,9 +287,9 @@
     min-height: 5mm !important;
   }
 
-  .sheet-followup-body .followup-record-head > div:last-child {
-    height: 7mm !important;
-    min-height: 7mm !important;
+  .sheet-followup-body .followup-op-row > div:last-child {
+    height: 13mm !important;
+    min-height: 13mm !important;
     padding-block: 0.5mm !important;
   }
 
@@ -333,7 +338,7 @@
     height: 7mm !important;
     min-height: 7mm !important;
     padding-block: 0 !important;
-    font-size: 8px !important;
+    font-size: 10px !important;
     line-height: 1 !important;
   }
 
@@ -355,22 +360,35 @@
     height: auto !important;
     min-height: 0 !important;
     padding: 0 1px !important;
-    font-size: 7.5px !important;
+    font-size: 12px !important;
     line-height: 1 !important;
   }
 
   .sheet-followup-body .followup-record-table input {
     min-height: 0 !important;
     padding: 0 1mm !important;
-    font-size: 7.5px !important;
+    font-size: 12px !important;
     line-height: 1 !important;
+  }
+
+  .sheet-followup-body .followup-refraction-row {
+    height: 9mm !important;
+  }
+
+  .sheet-followup-body .followup-refraction-row input {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+  }
+
+  .sheet-followup-body .followup-refraction-row label > span {
+    font-size: 11px !important;
   }
 
   .sheet-followup-body .followup-record-section > div:last-child {
     flex: 0 0 5mm !important;
     height: 5mm !important;
     min-height: 5mm !important;
-    font-size: 7px !important;
+    font-size: 10px !important;
   }
 
   .sheet-followup-body .sheet-watermark img {

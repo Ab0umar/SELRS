@@ -23,10 +23,10 @@ export default function SheetCenterHeader({
       className="sheet-center-header text-center border-b-2 border-[#003d9b] pb-2 mb-3"
       dir="ltr"
     >
-      <div className="text-lg font-bold text-[#003d9b] leading-tight">
+      <div className="text-lg font-bold text-[#003d9b] dark:text-primary dark:print:text-[#003d9b] leading-tight">
         SELRS — {titleEn}
       </div>
-      <div className="text-sm font-bold text-[#434654] leading-tight">
+      <div className="text-sm font-bold text-[#434654] dark:text-muted-foreground dark:print:text-[#434654] leading-tight">
         {titleAr} — {shownDate}
       </div>
     </div>

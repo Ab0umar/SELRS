@@ -14,6 +14,7 @@ import {
 import { printOrExportPdf } from "@/lib/nativePdf";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 import { operationTypeLabelAr } from "@shared/opTypes";
+import { toast } from "sonner";
 
 const FOLLOWUP_TITLES = [
   "المتابعة الأولى",
@@ -281,7 +282,7 @@ export default function LasikFollowupPage() {
     // Collect filled followups in groups of 4
     const filledFollowups = followups.filter((f) => f.date);
     if (filledFollowups.length === 0) {
-      alert("لا توجد بيانات لحفظها");
+      toast.info("لا توجد بيانات لحفظها");
       return;
     }
 
@@ -308,9 +309,9 @@ export default function LasikFollowupPage() {
         sheetType: "lasik",
         followupItems,
       });
-      alert("تم حفظ البيانات بنجاح");
+      toast.success("تم حفظ البيانات بنجاح");
     } catch (error) {
-      alert("فشل حفظ البيانات");
+      toast.error("فشل حفظ البيانات");
       console.error(error);
     }
   };
@@ -359,7 +360,7 @@ export default function LasikFollowupPage() {
           <Button
             type="button"
             variant="outline"
-            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-muted/60"
+            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded uppercase hover:bg-muted/60"
             onClick={() =>
               setLocation(`/sheets/lasik/${initialPatientId ?? ""}`)
             }
@@ -374,7 +375,7 @@ export default function LasikFollowupPage() {
           </div>
           <Button
             type="button"
-            className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:opacity-80 active:scale-95 disabled:opacity-60"
+            className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded uppercase hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
             disabled={saveFollowupSheetMutation.isPending}
           >
@@ -383,7 +384,7 @@ export default function LasikFollowupPage() {
           <Button
             type="button"
             variant="outline"
-            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded uppercase tracking-wider hover:bg-muted/60"
+            className="border-border text-foreground text-xs font-bold px-4 py-2 rounded uppercase hover:bg-muted/60"
             onClick={() =>
               void printOrExportPdf(
                 `lasik-followup-${initialPatientId ?? "sheet"}.pdf`,
@@ -391,7 +392,7 @@ export default function LasikFollowupPage() {
               )
             }
           >
-            <Printer className="h-3 w-3 ml-1" /> طباعة
+            <Printer className="h-3 w-3 me-1" /> طباعة
           </Button>
         </div>
       </header>

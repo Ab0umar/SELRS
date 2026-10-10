@@ -35,7 +35,7 @@ export default function SheetPrintHeader({
         {sheetTypeContent ?? sheetType}
       </div>
 
-      <div className="flex items-center gap-3 justify-self-center">
+      <div className="sheet-print-mark flex items-center gap-3 justify-self-center">
         {logoLeftContent}
         <BrandLogo
           className="sheet-print-logo h-16 w-16 shrink-0"
@@ -48,17 +48,17 @@ export default function SheetPrintHeader({
         className="sheet-print-brand justify-self-end text-right leading-tight"
         dir="rtl"
       >
-        <div className="sheet-print-clinic-name whitespace-nowrap text-2xl font-bold text-[#003d9b]">
+        <div className="sheet-print-clinic-name whitespace-nowrap text-2xl font-bold text-[#003d9b] dark:text-primary dark:print:text-[#003d9b]">
           مركز عيون الشروق
         </div>
-        <div className="sheet-print-clinic-tagline mt-1 text-sm font-normal text-[#434654]">
+        <div className="sheet-print-clinic-tagline mt-1 text-sm font-normal text-[#434654] dark:text-muted-foreground dark:print:text-[#434654]">
           لليزك و تصحيح الابصار
         </div>
         {brandExtraContent}
       </div>
 
       {bottomContent ? (
-        <div className="col-span-3 mt-2 w-full">{bottomContent}</div>
+        <div className="sheet-print-context col-span-3 mt-2 w-full">{bottomContent}</div>
       ) : null}
     </header>
   );

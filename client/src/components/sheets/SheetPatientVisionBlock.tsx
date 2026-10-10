@@ -93,7 +93,7 @@ export default function SheetPatientVisionBlock({
   compactEyeTable?: boolean;
 }) {
   const inp =
-    "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+    "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 py-1 text-sm";
   const ctd = "p-1 border border-[#c3c6d6]";
 
   const onText =
@@ -104,7 +104,7 @@ export default function SheetPatientVisionBlock({
     <>
       {/* Patient Info */}
       <section
-        className="print-sheet-patient-grid p-4 bg-[#f3f4f6] rounded-xl border border-[#c3c6d6] flex flex-col gap-2 text-sm"
+        className="print-sheet-patient-grid p-4 bg-[#f3f4f6] rounded-xl border-0 flex flex-col gap-2 text-sm"
         dir="rtl"
       >
         <div className="patient-info-grid-3x3 grid grid-cols-3 gap-x-4 gap-y-2 text-xs">
@@ -112,7 +112,7 @@ export default function SheetPatientVisionBlock({
             <span className="text-[#434654]">الاسم:</span>
             <input
               size={(patientName || "").length || 12}
-              className="patient-detail-emphasis text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-lg font-extrabold"
+              className="patient-detail-emphasis text-[#003d9b] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right text-lg font-extrabold"
               dir="rtl"
               value={patientName}
               onChange={onText(onPatientNameChange)}
@@ -128,7 +128,7 @@ export default function SheetPatientVisionBlock({
             <span className="text-[#434654]">السن:</span>
             <input
               size={(age || "").length || 3}
-              className="patient-detail-emphasis bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-sm font-bold"
+              className="patient-detail-emphasis bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right text-sm font-bold"
               dir="rtl"
               value={age}
               onChange={onText(onAgeChange)}
@@ -138,7 +138,7 @@ export default function SheetPatientVisionBlock({
             <span className="text-[#434654]">المهنة:</span>
             <input
               size={(job || "").length || 8}
-              className="patient-detail-emphasis bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right text-sm font-bold"
+              className="patient-detail-emphasis bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right text-sm font-bold"
               dir="rtl"
               value={job}
               onChange={onText(onJobChange)}
@@ -147,7 +147,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
             <span className="text-[#434654] shrink-0">العنوان:</span>
             <input
-              className="w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+              className="w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right"
               dir="rtl"
               value={address}
               onChange={onText(onAddressChange)}
@@ -156,7 +156,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
             <span className="text-[#434654] shrink-0">التليفون:</span>
             <input
-              className="w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+              className="w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right"
               dir="rtl"
               value={phone}
               onChange={onText(onPhoneChange)}
@@ -165,7 +165,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
             <span className="text-[#434654] shrink-0">موبايل 2:</span>
             <input
-              className="w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+              className="w-16 min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right"
               dir="rtl"
               value={alternatePhone}
               onChange={onText(onAlternatePhoneChange)}
@@ -174,7 +174,7 @@ export default function SheetPatientVisionBlock({
           <label className="inline-flex items-center gap-1 whitespace-nowrap min-w-0 shrink">
             <span className="text-[#434654] shrink-0">كود العميل:</span>
             <input
-              className="w-14 min-w-0 font-normal text-xs text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+              className="w-14 min-w-0 font-normal text-xs text-[#526069] bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right"
               dir="rtl"
               value={patientCode}
               onChange={onText(onPatientCodeChange)}
@@ -192,7 +192,7 @@ export default function SheetPatientVisionBlock({
             <span className="text-[#434654] shrink-0">الطبيب:</span>
             <input
               size={(doctorName || "").length || 10}
-              className="min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none text-right"
+              className="min-w-0 font-normal text-xs bg-transparent border-0 border-b border-[#c3c6d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 text-right"
               dir="rtl"
               value={doctorName}
               onChange={onText(onDoctorNameChange)}
@@ -204,7 +204,7 @@ export default function SheetPatientVisionBlock({
 
       {(() => {
         const compactInp =
-          "w-14 text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
+          "w-14 text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 py-1 text-sm";
         const iopTable = (
           <table className="text-center border-collapse w-auto">
             <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
@@ -285,10 +285,19 @@ export default function SheetPatientVisionBlock({
         );
 
         const refractionTable = (
-          <table className="w-full text-center border-collapse">
+          <table className="sheet-refraction-table w-full table-fixed text-center border-collapse">
+            <colgroup>
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "14%" }} />
+            </colgroup>
             <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
               <tr>
-                <th className={`${ctd} w-48`}>Refraction</th>
+                <th className={ctd}>Refraction</th>
                 <th className={`${ctd} text-[#003d9b]`} colSpan={3}>
                   OD (Right)
                 </th>

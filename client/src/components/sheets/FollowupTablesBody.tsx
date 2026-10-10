@@ -89,7 +89,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
         } as Partial<T>)
       }
       disabled={readOnly}
-      className={`h-full min-h-7 w-full border-0 bg-transparent px-1 text-center text-[12px] font-semibold text-[#172033] outline-none focus:bg-[#dbeafe]/50 disabled:opacity-100 ${className}`}
+      className={`h-full min-h-7 w-full border-0 bg-transparent px-1 text-center text-[12px] font-semibold text-[#172033] outline-none focus-visible:ring-2 focus-visible:ring-[#003d82] focus-visible:ring-inset focus:bg-[#dbeafe]/50 disabled:opacity-100 ${className}`}
     />
   );
 
@@ -105,23 +105,18 @@ export default function FollowupTablesBody<T extends FollowupItem>({
         <SheetPrintHeader sheetType={sheetTypeLabel} />
 
         <section className="followup-record-head overflow-hidden border border-[#b9c4d4] bg-white">
-          <div className="grid grid-cols-[1.25fr_0.75fr_1fr_1.2fr] divide-x divide-x-reverse divide-[#d5dbe5] text-[12px]">
-            <div className="px-3 py-2">
+          <div className="followup-op-row grid grid-cols-[1.2fr_1fr_auto] items-center divide-x divide-x-reverse divide-[#d5dbe5] text-[12px]">
+            <label className="px-3 py-1.5">
               <span className="block text-[10px] font-bold text-[#667085]">
-                اسم المريض
+                {followupLabels.operationTypeLabel ?? "نوع العملية"}
               </span>
-              <strong className="block truncate text-[18px] font-extrabold text-[#123b72]">
-                {patientName || "-"}
-              </strong>
-            </div>
-            <div className="px-3 py-2">
-              <span className="block text-[10px] font-bold text-[#667085]">
-                تاريخ الميلاد
-              </span>
-              <strong className="block text-[13px] text-[#172033]" dir="ltr">
-                {patientDOB || "-"}
-              </strong>
-            </div>
+              <Input
+                value={operationType}
+                onChange={(event) => setOperationType(event.target.value)}
+                disabled={readOnly}
+                className="mt-1 h-8 border-[#d5dbe5] text-center text-[12px] font-bold"
+              />
+            </label>
             <label className="px-3 py-1.5">
               <span className="block text-[10px] font-bold text-[#667085]">
                 {followupLabels.operationDateLabel ?? "تاريخ العملية"}
@@ -134,20 +129,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                 inputClassName="min-w-0 w-full"
               />
             </label>
-            <label className="px-3 py-1.5">
-              <span className="block text-[10px] font-bold text-[#667085]">
-                {followupLabels.operationTypeLabel ?? "نوع العملية"}
-              </span>
-              <Input
-                value={operationType}
-                onChange={(event) => setOperationType(event.target.value)}
-                disabled={readOnly}
-                className="mt-1 h-8 border-[#d5dbe5] text-center text-[12px] font-bold"
-              />
-            </label>
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-[#d5dbe5] bg-[#f7f9fc] px-3 py-1.5 text-[11px] font-bold text-[#475467]">
-            <span>العين التي تم إجراء العملية بها</span>
+          <div className="flex items-center justify-center gap-2 bg-[#f7f9fc] px-3 py-1.5 text-[11px] font-bold text-[#475467]">
             {(["right", "left"] as const).map((eye) => {
               const active = Boolean(operationEyes[eye]);
               const label =
@@ -171,6 +153,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                 </button>
               );
             })}
+          </div>
           </div>
         </section>
 
@@ -215,6 +198,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                 </div>
               </div>
 
+              <div className="clinical-data-scroll overflow-x-auto">
               <table
                 className="followup-record-table w-full table-fixed border-collapse text-center"
                 dir="ltr"
@@ -253,7 +237,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                       {field(followup, "osVa", `OS VA visit ${index + 1}`)}
                     </td>
                   </tr>
-                  <tr className="followup-comment-row h-8 border-t border-[#d5dbe5]">
+                  <tr className="followup-comment-row followup-refraction-row h-10 border-t border-[#d5dbe5]">
                     <th
                       className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
                       colSpan={2}
@@ -266,9 +250,9 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                           {(["S", "C", "Axis"] as const).map((part) => (
                             <label
                               key={part}
-                              className="grid grid-rows-[12px_1fr] place-items-center text-center"
+                              className="grid grid-rows-[16px_1fr] place-items-center text-center"
                             >
-                              <span className="flex h-full w-full items-center justify-center bg-[#f8fafc] text-center text-[7px] font-bold text-[#667085]">
+                              <span className="flex h-full w-full items-center justify-center bg-[#f8fafc] text-center text-[11px] font-bold text-[#667085]">
                                 {part === "Axis" ? "A" : part}
                               </span>
                               {field(
@@ -330,6 +314,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                   </tr>
                 </tbody>
               </table>
+              </div>
 
               <div className="grid h-6 grid-cols-3 border-t border-[#9eabbc] bg-[#fbfcfe] text-center text-[8px] font-bold text-[#475467]">
                 <div className="flex items-center justify-center gap-1 px-2">

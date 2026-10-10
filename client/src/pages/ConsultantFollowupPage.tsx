@@ -13,7 +13,9 @@ import {
 } from "@/lib/sheetDesigner";
 import { printOrExportPdf } from "@/lib/nativePdf";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
+import "@/components/sheets/clinical-screen.css";
 import { operationTypeLabelAr } from "@shared/opTypes";
+import { toast } from "sonner";
 
 const FOLLOWUP_TITLES = [
   "المتابعة الأولى",
@@ -22,10 +24,10 @@ const FOLLOWUP_TITLES = [
   "المتابعة الرابعة",
 ];
 
-export default function ConsultantFollowupPage() {
+export default function ConsultantFollowupPage({ sheetType = "consultant" }: { sheetType?: "consultant" | "specialist" } = {}) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [, params] = useRoute("/sheets/consultant/:id/followup");
+  const [, params] = useRoute("/sheets/:type/:id/followup");
   const originalMode =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("original") === "1";
@@ -109,7 +111,7 @@ export default function ConsultantFollowupPage() {
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
-    { patientId: initialPatientId ?? 0, sheetType: "consultant" },
+    { patientId: initialPatientId ?? 0, sheetType },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
   );
   const designerSettingsQuery = trpc.medical.getSystemSetting.useQuery(
@@ -300,7 +302,7 @@ export default function ConsultantFollowupPage() {
     // Collect filled followups in groups of 4
     const filledFollowups = followups.filter((f) => f.date);
     if (filledFollowups.length === 0) {
-      alert("لا توجد بيانات لحفظها");
+      toast.info("لا توجد بيانات لحفظها");
       return;
     }
 
@@ -326,12 +328,12 @@ export default function ConsultantFollowupPage() {
     try {
       await saveFollowupSheetMutation.mutateAsync({
         patientId: initialPatientId,
-        sheetType: "consultant",
+        sheetType,
         followupItems,
       });
-      alert("تم حفظ البيانات بنجاح");
+      toast.success("تم حفظ البيانات بنجاح");
     } catch (error) {
-      alert("فشل حفظ البيانات");
+      toast.error("فشل حفظ البيانات");
       console.error(error);
     }
   };
@@ -343,7 +345,7 @@ export default function ConsultantFollowupPage() {
     DEFAULT_SHEET_DESIGNER_CONFIG.followupConsultant;
 
   const onPickPatient = (patient: { id: number }) => {
-    if (patient?.id) setLocation(`/sheets/consultant/${patient.id}/followup`);
+    if (patient?.id) setLocation(`/sheets/${sheetType}/${patient.id}/followup`);
   };
 
   const followupPages: typeof followups[] = [];
@@ -354,7 +356,7 @@ export default function ConsultantFollowupPage() {
 
   return (
     <div
-      className="followup-print-root consultant-followup-page min-h-screen print:min-h-0 bg-background text-foreground"
+      className="followup-print-root clinical-sheet-workspace consultant-followup-page min-h-screen print:min-h-0 bg-background text-foreground"
       style={{ fontFamily: "Inter, sans-serif" }}
       dir="rtl"
     >
@@ -367,19 +369,19 @@ export default function ConsultantFollowupPage() {
       `}</style>
 
       {/* Top nav */}
-      <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-5 py-2 bg-background/95 border-b border-border/60">
-        <div className="flex items-center gap-2">
+      <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex min-w-0 flex-wrap justify-between items-center gap-2 w-full px-3 py-2 bg-background/95 border-b border-border/60">
+        <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto">
           <Button
             type="button"
             variant="outline"
             className="border-border text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-muted/60"
             onClick={() =>
-              setLocation(`/sheets/consultant/${initialPatientId ?? ""}`)
+              setLocation(`/sheets/${sheetType}/${initialPatientId ?? ""}`)
             }
           >
-            كشف الاستشاري
+            {sheetType === "consultant" ? "كشف الاستشاري" : "شيت الأخصائي"}
           </Button>
-          <div className="w-60">
+          <div className="min-w-0 w-full sm:w-60">
             <PatientPicker
               initialPatientId={initialPatientId}
               onSelect={onPickPatient}
@@ -401,12 +403,12 @@ export default function ConsultantFollowupPage() {
             className="border-border text-foreground text-xs font-bold px-4 py-2 rounded hover:bg-muted/60"
             onClick={() =>
               void printOrExportPdf(
-                `consultant-followup-${initialPatientId ?? "sheet"}.pdf`,
+                `${sheetType}-followup-${initialPatientId ?? "sheet"}.pdf`,
                 { forceBrowserPrint: true },
               )
             }
           >
-            <Printer className="h-3 w-3 ml-1" /> طباعة
+            <Printer className="h-3 w-3 me-1" /> طباعة
           </Button>
         </div>
       </header>
@@ -414,7 +416,7 @@ export default function ConsultantFollowupPage() {
       <div className="flex min-h-screen print:min-h-0">
         {/* Main content */}
         <main className="py-6 px-4 flex-1 print:p-0">
-          <div data-print-document="followup" data-followup-kind="consultant">
+          <div data-print-document="followup" data-followup-kind={sheetType}>
             {followupPages.map((page, pageIndex) => (
               <div
                 key={pageIndex}
@@ -422,8 +424,8 @@ export default function ConsultantFollowupPage() {
                 style={pageIndex > 0 ? { marginTop: "8mm" } : undefined}
               >
                 <FollowupTablesBody
-                  titleEn="Consultant Follow-up"
-                  titleAr="متابعة الاستشاري"
+                  titleEn={sheetType === "consultant" ? "Consultant Follow-up" : "Specialist Follow-up"}
+                  titleAr={sheetType === "consultant" ? "متابعة الاستشاري" : "متابعة الأخصائي"}
                   patientName={patientName}
                   patientDOB={patientDOB}
                   operationType={operationType}

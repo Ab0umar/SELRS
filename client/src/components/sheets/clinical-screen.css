@@ -1,0 +1,233 @@
+/* Paper geometry is owned by the existing print rules, not the editing layout. */
+@media screen {
+  .clinical-sheet-workspace .a4-page-card,
+  .clinical-sheet-workspace .combined-followup-screen {
+    width: 100%;
+    max-width: 1000px;
+    margin-inline: auto;
+    border-radius: var(--radius);
+    box-shadow: var(--bento-shadow-soft);
+  }
+  .clinical-sheet-workspace .lasik-sheet,
+  .clinical-sheet-workspace .sheet-followup-body {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 16px;
+    color: var(--foreground);
+    background: var(--card);
+    box-shadow: var(--bento-shadow-soft);
+  }
+  .clinical-sheet-workspace
+    :where(.lasik-sheet, .sheet-followup-body)
+    :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    min-height: 44px;
+    color: var(--foreground) !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    font-size: 16px;
+  }
+  .clinical-sheet-workspace
+    :where(.lasik-sheet, .sheet-followup-body)
+    :where([class*="text-[#"]) {
+    color: var(--foreground) !important;
+  }
+  .clinical-sheet-workspace
+    :where(.lasik-sheet, .sheet-followup-body)
+    :where([class*="bg-white"], [class*="bg-[#"]):not(button, [role="button"]) {
+    background-color: var(--card) !important;
+  }
+  .clinical-sheet-workspace .patient-detail-emphasis {
+    font-size: 16px;
+  }
+  .clinical-sheet-workspace .print-lasik-patient-grid,
+  .clinical-sheet-workspace .print-sheet-patient-grid {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  .clinical-sheet-workspace .patient-info-grid-3x3 {
+    gap: 6px 16px;
+  }
+  .clinical-sheet-workspace .print-lasik-patient-grid > div.grid > :nth-child(1) {
+    justify-self: start;
+  }
+  .clinical-sheet-workspace .print-lasik-patient-grid > div.grid > :nth-child(2) {
+    justify-self: center;
+  }
+  .clinical-sheet-workspace .print-lasik-patient-grid > div.grid > :nth-child(3) {
+    justify-self: end;
+  }
+  .clinical-sheet-workspace
+    :where(.print-lasik-patient-grid, .print-sheet-patient-grid)
+    :where(input:not([type="checkbox"]):not([type="radio"])) {
+    min-height: 30px;
+    font-size: 14px;
+  }
+  .clinical-sheet-workspace .lasik-sheet > .sheet-print-header {
+    margin-bottom: -18px !important;
+  }
+  .clinical-sheet-workspace .lasik-sheet .sheet-print-header {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    column-gap: 12px;
+    row-gap: 2px;
+  }
+  .clinical-sheet-workspace .sheet-print-brand {
+    justify-self: end;
+    text-align: right;
+  }
+  .clinical-sheet-workspace .sheet-print-type {
+    justify-self: start;
+  }
+  .clinical-sheet-workspace .sheet-print-mark {
+    justify-self: center;
+    justify-content: center;
+  }
+  .clinical-sheet-workspace .sheet-print-context {
+    grid-column: 1 / -1;
+  }
+  .clinical-sheet-workspace .sheet-print-context > div {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+  .clinical-sheet-workspace .sheet-print-context input {
+    min-height: 32px;
+    font-size: 14px;
+  }
+  .clinical-sheet-workspace .sheet-print-context input[data-slot="input"] {
+    min-width: 120px;
+  }
+  .clinical-sheet-workspace .print-lasik-meta-row {
+    flex-wrap: nowrap;
+  }
+  .clinical-sheet-workspace .print-lasik-meta-row .header-operation-type-field {
+    grid-template-columns: repeat(6, auto);
+  }
+  .clinical-sheet-workspace
+    .print-lasik-meta-row
+    :where(.header-eye-field, .header-operation-type-field)
+    label {
+    min-height: 28px;
+  }
+  .clinical-sheet-workspace .sheet-print-clinic-name {
+    white-space: normal;
+  }
+  .clinical-sheet-workspace
+    :where(.header-eye-field, .header-operation-type-field)
+    label {
+    min-height: 44px;
+    gap: 6px;
+  }
+  .clinical-sheet-workspace .header-operation-type-field {
+    font-size: 13px;
+  }
+  .clinical-sheet-workspace .print-lasik-patient-grid {
+    border-radius: 8px;
+  }
+  .clinical-sheet-workspace .followup-record-head strong {
+    white-space: normal;
+    overflow: visible;
+  }
+  .clinical-sheet-workspace .followup-op-row > :last-child {
+    flex-wrap: wrap;
+  }
+  .clinical-sheet-workspace .followup-record-title {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clinical-sheet-workspace .followup-record-title > * {
+    height: auto;
+    min-height: 44px;
+  }
+  .clinical-sheet-workspace .followup-record-list {
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+  }
+  .clinical-sheet-workspace .clinical-data-scroll {
+    max-width: 100%;
+  }
+}
+
+@media print {
+  .clinical-data-scroll {
+    display: contents;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .clinical-sheet-workspace .patient-info-grid-3x3 > :first-child {
+    grid-column: 1 / -1;
+  }
+  .clinical-sheet-workspace .lasik-sheet .sheet-print-header {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+  .clinical-sheet-workspace .sheet-print-brand {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+  .clinical-sheet-workspace .sheet-print-type {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .clinical-sheet-workspace .sheet-print-mark {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    flex-wrap: wrap;
+    max-width: 240px;
+  }
+  .clinical-sheet-workspace .sheet-print-context > div {
+    flex-wrap: wrap;
+  }
+  .clinical-sheet-workspace .print-lasik-meta-row {
+    flex-wrap: wrap;
+  }
+  .clinical-sheet-workspace .print-lasik-meta-row .header-operation-type-field {
+    grid-template-columns: repeat(3, auto);
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .clinical-sheet-workspace .lasik-sheet,
+  .clinical-sheet-workspace .sheet-followup-body {
+    padding: 12px;
+  }
+  .clinical-sheet-workspace .lasik-sheet .sheet-print-header {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .clinical-sheet-workspace .sheet-print-brand {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: stretch;
+  }
+  .clinical-sheet-workspace .sheet-print-mark {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;
+    max-width: none;
+    justify-content: flex-start;
+  }
+  .clinical-sheet-workspace .sheet-print-type {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .clinical-sheet-workspace .sheet-print-context {
+    grid-row: 4;
+  }
+  .clinical-sheet-workspace .sheet-print-context > div,
+  .clinical-sheet-workspace .sheet-print-context > div > div {
+    width: 100%;
+  }
+  .clinical-sheet-workspace .print-lasik-patient-grid > div {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+  }
+  .clinical-sheet-workspace .print-lasik-patient-grid label {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .clinical-sheet-workspace .followup-record-head > :first-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clinical-sheet-workspace .followup-record-title {
+    font-size: 14px;
+  }
+}

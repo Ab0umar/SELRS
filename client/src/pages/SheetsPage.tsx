@@ -5,15 +5,9 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowRight,
-  Repeat,
-  Stethoscope,
-  UserRound,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, Repeat, Stethoscope, UserRound, Eye } from "lucide-react";
+import "@/styles/clinical-workspace.css";
 
-// Sub-components
 import ConsultantSheet from "./ConsultantSheet";
 import SpecialistSheet from "./SpecialistSheet";
 import LasikExamSheet from "./LasikExamSheet";
@@ -24,6 +18,7 @@ export type SheetsTabKey =
   | "consultant"
   | "specialist"
   | "lasik"
+  | "external"
   | "followup-consultant"
   | "followup-lasik";
 
@@ -39,8 +34,8 @@ export default function SheetsPage({
   const { isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
+  const [followupKind, setFollowupKind] = useState<"consultant" | "specialist">("consultant");
 
-  // Determine initial tab from route, URL query, or defaultTab
   const initialTab = useMemo<SheetsTabKey>(() => {
     try {
       const sp = new URLSearchParams(window.location.search);
@@ -51,15 +46,14 @@ export default function SheetsPage({
           "consultant",
           "specialist",
           "lasik",
+          "external",
           "followup-consultant",
           "followup-lasik",
         ].includes(tabParam)
       ) {
         return tabParam as SheetsTabKey;
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     if (
       location.includes("/followup/consultant") ||
@@ -72,6 +66,7 @@ export default function SheetsPage({
     )
       return "followup-lasik";
     if (location.includes("/sheets/specialist")) return "specialist";
+    if (location.includes("/sheets/external")) return "external";
     if (location.includes("/sheets/lasik")) return "lasik";
     if (location.includes("/sheets/consultant")) return "consultant";
 
@@ -91,9 +86,7 @@ export default function SheetsPage({
       const url = new URL(window.location.href);
       url.searchParams.set("tab", nextTab);
       window.history.replaceState({}, "", url.toString());
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -103,13 +96,15 @@ export default function SheetsPage({
   }, [isAuthenticated, setLocation]);
 
   return (
-    <div className="w-full bg-background text-foreground print:bg-white">
+    <div
+      dir="rtl"
+      className="mobile-flat-clinical clinical-workspace w-full bg-background text-foreground print:bg-white"
+    >
       <div className="w-full space-y-4 p-3 sm:p-5 print:p-0 print:space-y-0">
         {!embeddedInHub && (
-          <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm print:hidden">
+          <div className="records-page-header rounded-2xl border border-border/80 bg-card p-4 shadow-sm print:hidden">
             <PageHeader
               title="الشيتات الطبية"
-              description="كافة الشيتات الطبية والاستشارات ومقاسات النظارة ومتابعات الليزك في شاشة موحدة"
               actions={
                 <Button
                   variant="outline"
@@ -126,6 +121,7 @@ export default function SheetsPage({
         )}
 
         <Tabs
+          dir="rtl"
           value={activeTab}
           onValueChange={handleTabChange}
           className="w-full space-y-4 print:space-y-0"
@@ -137,7 +133,7 @@ export default function SheetsPage({
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
               >
                 <Stethoscope className="h-4 w-4 shrink-0 text-primary" />
-                <span>شيت كشف</span>
+                <span>كشف</span>
               </TabsTrigger>
 
               <TabsTrigger
@@ -145,15 +141,15 @@ export default function SheetsPage({
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
               >
                 <UserRound className="h-4 w-4 shrink-0 text-primary" />
-                <span>شيت مقاس نظاره / خارجي</span>
+                <span>مقاس نظارة / أشعة خارجي</span>
               </TabsTrigger>
 
               <TabsTrigger
                 value="lasik"
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
               >
-                <Zap className="h-4 w-4 shrink-0 text-primary" />
-                <span>شيت تصحيح ابصار</span>
+                <Eye className="h-4 w-4 shrink-0 text-primary" />
+                <span>تصحيح إبصار</span>
               </TabsTrigger>
 
               <TabsTrigger
@@ -161,58 +157,65 @@ export default function SheetsPage({
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
               >
                 <Repeat className="h-4 w-4 shrink-0 text-primary" />
-                <span>متابعة الاستشاري</span>
+                <span>متابعة</span>
               </TabsTrigger>
 
               <TabsTrigger
-                value="followup-lasik"
+                value="external"
                 className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
               >
-                <Repeat className="h-4 w-4 shrink-0 text-primary" />
-                <span>متابعة الليزك</span>
+                <UserRound className="h-4 w-4 shrink-0 text-primary" />
+                <span>د. الصواف</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent
-            value="consultant"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
-          >
+          <TabsContent value="consultant" className="m-0 print:m-0 print:p-0">
             <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
-              <ConsultantSheet />
+              <ConsultantSheet sheetType="consultant" />
             </div>
           </TabsContent>
 
-          <TabsContent
-            value="specialist"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
-          >
+          <TabsContent value="specialist" className="m-0 print:m-0 print:p-0">
             <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <SpecialistSheet />
             </div>
           </TabsContent>
 
-          <TabsContent
-            value="lasik"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
-          >
+          <TabsContent value="lasik" className="m-0 print:m-0 print:p-0">
             <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
-              <LasikExamSheet />
+              <LasikExamSheet sheetType="lasik" />
             </div>
           </TabsContent>
 
           <TabsContent
             value="followup-consultant"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 print:m-0 print:p-0"
           >
             <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
-              <ConsultantFollowupPage />
+              <div className="mb-3 flex flex-wrap items-center gap-2 print:hidden">
+                <label htmlFor="sheets-followup-kind">نوع المتابعة</label>
+                <select
+                  id="sheets-followup-kind"
+                  className="min-h-11 rounded-md border border-input bg-background px-3"
+                  value={followupKind}
+                  onChange={(event) => setFollowupKind(event.target.value as "consultant" | "specialist")}
+                >
+                  <option value="consultant">استشاري</option>
+                  <option value="specialist">أخصائي</option>
+                </select>
+              </div>
+              <ConsultantFollowupPage key={followupKind} sheetType={followupKind} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="external" className="m-0 print:m-0 print:p-0">
+            <LasikExamSheet sheetType="external" />
           </TabsContent>
 
           <TabsContent
             value="followup-lasik"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 print:m-0 print:p-0"
           >
             <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <LasikFollowupPage />

@@ -18,7 +18,7 @@ describe("medical sheet print layout regressions", () => {
     expect(css).not.toContain("overflow: scroll");
   });
 
-  it("uses one shared follow-up renderer for consultant and Lasik", () => {
+  it("uses one shared follow-up renderer for consultant, specialist and Lasik", () => {
     const body = read(
       "client/src/components/sheets/FollowupTablesBody.tsx",
     );
@@ -32,8 +32,10 @@ describe("medical sheet print layout regressions", () => {
     expect(body).not.toContain("<style>");
     expect(body).toContain('className="w-[20%]"');
     expect(body).toContain('className="w-[16%]"');
-    expect(consultant).toContain('data-followup-kind="consultant"');
-    expect(consultant).toContain('titleAr="متابعة الاستشاري"');
+    expect(consultant).toContain('sheetType = "consultant"');
+    expect(consultant).toContain('sheetType?: "consultant" | "specialist"');
+    expect(consultant).toContain('data-followup-kind={sheetType}');
+    expect(consultant).toContain('titleAr={sheetType === "consultant" ? "متابعة الاستشاري" : "متابعة الأخصائي"}');
     expect(lasik).toContain('data-followup-kind="lasik"');
     expect(lasik).toContain('titleAr="متابعة الليزك"');
   });
@@ -66,7 +68,8 @@ describe("medical sheet print layout regressions", () => {
       /!options\?\.forceBrowserPrint\s*&&\s*!hasSpecificTarget\s*&&\s*canUseNativeAndroidPrint\(\)/,
     );
     expect(nativePrint).toContain('"[data-print-document]"');
-    expect(nativePrint).toContain('data-print-document="followup"');
+    expect(nativePrint).not.toContain("height: 275mm");
+    expect(nativePrint).not.toContain("height: 297mm");
     expect(nativePrint).not.toContain("attached-followup-page");
   });
 });
