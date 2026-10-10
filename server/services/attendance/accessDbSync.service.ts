@@ -6,7 +6,7 @@
  * falls back to reading punch data from Access DB (Taurus.mdb)
  */
 
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -66,7 +66,7 @@ export class AccessDbSyncService {
   async getPunchRecords(since: Date): Promise<AccessPunch[]> {
     try {
       // Connection string for Access DB via ODBC
-      const connectionString = `Driver={Microsoft Access Driver (*.mdb)};DBQ=${this.accessDbPath};`;
+      const connectionString = `Driver={Microsoft Access Driver (*.mdb)};DBQ=$env:ATTENDANCE_ACCESS_DB_PATH;`;
 
       // SQL query to get punch records from KQ_KQData (main punch table)
       // Taratus schema: KQ_KQData contains EmpNo, KQDateTime, KQStatus
@@ -76,7 +76,7 @@ export class AccessDbSyncService {
           KQDateTime,
           KQStatus
         FROM KQ_KQData
-        WHERE KQDateTime > '${since.toISOString()}'
+        WHERE KQDateTime > ?
         ORDER BY KQDateTime DESC
       `;
 
@@ -89,6 +89,8 @@ ${query}
 
 $conn = New-Object System.Data.OleDb.OleDbConnection($connStr)
 $cmd = New-Object System.Data.OleDb.OleDbCommand($query, $conn)
+$sinceParam = $cmd.Parameters.Add("?", [System.Data.OleDb.OleDbType]::DBTimeStamp)
+$sinceParam.Value = [DateTime]::Parse("${since.toISOString()}").ToLocalTime()
 $conn.Open()
 $reader = $cmd.ExecuteReader()
 
@@ -107,11 +109,12 @@ $results | ConvertTo-Json
 `;
 
       // Execute PowerShell command
-      const result = execSync(`powershell -NoProfile -Command "${psCommand}"`, {
+      const result = execFileSync("powershell.exe", ["-NoProfile", "-Command", "-"], {
         encoding: "utf-8",
+        input: psCommand,
+        env: { ...process.env, ATTENDANCE_ACCESS_DB_PATH: this.accessDbPath },
       });
 
-      // Parse results
       const records = JSON.parse(result);
       return Array.isArray(records)
         ? records.map((r: any) => ({
@@ -132,7 +135,7 @@ $results | ConvertTo-Json
    */
   async getEmployees(): Promise<AccessEmployee[]> {
     try {
-      const connectionString = `Driver={Microsoft Access Driver (*.mdb)};DBQ=${this.accessDbPath};`;
+      const connectionString = `Driver={Microsoft Access Driver (*.mdb)};DBQ=$env:ATTENDANCE_ACCESS_DB_PATH;`;
 
       const query = `
         SELECT
@@ -166,8 +169,10 @@ $conn.Close()
 $results | ConvertTo-Json
 `;
 
-      const result = execSync(`powershell -NoProfile -Command "${psCommand}"`, {
+      const result = execFileSync("powershell.exe", ["-NoProfile", "-Command", "-"], {
         encoding: "utf-8",
+        input: psCommand,
+        env: { ...process.env, ATTENDANCE_ACCESS_DB_PATH: this.accessDbPath },
       });
 
       const records = JSON.parse(result);

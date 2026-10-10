@@ -9,7 +9,7 @@
  * - Triggers daily materializer on success
  */
 
-import { getDb } from "../../db";
+import { getDb, getDbConnection } from "../../db";
 import { attendanceSyncRuns } from "../../../drizzle/schema";
 import { eq, and, inArray, desc, sql } from "drizzle-orm";
 import { AttendanceSource } from "./sources/AttendanceSource";
@@ -50,21 +50,17 @@ export async function runSyncOnce(
   const startedAt = new Date();
   let runId: number | null = null;
   let acquired = false;
+  let lockConnection: Awaited<ReturnType<typeof getDbConnection>> | null = null;
 
   try {
-    // Release any stale locks from previous crashed sessions
-    try {
-      await db.execute(sql`SELECT RELEASE_LOCK(${SYNC_LOCK_NAME})`);
-    } catch {
-      // Ignore if no lock exists
-    }
-
-    // Try to acquire advisory lock (5 second timeout, then fail)
-    const lockResult = await db.execute(
-      sql`SELECT GET_LOCK(${SYNC_LOCK_NAME}, 5) as lockAcquired`,
+    // MySQL advisory locks belong to one connection, so keep this dedicated
+    // connection checked out until the matching RELEASE_LOCK call.
+    lockConnection = await getDbConnection();
+    const [lockRows] = await lockConnection.query(
+      "SELECT GET_LOCK(?, 5) AS lockAcquired",
+      [SYNC_LOCK_NAME],
     );
-    const rows = lockResult as any;
-    acquired = rows?.[0]?.[0]?.lockAcquired === 1;
+    acquired = Number((lockRows as any[])[0]?.lockAcquired) === 1;
 
     if (!acquired) {
       // Lock not acquired - another sync is running
@@ -80,7 +76,6 @@ export async function runSyncOnce(
       return { runId, status: "locked" };
     }
 
-    // Create sync run record
     runId = await createSyncRun(db, {
       startedAt,
       source: source.name,
@@ -133,21 +128,16 @@ export async function runSyncOnce(
         const punch = record.row;
 
         // Try to insert (dedup via UNIQUE constraint + source_hash)
-        try {
-          const inserted = await PunchesService.insertPunchIgnore(
-            punch,
-            source.name,
-          );
-          if (inserted) {
-            rowsInserted++;
-            if (!maxPunchAt || punch.punchAt > maxPunchAt) {
-              maxPunchAt = punch.punchAt;
-            }
-          } else {
-            rowsSkipped++;
+        const inserted = await PunchesService.insertPunchIgnore(
+          punch,
+          source.name,
+        );
+        if (inserted) {
+          rowsInserted++;
+          if (!maxPunchAt || punch.punchAt > maxPunchAt) {
+            maxPunchAt = punch.punchAt;
           }
-        } catch (punchErr) {
-          console.error("[attendance:sync] Punch insert error:", punchErr);
+        } else {
           rowsSkipped++;
         }
       }
@@ -175,13 +165,18 @@ export async function runSyncOnce(
     // Trigger materializer on success (partial is still ok)
     if (status !== "failed" && maxPunchAt) {
       try {
+        const recomputeFrom = new Date(
+          sinceLocal.getFullYear(),
+          sinceLocal.getMonth(),
+          sinceLocal.getDate(),
+        );
+        const recomputeTo = new Date();
         await dailyMaterializer.recomputeRange(
-          new Date(
-            sinceLocal.getFullYear(),
-            sinceLocal.getMonth(),
-            sinceLocal.getDate(),
-          ),
-          new Date(),
+          recomputeFrom,
+          recomputeTo,
+          undefined,
+          undefined,
+          { recomputeMonthly: true },
         );
       } catch (matErr) {
         console.error("[attendance:sync] Materializer error:", matErr);
@@ -226,11 +221,12 @@ export async function runSyncOnce(
     // Always release lock and close source
     if (acquired) {
       try {
-        await db.execute(sql`SELECT RELEASE_LOCK(${SYNC_LOCK_NAME})`);
+        await lockConnection?.query("SELECT RELEASE_LOCK(?)", [SYNC_LOCK_NAME]);
       } catch {
         // Ignore release errors
       }
     }
+    lockConnection?.release();
     try {
       await source.close();
     } catch {
@@ -239,7 +235,7 @@ export async function runSyncOnce(
   }
 }
 
-// ============ Private Helpers ============
+// Private Helpers
 
 async function createSyncRun(
   db: any,
@@ -356,7 +352,7 @@ export async function resetZkSyncHistory(): Promise<void> {
 
   await db
     .update(attendanceSyncRuns)
-    .set({ highWaterMark: null })
+    .set({ highWaterMark: new Date(2026, 0, 1, 0, 0, 0, 0) })
     .where(sql`${(attendanceSyncRuns as any).deviceId} LIKE 'zk_%'`);
 }
 

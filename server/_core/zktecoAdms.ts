@@ -18,6 +18,7 @@ import { attendancePunches, attendanceEmployees } from "../../drizzle/schema";
 import { sql, eq } from "drizzle-orm";
 import { broadcastPunch } from "./ws";
 import { DailyMaterializer } from "../services/attendance/dailyMaterializer";
+import { mayAutoDetectAdmsOffset } from "../services/attendance/admsOffsetPolicy";
 
 // ---------------------------------------------------------------------------
 // Command queue — populated by pushEmployeesToAdms(), drained by /getrequest
@@ -29,26 +30,66 @@ interface AdmsCommand {
 }
 
 let cmdSeq = 1;
-const cmdQueue: AdmsCommand[] = [];
+// One queue per device serial: a command must only run on the device it is
+// meant for. Untargeted commands are copied to every allowlisted device.
+const cmdQueues = new Map<string, AdmsCommand[]>();
+
+function allowlistedSerials(): string[] {
+  return (process.env.ZK_ADMS_DEVICE_ALLOWLIST ?? "")
+    .split(",")
+    .map((entry) => {
+      const separator = entry.lastIndexOf("@");
+      return separator > 0 ? entry.slice(0, separator).trim() : "";
+    })
+    .filter(Boolean);
+}
+
+function queueFor(sn: string): AdmsCommand[] {
+  let queue = cmdQueues.get(sn);
+  if (!queue) {
+    queue = [];
+    cmdQueues.set(sn, queue);
+  }
+  return queue;
+}
+
+/** Queue a command (built from a fresh id) for one device, or for all. */
+function enqueue(build: (id: number) => string, sn?: string): number {
+  const targets = sn ? [sn] : allowlistedSerials();
+  for (const target of targets) {
+    const id = cmdSeq++;
+    queueFor(target).push({ id, line: build(id) });
+  }
+  return targets.length;
+}
+
+function queuedTotal(): number {
+  let total = 0;
+  for (const queue of cmdQueues.values()) total += queue.length;
+  return total;
+}
 const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
 
-/** ADMS push is enabled unless explicitly disabled in K40 device settings. */
+/** ADMS ingestion is enabled only when K40 is explicitly configured for ADMS. */
 async function isAdmsEnabled(): Promise<boolean> {
   try {
-    const { DeviceSettingsService } = await import("../services/attendance/deviceSettings.service");
-    return DeviceSettingsService.getK40Settings().admsEnabled ?? true;
+    const { DeviceSettingsService } =
+      await import("../services/attendance/deviceSettings.service");
+    const settings = DeviceSettingsService.getK40Settings();
+    return settings.enabled && settings.zk40Protocol === "adms" && settings.admsEnabled === true;
   } catch {
-    return true; // fail open — don't drop punches if settings unavailable
+    return false;
   }
 }
 const queriedDevices = new Set<string>(); // SNs that already received DATA QUERY ATTLOG this session
 
 /** Queue a one-off ATTLOG pull command — device uploads its logs on next poll. */
 export function queueAdmsAttlogQuery(): number {
-  const id = cmdSeq++;
-  cmdQueue.push({ id, line: `C:${id}:DATA QUERY ATTLOG` });
-  console.log(`[ADMS] Queued manual DATA QUERY ATTLOG cmd ${id} (queue total: ${cmdQueue.length})`);
-  return id;
+  const devices = enqueue((id) => `C:${id}:DATA QUERY ATTLOG`);
+  console.log(
+    `[ADMS] Queued manual DATA QUERY ATTLOG for ${devices} device(s) (queue total: ${queuedTotal()})`,
+  );
+  return devices;
 }
 
 export function queueAdmsUserCommands(
@@ -56,10 +97,9 @@ export function queueAdmsUserCommands(
 ): number {
   let count = 0;
   for (const e of employees) {
-    const id = cmdSeq++;
     const name = (e.fullName || e.empCd).replace(/\t/g, " ").slice(0, 24);
     // K40 firmware uses PIN (not EmpNo) as the primary user ID field
-    const line =
+    const build = (id: number) =>
       `C:${id}:DATA UPDATE USERINFO\t` +
       `PIN=${e.empCd}\t` +
       `Name=${name}\t` +
@@ -70,10 +110,12 @@ export function queueAdmsUserCommands(
       `TZ=0000000100000000\t` +
       `Verify=0\t` +
       `ViceCard=`;
-    cmdQueue.push({ id, line });
+    enqueue(build);
     count++;
   }
-  console.log(`[ADMS] Queued ${count} USERINFO commands (queue total: ${cmdQueue.length})`);
+  console.log(
+    `[ADMS] Queued ${count} USERINFO commands (queue total: ${queuedTotal()})`,
+  );
   return count;
 }
 
@@ -127,18 +169,21 @@ function serverOffsetHours(): number {
 
 // In-memory cache of the auto-detected offset; hydrated from persisted device
 // settings on first use so it survives server restarts.
-let detectedOffsetHours: number | null = null;
-let detectedOffsetHydrated = false;
+const detectedOffsetByDevice = new Map<string, number>();
+const hydratedDevices = new Set<string>();
 
-async function hydrateDetectedOffset(): Promise<void> {
-  if (detectedOffsetHydrated) return;
-  detectedOffsetHydrated = true;
+async function hydrateDetectedOffset(deviceId: string): Promise<void> {
+  if (hydratedDevices.has(deviceId)) return;
+  hydratedDevices.add(deviceId);
   try {
-    const { DeviceSettingsService } = await import("../services/attendance/deviceSettings.service");
-    const persisted = DeviceSettingsService.getK40Settings().admsDetectedOffsetHours;
+    const { DeviceSettingsService } =
+      await import("../services/attendance/deviceSettings.service");
+    const persisted = DeviceSettingsService.getAdmsDetectedOffset(deviceId);
     if (typeof persisted === "number" && Number.isFinite(persisted)) {
-      detectedOffsetHours = persisted;
-      console.log(`[ADMS] Hydrated persisted clock offset = ${persisted}h`);
+      detectedOffsetByDevice.set(deviceId, persisted);
+      console.log(
+        `[ADMS] Hydrated persisted clock offset for ${deviceId} = ${persisted}h`,
+      );
     }
   } catch {
     // settings unavailable — stay with default
@@ -152,18 +197,30 @@ function parseFiniteFloat(raw: string | undefined, fallback: number): number {
 }
 
 /** Hours the device clock runs AHEAD of correct local time (subtract on store). */
-function effectiveOffsetHours(): number {
+function effectiveOffsetHours(deviceId: string): number {
   const manual = parseFiniteFloat(process.env.ZK_ADMS_PUNCH_OFFSET_HOURS, NaN);
   if (Number.isFinite(manual)) return manual;
-  if (detectedOffsetHours !== null) return detectedOffsetHours;
+  const detected = detectedOffsetByDevice.get(deviceId);
+  if (detected !== undefined) return detected;
   return 0; // unknown until a fresh punch lets us auto-detect — safer than guessing
 }
 
 /** From a fresh real-time push, snap (deviceTime − now) to nearest hour. */
-function maybeDetectOffset(punches: ParsedPunch[]): void {
-  if (process.env.ZK_ADMS_PUNCH_OFFSET_HOURS) return; // manual override wins
+function maybeDetectOffset(punches: ParsedPunch[], deviceId: string): void {
+  // Auto-detect once per serial. Later uploads must not be able to retune the
+  // persisted offset with a forged but otherwise well-formed punch batch.
+  if (
+    !mayAutoDetectAdmsOffset(
+      detectedOffsetByDevice.get(deviceId),
+      process.env.ZK_ADMS_PUNCH_OFFSET_HOURS,
+    )
+  )
+    return;
   if (punches.length === 0 || punches.length > 3) return; // bulk dumps are historical
-  const newest = punches.reduce((mx, p) => (p.punchAt > mx ? p.punchAt : mx), punches[0].punchAt);
+  const newest = punches.reduce(
+    (mx, p) => (p.punchAt > mx ? p.punchAt : mx),
+    punches[0].punchAt,
+  );
   const diffH = (newest.getTime() - Date.now()) / 3_600_000;
   const rounded = Math.round(diffH);
   // Device only ever runs AHEAD (never behind), and only by a sane amount.
@@ -171,18 +228,25 @@ function maybeDetectOffset(punches: ParsedPunch[]): void {
   // negative or wildly large diff and poison the offset for all later punches.
   if (rounded < 0 || rounded > 12) return;
   if (Math.abs(diffH - rounded) < 0.25) {
-    if (detectedOffsetHours !== rounded) {
-      detectedOffsetHours = rounded;
-      console.log(`[ADMS] Detected device clock offset = ${rounded}h ahead — subtracting from punch times`);
+    if (detectedOffsetByDevice.get(deviceId) !== rounded) {
+      detectedOffsetByDevice.set(deviceId, rounded);
+      console.log(
+        `[ADMS] Detected device clock offset = ${rounded}h ahead — subtracting from punch times`,
+      );
       import("../services/attendance/deviceSettings.service")
-        .then(({ DeviceSettingsService }) => DeviceSettingsService.setK40AdmsDetectedOffset(rounded))
+        .then(({ DeviceSettingsService }) =>
+          DeviceSettingsService.setAdmsDetectedOffset(deviceId, rounded),
+        )
         .catch(() => {});
     }
   }
 }
 
-async function parseAttlogBody(body: string, deviceId: string): Promise<ParsedPunch[]> {
-  await hydrateDetectedOffset();
+async function parseAttlogBody(
+  body: string,
+  deviceId: string,
+): Promise<ParsedPunch[]> {
+  await hydrateDetectedOffset(deviceId);
   const punches: ParsedPunch[] = [];
   for (const raw of body.split("\n")) {
     const line = raw.trim();
@@ -194,7 +258,14 @@ async function parseAttlogBody(body: string, deviceId: string): Promise<ParsedPu
     // Parse as local time — device sends local time with no timezone suffix.
     // Use component constructor (new Date(y,m,d,h,min,s)) which is always local.
     const tsParts = ts.trim().split(/[\s:-]/);
-    const rawPunchAt = new Date(+tsParts[0], +tsParts[1] - 1, +tsParts[2], +tsParts[3], +tsParts[4], +tsParts[5]);
+    const rawPunchAt = new Date(
+      +tsParts[0],
+      +tsParts[1] - 1,
+      +tsParts[2],
+      +tsParts[3],
+      +tsParts[4],
+      +tsParts[5],
+    );
     if (isNaN(rawPunchAt.getTime())) continue;
     const empCd = (userId ?? "").trim();
     if (!empCd) continue;
@@ -207,8 +278,8 @@ async function parseAttlogBody(body: string, deviceId: string): Promise<ParsedPu
     });
   }
   // Auto-detect offset from fresh pushes, then correct all timestamps
-  maybeDetectOffset(punches);
-  const offMs = effectiveOffsetHours() * 3_600_000;
+  maybeDetectOffset(punches, deviceId);
+  const offMs = effectiveOffsetHours(deviceId) * 3_600_000;
   if (offMs !== 0) {
     for (const p of punches) p.punchAt = new Date(p.punchAt.getTime() - offMs);
   }
@@ -216,6 +287,38 @@ async function parseAttlogBody(body: string, deviceId: string): Promise<ParsedPu
 }
 
 export function registerZKTecoAdms(app: Express): void {
+  // ADMS has no protocol-level authentication. Require an explicit
+  // serial@source-IP pair for every device, and fail closed when none is
+  // configured. Do not trust X-Forwarded-For here: the socket peer is the
+  // identity boundary (if proxied, allowlist the proxy and restrict it there).
+  app.use("/iclock", (req: Request, res: Response, next) => {
+    const sn = String(req.query.SN ?? req.query.sn ?? "").trim();
+    const remoteAddress = (req.socket.remoteAddress ?? "").replace(
+      /^::ffff:/i,
+      "",
+    );
+    const allowlist = (process.env.ZK_ADMS_DEVICE_ALLOWLIST ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    const allowed = allowlist.some((entry) => {
+      const separator = entry.lastIndexOf("@");
+      if (separator <= 0 || separator === entry.length - 1) return false;
+      const allowedSerial = entry.slice(0, separator).trim();
+      const allowedAddress = entry
+        .slice(separator + 1)
+        .trim()
+        .replace(/^::ffff:/i, "");
+      return allowedSerial === sn && allowedAddress === remoteAddress;
+    });
+
+    if (!allowed) {
+      res.status(403).type("text/plain").send("DENY");
+      return;
+    }
+    next();
+  });
+
   // Accept plain text body for ZKTeco ADMS push
   app.use("/iclock", express.text({ type: "*/*", limit: "2mb" }));
   // NOTE: We deliberately do NOT manipulate the HTTP Date header. Testing showed
@@ -231,30 +334,31 @@ export function registerZKTecoAdms(app: Express): void {
   app.get("/iclock/cdata", (req: Request, res: Response) => {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     const options = String(req.query.options ?? req.query.Options ?? "");
-    console.log(`[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`);
+    console.log(
+      `[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`,
+    );
 
     // Queue DATA QUERY ATTLOG once per session so device pushes its logs (pushver 2.x command-driven)
     if (!queriedDevices.has(sn)) {
       queriedDevices.add(sn);
-      const id = cmdSeq++;
-      cmdQueue.push({ id, line: `C:${id}:DATA QUERY ATTLOG` });
-      console.log(`[ADMS] Queued DATA QUERY ATTLOG cmd ${id} for SN=${sn}`);
+      enqueue((id) => `C:${id}:DATA QUERY ATTLOG`, sn);
+      console.log(`[ADMS] Queued DATA QUERY ATTLOG for SN=${sn}`);
     }
 
     res.set("Content-Type", "text/plain");
     res.send(
       `GET OPTION FROM: ${sn}\r\n` +
-      `ATTLOGStamp=0\r\n` +
-      `OPERLOGStamp=0\r\n` +
-      `ATTPHOTOStamp=0\r\n` +
-      `ErrorDelay=30\r\n` +
-      `Delay=10\r\n` +
-      `TransTimes=00:00;23:59\r\n` +
-      `TransInterval=1\r\n` +
-      `TransFlag=TransData AttLog OpLog\r\n` +
-      `TimeZone=${serverOffsetHours()}\r\n` +
-      `Realtime=1\r\n` +
-      `Encrypt=None\r\n`,
+        `ATTLOGStamp=0\r\n` +
+        `OPERLOGStamp=0\r\n` +
+        `ATTPHOTOStamp=0\r\n` +
+        `ErrorDelay=30\r\n` +
+        `Delay=10\r\n` +
+        `TransTimes=00:00;23:59\r\n` +
+        `TransInterval=1\r\n` +
+        `TransFlag=TransData AttLog OpLog\r\n` +
+        `TimeZone=${serverOffsetHours()}\r\n` +
+        `Realtime=1\r\n` +
+        `Encrypt=None\r\n`,
     );
   });
 
@@ -279,7 +383,9 @@ export function registerZKTecoAdms(app: Express): void {
     const punches = await parseAttlogBody(body, sn);
 
     if (punches.length === 0) {
-      console.log(`[ADMS] SN=${sn} no punches parsed — raw: ${body.slice(0, 300)}`);
+      console.log(
+        `[ADMS] SN=${sn} no punches parsed — raw: ${body.slice(0, 300)}`,
+      );
       res.set("Content-Type", "text/plain");
       res.send("OK: 0");
       return;
@@ -296,11 +402,9 @@ export function registerZKTecoAdms(app: Express): void {
         direction: p.direction,
         deviceId: sn,
         source: "tcp" as const,
-        // Keyed off the raw (uncorrected) device timestamp so dedup stays stable
-        // across auto-detected offset changes — the corrected punchAt shifts
-        // when the device's clock drift changes, which would otherwise make the
-        // same physical punch look like a new row.
-        sourceRowId: `${sn}_${p.empCd}_${p.rawPunchAt.getTime()}`,
+        // Use the normalized employee/timestamp identity shared with TCP pulls
+        // so one physical K40 scan cannot be stored twice across ADMS and TCP.
+        sourceRowId: `${p.empCd}_${p.punchAt.getTime()}`,
         sourceHash: sha1(
           `${sn}|${p.empCd}|${p.rawPunchAt.toISOString()}|${p.direction}`,
         ),
@@ -350,10 +454,18 @@ export function registerZKTecoAdms(app: Express): void {
       );
       for (const dayMs of punchDays) {
         const dayStart = new Date(dayMs);
-        const dayEnd = new Date(dayMs);
-        dayEnd.setDate(dayEnd.getDate() + 1);
-        DailyMaterializer.recomputeRange(dayStart, dayEnd).catch((err) => {
-          console.error("[ADMS] Failed to recompute daily for", dayStart, err);
+        void DailyMaterializer.recomputeRange(
+          dayStart,
+          dayStart,
+          undefined,
+          undefined,
+          { recomputeMonthly: true },
+        ).catch((err) => {
+          console.error(
+            "[ADMS] Failed to recompute attendance for",
+            dayStart,
+            err,
+          );
         });
       }
 
@@ -369,10 +481,13 @@ export function registerZKTecoAdms(app: Express): void {
   app.get("/iclock/getrequest", (req: Request, res: Response) => {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     res.set("Content-Type", "text/plain");
-    if (cmdQueue.length > 0) {
-      const cmd = cmdQueue.shift()!;
+    const queue = queueFor(sn);
+    if (queue.length > 0) {
+      const cmd = queue.shift()!;
       pendingAck.set(cmd.id, cmd);
-      console.log(`[ADMS] → SN=${sn} cmd ${cmd.id}: ${cmd.line.slice(0, 80)} (${cmdQueue.length} remaining)`);
+      console.log(
+        `[ADMS] → SN=${sn} cmd ${cmd.id}: ${cmd.line.slice(0, 80)} (${queue.length} remaining)`,
+      );
       res.send(cmd.line + "\r\n");
     } else {
       res.send("");

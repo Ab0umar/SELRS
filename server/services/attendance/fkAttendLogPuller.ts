@@ -6,10 +6,13 @@
  * We just need to invoke it and parse the CSV output
  */
 
-import { execSync } from "child_process";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+
+const execFileAsync = promisify(execFile);
 
 export interface FKPunch {
   enrollNo: number;
@@ -54,30 +57,30 @@ export class FKAttendLogPuller {
   static async pullLogs(config?: Partial<FKDeviceConfig>): Promise<FKPunch[]> {
     const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
 
-    // Create temp file for output
     const tempDir = os.tmpdir();
     const tempFile = path.join(tempDir, `fk_logs_${Date.now()}.csv`);
 
     try {
-      // Build command with all parameters
-      const cmd =
-        `"${this.FK_PULLER_PATH}"` +
-        ` --ip ${fullConfig.ip}` +
-        ` --port ${fullConfig.port}` +
-        ` --machine ${fullConfig.machineNo}` +
-        ` --password ${fullConfig.password}` +
-        ` --license ${fullConfig.license}` +
-        ` --timeout ${fullConfig.timeout}` +
-        ` --protocol ${fullConfig.protocol}` +
-        ` --out "${tempFile}"`;
+      const { stdout } = await execFileAsync(
+        this.FK_PULLER_PATH,
+        [
+          "--ip", fullConfig.ip,
+          "--port", String(fullConfig.port),
+          "--machine", String(fullConfig.machineNo),
+          "--password", String(fullConfig.password),
+          "--license", String(fullConfig.license),
+          "--timeout", String(fullConfig.timeout),
+          "--protocol", String(fullConfig.protocol),
+          "--out", tempFile,
+        ],
+        {
+          encoding: "utf8",
+          timeout: this.processTimeoutMs(fullConfig.timeout),
+          windowsHide: true,
+        },
+      );
+      console.log(`[FKAttend] Output:\n${stdout}`);
 
-      console.log(`[FKAttend] Executing: ${cmd}`);
-
-      // Execute the puller
-      const output = execSync(cmd, { encoding: "utf-8" });
-      console.log(`[FKAttend] Output:\n${output}`);
-
-      // Parse the CSV output
       const punches = this.parseCSV(tempFile);
 
       return punches;
@@ -128,8 +131,11 @@ export class FKAttendLogPuller {
         // Build timestamp from numeric columns — avoids locale-dependent Date string parsing
         const ts = new Date(yr, mo - 1, dy, hr, mn, sc);
 
+        const enrollNo = Number(parts[0]);
+        if (!Number.isSafeInteger(enrollNo) || enrollNo < 0) continue;
+
         const punch: FKPunch = {
-          enrollNo: parseInt(parts[0], 10),
+          enrollNo,
           verifyMode: parseInt(parts[1], 10),
           inOutMode: parseInt(parts[2], 10),
           timestamp: ts,
@@ -141,7 +147,13 @@ export class FKAttendLogPuller {
           second: sc,
         };
 
-        if (punch.timestamp.getFullYear() >= 2000) {
+        if (
+          Number.isFinite(punch.timestamp.getTime()) &&
+          punch.timestamp.getFullYear() >= 2000 &&
+          punch.timestamp.getFullYear() === yr &&
+          punch.timestamp.getMonth() === mo - 1 &&
+          punch.timestamp.getDate() === dy
+        ) {
           punches.push(punch);
         }
       } catch (e) {
@@ -163,24 +175,29 @@ export class FKAttendLogPuller {
       const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
       const tempFile = path.join(os.tmpdir(), `fk_test_${Date.now()}.csv`);
 
-      const cmd =
-        `"${this.FK_PULLER_PATH}"` +
-        ` --ip ${fullConfig.ip}` +
-        ` --port ${fullConfig.port}` +
-        ` --machine ${fullConfig.machineNo}` +
-        ` --password ${fullConfig.password}` +
-        ` --license ${fullConfig.license}` +
-        ` --timeout ${fullConfig.timeout}` +
-        ` --protocol ${fullConfig.protocol}` +
-        ` --out "${tempFile}"`;
+      const { stdout } = await execFileAsync(
+        this.FK_PULLER_PATH,
+        [
+          "--ip", fullConfig.ip,
+          "--port", String(fullConfig.port),
+          "--machine", String(fullConfig.machineNo),
+          "--password", String(fullConfig.password),
+          "--license", String(fullConfig.license),
+          "--timeout", String(fullConfig.timeout),
+          "--protocol", String(fullConfig.protocol),
+          "--out", tempFile,
+        ],
+        {
+          encoding: "utf8",
+          timeout: this.processTimeoutMs(fullConfig.timeout),
+          windowsHide: true,
+        },
+      );
 
-      const output = execSync(cmd, { encoding: "utf-8", stdio: "pipe" });
-
-      // Check for success indicators
       const success =
-        output.toLowerCase().includes("done") ||
-        output.toLowerCase().includes("rows:") ||
-        output.toLowerCase().includes("handle:");
+        stdout.toLowerCase().includes("done") ||
+        stdout.toLowerCase().includes("rows:") ||
+        stdout.toLowerCase().includes("handle:");
 
       // Clean up
       try {
@@ -207,6 +224,13 @@ export class FKAttendLogPuller {
 
   static isPullerAvailable(): boolean {
     return fs.existsSync(this.FK_PULLER_PATH);
+  }
+
+  private static processTimeoutMs(deviceTimeout: number): number {
+    const safeDeviceTimeout = Number.isFinite(deviceTimeout)
+      ? Math.max(0, deviceTimeout)
+      : 5000;
+    return Math.max(10_000, Math.min(safeDeviceTimeout + 10_000, 60_000));
   }
 }
 

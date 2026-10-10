@@ -5,6 +5,9 @@ import {
   attendanceLeaves,
   attendancePermissions,
   attendancePunches,
+  attendanceShifts,
+  attendanceShiftAssignments,
+  attendanceDaily,
 } from "../../drizzle/schema";
 import { DailyMaterializer } from "../services/attendance/dailyMaterializer";
 import { makeCallerAs } from "./helpers/auth";
@@ -12,9 +15,8 @@ import { cleanupTables, getTestDb } from "./setup";
 import { seedEmployee } from "./helpers/db";
 
 vi.mock("child_process", async () => {
-  const actual = await vi.importActual<typeof import("child_process")>(
-    "child_process",
-  );
+  const actual =
+    await vi.importActual<typeof import("child_process")>("child_process");
   return {
     ...actual,
     execSync: vi.fn(() => ""),
@@ -27,6 +29,11 @@ const TEST_EMP_CD = "TEST-EMP-ATT-001";
 const LEAVE_1 = { from: "2026-02-01", to: "2026-02-03" };
 const LEAVE_2 = { from: "2026-02-02", to: "2026-02-04" };
 
+function insertedId(result: unknown): number {
+  const value = result as any;
+  return Number(value?.[0]?.insertId ?? value?.insertId);
+}
+
 async function resetAttendanceTables() {
   const db = await getTestDb();
   await cleanupTables(
@@ -37,6 +44,8 @@ async function resetAttendanceTables() {
     "attendance_leaves",
     "attendance_permissions",
     "attendance_holidays",
+    "attendance_shift_assignments",
+    "attendance_shifts",
   );
 }
 
@@ -160,9 +169,9 @@ describe.sequential("attendance leave and permission mutations", () => {
     const leaveId = await getLeaveId(db);
     const caller = appRouter.createCaller(makeCallerAs("viewer"));
 
-    await expect(caller.attendance.approveLeave({ leaveId })).rejects.toMatchObject(
-      { code: "FORBIDDEN" },
-    );
+    await expect(
+      caller.attendance.approveLeave({ leaveId }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("deleteLeave removes the record", async () => {
@@ -211,6 +220,110 @@ describe.sequential("attendance leave and permission mutations", () => {
     expect(rows[0]?.approved).toBe(true);
   });
 
+  it("approval recomputes the day when the stored permission date is a Date", async () => {
+    const db = await seedTestEmployee();
+    const caller = appRouter.createCaller(makeCallerAs("manager"));
+    const workDate = new Date("2026-03-10T12:00:00");
+    const shiftResult = await db.insert(attendanceShifts).values({
+      name: `permission-test-${Date.now()}`,
+      branch: "center",
+      deviceId: "zk",
+      startTime: "10:00",
+      endTime: "19:00",
+      graceLateMin: 0,
+      graceEarlyMin: 0,
+      breakMinutes: 0,
+      weekdayMask: 127,
+    });
+    const shiftId = insertedId(shiftResult);
+    await db.insert(attendanceShiftAssignments).values({
+      empCd: TEST_EMP_CD,
+      shiftId,
+      effectiveFrom: workDate,
+      weekdayMask: 127,
+    });
+    await db.insert(attendancePunches).values([
+      {
+        empCd: TEST_EMP_CD,
+        punchAt: new Date("2026-03-10T10:45:00"),
+        direction: "in",
+        source: "manual",
+        sourceRowId: `permission-test-in-${Date.now()}`,
+        sourceHash: "permission-test-in".padEnd(40, "0"),
+      },
+      {
+        empCd: TEST_EMP_CD,
+        punchAt: new Date("2026-03-10T19:00:00"),
+        direction: "out",
+        source: "manual",
+        sourceRowId: `permission-test-out-${Date.now()}`,
+        sourceHash: "permission-test-out".padEnd(40, "0"),
+      },
+    ]);
+    const permissionInsert = await db.insert(attendancePermissions).values({
+      empCd: TEST_EMP_CD,
+      date: workDate,
+      type: "in",
+      durationMinutes: 45,
+      approved: false,
+    });
+    const permissionId = insertedId(permissionInsert);
+    const storedPermission = await db
+      .select()
+      .from(attendancePermissions)
+      .where(eq(attendancePermissions.id, permissionId));
+    expect(storedPermission[0]?.date).toBeInstanceOf(Date);
+
+    await dailyMaterializer.recomputeRange(workDate, workDate, {
+      empCd: TEST_EMP_CD,
+    });
+    let dailyRows = await db
+      .select()
+      .from(attendanceDaily)
+      .where(eq(attendanceDaily.empCd, TEST_EMP_CD));
+    expect(dailyRows[0]?.lateMinutes).toBe(45);
+
+    await caller.attendance.approvePermission({
+      id: permissionId,
+    });
+
+    dailyRows = await db
+      .select()
+      .from(attendanceDaily)
+      .where(eq(attendanceDaily.empCd, TEST_EMP_CD));
+    expect(dailyRows[0]?.lateMinutes).toBe(0);
+  });
+
+  it("createShift returns the inserted shift ID", async () => {
+    const db = await seedTestEmployee();
+    const caller = appRouter.createCaller(makeCallerAs("admin"));
+    const name = `created-shift-${Date.now()}`;
+
+    const result = await caller.attendance.createShift({
+      name,
+      branch: "center",
+      deviceId: "zk",
+      startTime: "10:00",
+      endTime: "19:00",
+    });
+
+    expect(result.shiftId).toEqual(expect.any(Number));
+    const [insertedShift] = await db
+      .select()
+      .from(attendanceShifts)
+      .where(eq(attendanceShifts.name, name));
+    expect(result.shiftId).toBe(insertedShift?.id);
+  });
+
+  it("returns a tRPC error for an invalid shift assignment update", async () => {
+    await seedTestEmployee();
+    const caller = appRouter.createCaller(makeCallerAs("admin"));
+
+    await expect(
+      caller.attendance.updateAssignment({ id: -999999, weekdayMask: 127 }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
   it("deletePermission removes the permission record", async () => {
     const db = await seedTestEmployee();
     const caller = appRouter.createCaller(makeCallerAs("manager"));
@@ -228,9 +341,9 @@ describe.sequential("attendance leave and permission mutations", () => {
       .where(eq(attendancePermissions.empCd, TEST_EMP_CD));
     expect(rows.length).toBe(1);
 
-    await expect(caller.attendance.deletePermission({ id: rows[0]!.id })).resolves.toEqual(
-      { success: true },
-    );
+    await expect(
+      caller.attendance.deletePermission({ id: rows[0]!.id }),
+    ).resolves.toEqual({ success: true });
 
     const afterRows = await db
       .select()
@@ -283,9 +396,9 @@ describe.sequential("attendance leave and permission mutations", () => {
     const recompute = vi
       .spyOn(DailyMaterializer, "recomputeRange")
       .mockRejectedValueOnce(new Error("forced delete recompute failure"));
-    await expect(
-      caller.attendance.deleteManualPunch({ id }),
-    ).rejects.toThrow("forced delete recompute failure");
+    await expect(caller.attendance.deleteManualPunch({ id })).rejects.toThrow(
+      "forced delete recompute failure",
+    );
 
     const rows = await db
       .select()

@@ -108,9 +108,7 @@ export class ZK4370LogPuller {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
 function run(args: string, timeoutMs: number): string {
   // Use spawnSync with explicit args array to avoid cmd.exe quoting issues

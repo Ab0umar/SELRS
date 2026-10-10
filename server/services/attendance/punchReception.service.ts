@@ -15,6 +15,10 @@ import { DailyMaterializer } from "./dailyMaterializer";
 
 export class PunchReceptionService extends EventEmitter {
   private isListening = false;
+  private listeningDevice: ReturnType<typeof getDefaultDevice> | null = null;
+  private readonly punchHandler = (punch: DevicePunch) => {
+    void this.handlePunch(punch);
+  };
 
   static getInstance(): PunchReceptionService {
     if (!punchReceptionInstance) {
@@ -27,12 +31,15 @@ export class PunchReceptionService extends EventEmitter {
     if (this.isListening) return;
 
     const device = getDefaultDevice();
-    device.on("punch", (punch: DevicePunch) => this.handlePunch(punch));
+    device.on("punch", this.punchHandler);
+    this.listeningDevice = device;
     this.isListening = true;
     console.log("[PunchReception] Started listening to device events");
   }
 
   stopListening(): void {
+    this.listeningDevice?.off("punch", this.punchHandler);
+    this.listeningDevice = null;
     this.isListening = false;
     console.log("[PunchReception] Stopped listening to device events");
   }
@@ -73,6 +80,7 @@ export class PunchReceptionService extends EventEmitter {
         direction: punch.direction,
         deviceId: punch.deviceId,
         source: "tcp",
+        sourceRowId: `${punch.empNo}_${punch.timestamp.getTime()}`,
         sourceHash: sourceHash,
       });
 
@@ -93,9 +101,15 @@ export class PunchReceptionService extends EventEmitter {
       punchDay.setHours(0, 0, 0, 0);
       const nextDay = new Date(punchDay);
       nextDay.setDate(nextDay.getDate() + 1);
-      DailyMaterializer.recomputeRange(punchDay, nextDay, {
-        empCd: punch.empNo,
-      }).catch((err) => {
+      DailyMaterializer.recomputeRange(
+        punchDay,
+        punchDay,
+        {
+          empCd: punch.empNo,
+        },
+        undefined,
+        { recomputeMonthly: true },
+      ).catch((err) => {
         console.error(
           "[PunchReception] Failed to recompute daily for",
           punch.empNo,

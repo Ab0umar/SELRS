@@ -2614,7 +2614,8 @@ async function startServer() {
   }, zkClockSyncIntervalMs);
 
   startMssqlSyncScheduler();
-  // startAttendanceSyncScheduler(); // Disabled: Use manual sync via attendance.syncNow procedure
+  // ZK (TCP/IP) pull + nightly recompute; FK pull is opt-in (ATTENDANCE_FK_AUTOSYNC).
+  startAttendanceSyncScheduler();
   startPunchReception();
   initMarketingScheduler();
   // Pentacam/Srv100 import+OCR loops now run as a standalone service

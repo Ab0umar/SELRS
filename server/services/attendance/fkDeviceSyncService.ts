@@ -18,6 +18,7 @@ import {
 } from "../../../drizzle/schema";
 import { sql, eq, desc, inArray, and } from "drizzle-orm";
 import crypto from "crypto";
+import { shouldPersistSyncRun } from "./syncRunPolicy";
 
 const BATCH_SIZE = 500;
 
@@ -27,6 +28,7 @@ export interface SyncResult {
   recordsInserted: number;
   recordsSkipped: number;
   maxPunchAt?: Date | null; // max punch timestamp among processed punches
+  checkpointAdvanced?: boolean;
   error?: string;
   startedAt: Date;
   completedAt: Date;
@@ -56,7 +58,7 @@ export class FKDeviceSyncService {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      // Step 0: Load last successful HWM — scoped to this device only
+      // Load last successful HWM — scoped to this device only
       const lastRun = await db
         .select({ hwm: attendanceSyncRuns.highWaterMark })
         .from(attendanceSyncRuns)
@@ -73,7 +75,7 @@ export class FKDeviceSyncService {
         `[FKSync] Last HWM: ${lastHwm?.toISOString() ?? "none (first run)"}`,
       );
 
-      // Step 1: Pull logs from device (always returns all records from device memory)
+      // Pull logs from device (always returns all records from device memory)
       console.log("[FKSync] Pulling logs from device...");
       const settings = DeviceSettingsService.getSettings();
       const resolvedConfig = {
@@ -85,16 +87,24 @@ export class FKDeviceSyncService {
       };
       const allPunches =
         await this.pullLogsWithProtocolFallback(resolvedConfig);
+      DeviceSettingsService.reportFKConnection(true);
       // Filter to new punches only (after last HWM)
-      const fkPunches = lastHwm
-        ? allPunches.filter((p) => p.timestamp > lastHwm)
-        : allPunches;
-      result.recordsSeen = fkPunches.length;
+      const syncStart = lastHwm ?? new Date(2026, 0, 1);
+      // Re-read the last minute to include any punches sharing the stored
+      // high-water timestamp; database uniqueness safely ignores duplicates.
+      const inclusiveStart = lastHwm
+        ? new Date(lastHwm.getTime() - 60_000)
+        : syncStart;
+      const fkPunches = allPunches.filter((p) => p.timestamp >= inclusiveStart);
+      const eligiblePunches = fkPunches.filter(
+        (punch) => punch.timestamp >= syncStart,
+      );
+      result.recordsSeen = eligiblePunches.length;
       console.log(
-        `[FKSync] Device returned ${allPunches.length} total, ${fkPunches.length} new since HWM`,
+        `[FKSync] Device returned ${allPunches.length} total, ${eligiblePunches.length} new since HWM`,
       );
 
-      if (fkPunches.length === 0) {
+      if (eligiblePunches.length === 0) {
         console.log("[FKSync] No new records to import");
         result.success = true;
         result.completedAt = new Date();
@@ -105,13 +115,13 @@ export class FKDeviceSyncService {
         return result;
       }
 
-      // Step 2: Batch import with INSERT IGNORE for deduplication
+      // Batch import with INSERT IGNORE for deduplication
       console.log("[FKSync] Importing punches with deduplication...");
-      const affected = new Set<string>();
       let totalInserted = 0;
 
-      for (let i = 0; i < fkPunches.length; i += BATCH_SIZE) {
-        const batch = fkPunches.slice(i, i + BATCH_SIZE);
+      const importedDates = new Set<string>();
+      for (let i = 0; i < eligiblePunches.length; i += BATCH_SIZE) {
+        const batch = eligiblePunches.slice(i, i + BATCH_SIZE);
         const rows = batch.map((punch) => ({
           empCd: String(punch.enrollNo),
           punchAt: punch.timestamp,
@@ -132,8 +142,8 @@ export class FKDeviceSyncService {
         // INSERT IGNORE skips duplicates via unique index (uq_punch)
         const inserted = await db
           .insert(attendancePunches)
-          .values(rows)
-          .onDuplicateKeyUpdate({ set: { importedAt: sql`importedAt` } });
+          .ignore()
+          .values(rows);
 
         const rowsInserted = (inserted as any)[0]?.affectedRows ?? rows.length;
         totalInserted += rowsInserted;
@@ -142,26 +152,29 @@ export class FKDeviceSyncService {
         for (const punch of batch) {
           const d = punch.timestamp;
           const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-          affected.add(dateKey);
+          if (d >= syncStart) importedDates.add(dateKey);
         }
       }
 
       result.recordsInserted = totalInserted;
-      result.recordsSkipped = fkPunches.length - totalInserted;
+      result.recordsSkipped = eligiblePunches.length - totalInserted;
       // Track max punch timestamp for HWM (only among newly processed punches)
-      result.maxPunchAt = fkPunches.reduce<Date | null>(
-        (max, p) => (!max || p.timestamp > max ? p.timestamp : max),
-        null,
-      );
+      result.maxPunchAt =
+        eligiblePunches.reduce<Date | null>(
+          (max, p) => (!max || p.timestamp > max ? p.timestamp : max),
+          null,
+        ) ?? lastHwm;
+      result.checkpointAdvanced =
+        !!result.maxPunchAt && (!lastHwm || result.maxPunchAt > lastHwm);
 
       console.log(
         `[FKSync] Import complete: ${result.recordsInserted} inserted, ${result.recordsSkipped} skipped`,
       );
 
-      // Step 3: Auto-register any new employee codes seen in this sync batch
+      // Auto-register any new employee codes seen in this sync batch
       // attendance_employees must be populated for the materializer to process punches
       const uniqueEmpCds = [
-        ...new Set(fkPunches.map((p) => String(p.enrollNo))),
+        ...new Set(eligiblePunches.map((p) => String(p.enrollNo))),
       ];
       if (uniqueEmpCds.length > 0) {
         const now = new Date();
@@ -182,36 +195,53 @@ export class FKDeviceSyncService {
         );
       }
 
-      // Step 4: Recompute daily records for affected dates
+      // Recompute daily records for affected dates
       // Always recompute today so dashboard reflects current punch state,
       // even when all punches were duplicates (0 inserted).
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date(todayStart);
-      todayEnd.setDate(todayEnd.getDate() + 1);
 
-      if (result.recordsInserted > 0 && affected.size > 0) {
+      // Seen-since-HWM dates, not just inserted ones: a failed recompute leaves
+      // the HWM behind, so the retry must rebuild those days even with 0 inserts.
+      const needsHistoricalRecompute =
+        result.recordsInserted > 0 ||
+        eligiblePunches.some((punch) => !lastHwm || punch.timestamp > lastHwm);
+      if (importedDates.size > 0 && needsHistoricalRecompute) {
         console.log(
-          `[FKSync] Recomputing daily attendance for ${affected.size} affected dates...`,
+          `[FKSync] Recomputing daily attendance for ${importedDates.size} affected dates...`,
         );
 
-        const sorted = Array.from(affected).sort();
+        const sorted = Array.from(importedDates).sort();
         const [fy, fm, fd] = sorted[0].split("-").map(Number);
         const [ty, tm, td] = sorted[sorted.length - 1].split("-").map(Number);
         const minDate = new Date(fy, fm - 1, fd);
-        const maxDate = new Date(ty, tm - 1, td + 1); // exclusive end
+        const maxDate = new Date(ty, tm - 1, td); // inclusive last affected date
 
         // Extend range to include today if not already covered
         const from = minDate < todayStart ? minDate : todayStart;
-        const to = maxDate > todayEnd ? maxDate : todayEnd;
+        const to = maxDate > todayStart ? maxDate : todayStart;
 
-        await DailyMaterializer.recomputeRange(from, to);
+        await DailyMaterializer.recomputeRange(
+          from,
+          to,
+          lastHwm ? { empCds: uniqueEmpCds } : undefined,
+          undefined,
+          {
+            recomputeMonthly: true,
+          },
+        );
         console.log(
           `[FKSync] Recomputed from ${sorted[0]} to ${sorted[sorted.length - 1]}`,
         );
       } else {
         // No new punches — still recompute today so live status stays accurate
-        await DailyMaterializer.recomputeRange(todayStart, todayEnd);
+        await DailyMaterializer.recomputeRange(
+          todayStart,
+          todayStart,
+          undefined,
+          undefined,
+          { recomputeMonthly: result.recordsInserted > 0 },
+        );
         console.log(`[FKSync] No new punches — recomputed today only`);
       }
 
@@ -228,6 +258,7 @@ export class FKDeviceSyncService {
 
       return result;
     } catch (error) {
+      DeviceSettingsService.reportFKConnection(false);
       result.success = false;
       result.error = error instanceof Error ? error.message : String(error);
       result.completedAt = new Date();
@@ -257,12 +288,13 @@ export class FKDeviceSyncService {
     result: SyncResult,
     userId?: number,
   ): Promise<void> {
+    if (!shouldPersistSyncRun(result)) return;
     try {
       await db.insert(attendanceSyncRuns).values({
         startedAt: result.startedAt,
         finishedAt: result.completedAt,
         source: "tcp",
-        trigger: "manual",
+        trigger: userId ? "manual" : "cron",
         triggeredBy: userId,
         rowsSeen: result.recordsSeen,
         rowsInserted: result.recordsInserted,

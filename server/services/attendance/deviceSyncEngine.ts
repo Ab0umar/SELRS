@@ -1,6 +1,6 @@
 import { getDb } from "../../db";
 import { attendancePunches, attendanceSyncRuns } from "../../../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { ZKTecoDevice } from "./zktecoDevice";
 import { DailyMaterializer } from "./dailyMaterializer";
 
@@ -93,13 +93,17 @@ export class DeviceSyncEngine {
       const lastRun = await db
         .select()
         .from(attendanceSyncRuns)
-        .where(eq(attendanceSyncRuns.source, "tcp"))
+        .where(
+          and(
+            eq(attendanceSyncRuns.deviceId, `zk_${this.config.deviceIp}`),
+            inArray(attendanceSyncRuns.status, ["ok", "partial"]),
+          ),
+        )
         .orderBy(desc(attendanceSyncRuns.highWaterMark))
         .limit(1);
 
       this.lastSyncTime = lastRun[0]?.highWaterMark ?? new Date(0);
 
-      // Fetch punches from device
       const syncFrom: Date = this.lastSyncTime ?? new Date(0);
       console.log(
         `Fetching punches from device since ${syncFrom.toISOString()}`,
@@ -108,15 +112,14 @@ export class DeviceSyncEngine {
 
       console.log(`Device returned ${punches.length} punch records`);
 
-      // Import to MySQL
       for (const punch of punches) {
         const imported = await this.insertPunchIgnore(
           db,
           punch.empNo,
           punch.punchDateTime,
-          punch.direction === "in" ? 1 : 0,
-          "zkTeco",
-          punch.empNo, // sourceRowId = empNo for device data
+          punch.direction === "in" ? "in" : "out",
+          "tcp",
+          `${punch.empNo}_${punch.punchDateTime.getTime()}`,
         );
 
         if (imported) {
@@ -135,6 +138,11 @@ export class DeviceSyncEngine {
               punches[0].punchDateTime,
             )
           : now;
+      const maxPunchTime = punches.reduce(
+        (latest, punch) =>
+          punch.punchDateTime > latest ? punch.punchDateTime : latest,
+        this.lastSyncTime ?? new Date(0),
+      );
 
       await db.insert(attendanceSyncRuns).values({
         startedAt: this.currentSync.startedAt,
@@ -146,21 +154,32 @@ export class DeviceSyncEngine {
         rowsSkipped: this.currentSync.recordsSkipped,
         rowsQuarantined: 0,
         status: this.currentSync.recordsImported > 0 ? "ok" : "ok",
-        highWaterMark: minPunchTime,
+        highWaterMark: maxPunchTime,
+        deviceId: `zk_${this.config.deviceIp}`,
       });
 
       // Rebuild daily records for affected dates — always recompute today
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date(todayStart);
-      todayEnd.setDate(todayEnd.getDate() + 1);
 
       if (this.currentSync.recordsImported > 0) {
         const from = minPunchTime < todayStart ? minPunchTime : todayStart;
-        await DailyMaterializer.recomputeRange(from, todayEnd);
-        console.log(`Recomputed daily records from ${from} to ${todayEnd}`);
+        await DailyMaterializer.recomputeRange(
+          from,
+          todayStart,
+          undefined,
+          undefined,
+          { recomputeMonthly: true },
+        );
+        console.log(`Recomputed daily records from ${from} to ${todayStart}`);
       } else {
-        await DailyMaterializer.recomputeRange(todayStart, todayEnd);
+        await DailyMaterializer.recomputeRange(
+          todayStart,
+          todayStart,
+          undefined,
+          undefined,
+          { recomputeMonthly: true },
+        );
         console.log(`No new punches — recomputed today only`);
       }
 
@@ -190,8 +209,8 @@ export class DeviceSyncEngine {
     db: any,
     empCd: string,
     punchAt: Date,
-    direction: number,
-    source: string,
+    direction: "in" | "out" | "unknown",
+    source: "tcp",
     sourceRowId: string,
   ): Promise<boolean> {
     try {
@@ -203,7 +222,7 @@ export class DeviceSyncEngine {
         empCd,
         punchAt,
         direction,
-        deviceId: "zkTeco",
+        deviceId: `zk_${this.config.deviceIp}`,
         source,
         sourceRowId,
         sourceHash,
@@ -289,13 +308,15 @@ export async function initializeDeviceSync(
   config: DeviceSyncConfig,
 ): Promise<DeviceSyncEngine> {
   if (deviceSyncInstance) {
-    return deviceSyncInstance;
+    deviceSyncInstance.disconnect();
   }
 
   deviceSyncInstance = new DeviceSyncEngine(config);
   const success = await deviceSyncInstance.initialize();
 
   if (!success) {
+    deviceSyncInstance.disconnect();
+    deviceSyncInstance = null;
     throw new Error("Failed to initialize device sync");
   }
 

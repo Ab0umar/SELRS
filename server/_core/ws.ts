@@ -5,6 +5,7 @@ import { parse as parseCookieHeader } from "cookie";
 import jwt from "jsonwebtoken";
 import { authService, AUTH_COOKIE_NAME, LEGACY_AUTH_COOKIE_NAME } from "./auth";
 import { ENV } from "./env";
+import * as db from "../db";
 
 type WsClient = WebSocket & {
   subscriptions?: Set<number>;
@@ -53,6 +54,31 @@ function verifyDoctorToken(token: string): number | null {
   }
 }
 
+async function canSubscribeToAttendance(userId: number): Promise<boolean> {
+  const user = await db.getUserById(userId);
+  if (!user?.isActive) return false;
+  if (user.role === "admin") return true;
+
+  const permissions = await db.getEffectiveUserPermissions(
+    userId,
+    user.role ?? undefined,
+  );
+  return permissions.some((permission) => {
+    const path = String(permission ?? "")
+      .replace(/:r[w]?$/, "")
+      .trim()
+      .toLowerCase()
+      .replace(/\/+$/, "");
+    // Match access to the live attendance route (or any permitted parent).
+    return (
+      path === "/" ||
+      path === "/attendance" ||
+      path === "/attendance/live" ||
+      "/attendance/live".startsWith(`${path}/`)
+    );
+  });
+}
+
 export function registerWsServer(server: Server) {
   wss = new WebSocketServer({ noServer: true });
 
@@ -94,7 +120,7 @@ export function registerWsServer(server: Server) {
     socket.patientCreatePresence = false;
     socket.staffUserId = session.userId;
 
-    socket.on("message", (raw: RawData) => {
+    socket.on("message", async (raw: RawData) => {
       try {
         const message = JSON.parse(raw.toString());
         if (!message?.type) return;
@@ -104,6 +130,13 @@ export function registerWsServer(server: Server) {
         ) {
           socket.subscriptions?.add(message.patientId);
         } else if (message.type === "subscribe-attendance") {
+          if (
+            typeof socket.staffUserId !== "number" ||
+            !(await canSubscribeToAttendance(socket.staffUserId))
+          ) {
+            socket.close(1008, "Attendance permission required");
+            return;
+          }
           socket.attendanceSubscribed = true;
         } else if (message.type === "unsubscribe-attendance") {
           socket.attendanceSubscribed = false;

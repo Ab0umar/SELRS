@@ -3,6 +3,10 @@
  * Tracks all significant actions for compliance and debugging
  */
 
+import { getDb } from "../../db";
+import { auditLog } from "../../../drizzle/schema";
+import { and, desc, eq, gte } from "drizzle-orm";
+
 export interface AuditLogEntry {
   timestamp: Date;
   action: string; // 'sync_run', 'leave_created', 'leave_approved', 'daily_recomputed', etc.
@@ -13,23 +17,27 @@ export interface AuditLogEntry {
   error?: string;
 }
 
-// In-memory audit log (in production, would write to database)
-const auditLogs: AuditLogEntry[] = [];
-const MAX_LOGS = 1000;
+function decodeAuditRow(row: typeof auditLog.$inferSelect): AuditLogEntry {
+  const storedEntry = JSON.parse(row.changes!) as AuditLogEntry;
+  return { ...storedEntry, timestamp: new Date(row.createdAt) };
+}
 
 export class AuditLogService {
-  static log(entry: Omit<AuditLogEntry, "timestamp">): void {
+  static async log(entry: Omit<AuditLogEntry, "timestamp">): Promise<void> {
     const logEntry: AuditLogEntry = {
       ...entry,
       timestamp: new Date(),
     };
 
-    auditLogs.push(logEntry);
-
-    // Keep only recent logs in memory
-    if (auditLogs.length > MAX_LOGS) {
-      auditLogs.shift();
-    }
+    const db = await getDb();
+    if (!db) throw new Error("Database not available for attendance audit");
+    await db.insert(auditLog).values({
+      adminId: entry.userId,
+      action: entry.action,
+      entityType: "attendance",
+      changes: JSON.stringify(logEntry),
+      createdAt: logEntry.timestamp,
+    });
 
     // Log to console in development
     if (process.env.NODE_ENV !== "production") {
@@ -39,70 +47,35 @@ export class AuditLogService {
     }
   }
 
-  static logSyncRun(
-    source: string,
-    trigger: string,
-    rowsInserted: number,
-    error?: string,
-  ): void {
-    this.log({
-      action: "sync_run",
-      details: { source, trigger, rowsInserted },
-      status: error ? "error" : "success",
-      error,
-    });
+  static async getRecentLogs(limit: number = 50): Promise<AuditLogEntry[]> {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available for attendance audit");
+    const rows = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.entityType, "attendance"))
+      .orderBy(desc(auditLog.id))
+      .limit(limit);
+    return rows.map(decodeAuditRow);
   }
 
-  static logLeaveCreated(empCd: string, dateFrom: Date, dateTo: Date): void {
-    this.log({
-      action: "leave_created",
-      empCd,
-      details: {
-        dateFrom: dateFrom.toISOString(),
-        dateTo: dateTo.toISOString(),
-      },
-      status: "success",
-    });
-  }
-
-  static logLeaveApproved(empCd: string, leaveId: number): void {
-    this.log({
-      action: "leave_approved",
-      empCd,
-      details: { leaveId },
-      status: "success",
-    });
-  }
-
-  static logDailyRecomputed(empCd: string, recordsUpdated: number): void {
-    this.log({
-      action: "daily_recomputed",
-      empCd,
-      details: { recordsUpdated },
-      status: "success",
-    });
-  }
-
-  static getRecentLogs(limit: number = 50): AuditLogEntry[] {
-    return auditLogs.slice(-limit).reverse();
-  }
-
-  static getLogsByAction(action: string, limit: number = 50): AuditLogEntry[] {
-    return auditLogs
-      .filter((log) => log.action === action)
-      .slice(-limit)
-      .reverse();
-  }
-
-  static getSyncHistory(limit: number = 20): AuditLogEntry[] {
-    return this.getLogsByAction("sync_run", limit);
-  }
-
-  static getStats(): any {
+  static async getStats() {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const recentLogs = auditLogs.filter((log) => log.timestamp > oneDayAgo);
+    const db = await getDb();
+    if (!db) throw new Error("Database not available for attendance audit");
+    const rows = await db
+      .select()
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.entityType, "attendance"),
+          gte(auditLog.createdAt, oneDayAgo),
+        ),
+      )
+      .orderBy(desc(auditLog.id));
+    const recentLogs: AuditLogEntry[] = rows.map(decodeAuditRow);
     const syncRuns = recentLogs.filter((log) => log.action === "sync_run");
     const leaveActions = recentLogs.filter((log) =>
       log.action.startsWith("leave_"),
@@ -118,8 +91,7 @@ export class AuditLogService {
         (sum, log) => sum + (log.details?.rowsInserted || 0),
         0,
       ),
-      lastSyncRun:
-        syncRuns.length > 0 ? syncRuns[syncRuns.length - 1].timestamp : null,
+      lastSyncRun: syncRuns.length > 0 ? syncRuns[0].timestamp : null,
     };
   }
 }

@@ -15,6 +15,9 @@ import type {
 
 const {
   mockExecute,
+  mockGetDbConnection,
+  mockLockQuery,
+  mockLockRelease,
   mockInsert,
   mockUpdate,
   mockSelect,
@@ -25,6 +28,9 @@ const {
 } = vi.hoisted(() => {
   return {
     mockExecute: vi.fn(),
+    mockGetDbConnection: vi.fn(),
+    mockLockQuery: vi.fn(),
+    mockLockRelease: vi.fn(),
     mockInsert: vi.fn(),
     mockUpdate: vi.fn(),
     mockSelect: vi.fn(),
@@ -43,6 +49,7 @@ vi.mock("../../server/db", () => ({
     select: mockSelect,
     $client: {},
   })),
+  getDbConnection: mockGetDbConnection,
 }));
 
 vi.mock("../../server/services/attendance/employees.service", () => ({
@@ -77,7 +84,9 @@ class FakeAttendanceSource implements AttendanceSource {
     private employees: RawEmployee[] = [],
   ) {}
 
-  async isReachable() { return true; }
+  async isReachable() {
+    return true;
+  }
 
   async *fetchPunchesSince(_since: Date): AsyncIterable<RawPunchOrQuarantine> {
     if (this.shouldThrow) throw this.shouldThrow;
@@ -122,6 +131,12 @@ beforeEach(() => {
 
   // db.execute: always return [[{lockAcquired:1}]]; RELEASE_LOCK ignores return value
   mockExecute.mockResolvedValue([[{ lockAcquired: 1 }]]);
+  mockLockQuery.mockResolvedValue([[{ lockAcquired: 1 }]]);
+  mockLockRelease.mockReset();
+  mockGetDbConnection.mockResolvedValue({
+    query: mockLockQuery,
+    release: mockLockRelease,
+  });
 
   // db.insert(table).values({}) → [{insertId:1}]
   mockInsert.mockImplementation(() => ({
@@ -184,7 +199,7 @@ describe("runSyncOnce", () => {
   });
 
   it("4 — advisory lock failure → status=locked, no punch inserts", async () => {
-    mockExecute.mockResolvedValue([[{ lockAcquired: 0 }]]);
+    mockLockQuery.mockResolvedValue([[{ lockAcquired: 0 }]]);
 
     const result = await runSyncOnce(
       { trigger: "manual", triggeredBy: 99 },
@@ -197,8 +212,13 @@ describe("runSyncOnce", () => {
 
   it("5 — employees are upserted before any punch insert", async () => {
     const callOrder: string[] = [];
-    mockUpsertEmployee.mockImplementation(async () => { callOrder.push("upsert"); });
-    mockInsertPunchIgnore.mockImplementation(async () => { callOrder.push("punch"); return true; });
+    mockUpsertEmployee.mockImplementation(async () => {
+      callOrder.push("upsert");
+    });
+    mockInsertPunchIgnore.mockImplementation(async () => {
+      callOrder.push("punch");
+      return true;
+    });
 
     await runSyncOnce(
       { trigger: "cron" },

@@ -14,6 +14,8 @@ import {
   attendanceEmployees,
 } from "../../../drizzle/schema";
 import { desc, inArray, sql, and, eq } from "drizzle-orm";
+import { shouldPersistSyncRun } from "./syncRunPolicy";
+import { DeviceSettingsService } from "./deviceSettings.service";
 
 const DEVICE_IP = process.env.ZK4370_IP ?? "196.202.50.91";
 const DEVICE_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
@@ -22,6 +24,7 @@ const DEVICE_ID = `zk_${DEVICE_IP}`;
 const BATCH_SIZE = 500;
 
 export interface ZK4370SyncResult {
+  checkpointAdvanced?: boolean;
   success: boolean;
   recordsSeen: number;
   recordsInserted: number;
@@ -41,9 +44,7 @@ export interface ZK4370PushResult {
   durationMs: number;
 }
 
-// ---------------------------------------------------------------------------
 // Pull
-// ---------------------------------------------------------------------------
 
 export class ZK4370SyncService {
   static async pull(
@@ -90,6 +91,7 @@ export class ZK4370SyncService {
         devicePort,
         commKey,
       );
+      DeviceSettingsService.reportK40Connection(true);
       // Normalise to the shape the rest of pull() expects
       const allPunches = zkPunches.map((r) => ({
         enrollNo: r.enrollNo,
@@ -98,16 +100,25 @@ export class ZK4370SyncService {
         timestamp: r.timestamp,
       }));
 
-      const newPunches = lastHwm
-        ? allPunches.filter((r) => r.timestamp > lastHwm)
-        : allPunches;
+      const syncStart = lastHwm ?? new Date(2026, 0, 1);
+      // Re-read a short boundary window so same-timestamp punches are not
+      // skipped by a strict high-water mark; the unique key discards repeats.
+      const inclusiveStart = lastHwm
+        ? new Date(lastHwm.getTime() - 60_000)
+        : syncStart;
+      const newPunches = allPunches.filter(
+        (r) => r.timestamp >= inclusiveStart,
+      );
 
-      result.recordsSeen = newPunches.length;
+      const eligiblePunches = newPunches.filter(
+        (punch) => punch.timestamp >= syncStart,
+      );
+      result.recordsSeen = eligiblePunches.length;
       console.log(
         `[ZK4370] Device: ${allPunches.length} total, ${newPunches.length} new`,
       );
 
-      if (newPunches.length === 0) {
+      if (eligiblePunches.length === 0) {
         result.success = true;
         result.completedAt = new Date();
         result.durationMs = result.completedAt.getTime() - startedAt.getTime();
@@ -116,11 +127,11 @@ export class ZK4370SyncService {
         return result;
       }
 
-      const affected = new Set<string>();
       let totalInserted = 0;
 
-      for (let i = 0; i < newPunches.length; i += BATCH_SIZE) {
-        const batch = newPunches.slice(i, i + BATCH_SIZE);
+      const importedDates = new Set<string>();
+      for (let i = 0; i < eligiblePunches.length; i += BATCH_SIZE) {
+        const batch = eligiblePunches.slice(i, i + BATCH_SIZE);
         const rows = batch.map((r) => ({
           empCd: r.enrollNo,
           punchAt: r.timestamp,
@@ -140,27 +151,32 @@ export class ZK4370SyncService {
 
         const inserted = await db
           .insert(attendancePunches)
-          .values(rows)
-          .onDuplicateKeyUpdate({ set: { importedAt: sql`importedAt` } });
+          .ignore()
+          .values(rows);
 
         totalInserted += (inserted as any)[0]?.affectedRows ?? rows.length;
 
         for (const r of batch) {
           const d = r.timestamp;
-          affected.add(
-            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-          );
+          if (d >= syncStart) {
+            importedDates.add(
+              `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+            );
+          }
         }
       }
 
       result.recordsInserted = totalInserted;
-      result.recordsSkipped = newPunches.length - totalInserted;
-      result.maxPunchAt = newPunches.reduce<Date | null>(
-        (mx, r) => (!mx || r.timestamp > mx ? r.timestamp : mx),
-        null,
-      );
+      result.recordsSkipped = eligiblePunches.length - totalInserted;
+      result.maxPunchAt =
+        eligiblePunches.reduce<Date | null>(
+          (mx, r) => (!mx || r.timestamp > mx ? r.timestamp : mx),
+          null,
+        ) ?? lastHwm;
 
-      const empCds = [...new Set(newPunches.map((r) => r.enrollNo))];
+      result.checkpointAdvanced =
+        !!result.maxPunchAt && (!lastHwm || result.maxPunchAt > lastHwm);
+      const empCds = [...new Set(eligiblePunches.map((r) => r.enrollNo))];
       if (empCds.length > 0) {
         const now = new Date();
         await db
@@ -177,13 +193,21 @@ export class ZK4370SyncService {
           .onDuplicateKeyUpdate({ set: { updatedAt: now } });
       }
 
-      if (result.recordsInserted > 0 && affected.size > 0) {
-        const sorted = Array.from(affected).sort();
+      // Seen-since-HWM dates, not just inserted ones: a failed recompute leaves
+      // the HWM behind, so the retry must rebuild those days even with 0 inserts.
+      const needsHistoricalRecompute =
+        result.recordsInserted > 0 ||
+        eligiblePunches.some((punch) => !lastHwm || punch.timestamp > lastHwm);
+      if (importedDates.size > 0 && needsHistoricalRecompute) {
+        const sorted = Array.from(importedDates).sort();
         const [fy, fm, fd] = sorted[0].split("-").map(Number);
         const [ty, tm, td] = sorted[sorted.length - 1].split("-").map(Number);
         await DailyMaterializer.recomputeRange(
           new Date(fy, fm - 1, fd),
-          new Date(ty, tm - 1, td + 1),
+          new Date(ty, tm - 1, td),
+          lastHwm ? { empCds } : undefined,
+          undefined,
+          { recomputeMonthly: true },
         );
       }
 
@@ -197,6 +221,10 @@ export class ZK4370SyncService {
       await recordSyncRun(db, result, userId, deviceId);
       return result;
     } catch (error) {
+      DeviceSettingsService.reportK40Connection(
+        false,
+        error instanceof Error ? error.message : String(error),
+      );
       result.error = error instanceof Error ? error.message : String(error);
       result.completedAt = new Date();
       result.durationMs = result.completedAt.getTime() - startedAt.getTime();
@@ -212,11 +240,13 @@ export class ZK4370SyncService {
     }
   }
 
-  // ---------------------------------------------------------------------------
   // Push
-  // ---------------------------------------------------------------------------
 
-  static async push(ip?: string, port?: number): Promise<ZK4370PushResult> {
+  static async push(
+    ip?: string,
+    port?: number,
+    commKey = 0,
+  ): Promise<ZK4370PushResult> {
     const deviceIp = ip ?? DEVICE_IP;
     const devicePort = port ?? DEVICE_PORT;
     const start = Date.now();
@@ -240,7 +270,7 @@ export class ZK4370SyncService {
         .from(attendanceEmployees)
         .where(sql`active = 1`);
 
-      const client = new ZK4370Client(deviceIp, devicePort);
+      const client = new ZK4370Client(deviceIp, devicePort, 10000, commKey);
       await client.connect();
       try {
         for (const e of employees as any[]) {
@@ -274,9 +304,7 @@ export class ZK4370SyncService {
     }
   }
 
-  // ---------------------------------------------------------------------------
   // Status
-  // ---------------------------------------------------------------------------
 
   static async testConnection(
     ip?: string,
@@ -307,9 +335,7 @@ export class ZK4370SyncService {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
 export function zkSourceHash(s: string): string {
   return crypto.createHash("sha1").update(s).digest("hex");
@@ -328,12 +354,13 @@ async function recordSyncRun(
   userId?: number,
   deviceId?: string,
 ): Promise<void> {
+  if (!shouldPersistSyncRun(result)) return;
   try {
     await db.insert(attendanceSyncRuns).values({
       startedAt: result.startedAt,
       finishedAt: result.completedAt,
       source: "tcp",
-      trigger: "manual",
+      trigger: userId ? "manual" : "cron",
       triggeredBy: userId,
       rowsSeen: result.recordsSeen,
       rowsInserted: result.recordsInserted,

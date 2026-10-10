@@ -55,9 +55,7 @@ interface ZKPacket {
   data: Buffer;
 }
 
-// ---------------------------------------------------------------------------
 // Pure helpers
-// ---------------------------------------------------------------------------
 
 function decodeZKTime(t: number): Date {
   const second = t % 60; t = Math.floor(t / 60);
@@ -163,9 +161,7 @@ function buildUserPacket72(uid: number, userId: string, name: string, role = 0):
   return buf;
 }
 
-// ---------------------------------------------------------------------------
 // Client
-// ---------------------------------------------------------------------------
 
 export class ZK4370Client {
   private socket: net.Socket | null = null;
@@ -182,7 +178,7 @@ export class ZK4370Client {
     private readonly commKey = 0,
   ) {}
 
-  // ---------- public API ----------
+  // Public API
 
   async connect(): Promise<void> {
     await this.openSocket();
@@ -252,7 +248,7 @@ export class ZK4370Client {
     if (resp.cmd !== CMD_ACK_OK) throw new Error(`SetUser failed uid=${uid} userId=${userId}`);
   }
 
-  // ---------- private helpers ----------
+  // Private helpers
 
   private async tryAuth(challengeData?: Buffer): Promise<boolean> {
     console.log(`[ZK4370] Auth attempts: commKey=${this.commKey} sessionId=${this.sessionId} challenge=${challengeData?.toString("hex") ?? "none"}`);

@@ -221,7 +221,7 @@ export class AccessDbAdapter implements AttendanceSource {
     }
   }
 
-  // ============ Private ============
+  // Private
 
   private async openDb(): Promise<any> {
     if (this.db) {

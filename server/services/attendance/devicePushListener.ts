@@ -102,11 +102,8 @@ export class DevicePushListener extends EventEmitter {
     clientId: string,
     onProcessed: (remaining: any) => void,
   ): void {
-    // Try to detect and parse punch records
-    // Common patterns:
-    // - Fixed-length records (24+ bytes)
-    // - Length-prefixed records
-    // - Delimiter-separated (newline, comma, etc.)
+    // The record layout is not documented; try fixed-length, length-prefixed
+    // and delimiter-separated formats in turn.
 
     let processed = 0;
 
@@ -168,7 +165,6 @@ export class DevicePushListener extends EventEmitter {
               this.emit("punch", punch);
               processed = crIndex + 2; // \r\n
             } catch (e) {
-              // Parse error
             }
           }
         }
@@ -191,7 +187,6 @@ export class DevicePushListener extends EventEmitter {
       const timestamp = data.readUInt32LE(4);
       const direction = data[8];
 
-      // Validate
       if (empNo === 0 || timestamp === 0) return null;
 
       const empNoStr = String(empNo);

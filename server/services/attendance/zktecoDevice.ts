@@ -149,7 +149,6 @@ export class ZKTecoDevice extends EventEmitter {
         const verifyMode = response.readUInt8(offset);
         offset += 1;
 
-        // Filter by time if provided
         const punchDateTime = new Date(timestamp);
         if (lastSyncTime && punchDateTime <= lastSyncTime) {
           continue;
@@ -243,7 +242,6 @@ export class ZKTecoDevice extends EventEmitter {
       data.copy(cmdBuf, 8);
     }
 
-    // Calculate CRC-16
     const crc = this.calculateCRC16(cmdBuf.slice(0, 8));
     cmdBuf.writeUInt16LE(crc, 2);
 

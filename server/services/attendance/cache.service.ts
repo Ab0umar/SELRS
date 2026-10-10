@@ -64,7 +64,6 @@ class CacheService {
     return pruned;
   }
 
-  // Get cache statistics
   getStats() {
     return {
       size: this.cache.size,
