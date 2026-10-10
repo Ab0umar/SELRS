@@ -29,10 +29,10 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
               <BrandLogo className="size-8 object-contain" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-primary leading-tight">
+              <h1 className="text-2xl font-bold text-primary leading-tight">
                 مركز عيون الشروق
               </h1>
-              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+              <p className="text-[13px] font-semibold text-primary uppercase">
                 بوابة الأطباء الخارجيين
               </p>
             </div>
@@ -40,11 +40,11 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
 
           {/* Doctor name + logout */}
           <div className="flex items-center gap-2">
-            <div className="hidden md:flex flex-col pl-2 border-l border-border/60">
-              <span className="text-xs font-bold text-foreground text-right">
+            <div className="hidden md:flex flex-col pe-2 border-e border-border/60">
+              <span className="text-xs font-bold text-foreground text-start">
                 {displayName}
               </span>
-              <span className="text-[10px] text-muted-foreground text-right">
+              <span className="text-[13px] text-muted-foreground text-start">
                 بوابة الطبيب
               </span>
             </div>
@@ -91,7 +91,7 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border/60 bg-card px-2 shadow-lg md:hidden">
+      <nav className="fixed bottom-0 end-0 start-0 z-40 flex h-16 items-center justify-around border-t border-border/60 bg-card px-2 shadow-lg md:hidden">
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = location.startsWith(item.href);
@@ -111,7 +111,7 @@ export default function DoctorLayout({ children }: { children: ReactNode }) {
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 />
-                <span className="text-[9px] tracking-tight">{item.label}</span>
+                <span className="text-[13px]">{item.label}</span>
               </span>
             </Link>
           );

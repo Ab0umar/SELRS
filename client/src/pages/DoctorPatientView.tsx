@@ -246,7 +246,7 @@ export default function DoctorPatientView() {
                 onClick={() => setLocation(`/patients/${patientId}`)}
                 className="flex-1"
               >
-                <FileText className="mr-2 h-4 w-4" />
+                <FileText className="ms-2 h-4 w-4" />
                 ملف كامل للمريض
               </Button>
               <Button

@@ -58,29 +58,15 @@ export default function DoctorLogin() {
       className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-primary/10 selection:text-primary"
       dir="rtl"
     >
-      <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-gradient-to-br from-[#15296a] via-[#0f2050] to-[#0c1840] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
-        <div
-          className="absolute top-[-120px] left-[-80px] w-[360px] h-[360px] rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(211, 156, 42, 0.18), transparent 70%)",
-          }}
-        />
-        <div
-          className="absolute bottom-[-140px] right-[-100px] w-[420px] h-[420px] rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(37, 99, 235, 0.30), transparent 70%)",
-          }}
-        />
+      <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-[#003d82] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
 
         <div className="relative z-10 flex flex-1 flex-row items-center justify-center gap-5 lg:gap-7">
           <BrandLogo className="size-32 lg:size-44 object-contain select-none shrink-0" />
-          <div className="flex flex-col items-start text-right">
-            <span className="whitespace-nowrap text-[32px] sm:text-[42px] lg:text-[56px] font-extrabold text-white leading-none">
+          <div className="flex flex-col items-start text-start">
+            <h1 className="whitespace-nowrap text-[32px] sm:text-[42px] lg:text-[56px] font-extrabold text-white leading-none">
               مركز عيون الشروق
-            </span>
-            <span className="text-base lg:text-2xl font-bold text-[#FC9918] mt-2">
+            </h1>
+            <span className="text-base lg:text-2xl font-bold text-secondary mt-2">
               لامراض القرنيه و تصحيح الابصار
             </span>
           </div>
@@ -92,7 +78,7 @@ export default function DoctorLogin() {
               key={label}
               className="flex h-20 flex-col items-center justify-center gap-2 text-center"
             >
-              <span className="flex items-center justify-center text-[#e8b54a] shrink-0">
+              <span className="flex items-center justify-center text-secondary shrink-0">
                 <Icon className="size-7" />
               </span>
               <span className="text-white/85 text-sm font-bold leading-tight">
@@ -108,10 +94,10 @@ export default function DoctorLogin() {
               key={label}
               className="flex h-16 flex-col items-center justify-center gap-1.5 text-center"
             >
-              <span className="text-[#e8b54a]">
+              <span className="text-secondary">
                 <Icon className="size-5" />
               </span>
-              <span className="text-white/85 text-[9px] sm:text-[10px] font-bold leading-tight">
+              <span className="text-white/85 text-[13px] sm:text-[13px] font-bold leading-tight">
                 {label}
               </span>
             </div>
@@ -123,11 +109,11 @@ export default function DoctorLogin() {
         <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-muted" />
 
         <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          <span className="inline-flex items-center gap-1.5 self-start text-[10px] sm:text-xs font-bold tracking-wider uppercase text-primary mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#d39c2a]" />
+          <span className="inline-flex items-center gap-1.5 self-start text-[13px] sm:text-xs font-bold uppercase text-primary mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
             تسجيل دخول آمن
           </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight m-0">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground m-0">
             دخول الطبيب
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-4 sm:mb-8 leading-relaxed">
@@ -135,7 +121,7 @@ export default function DoctorLogin() {
           </p>
 
           <div className="mb-4 sm:mb-6 flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3 sm:p-3.5">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#d39c2a]/15 text-[#d39c2a]">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-foreground">
               <Stethoscope className="size-5" />
             </span>
             <p className="m-0 text-xs leading-5 text-muted-foreground">
@@ -160,10 +146,10 @@ export default function DoctorLogin() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
-                  className="h-12 border-border/60 bg-muted/40 rounded-xl pr-12 focus-visible:ring-primary/10 text-right font-medium"
+                  className="h-12 border-border/60 bg-muted/40 rounded-xl ps-12 focus-visible:ring-primary/10 text-start font-medium"
                   disabled={loginMutation.isPending}
                 />
-                <UserRound className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <UserRound className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               </div>
             </div>
 
@@ -182,31 +168,31 @@ export default function DoctorLogin() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  className="h-12 border-border/60 bg-muted/40 rounded-xl pr-12 pl-12 focus-visible:ring-primary/10 text-right font-medium"
+                  className="h-12 border-border/60 bg-muted/40 rounded-xl ps-12 pe-12 focus-visible:ring-primary/10 text-start font-medium"
                   disabled={loginMutation.isPending}
                   onKeyDown={(e) =>
                     e.key === "Enter" && canSubmit && handleSubmit(e as any)
                   }
                 />
-                <LockKeyhole className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <button
+                <LockKeyhole className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Button variant="bare"
                   type="button"
                   aria-label={
                     showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
                   }
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                  className="absolute end-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                   tabIndex={-1}
                 >
                   <Eye className="size-5" />
-                </button>
+                </Button>
               </div>
             </div>
 
             <div className="pt-2">
               <Button
                 type="submit"
-                className="h-12 w-full text-base font-bold bg-primary text-white hover:bg-primary/90 transition-all rounded-xl shadow-lg shadow-[#1f3f82]/20 cursor-pointer"
+                className="h-12 w-full text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-xl shadow-md cursor-pointer"
                 disabled={!canSubmit}
               >
                 {loginMutation.isPending ? (
@@ -234,7 +220,7 @@ export default function DoctorLogin() {
           </form>
         </div>
 
-        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-border/60 flex flex-row items-center justify-between text-[11px] sm:text-xs text-muted-foreground w-full">
+        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-border/60 flex flex-row items-center justify-between text-[13px] sm:text-xs text-muted-foreground w-full">
           <Link
             href="/login"
             className="font-bold text-primary hover:underline"

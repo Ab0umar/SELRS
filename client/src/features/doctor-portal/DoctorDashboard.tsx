@@ -133,13 +133,13 @@ function PatientRow({
             <span
               key={i}
               className={cn(
-                "text-[11px] text-muted-foreground",
+                "text-[13px] text-muted-foreground",
                 i === 0 && "font-mono font-semibold text-primary/80",
               )}
             >
               {item}
               {i < meta.length - 1 && (
-                <span className="ml-2 opacity-30">·</span>
+                <span className="me-2 opacity-30">·</span>
               )}
             </span>
           ))}
@@ -242,7 +242,7 @@ export default function DoctorDashboard() {
                   : ""}
             </p>
           </div>
-          <button
+          <Button variant="bare"
             type="button"
             onClick={() => void handleRefresh()}
             disabled={isLoading || refreshing}
@@ -250,17 +250,17 @@ export default function DoctorDashboard() {
             aria-label="تحديث القائمة"
           >
             <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
-          </button>
+          </Button>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input aria-label="ابحث بالاسم أو جزء منه…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="ابحث بالاسم أو جزء منه…"
-            className="h-11 rounded-xl border-border/60 bg-card pr-10 focus-visible:ring-primary/10"
+            className="h-11 rounded-xl border-border/60 bg-card ps-10 focus-visible:ring-primary/10"
             dir="rtl"
           />
         </div>

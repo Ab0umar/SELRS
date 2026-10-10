@@ -27,6 +27,7 @@ import {
   PortalLoadingRows,
   formatArabicDate,
 } from "../patient-portal/portal-ui";
+import { toast } from "sonner";
 
 const GENDER_LABEL: Record<string, string> = { male: "ذكر", female: "أنثى" };
 const STATUS_LABEL: Record<string, string> = {
@@ -71,7 +72,7 @@ function DetailItem({
           {label}
         </span>
       </div>
-      <span className="text-sm font-bold text-foreground text-left">
+      <span className="text-sm font-bold text-foreground text-end">
         {String(value)}
       </span>
     </div>
@@ -150,7 +151,7 @@ function EyeCard({
             key={l}
             className="rounded-xl border border-white bg-card/90 p-2 text-center shadow-xs"
           >
-            <div className="text-[11px] font-bold text-muted-foreground">
+            <div className="text-[13px] font-bold text-muted-foreground">
               {l}
             </div>
             <div className="mt-1 text-base font-black text-foreground">
@@ -164,7 +165,7 @@ function EyeCard({
           className="mt-3 rounded-xl border border-white bg-card/90 px-3 py-1.5 flex justify-between items-center"
           dir="ltr"
         >
-          <span className="text-[10px] font-bold text-muted-foreground">
+          <span className="text-[13px] font-bold text-muted-foreground">
             V/A
           </span>
           <span className="text-sm font-black text-foreground">{va}</span>
@@ -187,7 +188,7 @@ function RefractionRecord({ row }: { row: any }) {
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <div className="space-y-0.5">
           <h3 className="text-sm font-bold text-foreground">{visitDate}</h3>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             قياسات بصرية مسجلة بالعيادة
           </p>
         </div>
@@ -249,7 +250,7 @@ function PrescriptionCard({ row }: { row: any }) {
     <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-xs space-y-6 print:border-0 print:shadow-none print:p-0">
       <div className="flex items-center justify-between border-b border-border/40 pb-4">
         <div className="space-y-1">
-          <span className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 rounded-lg uppercase">
+          <span className="bg-primary/10 text-primary text-[13px] font-bold px-2.5 py-0.5 rounded-lg uppercase">
             روشتة طبية
           </span>
           <h3 className="text-base font-bold text-foreground">{dateStr}</h3>
@@ -282,12 +283,12 @@ function PrescriptionCard({ row }: { row: any }) {
                       {v(item.medicationName)}
                     </p>
                   </div>
-                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                  <span className="rounded-lg bg-secondary/10 px-2.5 py-0.5 text-[13px] font-bold text-primary">
                     {v(item.duration)}
                   </span>
                 </div>
 
-                <div className="text-xs text-muted-foreground leading-normal pr-10">
+                <div className="text-xs text-muted-foreground leading-normal ps-10">
                   <span className="font-semibold text-foreground">
                     الجرعة:{" "}
                   </span>
@@ -295,7 +296,7 @@ function PrescriptionCard({ row }: { row: any }) {
                 </div>
 
                 {item.instructions && (
-                  <div className="mt-2 pr-10">
+                  <div className="mt-2 ps-10">
                     <p className="rounded-lg bg-card border border-border/40 px-3 py-2 text-xs leading-5 text-muted-foreground">
                       <span className="font-semibold text-foreground">
                         تعليمات:{" "}
@@ -410,7 +411,7 @@ export default function DoctorPatientImages() {
                         {data.patient.fullName}
                       </h3>
                       {data.patient.status && (
-                        <Badge className="bg-secondary/15 text-primary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[10px] pointer-events-none">
+                        <Badge className="bg-secondary/15 text-primary border-0 hover:bg-secondary/20 font-bold px-2.5 py-0.5 rounded-lg text-[13px] pointer-events-none">
                           {STATUS_LABEL[data.patient.status] ??
                             data.patient.status}
                         </Badge>
@@ -428,7 +429,7 @@ export default function DoctorPatientImages() {
                 {/* Info parameters stamps */}
                 <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:min-w-[360px]">
                   <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
-                    <p className="text-[10px] font-semibold text-muted-foreground">
+                    <p className="text-[13px] font-semibold text-muted-foreground">
                       الجنس
                     </p>
                     <p className="text-xs font-bold text-foreground mt-0.5">
@@ -439,7 +440,7 @@ export default function DoctorPatientImages() {
                     </p>
                   </div>
                   <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
-                    <p className="text-[10px] font-semibold text-muted-foreground">
+                    <p className="text-[13px] font-semibold text-muted-foreground">
                       العمر
                     </p>
                     <p className="text-xs font-bold text-foreground mt-0.5">
@@ -449,7 +450,7 @@ export default function DoctorPatientImages() {
                     </p>
                   </div>
                   <div className="bg-muted/40 border border-border/60 rounded-xl p-2.5 text-center">
-                    <p className="text-[10px] font-semibold text-muted-foreground">
+                    <p className="text-[13px] font-semibold text-muted-foreground">
                       آخر زيارة
                     </p>
                     <p className="text-xs font-bold text-foreground mt-0.5">
@@ -462,7 +463,7 @@ export default function DoctorPatientImages() {
 
             {/* Navigation Tabs */}
             <div className="flex border-b border-border/60 overflow-x-auto gap-2 py-1 scrollbar-none">
-              <button
+              <Button variant="bare"
                 onClick={() => setActiveTab("profile")}
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
@@ -472,8 +473,8 @@ export default function DoctorPatientImages() {
                 )}
               >
                 الملف الشخصي والبيانات
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 onClick={() => setActiveTab("refractions")}
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
@@ -483,8 +484,8 @@ export default function DoctorPatientImages() {
                 )}
               >
                 مقاس النظارة ({data.refractions.length})
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 onClick={() => setActiveTab("prescriptions")}
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
@@ -494,8 +495,8 @@ export default function DoctorPatientImages() {
                 )}
               >
                 الروشتات الطبية ({data.prescriptions.length})
-              </button>
-              <button
+              </Button>
+              <Button variant="bare"
                 onClick={() => setActiveTab("images")}
                 className={cn(
                   "px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap",
@@ -505,7 +506,7 @@ export default function DoctorPatientImages() {
                 )}
               >
                 صور الأشعة والملفات ({data.images.length})
-              </button>
+              </Button>
             </div>
 
             {/* Tab content panels */}
@@ -518,7 +519,7 @@ export default function DoctorPatientImages() {
                       <h4 className="text-sm font-bold text-foreground">
                         البيانات الشخصية والاتصال
                       </h4>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         المسجلة في استقبال المركز
                       </p>
                     </div>
@@ -557,7 +558,7 @@ export default function DoctorPatientImages() {
                       <h4 className="text-sm font-bold text-foreground">
                         التاريخ المرضي والحساسية
                       </h4>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         معلومات طبية هامة لسلامة المريض
                       </p>
                     </div>
@@ -646,7 +647,7 @@ export default function DoctorPatientImages() {
                                 <p className="truncate text-sm font-bold text-foreground">
                                   {scan.fileName || `أشعة وفحص #${scan.id}`}
                                 </p>
-                                <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                                <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
                                   <span className="rounded-lg bg-muted/40 border border-border/60 px-2 py-0.5">
                                     {scan.mimeType.split("/")[1].toUpperCase()}
                                   </span>
@@ -659,10 +660,10 @@ export default function DoctorPatientImages() {
                             </div>
 
                             <div className="flex items-center gap-2 pt-2 border-t border-border/40">
-                              <Button variant="outline" size="sm" onClick={() => void openDoctorScan(scan.viewUrl).catch((error) => alert(error.message))} className="flex-1 h-9 text-xs rounded-xl gap-1.5 border-border/60 hover:bg-muted/40 cursor-pointer">
+                              <Button variant="outline" size="sm" onClick={() => void openDoctorScan(scan.viewUrl).catch((error) => toast.error(error.message))} className="flex-1 h-9 text-xs rounded-xl gap-1.5 border-border/60 hover:bg-muted/40 cursor-pointer">
                                 <Eye className="size-3.5" /><span>عرض الملف</span>
                               </Button>
-                              <Button variant="secondary" size="sm" onClick={() => void openDoctorScan(scan.viewUrl, true).catch((error) => alert(error.message))} className="flex-1 h-9 text-xs rounded-xl gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90 cursor-pointer">
+                              <Button variant="secondary" size="sm" onClick={() => void openDoctorScan(scan.viewUrl, true).catch((error) => toast.error(error.message))} className="flex-1 h-9 text-xs rounded-xl gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90 cursor-pointer">
                                 <Download className="size-3.5" /><span>تنزيل</span>
                               </Button>
                             </div>
