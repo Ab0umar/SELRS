@@ -14,6 +14,7 @@ import { attendanceRouter } from "./routers/attendance";
 import { salaryRouter } from "./routers/salary";
 import { patientPortalRouter } from "./routers/patientPortal";
 import { externalDoctorsRouter } from "./routers/externalDoctors";
+import { referralDoctorsRouter } from "./routers/referralDoctors";
 import { doctorPortalRouter } from "./routers/doctorPortal";
 import { marketingRouter } from "./routers/marketing";
 import { kfRouter } from "./routers/kf";
@@ -199,6 +200,7 @@ export const appRouter = router({
   }),
   patientPortal: patientPortalRouter,
   externalDoctors: externalDoctorsRouter,
+  referralDoctors: referralDoctorsRouter,
   doctorPortal: doctorPortalRouter,
   medical: medicalRouter,
   patient: patientRouter,

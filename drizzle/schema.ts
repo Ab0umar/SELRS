@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { uniqueIndex } from "drizzle-orm/mysql-core";
 import { attendanceTimestamp } from "./attendanceTimestamp";
+import type { TestReferenceRange } from "../shared/test-reference-ranges";
 /**
  * Core user table with local authentication (username/password)
  */
@@ -577,6 +578,15 @@ export type InsertDoctorReport = typeof doctorReports.$inferInsert;
 /**
  * Referral Letters table - خطابات التحويل
  */
+export const referralDoctors = mysqlTable("referral_doctors", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  specialty: varchar("specialty", { length: 255 }).notNull(),
+  hospital: varchar("hospital", { length: 255 }).notNull(),
+  schedule: text("schedule").notNull(),
+  address: text("address").notNull(),
+});
+
 export const referralLetters = mysqlTable("referralLetters", {
   id: int("id").autoincrement().primaryKey(),
   patientId: int("patientId").notNull(),
@@ -598,6 +608,9 @@ export const referralLetters = mysqlTable("referralLetters", {
   referredPhysicianTitle: varchar("referredPhysicianTitle", { length: 255 }),
   referredFacility: varchar("referredFacility", { length: 255 }),
   referredDept: varchar("referredDept", { length: 255 }),
+  referralDoctorId: int("referralDoctorId"),
+  referredAddress: text("referredAddress"),
+  referredSchedule: text("referredSchedule"),
   physicianName: varchar("physicianName", { length: 255 }),
   physicianTitle: varchar("physicianTitle", { length: 255 }),
   physicianLicense: varchar("physicianLicense", { length: 64 }),
