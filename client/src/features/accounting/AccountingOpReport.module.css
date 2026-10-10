@@ -11,7 +11,7 @@
   min-width: 0;
 }
 
-/** Period / filters summary — show once above tables (screen + print). */
+/** Period and filters summary. Show once above tables on screen and in print. */
 .reportMeta {
   box-sizing: border-box;
   margin-bottom: 2px;
@@ -30,7 +30,8 @@
   box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   background: var(--background);
   box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 4%, transparent);
   min-width: 0;
@@ -270,6 +271,13 @@
     font-size: 12.5px;
   }
 
+  .reportMeta {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000;
+    border-radius: 0;
+  }
+
   .reportBlock {
     break-inside: avoid;
     page-break-inside: avoid;
@@ -307,7 +315,6 @@
   }
 }
 
-/* ── Mobile: stack table rows as key-value cards ── */
 @media screen and (max-width: 640px) {
   .reportBlock {
     overflow-x: visible;
@@ -355,7 +362,7 @@
 
   .gridTable tbody td[data-label]::before {
     content: attr(data-label);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: var(--muted-foreground);
     letter-spacing: 0.01em;
@@ -392,7 +399,7 @@
 
   .grandTotalRow td[data-label]::before {
     content: attr(data-label);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: var(--muted-foreground);
     letter-spacing: 0.01em;

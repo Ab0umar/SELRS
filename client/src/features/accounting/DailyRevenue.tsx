@@ -6,15 +6,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { getErrorContext } from "@/lib/errorMessages";
 import type {
   DailyRevenueInput,
   DailyRevenueOutput,
 } from "@shared/accounting/contracts";
-import { CircleAlert, Printer, RefreshCw, Search, Banknote, ReceiptText, Wallet } from "lucide-react";
+import {
+  Printer,
+  RefreshCw,
+  Search,
+  Banknote,
+  ReceiptText,
+  Wallet,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -29,6 +34,8 @@ import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
 import { useAccountingTabMetrics } from "./accountingTabMetrics";
 import reportStyles from "./AccountingOpReport.module.css";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingQueryBoundary } from "./AccountingPagePrimitives";
+import { accountingMetricValue } from "./accountingQueryState";
 
 type DailyRevenueQuery = {
   data?: DailyRevenueOutput;
@@ -156,12 +163,35 @@ export default function DailyRevenue() {
     netAfterDiscount: 0,
   };
   const tabMetricItems = [
-    { label: "الإجمالي", value: formatMoneyAr(totals.totalGross ?? 0), icon: Banknote },
-    { label: "المدفوع", value: formatMoneyAr(totals.totalPaid ?? 0), icon: ReceiptText },
-    { label: "الصافي", value: formatMoneyAr(totals.netAfterDiscount ?? 0), icon: Wallet },
+    {
+      label: "الإجمالي",
+      value: accountingMetricValue(
+        dailyRevenueQuery,
+        dailyRevenueQuery.data?.totals.totalGross,
+        formatMoneyAr,
+      ),
+      icon: Banknote,
+    },
+    {
+      label: "المدفوع",
+      value: accountingMetricValue(
+        dailyRevenueQuery,
+        dailyRevenueQuery.data?.totals.totalPaid,
+        formatMoneyAr,
+      ),
+      icon: ReceiptText,
+    },
+    {
+      label: "الصافي",
+      value: accountingMetricValue(
+        dailyRevenueQuery,
+        dailyRevenueQuery.data?.totals.netAfterDiscount,
+        formatMoneyAr,
+      ),
+      icon: Wallet,
+    },
   ];
-  useAccountingTabMetrics(tabMetricItems);
-
+  useAccountingTabMetrics([]);
 
   const applyFilters = () => {
     if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
@@ -186,6 +216,12 @@ export default function DailyRevenue() {
   const printScopeRef = useRef<HTMLDivElement>(null);
 
   const printReport = () => {
+    if (
+      dailyRevenueQuery.isLoading ||
+      dailyRevenueQuery.isError ||
+      rows.length === 0
+    )
+      return;
     const printClass = "print-daily-revenue";
     document.body.classList.add(printClass);
     const cleanup = () => {
@@ -196,8 +232,13 @@ export default function DailyRevenue() {
 
     // Mobile: export element to PDF asynchronously (no user-gesture requirement)
     if (preferPdfOverBrowserPrint()) {
-      void exportElementToPdf({ fileName: "تقرير-الإيراد-اليومي.pdf", element: printScopeRef.current })
-        .then((ok) => { if (!ok) window.print(); })
+      void exportElementToPdf({
+        fileName: "تقرير-الإيراد-اليومي.pdf",
+        element: printScopeRef.current,
+      })
+        .then((ok) => {
+          if (!ok) window.print();
+        })
         .catch(() => window.print())
         .finally(() => setTimeout(cleanup, 2000));
       return;
@@ -210,10 +251,16 @@ export default function DailyRevenue() {
 
   return (
     <>
-      <div className="space-y-2 sm:space-y-2.5" dir="rtl">
-        <Card className={`${reportStyles.noPrint} w-fit max-w-full border-border/60 shadow-xs`}>
+      <div className="accounting-report space-y-4" dir="rtl">
+        <h1 className="print:hidden">الإيراد اليومي</h1>
+        <Card
+          className={`${reportStyles.noPrint} w-fit max-w-full border-border/60 shadow-xs`}
+        >
           <CardContent className="w-fit max-w-full space-y-2 p-2.5 sm:p-3">
-            <div className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+            <div
+              className="flex w-fit max-w-full flex-wrap items-end gap-2"
+              dir="rtl"
+            >
               <label
                 htmlFor="daily-from-date"
                 className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
@@ -241,7 +288,10 @@ export default function DailyRevenue() {
                   id="daily-to-date"
                   value={draft.toDate}
                   onChange={(event) => {
-                    setDraft((prev) => ({ ...prev, toDate: event.target.value }));
+                    setDraft((prev) => ({
+                      ...prev,
+                      toDate: event.target.value,
+                    }));
                     setDateError("");
                   }}
                   className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
@@ -251,7 +301,10 @@ export default function DailyRevenue() {
                 <p className="text-sm text-destructive">{dateError}</p>
               )}
               <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
-                <label htmlFor="daily-shift-code" className="text-base font-bold text-foreground">
+                <label
+                  htmlFor="daily-shift-code"
+                  className="text-base font-bold text-foreground"
+                >
                   الوردية
                 </label>
                 <Select
@@ -280,7 +333,7 @@ export default function DailyRevenue() {
                 onClick={applyFilters}
                 aria-label="تطبيق"
               >
-                <Search className="ml-1.5 h-4 w-4" aria-hidden />
+                <Search className="me-1.5 h-4 w-4" aria-hidden />
                 تطبيق
               </Button>
               <Button
@@ -306,7 +359,11 @@ export default function DailyRevenue() {
                 size="icon"
                 className="h-11 w-11"
                 onClick={printReport}
-                disabled={dailyRevenueQuery.isLoading || rows.length === 0}
+                disabled={
+                  dailyRevenueQuery.isLoading ||
+                  dailyRevenueQuery.isError ||
+                  rows.length === 0
+                }
                 aria-label="طباعة"
               >
                 <Printer className="h-4 w-4" aria-hidden />
@@ -315,324 +372,331 @@ export default function DailyRevenue() {
           </CardContent>
         </Card>
 
-        {dailyRevenueQuery.isError ? (
-          <Card className="border-error/30 bg-error/5">
-            <CardContent className="flex items-start gap-2 py-5">
-              <div className="rounded-lg bg-error/10 p-2 text-error">
-                <CircleAlert className="h-5 w-5" aria-hidden />
+        <AccountingQueryBoundary
+          query={dailyRevenueQuery}
+          label="الإيراد اليومي"
+        >
+          <Card
+            ref={printScopeRef}
+            className={`${reportStyles.printScope} border-border/60 shadow-xs`}
+          >
+            <CardContent className="p-3 sm:p-4">
+              <h2 className="hidden print:block text-lg font-semibold mb-3">
+                الإيراد اليومي
+              </h2>
+              <div className={reportStyles.reportMeta} role="note">
+                <span className="font-semibold">الفترة:</span> من{" "}
+                {formatDateAr(filters.fromDate)} إلى{" "}
+                {formatDateAr(filters.toDate)}
               </div>
-              <div>
-                <p className="font-semibold text-foreground">
-                  {getErrorContext(dailyRevenueQuery.error.message).title}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {getErrorContext(dailyRevenueQuery.error.message).hint}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
 
-        <Card ref={printScopeRef} className={`${reportStyles.printScope} border-border/60 shadow-xs`}>
-          <CardContent className="p-3 sm:p-4">
-            <div className={reportStyles.reportMeta} role="note">
-              <span className="font-semibold">الفترة:</span> من{" "}
-              {formatDateAr(filters.fromDate)} إلى{" "}
-              {formatDateAr(filters.toDate)}
-            </div>
-
-            <div className="grid gap-2 sm:hidden">
-              {dailyRevenueQuery.isLoading
-                ? Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-border bg-background p-4 shadow-xs"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-6 w-20 rounded-full" />
+              <div className="grid gap-2 sm:hidden">
+                {dailyRevenueQuery.isLoading
+                  ? Array.from({ length: 3 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl border border-border bg-background p-4 shadow-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-6 w-20 rounded-full" />
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          {Array.from({ length: 6 }).map((__, j) => (
+                            <div
+                              key={j}
+                              className="rounded-xl border border-border bg-muted p-3"
+                            >
+                              <Skeleton className="h-3 w-12" />
+                              <Skeleton className="mt-2 h-4 w-16" />
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                        {Array.from({ length: 6 }).map((__, j) => (
-                          <div
-                            key={j}
-                            className="rounded-xl border border-border bg-muted p-3"
-                          >
-                            <Skeleton className="h-3 w-12" />
-                            <Skeleton className="mt-2 h-4 w-16" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                : null}
+                    ))
+                  : null}
 
-              {!dailyRevenueQuery.isLoading && rows.length === 0 ? (
-                <div
-                  className={`${reportStyles.emptyState} text-muted-foreground`}
-                >
-                  لا توجد بيانات للإيراد اليومي للفلاتر المختارة.
-                </div>
-              ) : null}
+                {!dailyRevenueQuery.isLoading && rows.length === 0 ? (
+                  <div
+                    className={`${reportStyles.emptyState} text-muted-foreground`}
+                  >
+                    لا توجد بيانات للإيراد اليومي للفلاتر المختارة.
+                  </div>
+                ) : null}
 
-              {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
-                <>
-                  {rows.map((row) => (
-                    <div
-                      key={row.date}
-                      className="rounded-xl border border-border bg-background p-4 shadow-xs"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatDateAr(row.date)}
+                {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
+                  <>
+                    {rows.map((row) => (
+                      <div
+                        key={row.date}
+                        className="rounded-xl border border-border bg-background p-4 shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              {formatDateAr(row.date)}
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-foreground">
+                              الإيراد اليومي
+                            </div>
                           </div>
-                          <div className="mt-1 text-sm font-semibold text-foreground">
-                            الإيراد اليومي
+                          <span className="rounded-full bg-primary text-primary-foreground">
+                            {formatCountAr(row.totalReceipts)} إيصال
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-xl bg-muted px-2 py-1.5">
+                            <div className="text-[13px] text-muted-foreground">
+                              الإجمالي
+                            </div>
+                            <div className="mt-1 font-semibold tabular-nums text-foreground">
+                              {formatMoneyAr(row.totalGross)}
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-muted px-2 py-1.5">
+                            <div className="text-[13px] text-muted-foreground">
+                              الخصم
+                            </div>
+                            <div className="mt-1 font-semibold tabular-nums text-foreground">
+                              {formatMoneyAr(row.totalDiscount)}
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-success/10 px-2 py-1.5">
+                            <div className="text-[13px] text-success">نقدي</div>
+                            <div className="mt-1 font-semibold tabular-nums text-success">
+                              {formatMoneyAr(row.totalCash)}
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-success/10 px-2 py-1.5">
+                            <div className="text-[13px] text-success">
+                              المدفوع
+                            </div>
+                            <div className="mt-1 font-semibold tabular-nums text-success">
+                              {formatMoneyAr(row.totalPaid)}
+                            </div>
+                          </div>
+                          <div className="col-span-2 rounded-xl bg-primary/5 px-2 py-1.5">
+                            <div className="text-[13px] text-primary">
+                              الصافي
+                            </div>
+                            <div className="mt-1 text-lg font-bold tabular-nums text-primary">
+                              {formatMoneyAr(row.netAfterDiscount)}
+                            </div>
                           </div>
                         </div>
-                        <span className="rounded-full bg-primary text-primary-foreground">
-                          {formatCountAr(row.totalReceipts)} إيصال
-                        </span>
                       </div>
+                    ))}
 
-                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-muted px-2 py-1.5">
-                          <div className="text-[10px] text-muted-foreground">
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                      <div className="text-xs font-semibold text-primary">
+                        الإجمالي العام
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
+                            الإيصالات
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatCountAr(totals.totalReceipts)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
                             الإجمالي
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
-                            {formatMoneyAr(row.totalGross)}
+                            {formatMoneyAr(totals.totalGross)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-muted px-2 py-1.5">
-                          <div className="text-[10px] text-muted-foreground">
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
                             الخصم
                           </div>
                           <div className="mt-1 font-semibold tabular-nums text-foreground">
-                            {formatMoneyAr(row.totalDiscount)}
+                            {formatMoneyAr(totals.totalDiscount)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-success/10 px-2 py-1.5">
-                          <div className="text-[10px] text-success">نقدي</div>
-                          <div className="mt-1 font-semibold tabular-nums text-success">
-                            {formatMoneyAr(row.totalCash)}
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
+                            نقدي
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(totals.totalCash)}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-success/10 px-2 py-1.5">
-                          <div className="text-[10px] text-success">
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
                             المدفوع
                           </div>
-                          <div className="mt-1 font-semibold tabular-nums text-success">
-                            {formatMoneyAr(row.totalPaid)}
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(totals.totalPaid)}
                           </div>
                         </div>
-                        <div className="col-span-2 rounded-xl bg-primary/5 px-2 py-1.5">
-                          <div className="text-[10px] text-primary">الصافي</div>
-                          <div className="mt-1 text-lg font-bold tabular-nums text-primary">
-                            {formatMoneyAr(row.netAfterDiscount)}
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
+                            الصافي
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(totals.netAfterDiscount)}
                           </div>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </>
+                ) : null}
+              </div>
 
-                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                    <div className="text-xs font-semibold text-primary">
-                      الإجمالي العام
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          الإيصالات
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatCountAr(totals.totalReceipts)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          الإجمالي
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatMoneyAr(totals.totalGross)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          الخصم
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatMoneyAr(totals.totalDiscount)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          نقدي
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatMoneyAr(totals.totalCash)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          المدفوع
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatMoneyAr(totals.totalPaid)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          الصافي
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatMoneyAr(totals.netAfterDiscount)}
-                        </div>
-                      </div>
-                    </div>
+              <div className="hidden sm:block">
+                {dailyRevenueQuery.isLoading ? (
+                  <table className={reportStyles.gridTable} aria-hidden>
+                    <tbody>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i}>
+                          {Array.from({ length: 7 }).map((_, j) => (
+                            <td key={j}>
+                              <Skeleton className="h-5 w-full" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : null}
+
+                {!dailyRevenueQuery.isLoading && rows.length === 0 ? (
+                  <div
+                    className={`${reportStyles.emptyState} text-muted-foreground`}
+                  >
+                    لا توجد بيانات للإيراد اليومي للفلاتر المختارة.
                   </div>
-                </>
-              ) : null}
-            </div>
+                ) : null}
 
-            <div className="hidden sm:block">
-              {dailyRevenueQuery.isLoading ? (
-                <table className={reportStyles.gridTable} aria-hidden>
-                  <tbody>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i}>
-                        {Array.from({ length: 7 }).map((_, j) => (
-                          <td key={j}>
-                            <Skeleton className="h-5 w-full" />
-                          </td>
-                        ))}
+                {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
+                  <table className={reportStyles.gridTable}>
+                    <colgroup>
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "16%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "16%" }} />
+                      <col style={{ width: "20%" }} />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th scope="col" className={reportStyles.numeric}>
+                          التاريخ
+                        </th>
+                        <th scope="col" className={reportStyles.numeric}>
+                          عدد الإيصالات
+                        </th>
+                        <th scope="col" className={reportStyles.numeric}>
+                          الإجمالي
+                        </th>
+                        <th scope="col" className={reportStyles.numeric}>
+                          الخصم
+                        </th>
+                        <th scope="col" className={reportStyles.numeric}>
+                          نقدي
+                        </th>
+                        <th scope="col" className={reportStyles.numeric}>
+                          المدفوع
+                        </th>
+                        <th scope="col" className={reportStyles.numeric}>
+                          الصافي
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : null}
-
-              {!dailyRevenueQuery.isLoading && rows.length === 0 ? (
-                <div
-                  className={`${reportStyles.emptyState} text-muted-foreground`}
-                >
-                  لا توجد بيانات للإيراد اليومي للفلاتر المختارة.
-                </div>
-              ) : null}
-
-              {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
-                <table className={reportStyles.gridTable}>
-                  <colgroup>
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "16%" }} />
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "16%" }} />
-                    <col style={{ width: "20%" }} />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th scope="col" className={reportStyles.numeric}>
-                        التاريخ
-                      </th>
-                      <th scope="col" className={reportStyles.numeric}>
-                        عدد الإيصالات
-                      </th>
-                      <th scope="col" className={reportStyles.numeric}>
-                        الإجمالي
-                      </th>
-                      <th scope="col" className={reportStyles.numeric}>
-                        الخصم
-                      </th>
-                      <th scope="col" className={reportStyles.numeric}>
-                        نقدي
-                      </th>
-                      <th scope="col" className={reportStyles.numeric}>
-                        المدفوع
-                      </th>
-                      <th scope="col" className={reportStyles.numeric}>
-                        الصافي
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.date}>
-                        <td
-                          data-label="التاريخ"
-                          className={reportStyles.numeric}
-                        >
-                          {formatDateAr(row.date)}
-                        </td>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={row.date}>
+                          <td
+                            data-label="التاريخ"
+                            className={reportStyles.numeric}
+                          >
+                            {formatDateAr(row.date)}
+                          </td>
+                          <td
+                            data-label="الإيصالات"
+                            className={reportStyles.numeric}
+                          >
+                            {formatCountAr(row.totalReceipts)}
+                          </td>
+                          <td
+                            data-label="الإجمالي"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.totalGross)}
+                          </td>
+                          <td
+                            data-label="الخصم"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.totalDiscount)}
+                          </td>
+                          <td
+                            data-label="نقدي"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.totalCash)}
+                          </td>
+                          <td
+                            data-label="المدفوع"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.totalPaid)}
+                          </td>
+                          <td
+                            data-label="الصافي"
+                            className={reportStyles.numeric}
+                          >
+                            {formatMoneyAr(row.netAfterDiscount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className={reportStyles.grandTotalRow}>
+                        <td className="font-bold">الإجمالي العام</td>
                         <td
                           data-label="الإيصالات"
                           className={reportStyles.numeric}
                         >
-                          {formatCountAr(row.totalReceipts)}
+                          {formatCountAr(totals.totalReceipts)}
                         </td>
                         <td
                           data-label="الإجمالي"
                           className={reportStyles.numeric}
                         >
-                          {formatMoneyAr(row.totalGross)}
+                          {formatMoneyAr(totals.totalGross)}
                         </td>
                         <td data-label="الخصم" className={reportStyles.numeric}>
-                          {formatMoneyAr(row.totalDiscount)}
+                          {formatMoneyAr(totals.totalDiscount)}
                         </td>
                         <td data-label="نقدي" className={reportStyles.numeric}>
-                          {formatMoneyAr(row.totalCash)}
+                          {formatMoneyAr(totals.totalCash)}
                         </td>
                         <td
                           data-label="المدفوع"
                           className={reportStyles.numeric}
                         >
-                          {formatMoneyAr(row.totalPaid)}
+                          {formatMoneyAr(totals.totalPaid)}
                         </td>
                         <td
                           data-label="الصافي"
                           className={reportStyles.numeric}
                         >
-                          {formatMoneyAr(row.netAfterDiscount)}
+                          {formatMoneyAr(totals.netAfterDiscount)}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className={reportStyles.grandTotalRow}>
-                      <td className="font-bold">الإجمالي العام</td>
-                      <td
-                        data-label="الإيصالات"
-                        className={reportStyles.numeric}
-                      >
-                        {formatCountAr(totals.totalReceipts)}
-                      </td>
-                      <td
-                        data-label="الإجمالي"
-                        className={reportStyles.numeric}
-                      >
-                        {formatMoneyAr(totals.totalGross)}
-                      </td>
-                      <td data-label="الخصم" className={reportStyles.numeric}>
-                        {formatMoneyAr(totals.totalDiscount)}
-                      </td>
-                      <td data-label="نقدي" className={reportStyles.numeric}>
-                        {formatMoneyAr(totals.totalCash)}
-                      </td>
-                      <td data-label="المدفوع" className={reportStyles.numeric}>
-                        {formatMoneyAr(totals.totalPaid)}
-                      </td>
-                      <td data-label="الصافي" className={reportStyles.numeric}>
-                        {formatMoneyAr(totals.netAfterDiscount)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              ) : null}
-            </div>
-          </CardContent>
-        </Card>
+                    </tfoot>
+                  </table>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        </AccountingQueryBoundary>
       </div>
     </>
   );

@@ -1,17 +1,9 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { getErrorContext } from "@/lib/errorMessages";
 import type { ServiceRevenueInput } from "@shared/accounting/contracts";
-import { ArrowLeft, CircleAlert, Search, Stethoscope } from "lucide-react";
+import { ArrowLeft, Search, Stethoscope } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import reportStyles from "./AccountingOpReport.module.css";
@@ -21,6 +13,7 @@ import {
   toArabicDigits,
 } from "./accountingFormat";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingQueryBoundary } from "./AccountingPagePrimitives";
 
 type ServiceRevenueQuery = {
   data?: import("@shared/accounting/contracts").ServiceRevenueOutput;
@@ -71,6 +64,7 @@ export default function DoctorAccount() {
   });
   const [didSearch, setDidSearch] = useState(false);
   const [dateError, setDateError] = useState(false);
+  const [codeError, setCodeError] = useState(false);
   const [queryInput, setQueryInput] = useState<ServiceRevenueInput | null>(
     null,
   );
@@ -116,7 +110,11 @@ export default function DoctorAccount() {
 
   const runSearch = () => {
     const code = draft.doctorCode.trim();
-    if (!code) return;
+    if (!code) {
+      setCodeError(true);
+      return;
+    }
+    setCodeError(false);
     if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
       setDateError(true);
       return;
@@ -139,22 +137,26 @@ export default function DoctorAccount() {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
+      <div className="accounting-report space-y-4" dir="rtl">
+        <h1 className="print:hidden">حساب طبيب</h1>
         {detailDoctor ? (
           <Button variant="outline" type="button" onClick={onBack}>
-            <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+            <ArrowLeft className="me-2 h-4 w-4 rotate-180" />
             العودة للبحث
           </Button>
         ) : null}
 
         <Card className="border-border shadow-sm">
-          <CardHeader className="gap-1">
-            <CardTitle className="text-xl tracking-tight">حساب طبيب</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              أدخل كود الطبيب والفترة ثم اضغط بحث.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+          <CardContent
+            className="flex w-fit max-w-full flex-wrap items-end gap-2"
+            dir="rtl"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                runSearch();
+              }
+            }}
+          >
             <label
               htmlFor="doctor-code"
               className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
@@ -163,6 +165,8 @@ export default function DoctorAccount() {
               <Input
                 id="doctor-code"
                 value={draft.doctorCode}
+                aria-invalid={codeError}
+                aria-describedby={codeError ? "doctor-code-error" : undefined}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, doctorCode: e.target.value }))
                 }
@@ -176,6 +180,8 @@ export default function DoctorAccount() {
               <DateInput
                 id="doctor-from-date"
                 value={draft.fromDate}
+                aria-invalid={dateError}
+                aria-describedby={dateError ? "doctor-date-error" : undefined}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, fromDate: e.target.value }))
                 }
@@ -189,13 +195,28 @@ export default function DoctorAccount() {
               <DateInput
                 id="doctor-to-date"
                 value={draft.toDate}
+                aria-invalid={dateError}
+                aria-describedby={dateError ? "doctor-date-error" : undefined}
                 onChange={(e) =>
                   setDraft((p) => ({ ...p, toDate: e.target.value }))
                 }
               />
             </label>
+            {codeError && (
+              <p
+                id="doctor-code-error"
+                role="alert"
+                className="text-[13px] text-destructive md:col-span-2"
+              >
+                أدخل كود الطبيب قبل البحث.
+              </p>
+            )}
             {dateError && (
-              <p className="text-[11px] text-destructive md:col-span-2">
+              <p
+                id="doctor-date-error"
+                role="alert"
+                className="text-[13px] text-destructive md:col-span-2"
+              >
                 تاريخ البداية بعد تاريخ النهاية
               </p>
             )}
@@ -237,242 +258,244 @@ export default function DoctorAccount() {
           </div>
         ) : null}
 
-        {didSearch && revenueQuery.isLoading ? (
-          <Skeleton className="h-48 w-full" />
-        ) : null}
-
-        {didSearch && revenueQuery.isError ? (
-          <Card className="border-error/30 bg-error/5">
-            <CardContent className="flex items-start gap-3 py-4">
-              <CircleAlert
-                className="mt-0.5 h-5 w-5 shrink-0 text-error"
-                aria-hidden
-              />
-              <div>
-                <p className="font-semibold text-error">
-                  {getErrorContext(revenueQuery.error.message).title}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {getErrorContext(revenueQuery.error.message).hint}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {didSearch &&
-        !revenueQuery.isLoading &&
-        !revenueQuery.isError &&
-        data ? (
-          <>
-            {data.grandTotal.rowCount === 0 ? (
-              <div className="rounded-lg border p-6 text-center text-muted-foreground">
-                لا توجد بيانات للفلاتر المحددة.
-              </div>
-            ) : (
+        {didSearch ? (
+          <AccountingQueryBoundary query={revenueQuery} label="حساب الطبيب">
+            {didSearch &&
+            !revenueQuery.isLoading &&
+            !revenueQuery.isError &&
+            data ? (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      الإجمالي · كود الطبيب{" "}
-                      {toArabicDigits((queryInput?.doctorCodes ?? [])[0] ?? "")}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
-                      <div className="text-muted-foreground">أسطر</div>
-                      <div className="font-semibold tabular-nums">
-                        {formatCountAr(data.grandTotal.rowCount)}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
-                      <div className="text-muted-foreground">
-                        إجمالي قبل الخصم
-                      </div>
-                      <div className="font-semibold tabular-nums">
-                        {formatMoneyAr(data.grandTotal.totalGross)}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
-                      <div className="text-muted-foreground">خصم</div>
-                      <div className="font-semibold tabular-nums">
-                        {formatMoneyAr(data.grandTotal.totalDiscount)}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
-                      <div className="text-muted-foreground">مدفوع</div>
-                      <div className="font-semibold tabular-nums">
-                        {formatMoneyAr(data.grandTotal.totalPaid)}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {data.sections.map((section) => (
-                  <Card key={section.sectionCode}>
-                    <CardHeader>
-                      <CardTitle className="text-base">
-                        القسم {toArabicDigits(String(section.sectionCode))}
-                        {section.sectionName ? ` — ${section.sectionName}` : ""}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-3 sm:hidden">
-                        {section.services.map((s) => (
-                          <div
-                            key={s.serviceCode}
-                            className="rounded-2xl border border-border bg-background p-4 shadow-sm"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="shrink-0">
-                                <div className="text-[11px] text-muted-foreground">
-                                  الخدمة
-                                </div>
-                                <div className="mt-1 text-sm font-semibold text-foreground">
-                                  {s.serviceName || s.serviceCode}
-                                </div>
-                              </div>
-                              <span className="rounded-full bg-primary text-primary-foreground">
-                                {formatCountAr(s.rowCount)} سطر
-                              </span>
-                            </div>
-                            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                              <div className="rounded-xl bg-muted px-3 py-2">
-                                <div className="text-[10px] text-muted-foreground">
-                                  الإجمالي
-                                </div>
-                                <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                  {formatMoneyAr(s.totalGross)}
-                                </div>
-                              </div>
-                              <div className="rounded-xl bg-destructive/10 px-3 py-2">
-                                <div className="text-[10px] text-destructive">
-                                  الخصم
-                                </div>
-                                <div className="mt-1 font-semibold tabular-nums text-destructive">
-                                  {formatMoneyAr(s.totalDiscount)}
-                                </div>
-                              </div>
-                              <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
-                                <div className="text-[10px] text-success">
-                                  المدفوع
-                                </div>
-                                <div className="mt-1 font-semibold tabular-nums text-success">
-                                  {formatMoneyAr(s.totalPaid)}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
-                          <div className="text-xs font-semibold text-primary">
-                            إجمالي القسم
-                          </div>
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                            <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-muted-foreground">
-                                الأسطر
-                              </div>
-                              <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                {formatCountAr(section.subtotal.rowCount)}
-                              </div>
-                            </div>
-                            <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-muted-foreground">
-                                الإجمالي
-                              </div>
-                              <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                {formatMoneyAr(section.subtotal.totalGross)}
-                              </div>
-                            </div>
-                            <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-muted-foreground">
-                                الخصم
-                              </div>
-                              <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                {formatMoneyAr(section.subtotal.totalDiscount)}
-                              </div>
-                            </div>
-                            <div className="rounded-xl bg-background px-3 py-2">
-                              <div className="text-[10px] text-muted-foreground">
-                                المدفوع
-                              </div>
-                              <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                {formatMoneyAr(section.subtotal.totalPaid)}
-                              </div>
-                            </div>
+                {data.grandTotal.rowCount === 0 ? (
+                  <div className="rounded-lg border p-6 text-center text-muted-foreground">
+                    لا توجد بيانات للفلاتر المحددة.
+                  </div>
+                ) : (
+                  <>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          الإجمالي · كود الطبيب{" "}
+                          {toArabicDigits(
+                            (queryInput?.doctorCodes ?? [])[0] ?? "",
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="accounting-receipt-context grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
+                          <div className="text-muted-foreground">أسطر</div>
+                          <div className="font-semibold tabular-nums">
+                            {formatCountAr(data.grandTotal.rowCount)}
                           </div>
                         </div>
-                      </div>
-                      <div className="hidden overflow-x-auto sm:block">
-                        <table className={reportStyles.gridTable}>
-                          <thead>
-                            <tr>
-                              <th>الخدمة</th>
-                              <th className={reportStyles.numeric}>الأسطر</th>
-                              <th className={reportStyles.numeric}>الإجمالي</th>
-                              <th className={reportStyles.numeric}>الخصم</th>
-                              <th className={reportStyles.numeric}>المدفوع</th>
-                            </tr>
-                          </thead>
-                          <tbody>
+                        <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
+                          <div className="text-muted-foreground">
+                            إجمالي قبل الخصم
+                          </div>
+                          <div className="font-semibold tabular-nums">
+                            {formatMoneyAr(data.grandTotal.totalGross)}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
+                          <div className="text-muted-foreground">خصم</div>
+                          <div className="font-semibold tabular-nums">
+                            {formatMoneyAr(data.grandTotal.totalDiscount)}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-border bg-background p-3 text-sm shadow-sm">
+                          <div className="text-muted-foreground">مدفوع</div>
+                          <div className="font-semibold tabular-nums">
+                            {formatMoneyAr(data.grandTotal.totalPaid)}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {data.sections.map((section) => (
+                      <Card key={section.sectionCode}>
+                        <CardHeader>
+                          <CardTitle className="text-base">
+                            القسم {toArabicDigits(String(section.sectionCode))}
+                            {section.sectionName
+                              ? `: ${section.sectionName}`
+                              : ""}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid gap-3 sm:hidden">
                             {section.services.map((s) => (
-                              <tr key={s.serviceCode}>
-                                <td data-label="الخدمة">
-                                  {s.serviceName || s.serviceCode}
-                                </td>
-                                <td
-                                  data-label="الأسطر"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatCountAr(s.rowCount)}
-                                </td>
-                                <td
-                                  data-label="الإجمالي"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatMoneyAr(s.totalGross)}
-                                </td>
-                                <td
-                                  data-label="الخصم"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatMoneyAr(s.totalDiscount)}
-                                </td>
-                                <td
-                                  data-label="المدفوع"
-                                  className={reportStyles.numeric}
-                                >
-                                  {formatMoneyAr(s.totalPaid)}
-                                </td>
-                              </tr>
+                              <div
+                                key={s.serviceCode}
+                                className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="shrink-0">
+                                    <div className="text-[13px] text-muted-foreground">
+                                      الخدمة
+                                    </div>
+                                    <div className="mt-1 text-sm font-semibold text-foreground">
+                                      {s.serviceName || s.serviceCode}
+                                    </div>
+                                  </div>
+                                  <span className="rounded-full bg-primary text-primary-foreground">
+                                    {formatCountAr(s.rowCount)} سطر
+                                  </span>
+                                </div>
+                                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                                  <div className="rounded-xl bg-muted px-3 py-2">
+                                    <div className="text-[13px] text-muted-foreground">
+                                      الإجمالي
+                                    </div>
+                                    <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                      {formatMoneyAr(s.totalGross)}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                                    <div className="text-[13px] text-destructive">
+                                      الخصم
+                                    </div>
+                                    <div className="mt-1 font-semibold tabular-nums text-destructive">
+                                      {formatMoneyAr(s.totalDiscount)}
+                                    </div>
+                                  </div>
+                                  <div className="col-span-2 rounded-xl bg-success/10 px-3 py-2">
+                                    <div className="text-[13px] text-success">
+                                      المدفوع
+                                    </div>
+                                    <div className="mt-1 font-semibold tabular-nums text-success">
+                                      {formatMoneyAr(s.totalPaid)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                          <tfoot>
-                            <tr className={reportStyles.grandTotalRow}>
-                              <td className="font-bold">إجمالي القسم</td>
-                              <td className={reportStyles.numeric}>
-                                {formatCountAr(section.subtotal.rowCount)}
-                              </td>
-                              <td className={reportStyles.numeric}>
-                                {formatMoneyAr(section.subtotal.totalGross)}
-                              </td>
-                              <td className={reportStyles.numeric}>
-                                {formatMoneyAr(section.subtotal.totalDiscount)}
-                              </td>
-                              <td className={reportStyles.numeric}>
-                                {formatMoneyAr(section.subtotal.totalPaid)}
-                              </td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                              <div className="text-xs font-semibold text-primary">
+                                إجمالي القسم
+                              </div>
+                              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                <div className="rounded-xl bg-background px-3 py-2">
+                                  <div className="text-[13px] text-muted-foreground">
+                                    الأسطر
+                                  </div>
+                                  <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                    {formatCountAr(section.subtotal.rowCount)}
+                                  </div>
+                                </div>
+                                <div className="rounded-xl bg-background px-3 py-2">
+                                  <div className="text-[13px] text-muted-foreground">
+                                    الإجمالي
+                                  </div>
+                                  <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                    {formatMoneyAr(section.subtotal.totalGross)}
+                                  </div>
+                                </div>
+                                <div className="rounded-xl bg-background px-3 py-2">
+                                  <div className="text-[13px] text-muted-foreground">
+                                    الخصم
+                                  </div>
+                                  <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                    {formatMoneyAr(
+                                      section.subtotal.totalDiscount,
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="rounded-xl bg-background px-3 py-2">
+                                  <div className="text-[13px] text-muted-foreground">
+                                    المدفوع
+                                  </div>
+                                  <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                    {formatMoneyAr(section.subtotal.totalPaid)}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className="hidden overflow-x-auto sm:block"
+                            role="region"
+                            aria-label="خدمات الطبيب"
+                            tabIndex={0}
+                          >
+                            <table className={reportStyles.gridTable}>
+                              <thead>
+                                <tr>
+                                  <th>الخدمة</th>
+                                  <th className={reportStyles.numeric}>
+                                    الأسطر
+                                  </th>
+                                  <th className={reportStyles.numeric}>
+                                    الإجمالي
+                                  </th>
+                                  <th className={reportStyles.numeric}>
+                                    الخصم
+                                  </th>
+                                  <th className={reportStyles.numeric}>
+                                    المدفوع
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {section.services.map((s) => (
+                                  <tr key={s.serviceCode}>
+                                    <td data-label="الخدمة">
+                                      {s.serviceName || s.serviceCode}
+                                    </td>
+                                    <td
+                                      data-label="الأسطر"
+                                      className={reportStyles.numeric}
+                                    >
+                                      {formatCountAr(s.rowCount)}
+                                    </td>
+                                    <td
+                                      data-label="الإجمالي"
+                                      className={reportStyles.numeric}
+                                    >
+                                      {formatMoneyAr(s.totalGross)}
+                                    </td>
+                                    <td
+                                      data-label="الخصم"
+                                      className={reportStyles.numeric}
+                                    >
+                                      {formatMoneyAr(s.totalDiscount)}
+                                    </td>
+                                    <td
+                                      data-label="المدفوع"
+                                      className={reportStyles.numeric}
+                                    >
+                                      {formatMoneyAr(s.totalPaid)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className={reportStyles.grandTotalRow}>
+                                  <td className="font-bold">إجمالي القسم</td>
+                                  <td className={reportStyles.numeric}>
+                                    {formatCountAr(section.subtotal.rowCount)}
+                                  </td>
+                                  <td className={reportStyles.numeric}>
+                                    {formatMoneyAr(section.subtotal.totalGross)}
+                                  </td>
+                                  <td className={reportStyles.numeric}>
+                                    {formatMoneyAr(
+                                      section.subtotal.totalDiscount,
+                                    )}
+                                  </td>
+                                  <td className={reportStyles.numeric}>
+                                    {formatMoneyAr(section.subtotal.totalPaid)}
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
               </>
-            )}
-          </>
+            ) : null}
+          </AccountingQueryBoundary>
         ) : null}
       </div>
     </>

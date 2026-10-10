@@ -1,0 +1,694 @@
+[data-operational-module="accounting"]
+  :is(
+    button,
+    a,
+    input,
+    select,
+    textarea,
+    [role="button"],
+    [role="combobox"],
+    [tabindex]
+  ):focus-visible,
+.accounting-editor
+  :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--foreground) !important;
+  outline-offset: 3px !important;
+}
+
+[data-operational-module="accounting"] button {
+  min-height: 44px;
+}
+
+[data-operational-module="accounting"] button[aria-label] {
+  min-width: 44px;
+}
+
+.accounting-home-workspace
+  :is(input[type="number"], input[inputmode="numeric"], output[dir="ltr"]) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.accounting-home-workspace .accounting-revenue-totals {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  width: min(100%, 480px);
+  justify-self: center;
+}
+.accounting-home-workspace .accounting-revenue-totals output {
+  height: auto;
+  min-height: 0;
+  border: 0;
+  padding: 4px;
+  font-size: 20px;
+  background: transparent;
+  color: var(--primary);
+  text-align: center;
+}
+
+@media screen and (min-width: 768px) {
+  .accounting-home-workspace
+    .accounting-ledger
+    form
+    fieldset
+    > .accounting-ledger-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(0, 1fr);
+    align-items: center;
+  }
+  .accounting-home-workspace .accounting-ledger .accounting-receipt-number {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 140px;
+  }
+  .accounting-home-workspace
+    .accounting-ledger
+    .accounting-current-balance
+    output {
+    font-size: 24px;
+    text-align: center;
+    color: var(--primary);
+  }
+  .accounting-home-workspace
+    .accounting-ledger
+    form
+    fieldset
+    > .accounting-ledger-total {
+    grid-template-columns: auto auto;
+    justify-self: center;
+    justify-content: center;
+    width: min(100%, 240px);
+    text-align: center;
+  }
+  .accounting-home-workspace
+    .accounting-ledger
+    form
+    fieldset
+    > .accounting-ledger-total
+    output {
+    text-align: center;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .accounting-home-workspace > section,
+  .accounting-home-workspace > div > section {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--background);
+  }
+
+  .accounting-home-workspace .accounting-entry-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(100%, 420px);
+    margin-bottom: 0;
+    border-radius: 8px;
+    background: var(--muted);
+  }
+
+  .accounting-home-entry-toolbar {
+    margin-bottom: 16px;
+  }
+
+  .accounting-home-workspace
+    .accounting-ledger
+    .accounting-ledger-header
+    output {
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .accounting-home-workspace
+    .accounting-ledger
+    .accounting-ledger-header
+    > button {
+    margin-inline-start: auto;
+  }
+
+  .accounting-home-workspace .accounting-ledger > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .accounting-home-workspace .accounting-ledger form {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: min(100%, 900px);
+    margin-inline: auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .accounting-home-workspace .accounting-ledger aside {
+    gap: 12px;
+    justify-items: start;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .accounting-home-workspace .accounting-ledger aside > .grid,
+  .accounting-home-workspace .accounting-ledger aside nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .accounting-home-workspace .accounting-ledger aside :is(button, a) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    font-size: 14px;
+    color: var(--primary);
+  }
+
+  .accounting-home-workspace .accounting-ledger aside > button {
+    justify-self: start;
+  }
+
+  .accounting-home-workspace .accounting-ledger fieldset {
+    gap: 16px;
+  }
+
+  .accounting-home-workspace
+    .accounting-ledger
+    fieldset
+    > div:first-child
+    > span {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .accounting-home-workspace
+    .accounting-ledger
+    fieldset
+    > div:first-child
+    > output {
+    border: 0;
+    background: transparent;
+    font-size: 24px;
+    text-align: start;
+    color: var(--primary);
+  }
+
+  .accounting-home-workspace .accounting-ledger output[aria-label="رقم القيد"] {
+    font-size: 14px !important;
+    text-align: end !important;
+    color: var(--muted-foreground) !important;
+  }
+
+  .accounting-home-workspace
+    .accounting-ledger
+    fieldset
+    > .justify-self-center {
+    grid-template-columns: auto minmax(160px, 240px);
+    justify-self: stretch;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+
+  .accounting-home-workspace
+    .accounting-ledger
+    fieldset
+    > .justify-self-center
+    output {
+    border: 0;
+    font-size: 20px;
+    text-align: start;
+  }
+
+  .accounting-home-workspace [role="tabpanel"] {
+    padding-inline: 0;
+  }
+
+  .accounting-home-workspace .py-16 {
+    padding-block: 24px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  [data-operational-module="accounting"] :is(input, textarea),
+  [data-operational-module="accounting"] select:not(nav select),
+  .accounting-editor :is(input, select, textarea) {
+    border-color: color-mix(
+      in srgb,
+      var(--foreground) 65%,
+      var(--background)
+    ) !important;
+  }
+
+  .accounting-register .accounting-entry,
+  .accounting-register .accounting-history,
+  .accounting-register .accounting-filters {
+    width: 100%;
+    border-radius: 0.875rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--bento-shadow-soft);
+    background: var(--card);
+  }
+
+  .accounting-register .accounting-entry {
+    padding: 16px 0;
+  }
+
+  .accounting-entry .flex.w-fit {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .accounting-entry input,
+  .accounting-entry select {
+    min-width: 0;
+    max-width: 100%;
+    border-color: var(--input);
+    color: var(--foreground);
+    font-size: 16px;
+  }
+
+  .accounting-entry label {
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .accounting-register button,
+  .accounting-register-tools button,
+  .accounting-register-tools select {
+    min-height: 44px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .accounting-register-tools select {
+    border-color: var(--input);
+  }
+
+  .accounting-history table {
+    min-width: 900px;
+  }
+
+  .accounting-history th,
+  .accounting-history td {
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    vertical-align: middle;
+  }
+
+  .accounting-history .truncate,
+  .accounting-entry .truncate {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+  }
+
+  .accounting-loans .accounting-history table {
+    min-width: 1200px;
+  }
+
+  .accounting-transfer .accounting-history th:first-child {
+    width: 12%;
+  }
+
+  .accounting-transfer .accounting-history th:nth-child(2) {
+    width: 40%;
+  }
+
+  .accounting-transfer .accounting-history th:nth-child(n + 3) {
+    width: 12%;
+  }
+
+  .accounting-saadany .accounting-history th:nth-child(n + 3) {
+    width: 16%;
+  }
+
+  .accounting-loans .accounting-history th:nth-child(1) {
+    width: 130px;
+  }
+
+  .accounting-loans .accounting-history th:nth-child(2) {
+    width: 240px;
+  }
+
+  .accounting-loans .accounting-history th:nth-child(n + 3):nth-child(-n + 6) {
+    width: 110px;
+  }
+
+  .accounting-loans .accounting-history th:nth-child(7) {
+    width: 280px;
+  }
+
+  .accounting-loans .accounting-history th:nth-child(8) {
+    width: 28px;
+  }
+
+  .accounting-loans .accounting-history th:nth-child(9) {
+    width: 82px;
+  }
+
+  .accounting-entry table th,
+  .accounting-entry table td {
+    font-size: 14px;
+  }
+
+  .accounting-editor {
+    --radius: 6px;
+  }
+
+  .accounting-editor label {
+    font-size: 14px;
+  }
+
+  .accounting-editor input,
+  .accounting-editor select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .accounting-history td button {
+    min-width: 44px;
+  }
+
+  .accounting-history tr[role="button"]:hover {
+    background: var(--muted);
+  }
+
+  .accounting-history tr[role="button"]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .accounting-register .text-warning {
+    color: var(--foreground);
+  }
+
+  .accounting-expenses section {
+    border-radius: 0;
+    box-shadow: none;
+    border-inline: 0;
+    background: transparent;
+  }
+
+  .accounting-expenses button {
+    min-height: 44px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .accounting-expenses table th,
+  .accounting-expenses table td {
+    font-size: 14px;
+  }
+
+  .accounting-expenses table td:nth-child(2) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .accounting-ledger form {
+    padding: 0 24px;
+    border-inline: 1px solid var(--border);
+  }
+
+  .accounting-ledger form > div:first-child > span {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .accounting-ledger form label,
+  .accounting-ledger form output,
+  .accounting-ledger form input {
+    min-width: 0;
+  }
+
+  .accounting-ledger form label > span:first-child,
+  .accounting-ledger form div > span:first-child {
+    height: auto;
+    min-width: 64px;
+    padding-inline: 8px;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .accounting-ledger form input,
+  .accounting-ledger form select,
+  .accounting-ledger form output {
+    min-height: 44px;
+    height: auto;
+    border-width: 1px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 8px 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .accounting-ledger form input {
+    background: var(--card);
+    color: var(--foreground);
+  }
+
+  .accounting-entry-workspace form {
+    gap: 20px;
+  }
+  .accounting-entry-workspace form select {
+    min-width: 0;
+    background: var(--card);
+    color: var(--foreground);
+  }
+  .accounting-entry-workspace form > div > div.rounded-lg {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .accounting-entry-workspace form output {
+    background: var(--card);
+    color: var(--foreground);
+    border-color: var(--input);
+  }
+  .accounting-entry-workspace form input:focus-visible,
+  .accounting-entry-workspace form select:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .accounting-ledger form button {
+    min-height: 44px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .accounting-report {
+    min-width: 0;
+  }
+  .accounting-report [data-slot="card"] {
+    border-inline: 0 !important;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none;
+  }
+  .accounting-report [data-slot="card-content"] {
+    min-width: 0;
+  }
+  .accounting-report [class*="reportMeta"],
+  .accounting-report [class*="reportBlock"],
+  .accounting-report [class*="reportWrap"] {
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: 100%;
+  }
+  .accounting-report [class*="reportBlock"],
+  .accounting-report [class*="reportWrap"] {
+    overflow-x: auto;
+  }
+  .accounting-report table {
+    font-size: 14px;
+  }
+  .accounting-report table th,
+  .accounting-report table td {
+    padding: 12px;
+  }
+  .accounting-report table td:not([class*="numeric"]) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    min-width: 140px;
+  }
+  .accounting-report input:not([type="checkbox"]),
+  .accounting-report button {
+    min-height: 44px;
+  }
+  .accounting-report input:not([type="checkbox"]) {
+    font-size: 16px;
+  }
+  .accounting-report label {
+    font-size: 14px;
+  }
+  .accounting-cost-metric {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 180px;
+    border-inline-start: 2px solid var(--border);
+  }
+  .accounting-cost-metric > svg {
+    display: none;
+  }
+  .accounting-cost-metric > span:first-of-type {
+    font-size: 14px;
+  }
+  .accounting-cost-metric > span:last-of-type {
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .accounting-receipt-context > div {
+    padding: 12px 0;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow-wrap: anywhere;
+  }
+  .accounting-receipt-context > div > p:first-child {
+    font-size: 14px;
+  }
+}
+@media screen and (max-width: 767px) {
+  [data-operational-module="accounting"] .accounting-entry-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px;
+  }
+  .accounting-entry-tabs > button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px;
+  }
+  .accounting-mobile-entry > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px;
+  }
+  .accounting-mobile-entry form {
+    order: -1;
+    min-width: 0;
+  }
+  .accounting-mobile-entry fieldset {
+    gap: 14px;
+  }
+  .accounting-mobile-entry fieldset > label,
+  .accounting-mobile-entry fieldset > div:not(.flex),
+  .accounting-mobile-entry .accounting-entry-pair > label,
+  .accounting-mobile-entry .accounting-entry-pair > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    width: 100%;
+    justify-self: stretch;
+  }
+  .accounting-mobile-entry fieldset span.border-2,
+  .accounting-mobile-entry fieldset span.font-black {
+    min-height: 0;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 600;
+    text-align: start;
+  }
+  .accounting-mobile-entry input,
+  .accounting-mobile-entry select,
+  .accounting-mobile-entry output {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 9px 10px;
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .accounting-mobile-entry output {
+    height: auto;
+    overflow-wrap: anywhere;
+    font-weight: 700;
+  }
+  .accounting-mobile-entry fieldset > .accounting-entry-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px;
+  }
+  .accounting-mobile-entry aside,
+  .accounting-mobile-entry aside > .grid,
+  .accounting-mobile-entry aside > nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+    margin-top: 0;
+  }
+  .accounting-mobile-entry aside > .grid,
+  .accounting-mobile-entry aside > nav {
+    grid-column: 1 / -1;
+  }
+  .accounting-mobile-entry aside button,
+  .accounting-mobile-entry aside a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .accounting-mobile-entry fieldset > .flex {
+    gap: 8px;
+  }
+  .accounting-mobile-entry fieldset > .flex button {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .accounting-mobile-entry .accounting-service-line {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 44px !important;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .accounting-service-line > select {
+    grid-column: 1 / 4;
+    grid-row: 1;
+  }
+  .accounting-service-line > button {
+    grid-column: 4;
+    grid-row: 1;
+    width: 44px;
+    height: 44px;
+  }
+  .accounting-service-line .accounting-service-number {
+    display: grid;
+    grid-row: 2;
+    gap: 4px;
+    min-width: 0;
+  }
+  .accounting-service-number > span {
+    display: block;
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+}

@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
-import type { ComponentType, ReactNode } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Banknote,
@@ -18,6 +18,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { formatCountAr, formatMoneyAr } from "./accountingFormat";
+import { Button } from "@/components/ui/button";
 
 const reports = [
   {
@@ -36,7 +37,7 @@ const reports = [
     label: "استعلام الإيصالات",
     href: "/accounting/receipts",
     icon: ReceiptText,
-    desc: "البحث عن رؤوس الإيصالات",
+    desc: "البحث في الإيصالات وعرض تفاصيلها",
   },
   {
     label: "الخدمات",
@@ -89,12 +90,12 @@ function ProtoBadge({
   const classes = {
     blue: "bg-primary text-primary-foreground border-ring/30",
     emerald: "bg-success/10 text-success border-success/30",
-    amber: "bg-warning/10 text-warning border-warning/50",
+    amber: "bg-warning/10 text-warning-text border-warning/50",
   }[tone];
   return (
     <span
       className={cn(
-        "rounded-full border px-3 py-1 text-[11px] font-semibold",
+        "rounded-full border px-3 py-1 text-[13px] font-semibold",
         classes,
       )}
     >
@@ -121,7 +122,7 @@ function SideRail({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="text-xs font-semibold uppercase text-muted-foreground">
             {title}
           </div>
           <div className="mt-1 text-sm font-semibold text-foreground">
@@ -178,7 +179,7 @@ function MetricsRow({
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <div className="rounded-2xl border border-primary/20 bg-primary/80 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary/80">
+        <div className="text-[13px] font-medium uppercase text-primary/80">
           إيراد اليوم
         </div>
         <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
@@ -187,7 +188,7 @@ function MetricsRow({
         <div className="mt-1 text-xs text-muted-foreground">مؤشر سريع</div>
       </div>
       <div className="rounded-2xl border border-success/20 bg-success/10 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-success/80">
+        <div className="text-[13px] font-medium uppercase text-success/80">
           إيصالات اليوم
         </div>
         <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
@@ -195,8 +196,8 @@ function MetricsRow({
         </div>
         <div className="mt-1 text-xs text-muted-foreground">نشاط اليوم</div>
       </div>
-      <div className="rounded-2xl border border-warning/15 bg-warning/10/80 p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-warning/80">
+      <div className="rounded-2xl border border-warning/15 bg-warning/10 p-4">
+        <div className="text-[13px] font-medium uppercase text-warning-text/80">
           إجمالي الإيراد
         </div>
         <div className="mt-2 text-2xl font-bold tabular-nums text-foreground">
@@ -205,7 +206,7 @@ function MetricsRow({
         <div className="mt-1 text-xs text-muted-foreground">من الخزنة</div>
       </div>
       <div className="rounded-2xl border border-border bg-background p-4 shadow-sm">
-        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <div className="text-[13px] font-medium uppercase text-muted-foreground">
           رصيد الخزنة
         </div>
         <div
@@ -254,20 +255,20 @@ function ActivityTable({
           {formatCountAr(rows.length)} حركة
         </span>
       </div>
-      <div className="overflow-x-auto">
+      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted text-[11px] font-semibold text-muted-foreground">
-              <th scope="col" className="w-20 px-4 py-3 text-right">
+            <tr className="border-b border-border bg-muted text-[13px] font-semibold text-muted-foreground">
+              <th scope="col" className="w-20 px-4 py-3 text-start">
                 الوقت
               </th>
-              <th scope="col" className="w-24 px-4 py-3 text-right">
+              <th scope="col" className="w-24 px-4 py-3 text-start">
                 الإيصال
               </th>
-              <th scope="col" className="px-4 py-3 text-right">
+              <th scope="col" className="px-4 py-3 text-start">
                 المريض
               </th>
-              <th scope="col" className="w-20 px-4 py-3 text-right">
+              <th scope="col" className="w-20 px-4 py-3 text-start">
                 الكود
               </th>
               <th scope="col" className="w-28 px-4 py-3 text-left" dir="ltr">
@@ -296,13 +297,13 @@ function ActivityTable({
                     {r.trNo}
                   </td>
                   <td className="px-4 py-2.5 truncate text-foreground">
-                    {r.patientName || "—"}
+                    {r.patientName || "غير متاح"}
                   </td>
                   <td
                     className="px-4 py-2.5 tabular-nums text-muted-foreground"
                     dir="ltr"
                   >
-                    {r.patientCode || "—"}
+                    {r.patientCode || "غير متاح"}
                   </td>
                   <td
                     className={cn(
@@ -316,11 +317,14 @@ function ActivityTable({
                   <td
                     className={cn(
                       "px-4 py-2.5 tabular-nums font-medium",
-                      remaining <= 0 ? "text-success" : "text-warning",
+                      remaining <= 0 ? "text-success" : "text-warning-text",
                     )}
                     dir="ltr"
                   >
                     {formatMoneyAr(r.paidValue)}
+                    <span className="mr-2 text-xs text-foreground" dir="rtl">
+                      {remaining <= 0 ? "مدفوع" : "متبقٍ"}
+                    </span>
                   </td>
                 </tr>
               );
@@ -341,6 +345,8 @@ function PrototypePanel({
   cashbook,
   rows,
   variant,
+  selected,
+  onSelect,
 }: {
   title: string;
   subtitle: string;
@@ -369,15 +375,22 @@ function PrototypePanel({
     trTy: number;
   }>;
   variant: "command" | "workspace" | "mixed";
+  selected: boolean;
+  onSelect: () => void;
 }) {
   const toneClasses = {
     blue: "border-primary/20 bg-primary text-primary-foreground",
     emerald: "border-success/20 bg-success/10 text-success",
-    amber: "border-warning/15 bg-warning/10/70 text-warning",
+    amber: "border-warning/15 bg-warning/10 text-warning-text",
   }[tone];
 
   return (
-    <section className="rounded-[32px] border border-border bg-background/90 p-4 shadow-sm">
+    <section
+      className={cn(
+        "rounded-[32px] border bg-background/90 p-4 shadow-sm",
+        selected ? "border-primary ring-2 ring-primary/20" : "border-border",
+      )}
+    >
       <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -407,12 +420,22 @@ function PrototypePanel({
             </div>
           </div>
         </div>
-        <Link
-          href="/accounting"
-          className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted"
-        >
-          فتح الصفحة
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="bare"
+            type="button"
+            aria-pressed={selected}
+            onClick={onSelect}
+            className="min-h-11 rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+          >
+            {selected ? "الاتجاه المختار" : "اختيار هذا الاتجاه"}
+          </Button>
+          <Link
+            href="/accounting"
+            className="inline-flex min-h-11 items-center rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted"
+          >
+            فتح الصفحة
+          </Link>
+        </div>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -434,7 +457,7 @@ function PrototypePanel({
             {variant === "workspace" ? (
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-muted-foreground">
+                  <div className="text-[13px] font-medium text-muted-foreground">
                     إيراد الشهر
                   </div>
                   <div className="mt-2 text-xl font-bold tabular-nums text-foreground">
@@ -442,7 +465,7 @@ function PrototypePanel({
                   </div>
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-muted-foreground">
+                  <div className="text-[13px] font-medium text-muted-foreground">
                     إيصالات الشهر
                   </div>
                   <div className="mt-2 text-xl font-bold tabular-nums text-foreground">
@@ -450,7 +473,7 @@ function PrototypePanel({
                   </div>
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                  <div className="text-[11px] font-medium text-muted-foreground">
+                  <div className="text-[13px] font-medium text-muted-foreground">
                     المصروف
                   </div>
                   <div className="mt-2 text-xl font-bold tabular-nums text-foreground">
@@ -459,7 +482,7 @@ function PrototypePanel({
                 </div>
               </div>
             ) : null}
-            <ActivityTable rows={rows} />
+            {variant === "workspace" ? <ActivityTable rows={rows} /> : null}
           </div>
 
           <div
@@ -469,12 +492,12 @@ function PrototypePanel({
               <>
                 <SideRail title="التقارير" subtitle="مسارات سريعة" compact />
                 <div className="rounded-[28px] border border-border bg-muted/80 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground">
                     الملخص
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-background p-3 shadow-sm">
-                      <div className="text-[11px] text-muted-foreground">
+                      <div className="text-[13px] text-muted-foreground">
                         اليوم
                       </div>
                       <div className="mt-2 text-lg font-bold tabular-nums text-foreground">
@@ -482,7 +505,7 @@ function PrototypePanel({
                       </div>
                     </div>
                     <div className="rounded-2xl bg-background p-3 shadow-sm">
-                      <div className="text-[11px] text-muted-foreground">
+                      <div className="text-[13px] text-muted-foreground">
                         الرصيد
                       </div>
                       <div className="mt-2 text-lg font-bold tabular-nums text-foreground">
@@ -498,7 +521,7 @@ function PrototypePanel({
                   <div className="flex items-center gap-3">
                     <PanelRight className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      <div className="text-xs font-semibold uppercase text-muted-foreground">
                         الخلاصة
                       </div>
                       <div className="mt-1 text-sm font-semibold text-foreground">
@@ -508,7 +531,7 @@ function PrototypePanel({
                   </div>
                   <div className="mt-4 grid gap-3">
                     <div className="rounded-2xl border border-border bg-muted/70 p-3">
-                      <div className="text-[11px] text-muted-foreground">
+                      <div className="text-[13px] text-muted-foreground">
                         الخزنة
                       </div>
                       <div className="mt-1 text-lg font-bold tabular-nums text-foreground">
@@ -516,7 +539,7 @@ function PrototypePanel({
                       </div>
                     </div>
                     <div className="rounded-2xl border border-border bg-muted/70 p-3">
-                      <div className="text-[11px] text-muted-foreground">
+                      <div className="text-[13px] text-muted-foreground">
                         إيراد اليوم
                       </div>
                       <div className="mt-1 text-lg font-bold tabular-nums text-foreground">
@@ -540,6 +563,9 @@ function PrototypePanel({
 }
 
 export default function AccountingPrototypes() {
+  const [selectedVariant, setSelectedVariant] = useState<
+    "command" | "workspace" | "mixed"
+  >("workspace");
   const summaryQuery = trpc.accounting.dashboardSummary.useQuery(
     { sectionCode: 15 },
     { refetchOnWindowFocus: true },
@@ -556,6 +582,19 @@ export default function AccountingPrototypes() {
   const summary = summaryQuery.data;
   const cashbook = cashbookQuery.data;
   const rows = activityQuery.data ?? [];
+  const dataLoading =
+    summaryQuery.isLoading ||
+    cashbookQuery.isLoading ||
+    activityQuery.isLoading;
+  const dataError =
+    summaryQuery.isError || cashbookQuery.isError || activityQuery.isError;
+  const retry = () => {
+    void Promise.all([
+      summaryQuery.refetch(),
+      cashbookQuery.refetch(),
+      activityQuery.refetch(),
+    ]);
+  };
 
   return (
     <>
@@ -567,12 +606,16 @@ export default function AccountingPrototypes() {
                 <span className="rounded-full bg-primary text-primary-foreground">
                   النسخ المقارنة
                 </span>
-                <span className="rounded-full bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">
-                  بيانات حية
+                <span className="rounded-full bg-success/10 px-3 py-1 text-[13px] font-semibold text-success">
+                  {dataLoading
+                    ? "جارٍ تحميل البيانات"
+                    : dataError
+                      ? "تعذر تحميل البيانات"
+                      : "بيانات محملة من النظام"}
                 </span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                <h1 className="text-2xl font-bold text-foreground">
                   تصميم الحسابات
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -599,38 +642,86 @@ export default function AccountingPrototypes() {
           </div>
         </section>
 
-        <div className="grid gap-5 xl:grid-cols-3">
-          <PrototypePanel
-            title="Command Center"
-            subtitle="أعلى كثافة بصرية، ملخصات أكثر في الأعلى، ومسار سريع للتقارير."
-            tone="blue"
-            icon={Table2}
-            summary={summary}
-            cashbook={cashbook}
-            rows={rows}
-            variant="command"
-          />
-          <PrototypePanel
-            title="Workspace First"
-            subtitle="الجدول هو البطل، والبطاقات أصغر حتى يبقى التركيز على الحركة نفسها."
-            tone="emerald"
-            icon={PanelRight}
-            summary={summary}
-            cashbook={cashbook}
-            rows={rows}
-            variant="workspace"
-          />
-          <PrototypePanel
-            title="Balanced Mixed"
-            subtitle="وسط بين الاثنين، واجهة واضحة من الأعلى مع عمل فعلي مضبوط تحتها."
-            tone="amber"
-            icon={LayoutGrid}
-            summary={summary}
-            cashbook={cashbook}
-            rows={rows}
-            variant="mixed"
-          />
-        </div>
+        {dataLoading ? (
+          <div
+            role="status"
+            className="border border-border px-4 py-8 text-center text-sm text-muted-foreground"
+          >
+            جارٍ تحميل بيانات المقارنة
+          </div>
+        ) : dataError ? (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 border border-destructive/40 px-4 py-4 text-sm"
+          >
+            <span>تعذر تحميل بيانات المقارنة.</span>
+            <Button variant="bare"
+              type="button"
+              className="min-h-11 rounded-md border border-border px-3 py-2 font-semibold"
+              onClick={retry}
+            >
+              إعادة المحاولة
+            </Button>
+          </div>
+        ) : (
+          <>
+            <p role="status" className="text-sm text-muted-foreground">
+              الاتجاه المختار:{" "}
+              {selectedVariant === "command"
+                ? "مركز الأوامر"
+                : selectedVariant === "workspace"
+                  ? "مساحة العمل"
+                  : "المزيج المتوازن"}
+            </p>
+            <div className="grid gap-5 xl:grid-cols-3">
+              <PrototypePanel
+                title="Command Center"
+                subtitle="أعلى كثافة بصرية، ملخصات أكثر في الأعلى، ومسار سريع للتقارير."
+                tone="blue"
+                icon={Table2}
+                summary={summary}
+                cashbook={cashbook}
+                rows={rows}
+                variant="command"
+                selected={selectedVariant === "command"}
+                onSelect={() => setSelectedVariant("command")}
+              />
+              <PrototypePanel
+                title="Workspace First"
+                subtitle="الجدول هو البطل، والبطاقات أصغر حتى يبقى التركيز على الحركة نفسها."
+                tone="emerald"
+                icon={PanelRight}
+                summary={summary}
+                cashbook={cashbook}
+                rows={rows}
+                variant="workspace"
+                selected={selectedVariant === "workspace"}
+                onSelect={() => setSelectedVariant("workspace")}
+              />
+              <PrototypePanel
+                title="Balanced Mixed"
+                subtitle="وسط بين الاثنين، واجهة واضحة من الأعلى مع عمل فعلي مضبوط تحتها."
+                tone="amber"
+                icon={LayoutGrid}
+                summary={summary}
+                cashbook={cashbook}
+                rows={rows}
+                variant="mixed"
+                selected={selectedVariant === "mixed"}
+                onSelect={() => setSelectedVariant("mixed")}
+              />
+            </div>
+            <section
+              aria-label="المعاينة الفعلية للحركات"
+              className="space-y-2"
+            >
+              <h2 className="text-base font-bold text-foreground">
+                معاينة موحدة للحركات
+              </h2>
+              <ActivityTable rows={rows} />
+            </section>
+          </>
+        )}
       </div>
     </>
   );

@@ -1,0 +1,127 @@
+@media screen {
+  html:not(.dark) .selrs-mobile-brand-canvas:has([data-operational-module="accounting"]) {
+    --background: #ffffff;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --muted: #f3f4f5;
+    --mobile-content-surface: #ffffff;
+    --mobile-brand-gradient: #ffffff;
+    background: #ffffff !important;
+  }
+
+  div[data-operational-module="accounting"][data-ledger] {
+    padding: 12px;
+    background: var(--card) !important;
+  }
+  div[data-operational-module="accounting"][data-ledger] > div {
+    max-width: 1600px;
+    gap: 16px;
+  }
+  div[data-operational-module="accounting"][data-ledger] #module-content {
+    padding: 16px;
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+  }
+  div[data-operational-module="accounting"][data-ledger] #module-content h1 {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    clip: auto !important;
+    clip-path: none !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  [data-operational-module="accounting"] .accounting-page-heading { margin-bottom: 20px; }
+  [data-operational-module="accounting"] .accounting-page-heading p {
+    margin-top: 8px;
+    max-width: 65ch;
+    color: var(--muted-foreground);
+    font-size: 14px;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content div[data-operational-module="accounting"] nav[aria-label="أقسام الوحدة"],
+  div[data-operational-module="accounting"][data-ledger] nav[aria-label="أقسام الوحدة"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--card) !important;
+    overflow: visible !important;
+  }
+  .selrs-mobile-brand-canvas .selrs-app-content div[data-operational-module="accounting"] nav[aria-label="أقسام الوحدة"] > :is(a, label),
+  div[data-operational-module="accounting"][data-ledger] nav[aria-label="أقسام الوحدة"] > :is(a, label) {
+    min-height: 44px;
+    height: auto !important;
+    padding: 10px 12px !important;
+    border-radius: 8px !important;
+    white-space: normal !important;
+    min-width: 0;
+  }
+  [data-operational-module="accounting"] nav[aria-label="أقسام الوحدة"] label select {
+    max-width: 100%;
+    min-width: 0;
+  }
+  [data-operational-module="accounting"] .accounting-panel {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+  }
+  .dark [data-operational-module="accounting"] #module-content table thead th {
+    background: var(--muted);
+    color: var(--foreground) !important;
+  }
+  [data-operational-module="accounting"] #module-content table thead th {
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-weight: 600;
+  }
+  [data-operational-module="accounting"] #module-content :is(td, output) {
+    font-variant-numeric: tabular-nums;
+  }
+  [data-operational-module="accounting"] .accounting-history .truncate {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  [data-operational-module="accounting"] .accounting-entry .text-warning {
+    color: var(--warning-text);
+  }
+  [data-operational-module="accounting"] .accounting-history .line-clamp-2 {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media screen and (max-width: 699px) {
+  .selrs-mobile-brand-canvas .selrs-app-content div[data-operational-module="accounting"] nav[aria-label="أقسام الوحدة"],
+  div[data-operational-module="accounting"][data-ledger] nav[aria-label="أقسام الوحدة"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-operational-module="accounting"] nav[aria-label="أقسام الوحدة"] > :is(a, label) {
+    width: 100%;
+    gap: 6px;
+  }
+  [data-operational-module="accounting"] nav[aria-label="أقسام الوحدة"] > label {
+    grid-column: 1 / -1;
+  }
+  [data-operational-module="accounting"] nav[aria-label="أقسام الوحدة"] > label select {
+    flex: 1;
+    max-width: none;
+  }
+}
+
+@media screen and (min-width: 700px) {
+  div[data-operational-module="accounting"][data-ledger] { padding: 20px; }
+  div[data-operational-module="accounting"][data-ledger] #module-content { padding: 24px; }
+}

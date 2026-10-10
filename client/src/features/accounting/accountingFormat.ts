@@ -8,7 +8,7 @@ export function toArabicDigits(v: unknown): string {
 /** Money: format with 2 decimals, using Arabic digits. */
 export function formatMoneyAr(value: number | string): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(num)) return "—";
+  if (isNaN(num)) return "غير متاح";
   return toArabicDigits(num.toFixed(2));
 }
 
@@ -21,12 +21,12 @@ export function formatCountAr(value: number | string): string {
 
 /** ISO / date string: convert digit run to Arabic-Indic. */
 export function formatDateAr(value: string | null | undefined): string {
-  if (value == null || value === "") return "—";
+  if (value == null || value === "") return "غير متاح";
   return toArabicDigits(String(value).slice(0, 10));
 }
 
 export function fmt(n: number | null | undefined): string {
-  if (n == null) return "—";
+  if (n == null) return "غير متاح";
   return n.toLocaleString("ar-EG", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,

@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
@@ -13,7 +7,7 @@ import type {
   ReceiptHeader,
   ReceiptsInquiryInput,
 } from "@shared/accounting/contracts";
-import { CircleAlert, RefreshCw, RotateCcw, Search } from "lucide-react";
+import { RefreshCw, RotateCcw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import {
@@ -24,6 +18,7 @@ import {
 } from "./accountingFormat";
 import reportStyles from "./AccountingOpReport.module.css";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingQueryBoundary } from "./AccountingPagePrimitives";
 
 type ReceiptsInquiryQuery = {
   data?: ReceiptHeader[];
@@ -47,6 +42,7 @@ type AccountingTrpc = typeof trpc & {
 
 const accountingTrpc = trpc as unknown as AccountingTrpc;
 const DEFAULT_SECTION_CODE = 15;
+const RECEIPT_PAGE_SIZE = 500;
 
 function toDateInputValue(date: Date) {
   const y = date.getFullYear();
@@ -95,7 +91,8 @@ function readFilters(search: string): ReceiptsInquiryInput {
     sectionCode,
     trNo: optionalText(p.get("trNo")),
     trTy: optionalNumber(p.get("trTy")),
-    limit: optionalNumber(p.get("limit")) ?? 500,
+    limit: optionalNumber(p.get("limit")) ?? RECEIPT_PAGE_SIZE + 1,
+    offset: optionalNumber(p.get("offset")) ?? 0,
   };
 }
 
@@ -112,8 +109,9 @@ function buildPatientsUrl(input: ReceiptsInquiryInput) {
     params.set("doctorCode", input.doctorCode.trim());
   if (input.trNo?.trim()) params.set("trNo", input.trNo.trim());
   if (input.trTy !== undefined) params.set("trTy", String(input.trTy));
-  if (input.limit != null && input.limit !== 500)
+  if (input.limit != null && input.limit !== RECEIPT_PAGE_SIZE + 1)
     params.set("limit", String(input.limit));
+  if (input.offset) params.set("offset", String(input.offset));
   const qs = params.toString();
   return qs ? `/accounting/patients?${qs}` : "/accounting/patients";
 }
@@ -159,7 +157,18 @@ export default function AccountingPatientsInquiry() {
     refetchOnWindowFocus: false,
   });
 
-  const rows = q.data ?? [];
+  const allRows = q.data ?? [];
+  const rows = allRows.slice(0, RECEIPT_PAGE_SIZE);
+  const hasNextPage = allRows.length > RECEIPT_PAGE_SIZE;
+  const currentPage = Math.floor((filters.offset ?? 0) / RECEIPT_PAGE_SIZE);
+
+  const movePage = (page: number) => {
+    const next = {
+      ...filters,
+      offset: Math.max(0, page * RECEIPT_PAGE_SIZE),
+    };
+    setLocation(buildPatientsUrl(next));
+  };
 
   const applyFilters = () => {
     if (draft.fromDate && draft.toDate && draft.fromDate > draft.toDate) {
@@ -167,7 +176,13 @@ export default function AccountingPatientsInquiry() {
       return;
     }
     setDateError("");
-    setLocation(buildPatientsUrl(draft));
+    setLocation(
+      buildPatientsUrl({
+        ...draft,
+        limit: RECEIPT_PAGE_SIZE + 1,
+        offset: 0,
+      }),
+    );
   };
 
   const resetFilters = () => {
@@ -175,7 +190,8 @@ export default function AccountingPatientsInquiry() {
     const next: ReceiptsInquiryInput = {
       ...d,
       sectionCode: DEFAULT_SECTION_CODE,
-      limit: 500,
+      limit: RECEIPT_PAGE_SIZE + 1,
+      offset: 0,
     };
     setDraft(next);
     setLocation(buildPatientsUrl(next));
@@ -187,18 +203,13 @@ export default function AccountingPatientsInquiry() {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5 md:space-y-6" dir="rtl">
+      <div className="accounting-report space-y-4" dir="rtl">
+        <h1 className="print:hidden">استعلام المرضى والإيصالات</h1>
         <Card className="border-border/80 shadow-sm">
-          <CardHeader className="gap-2">
-            <CardTitle className="text-xl tracking-tight">
-              استعلام المرضى والإيصالات
-            </CardTitle>
-            <CardDescription>
-              عرض إيصالات المرضى حسب الفترة والقسم والفلاتر. اضغط صفًا للانتقال
-              إلى تفاصيل الإيصال.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex w-fit max-w-full flex-wrap items-end gap-2" dir="rtl">
+          <CardContent
+            className="flex w-fit max-w-full flex-wrap items-end gap-2"
+            dir="rtl"
+          >
             <label className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground">
               <span>من تاريخ</span>
               <DateInput
@@ -218,7 +229,7 @@ export default function AccountingPatientsInquiry() {
               />
             </label>
             {dateError && (
-              <p className="text-[11px] text-destructive md:col-span-2">
+              <p className="text-[13px] text-destructive md:col-span-2">
                 {dateError}
               </p>
             )}
@@ -246,268 +257,339 @@ export default function AccountingPatientsInquiry() {
                 }
               />
             </label>
-            <Button type="button" size="icon" className="h-11 w-11" onClick={applyFilters} aria-label="تطبيق">
+            <label className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground">
+              <span>رقم الإيصال</span>
+              <Input
+                value={draft.trNo ?? ""}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, trNo: e.target.value || undefined }))
+                }
+              />
+            </label>
+            <label className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground">
+              <span>نوع الإيصال</span>
+              <Input
+                inputMode="numeric"
+                value={draft.trTy == null ? "" : String(draft.trTy)}
+                onChange={(e) =>
+                  setDraft((p) => ({
+                    ...p,
+                    trTy: e.target.value.trim()
+                      ? Number(e.target.value)
+                      : undefined,
+                  }))
+                }
+              />
+            </label>
+            <Button
+              type="button"
+              size="icon"
+              className="h-11 w-11"
+              onClick={applyFilters}
+              aria-label="تطبيق"
+            >
               <Search className="h-4 w-4" aria-hidden />
             </Button>
-            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={resetFilters} aria-label="إعادة ضبط">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              onClick={resetFilters}
+              aria-label="إعادة ضبط"
+            >
               <RotateCcw className="h-4 w-4" aria-hidden />
             </Button>
-            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => void q.refetch()} disabled={q.isFetching} aria-label="تحديث">
-              <RefreshCw className={q.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              onClick={() => void q.refetch()}
+              disabled={q.isFetching}
+              aria-label="تحديث"
+            >
+              <RefreshCw
+                className={q.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+                aria-hidden
+              />
             </Button>
           </CardContent>
         </Card>
 
-        {q.isError ? (
-          <Card className="border-error/30 bg-error/5">
-            <CardContent className="flex items-start gap-3 py-5">
-              <div className="rounded-lg bg-error/10 p-2 text-error">
-                <CircleAlert className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">
-                  تعذر تحميل البيانات
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {q.error.message || "تأكد من الاتصال بقاعدة بيانات الحسابات."}
-                </p>
+        <AccountingQueryBoundary query={q} label="حسابات المرضى">
+          <Card className="border-border/80 shadow-sm">
+            <CardHeader>
+              {rows.length > 0 && (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  عرض {formatCountAr(rows.length)} نتيجة، الصفحة{" "}
+                  {toArabicDigits(String(currentPage + 1))}
+                </span>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className={reportStyles.reportShell}>
+                <div className={reportStyles.reportMeta} role="note">
+                  <span className="font-semibold">الفترة:</span> من{" "}
+                  {formatDateAr(filters.fromDate)} إلى{" "}
+                  {formatDateAr(filters.toDate)}
+                </div>
+
+                {q.isLoading ? <LoadingRows /> : null}
+                <div className="grid gap-3 sm:hidden">
+                  {!q.isLoading && rows.length === 0 ? (
+                    <div
+                      className={`${reportStyles.emptyState} text-muted-foreground`}
+                    >
+                      لا توجد بيانات
+                    </div>
+                  ) : null}
+                  {!q.isLoading && rows.length > 0 ? (
+                    <>
+                      {rows.map((row) => (
+                        <Button variant="bare"
+                          key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
+                          type="button"
+                          onClick={() => goReceipt(row)}
+                          className="border-b border-border p-4 text-start transition-colors hover:bg-primary/50 last:border-b-0"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="shrink-0">
+                              <div className="text-[13px] text-muted-foreground">
+                                {formatDateAr(row.transactionDate)}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                {row.patientName?.trim() || "غير متاح"}
+                              </div>
+                            </div>
+                            <span className="rounded-full bg-primary text-primary-foreground">
+                              {toArabicDigits(row.trNo)}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-xl bg-muted px-3 py-2">
+                              <div className="text-[13px] text-muted-foreground">
+                                كود المريض
+                              </div>
+                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                {toArabicDigits(row.patientCode)}
+                              </div>
+                            </div>
+                            <div className="rounded-xl bg-muted px-3 py-2">
+                              <div className="text-[13px] text-muted-foreground">
+                                الطبيب
+                              </div>
+                              <div className="mt-1 font-semibold text-foreground">
+                                غير متاح
+                              </div>
+                            </div>
+                            <div className="rounded-xl bg-muted px-3 py-2">
+                              <div className="text-[13px] text-muted-foreground">
+                                الإجمالي
+                              </div>
+                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                {formatMoney(row.total)}
+                              </div>
+                            </div>
+                            <div className="rounded-xl bg-destructive/10 px-3 py-2">
+                              <div className="text-[13px] text-destructive">
+                                الخصم
+                              </div>
+                              <div className="mt-1 font-semibold tabular-nums text-destructive">
+                                {formatMoney(row.discount)}
+                              </div>
+                            </div>
+                            <div className="rounded-xl bg-success/10 px-3 py-2">
+                              <div className="text-[13px] text-success">
+                                المدفوع
+                              </div>
+                              <div className="mt-1 font-semibold tabular-nums text-success">
+                                {formatMoney(row.paidValue)}
+                              </div>
+                            </div>
+                            <div className="rounded-xl bg-muted px-3 py-2">
+                              <div className="text-[13px] text-muted-foreground">
+                                المستخدم
+                              </div>
+                              <div className="mt-1 font-semibold text-foreground">
+                                {row.enteredBy?.trim() || "غير متاح"}
+                              </div>
+                            </div>
+                          </div>
+                        </Button>
+                      ))}
+                    </>
+                  ) : null}
+                </div>
+
+                <div className="hidden sm:block">
+                  {!q.isLoading && rows.length === 0 ? (
+                    <div
+                      className={`${reportStyles.emptyState} text-muted-foreground`}
+                    >
+                      لا توجد بيانات
+                    </div>
+                  ) : null}
+                  {!q.isLoading && rows.length > 0 ? (
+                    <div
+                      className={reportStyles.reportBlock}
+                      role="region"
+                      aria-label="إيصالات المرضى"
+                      tabIndex={0}
+                    >
+                      <div className={reportStyles.blockHeader}>
+                        قائمة الإيصالات
+                      </div>
+                      <table className={reportStyles.gridTable}>
+                        <colgroup>
+                          <col className={reportStyles.colCompact} />
+                          <col className={reportStyles.colCompact} />
+                          <col className={reportStyles.colCompact} />
+                          <col className={reportStyles.colStretch} />
+                          <col className={reportStyles.colStretch} />
+                          <col className={reportStyles.colCompact} />
+                          <col className={reportStyles.colCompact} />
+                          <col className={reportStyles.colCompact} />
+                          <col className={reportStyles.colStretch} />
+                        </colgroup>
+                        <thead>
+                          <tr>
+                            <th scope="col" className={reportStyles.numeric}>
+                              رقم الإيصال
+                            </th>
+                            <th scope="col" className={reportStyles.numeric}>
+                              التاريخ
+                            </th>
+                            <th scope="col" className={reportStyles.numeric}>
+                              كود المريض
+                            </th>
+                            <th scope="col">اسم المريض</th>
+                            <th scope="col">الطبيب</th>
+                            <th scope="col" className={reportStyles.numeric}>
+                              الإجمالي
+                            </th>
+                            <th scope="col" className={reportStyles.numeric}>
+                              الخصم
+                            </th>
+                            <th scope="col" className={reportStyles.numeric}>
+                              المدفوع
+                            </th>
+                            <th scope="col">المستخدم</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((row) => (
+                            <tr
+                              key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
+                              role="button"
+                              className={reportStyles.rowClickable}
+                              tabIndex={0}
+                              aria-label={`عرض إيصال ${row.trNo} للمريض ${row.patientName ?? row.patientCode}`}
+                              onClick={() => goReceipt(row)}
+                              onKeyDown={(ev) => {
+                                if (ev.key === "Enter" || ev.key === " ") {
+                                  ev.preventDefault();
+                                  goReceipt(row);
+                                }
+                              }}
+                            >
+                              <td
+                                data-label="رقم الإيصال"
+                                className={`${reportStyles.numeric} font-medium`}
+                              >
+                                {toArabicDigits(row.trNo)}
+                              </td>
+                              <td
+                                data-label="التاريخ"
+                                className={reportStyles.numeric}
+                              >
+                                {formatDateAr(row.transactionDate)}
+                              </td>
+                              <td
+                                data-label="كود المريض"
+                                className={reportStyles.numeric}
+                              >
+                                {toArabicDigits(row.patientCode)}
+                              </td>
+                              <td data-label="اسم المريض">
+                                {row.patientName?.trim() || "غير متاح"}
+                              </td>
+                              <td
+                                data-label="الطبيب"
+                                className="text-muted-foreground"
+                              >
+                                غير متاح
+                              </td>
+                              <td
+                                data-label="الإجمالي"
+                                className={reportStyles.numeric}
+                              >
+                                {formatMoney(row.total)}
+                              </td>
+                              <td
+                                data-label="الخصم"
+                                className={reportStyles.numeric}
+                              >
+                                {formatMoney(row.discount)}
+                              </td>
+                              <td
+                                data-label="المدفوع"
+                                className={reportStyles.numeric}
+                              >
+                                {formatMoney(row.paidValue)}
+                              </td>
+                              <td data-label="المستخدم">
+                                {row.enteredBy?.trim() || "غير متاح"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </div>
+                {hasNextPage && (
+                  <div className="mt-2 rounded bg-warning/10 px-3 py-1.5 text-[13px] text-warning-text">
+                    توجد نتائج إضافية. استخدم زر الصفحة التالية لمتابعة
+                    المراجعة.
+                  </div>
+                )}
+                {currentPage > 0 || hasNextPage ? (
+                  <nav
+                    aria-label="التنقل بين صفحات نتائج الإيصالات"
+                    className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3"
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      onClick={() => movePage(currentPage - 1)}
+                      disabled={currentPage === 0 || q.isFetching}
+                    >
+                      الصفحة السابقة
+                    </Button>
+                    <span
+                      className="text-xs text-muted-foreground"
+                      aria-live="polite"
+                    >
+                      الصفحة {toArabicDigits(String(currentPage + 1))}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      onClick={() => movePage(currentPage + 1)}
+                      disabled={!hasNextPage || q.isFetching}
+                    >
+                      الصفحة التالية
+                    </Button>
+                  </nav>
+                ) : null}
               </div>
             </CardContent>
           </Card>
-        ) : null}
-
-        <Card className="border-border/80 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base">الإيصالات</CardTitle>
-            {rows.length > 0 && (
-              <span className="text-xs text-muted-foreground tabular-nums">
-                عرض {formatCountAr(rows.length)} نتيجة
-              </span>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className={reportStyles.reportShell}>
-              <div className={reportStyles.reportMeta} role="note">
-                <span className="font-semibold">الفترة:</span> من{" "}
-                {formatDateAr(filters.fromDate)} إلى{" "}
-                {formatDateAr(filters.toDate)}
-              </div>
-
-              {q.isLoading ? <LoadingRows /> : null}
-              <div className="grid gap-3 sm:hidden">
-                {!q.isLoading && rows.length === 0 ? (
-                  <div
-                    className={`${reportStyles.emptyState} text-muted-foreground`}
-                  >
-                    لا توجد بيانات
-                  </div>
-                ) : null}
-                {!q.isLoading && rows.length > 0 ? (
-                  <>
-                    {rows.map((row) => (
-                      <button
-                        key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
-                        type="button"
-                        onClick={() => goReceipt(row)}
-                        className="rounded-2xl border border-border bg-background p-4 text-right shadow-sm transition-colors hover:bg-primary/50"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="shrink-0">
-                            <div className="text-[11px] text-muted-foreground">
-                              {formatDateAr(row.transactionDate)}
-                            </div>
-                            <div className="mt-1 text-sm font-semibold text-foreground">
-                              {row.patientName?.trim() || "—"}
-                            </div>
-                          </div>
-                          <span className="rounded-full bg-primary text-primary-foreground">
-                            {toArabicDigits(row.trNo)}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                          <div className="rounded-xl bg-muted px-3 py-2">
-                            <div className="text-[10px] text-muted-foreground">
-                              كود المريض
-                            </div>
-                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                              {toArabicDigits(row.patientCode)}
-                            </div>
-                          </div>
-                          <div className="rounded-xl bg-muted px-3 py-2">
-                            <div className="text-[10px] text-muted-foreground">
-                              الطبيب
-                            </div>
-                            <div className="mt-1 font-semibold text-foreground">
-                              —
-                            </div>
-                          </div>
-                          <div className="rounded-xl bg-muted px-3 py-2">
-                            <div className="text-[10px] text-muted-foreground">
-                              الإجمالي
-                            </div>
-                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                              {formatMoney(row.total)}
-                            </div>
-                          </div>
-                          <div className="rounded-xl bg-destructive/10 px-3 py-2">
-                            <div className="text-[10px] text-destructive">
-                              الخصم
-                            </div>
-                            <div className="mt-1 font-semibold tabular-nums text-destructive">
-                              {formatMoney(row.discount)}
-                            </div>
-                          </div>
-                          <div className="rounded-xl bg-success/10 px-3 py-2">
-                            <div className="text-[10px] text-success">
-                              المدفوع
-                            </div>
-                            <div className="mt-1 font-semibold tabular-nums text-success">
-                              {formatMoney(row.paidValue)}
-                            </div>
-                          </div>
-                          <div className="rounded-xl bg-muted px-3 py-2">
-                            <div className="text-[10px] text-muted-foreground">
-                              المستخدم
-                            </div>
-                            <div className="mt-1 font-semibold text-foreground">
-                              {row.enteredBy?.trim() || "—"}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                ) : null}
-              </div>
-
-              <div className="hidden sm:block">
-                {!q.isLoading && rows.length === 0 ? (
-                  <div
-                    className={`${reportStyles.emptyState} text-muted-foreground`}
-                  >
-                    لا توجد بيانات
-                  </div>
-                ) : null}
-                {!q.isLoading && rows.length > 0 ? (
-                  <div className={reportStyles.reportBlock}>
-                    <div className={reportStyles.blockHeader}>
-                      قائمة الإيصالات
-                    </div>
-                    <table className={reportStyles.gridTable}>
-                      <colgroup>
-                        <col className={reportStyles.colCompact} />
-                        <col className={reportStyles.colCompact} />
-                        <col className={reportStyles.colCompact} />
-                        <col className={reportStyles.colStretch} />
-                        <col className={reportStyles.colStretch} />
-                        <col className={reportStyles.colCompact} />
-                        <col className={reportStyles.colCompact} />
-                        <col className={reportStyles.colCompact} />
-                        <col className={reportStyles.colStretch} />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th scope="col" className={reportStyles.numeric}>
-                            رقم الإيصال
-                          </th>
-                          <th scope="col" className={reportStyles.numeric}>
-                            التاريخ
-                          </th>
-                          <th scope="col" className={reportStyles.numeric}>
-                            كود المريض
-                          </th>
-                          <th scope="col">اسم المريض</th>
-                          <th scope="col">الطبيب</th>
-                          <th scope="col" className={reportStyles.numeric}>
-                            الإجمالي
-                          </th>
-                          <th scope="col" className={reportStyles.numeric}>
-                            الخصم
-                          </th>
-                          <th scope="col" className={reportStyles.numeric}>
-                            المدفوع
-                          </th>
-                          <th scope="col">المستخدم</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row) => (
-                          <tr
-                            key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
-                            className={reportStyles.rowClickable}
-                            tabIndex={0}
-                            onClick={() => goReceipt(row)}
-                            onKeyDown={(ev) => {
-                              if (ev.key === "Enter" || ev.key === " ") {
-                                ev.preventDefault();
-                                goReceipt(row);
-                              }
-                            }}
-                          >
-                            <td
-                              data-label="رقم الإيصال"
-                              className={`${reportStyles.numeric} font-medium`}
-                            >
-                              {toArabicDigits(row.trNo)}
-                            </td>
-                            <td
-                              data-label="التاريخ"
-                              className={reportStyles.numeric}
-                            >
-                              {formatDateAr(row.transactionDate)}
-                            </td>
-                            <td
-                              data-label="كود المريض"
-                              className={reportStyles.numeric}
-                            >
-                              {toArabicDigits(row.patientCode)}
-                            </td>
-                            <td data-label="اسم المريض">
-                              {row.patientName?.trim() || "—"}
-                            </td>
-                            <td
-                              data-label="الطبيب"
-                              className="text-muted-foreground"
-                            >
-                              —
-                            </td>
-                            <td
-                              data-label="الإجمالي"
-                              className={reportStyles.numeric}
-                            >
-                              {formatMoney(row.total)}
-                            </td>
-                            <td
-                              data-label="الخصم"
-                              className={reportStyles.numeric}
-                            >
-                              {formatMoney(row.discount)}
-                            </td>
-                            <td
-                              data-label="المدفوع"
-                              className={reportStyles.numeric}
-                            >
-                              {formatMoney(row.paidValue)}
-                            </td>
-                            <td data-label="المستخدم">
-                              {row.enteredBy?.trim() || "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : null}
-              </div>
-              {rows.length >= 500 && (
-                <div className="mt-2 text-[11px] text-warning bg-warning/10 rounded px-3 py-1.5">
-                  قد تكون النتائج مقطوعة. اضيق نطاق البحث للحصول على نتائج أدق.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        </AccountingQueryBoundary>
       </div>
     </>
   );

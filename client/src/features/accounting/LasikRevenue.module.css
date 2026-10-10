@@ -468,7 +468,6 @@
   }
 }
 
-/* ── Mobile: stack table rows as key-value cards ── */
 @media screen and (max-width: 640px) {
   .gridTable {
     display: block;

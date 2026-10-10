@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -16,7 +15,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { getErrorContext } from "@/lib/errorMessages";
 import type {
   ServiceRevenueDetail,
   ServiceRevenueInput,
@@ -26,12 +24,10 @@ import type {
 import {
   ChevronDown,
   ChevronLeft,
-  CircleAlert,
   Printer,
   RefreshCw,
   Search,
   ClipboardList,
-  X,
   Wallet,
   RotateCcw,
 } from "lucide-react";
@@ -47,6 +43,9 @@ import {
 } from "./accountingFormat";
 import { useAccountingTabMetrics } from "./accountingTabMetrics";
 import { DateInput } from "@/components/ui/date-input";
+import { AccountingQueryBoundary } from "./AccountingPagePrimitives";
+import { accountingMetricValue } from "./accountingQueryState";
+import { AccountingMultiSelect } from "./AccountingMultiSelect";
 
 type ServiceRevenueQuery = {
   data?: ServiceRevenueOutput;
@@ -63,6 +62,8 @@ type CatalogQuery = {
     doctors: { code: string; name: string }[];
   };
   isLoading: boolean;
+  isError: boolean;
+  refetch: () => Promise<unknown>;
 };
 
 type AccountingTrpc = typeof trpc & {
@@ -113,7 +114,9 @@ function readFilters(search: string): ServiceRevenueInput {
     sectionRaw != null && sectionRaw !== "" ? Number(sectionRaw) : NaN;
   // 0 = all sections (no filter); absent URL param → default to 15
   const sectionCode = Number.isFinite(sectionParsed)
-    ? sectionParsed === 0 ? undefined : sectionParsed
+    ? sectionParsed === 0
+      ? undefined
+      : sectionParsed
     : DEFAULT_SECTION_CODE;
   const drRaw = params.get("doctorCodes");
   const svcRaw = params.get("serviceCodes");
@@ -168,12 +171,20 @@ function buildServiceRevenueUrl(input: ServiceRevenueInput) {
 
 function serviceGroupLabel(serviceCode: string, serviceName?: string | null) {
   return serviceName
-    ? `${toArabicDigits(serviceCode)} — ${serviceName}`
+    ? `${toArabicDigits(serviceCode)}: ${serviceName}`
     : toArabicDigits(serviceCode);
 }
 
 const PENTACAM_REMAINING_CODES = new Set([
-  "1571", "1572", "1590", "1601", "1614", "1615", "1616", "1524", "1562",
+  "1571",
+  "1572",
+  "1590",
+  "1601",
+  "1614",
+  "1615",
+  "1616",
+  "1524",
+  "1562",
 ]);
 
 function formatCalculatedCountAr(value: number): string {
@@ -187,13 +198,29 @@ function buildPentacamNetSummary(sections: ServiceRevenueSection[]) {
       const netAmount = Number(service.totalPaid ?? 0);
       if (service.serviceCode === "1600") totals.service1600 += netAmount;
       else if (service.serviceCode === "1502") totals.service1502 += netAmount;
-      else if (PENTACAM_REMAINING_CODES.has(service.serviceCode)) totals.remaining += netAmount;
+      else if (PENTACAM_REMAINING_CODES.has(service.serviceCode))
+        totals.remaining += netAmount;
     }
   }
   return [
-    { key: "1600", label: "خدمة 1600", netAmount: totals.service1600, servicePrice: 550 },
-    { key: "1502", label: "خدمة 1502", netAmount: totals.service1502, servicePrice: 450 },
-    { key: "remaining", label: "الخدمات المتبقية", netAmount: totals.remaining, servicePrice: 400 },
+    {
+      key: "1600",
+      label: "خدمة 1600",
+      netAmount: totals.service1600,
+      servicePrice: 550,
+    },
+    {
+      key: "1502",
+      label: "خدمة 1502",
+      netAmount: totals.service1502,
+      servicePrice: 450,
+    },
+    {
+      key: "remaining",
+      label: "الخدمات المتبقية",
+      netAmount: totals.remaining,
+      servicePrice: 400,
+    },
   ].map((row) => ({ ...row, count: row.netAmount / row.servicePrice }));
 }
 
@@ -266,11 +293,6 @@ export default function LasikRevenue() {
   const filters = useMemo(() => readFilters(search), [search]);
   const [draft, setDraft] = useState(filters);
   const [dateError, setDateError] = useState("");
-  const [doctorOpen, setDoctorOpen] = useState(false);
-  const [serviceOpen, setServiceOpen] = useState(false);
-  const doctorRef = useRef<HTMLDivElement>(null);
-  const serviceRef = useRef<HTMLDivElement>(null);
-
   const catalogQuery = accountingTrpc.accounting.serviceEntryCatalog.useQuery(
     undefined,
     {
@@ -279,17 +301,6 @@ export default function LasikRevenue() {
   );
   const allDoctors = catalogQuery.data?.doctors ?? [];
   const allServices = catalogQuery.data?.services ?? [];
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (doctorRef.current && !doctorRef.current.contains(e.target as Node))
-        setDoctorOpen(false);
-      if (serviceRef.current && !serviceRef.current.contains(e.target as Node))
-        setServiceOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
 
   useEffect(() => {
     setDraft(filters);
@@ -313,12 +324,21 @@ export default function LasikRevenue() {
     () =>
       pentacamTabSummary.map((row) => ({
         label: row.label,
-        value: formatMoneyAr(row.netAmount),
+        value: accountingMetricValue(
+          serviceRevenueQuery,
+          serviceRevenueQuery.data ? row.netAmount : undefined,
+          formatMoneyAr,
+        ),
         icon: Wallet,
       })),
-    [pentacamTabSummary],
+    [
+      pentacamTabSummary,
+      serviceRevenueQuery.isLoading,
+      serviceRevenueQuery.isError,
+      serviceRevenueQuery.data,
+    ],
   );
-  useAccountingTabMetrics(tabMetricItems);
+  useAccountingTabMetrics([]);
 
   const frontendGrandTotal = useMemo(() => {
     return sections.reduce(
@@ -392,34 +412,65 @@ export default function LasikRevenue() {
       @page { size: A4; margin: 12mm; }
     </style></head><body>${html}</body></html>`;
     const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    iframe.style.cssText =
+      "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument!;
-    doc.open(); doc.write(full); doc.close();
-    const cleanup = () => { iframe.remove(); window.removeEventListener("afterprint", cleanup); };
+    doc.open();
+    doc.write(full);
+    doc.close();
+    const cleanup = () => {
+      iframe.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
     window.addEventListener("afterprint", cleanup);
     iframe.contentWindow!.focus();
     iframe.contentWindow!.print();
   }
 
   const printServiceSummary = () => {
-    const byService = new Map<string, { name: string | null; details: ServiceRevenueDetail[] }>();
+    const byService = new Map<
+      string,
+      { name: string | null; details: ServiceRevenueDetail[] }
+    >();
     for (const section of sections) {
       for (const svc of section.services) {
         const ex = byService.get(svc.serviceCode);
         if (ex) ex.details.push(...(svc.details ?? []));
-        else byService.set(svc.serviceCode, { name: svc.serviceName ?? null, details: [...(svc.details ?? [])] });
+        else
+          byService.set(svc.serviceCode, {
+            name: svc.serviceName ?? null,
+            details: [...(svc.details ?? [])],
+          });
       }
     }
-    const rows = Array.from(byService.entries()).map(([, { name, details }]) => {
-      const totalQty = details.reduce((s, d) => s + d.quantity, 0);
-      const noDiscQty = details.filter((d) => !d.discount || d.discount === 0).reduce((s, d) => s + d.quantity, 0);
-      const discMap = new Map<number, number>();
-      for (const d of details) if (d.discount && d.discount > 0) discMap.set(d.discount, (discMap.get(d.discount) ?? 0) + d.quantity);
-      const discText = Array.from(discMap.entries()).sort((a,b)=>a[0]-b[0]).map(([amt,qty]) => `${formatCountAr(qty)} × ${formatMoneyAr(amt)}`).join(" | ") || "—";
-      return `<tr><td>${name ?? ""}</td><td style="text-align:center">${formatCountAr(totalQty)}</td><td style="text-align:center">${formatCountAr(noDiscQty)}</td><td>${discText}</td></tr>`;
-    }).join("");
-    const grandQty = sections.flatMap(s=>s.services).flatMap(svc=>svc.details??[]).reduce((s,d)=>s+d.quantity,0);
+    const rows = Array.from(byService.entries())
+      .map(([, { name, details }]) => {
+        const totalQty = details.reduce((s, d) => s + d.quantity, 0);
+        const noDiscQty = details
+          .filter((d) => !d.discount || d.discount === 0)
+          .reduce((s, d) => s + d.quantity, 0);
+        const discMap = new Map<number, number>();
+        for (const d of details)
+          if (d.discount && d.discount > 0)
+            discMap.set(
+              d.discount,
+              (discMap.get(d.discount) ?? 0) + d.quantity,
+            );
+        const discText =
+          Array.from(discMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(
+              ([amt, qty]) => `${formatCountAr(qty)} × ${formatMoneyAr(amt)}`,
+            )
+            .join(" | ") || "غير متاح";
+        return `<tr><td>${name ?? ""}</td><td style="text-align:center">${formatCountAr(totalQty)}</td><td style="text-align:center">${formatCountAr(noDiscQty)}</td><td>${discText}</td></tr>`;
+      })
+      .join("");
+    const grandQty = sections
+      .flatMap((s) => s.services)
+      .flatMap((svc) => svc.details ?? [])
+      .reduce((s, d) => s + d.quantity, 0);
     const html = `<h1>ملخص الخدمات</h1>
     <table><thead><tr><th>الخدمة</th><th>العدد الإجمالي</th><th>بدون خصم</th><th>بخصم</th></tr></thead>
     <tbody>${rows}</tbody>
@@ -429,11 +480,14 @@ export default function LasikRevenue() {
 
   const printPentacamSummary = () => {
     const summary = buildPentacamNetSummary(sections);
-    const rows = summary.map((row) =>
-      `<tr><td>${row.label}</td><td style="text-align:center">${formatMoneyAr(row.netAmount)}</td><td style="text-align:center">${formatMoneyAr(row.servicePrice)}</td><td style="text-align:center">${formatCalculatedCountAr(row.count)}</td></tr>`,
-    ).join("");
+    const rows = summary
+      .map(
+        (row) =>
+          `<tr><td>${row.label}</td><td style="text-align:center">${formatMoneyAr(row.netAmount)}</td><td style="text-align:center">${formatMoneyAr(row.servicePrice)}</td><td style="text-align:center">${formatCalculatedCountAr(row.count)}</td></tr>`,
+      )
+      .join("");
     const totalAll = summary.reduce((sum, row) => sum + row.count, 0);
-    const html = `<h1>ملخص بنتاكام — حسب صافي المبلغ بعد الخصم</h1>
+    const html = `<h1>ملخص بنتاكام: حسب صافي المبلغ بعد الخصم</h1>
     <table><thead><tr><th>الخدمة</th><th>المبلغ بعد الخصم</th><th>سعر الخدمة</th><th>العدد</th></tr></thead>
     <tbody>${rows}</tbody>
     <tfoot><tr><td>الإجمالي</td><td></td><td></td><td style="text-align:center">${formatCalculatedCountAr(totalAll)}</td></tr></tfoot></table>`;
@@ -441,6 +495,12 @@ export default function LasikRevenue() {
   };
 
   const printReport = () => {
+    if (
+      serviceRevenueQuery.isLoading ||
+      serviceRevenueQuery.isError ||
+      sections.length === 0
+    )
+      return;
     const printClass = "print-service-revenue";
     document.body.classList.add(printClass);
     const cleanup = () => {
@@ -450,8 +510,13 @@ export default function LasikRevenue() {
     window.addEventListener("afterprint", cleanup);
 
     if (preferPdfOverBrowserPrint()) {
-      void exportElementToPdf({ fileName: "تقرير-إيراد-الخدمات.pdf", element: printScopeRef.current })
-        .then((ok) => { if (!ok) window.print(); })
+      void exportElementToPdf({
+        fileName: "تقرير-إيراد-الخدمات.pdf",
+        element: printScopeRef.current,
+      })
+        .then((ok) => {
+          if (!ok) window.print();
+        })
         .catch(() => window.print())
         .finally(() => setTimeout(cleanup, 2000));
       return;
@@ -463,240 +528,108 @@ export default function LasikRevenue() {
 
   return (
     <>
-      <div className="space-y-2 sm:space-y-2.5" dir="rtl">
-        <Card className={`${styles.noPrint} w-fit max-w-full border-border/60 shadow-xs`}>
+      <div className="accounting-report space-y-4" dir="rtl">
+        <h1 className="print:hidden">إيراد الخدمات</h1>
+        <Card
+          className={`${styles.noPrint} w-fit max-w-full border-border/60 shadow-xs`}
+        >
           <CardContent className="w-fit max-w-full space-y-2 p-2.5 sm:p-3">
-            {/* layout-refined-add-filter */}
-            <div className="accounting-add-filter flex w-fit max-w-full flex-wrap items-end gap-2" data-add-filter="1" dir="rtl">
-<label
-              htmlFor="lasik-from-date"
-              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+            <div
+              className="accounting-add-filter flex w-fit max-w-full flex-wrap items-end gap-2"
+              data-add-filter="1"
+              dir="rtl"
             >
-              <span>من تاريخ</span>
-              <DateInput
-                id="lasik-from-date"
-                value={draft.fromDate}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    fromDate: event.target.value,
-                  }))
-                }
-               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
-            </label>
-            <label
-              htmlFor="lasik-to-date"
-              className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
-            >
-              <span>إلى تاريخ</span>
-              <DateInput
-                id="lasik-to-date"
-                value={draft.toDate}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDraft((prev) => ({ ...prev, toDate: event.target.value }))
-                }
-               className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
-            </label>
-                        
-            <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
-              <label htmlFor="lasik-shift-code" className="text-base font-bold text-foreground">الوردية</label>
-              <Select
-                value={draft.shiftCode ?? "all"}
-                onValueChange={(val) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    shiftCode: val === "all" ? undefined : val,
-                  }))
-                }
-                dir="rtl"
+              <label
+                htmlFor="lasik-from-date"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
               >
-                <SelectTrigger id="lasik-shift-code" className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="1">صباحي</SelectItem>
-                  <SelectItem value="2">مسائي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <span>من تاريخ</span>
+                <DateInput
+                  id="lasik-from-date"
+                  value={draft.fromDate}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      fromDate: event.target.value,
+                    }))
+                  }
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
+              <label
+                htmlFor="lasik-to-date"
+                className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground"
+              >
+                <span>إلى تاريخ</span>
+                <DateInput
+                  id="lasik-to-date"
+                  value={draft.toDate}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      toDate: event.target.value,
+                    }))
+                  }
+                  className="h-11 w-[11rem] shrink-0 rounded-lg border border-border bg-background text-base text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
 
-            {/* Doctor multi-select */}
-            <div className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground" ref={doctorRef}>
-              <span>الطبيب</span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setDoctorOpen((o) => !o)}
-                  className="flex w-full items-center justify-between rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 min-h-[38px]"
+              <div className="flex w-[7.5rem] flex-col gap-1 sm:w-28">
+                <label
+                  htmlFor="lasik-shift-code"
+                  className="text-base font-bold text-foreground"
                 >
-                  <span className="flex flex-wrap gap-1 shrink-0">
-                    {(draft.doctorCodes ?? []).length === 0 ? (
-                      <span className="text-muted-foreground">الكل</span>
-                    ) : (
-                      (draft.doctorCodes ?? []).map((code) => {
-                        const dr = allDoctors.find((d) => d.code === code);
-                        return (
-                          <span
-                            key={code}
-                            className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs"
-                          >
-                            {dr ? `${code} - ${dr.name}` : code}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                                setDraft((p) => ({
-                                  ...p,
-                                  doctorCodes:
-                                    (p.doctorCodes ?? []).filter(
-                                      (c) => c !== code,
-                                    ) || undefined,
-                                }));
-                              }}
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        );
-                      })
-                    )}
-                  </span>
-                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground ml-1" />
-                </button>
-                {doctorOpen && (
-                  <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-background shadow-lg max-h-56 overflow-y-auto">
-                    {catalogQuery.isLoading ? (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                        جاري التحميل...
-                      </div>
-                    ) : (
-                      allDoctors.map((dr) => {
-                        const selected = (draft.doctorCodes ?? []).includes(
-                          dr.code,
-                        );
-                        return (
-                          <label
-                            key={dr.code}
-                            className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted select-none"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={() =>
-                                setDraft((p) => {
-                                  const cur = p.doctorCodes ?? [];
-                                  return {
-                                    ...p,
-                                    doctorCodes: selected
-                                      ? cur.filter((c) => c !== dr.code)
-                                      : [...cur, dr.code],
-                                  };
-                                })
-                              }
-                              className="accent-primary"
-                            />
-                            {dr.code} — {dr.name}
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
+                  الوردية
+                </label>
+                <Select
+                  value={draft.shiftCode ?? "all"}
+                  onValueChange={(val) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      shiftCode: val === "all" ? undefined : val,
+                    }))
+                  }
+                  dir="rtl"
+                >
+                  <SelectTrigger id="lasik-shift-code" className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="all">الكل</SelectItem>
+                    <SelectItem value="1">صباحي</SelectItem>
+                    <SelectItem value="2">مسائي</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
 
-            {/* Service multi-select */}
-            <div className="flex w-fit min-w-[7rem] flex-col gap-1 text-base font-bold text-foreground" ref={serviceRef}>
-              <span>الخدمة</span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setServiceOpen((o) => !o)}
-                  className="flex w-full items-center justify-between rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring/20 min-h-[38px]"
-                >
-                  <span className="flex flex-wrap gap-1 min-w-0">
-                    {(draft.serviceCodes ?? []).length === 0 ? (
-                      <span className="text-muted-foreground">الكل</span>
-                    ) : (
-                      (draft.serviceCodes ?? []).map((code) => {
-                        const svc = allServices.find((s) => s.code === code);
-                        return (
-                          <span
-                            key={code}
-                            className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-xs"
-                          >
-                            {svc ? `${code} - ${svc.name}` : code}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                                setDraft((p) => ({
-                                  ...p,
-                                  serviceCodes:
-                                    (p.serviceCodes ?? []).filter(
-                                      (c) => c !== code,
-                                    ) || undefined,
-                                }));
-                              }}
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        );
-                      })
-                    )}
-                  </span>
-                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground ml-1" />
-                </button>
-                {serviceOpen && (
-                  <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-background shadow-lg max-h-56 overflow-y-auto">
-                    {catalogQuery.isLoading ? (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                        جاري التحميل...
-                      </div>
-                    ) : (
-                      allServices.map((svc) => {
-                        const selected = (draft.serviceCodes ?? []).includes(
-                          svc.code,
-                        );
-                        return (
-                          <label
-                            key={svc.code}
-                            className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted select-none"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={() =>
-                                setDraft((p) => {
-                                  const cur = p.serviceCodes ?? [];
-                                  return {
-                                    ...p,
-                                    serviceCodes: selected
-                                      ? cur.filter((c) => c !== svc.code)
-                                      : [...cur, svc.code],
-                                  };
-                                })
-                              }
-                              className="accent-primary"
-                            />
-                            {svc.code} — {svc.name}
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            <Button type="button" className="h-11 px-4 text-base font-bold" onClick={applyFilters} aria-label="تطبيق">
-              <Search className="ml-1.5 h-4 w-4" aria-hidden />
-              تطبيق
-            </Button>
-            <Button
+              <AccountingMultiSelect
+                label="الطبيب"
+                options={allDoctors}
+                selected={draft.doctorCodes ?? []}
+                query={catalogQuery}
+                onChange={(doctorCodes) =>
+                  setDraft((p) => ({ ...p, doctorCodes }))
+                }
+              />
+              <AccountingMultiSelect
+                label="الخدمة"
+                options={allServices}
+                selected={draft.serviceCodes ?? []}
+                query={catalogQuery}
+                onChange={(serviceCodes) =>
+                  setDraft((p) => ({ ...p, serviceCodes }))
+                }
+              />
+              <Button
+                type="button"
+                className="h-11 px-4 text-base font-bold"
+                onClick={applyFilters}
+                aria-label="تطبيق"
+              >
+                <Search className="me-1.5 h-4 w-4" aria-hidden />
+                تطبيق
+              </Button>
+              <Button
                 type="button"
                 variant="secondary"
                 className="h-11 max-w-[14rem] truncate px-3 text-sm font-bold border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
@@ -744,374 +677,107 @@ export default function LasikRevenue() {
                 }}
                 aria-label="تطبيق فلتر خدمات القسم 15 للشهر الماضي"
               >
-                ⚡ خدمات القسم ١٥
+                خدمات القسم ١٥
               </Button>
-            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={resetFilters} aria-label="إعادة ضبط">
-              <RotateCcw className="h-4 w-4" aria-hidden />
-            </Button>
-            <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => void serviceRevenueQuery.refetch()} disabled={serviceRevenueQuery.isFetching} aria-label="تحديث">
-              <RefreshCw className={serviceRevenueQuery.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden />
-            </Button>
-            <Button type="button" size="icon" className="h-11 w-11" onClick={printReport} disabled={serviceRevenueQuery.isLoading} aria-label="طباعة">
-              <Printer className="h-4 w-4" aria-hidden />
-            </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11"
+                onClick={resetFilters}
+                aria-label="إعادة ضبط"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11"
+                onClick={() => void serviceRevenueQuery.refetch()}
+                disabled={serviceRevenueQuery.isFetching}
+                aria-label="تحديث"
+              >
+                <RefreshCw
+                  className={
+                    serviceRevenueQuery.isFetching
+                      ? "h-4 w-4 animate-spin"
+                      : "h-4 w-4"
+                  }
+                  aria-hidden
+                />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                className="h-11 w-11"
+                onClick={printReport}
+                disabled={
+                  serviceRevenueQuery.isLoading ||
+                  serviceRevenueQuery.isError ||
+                  sections.length === 0
+                }
+                aria-label="طباعة"
+              >
+                <Printer className="h-4 w-4" aria-hidden />
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {serviceRevenueQuery.isError ? (
-          <Card className={`${styles.noPrint} border-error/30 bg-error/5`}>
-            <CardContent className="flex items-start gap-2 py-5">
-              <div className="rounded-lg bg-error/10 p-2 text-error">
-                <CircleAlert className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">
-                  {getErrorContext(serviceRevenueQuery.error.message).title}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {getErrorContext(serviceRevenueQuery.error.message).hint}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card
-          ref={printScopeRef}
-          data-print-service-revenue-table
-          className={`${styles.printScope} border-border shadow-xs`}
+        <AccountingQueryBoundary
+          query={serviceRevenueQuery}
+          label="إيراد الخدمات"
         >
-          <CardHeader>
-            <CardTitle className="text-base">
-              تفاصيل إيرادات الأقسام والخدمات
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={styles.printMeta}>
-              <p className={styles.printMetaTitle}>إيراد الخدمات</p>
-              <p>
-                الفترة: من {formatDateAr(filters.fromDate)} إلى{" "}
-                {formatDateAr(filters.toDate)}
-              </p>
-              <p>
-                كود القسم:{" "}
-                {toArabicDigits(
-                  String(filters.sectionCode ?? DEFAULT_SECTION_CODE),
-                )}
-                {filters.doctorCodes?.length
-                  ? ` | الأطباء: ${filters.doctorCodes.map(toArabicDigits).join("، ")}`
-                  : ""}
-                {filters.serviceCodes?.length
-                  ? ` | الخدمات: ${filters.serviceCodes.map(toArabicDigits).join("، ")}`
-                  : ""}
-              </p>
-            </div>
-            <div className="sm:hidden">
-              {serviceRevenueQuery.isLoading ? (
-                <div className="grid gap-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-border bg-background p-4 shadow-xs"
-                    >
-                      <Skeleton className="h-4 w-32" />
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                        {Array.from({ length: 4 }).map((__, j) => (
-                          <div
-                            key={j}
-                            className="rounded-xl border border-border bg-muted p-3"
-                          >
-                            <Skeleton className="h-3 w-12" />
-                            <Skeleton className="mt-2 h-4 w-16" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              {!serviceRevenueQuery.isLoading && sections.length === 0 ? (
-                <div
-                  className={`${styles.emptyState} text-muted-foreground flex flex-col items-center justify-center gap-2`}
-                >
-                  <ClipboardList
-                    className="h-8 w-8 text-muted-foreground/60"
-                    aria-hidden
-                  />
-                  <span>لا توجد بيانات لإيراد الخدمات للفلاتر المختارة.</span>
-                </div>
-              ) : null}
-
-              {!serviceRevenueQuery.isLoading && sections.length > 0 ? (
-                <div className="grid gap-2">
-                  {sections.map((section) => {
-                    const sectionTotals = getSectionTotals(section);
-                    return (
+          <Card
+            ref={printScopeRef}
+            data-print-service-revenue-table
+            className={`${styles.printScope} border-border shadow-xs`}
+          >
+            <CardContent>
+              <div className={styles.printMeta}>
+                <p className={styles.printMetaTitle}>إيراد الخدمات</p>
+                <p>
+                  الفترة: من {formatDateAr(filters.fromDate)} إلى{" "}
+                  {formatDateAr(filters.toDate)}
+                </p>
+                <p>
+                  كود القسم:{" "}
+                  {toArabicDigits(
+                    String(filters.sectionCode ?? DEFAULT_SECTION_CODE),
+                  )}
+                  {filters.doctorCodes?.length
+                    ? ` | الأطباء: ${filters.doctorCodes.map(toArabicDigits).join("، ")}`
+                    : ""}
+                  {filters.serviceCodes?.length
+                    ? ` | الخدمات: ${filters.serviceCodes.map(toArabicDigits).join("، ")}`
+                    : ""}
+                </p>
+              </div>
+              <div className="sm:hidden">
+                {serviceRevenueQuery.isLoading ? (
+                  <div className="grid gap-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
                       <div
-                        key={section.sectionCode}
+                        key={i}
                         className="rounded-xl border border-border bg-background p-4 shadow-xs"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-sm text-muted-foreground">
-                              القسم:{" "}
-                              {toArabicDigits(
-                                section.sectionName || section.sectionCode,
-                              )}
+                        <Skeleton className="h-4 w-32" />
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          {Array.from({ length: 4 }).map((__, j) => (
+                            <div
+                              key={j}
+                              className="rounded-xl border border-border bg-muted p-3"
+                            >
+                              <Skeleton className="h-3 w-12" />
+                              <Skeleton className="mt-2 h-4 w-16" />
                             </div>
-                            <div className="mt-1 text-sm font-semibold text-foreground">
-                              إيراد الخدمات
-                            </div>
-                          </div>
-                          <div className="rounded-full bg-primary text-primary-foreground">
-                            {formatCountAr(sectionTotals.quantity)} خدمة
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                          <div className="rounded-xl bg-muted px-2 py-1.5">
-                            <div className="text-[10px] text-muted-foreground">
-                              إجمالي المريض
-                            </div>
-                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                              {formatMoneyAr(sectionTotals.patientTotal)}
-                            </div>
-                          </div>
-                          <div className="rounded-xl bg-muted px-2 py-1.5">
-                            <div className="text-[10px] text-muted-foreground">
-                              إجمالي الجهة
-                            </div>
-                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                              {formatMoneyAr(sectionTotals.companyTotal)}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 space-y-2">
-                          {section.services.map((service) => {
-                            const key = `${section.sectionCode}:${service.serviceCode}`;
-                            const collapsed = Boolean(collapsedServices[key]);
-                            const details = service.details ?? [];
-                            const serviceTotals = getServiceTotals(details);
-
-                            return (
-                              <div
-                                key={key}
-                                className="rounded-xl border border-border bg-muted p-3"
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <div className="text-sm text-muted-foreground">
-                                      الخدمة:{" "}
-                                      {serviceGroupLabel(
-                                        service.serviceCode,
-                                        service.serviceName,
-                                      )}
-                                    </div>
-                                    <div className="mt-1 text-xs font-medium text-foreground">
-                                      {formatCountAr(serviceTotals.quantity)}{" "}
-                                      بند
-                                    </div>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="h-9 w-9 shrink-0 px-2"
-                                    onClick={() =>
-                                      toggleService(
-                                        section.sectionCode,
-                                        service.serviceCode,
-                                      )
-                                    }
-                                  >
-                                    {collapsed ? (
-                                      <ChevronLeft className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronDown className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-
-                                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                                  <div className="rounded-xl bg-background px-2 py-1.5">
-                                    <div className="text-[10px] text-muted-foreground">
-                                      إجمالي المريض
-                                    </div>
-                                    <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                      {formatMoneyAr(
-                                        serviceTotals.patientTotal,
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="rounded-xl bg-background px-2 py-1.5">
-                                    <div className="text-[10px] text-muted-foreground">
-                                      إجمالي الجهة
-                                    </div>
-                                    <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                      {formatMoneyAr(
-                                        serviceTotals.companyTotal,
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {!collapsed ? (
-                                  <div className="mt-3 space-y-2">
-                                    {details.map((detail, dIdx) => (
-                                      <div
-                                        key={`${key}-${detail.trNo}-${dIdx}`}
-                                        className="rounded-xl border border-border bg-background p-3"
-                                      >
-                                        <div className="flex items-start justify-between gap-2">
-                                          <div className="min-w-0">
-                                            <div className="text-sm text-muted-foreground">
-                                              {toArabicDigits(detail.trNo)}
-                                            </div>
-                                            <div className="mt-1 text-sm font-medium text-foreground">
-                                              {detail.patientName || "-"}
-                                            </div>
-                                          </div>
-                                          <div className="text-sm text-muted-foreground">
-                                            {formatDateAr(detail.trDate)}
-                                          </div>
-                                        </div>
-
-                                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                                          <div className="rounded-lg bg-muted px-2.5 py-2">
-                                            <div className="text-[10px] text-muted-foreground">
-                                              العدد
-                                            </div>
-                                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                              {formatCountAr(detail.quantity)}
-                                            </div>
-                                          </div>
-                                          <div className="rounded-lg bg-muted px-2.5 py-2">
-                                            <div className="text-[10px] text-muted-foreground">
-                                              السعر
-                                            </div>
-                                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                              {formatMoneyAr(detail.price)}
-                                            </div>
-                                          </div>
-                                          <div className="rounded-lg bg-muted px-2.5 py-2">
-                                            <div className="text-[10px] text-muted-foreground">
-                                              ما يخص المريض
-                                            </div>
-                                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                              {formatMoneyAr(
-                                                detail.patientShare,
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="rounded-lg bg-muted px-2.5 py-2">
-                                            <div className="text-[10px] text-muted-foreground">
-                                              الخصم
-                                            </div>
-                                            <div className="mt-1 font-semibold tabular-nums text-foreground">
-                                              {formatMoneyAr(detail.discount)}
-                                            </div>
-                                          </div>
-                                          <div className="rounded-lg bg-success/10 px-2.5 py-2">
-                                            <div className="text-[10px] text-success">
-                                              إجمالي المريض
-                                            </div>
-                                            <div className="mt-1 font-semibold tabular-nums text-success">
-                                              {formatMoneyAr(
-                                                detail.patientTotal,
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="rounded-lg bg-primary/5 px-2.5 py-2">
-                                            <div className="text-[10px] text-primary">
-                                              إجمالي الجهة
-                                            </div>
-                                            <div className="mt-1 font-semibold tabular-nums text-primary">
-                                              {formatMoneyAr(
-                                                detail.companyTotal,
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="mt-3 rounded-xl bg-background px-2 py-1.5 text-xs text-muted-foreground">
-                                    التفاصيل مطوية
-                                  </div>
-                                )}
-
-                                <div className="mt-3 rounded-xl bg-primary/5 px-2 py-1.5">
-                                  <div className="text-[10px] text-primary">
-                                    إجمالي الخدمة
-                                  </div>
-                                  <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
-                                    <div className="font-semibold tabular-nums text-primary">
-                                      {formatMoneyAr(
-                                        serviceTotals.patientTotal,
-                                      )}
-                                    </div>
-                                    <div className="font-semibold tabular-nums text-primary text-left">
-                                      {formatMoneyAr(
-                                        serviceTotals.companyTotal,
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="mt-4 rounded-xl bg-primary/5 px-2 py-1.5">
-                          <div className="text-[10px] text-primary">
-                            إجمالي القسم
-                          </div>
-                          <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
-                            <div className="font-semibold tabular-nums text-primary">
-                              {formatMoneyAr(sectionTotals.patientTotal)}
-                            </div>
-                            <div className="font-semibold tabular-nums text-primary text-left">
-                              {formatMoneyAr(sectionTotals.companyTotal)}
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
-
-                  <div className="rounded-xl border border-border bg-muted p-4">
-                    <div className="text-xs font-semibold text-foreground">
-                      الإجمالي العام
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          إجمالي المريض
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatMoneyAr(frontendGrandTotal.patientTotal)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-background px-2 py-1.5">
-                        <div className="text-[10px] text-muted-foreground">
-                          إجمالي الجهة
-                        </div>
-                        <div className="mt-1 font-semibold tabular-nums text-foreground">
-                          {formatMoneyAr(frontendGrandTotal.companyTotal)}
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="hidden sm:block">
-              <div className={styles.reportWrap}>
-                {serviceRevenueQuery.isLoading ? <LoadingRows /> : null}
+                ) : null}
 
                 {!serviceRevenueQuery.isLoading && sections.length === 0 ? (
                   <div
@@ -1126,482 +792,775 @@ export default function LasikRevenue() {
                 ) : null}
 
                 {!serviceRevenueQuery.isLoading && sections.length > 0 ? (
-                  <table
-                    className={`${styles.gridTable} ${styles.revenueMasterTable}`}
-                  >
-                    <colgroup>
-                      <col style={{ width: "7%", minWidth: "70px" }} />
-                      <col style={{ width: "9%" }} />
-                      <col style={{ width: "28%" }} />
-                      <col style={{ width: "6%" }} />
-                      <col style={{ width: "8%" }} />
-                      <col style={{ width: "11%" }} />
-                      <col style={{ width: "7%" }} />
-                      <col style={{ width: "12%" }} />
-                      <col style={{ width: "12%" }} />
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th scope="col" style={{ whiteSpace: "nowrap" }}>
-                          رقم الإيصال
-                        </th>
-                        <th scope="col" style={{ whiteSpace: "nowrap" }}>
-                          تاريخ الإيصال
-                        </th>
-                        <th scope="col">المريض</th>
-                        <th scope="col" className={styles.numeric}>
-                          العدد
-                        </th>
-                        <th scope="col" className={styles.numeric}>
-                          السعر
-                        </th>
-                        <th scope="col" className={styles.numeric}>
-                          ما يخص المريض
-                        </th>
-                        <th scope="col" className={styles.numeric}>
-                          الخصم
-                        </th>
-                        <th scope="col" className={styles.numeric}>
-                          إجمالي المريض
-                        </th>
-                        <th scope="col" className={styles.numeric}>
-                          إجمالي الجهة
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sections.flatMap((section) => {
-                        const sectionTotals = getSectionTotals(section);
-                        const sectionRows = [
-                          <tr
-                            key={`section-${section.sectionCode}`}
-                            className={styles.groupBannerRow}
-                          >
-                            <td colSpan={9}>
-                              القسم:{" "}
-                              {toArabicDigits(
-                                section.sectionName || section.sectionCode,
-                              )}
-                            </td>
-                          </tr>,
-                        ];
+                  <div className="grid gap-2">
+                    {sections.map((section) => {
+                      const sectionTotals = getSectionTotals(section);
+                      return (
+                        <div
+                          key={section.sectionCode}
+                          className="rounded-xl border border-border bg-background p-4 shadow-xs"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="text-sm text-muted-foreground">
+                                القسم:{" "}
+                                {toArabicDigits(
+                                  section.sectionName || section.sectionCode,
+                                )}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                إيراد الخدمات
+                              </div>
+                            </div>
+                            <div className="rounded-full bg-primary text-primary-foreground">
+                              {formatCountAr(sectionTotals.quantity)} خدمة
+                            </div>
+                          </div>
 
-                        for (const service of section.services) {
-                          const key = `${section.sectionCode}:${service.serviceCode}`;
-                          const collapsed = Boolean(collapsedServices[key]);
-                          const details = service.details ?? [];
-                          const serviceTotals = getServiceTotals(details);
+                          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-xl bg-muted px-2 py-1.5">
+                              <div className="text-[13px] text-muted-foreground">
+                                إجمالي المريض
+                              </div>
+                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                {formatMoneyAr(sectionTotals.patientTotal)}
+                              </div>
+                            </div>
+                            <div className="rounded-xl bg-muted px-2 py-1.5">
+                              <div className="text-[13px] text-muted-foreground">
+                                إجمالي الجهة
+                              </div>
+                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                {formatMoneyAr(sectionTotals.companyTotal)}
+                              </div>
+                            </div>
+                          </div>
 
-                          sectionRows.push(
+                          <div className="mt-4 space-y-2">
+                            {section.services.map((service) => {
+                              const key = `${section.sectionCode}:${service.serviceCode}`;
+                              const collapsed = Boolean(collapsedServices[key]);
+                              const details = service.details ?? [];
+                              const serviceTotals = getServiceTotals(details);
+
+                              return (
+                                <div
+                                  key={key}
+                                  className="rounded-xl border border-border bg-muted p-3"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="text-sm text-muted-foreground">
+                                        الخدمة:{" "}
+                                        {serviceGroupLabel(
+                                          service.serviceCode,
+                                          service.serviceName,
+                                        )}
+                                      </div>
+                                      <div className="mt-1 text-xs font-medium text-foreground">
+                                        {formatCountAr(serviceTotals.quantity)}{" "}
+                                        بند
+                                      </div>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      className="h-9 w-9 shrink-0 px-2"
+                                      onClick={() =>
+                                        toggleService(
+                                          section.sectionCode,
+                                          service.serviceCode,
+                                        )
+                                      }
+                                    >
+                                      {collapsed ? (
+                                        <ChevronLeft className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+
+                                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                    <div className="rounded-xl bg-background px-2 py-1.5">
+                                      <div className="text-[13px] text-muted-foreground">
+                                        إجمالي المريض
+                                      </div>
+                                      <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                        {formatMoneyAr(
+                                          serviceTotals.patientTotal,
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="rounded-xl bg-background px-2 py-1.5">
+                                      <div className="text-[13px] text-muted-foreground">
+                                        إجمالي الجهة
+                                      </div>
+                                      <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                        {formatMoneyAr(
+                                          serviceTotals.companyTotal,
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {!collapsed ? (
+                                    <div className="mt-3 space-y-2">
+                                      {details.map((detail, dIdx) => (
+                                        <div
+                                          key={`${key}-${detail.trNo}-${dIdx}`}
+                                          className="rounded-xl border border-border bg-background p-3"
+                                        >
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                              <div className="text-sm text-muted-foreground">
+                                                {toArabicDigits(detail.trNo)}
+                                              </div>
+                                              <div className="mt-1 text-sm font-medium text-foreground">
+                                                {detail.patientName || "-"}
+                                              </div>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                              {formatDateAr(detail.trDate)}
+                                            </div>
+                                          </div>
+
+                                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                            <div className="rounded-lg bg-muted px-2.5 py-2">
+                                              <div className="text-[13px] text-muted-foreground">
+                                                العدد
+                                              </div>
+                                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                                {formatCountAr(detail.quantity)}
+                                              </div>
+                                            </div>
+                                            <div className="rounded-lg bg-muted px-2.5 py-2">
+                                              <div className="text-[13px] text-muted-foreground">
+                                                السعر
+                                              </div>
+                                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                                {formatMoneyAr(detail.price)}
+                                              </div>
+                                            </div>
+                                            <div className="rounded-lg bg-muted px-2.5 py-2">
+                                              <div className="text-[13px] text-muted-foreground">
+                                                ما يخص المريض
+                                              </div>
+                                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                                {formatMoneyAr(
+                                                  detail.patientShare,
+                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="rounded-lg bg-muted px-2.5 py-2">
+                                              <div className="text-[13px] text-muted-foreground">
+                                                الخصم
+                                              </div>
+                                              <div className="mt-1 font-semibold tabular-nums text-foreground">
+                                                {formatMoneyAr(detail.discount)}
+                                              </div>
+                                            </div>
+                                            <div className="rounded-lg bg-success/10 px-2.5 py-2">
+                                              <div className="text-[13px] text-success">
+                                                إجمالي المريض
+                                              </div>
+                                              <div className="mt-1 font-semibold tabular-nums text-success">
+                                                {formatMoneyAr(
+                                                  detail.patientTotal,
+                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="rounded-lg bg-primary/5 px-2.5 py-2">
+                                              <div className="text-[13px] text-primary">
+                                                إجمالي الجهة
+                                              </div>
+                                              <div className="mt-1 font-semibold tabular-nums text-primary">
+                                                {formatMoneyAr(
+                                                  detail.companyTotal,
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="mt-3 rounded-xl bg-background px-2 py-1.5 text-xs text-muted-foreground">
+                                      التفاصيل مطوية
+                                    </div>
+                                  )}
+
+                                  <div className="mt-3 rounded-xl bg-primary/5 px-2 py-1.5">
+                                    <div className="text-[13px] text-primary">
+                                      إجمالي الخدمة
+                                    </div>
+                                    <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
+                                      <div className="font-semibold tabular-nums text-primary">
+                                        {formatMoneyAr(
+                                          serviceTotals.patientTotal,
+                                        )}
+                                      </div>
+                                      <div className="font-semibold tabular-nums text-primary text-end">
+                                        {formatMoneyAr(
+                                          serviceTotals.companyTotal,
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="mt-4 rounded-xl bg-primary/5 px-2 py-1.5">
+                            <div className="text-[13px] text-primary">
+                              إجمالي القسم
+                            </div>
+                            <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
+                              <div className="font-semibold tabular-nums text-primary">
+                                {formatMoneyAr(sectionTotals.patientTotal)}
+                              </div>
+                              <div className="font-semibold tabular-nums text-primary text-end">
+                                {formatMoneyAr(sectionTotals.companyTotal)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div className="rounded-xl border border-border bg-muted p-4">
+                      <div className="text-xs font-semibold text-foreground">
+                        الإجمالي العام
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
+                            إجمالي المريض
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(frontendGrandTotal.patientTotal)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-background px-2 py-1.5">
+                          <div className="text-[13px] text-muted-foreground">
+                            إجمالي الجهة
+                          </div>
+                          <div className="mt-1 font-semibold tabular-nums text-foreground">
+                            {formatMoneyAr(frontendGrandTotal.companyTotal)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="hidden sm:block">
+                <div className={styles.reportWrap}>
+                  {serviceRevenueQuery.isLoading ? <LoadingRows /> : null}
+
+                  {!serviceRevenueQuery.isLoading && sections.length === 0 ? (
+                    <div
+                      className={`${styles.emptyState} text-muted-foreground flex flex-col items-center justify-center gap-2`}
+                    >
+                      <ClipboardList
+                        className="h-8 w-8 text-muted-foreground/60"
+                        aria-hidden
+                      />
+                      <span>
+                        لا توجد بيانات لإيراد الخدمات للفلاتر المختارة.
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {!serviceRevenueQuery.isLoading && sections.length > 0 ? (
+                    <table
+                      className={`${styles.gridTable} ${styles.revenueMasterTable}`}
+                    >
+                      <colgroup>
+                        <col style={{ width: "7%", minWidth: "70px" }} />
+                        <col style={{ width: "9%" }} />
+                        <col style={{ width: "28%" }} />
+                        <col style={{ width: "6%" }} />
+                        <col style={{ width: "8%" }} />
+                        <col style={{ width: "11%" }} />
+                        <col style={{ width: "7%" }} />
+                        <col style={{ width: "12%" }} />
+                        <col style={{ width: "12%" }} />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th scope="col" style={{ whiteSpace: "nowrap" }}>
+                            رقم الإيصال
+                          </th>
+                          <th scope="col" style={{ whiteSpace: "nowrap" }}>
+                            تاريخ الإيصال
+                          </th>
+                          <th scope="col">المريض</th>
+                          <th scope="col" className={styles.numeric}>
+                            العدد
+                          </th>
+                          <th scope="col" className={styles.numeric}>
+                            السعر
+                          </th>
+                          <th scope="col" className={styles.numeric}>
+                            ما يخص المريض
+                          </th>
+                          <th scope="col" className={styles.numeric}>
+                            الخصم
+                          </th>
+                          <th scope="col" className={styles.numeric}>
+                            إجمالي المريض
+                          </th>
+                          <th scope="col" className={styles.numeric}>
+                            إجمالي الجهة
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sections.flatMap((section) => {
+                          const sectionTotals = getSectionTotals(section);
+                          const sectionRows = [
                             <tr
-                              key={`service-${key}`}
+                              key={`section-${section.sectionCode}`}
                               className={styles.groupBannerRow}
                             >
                               <td colSpan={9}>
-                                <div
-                                  className={styles.groupBannerInner}
-                                  dir="rtl"
-                                >
-                                  <span className="min-w-0 text-right">
-                                    الخدمة:{" "}
-                                    {serviceGroupLabel(
-                                      service.serviceCode,
-                                      service.serviceName,
-                                    )}
-                                  </span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className={`${styles.noPrint} h-10 w-10 shrink-0 px-2`}
-                                    onClick={() =>
-                                      toggleService(
-                                        section.sectionCode,
-                                        service.serviceCode,
-                                      )
-                                    }
-                                  >
-                                    {collapsed ? (
-                                      <ChevronLeft className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronDown className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
+                                القسم:{" "}
+                                {toArabicDigits(
+                                  section.sectionName || section.sectionCode,
+                                )}
                               </td>
                             </tr>,
-                          );
+                          ];
 
-                          if (!collapsed) {
-                            for (const [dIdx, detail] of details.entries()) {
+                          for (const service of section.services) {
+                            const key = `${section.sectionCode}:${service.serviceCode}`;
+                            const collapsed = Boolean(collapsedServices[key]);
+                            const details = service.details ?? [];
+                            const serviceTotals = getServiceTotals(details);
+
+                            sectionRows.push(
+                              <tr
+                                key={`service-${key}`}
+                                className={styles.groupBannerRow}
+                              >
+                                <td colSpan={9}>
+                                  <div
+                                    className={styles.groupBannerInner}
+                                    dir="rtl"
+                                  >
+                                    <span className="min-w-0 text-start">
+                                      الخدمة:{" "}
+                                      {serviceGroupLabel(
+                                        service.serviceCode,
+                                        service.serviceName,
+                                      )}
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      className={`${styles.noPrint} h-10 w-10 shrink-0 px-2`}
+                                      onClick={() =>
+                                        toggleService(
+                                          section.sectionCode,
+                                          service.serviceCode,
+                                        )
+                                      }
+                                    >
+                                      {collapsed ? (
+                                        <ChevronLeft className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>,
+                            );
+
+                            if (!collapsed) {
+                              for (const [dIdx, detail] of details.entries()) {
+                                sectionRows.push(
+                                  <tr key={`${key}-${detail.trNo}-${dIdx}`}>
+                                    <td
+                                      data-label="رقم الإيصال"
+                                      className={styles.numeric}
+                                    >
+                                      {toArabicDigits(detail.trNo)}
+                                    </td>
+                                    <td
+                                      data-label="تاريخ الإيصال"
+                                      className={styles.numeric}
+                                    >
+                                      {formatDateAr(detail.trDate)}
+                                    </td>
+                                    <td data-label="المريض">
+                                      {detail.patientName || "-"}
+                                    </td>
+                                    <td
+                                      data-label="العدد"
+                                      className={styles.numeric}
+                                    >
+                                      {formatCountAr(detail.quantity)}
+                                    </td>
+                                    <td
+                                      data-label="السعر"
+                                      className={styles.numeric}
+                                    >
+                                      {formatMoneyAr(detail.price)}
+                                    </td>
+                                    <td
+                                      data-label="ما يخص المريض"
+                                      className={styles.numeric}
+                                    >
+                                      {formatMoneyAr(detail.patientShare)}
+                                    </td>
+                                    <td
+                                      data-label="الخصم"
+                                      className={styles.numeric}
+                                    >
+                                      {formatMoneyAr(detail.discount)}
+                                    </td>
+                                    <td
+                                      data-label="إجمالي المريض"
+                                      className={styles.numeric}
+                                    >
+                                      {formatMoneyAr(detail.patientTotal)}
+                                    </td>
+                                    <td
+                                      data-label="إجمالي الجهة"
+                                      className={styles.numeric}
+                                    >
+                                      {formatMoneyAr(detail.companyTotal)}
+                                    </td>
+                                  </tr>,
+                                );
+                              }
+
                               sectionRows.push(
-                                <tr key={`${key}-${detail.trNo}-${dIdx}`}>
-                                  <td
-                                    data-label="رقم الإيصال"
-                                    className={styles.numeric}
-                                  >
-                                    {toArabicDigits(detail.trNo)}
+                                <tr
+                                  key={`subtotal-${key}`}
+                                  className={styles.serviceSubtotalRow}
+                                >
+                                  <td colSpan={3}>إجمالي الخدمة</td>
+                                  <td className={styles.numeric}>
+                                    {formatCountAr(serviceTotals.quantity)}
                                   </td>
-                                  <td
-                                    data-label="تاريخ الإيصال"
-                                    className={styles.numeric}
-                                  >
-                                    {formatDateAr(detail.trDate)}
+                                  <td className={styles.numeric}>
+                                    {formatMoneyAr(serviceTotals.price)}
                                   </td>
-                                  <td data-label="المريض">
-                                    {detail.patientName || "-"}
+                                  <td className={styles.numeric}>
+                                    {formatMoneyAr(serviceTotals.patientShare)}
                                   </td>
-                                  <td
-                                    data-label="العدد"
-                                    className={styles.numeric}
-                                  >
-                                    {formatCountAr(detail.quantity)}
+                                  <td className={styles.numeric}>
+                                    {formatMoneyAr(serviceTotals.discount)}
                                   </td>
-                                  <td
-                                    data-label="السعر"
-                                    className={styles.numeric}
-                                  >
-                                    {formatMoneyAr(detail.price)}
+                                  <td className={styles.numeric}>
+                                    {formatMoneyAr(serviceTotals.patientTotal)}
                                   </td>
-                                  <td
-                                    data-label="ما يخص المريض"
-                                    className={styles.numeric}
-                                  >
-                                    {formatMoneyAr(detail.patientShare)}
-                                  </td>
-                                  <td
-                                    data-label="الخصم"
-                                    className={styles.numeric}
-                                  >
-                                    {formatMoneyAr(detail.discount)}
-                                  </td>
-                                  <td
-                                    data-label="إجمالي المريض"
-                                    className={styles.numeric}
-                                  >
-                                    {formatMoneyAr(detail.patientTotal)}
-                                  </td>
-                                  <td
-                                    data-label="إجمالي الجهة"
-                                    className={styles.numeric}
-                                  >
-                                    {formatMoneyAr(detail.companyTotal)}
+                                  <td className={styles.numeric}>
+                                    {formatMoneyAr(serviceTotals.companyTotal)}
                                   </td>
                                 </tr>,
                               );
                             }
-
-                            sectionRows.push(
-                              <tr
-                                key={`subtotal-${key}`}
-                                className={styles.serviceSubtotalRow}
-                              >
-                                <td colSpan={3}>إجمالي الخدمة</td>
-                                <td className={styles.numeric}>
-                                  {formatCountAr(serviceTotals.quantity)}
-                                </td>
-                                <td className={styles.numeric}>
-                                  {formatMoneyAr(serviceTotals.price)}
-                                </td>
-                                <td className={styles.numeric}>
-                                  {formatMoneyAr(serviceTotals.patientShare)}
-                                </td>
-                                <td className={styles.numeric}>
-                                  {formatMoneyAr(serviceTotals.discount)}
-                                </td>
-                                <td className={styles.numeric}>
-                                  {formatMoneyAr(serviceTotals.patientTotal)}
-                                </td>
-                                <td className={styles.numeric}>
-                                  {formatMoneyAr(serviceTotals.companyTotal)}
-                                </td>
-                              </tr>,
-                            );
                           }
-                        }
 
-                        sectionRows.push(
-                          <tr
-                            key={`section-total-${section.sectionCode}`}
-                            className={styles.sectionTotalRow}
-                          >
-                            <td colSpan={3}>إجمالي القسم</td>
-                            <td className={styles.numeric}>
-                              {formatCountAr(sectionTotals.quantity)}
-                            </td>
-                            <td className={styles.numeric}>
-                              {formatMoneyAr(sectionTotals.price)}
-                            </td>
-                            <td className={styles.numeric}>
-                              {formatMoneyAr(sectionTotals.patientShare)}
-                            </td>
-                            <td className={styles.numeric}>
-                              {formatMoneyAr(sectionTotals.discount)}
-                            </td>
-                            <td className={styles.numeric}>
-                              {formatMoneyAr(sectionTotals.patientTotal)}
-                            </td>
-                            <td className={styles.numeric}>
-                              {formatMoneyAr(sectionTotals.companyTotal)}
-                            </td>
-                          </tr>,
-                        );
-
-                        return sectionRows;
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr className={styles.periodTotalRow}>
-                        <td colSpan={3}>الإجمالي العام</td>
-                        <td data-label="العدد" className={styles.numeric}>
-                          {formatCountAr(frontendGrandTotal.quantity)}
-                        </td>
-                        <td data-label="السعر" className={styles.numeric}>
-                          {formatMoneyAr(frontendGrandTotal.price)}
-                        </td>
-                        <td
-                          data-label="ما يخص المريض"
-                          className={styles.numeric}
-                        >
-                          {formatMoneyAr(frontendGrandTotal.patientShare)}
-                        </td>
-                        <td data-label="الخصم" className={styles.numeric}>
-                          {formatMoneyAr(frontendGrandTotal.discount)}
-                        </td>
-                        <td
-                          data-label="إجمالي المريض"
-                          className={styles.numeric}
-                        >
-                          {formatMoneyAr(frontendGrandTotal.patientTotal)}
-                        </td>
-                        <td
-                          data-label="إجمالي الجهة"
-                          className={styles.numeric}
-                        >
-                          {formatMoneyAr(frontendGrandTotal.companyTotal)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                ) : null}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Per-service summary card ─────────────────────────────────── */}
-        {!serviceRevenueQuery.isLoading && sections.length > 0 ? (
-          <Card className={`${styles.noPrint} border-border shadow-xs`}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">ملخص الخدمات</CardTitle>
-              <button type="button" onClick={printServiceSummary} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors">
-                <Printer className="size-3.5" /> طباعة
-              </button>
-            </CardHeader>
-            <CardContent className="overflow-x-auto p-0">
-              <table className="w-full text-sm" dir="rtl">
-                <thead>
-                  <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
-                    <th className="px-2.5 py-1.5">الخدمة</th>
-                    <th className="px-2.5 py-1.5 text-center tabular-nums">
-                      العدد الإجمالي
-                    </th>
-                    <th className="px-2.5 py-1.5 text-center tabular-nums">
-                      بدون خصم
-                    </th>
-                    <th className="px-2.5 py-1.5">بخصم (عدد × مبلغ الخصم)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    // Flatten all details across all sections grouped by serviceCode
-                    const byService = new Map<
-                      string,
-                      { name: string | null; details: ServiceRevenueDetail[] }
-                    >();
-                    for (const section of sections) {
-                      for (const svc of section.services) {
-                        const existing = byService.get(svc.serviceCode);
-                        if (existing) {
-                          existing.details.push(...(svc.details ?? []));
-                        } else {
-                          byService.set(svc.serviceCode, {
-                            name: svc.serviceName ?? null,
-                            details: [...(svc.details ?? [])],
-                          });
-                        }
-                      }
-                    }
-
-                    return Array.from(byService.entries()).map(
-                      ([code, { name, details }]) => {
-                        const totalQty = details.reduce(
-                          (s, d) => s + d.quantity,
-                          0,
-                        );
-                        const noDiscountQty = details
-                          .filter((d) => !d.discount || d.discount === 0)
-                          .reduce((s, d) => s + d.quantity, 0);
-
-                        // Group discounted rows by discount amount
-                        const discountGroups = new Map<number, number>();
-                        for (const d of details) {
-                          if (d.discount && d.discount > 0) {
-                            discountGroups.set(
-                              d.discount,
-                              (discountGroups.get(d.discount) ?? 0) +
-                                d.quantity,
-                            );
-                          }
-                        }
-                        const discountedQty = totalQty - noDiscountQty;
-
-                        return (
-                          <tr
-                            key={code}
-                            className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors"
-                          >
-                            <td className="px-4 py-2.5 font-medium">
-                              {toArabicDigits(code)}
-                              {name ? (
-                                <span className="mr-1 text-xs text-muted-foreground">
-                                  — {name}
-                                </span>
-                              ) : null}
-                            </td>
-                            <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
-                              {formatCountAr(totalQty)}
-                            </td>
-                            <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
-                              {formatCountAr(noDiscountQty)}
-                            </td>
-                            <td className="px-4 py-2.5">
-                              {discountedQty === 0 ? (
-                                <span className="text-muted-foreground text-xs">
-                                  —
-                                </span>
-                              ) : (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {Array.from(discountGroups.entries())
-                                    .sort((a, b) => a[0] - b[0])
-                                    .map(([discAmt, qty]) => (
-                                      <span
-                                        key={discAmt}
-                                        className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
-                                      >
-                                        {formatCountAr(qty)} ×{" "}
-                                        {formatMoneyAr(discAmt)}
-                                      </span>
-                                    ))}
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      },
-                    );
-                  })()}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-border bg-muted/60 font-semibold">
-                    <td className="px-4 py-2.5">الإجمالي</td>
-                    <td className="px-4 py-2.5 text-center tabular-nums">
-                      {formatCountAr(frontendGrandTotal.quantity)}
-                    </td>
-                    <td className="px-4 py-2.5 text-center tabular-nums text-success">
-                      {formatCountAr(
-                        sections
-                          .flatMap((s) => s.services)
-                          .flatMap((svc) => svc.details ?? [])
-                          .filter((d) => !d.discount || d.discount === 0)
-                          .reduce((sum, d) => sum + d.quantity, 0),
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {formatCountAr(
-                        sections
-                          .flatMap((s) => s.services)
-                          .flatMap((svc) => svc.details ?? [])
-                          .filter((d) => d.discount && d.discount > 0)
-                          .reduce((sum, d) => sum + d.quantity, 0),
-                      )}{" "}
-                      بخصم
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {/* ── Pentacam price-bucket summary ──────────────────────────────── */}
-        {!serviceRevenueQuery.isLoading && sections.length > 0
-          ? (() => {
-              const pentacamSummary = buildPentacamNetSummary(sections);
-              if (!pentacamSummary.some((row) => row.netAmount > 0)) return null;
-              const totalAll = pentacamSummary.reduce(
-                (sum, row) => sum + row.count,
-                0,
-              );
-
-              return (
-                <Card className={`${styles.noPrint} border-border shadow-xs`}>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-base">
-                      ملخص بنتاكام — حسب صافي المبلغ بعد الخصم
-                    </CardTitle>
-                    <button type="button" onClick={printPentacamSummary} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors">
-                      <Printer className="size-3.5" /> طباعة
-                    </button>
-                  </CardHeader>
-                  <CardContent className="overflow-x-auto p-0">
-                    <table className="w-full text-sm" dir="rtl">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/60 text-right text-xs font-semibold text-muted-foreground">
-                          <th className="px-2.5 py-1.5">الخدمة</th>
-                          <th className="px-2.5 py-1.5 text-center">المبلغ بعد الخصم</th>
-                          <th className="px-2.5 py-1.5 text-center">سعر الخدمة</th>
-                          <th className="px-2.5 py-1.5 text-center">العدد</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pentacamSummary.map((row) => {
-                          return (
+                          sectionRows.push(
                             <tr
-                              key={row.key}
-                              className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors"
+                              key={`section-total-${section.sectionCode}`}
+                              className={styles.sectionTotalRow}
                             >
-                              <td className="px-4 py-2.5 font-semibold">
-                                {row.label}
+                              <td colSpan={3}>إجمالي القسم</td>
+                              <td className={styles.numeric}>
+                                {formatCountAr(sectionTotals.quantity)}
                               </td>
-                              <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
-                                {formatMoneyAr(row.netAmount)}
+                              <td className={styles.numeric}>
+                                {formatMoneyAr(sectionTotals.price)}
                               </td>
-                              <td className="px-4 py-2.5 text-center tabular-nums">
-                                {formatMoneyAr(row.servicePrice)}
+                              <td className={styles.numeric}>
+                                {formatMoneyAr(sectionTotals.patientShare)}
                               </td>
-                              <td className="px-4 py-2.5 text-center tabular-nums font-semibold text-primary">
-                                {formatCalculatedCountAr(row.count)}
+                              <td className={styles.numeric}>
+                                {formatMoneyAr(sectionTotals.discount)}
                               </td>
-                            </tr>
+                              <td className={styles.numeric}>
+                                {formatMoneyAr(sectionTotals.patientTotal)}
+                              </td>
+                              <td className={styles.numeric}>
+                                {formatMoneyAr(sectionTotals.companyTotal)}
+                              </td>
+                            </tr>,
                           );
+
+                          return sectionRows;
                         })}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-border bg-muted/60 font-semibold">
-                          <td className="px-4 py-2.5">الإجمالي</td>
-                          <td></td>
-                          <td></td>
-                          <td className="px-4 py-2.5 text-center tabular-nums text-primary">
-                            {formatCalculatedCountAr(totalAll)}
+                        <tr className={styles.periodTotalRow}>
+                          <td colSpan={3}>الإجمالي العام</td>
+                          <td data-label="العدد" className={styles.numeric}>
+                            {formatCountAr(frontendGrandTotal.quantity)}
+                          </td>
+                          <td data-label="السعر" className={styles.numeric}>
+                            {formatMoneyAr(frontendGrandTotal.price)}
+                          </td>
+                          <td
+                            data-label="ما يخص المريض"
+                            className={styles.numeric}
+                          >
+                            {formatMoneyAr(frontendGrandTotal.patientShare)}
+                          </td>
+                          <td data-label="الخصم" className={styles.numeric}>
+                            {formatMoneyAr(frontendGrandTotal.discount)}
+                          </td>
+                          <td
+                            data-label="إجمالي المريض"
+                            className={styles.numeric}
+                          >
+                            {formatMoneyAr(frontendGrandTotal.patientTotal)}
+                          </td>
+                          <td
+                            data-label="إجمالي الجهة"
+                            className={styles.numeric}
+                          >
+                            {formatMoneyAr(frontendGrandTotal.companyTotal)}
                           </td>
                         </tr>
                       </tfoot>
                     </table>
-                  </CardContent>
-                </Card>
-              );
-            })()
-          : null}
+                  ) : null}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {!serviceRevenueQuery.isLoading && sections.length > 0 ? (
+            <Card className={`${styles.noPrint} border-border shadow-xs`}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">ملخص الخدمات</CardTitle>
+                <Button variant="bare"
+                  type="button"
+                  onClick={printServiceSummary}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors"
+                >
+                  <Printer className="size-3.5" /> طباعة
+                </Button>
+              </CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                <table className="w-full text-sm" dir="rtl">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/60 text-start text-xs font-semibold text-muted-foreground">
+                      <th className="px-2.5 py-1.5">الخدمة</th>
+                      <th className="px-2.5 py-1.5 text-center tabular-nums">
+                        العدد الإجمالي
+                      </th>
+                      <th className="px-2.5 py-1.5 text-center tabular-nums">
+                        بدون خصم
+                      </th>
+                      <th className="px-2.5 py-1.5">بخصم (عدد × مبلغ الخصم)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Flatten all details across all sections grouped by serviceCode
+                      const byService = new Map<
+                        string,
+                        { name: string | null; details: ServiceRevenueDetail[] }
+                      >();
+                      for (const section of sections) {
+                        for (const svc of section.services) {
+                          const existing = byService.get(svc.serviceCode);
+                          if (existing) {
+                            existing.details.push(...(svc.details ?? []));
+                          } else {
+                            byService.set(svc.serviceCode, {
+                              name: svc.serviceName ?? null,
+                              details: [...(svc.details ?? [])],
+                            });
+                          }
+                        }
+                      }
+
+                      return Array.from(byService.entries()).map(
+                        ([code, { name, details }]) => {
+                          const totalQty = details.reduce(
+                            (s, d) => s + d.quantity,
+                            0,
+                          );
+                          const noDiscountQty = details
+                            .filter((d) => !d.discount || d.discount === 0)
+                            .reduce((s, d) => s + d.quantity, 0);
+
+                          // Group discounted rows by discount amount
+                          const discountGroups = new Map<number, number>();
+                          for (const d of details) {
+                            if (d.discount && d.discount > 0) {
+                              discountGroups.set(
+                                d.discount,
+                                (discountGroups.get(d.discount) ?? 0) +
+                                  d.quantity,
+                              );
+                            }
+                          }
+                          const discountedQty = totalQty - noDiscountQty;
+
+                          return (
+                            <tr
+                              key={code}
+                              className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors"
+                            >
+                              <td className="px-4 py-2.5 font-medium">
+                                {toArabicDigits(code)}
+                                {name ? (
+                                  <span className="ms-1 text-xs text-muted-foreground">
+                                    : {name}
+                                  </span>
+                                ) : null}
+                              </td>
+                              <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
+                                {formatCountAr(totalQty)}
+                              </td>
+                              <td className="px-4 py-2.5 text-center tabular-nums text-success font-medium">
+                                {formatCountAr(noDiscountQty)}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                {discountedQty === 0 ? (
+                                  <span className="text-muted-foreground text-xs">
+                                    غير متاح
+                                  </span>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {Array.from(discountGroups.entries())
+                                      .sort((a, b) => a[0] - b[0])
+                                      .map(([discAmt, qty]) => (
+                                        <span
+                                          key={discAmt}
+                                          className="inline-flex items-center gap-1 rounded border border-border bg-muted/20 px-2 py-0.5 text-xs font-medium text-foreground"
+                                        >
+                                          {formatCountAr(qty)} ×{" "}
+                                          {formatMoneyAr(discAmt)}
+                                        </span>
+                                      ))}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        },
+                      );
+                    })()}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/60 font-semibold">
+                      <td className="px-4 py-2.5">الإجمالي</td>
+                      <td className="px-4 py-2.5 text-center tabular-nums">
+                        {formatCountAr(frontendGrandTotal.quantity)}
+                      </td>
+                      <td className="px-4 py-2.5 text-center tabular-nums text-success">
+                        {formatCountAr(
+                          sections
+                            .flatMap((s) => s.services)
+                            .flatMap((svc) => svc.details ?? [])
+                            .filter((d) => !d.discount || d.discount === 0)
+                            .reduce((sum, d) => sum + d.quantity, 0),
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {formatCountAr(
+                          sections
+                            .flatMap((s) => s.services)
+                            .flatMap((svc) => svc.details ?? [])
+                            .filter((d) => d.discount && d.discount > 0)
+                            .reduce((sum, d) => sum + d.quantity, 0),
+                        )}{" "}
+                        بخصم
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </CardContent>
+            </Card>
+          ) : null}
+          {!serviceRevenueQuery.isLoading && sections.length > 0
+            ? (() => {
+                const pentacamSummary = buildPentacamNetSummary(sections);
+                if (!pentacamSummary.some((row) => row.netAmount > 0))
+                  return null;
+                const totalAll = pentacamSummary.reduce(
+                  (sum, row) => sum + row.count,
+                  0,
+                );
+
+                return (
+                  <Card className={`${styles.noPrint} border-border shadow-xs`}>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-base">
+                        ملخص بنتاكام: حسب صافي المبلغ بعد الخصم
+                      </CardTitle>
+                      <Button variant="bare"
+                        type="button"
+                        onClick={printPentacamSummary}
+                        className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors"
+                      >
+                        <Printer className="size-3.5" /> طباعة
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto p-0">
+                      <table className="w-full text-sm" dir="rtl">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/60 text-start text-xs font-semibold text-muted-foreground">
+                            <th className="px-2.5 py-1.5">الخدمة</th>
+                            <th className="px-2.5 py-1.5 text-center">
+                              المبلغ بعد الخصم
+                            </th>
+                            <th className="px-2.5 py-1.5 text-center">
+                              سعر الخدمة
+                            </th>
+                            <th className="px-2.5 py-1.5 text-center">العدد</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pentacamSummary.map((row) => {
+                            return (
+                              <tr
+                                key={row.key}
+                                className="border-b border-border/50 even:bg-muted/20 hover:bg-muted/40 transition-colors"
+                              >
+                                <td className="px-4 py-2.5 font-semibold">
+                                  {row.label}
+                                </td>
+                                <td className="px-4 py-2.5 text-center tabular-nums font-semibold">
+                                  {formatMoneyAr(row.netAmount)}
+                                </td>
+                                <td className="px-4 py-2.5 text-center tabular-nums">
+                                  {formatMoneyAr(row.servicePrice)}
+                                </td>
+                                <td className="px-4 py-2.5 text-center tabular-nums font-semibold text-primary">
+                                  {formatCalculatedCountAr(row.count)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t-2 border-border bg-muted/60 font-semibold">
+                            <td className="px-4 py-2.5">الإجمالي</td>
+                            <td></td>
+                            <td></td>
+                            <td className="px-4 py-2.5 text-center tabular-nums text-primary">
+                              {formatCalculatedCountAr(totalAll)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </CardContent>
+                  </Card>
+                );
+              })()
+            : null}
+        </AccountingQueryBoundary>
       </div>
     </>
   );
