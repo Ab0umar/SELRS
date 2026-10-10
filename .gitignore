@@ -285,3 +285,8 @@ docs/graphify-out/
 /.zcode/skills/antislop-human/
 /.zcode/skills/antislop-layoutmobile/
 /.zcode/skills/antislop-ui/
+
+# Local agent responses and generated review captures
+/.manus/mcp-results/
+/.work/previews/
+/.work/review/
