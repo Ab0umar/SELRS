@@ -1,4 +1,4 @@
-import { Save, Stethoscope } from "lucide-react";
+import { Save } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import ExaminationAutoAirTab from "@/components/examination/ExaminationAutoAirTab";
 import ExaminationFormHeader from "@/components/examination/ExaminationFormHeader";
@@ -27,32 +27,28 @@ export default function ExaminationForm() {
             persistKey="examination-form"
             className="w-full"
           >
-            <TabsList className="mb-4 flex h-auto w-full gap-2 overflow-x-auto whitespace-nowrap rounded-3xl border border-border/80 bg-background/90 p-2 shadow-sm">
-              <div className="flex items-center gap-2 px-2 text-xs font-bold uppercase tracking-[0.24em] text-muted-foreground">
-                <Stethoscope className="h-4 w-4" />
-                Sections
-              </div>
+            <TabsList className="mb-4 flex h-auto w-full flex-wrap justify-start gap-2 rounded-lg border border-border bg-card p-2">
               <TabsTrigger
                 value="pentacam"
-                className="flex-1 min-w-[120px] whitespace-normal text-center"
+                className="min-w-0 flex-1 whitespace-normal text-center sm:min-w-[120px]"
               >
                 البنتاكام
               </TabsTrigger>
               <TabsTrigger
                 value="auto-air"
-                className="flex-1 min-w-[180px] whitespace-normal text-center"
+                className="min-w-0 flex-1 whitespace-normal text-center sm:min-w-[180px]"
               >
                 الأوتوريفراكشن / الإيرباف
               </TabsTrigger>
               <TabsTrigger
                 value="patient-info"
-                className="flex-1 min-w-[120px] whitespace-normal text-center"
+                className="min-w-0 flex-1 whitespace-normal text-center sm:min-w-[120px]"
               >
                 بيانات المريض
               </TabsTrigger>
               <TabsTrigger
                 value="images"
-                className="flex-1 min-w-[100px] whitespace-normal text-center"
+                className="min-w-0 flex-1 whitespace-normal text-center sm:min-w-[100px]"
               >
                 صور التشخيص
               </TabsTrigger>
@@ -73,16 +69,16 @@ export default function ExaminationForm() {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-8 flex gap-4">
+          <div className="mt-8 flex flex-wrap gap-3">
             <Button
               type="submit"
               disabled={form.loading}
-              className="bg-primary hover:bg-primary/90"
+              className="min-h-11 min-w-28 bg-primary hover:bg-primary/90"
             >
-              <Save className="mr-2 h-4 w-4" />
-              {form.loading ? " ..." : " "}
+              <Save className="ms-2 h-4 w-4" aria-hidden="true" />
+              {form.loading ? "جارٍ الحفظ" : "حفظ البيانات"}
             </Button>
-            <Button type="button" variant="outline" onClick={form.handleCancel}>
+            <Button type="button" variant="outline" className="min-h-11 min-w-24" onClick={form.handleCancel}>
               إلغاء
             </Button>
           </div>

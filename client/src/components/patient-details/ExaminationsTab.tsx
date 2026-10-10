@@ -49,7 +49,7 @@ function ReportSection({
     <Card className="border-border/80 bg-background shadow-none">
       <CardHeader className="flex-row items-center justify-between border-b border-border py-3">
         <CardTitle className="text-base">{title}</CardTitle>
-        <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
+        <span className="font-mono text-[13px] text-muted-foreground" dir="ltr">
           {source}
         </span>
       </CardHeader>

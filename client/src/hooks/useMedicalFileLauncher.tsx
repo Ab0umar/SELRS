@@ -42,8 +42,8 @@ export function useMedicalFileLauncher() {
     <>
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent dir="rtl" className="sm:max-w-lg">
-          <DialogHeader className="text-right">
-            <DialogTitle className="text-right">
+          <DialogHeader className="text-start">
+            <DialogTitle className="text-start">
               الملف الطبي — اختر المريض
             </DialogTitle>
           </DialogHeader>

@@ -99,13 +99,13 @@ function formatStatus(row: AutoRow): AutoStatus {
 function statusBadge(status: AutoStatus) {
   if (status === "complete") {
     return (
-      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">
+      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[13px] font-semibold text-success">
         مكتمل
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-warning/20 px-2.5 py-1 text-[11px] font-semibold text-warning/90">
+    <span className="rounded-full bg-warning/20 px-2.5 py-1 text-[13px] font-semibold text-warning-text/90">
       ناقص
     </span>
   );
@@ -228,7 +228,7 @@ export default function AutorefsDashboard() {
           value={stats.partial}
           icon={AlertTriangle}
           description="يحتاج مراجعة"
-          iconColor="bg-warning/20 text-warning/90"
+          iconColor="bg-warning/20 text-warning-text/90"
         />
       </div>
 
@@ -256,7 +256,7 @@ export default function AutorefsDashboard() {
 
       {/* Tab Selector */}
       <div className="mb-4 flex border-b border-border">
-        <button
+        <Button variant="bare"
           type="button"
           onClick={() => setViewMode("list")}
           className={cn(
@@ -267,8 +267,8 @@ export default function AutorefsDashboard() {
           )}
         >
           قائمة السجلات ({total})
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
           type="button"
           onClick={() => setViewMode("review")}
           className={cn(
@@ -288,7 +288,7 @@ export default function AutorefsDashboard() {
               0
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
       {viewMode === "list" ? (
@@ -304,8 +304,8 @@ export default function AutorefsDashboard() {
                 : "لا توجد سجلات مطابقة للتصفية."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1120px] text-right text-sm">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+              <table className="w-full min-w-[1120px] text-start text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
                     <th className="px-4 py-3 font-semibold">المريض</th>
@@ -332,7 +332,7 @@ export default function AutorefsDashboard() {
                           <div className="font-semibold">
                             {row.patientName || `مريض #${row.patientId}`}
                           </div>
-                          <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                          <div className="mt-1 flex flex-wrap gap-2 text-[13px] text-muted-foreground">
                             <span dir="ltr">{row.patientCode || "—"}</span>
                             <span>•</span>
                             <span>
@@ -355,7 +355,7 @@ export default function AutorefsDashboard() {
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div className="space-y-1">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            <div className="text-[13px] font-semibold uppercase text-muted-foreground">
                               RT
                             </div>
                             <div className="text-xs font-semibold text-foreground">
@@ -365,7 +365,7 @@ export default function AutorefsDashboard() {
                                 row.axisOD,
                               )}
                             </div>
-                            <div className="text-[11px] text-muted-foreground">
+                            <div className="text-[13px] text-muted-foreground">
                               UCVA {hasValue(row.ucvaOD) ? row.ucvaOD : "—"} /
                               BCVA {hasValue(row.bcvaOD) ? row.bcvaOD : "—"} /
                               IOP {hasValue(row.iopOD) ? row.iopOD : "—"}
@@ -374,7 +374,7 @@ export default function AutorefsDashboard() {
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div className="space-y-1">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            <div className="text-[13px] font-semibold uppercase text-muted-foreground">
                               LT
                             </div>
                             <div className="text-xs font-semibold text-foreground">
@@ -384,7 +384,7 @@ export default function AutorefsDashboard() {
                                 row.axisOS,
                               )}
                             </div>
-                            <div className="text-[11px] text-muted-foreground">
+                            <div className="text-[13px] text-muted-foreground">
                               UCVA {hasValue(row.ucvaOS) ? row.ucvaOS : "—"} /
                               BCVA {hasValue(row.bcvaOS) ? row.bcvaOS : "—"} /
                               IOP {hasValue(row.iopOS) ? row.iopOS : "—"}
@@ -441,28 +441,28 @@ export default function AutorefsDashboard() {
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <button
+                      <Button variant="bare"
                         type="button"
                         onClick={() =>
                           setLocation(`/examination/${row.patientId}`)
                         }
-                        className="min-w-0 flex-1 text-right"
+                        className="min-w-0 flex-1 text-start"
                       >
                         <div className="font-semibold text-sm">
                           {row.patientName || `مريض #${row.patientId}`}
                         </div>
                         <div
-                          className="mt-1 text-[11px] text-muted-foreground"
+                          className="mt-1 text-[13px] text-muted-foreground"
                           dir="ltr"
                         >
                           {row.patientCode || "—"}
                         </div>
-                      </button>
+                      </Button>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[11px] font-semibold text-warning-foreground">
+                        <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[13px] font-semibold text-warning-foreground">
                           ناقص
                         </span>
-                        <button
+                        <Button variant="bare"
                           type="button"
                           aria-label="تجاهل التنبيه"
                           onClick={() =>
@@ -473,10 +473,10 @@ export default function AutorefsDashboard() {
                           className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
                         >
                           <CheckCircle2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[13px] text-muted-foreground border-t border-border/50 pt-2">
                       <div>
                         RT{" "}
                         {formatTriplet(

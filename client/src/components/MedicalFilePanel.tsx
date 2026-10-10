@@ -1673,7 +1673,7 @@ export default function MedicalFilePanel({
               {embedded ? (
                 <span className="text-xs text-muted-foreground" aria-hidden />
               ) : (
-                <button
+                <Button variant="bare"
                   type="button"
                   onClick={dismiss}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-muted-foreground bg-muted/60 transition-colors"
@@ -1688,7 +1688,7 @@ export default function MedicalFilePanel({
                   >
                     <path d="M18 6 6 18M6 6l12 12" />
                   </svg>
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -1700,7 +1700,7 @@ export default function MedicalFilePanel({
         <div className="flex items-center gap-3 border-b border-border/40 bg-muted/20 px-4 py-2 flex-shrink-0 flex-wrap">
           <label
             className={cn(
-              "inline-flex items-center gap-2 rounded-md border border-warning/60 bg-warning/10/60 px-2.5 py-1.5 text-xs font-semibold text-warning",
+              "inline-flex items-center gap-2 rounded-md border border-warning/60 bg-warning/10/60 px-2.5 py-1.5 text-xs font-semibold text-warning-text",
               hubRo && "opacity-60",
             )}
           >
@@ -1731,7 +1731,7 @@ export default function MedicalFilePanel({
                 </SelectContent>
               </Select>
               {isAdmin && !hubRo ? (
-                <button
+                <Button variant="bare"
                   type="button"
                   disabled={!selectedExaminationId}
                   onClick={() => {
@@ -1748,7 +1748,7 @@ export default function MedicalFilePanel({
                   aria-label="حذف الفحص"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               ) : null}
             </div>
           )}
@@ -1758,7 +1758,7 @@ export default function MedicalFilePanel({
         {!workflowMeasurementsOnly && !workflowPlanOnly && (
           <div className="flex gap-1 border-b border-border/40 px-4 py-2 flex-shrink-0">
             {(["data", "plan", "images"] as const).map((sec) => (
-              <button
+              <Button variant="bare"
                 key={sec}
                 type="button"
                 onClick={() => {
@@ -1777,7 +1777,7 @@ export default function MedicalFilePanel({
                   : sec === "plan"
                     ? "الخطة العلاجية"
                     : "صور التشخيص"}
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -1835,7 +1835,7 @@ export default function MedicalFilePanel({
             {/* AutoRef | IOP */}
             {showsMeasurementView("autoref") && (
               <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
                   AutoRef | IOP
                 </h3>
                 <div
@@ -1941,25 +1941,25 @@ export default function MedicalFilePanel({
                       <tr>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           Eye
                         </th>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           S
                         </th>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           C
                         </th>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           Axis
                         </th>
@@ -1968,7 +1968,7 @@ export default function MedicalFilePanel({
                     <tbody>
                       {["od", "os"].map((eye) => (
                         <tr key={eye} className="hover:bg-muted/20">
-                          <td className="border px-2 py-1.5 font-bold text-[10px]">
+                          <td className="border px-2 py-1.5 font-bold text-[13px]">
                             {eye === "od" ? "OD" : "OS"}
                           </td>
                           <td className="border px-1 py-1">
@@ -1996,7 +1996,7 @@ export default function MedicalFilePanel({
                                 }))
                               }
                               options={SPHERE_OPTIONS}
-                              triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                              triggerClassName="h-6 w-full text-[13px] text-center border-input"
                             />
                           </td>
                           <td className="border px-1 py-1">
@@ -2024,7 +2024,7 @@ export default function MedicalFilePanel({
                                 }))
                               }
                               options={CYLINDER_OPTIONS}
-                              triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                              triggerClassName="h-6 w-full text-[13px] text-center border-input"
                             />
                           </td>
                           <td className="border px-1 py-1">
@@ -2051,7 +2051,7 @@ export default function MedicalFilePanel({
                                   },
                                 }))
                               }
-                              className="h-6 w-full text-[10px] text-center border-input"
+                              className="h-6 w-full text-[13px] text-center border-input"
                             />
                           </td>
                         </tr>
@@ -2119,7 +2119,7 @@ export default function MedicalFilePanel({
                           options={CYLINDER_OPTIONS}
                           triggerClassName="h-8 w-full text-xs text-center border-input"
                         />
-                        <Input
+                        <Input aria-label="Axis"
                           value={
                             formData.measurements?.autoref?.[eye as "od" | "os"]
                               ?.axis || ""
@@ -2154,7 +2154,7 @@ export default function MedicalFilePanel({
             {/* After Refraction */}
             {showsMeasurementView("after") && (
               <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
                   After Refraction
                 </h3>
                 <div
@@ -2175,25 +2175,25 @@ export default function MedicalFilePanel({
                       <tr>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           Eye
                         </th>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           S
                         </th>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           C
                         </th>
                         <th
                           scope="col"
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                         >
                           Axis
                         </th>
@@ -2202,7 +2202,7 @@ export default function MedicalFilePanel({
                     <tbody>
                       {["od", "os"].map((eye) => (
                         <tr key={`after-${eye}`} className="hover:bg-muted/20">
-                          <td className="border px-2 py-1.5 font-bold text-[10px]">
+                          <td className="border px-2 py-1.5 font-bold text-[13px]">
                             {eye === "od" ? "OD" : "OS"}
                           </td>
                           <td className="border px-1 py-1">
@@ -2230,7 +2230,7 @@ export default function MedicalFilePanel({
                                 }))
                               }
                               options={SPHERE_OPTIONS}
-                              triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                              triggerClassName="h-6 w-full text-[13px] text-center border-input"
                             />
                           </td>
                           <td className="border px-1 py-1">
@@ -2258,7 +2258,7 @@ export default function MedicalFilePanel({
                                 }))
                               }
                               options={CYLINDER_OPTIONS}
-                              triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                              triggerClassName="h-6 w-full text-[13px] text-center border-input"
                             />
                           </td>
                           <td className="border px-1 py-1">
@@ -2285,7 +2285,7 @@ export default function MedicalFilePanel({
                                   },
                                 }))
                               }
-                              className="h-6 w-full text-[10px] text-center border-input"
+                              className="h-6 w-full text-[13px] text-center border-input"
                             />
                           </td>
                         </tr>
@@ -2353,7 +2353,7 @@ export default function MedicalFilePanel({
                           options={CYLINDER_OPTIONS}
                           triggerClassName="h-8 w-full text-xs text-center border-input"
                         />
-                        <Input
+                        <Input aria-label="Axis"
                           value={
                             formData.measurements?.after?.[eye as "od" | "os"]
                               ?.axis || ""
@@ -2388,14 +2388,14 @@ export default function MedicalFilePanel({
             {/* Glasses / Refraction */}
             {showsMeasurementView("refraction") && (
               <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
                   Refraction
                 </h3>
                 <div className="flex items-center gap-2 mb-3" dir="ltr">
                   <label className="font-medium min-w-[42px] text-xs">
                     BCVA
                   </label>
-                  <input
+                  <Input bare aria-label="OD"
                     type="text"
                     placeholder="OD"
                     value={formData.measurements?.autoref?.od?.bcva || ""}
@@ -2417,7 +2417,7 @@ export default function MedicalFilePanel({
                     className="w-16 px-2 py-1 border rounded text-xs text-center"
                   />
                   <span className="text-muted-foreground">/</span>
-                  <input
+                  <Input bare aria-label="OS"
                     type="text"
                     placeholder="OS"
                     value={formData.measurements?.autoref?.os?.bcva || ""}
@@ -2455,50 +2455,50 @@ export default function MedicalFilePanel({
                   >
                     <thead className="bg-muted/50">
                       <tr>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           Eye
                         </th>
                         <th
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                           colSpan={3}
                         >
                           OD
                         </th>
                         <th
-                          className="border px-2 py-1.5 font-semibold text-[10px]"
+                          className="border px-2 py-1.5 font-semibold text-[13px]"
                           colSpan={4}
                         >
                           OS
                         </th>
                       </tr>
                       <tr>
-                        <th className="border px-2 py-1.5 text-[10px]"></th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 text-[13px]"></th>
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           S
                         </th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           C
                         </th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           Ax
                         </th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           S
                         </th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           C
                         </th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           Ax
                         </th>
-                        <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                        <th className="border px-2 py-1.5 font-semibold text-[13px]">
                           PD
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr className="hover:bg-muted/20">
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">
+                        <td className="border px-2 py-1.5 font-bold text-[13px]">
                           Dis.
                         </td>
                         <td className="border px-1 py-1">
@@ -2511,7 +2511,7 @@ export default function MedicalFilePanel({
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                            triggerClassName="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                         <td className="border px-1 py-1">
@@ -2524,7 +2524,7 @@ export default function MedicalFilePanel({
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                            triggerClassName="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                         <td className="border px-1 py-1">
@@ -2536,7 +2536,7 @@ export default function MedicalFilePanel({
                                 od: { ...prev.od, a: e.target.value },
                               }))
                             }
-                            className="h-6 w-full text-[10px] text-center border-input"
+                            className="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                         <td className="border px-1 py-1">
@@ -2549,7 +2549,7 @@ export default function MedicalFilePanel({
                               }))
                             }
                             options={SPHERE_OPTIONS}
-                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                            triggerClassName="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                         <td className="border px-1 py-1">
@@ -2562,7 +2562,7 @@ export default function MedicalFilePanel({
                               }))
                             }
                             options={CYLINDER_OPTIONS}
-                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                            triggerClassName="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                         <td className="border px-1 py-1">
@@ -2574,7 +2574,7 @@ export default function MedicalFilePanel({
                                 os: { ...prev.os, a: e.target.value },
                               }))
                             }
-                            className="h-6 w-full text-[10px] text-center border-input"
+                            className="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                         <td className="border px-1 py-1">
@@ -2586,12 +2586,12 @@ export default function MedicalFilePanel({
                                 os: { ...prev.os, pd: e.target.value },
                               }))
                             }
-                            className="h-6 w-full text-[10px] text-center border-input"
+                            className="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                       </tr>
                       <tr className="hover:bg-muted/20">
-                        <td className="border px-2 py-1.5 font-bold text-[10px]">
+                        <td className="border px-2 py-1.5 font-bold text-[13px]">
                           Reading
                         </td>
                         <td className="border px-1 py-1" colSpan={7}>
@@ -2605,7 +2605,7 @@ export default function MedicalFilePanel({
                               }))
                             }
                             options={ADD_OPTIONS}
-                            triggerClassName="h-6 w-full text-[10px] text-center border-input"
+                            triggerClassName="h-6 w-full text-[13px] text-center border-input"
                           />
                         </td>
                       </tr>
@@ -2651,7 +2651,7 @@ export default function MedicalFilePanel({
                           options={CYLINDER_OPTIONS}
                           triggerClassName="h-8 w-full text-xs text-center border-input"
                         />
-                        <Input
+                        <Input aria-label="Axis"
                           value={
                             refractionTableData[row.key as "od" | "os"]?.a || ""
                           }
@@ -2667,7 +2667,7 @@ export default function MedicalFilePanel({
                           className="h-8 text-xs text-center border-input"
                           placeholder="Axis"
                         />
-                        <Input
+                        <Input aria-label="P.D."
                           value={
                             refractionTableData[row.key as "od" | "os"]?.pd ||
                             ""
@@ -2712,13 +2712,13 @@ export default function MedicalFilePanel({
             {showsMeasurementView("pentacam") && (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase">
                     Pentacam
                   </h3>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 gap-1.5 text-[10px]"
+                    className="h-7 gap-1.5 text-[13px]"
                     onClick={() =>
                       toast.info("البنتاكام", {
                         description: "عرض صور البنتاكام — قريباً",
@@ -2742,7 +2742,7 @@ export default function MedicalFilePanel({
                     )}
                     dir="ltr"
                   >
-                    <thead className="bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <thead className="bg-muted/50 text-[13px] uppercase text-muted-foreground">
                       <tr>
                         <th className="border px-2 py-2">Eye</th>
                         <th className="border px-2 py-2">K1</th>
@@ -2774,7 +2774,7 @@ export default function MedicalFilePanel({
                             ] as const
                           ).map((field) => (
                             <td key={field} className="border px-1 py-1">
-                              <Input
+                              <Input aria-label="—"
                                 type="number"
                                 value={
                                   formData.pentacam?.[eye as "od" | "os"]?.[
@@ -2856,16 +2856,16 @@ export default function MedicalFilePanel({
             {/* Fundus (collapsible) */}
             {showsMeasurementView("fundus") && (
               <div>
-                <button
+                <Button variant="bare"
                   type="button"
                   onClick={() => setFundusOpen((p) => !p)}
                   className="flex w-full items-center justify-between mb-2"
                 >
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase">
                     Fundus Examination
                   </h3>
                   <CollapsibleChevron open={fundusOpen} />
-                </button>
+                </Button>
                 {fundusOpen && (
                   <>
                     <div
@@ -2884,22 +2884,22 @@ export default function MedicalFilePanel({
                       >
                         <thead className="bg-muted/50">
                           <tr>
-                            <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                            <th className="border px-2 py-1.5 font-semibold text-[13px]">
                               Eye
                             </th>
-                            <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                            <th className="border px-2 py-1.5 font-semibold text-[13px]">
                               Disc
                             </th>
-                            <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                            <th className="border px-2 py-1.5 font-semibold text-[13px]">
                               C/D
                             </th>
-                            <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                            <th className="border px-2 py-1.5 font-semibold text-[13px]">
                               Macula
                             </th>
-                            <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                            <th className="border px-2 py-1.5 font-semibold text-[13px]">
                               Vessels
                             </th>
-                            <th className="border px-2 py-1.5 font-semibold text-[10px]">
+                            <th className="border px-2 py-1.5 font-semibold text-[13px]">
                               Other
                             </th>
                           </tr>
@@ -2907,11 +2907,11 @@ export default function MedicalFilePanel({
                         <tbody>
                           {["od", "os"].map((eye) => (
                             <tr key={`fu-${eye}`} className="hover:bg-muted/20">
-                              <td className="border px-2 py-1.5 font-bold text-[10px]">
+                              <td className="border px-2 py-1.5 font-bold text-[13px]">
                                 {eye === "od" ? "OD" : "OS"}
                               </td>
                               <td className="border px-1 py-1">
-                                <Input
+                                <Input aria-label="Normal"
                                   value={
                                     formData.fundus?.[eye as "od" | "os"]
                                       ?.discStatus || ""
@@ -2929,11 +2929,11 @@ export default function MedicalFilePanel({
                                     }))
                                   }
                                   placeholder="Normal"
-                                  className="h-6 w-full text-[10px] text-center border-input"
+                                  className="h-6 w-full text-[13px] text-center border-input"
                                 />
                               </td>
                               <td className="border px-1 py-1">
-                                <Input
+                                <Input aria-label="0.3"
                                   value={
                                     formData.fundus?.[eye as "od" | "os"]
                                       ?.cupDiscRatio || ""
@@ -2951,11 +2951,11 @@ export default function MedicalFilePanel({
                                     }))
                                   }
                                   placeholder="0.3"
-                                  className="h-6 w-full text-[10px] text-center border-input"
+                                  className="h-6 w-full text-[13px] text-center border-input"
                                 />
                               </td>
                               <td className="border px-1 py-1">
-                                <Input
+                                <Input aria-label="Normal"
                                   value={
                                     formData.fundus?.[eye as "od" | "os"]
                                       ?.macuaStatus || ""
@@ -2973,11 +2973,11 @@ export default function MedicalFilePanel({
                                     }))
                                   }
                                   placeholder="Normal"
-                                  className="h-6 w-full text-[10px] text-center border-input"
+                                  className="h-6 w-full text-[13px] text-center border-input"
                                 />
                               </td>
                               <td className="border px-1 py-1">
-                                <Input
+                                <Input aria-label="Normal"
                                   value={
                                     formData.fundus?.[eye as "od" | "os"]
                                       ?.vesselStatus || ""
@@ -2995,11 +2995,11 @@ export default function MedicalFilePanel({
                                     }))
                                   }
                                   placeholder="Normal"
-                                  className="h-6 w-full text-[10px] text-center border-input"
+                                  className="h-6 w-full text-[13px] text-center border-input"
                                 />
                               </td>
                               <td className="border px-1 py-1">
-                                <Input
+                                <Input aria-label="—"
                                   value={
                                     formData.fundus?.[eye as "od" | "os"]
                                       ?.otherFindings || ""
@@ -3017,7 +3017,7 @@ export default function MedicalFilePanel({
                                     }))
                                   }
                                   placeholder="—"
-                                  className="h-6 w-full text-[10px] text-center border-input"
+                                  className="h-6 w-full text-[13px] text-center border-input"
                                 />
                               </td>
                             </tr>
@@ -3035,7 +3035,7 @@ export default function MedicalFilePanel({
                             {eye === "od" ? "OD" : "OS"}
                           </div>
                           <div className="grid grid-cols-2 gap-1.5 text-xs">
-                            <Input
+                            <Input aria-label="Disc"
                               value={
                                 formData.fundus?.[eye as "od" | "os"]
                                   ?.discStatus || ""
@@ -3055,7 +3055,7 @@ export default function MedicalFilePanel({
                               placeholder="Disc"
                               className="h-8 text-xs text-center border-input"
                             />
-                            <Input
+                            <Input aria-label="C/D"
                               value={
                                 formData.fundus?.[eye as "od" | "os"]
                                   ?.cupDiscRatio || ""
@@ -3075,7 +3075,7 @@ export default function MedicalFilePanel({
                               placeholder="C/D"
                               className="h-8 text-xs text-center border-input"
                             />
-                            <Input
+                            <Input aria-label="Macula"
                               value={
                                 formData.fundus?.[eye as "od" | "os"]
                                   ?.macuaStatus || ""
@@ -3095,7 +3095,7 @@ export default function MedicalFilePanel({
                               placeholder="Macula"
                               className="h-8 text-xs text-center border-input"
                             />
-                            <Input
+                            <Input aria-label="Vessels"
                               value={
                                 formData.fundus?.[eye as "od" | "os"]
                                   ?.vesselStatus || ""
@@ -3115,7 +3115,7 @@ export default function MedicalFilePanel({
                               placeholder="Vessels"
                               className="h-8 text-xs text-center border-input"
                             />
-                            <Input
+                            <Input aria-label="Other"
                               value={
                                 formData.fundus?.[eye as "od" | "os"]
                                   ?.otherFindings || ""
@@ -3156,7 +3156,7 @@ export default function MedicalFilePanel({
               {!workflowPlanOnly && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">
+                    <Label className="text-[13px] text-muted-foreground">
                       الاسم
                     </Label>
                     <Input
@@ -3166,7 +3166,7 @@ export default function MedicalFilePanel({
                     />
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">
+                    <Label className="text-[13px] text-muted-foreground">
                       السن
                     </Label>
                     <Input
@@ -3176,7 +3176,7 @@ export default function MedicalFilePanel({
                     />
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">
+                    <Label className="text-[13px] text-muted-foreground">
                       تاريخ الفحص
                     </Label>
                     <DateInput
@@ -3186,7 +3186,7 @@ export default function MedicalFilePanel({
                     />
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">
+                    <Label className="text-[13px] text-muted-foreground">
                       تاريخ الزيارة
                     </Label>
                     <DateInput
@@ -3206,10 +3206,10 @@ export default function MedicalFilePanel({
                 {/* Complaint & Symptoms */}
                 {!workflowPlanOnly && (
                   <div className="flex flex-col rounded-md border border-border/60 p-3">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                       الشكوى و الاعراض
                     </h3>
-                    <Textarea
+                    <Textarea aria-label="اكتب الشكوى و الاعراض هنا…"
                       value={formData.medicalHistory}
                       onChange={(e) =>
                         setFormData((prev: any) => ({
@@ -3221,13 +3221,13 @@ export default function MedicalFilePanel({
                       className="order-3 min-h-[120px] text-sm"
                       rows={5}
                     />
-                    <div className="relative order-1 mb-2 ml-auto w-full md:w-80">
-                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
+                    <div className="relative order-1 mb-2 me-auto w-full md:w-80">
+                      <Search className="absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input aria-label="ابحث عن الأعراض…"
                         placeholder="ابحث عن الأعراض…"
                         value={symptomSearchText}
                         onChange={(e) => setSymptomSearchText(e.target.value)}
-                        className="h-10 pr-8 text-xs"
+                        className="h-10 ps-8 text-xs"
                       />
                     </div>
                     {symptomSearchText && (
@@ -3258,10 +3258,10 @@ export default function MedicalFilePanel({
                                     .includes(symptomSearchText.toLowerCase()),
                                 )
                                 .map((symptom: any) => (
-                                  <button
+                                  <Button variant="bare"
                                     type="button"
                                     key={symptom.id}
-                                    className="block w-full rounded px-1.5 py-1 text-left text-xs hover:bg-muted/50"
+                                    className="block w-full rounded px-1.5 py-1 text-end text-xs hover:bg-muted/50"
                                     onClick={() => {
                                       setFormData((prev: any) => ({
                                         ...prev,
@@ -3273,7 +3273,7 @@ export default function MedicalFilePanel({
                                     }}
                                   >
                                     {symptom.name}
-                                  </button>
+                                  </Button>
                                 ))
                             )}
                           </div>
@@ -3291,7 +3291,7 @@ export default function MedicalFilePanel({
                   <p className="mb-2 !text-[13px] font-bold text-primary">
                     Diagnosis:
                   </p>
-                  <Textarea
+                  <Textarea aria-label="اكتب التشخيص يدويًا أو ابحث بالأسفل…"
                     value={formData.diagnosis}
                     onChange={(e) =>
                       setFormData((prev: any) => ({
@@ -3305,7 +3305,7 @@ export default function MedicalFilePanel({
                   />
                   <div className="relative mt-2 w-full">
                     <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
+                    <Input aria-label="ابحث عن التشخيص…"
                       placeholder="ابحث عن التشخيص…"
                       value={diseaseSearchText}
                       onChange={(e) => setDiseaseSearchText(e.target.value)}
@@ -3340,7 +3340,7 @@ export default function MedicalFilePanel({
                                   .includes(diseaseSearchText.toLowerCase()),
                               )
                               .map((disease: any) => (
-                                <button
+                                <Button variant="bare"
                                   type="button"
                                   key={disease.id}
                                   className="block w-full rounded px-1.5 py-1 text-left text-xs hover:bg-muted/50"
@@ -3363,7 +3363,7 @@ export default function MedicalFilePanel({
                                   }}
                                 >
                                   {disease.name}
-                                </button>
+                                </Button>
                               ))
                           )}
                         </div>
@@ -3379,7 +3379,7 @@ export default function MedicalFilePanel({
                     <p className="mb-2 !text-[13px] font-bold text-primary">
                       Recommendations:
                     </p>
-                    <Textarea
+                    <Textarea aria-label="اكتب التوصيات هنا…"
                       value={formData.recommendations}
                       onChange={(e) =>
                         setFormData((prev: any) => ({
@@ -3400,7 +3400,7 @@ export default function MedicalFilePanel({
                   {/* Investigations */}
                   <div className="flex flex-col rounded-md border border-border/60 p-3">
                     <div className="order-0 mb-2 flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase">
                         التحاليل و الأشعة
                       </h3>
                       <Button
@@ -3414,13 +3414,13 @@ export default function MedicalFilePanel({
                         طباعة
                       </Button>
                     </div>
-                    <div className="relative order-2 mb-2 ml-auto w-full md:w-80">
-                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
+                    <div className="relative order-2 mb-2 me-auto w-full md:w-80">
+                      <Search className="absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input aria-label="ابحث عن الفحوصات…"
                         placeholder="ابحث عن الفحوصات…"
                         value={testSearchText}
                         onChange={(e) => setTestSearchText(e.target.value)}
-                        className="h-10 pr-8 text-xs"
+                        className="h-10 ps-8 text-xs"
                       />
                     </div>
                     {testSearchText && (
@@ -3481,16 +3481,16 @@ export default function MedicalFilePanel({
                           return (
                             <span
                               key={testId}
-                              className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px]"
+                              className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[13px]"
                             >
                               {test?.name || `Test ${testId}`}
-                              <button
+                              <Button variant="bare"
                                 type="button"
                                 onClick={() => toggleCheckbox("tests", testId)}
                                 className="text-muted-foreground hover:text-destructive"
                               >
                                 ×
-                              </button>
+                              </Button>
                             </span>
                           );
                         })}
@@ -3499,7 +3499,7 @@ export default function MedicalFilePanel({
                     {testRequestsQuery.data &&
                       Object.keys(testRequestsQuery.data).length > 0 && (
                         <div className="order-1 mb-2">
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-[13px] text-muted-foreground">
                             قوالب:
                           </span>
                           <div className="flex flex-wrap gap-1.5 items-center">
@@ -3516,13 +3516,13 @@ export default function MedicalFilePanel({
                               return (
                                 <DropdownMenu key={tab}>
                                   <DropdownMenuTrigger asChild>
-                                    <button
+                                    <Button variant="bare"
                                       type="button"
-                                      className="flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] font-medium text-foreground transition-colors hover:bg-muted/60"
+                                      className="flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/60"
                                     >
                                       <span>{tab}</span>
                                       <ChevronDown className="h-3 w-3 opacity-70" />
-                                    </button>
+                                    </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent
                                     align="start"
@@ -3535,7 +3535,7 @@ export default function MedicalFilePanel({
                                       ]) => (
                                         <DropdownMenuItem
                                           key={templateId}
-                                          className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
+                                          className="text-start text-xs cursor-pointer hover:bg-muted/50 ps-4 py-2"
                                           onClick={() => {
                                             setSelectedTestRequestId(
                                               templateId,
@@ -3562,7 +3562,7 @@ export default function MedicalFilePanel({
                   {/* Treatment / Medications */}
                   <div className="flex flex-col rounded-md border border-border/60 p-3">
                     <div className="order-0 mb-2 flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase">
                         العلاج
                       </h3>
                       <Button
@@ -3576,15 +3576,15 @@ export default function MedicalFilePanel({
                         طباعة
                       </Button>
                     </div>
-                    <div className="relative order-2 mb-2 ml-auto w-full md:w-80">
-                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
+                    <div className="relative order-2 mb-2 me-auto w-full md:w-80">
+                      <Search className="absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input aria-label="ابحث عن الأدوية…"
                         placeholder="ابحث عن الأدوية…"
                         value={medicationSearchText}
                         onChange={(e) =>
                           setMedicationSearchText(e.target.value)
                         }
-                        className="h-10 pr-8 text-xs"
+                        className="h-10 ps-8 text-xs"
                       />
                     </div>
                     {medicationSearchText && (
@@ -3656,7 +3656,7 @@ export default function MedicalFilePanel({
                           return (
                             <span
                               key={medId}
-                              className="inline-flex max-w-full items-start gap-1 rounded-md bg-primary/8 px-2 py-1 text-[10px]"
+                              className="inline-flex max-w-full items-start gap-1 rounded-md bg-primary/8 px-2 py-1 text-[13px]"
                             >
                               <span className="min-w-0">
                                 <span className="block font-medium">
@@ -3668,7 +3668,7 @@ export default function MedicalFilePanel({
                                   </span>
                                 )}
                               </span>
-                              <button
+                              <Button variant="bare"
                                 type="button"
                                 onClick={() =>
                                   toggleCheckbox("treatment", medId)
@@ -3676,7 +3676,7 @@ export default function MedicalFilePanel({
                                 className="text-muted-foreground hover:text-destructive"
                               >
                                 ×
-                              </button>
+                              </Button>
                             </span>
                           );
                         })}
@@ -3685,7 +3685,7 @@ export default function MedicalFilePanel({
                     {prescriptionsQuery.data &&
                       Object.keys(prescriptionsQuery.data).length > 0 && (
                         <div className="order-1 mb-2">
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-[13px] text-muted-foreground">
                             وصفات جاهزة:
                           </span>
                           <div className="flex flex-wrap gap-1.5 items-center">
@@ -3702,13 +3702,13 @@ export default function MedicalFilePanel({
                               return (
                                 <DropdownMenu key={tab}>
                                   <DropdownMenuTrigger asChild>
-                                    <button
+                                    <Button variant="bare"
                                       type="button"
-                                      className="flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 text-[10px] font-medium text-foreground transition-colors hover:bg-muted/60"
+                                      className="flex items-center gap-1 rounded-md border border-input bg-transparent px-2.5 py-1 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/60"
                                     >
                                       <span>{tab}</span>
                                       <ChevronDown className="h-3 w-3 opacity-70" />
-                                    </button>
+                                    </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent
                                     align="start"
@@ -3721,7 +3721,7 @@ export default function MedicalFilePanel({
                                       ]) => (
                                         <DropdownMenuItem
                                           key={templateId}
-                                          className="text-right text-xs cursor-pointer hover:bg-muted/50 pr-4 py-2"
+                                          className="text-start text-xs cursor-pointer hover:bg-muted/50 ps-4 py-2"
                                           onClick={() => {
                                             setSelectedPrescriptionIds([
                                               templateId,
@@ -3753,7 +3753,7 @@ export default function MedicalFilePanel({
                   <Label className="text-xs font-medium mb-1.5 block">
                     التوصيات
                   </Label>
-                  <Textarea
+                  <Textarea aria-label="أدخل التوصيات…"
                     value={formData.recommendations}
                     onChange={(e) =>
                       setFormData((prev: any) => ({
@@ -3800,7 +3800,7 @@ export default function MedicalFilePanel({
               {isSaving ? "جاري الحفظ…" : "حفظ"}
             </Button>
           ) : (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-[13px] text-muted-foreground">
               {patientHubViewOnlyHint}
             </span>
           )}

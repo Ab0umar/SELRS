@@ -28,13 +28,13 @@ export const PatientDetailsHeader: React.FC<PatientDetailsHeaderProps> = ({
     <Card className="mb-6">
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary">
             <UserRound className="h-8 w-8 text-card-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
               <h1
-                className="text-lg sm:text-xl font-black tracking-tight truncate"
+                className="text-2xl sm:text-2xl font-black truncate"
                 dir="auto"
               >
                 {patientName || "—"}

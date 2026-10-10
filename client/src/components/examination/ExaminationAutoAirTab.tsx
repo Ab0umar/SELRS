@@ -138,6 +138,7 @@ export default function ExaminationAutoAirTab({
                         triggerClassName={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={
                           (examData.autorefraction.od as any).a1 ??
                           examData.autorefraction.od.axis
@@ -191,6 +192,7 @@ export default function ExaminationAutoAirTab({
                         triggerClassName={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={(examData.autorefraction.od as any).afterA || ""}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -254,6 +256,7 @@ export default function ExaminationAutoAirTab({
                       />
                       <Label className="text-xs">A</Label>
                       <Input
+                        aria-label="قيمة القياس"
                         value={refractionTableData.od.a}
                         onChange={(e) =>
                           setRefractionTableData((prev) => ({
@@ -265,6 +268,7 @@ export default function ExaminationAutoAirTab({
                       />
                       <Label className="text-xs">P.D</Label>
                       <Input
+                        aria-label="قيمة القياس"
                         value={refractionTableData.od.pd}
                         onChange={(e) =>
                           setRefractionTableData((prev) => ({
@@ -378,6 +382,7 @@ export default function ExaminationAutoAirTab({
                         triggerClassName={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={
                           (examData.autorefraction.os as any).a1 ??
                           examData.autorefraction.os.axis
@@ -431,6 +436,7 @@ export default function ExaminationAutoAirTab({
                         triggerClassName={mobileExamInputClass}
                       />
                       <Input
+                        aria-label="قيمة القياس"
                         value={(examData.autorefraction.os as any).afterA || ""}
                         onChange={(e) =>
                           setExamData((prev) => ({
@@ -494,6 +500,7 @@ export default function ExaminationAutoAirTab({
                       />
                       <Label className="text-xs">A</Label>
                       <Input
+                        aria-label="قيمة القياس"
                         value={refractionTableData.os.a}
                         onChange={(e) =>
                           setRefractionTableData((prev) => ({
@@ -505,6 +512,7 @@ export default function ExaminationAutoAirTab({
                       />
                       <Label className="text-xs">P.D</Label>
                       <Input
+                        aria-label="قيمة القياس"
                         value={refractionTableData.os.pd}
                         onChange={(e) =>
                           setRefractionTableData((prev) => ({
@@ -656,6 +664,7 @@ export default function ExaminationAutoAirTab({
                       triggerClassName={desktopRefractionInputClass}
                     />
                     <Input
+                      aria-label="قيمة القياس"
                       value={
                         (examData.autorefraction.od as any).a1 ??
                         examData.autorefraction.od.axis
@@ -720,6 +729,7 @@ export default function ExaminationAutoAirTab({
                       triggerClassName={desktopRefractionInputClass}
                     />
                     <Input
+                      aria-label="قيمة القياس"
                       value={
                         (examData.autorefraction.os as any).a1 ??
                         examData.autorefraction.os.axis
@@ -774,6 +784,7 @@ export default function ExaminationAutoAirTab({
                       triggerClassName={desktopRefractionInputClass}
                     />
                     <Input
+                      aria-label="قيمة القياس"
                       value={(examData.autorefraction.od as any).afterA || ""}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -820,6 +831,7 @@ export default function ExaminationAutoAirTab({
                       triggerClassName={desktopRefractionInputClass}
                     />
                     <Input
+                      aria-label="قيمة القياس"
                       value={(examData.autorefraction.os as any).afterA || ""}
                       onChange={(e) =>
                         setExamData((prev) => ({
@@ -878,25 +890,114 @@ export default function ExaminationAutoAirTab({
                   <table className="w-full border-collapse text-center text-sm bg-background">
                     <thead>
                       <tr>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Eye</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={3}>OD</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }} colSpan={4}>OS</th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          Eye
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                          colSpan={3}
+                        >
+                          OD
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                          colSpan={4}
+                        >
+                          OS
+                        </th>
                       </tr>
                       <tr>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}></th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>S</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>C</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Ax</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>S</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>C</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>Ax</th>
-                        <th style={{ border: "2px solid var(--primary)", padding: 6 }}>PD</th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        ></th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          S
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          C
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          Ax
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          S
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          C
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          Ax
+                        </th>
+                        <th
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 6,
+                          }}
+                        >
+                          PD
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr style={{ height: 48 }}>
-                        <td style={{ border: "2px solid var(--primary)", fontWeight: 700 }}>Dis.</td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Dis.
+                        </td>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                        >
                           <RefractionValueSelect
                             value={refractionTableData.od.s}
                             onChange={(value) =>
@@ -909,7 +1010,12 @@ export default function ExaminationAutoAirTab({
                             triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                        >
                           <RefractionValueSelect
                             value={refractionTableData.od.c}
                             onChange={(value) =>
@@ -922,8 +1028,14 @@ export default function ExaminationAutoAirTab({
                             triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                        >
                           <Input
+                            aria-label="قيمة القياس"
                             value={refractionTableData.od.a}
                             onChange={(e) =>
                               setRefractionTableData((prev) => ({
@@ -934,7 +1046,12 @@ export default function ExaminationAutoAirTab({
                             className="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                        >
                           <RefractionValueSelect
                             value={refractionTableData.os.s}
                             onChange={(value) =>
@@ -947,7 +1064,12 @@ export default function ExaminationAutoAirTab({
                             triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                        >
                           <RefractionValueSelect
                             value={refractionTableData.os.c}
                             onChange={(value) =>
@@ -960,8 +1082,14 @@ export default function ExaminationAutoAirTab({
                             triggerClassName="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                        >
                           <Input
+                            aria-label="قيمة القياس"
                             value={refractionTableData.os.a}
                             onChange={(e) =>
                               setRefractionTableData((prev) => ({
@@ -972,8 +1100,14 @@ export default function ExaminationAutoAirTab({
                             className="h-7 w-full text-sm text-center border-input"
                           />
                         </td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                        >
                           <Input
+                            aria-label="قيمة القياس"
                             value={refractionTableData.os.pd}
                             onChange={(e) =>
                               setRefractionTableData((prev) => ({
@@ -986,8 +1120,21 @@ export default function ExaminationAutoAirTab({
                         </td>
                       </tr>
                       <tr style={{ height: 48 }}>
-                        <td style={{ border: "2px solid var(--primary)", fontWeight: 700 }}>Reading</td>
-                        <td style={{ border: "2px solid var(--primary)", padding: 4 }} colSpan={7}>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Reading
+                        </td>
+                        <td
+                          style={{
+                            border: "2px solid var(--primary)",
+                            padding: 4,
+                          }}
+                          colSpan={7}
+                        >
                           <RefractionValueSelect
                             value={refractionTableData.od.add}
                             onChange={(value) =>
@@ -1010,16 +1157,17 @@ export default function ExaminationAutoAirTab({
           )}
 
           <div className="mt-4">
-            <div className="space-y-1 pr-6 flex flex-col items-end w-full">
-              <Label htmlFor="nurse-signature" className="font-bold text-right">
+            <div className="space-y-1 ps-6 flex flex-col items-end w-full">
+              <Label htmlFor="nurse-signature" className="font-bold text-start">
                 توقيع التمريض
               </Label>
               <Input
+                aria-label="قيمة القياس"
                 id="nurse-signature"
                 name="nurse-signature"
                 value={nurseSignature}
                 onChange={(e) => setNurseSignature(e.target.value)}
-                className="text-right w-full max-w-sm ms-auto"
+                className="text-start w-full max-w-sm ms-auto"
               />
             </div>
           </div>

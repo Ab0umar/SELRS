@@ -251,22 +251,22 @@ export function MedicalFilePanel({
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge
                   variant="outline"
-                  className="text-[10px] sm:text-xs font-medium bg-muted/50"
+                  className="text-[13px] sm:text-xs font-medium bg-muted/50"
                 >
                   {serviceTypeLabels[patient.serviceType]}
                 </Badge>
-                <Badge variant="outline" className="text-[10px] sm:text-xs">
+                <Badge variant="outline" className="text-[13px] sm:text-xs">
                   {patient.doctorName}
                 </Badge>
               </div>
             </div>
-            <button
+            <Button variant="bare"
               onClick={onClose}
               className="h-8 w-8 flex items-center justify-center rounded-lg border bg-background text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
               aria-label="إغلاق الملف الطبي"
             >
               <X className="h-4 w-4" aria-hidden />
-            </button>
+            </Button>
           </div>
         </DialogHeader>
 
@@ -913,7 +913,7 @@ export function MedicalFilePanel({
                     dir="ltr"
                     aria-label="قياسات البنتاكام"
                   >
-                    <thead className="bg-muted/60 uppercase tracking-wider text-muted-foreground">
+                    <thead className="bg-muted/60 uppercase text-muted-foreground">
                       <tr>
                         <th scope="col" className="border px-3 py-2.5">
                           Eye
@@ -1033,7 +1033,7 @@ export function MedicalFilePanel({
                           className="text-xs gap-1 px-2.5 py-1"
                         >
                           {test}
-                          <button
+                          <Button variant="bare"
                             onClick={() =>
                               setSelectedTests((p) => toggleItem(p, test))
                             }
@@ -1041,7 +1041,7 @@ export function MedicalFilePanel({
                             aria-label={`إزالة ${test}`}
                           >
                             <X className="h-3 w-3" aria-hidden />
-                          </button>
+                          </Button>
                         </Badge>
                       ))}
                     </div>
@@ -1051,14 +1051,14 @@ export function MedicalFilePanel({
                 {/* Search tests */}
                 <div className="relative mb-3">
                   <Search
-                    className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground"
+                    className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground"
                     aria-hidden
                   />
                   <Input
                     placeholder="ابحث عن الفحوصات…"
                     value={testSearch}
                     onChange={(e) => setTestSearch(e.target.value)}
-                    className="pr-9 text-sm h-9"
+                    className="ps-9 text-sm h-9"
                     aria-label="ابحث عن الفحوصات والتحاليل"
                   />
                 </div>
@@ -1120,7 +1120,7 @@ export function MedicalFilePanel({
                           className="text-xs gap-1 px-2.5 py-1 bg-primary text-primary-foreground border-primary/20"
                         >
                           {d}
-                          <button
+                          <Button variant="bare"
                             onClick={() =>
                               setSelectedDiseases((p) => toggleItem(p, d))
                             }
@@ -1128,7 +1128,7 @@ export function MedicalFilePanel({
                             aria-label={`إزالة ${d}`}
                           >
                             <X className="h-3 w-3" aria-hidden />
-                          </button>
+                          </Button>
                         </Badge>
                       ))}
                     </div>
@@ -1137,14 +1137,14 @@ export function MedicalFilePanel({
                   {/* Disease search */}
                   <div className="relative mb-3">
                     <Search
-                      className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground"
+                      className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground"
                       aria-hidden
                     />
                     <Input
                       placeholder="ابحث عن الأمراض…"
                       value={diseaseSearch}
                       onChange={(e) => setDiseaseSearch(e.target.value)}
-                      className="pr-9 text-sm h-9"
+                      className="ps-9 text-sm h-9"
                       aria-label="ابحث عن الأمراض والحالات المرضية"
                     />
                   </div>
@@ -1209,7 +1209,7 @@ export function MedicalFilePanel({
                           className="text-xs gap-1 px-2.5 py-1 border-primary/30"
                         >
                           {med}
-                          <button
+                          <Button variant="bare"
                             onClick={() =>
                               setSelectedMeds((p) => toggleItem(p, med))
                             }
@@ -1217,7 +1217,7 @@ export function MedicalFilePanel({
                             aria-label={`إزالة ${med}`}
                           >
                             <X className="h-3 w-3" aria-hidden />
-                          </button>
+                          </Button>
                         </Badge>
                       ))}
                     </div>
@@ -1227,14 +1227,14 @@ export function MedicalFilePanel({
                 {/* Medication search */}
                 <div className="relative mb-3">
                   <Search
-                    className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground"
+                    className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground"
                     aria-hidden
                   />
                   <Input
                     placeholder="ابحث عن الأدوية…"
                     value={medSearch}
                     onChange={(e) => setMedSearch(e.target.value)}
-                    className="pr-9 text-sm h-9"
+                    className="ps-9 text-sm h-9"
                     aria-label="ابحث عن الأدوية والعلاجات"
                   />
                 </div>

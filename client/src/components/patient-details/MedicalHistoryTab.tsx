@@ -131,6 +131,35 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
     thyroid,
   ]);
 
+  if (historyQuery.isLoading) {
+    return (
+      <div
+        className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary"
+        role="status"
+      >
+        جارٍ تحميل التاريخ المرضي…
+      </div>
+    );
+  }
+
+  if (historyQuery.isError) {
+    return (
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        role="alert"
+      >
+        <span>تعذر تحميل التاريخ المرضي.</span>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void historyQuery.refetch()}
+        >
+          إعادة المحاولة
+        </Button>
+      </div>
+    );
+  }
+
   const handleSave = () => {
     if (!patientId) {
       toast.error("تعذر التعرف على المريض");
@@ -162,14 +191,14 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
             <div>
               <div className="flex items-center justify-between mb-2 h-5">
                 <Label className="text-xs font-bold text-foreground flex items-center">
-                  🩺 التاريخ المرضي العام (Medical History):
+                  التاريخ المرضي العام (Medical History):
                 </Label>
                 {patientId && (
                   <Button
                     size="sm"
                     onClick={handleSave}
                     disabled={saveMutation.isPending}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-7 px-3 rounded-lg gap-1 text-[11px] shadow-2xs"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-7 px-3 rounded-lg gap-1 text-[13px] shadow-2xs"
                   >
                     <Save className="h-3 w-3" />
                     {saveMutation.isPending ? "جاري الحفظ…" : "حفظ التعديلات"}
@@ -182,55 +211,55 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                     label: "مرض السكري",
                     state: diabetes,
                     setter: setDiabetes,
-                    icon: "🩸",
+                    icon: "",
                   },
                   {
                     label: "ضغط الدم",
                     state: hypertension,
                     setter: setHypertension,
-                    icon: "🫀",
+                    icon: "",
                   },
                   {
                     label: "أمراض القلب",
                     state: heartDisease,
                     setter: setHeartDisease,
-                    icon: "❤️",
+                    icon: "",
                   },
                   {
                     label: "الربو الشعبية",
                     state: asthma,
                     setter: setAsthma,
-                    icon: "🫁",
+                    icon: "",
                   },
                   {
                     label: "حساسية عامة",
                     state: allergies,
                     setter: setAllergies,
-                    icon: "🤧",
+                    icon: "",
                   },
                   {
                     label: "الغدة الدرقية",
                     state: thyroid,
                     setter: setThyroid,
-                    icon: "🦋",
+                    icon: "",
                   },
                   {
                     label: "أمراض مناعية",
                     state: autoimmune,
                     setter: setAutoimmune,
-                    icon: "🛡️",
+                    icon: "",
                   },
                   {
                     label: "ماء زرقاء (جلوكوما)",
                     state: glaucoma,
                     setter: setGlaucoma,
-                    icon: "💧",
+                    icon: "",
                   },
                   {
                     label: "قرنية مخروطية بالعائلة",
                     state: familyKeratoconus,
                     setter: setFamilyKeratoconus,
-                    icon: "👁️",
+                    icon: "",
                   },
                 ].map((item) => (
                   <label
@@ -247,8 +276,8 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                         item.setter(Boolean(checked))
                       }
                     />
-                    <span className="text-[11px] font-medium leading-tight">
-                      {item.icon} {item.label}
+                    <span className="text-[13px] font-medium leading-tight">
+                      {item.label}
                     </span>
                   </label>
                 ))}
@@ -261,7 +290,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 <Label className="text-xs font-bold text-foreground mb-2 block flex items-center h-5">
                   العمليات الجراحية السابقة:
                 </Label>
-                <Input
+                <Input aria-label="مثال: مياه بيضاء، ليزك سابق…"
                   value={previousSurgeries}
                   onChange={(e) => setPreviousSurgeries(e.target.value)}
                   placeholder="مثال: مياه بيضاء، ليزك سابق…"
@@ -272,7 +301,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 <Label className="text-xs font-bold text-foreground mb-1 block">
                   الأدوية والعلاجات الحالية:
                 </Label>
-                <Input
+                <Input aria-label="مثال: أتروبين، قطرات ضغط العين…"
                   value={medications}
                   onChange={(e) => setMedications(e.target.value)}
                   placeholder="مثال: أتروبين، قطرات ضغط العين…"
@@ -283,7 +312,7 @@ export const MedicalHistoryTab: React.FC<MedicalHistoryTabProps> = ({
                 <Label className="text-xs font-bold text-foreground mb-1 block">
                   التاريخ المرضي العائلي:
                 </Label>
-                <Input
+                <Input aria-label="مثال: جلوكوما، قرنية مخروطية…"
                   value={familyHistory}
                   onChange={(e) => setFamilyHistory(e.target.value)}
                   placeholder="مثال: جلوكوما، قرنية مخروطية…"

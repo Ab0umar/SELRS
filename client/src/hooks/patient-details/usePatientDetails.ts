@@ -532,11 +532,12 @@ export function usePatientDetails({
       for (const record of afterRefractionQuery.data)
         afterMap.set(record.examinationId, record);
 
-    const selectedExaminations = isVisitReport && latestVisitId
-      ? examinations.filter(
-          (exam: any) => Number(exam.visitId) === latestVisitId,
-        )
-      : examinations;
+    const selectedExaminations =
+      isVisitReport && latestVisitId
+        ? examinations.filter(
+            (exam: any) => Number(exam.visitId) === latestVisitId,
+          )
+        : examinations;
     return selectedExaminations.map((exam: any) => {
       const afterRecord = afterMap.get(exam.id);
       const autorefRecord = autorefMap.get(exam.id);
@@ -806,33 +807,29 @@ export function usePatientDetails({
       ? (testRequestsQuery.data as any[])
       : [];
     const visitRequests = isVisitReport
-      ? requests.filter(
-          (request) => Number(request.visitId) === latestVisitId,
-        )
+      ? requests.filter((request) => Number(request.visitId) === latestVisitId)
       : requests;
     const selectedRequests =
       isVisitReport && visitRequests.length === 0
         ? requests.filter((request) => !Number(request.visitId))
         : visitRequests;
-    return selectedRequests
-      .flatMap((request) =>
-        (request.items ?? []).map((item: any) => ({
-          id: item.id,
-          visitId: request.visitId,
-          name: item.testName,
-          result: item.result,
-          requestDate: request.requestDate,
-          status: request.status,
-        })),
-      );
+    return selectedRequests.flatMap((request) =>
+      (request.items ?? []).map((item: any) => ({
+        id: item.id,
+        visitId: request.visitId,
+        name: item.testName,
+        result: item.result,
+        requestDate: request.requestDate,
+        status: request.status,
+      })),
+    );
   }, [isVisitReport, latestVisitId, testRequestsQuery?.data]);
 
   const treatmentRows = useMemo(() => {
     const source = Array.isArray(prescriptionsQuery.data)
       ? (prescriptionsQuery.data as any[]).filter(
           (prescription) =>
-            !isVisitReport ||
-            Number(prescription.visitId) === latestVisitId,
+            !isVisitReport || Number(prescription.visitId) === latestVisitId,
         )
       : [];
     const rows: Array<{
@@ -1047,6 +1044,9 @@ export function usePatientDetails({
   return {
     patientQuery,
     examinationsQuery,
+    autorefractometryQuery,
+    afterRefractionQuery,
+    glassesRecordsQuery,
     visitsQuery,
     reportsQuery,
     prescriptionsQuery,
@@ -1057,6 +1057,7 @@ export function usePatientDetails({
     pentacamFilesQuery,
     medicalHistoryQuery,
     examinationChecklistQuery,
+    examinationChecklistsQuery,
     testRequestsQuery,
     deleteExamMutation,
     updateVisitDateMutation,

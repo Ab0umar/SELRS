@@ -11,25 +11,30 @@ import {
   ClipboardList,
   Eye,
   Glasses,
+  FlaskConical,
+  Pill,
 } from "lucide-react";
-
-// Sub-components
+import "@/styles/clinical-workspace.css";
 import AutorefsDashboard from "./AutorefsDashboard";
 import RefractionsDashboard from "./RefractionsDashboard";
 import MedicalReports from "./MedicalReports";
 import PentacamPage from "./PentacamPage";
+import PrescriptionsDashboard from "./PrescriptionsDashboard";
 
 export type MedicalRecordsTabKey =
-  | "autoref"
-  | "refraction"
-  | "medical-reports"
-  | "pentacam";
-
+  "autoref" | "refraction" | "medical-reports" | "pentacam" | "tests" | "rays" | "tests-rays" | "diagnosis" | "prescriptions";
 export type MedicalRecordsPageProps = {
   defaultTab?: MedicalRecordsTabKey;
   embeddedInHub?: boolean;
 };
-
+const tabs = [
+  { key: "autoref", label: "AutoRef", icon: Activity },
+  { key: "refraction", label: "Refraction", icon: Glasses },
+  { key: "pentacam", label: "Pentacam", icon: Eye },
+  { key: "tests-rays", label: "Test&Rays", icon: FlaskConical },
+  { key: "diagnosis", label: "Diagnosis", icon: ClipboardList },
+  { key: "prescriptions", label: "prescriptions", icon: Pill },
+] as const;
 export default function MedicalRecordsPage({
   defaultTab = "autoref",
   embeddedInHub = false,
@@ -37,142 +42,96 @@ export default function MedicalRecordsPage({
   const { isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
   const { goBack } = useAppNavigation();
-
-  // Determine initial tab from route, URL query, or defaultTab
   const initialTab = useMemo<MedicalRecordsTabKey>(() => {
-    try {
-      const sp = new URLSearchParams(window.location.search);
-      const tabParam = sp.get("tab");
-      if (
-        tabParam &&
-        ["autoref", "refraction", "medical-reports", "pentacam"].includes(
-          tabParam,
-        )
-      ) {
-        return tabParam as MedicalRecordsTabKey;
-      }
-    } catch {
-      // ignore
-    }
-
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "medical-reports") return "diagnosis";
+    if (tab === "tests" || tab === "rays") return "tests-rays";
+    if (tabs.some((item) => item.key === tab))
+      return tab as MedicalRecordsTabKey;
+    if (
+      [
+        "sheet",
+        "linking",
+        "duplicates",
+        "failed",
+        "results",
+        "dashboard",
+      ].includes(tab ?? "")
+    )
+      return "pentacam";
     if (location.includes("/pentacam")) return "pentacam";
-    if (location.includes("/medical-reports")) return "medical-reports";
+    if (location.includes("/medical-reports")) return "diagnosis";
     if (location.includes("/refractions")) return "refraction";
     if (location.includes("/autorefs")) return "autoref";
-
+    if (defaultTab === "medical-reports") return "diagnosis";
+    if (defaultTab === "tests" || defaultTab === "rays") return "tests-rays";
     return defaultTab;
   }, [location, defaultTab]);
-
-  const [activeTab, setActiveTab] = useState<MedicalRecordsTabKey>(initialTab);
-
+  const [activeTab, setActiveTab] = useState(initialTab);
+  useEffect(() => setActiveTab(initialTab), [initialTab]);
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
-  const handleTabChange = (val: string) => {
-    const nextTab = val as MedicalRecordsTabKey;
-    setActiveTab(nextTab);
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", nextTab);
-      window.history.replaceState({}, "", url.toString());
-    } catch {
-      // ignore
-    }
-  };
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation("/");
-    }
+    if (!isAuthenticated) setLocation("/");
   }, [isAuthenticated, setLocation]);
-
+  function select(value: string) {
+    setActiveTab(value as MedicalRecordsTabKey);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", value);
+    window.history.replaceState({}, "", url.toString());
+  }
   return (
-    <div className="w-full bg-background text-foreground">
+    <div
+      dir="rtl"
+      className="clinical-workspace w-full bg-background text-foreground"
+    >
       <div className="w-full space-y-4 p-3 sm:p-5">
         {!embeddedInHub && (
-          <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+          <div className="records-page-header border-b border-border bg-card p-4">
             <PageHeader
               title="السجلات الطبية"
-              description="لوحة Autoref، الانكسارات، التقارير الطبية، وفحوصات البنتاكام في شاشة موحدة"
               actions={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 text-xs"
-                  onClick={() => goBack()}
-                >
-                  <ArrowRight className="h-3.5 w-3.5" />
-                  <span>رجوع</span>
+                <Button variant="outline" size="sm" onClick={() => goBack()}>
+                  <ArrowRight className="h-4 w-4" />
+                  رجوع
                 </Button>
               }
             />
           </div>
         )}
-
         <Tabs
+          dir="ltr"
           value={activeTab}
-          onValueChange={handleTabChange}
+          onValueChange={select}
           className="w-full space-y-4"
         >
-          <div className="overflow-x-auto pb-1 [scrollbar-width:none]">
-            <TabsList className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1">
+          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+            {tabs.map((item) => (
               <TabsTrigger
-                value="pentacam"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
+                key={item.key}
+                value={item.key}
+                className="min-h-11 gap-2 px-3 py-2"
               >
-                <Eye className="h-4 w-4 shrink-0 text-primary" />
-                <span>البنتاكام</span>
+                <item.icon className="h-4 w-4" />
+                {item.label}
               </TabsTrigger>
-
-              <TabsTrigger
-                value="medical-reports"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <ClipboardList className="h-4 w-4 shrink-0 text-primary" />
-                <span>التقارير الطبية</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="refraction"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <Glasses className="h-4 w-4 shrink-0 text-primary" />
-                <span>لوحة الانكسارات</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="autoref"
-                className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
-              >
-                <Activity className="h-4 w-4 shrink-0 text-primary" />
-                <span>لوحة Autoref</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="autoref" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
-              <AutorefsDashboard />
-            </div>
+            ))}
+          </TabsList>
+          <TabsContent value="autoref" className="m-0" dir="rtl">
+            <AutorefsDashboard />
           </TabsContent>
-
-          <TabsContent value="refraction" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
-              <RefractionsDashboard />
-            </div>
+          <TabsContent value="refraction" className="m-0" dir="rtl">
+            <RefractionsDashboard />
           </TabsContent>
-
-          <TabsContent value="medical-reports" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
-              <MedicalReports />
-            </div>
+          <TabsContent value="tests-rays" className="m-0" dir="rtl">
+            <MedicalReports recordsCategory="tests-rays" />
           </TabsContent>
-
-          <TabsContent value="pentacam" className="m-0 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm">
-              <PentacamPage embeddedInHub />
-            </div>
+          <TabsContent value="diagnosis" className="m-0" dir="rtl">
+            <MedicalReports recordsCategory="consult" />
+          </TabsContent>
+          <TabsContent value="prescriptions" className="m-0" dir="rtl">
+            <PrescriptionsDashboard />
+          </TabsContent>
+          <TabsContent value="pentacam" className="m-0" dir="rtl">
+            <PentacamPage embeddedInHub />
           </TabsContent>
         </Tabs>
       </div>

@@ -57,20 +57,20 @@ function classifyPrescription(dateInput: unknown): Exclude<RxStatus, "all"> {
 function statusBadge(status: Exclude<RxStatus, "all">) {
   if (status === "active") {
     return (
-      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">
+      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[13px] font-semibold text-success">
         فعالة
       </span>
     );
   }
   if (status === "expired") {
     return (
-      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+      <span className="rounded-full bg-muted px-2.5 py-1 text-[13px] font-semibold text-muted-foreground">
         منتهية
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[13px] font-semibold text-primary">
       مكتملة
     </span>
   );
@@ -165,16 +165,6 @@ export default function PrescriptionsDashboard() {
         }
       />
 
-      {overviewQuery.isError ? (
-        <div className="mb-4">
-          <OfflinePageState
-            title="تعذر تحميل لوحة الروشتات"
-            body="تحقق من الاتصال ثم أعد المحاولة."
-            onRetry={() => void overviewQuery.refetch()}
-          />
-        </div>
-      ) : null}
-
       <div
         className={cn(
           STAT_CARDS_MOBILE_ROW,
@@ -232,28 +222,27 @@ export default function PrescriptionsDashboard() {
         </div>
       </div>
 
-      {/* Tab Selector */}
       <div className="mb-4 flex border-b border-border">
-        <button
+        <Button variant="bare"
           type="button"
           onClick={() => setViewMode("list")}
           className={cn(
             "pb-2.5 pt-1 px-4 text-sm font-semibold border-b-2 transition-colors",
             viewMode === "list"
               ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
           قائمة السجلات ({total})
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
           type="button"
           onClick={() => setViewMode("review")}
           className={cn(
             "pb-2.5 pt-1 px-4 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2",
             viewMode === "review"
               ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
           <span>الروشتات المنتهية</span>
@@ -266,10 +255,17 @@ export default function PrescriptionsDashboard() {
               0
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
-      {viewMode === "list" ? (
+      {overviewQuery.isError ? (
+        <OfflinePageState
+          title="تعذر تحميل لوحة الروشتات"
+          body="تحقق من الاتصال ثم أعد المحاولة."
+          retryLabel="إعادة المحاولة"
+          onRetry={() => void overviewQuery.refetch()}
+        />
+      ) : viewMode === "list" ? (
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           {overviewQuery.isLoading ? (
             <div className="p-12 text-center text-muted-foreground">
@@ -282,91 +278,161 @@ export default function PrescriptionsDashboard() {
                 : "لا توجد روشتات مطابقة للتصفية."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-right text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="px-4 py-3 font-semibold">المريض</th>
-                    <th className="px-4 py-3 font-semibold">الطبيب</th>
-                    <th className="px-4 py-3 font-semibold">التاريخ</th>
-                    <th className="px-4 py-3 font-semibold">الأدوية</th>
-                    <th className="px-4 py-3 font-semibold">الحالة</th>
-                    <th className="w-24 px-4 py-3 text-center font-semibold">
-                      إجراء
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const status = classifyPrescription(row.prescriptionDate);
-                    const dateLabel = toDateLabel(row.prescriptionDate);
-                    const noteSnippet = String(row.notes ?? "")
-                      .trim()
-                      .slice(0, 80);
-                    return (
-                      <tr
-                        key={row.id}
-                        className="border-b border-border/70 transition-colors hover:bg-primary/[0.05]"
-                      >
-                        <td className="px-4 py-3 align-top">
-                          <div className="font-semibold">
-                            {row.patientName || `مريض #${row.patientId}`}
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                            <span dir="ltr">{row.patientCode || "—"}</span>
-                            <span>•</span>
-                            <span>
-                              {row.locationType === "external"
-                                ? "خارجي"
-                                : "المركز"}
-                            </span>
-                          </div>
-                          {noteSnippet ? (
-                            <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                              {noteSnippet}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-3 align-top text-muted-foreground">
-                          {row.doctorName || "—"}
-                        </td>
-                        <td
-                          className="px-4 py-3 align-top whitespace-nowrap"
-                          dir="ltr"
+            <>
+              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[860px] text-start text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-4 py-3 font-semibold">المريض</th>
+                      <th className="px-4 py-3 font-semibold">الطبيب</th>
+                      <th className="px-4 py-3 font-semibold">التاريخ</th>
+                      <th className="px-4 py-3 font-semibold">الأدوية</th>
+                      <th className="px-4 py-3 font-semibold">الحالة</th>
+                      <th className="w-24 px-4 py-3 text-center font-semibold">
+                        إجراء
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => {
+                      const status = classifyPrescription(row.prescriptionDate);
+                      const dateLabel = toDateLabel(row.prescriptionDate);
+                      const noteSnippet = String(row.notes ?? "")
+                        .trim()
+                        .slice(0, 80);
+                      return (
+                        <tr
+                          key={row.id}
+                          className="border-b border-border/70 transition-colors hover:bg-primary/[0.05]"
                         >
-                          <Badge variant="outline" className="font-normal">
-                            {dateLabel}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <span className="font-medium tabular-nums">
-                            {row.itemCount}
-                          </span>
-                          <span className="text-muted-foreground"> دواء</span>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          {statusBadge(status)}
-                        </td>
-                        <td className="px-4 py-3 text-center align-top">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-11 w-11 p-0"
-                            aria-label={`فتح وصفة المريض ${row.patientName ?? row.patientId}`}
-                            onClick={() =>
-                              setLocation(`/prescription/${row.patientId}`)
-                            }
+                          <td className="px-4 py-3 align-top">
+                            <div className="font-semibold">
+                              {row.patientName || `مريض #${row.patientId}`}
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-2 text-[13px] text-muted-foreground">
+                              <span dir="ltr">{row.patientCode || "—"}</span>
+                              <span>•</span>
+                              <span>
+                                {row.locationType === "external"
+                                  ? "خارجي"
+                                  : "المركز"}
+                              </span>
+                            </div>
+                            {noteSnippet ? (
+                              <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                                {noteSnippet}
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-3 align-top text-muted-foreground">
+                            {row.doctorName || "—"}
+                          </td>
+                          <td
+                            className="px-4 py-3 align-top whitespace-nowrap"
+                            dir="ltr"
                           >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            <Badge variant="outline" className="font-normal">
+                              {dateLabel}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 align-top">
+                            <span className="font-medium tabular-nums">
+                              {row.itemCount}
+                            </span>
+                            <span className="text-muted-foreground"> دواء</span>
+                          </td>
+                          <td className="px-4 py-3 align-top">
+                            {statusBadge(status)}
+                          </td>
+                          <td className="px-4 py-3 text-center align-top">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-11 w-11 p-0"
+                              aria-label={`فتح وصفة المريض ${row.patientName ?? row.patientId}`}
+                              onClick={() =>
+                                setLocation(`/prescription/${row.patientId}`)
+                              }
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="grid gap-3 p-3 md:hidden">
+                {rows.map((row) => {
+                  const status = classifyPrescription(row.prescriptionDate);
+                  const dateLabel = toDateLabel(row.prescriptionDate);
+                  const noteSnippet = String(row.notes ?? "")
+                    .trim()
+                    .slice(0, 80);
+                  return (
+                    <article
+                      key={row.id}
+                      className="rounded-xl border border-border/80 bg-background p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold">
+                            {row.patientName || `مريض #${row.patientId}`}
+                          </h3>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            <span dir="ltr">{row.patientCode || "—"}</span>
+                            <span className="mx-1">•</span>
+                            {row.locationType === "external"
+                              ? "خارجي"
+                              : "المركز"}
+                          </p>
+                        </div>
+                        {statusBadge(status)}
+                      </div>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/70 pt-3 text-xs">
+                        <div>
+                          <dt className="text-muted-foreground">الطبيب</dt>
+                          <dd className="mt-0.5 font-medium">
+                            {row.doctorName || "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">التاريخ</dt>
+                          <dd className="mt-0.5" dir="ltr">
+                            {dateLabel}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">الأدوية</dt>
+                          <dd className="mt-0.5 font-medium tabular-nums">
+                            {row.itemCount} دواء
+                          </dd>
+                        </div>
+                      </dl>
+                      {noteSnippet ? (
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          {noteSnippet}
+                        </p>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 min-h-11 w-full"
+                        onClick={() =>
+                          setLocation(`/prescription/${row.patientId}`)
+                        }
+                      >
+                        <Eye className="me-2 h-4 w-4" />
+                        فتح الوصفة
+                      </Button>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
           )}
           <PaginationBar
             page={page}
@@ -388,13 +454,11 @@ export default function PrescriptionsDashboard() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {alertRows.map((row) => (
-                <button
+                <Button variant="bare"
                   key={row.id}
                   type="button"
-                  onClick={() =>
-                    setLocation(`/prescription/${row.patientId}`)
-                  }
-                  className="w-full rounded-xl border border-border/80 bg-muted/20 p-3 text-right transition-colors hover:bg-muted/40 flex flex-col justify-between"
+                  onClick={() => setLocation(`/prescription/${row.patientId}`)}
+                  className="w-full rounded-xl border border-border/80 bg-muted/20 p-3 text-start transition-colors hover:bg-muted/40 flex flex-col justify-between"
                 >
                   <div className="w-full">
                     <div className="flex items-start justify-between gap-3">
@@ -403,21 +467,21 @@ export default function PrescriptionsDashboard() {
                           {row.patientName || `مريض #${row.patientId}`}
                         </div>
                         <div
-                          className="mt-1 text-[11px] text-muted-foreground"
+                          className="mt-1 text-[13px] text-muted-foreground"
                           dir="ltr"
                         >
                           {row.patientCode || "—"}
                         </div>
                       </div>
-                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-[13px] font-semibold text-muted-foreground">
                         منتهية
                       </span>
                     </div>
-                    <div className="mt-3 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                    <div className="mt-3 text-[13px] text-muted-foreground border-t border-border/50 pt-2">
                       {row.itemCount} دواء • {row.doctorName || "—"}
                     </div>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}

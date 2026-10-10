@@ -10,7 +10,7 @@ export function TestsTab({ testRequestsData }: TestsTabProps) {
       <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
           <CardTitle>Diagnostic Tests</CardTitle>
-          <span className="font-mono text-[10px] text-muted-foreground">
+          <span className="font-mono text-[13px] text-muted-foreground">
             testrequests + testrequestitems
           </span>
         </div>

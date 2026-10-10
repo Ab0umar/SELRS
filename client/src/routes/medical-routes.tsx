@@ -382,6 +382,22 @@ export const MedicalRoutes = (
       )}
     />
     <Route
+      path="/sheets/specialist/:id/followup"
+      component={() => (
+        <ProtectedRoute>
+          <ConsultantFollowupPage sheetType="specialist" />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
+      path="/sheets/external"
+      component={() => (
+        <ProtectedRoute>
+          <SheetsPage defaultTab="external" />
+        </ProtectedRoute>
+      )}
+    />
+    <Route
       path={ROUTES.sheetsExternalId}
       component={() => (
         <ProtectedRoute>

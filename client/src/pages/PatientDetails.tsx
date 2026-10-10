@@ -25,6 +25,8 @@ import { TreatmentTab } from "@/components/patient-details/TreatmentTab";
 import { TestsTab } from "@/components/patient-details/TestsTab";
 import PatientPicker from "@/components/PatientPicker";
 import type { LucideIcon } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { operationTypeLabelAr } from "@shared/opTypes";
 
 type Section = { key: string; label: string; icon: LucideIcon };
 
@@ -51,6 +53,46 @@ function getShortDiagnosis(
   return text.length > 22 ? `${text.slice(0, 22)}…` : text;
 }
 
+type DetailQuery = {
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => unknown;
+};
+
+function PatientSectionState({
+  label,
+  queries,
+  onRetry,
+}: {
+  label: string;
+  queries: DetailQuery[];
+  onRetry: () => void;
+}) {
+  const isLoading = queries.some((query) => query.isLoading);
+  const isError = queries.some((query) => query.isError);
+  if (!isLoading && !isError) return null;
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm",
+        isError
+          ? "border-destructive/50 bg-destructive/5 text-destructive"
+          : "border-primary/30 bg-primary/5 text-primary",
+      )}
+      role={isError ? "alert" : "status"}
+    >
+      <span>
+        {isError ? `تعذر تحميل قسم ${label}.` : `جارٍ تحميل قسم ${label}…`}
+      </span>
+      {isError && (
+        <Button type="button" variant="outline" onClick={onRetry}>
+          إعادة المحاولة
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function PatientDetails() {
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
@@ -60,6 +102,11 @@ export default function PatientDetails() {
   const [, patientFileParams] = useRoute("/patient-file/:id");
   const rawPatientId = patientsParams?.id ?? patientFileParams?.id;
   const patientId = rawPatientId ? Number(rawPatientId) : undefined;
+
+  const linkedOperationsQuery = trpc.opHistory.getLinkedOperationTypes.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: isAuthenticated && Boolean(patientId) },
+  );
 
   const pd = usePatientDetails({
     patientId,
@@ -71,20 +118,45 @@ export default function PatientDetails() {
 
   if (!isAuthenticated) return null;
 
-  if (pd.patientQuery.isError && !pd.patient) {
+  if (pd.patientQuery.isLoading && !pd.patient) {
     return (
-      <PatientDetailsError
-        onRetry={() => {
-          void pd.patientQuery.refetch();
-          void pd.examinationsQuery.refetch();
-          void pd.reportsQuery.refetch();
-          void pd.prescriptionsQuery.refetch();
-          void pd.surgeriesQuery.refetch();
-          void pd.followupsQuery.refetch();
-        }}
-      />
+      <div className="min-h-screen bg-background px-4 py-8" dir="rtl">
+        <div className="mx-auto max-w-3xl rounded-lg border border-border bg-card px-4 py-6 text-sm text-muted-foreground">
+          جارٍ تحميل ملف المريض…
+        </div>
+      </div>
     );
   }
+
+  if (pd.patientQuery.isError && !pd.patient) {
+    return <PatientDetailsError onRetry={() => void pd.onRefresh()} />;
+  }
+
+  const historyQueries = [
+    pd.medicalHistoryQuery,
+    pd.visitsQuery,
+    pd.examinationChecklistsQuery,
+  ];
+  const examinationQueries = [
+    pd.examinationsQuery,
+    pd.autorefractometryQuery,
+    pd.afterRefractionQuery,
+    pd.glassesRecordsQuery,
+  ];
+  const pentacamQueries = [pd.pentacamQuery, pd.pentacamFilesQuery];
+  const treatmentQueries = [pd.prescriptionsQuery];
+  const testQueries = pd.testRequestsQuery ? [pd.testRequestsQuery] : [];
+  const auxiliaryQueries = [
+    pd.reportsQuery,
+    pd.surgeriesQuery,
+    pd.followupsQuery,
+    pd.followupSheetsQuery,
+  ];
+  const retryQueries = (queries: DetailQuery[]) => {
+    void Promise.all(queries.map((query) => Promise.resolve(query.refetch())));
+  };
+  const hasUnavailableQuery = (queries: DetailQuery[]) =>
+    queries.some((query) => query.isLoading || query.isError);
 
   const handleSelectPatient = (p: {
     id: number;
@@ -137,7 +209,7 @@ export default function PatientDetails() {
             <Button
               variant="outline"
               size="icon"
-              className="h-9 w-9 shrink-0 print:hidden"
+              className="h-11 w-11 shrink-0 print:hidden"
               onClick={() => goBack()}
               aria-label="رجوع"
             >
@@ -148,7 +220,7 @@ export default function PatientDetails() {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="text-lg font-bold leading-tight text-foreground">
+                <h1 className="text-2xl font-bold leading-tight text-foreground">
                   تقرير الزيارات
                 </h1>
                 <span className="text-sm text-muted-foreground" dir="auto">
@@ -170,6 +242,27 @@ export default function PatientDetails() {
                 )}
                 <span>عدد الزيارات: {visits.length}</span>
                 <span>آخر زيارة: {latestVisitLabel}</span>
+                {linkedOperationsQuery.isLoading && (
+                  <span role="status">جارٍ تحميل نوع العملية…</span>
+                )}
+                {linkedOperationsQuery.isError && (
+                  <Button variant="bare"
+                    type="button"
+                    onClick={() => void linkedOperationsQuery.refetch()}
+                    className="text-destructive underline"
+                  >
+                    تعذر تحميل نوع العملية — إعادة المحاولة
+                  </Button>
+                )}
+                {Array.from(
+                  new Set(
+                    (linkedOperationsQuery.data ?? []).map((operation) =>
+                      operationTypeLabelAr(operation.operationType),
+                    ),
+                  ),
+                ).map((label) => (
+                  <span key={label}>نوع العملية: {label}</span>
+                ))}
               </div>
             </div>
           </div>
@@ -197,7 +290,7 @@ export default function PatientDetails() {
             <Button
               variant="outline"
               size="icon"
-              className="h-9 w-9 shrink-0"
+              className="h-11 w-11 shrink-0"
               onClick={() => window.print()}
               aria-label="طباعة تقرير الزيارات"
             >
@@ -226,7 +319,7 @@ export default function PatientDetails() {
               const active = pd.activeTab === section.key;
               const Icon = section.icon;
               return (
-                <button
+                <Button variant="bare"
                   key={section.key}
                   type="button"
                   onClick={() => pd.setActiveTab(section.key)}
@@ -244,7 +337,7 @@ export default function PatientDetails() {
                     aria-hidden
                   />
                   {section.label}
-                </button>
+                </Button>
               );
             })}
           </nav>
@@ -289,31 +382,79 @@ export default function PatientDetails() {
         <main className="flex-1 overflow-y-auto">
           <PullToRefresh onRefresh={pd.onRefresh} className="min-h-full">
             <div className="space-y-5 p-4">
-              <MedicalHistoryTab
-                patientId={pd.patient?.id}
-                history={pd.overviewData.history}
-                symptoms={pd.overviewData.symptoms}
-                onRefresh={pd.onRefresh}
+              <PatientSectionState
+                label="بيانات الزيارات والتقارير المساندة"
+                queries={auxiliaryQueries}
+                onRetry={() => retryQueries(auxiliaryQueries)}
               />
+              <PatientSectionState
+                label="التاريخ المرضي"
+                queries={historyQueries}
+                onRetry={() => retryQueries(historyQueries)}
+              />
+              {!hasUnavailableQuery(historyQueries) && (
+                <MedicalHistoryTab
+                  patientId={pd.patient?.id}
+                  history={pd.overviewData.history}
+                  symptoms={pd.overviewData.symptoms}
+                  onRefresh={pd.onRefresh}
+                />
+              )}
 
               {pd.activeTab === "examinations" && (
-                <ExaminationsTab
-                  autorefractionRows={pd.autorefractionRows}
-                  afterRows={pd.afterRows}
-                  glassesRows={pd.glassesRows}
-                />
+                <>
+                  <PatientSectionState
+                    label="القياسات والانكسار"
+                    queries={examinationQueries}
+                    onRetry={() => retryQueries(examinationQueries)}
+                  />
+                  {!hasUnavailableQuery(examinationQueries) && (
+                    <ExaminationsTab
+                      autorefractionRows={pd.autorefractionRows}
+                      afterRows={pd.afterRows}
+                      glassesRows={pd.glassesRows}
+                    />
+                  )}
+                </>
               )}
               {pd.canViewPentacam && pd.activeTab === "pentacam" && (
-                <PentacamTab
-                  pentacamRows={pd.pentacamRows}
-                  pentacamFiles={pd.pentacamFiles}
-                />
+                <>
+                  <PatientSectionState
+                    label="Pentacam والتصوير"
+                    queries={pentacamQueries}
+                    onRetry={() => retryQueries(pentacamQueries)}
+                  />
+                  {!hasUnavailableQuery(pentacamQueries) && (
+                    <PentacamTab
+                      pentacamRows={pd.pentacamRows}
+                      pentacamFiles={pd.pentacamFiles}
+                    />
+                  )}
+                </>
               )}
               {pd.activeTab === "treatment" && (
-                <TreatmentTab treatmentRows={pd.treatmentRows} />
+                <>
+                  <PatientSectionState
+                    label="الخطة العلاجية"
+                    queries={treatmentQueries}
+                    onRetry={() => retryQueries(treatmentQueries)}
+                  />
+                  {!hasUnavailableQuery(treatmentQueries) && (
+                    <TreatmentTab treatmentRows={pd.treatmentRows} />
+                  )}
+                </>
               )}
               {pd.activeTab === "tests" && (
-                <TestsTab testRequestsData={latestTestRequests} />
+                <>
+                  <PatientSectionState
+                    label="الفحوصات المطلوبة"
+                    queries={testQueries}
+                    onRetry={() => retryQueries(testQueries)}
+                  />
+                  {!hasUnavailableQuery(testQueries) && (
+                    <TestsTab testRequestsData={latestTestRequests} />
+                  )}
+                </>
               )}
             </div>
           </PullToRefresh>
@@ -331,7 +472,7 @@ export default function PatientDetails() {
             const active = pd.activeTab === section.key;
             const Icon = section.icon;
             return (
-              <button
+              <Button variant="bare"
                 key={section.key}
                 type="button"
                 onClick={() => pd.setActiveTab(section.key)}
@@ -357,13 +498,13 @@ export default function PatientDetails() {
                 />
                 <span
                   className={cn(
-                    "whitespace-nowrap text-[9px] leading-none",
+                    "whitespace-nowrap text-[13px] leading-none",
                     active ? "font-semibold" : "font-medium",
                   )}
                 >
                   {section.label}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>

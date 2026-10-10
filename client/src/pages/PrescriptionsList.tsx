@@ -137,16 +137,6 @@ export default function PrescriptionsList() {
         }
       />
 
-      {overviewQuery.isError ? (
-        <div className="mb-4">
-          <OfflinePageState
-            title="تعذر تحميل قائمة الروشتات"
-            body="تحقق من الاتصال ثم أعد المحاولة."
-            onRetry={() => void overviewQuery.refetch()}
-          />
-        </div>
-      ) : null}
-
       <div
         className={cn(
           STAT_CARDS_MOBILE_ROW,
@@ -197,6 +187,15 @@ export default function PrescriptionsList() {
           <div className="p-12 text-center text-muted-foreground">
             جاري التحميل…
           </div>
+        ) : overviewQuery.isError ? (
+          <div className="p-4">
+            <OfflinePageState
+              title="تعذر تحميل قائمة الروشتات"
+              body="تحقق من الاتصال ثم أعد المحاولة."
+              retryLabel="إعادة المحاولة"
+              onRetry={() => void overviewQuery.refetch()}
+            />
+          </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground">
             {rows.length === 0
@@ -204,87 +203,166 @@ export default function PrescriptionsList() {
               : "لا توجد روشتات مطابقة للتصفية."}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-right text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="px-4 py-3 font-semibold">المريض</th>
-                  <th className="px-4 py-3 font-semibold">الطبيب</th>
-                  <th className="px-4 py-3 font-semibold">التاريخ</th>
-                  <th className="px-4 py-3 font-semibold">الأدوية</th>
-                  <th className="px-4 py-3 font-semibold">الحالة</th>
-                  <th className="w-24 px-4 py-3 text-center font-semibold">
-                    إجراءات
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => {
-                  const st = classifyPrescription(r.prescriptionDate);
-                  const dt =
-                    r.prescriptionDate instanceof Date
-                      ? r.prescriptionDate
-                      : new Date(String(r.prescriptionDate ?? ""));
-                  const dateLabel = Number.isNaN(dt.getTime())
-                    ? "—"
-                    : dt.toLocaleDateString("ar-EG");
-                  const noteSnippet = String(r.notes ?? "")
-                    .trim()
-                    .slice(0, 80);
+          <>
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[720px] text-start text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="px-4 py-3 font-semibold">المريض</th>
+                    <th className="px-4 py-3 font-semibold">الطبيب</th>
+                    <th className="px-4 py-3 font-semibold">التاريخ</th>
+                    <th className="px-4 py-3 font-semibold">الأدوية</th>
+                    <th className="px-4 py-3 font-semibold">الحالة</th>
+                    <th className="w-24 px-4 py-3 text-center font-semibold">
+                      إجراءات
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => {
+                    const st = classifyPrescription(r.prescriptionDate);
+                    const dt =
+                      r.prescriptionDate instanceof Date
+                        ? r.prescriptionDate
+                        : new Date(String(r.prescriptionDate ?? ""));
+                    const dateLabel = Number.isNaN(dt.getTime())
+                      ? "—"
+                      : dt.toLocaleDateString("ar-EG");
+                    const noteSnippet = String(r.notes ?? "")
+                      .trim()
+                      .slice(0, 80);
 
-                  return (
-                    <tr
-                      key={r.id}
-                      className="border-b border-border/70 transition-colors hover:bg-primary/[0.06]"
-                    >
-                      <td className="px-4 py-3 align-top">
-                        <div className="font-semibold">
-                          {r.patientName || `مريض #${r.patientId}`}
-                        </div>
-                        {noteSnippet ? (
-                          <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                            {noteSnippet}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3 align-top text-muted-foreground">
-                        {r.doctorName || "—"}
-                      </td>
-                      <td
-                        className="px-4 py-3 align-top whitespace-nowrap"
-                        dir="ltr"
+                    return (
+                      <tr
+                        key={r.id}
+                        className="border-b border-border/70 transition-colors hover:bg-primary/[0.06]"
                       >
-                        <Badge variant="outline" className="font-normal">
-                          {dateLabel}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <span className="tabular-nums font-medium">
-                          {r.itemCount}
-                        </span>
-                        <span className="text-muted-foreground"> دواء</span>
-                      </td>
-                      <td className="px-4 py-3 align-top">{statusBadge(st)}</td>
-                      <td className="px-4 py-3 text-center align-top">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-9 w-9 p-0"
-                          title="عرض وتعديل"
-                          onClick={() =>
-                            setLocation(`/prescription/${r.patientId}`)
-                          }
+                        <td className="px-4 py-3 align-top">
+                          <div className="font-semibold">
+                            {r.patientName || `مريض #${r.patientId}`}
+                          </div>
+                          {noteSnippet ? (
+                            <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                              {noteSnippet}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 align-top text-muted-foreground">
+                          {r.doctorName || "—"}
+                        </td>
+                        <td
+                          className="px-4 py-3 align-top whitespace-nowrap"
+                          dir="ltr"
                         >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          <Badge variant="outline" className="font-normal">
+                            {dateLabel}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <span className="tabular-nums font-medium">
+                            {r.itemCount}
+                          </span>
+                          <span className="text-muted-foreground"> دواء</span>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          {statusBadge(st)}
+                        </td>
+                        <td className="px-4 py-3 text-center align-top">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-9 w-9 p-0"
+                            title="عرض وتعديل"
+                            onClick={() =>
+                              setLocation(`/prescription/${r.patientId}`)
+                            }
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="grid gap-3 p-3 md:hidden">
+              {filtered.map((r) => {
+                const st = classifyPrescription(r.prescriptionDate);
+                const dt =
+                  r.prescriptionDate instanceof Date
+                    ? r.prescriptionDate
+                    : new Date(String(r.prescriptionDate ?? ""));
+                const dateLabel = Number.isNaN(dt.getTime())
+                  ? "—"
+                  : dt.toLocaleDateString("ar-EG");
+                const noteSnippet = String(r.notes ?? "")
+                  .trim()
+                  .slice(0, 80);
+                return (
+                  <article
+                    key={r.id}
+                    className="rounded-xl border border-border/80 bg-background p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold">
+                          {r.patientName || `مريض #${r.patientId}`}
+                        </h3>
+                        {r.patientCode ? (
+                          <p
+                            className="mt-1 text-xs text-muted-foreground"
+                            dir="ltr"
+                          >
+                            {r.patientCode}
+                          </p>
+                        ) : null}
+                      </div>
+                      {statusBadge(st)}
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/70 pt-3 text-xs">
+                      <div>
+                        <dt className="text-muted-foreground">الطبيب</dt>
+                        <dd className="mt-0.5 font-medium">
+                          {r.doctorName || "—"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">التاريخ</dt>
+                        <dd className="mt-0.5" dir="ltr">
+                          {dateLabel}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">الأدوية</dt>
+                        <dd className="mt-0.5 font-medium tabular-nums">
+                          {r.itemCount} دواء
+                        </dd>
+                      </div>
+                    </dl>
+                    {noteSnippet ? (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        {noteSnippet}
+                      </p>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 min-h-11 w-full"
+                      onClick={() =>
+                        setLocation(`/prescription/${r.patientId}`)
+                      }
+                    >
+                      <Eye className="me-2 h-4 w-4" />
+                      عرض وتعديل
+                    </Button>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
       {total > pageSize ? (

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
+import { toast } from "sonner";
 
 const visitKindTabs = [
   { value: "all", label: "الكل" },
@@ -43,7 +44,7 @@ const visitTypeStyles: Record<string, string> = {
   examination: "bg-primary text-primary-foreground",
   followup: "bg-success/15 text-success",
   consultation: "bg-primary text-primary-foreground",
-  surgery: "bg-warning/20 text-warning",
+  surgery: "bg-warning/20 text-warning-text",
 };
 
 function visitRowId(row: Record<string, unknown>, fallback: number): number {
@@ -115,6 +116,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
   ) as any[];
   const isLoading =
     patientId > 0 ? patientVisitsQuery.isLoading : allVisitsQuery.isLoading;
+  const visitsQuery = patientId > 0 ? patientVisitsQuery : allVisitsQuery;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -242,9 +244,9 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
       setEditDate("");
     } catch (error) {
       console.error("Failed to update visit date:", error);
-      alert(
+      toast.error(
         "خطأ في حفظ التاريخ: " +
-          (error instanceof Error ? error.message : "Unknown error"),
+          (error instanceof Error ? error.message : "سبب غير معروف"),
       );
     }
   };
@@ -389,17 +391,37 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
               </div>
             )}
 
-            {!isLoading && visits.length === 0 && (
+            {!isLoading && visitsQuery.error && (
+              <div
+                className="flex flex-col items-center gap-3 rounded-xl border border-destructive/25 bg-destructive/10 p-6 text-center text-sm text-destructive"
+                role="alert"
+              >
+                <span>تعذر تحميل الزيارات: {visitsQuery.error.message}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => visitsQuery.refetch()}
+                >
+                  إعادة المحاولة
+                </Button>
+              </div>
+            )}
+
+            {!isLoading && !visitsQuery.error && visits.length === 0 && (
               <div className="py-8 text-center text-muted-foreground">
                 لا توجد زيارات مسجلة
               </div>
             )}
 
-            {!isLoading && visits.length > 0 && filteredVisits.length === 0 && (
-              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-                لا توجد زيارات مطابقة للبحث أو التصفية
-              </div>
-            )}
+            {!isLoading &&
+              !visitsQuery.error &&
+              visits.length > 0 &&
+              filteredVisits.length === 0 && (
+                <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                  لا توجد زيارات مطابقة للبحث أو التصفية
+                </div>
+              )}
 
             {filteredVisits.map((visit, index) => {
               const vid = visitRowId(visit as Record<string, unknown>, index);
@@ -407,6 +429,18 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
               const visitDate = visit.visitDate || visit.createdAt;
               const isEditingDate = editingVisitId === vid;
               const vType = String((visit as any).visitType ?? "");
+              const examinationRows = [
+                { label: "UCVA", od: visit.ucvaOD, os: visit.ucvaOS },
+                { label: "BCVA", od: visit.bcvaOD, os: visit.bcvaOS },
+                { label: "Sphere", od: visit.sphereOD, os: visit.sphereOS },
+                {
+                  label: "Cylinder",
+                  od: visit.cylinderOD,
+                  os: visit.cylinderOS,
+                },
+                { label: "Axis", od: visit.axisOD, os: visit.axisOS },
+                { label: "IOP", od: visit.iopOD, os: visit.iopOS },
+              ].filter((row) => row.od || row.os);
 
               return (
                 <Card
@@ -416,12 +450,14 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                   {/* Visit Header - Expandable */}
                   <CardHeader className="hover:bg-muted/40">
                     <div className="flex items-center justify-between gap-2">
-                      <button
+                      <Button variant="bare"
                         type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={`visit-details-${vid}`}
                         onClick={() =>
                           setExpandedVisitId(isExpanded ? null : vid)
                         }
-                        className="flex flex-1 items-center gap-2 text-right"
+                        className="flex flex-1 items-center gap-2 text-start"
                       >
                         {isEditingDate ? (
                           <div className="flex-1 flex items-center gap-2">
@@ -431,7 +467,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                               className="max-w-xs"
                               dir="ltr"
                             />
-                            <Button
+                            <Button aria-label="حفظ التاريخ" title="حفظ التاريخ"
                               size="sm"
                               variant="default"
                               onClick={(e) => {
@@ -463,7 +499,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "border-0 text-[10px] font-semibold",
+                                    "border-0 text-[13px] font-semibold",
                                     visitTypeStyles[vType],
                                   )}
                                 >
@@ -495,11 +531,11 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                             </CardTitle>
                           </>
                         )}
-                      </button>
+                      </Button>
 
                       <div className="flex items-center gap-1">
                         {!patientHubReadOnly && !isEditingDate && (
-                          <Button
+                          <Button aria-label="تعديل التاريخ" title="تعديل التاريخ"
                             size="sm"
                             variant="ghost"
                             onClick={(e) => {
@@ -511,8 +547,15 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
-                        <button
+                        <Button variant="bare"
                           type="button"
+                          aria-label={
+                            isExpanded
+                              ? "طي تفاصيل الزيارة"
+                              : "توسيع تفاصيل الزيارة"
+                          }
+                          aria-expanded={isExpanded}
+                          aria-controls={`visit-details-${vid}`}
                           onClick={() =>
                             setExpandedVisitId(isExpanded ? null : vid)
                           }
@@ -523,14 +566,17 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                               isExpanded ? "rotate-180" : ""
                             }`}
                           />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
 
                   {/* Visit Details - Expandable Content */}
                   {isExpanded && (
-                    <CardContent className="space-y-6 border-t border-border pt-4">
+                    <CardContent
+                      id={`visit-details-${vid}`}
+                      className="space-y-6 border-t border-border pt-4"
+                    >
                       {/* Exam Data */}
                       {(visit.sphereOD ||
                         visit.sphereOS ||
@@ -544,11 +590,11 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                           <h4 className="font-semibold text-foreground mb-3">
                             بيانات الفحص
                           </h4>
-                          <div className="overflow-x-auto">
+                          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden overflow-x-auto sm:block">
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="border-b border-border">
-                                  <th className="text-right px-2 py-2">
+                                  <th className="text-start px-2 py-2">
                                     القياس
                                   </th>
                                   <th className="text-center px-2 py-2">OD</th>
@@ -556,86 +602,51 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 </tr>
                               </thead>
                               <tbody>
-                                {(visit.ucvaOD || visit.ucvaOS) && (
-                                  <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
-                                      UCVA
+                                {examinationRows.map((row) => (
+                                  <tr
+                                    key={row.label}
+                                    className="border-b border-border"
+                                  >
+                                    <td className="px-2 py-2 text-start">
+                                      {row.label}
                                     </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.ucvaOD || "-"}
+                                    <td className="px-2 py-2 text-center">
+                                      {row.od || "-"}
                                     </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.ucvaOS || "-"}
-                                    </td>
-                                  </tr>
-                                )}
-                                {(visit.bcvaOD || visit.bcvaOS) && (
-                                  <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
-                                      BCVA
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.bcvaOD || "-"}
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.bcvaOS || "-"}
+                                    <td className="px-2 py-2 text-center">
+                                      {row.os || "-"}
                                     </td>
                                   </tr>
-                                )}
-                                {(visit.sphereOD || visit.sphereOS) && (
-                                  <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
-                                      Sphere
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.sphereOD || "-"}
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.sphereOS || "-"}
-                                    </td>
-                                  </tr>
-                                )}
-                                {(visit.cylinderOD || visit.cylinderOS) && (
-                                  <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
-                                      Cylinder
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.cylinderOD || "-"}
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.cylinderOS || "-"}
-                                    </td>
-                                  </tr>
-                                )}
-                                {(visit.axisOD || visit.axisOS) && (
-                                  <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
-                                      Axis
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.axisOD || "-"}
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.axisOS || "-"}
-                                    </td>
-                                  </tr>
-                                )}
-                                {(visit.iopOD || visit.iopOS) && (
-                                  <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
-                                      IOP
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.iopOD || "-"}
-                                    </td>
-                                    <td className="text-center px-2 py-2">
-                                      {visit.iopOS || "-"}
-                                    </td>
-                                  </tr>
-                                )}
+                                ))}
                               </tbody>
                             </table>
+                          </div>
+                          <div className="grid gap-2 sm:hidden">
+                            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 px-2 text-xs font-semibold text-muted-foreground">
+                              <span>القياس</span>
+                              <span className="min-w-10 text-center">OD</span>
+                              <span className="min-w-10 text-center">OS</span>
+                            </div>
+                            {examinationRows.map((row) => (
+                              <div
+                                key={row.label}
+                                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md border border-border/70 px-2 py-2 text-sm"
+                              >
+                                <span className="font-medium">{row.label}</span>
+                                <span
+                                  className="min-w-10 text-center"
+                                  dir="ltr"
+                                >
+                                  {row.od || "-"}
+                                </span>
+                                <span
+                                  className="min-w-10 text-center"
+                                  dir="ltr"
+                                >
+                                  {row.os || "-"}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -648,7 +659,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                             </h4>
                             {!patientHubReadOnly &&
                               editingExamType !== "autorefraction" && (
-                                <Button
+                                <Button aria-label="تعديل الانكسار الآلي" title="تعديل الانكسار الآلي"
                                   size="sm"
                                   variant="ghost"
                                   onClick={() =>
@@ -824,7 +835,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                     handleSaveExam(visit, "autorefraction")
                                   }
                                 >
-                                  <Check className="h-4 w-4 mr-1" />
+                                  <Check className="h-4 w-4 ms-1" />
                                   حفظ
                                 </Button>
                                 <Button
@@ -832,17 +843,17 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                   variant="outline"
                                   onClick={() => setEditingExamType(null)}
                                 >
-                                  <X className="h-4 w-4 mr-1" />
+                                  <X className="h-4 w-4 ms-1" />
                                   إلغاء
                                 </Button>
                               </div>
                             </div>
                           ) : (
-                            <div className="overflow-x-auto">
+                            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-border">
-                                    <th className="text-right px-2 py-2">
+                                    <th className="text-start px-2 py-2">
                                       المقياس
                                     </th>
                                     <th className="text-center px-2 py-2">
@@ -855,7 +866,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 </thead>
                                 <tbody>
                                   <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
+                                    <td className="text-start px-2 py-2">
                                       UCVA
                                     </td>
                                     <td className="text-center px-2 py-2">
@@ -866,7 +877,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                     </td>
                                   </tr>
                                   <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
+                                    <td className="text-start px-2 py-2">
                                       BCVA
                                     </td>
                                     <td className="text-center px-2 py-2">
@@ -877,7 +888,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                     </td>
                                   </tr>
                                   <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
+                                    <td className="text-start px-2 py-2">
                                       S / C / A
                                     </td>
                                     <td className="text-center px-2 py-2">
@@ -907,7 +918,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                             </h4>
                             {!patientHubReadOnly &&
                               editingExamType !== "pentacam" && (
-                                <Button
+                                <Button aria-label="تعديل البنتاكام" title="تعديل البنتاكام"
                                   size="sm"
                                   variant="ghost"
                                   onClick={() =>
@@ -1023,7 +1034,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                     handleSaveExam(visit, "pentacam")
                                   }
                                 >
-                                  <Check className="h-4 w-4 mr-1" />
+                                  <Check className="h-4 w-4 ms-1" />
                                   حفظ
                                 </Button>
                                 <Button
@@ -1031,17 +1042,17 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                   variant="outline"
                                   onClick={() => setEditingExamType(null)}
                                 >
-                                  <X className="h-4 w-4 mr-1" />
+                                  <X className="h-4 w-4 ms-1" />
                                   إلغاء
                                 </Button>
                               </div>
                             </div>
                           ) : (
-                            <div className="overflow-x-auto">
+                            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-border">
-                                    <th className="text-right px-2 py-2">
+                                    <th className="text-start px-2 py-2">
                                       المقياس
                                     </th>
                                     <th className="text-center px-2 py-2">
@@ -1054,7 +1065,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 </thead>
                                 <tbody>
                                   <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
+                                    <td className="text-start px-2 py-2">
                                       K1 / K2
                                     </td>
                                     <td className="text-center px-2 py-2">
@@ -1067,7 +1078,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                     </td>
                                   </tr>
                                   <tr className="border-b border-border">
-                                    <td className="text-right px-2 py-2">
+                                    <td className="text-start px-2 py-2">
                                       Thinnest Point
                                     </td>
                                     <td className="text-center px-2 py-2">

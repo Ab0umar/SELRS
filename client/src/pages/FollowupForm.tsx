@@ -27,7 +27,7 @@ const sectionDivider =
   "grid grid-cols-[80px_1fr_1fr] items-center gap-2 pt-3 mt-1 border-t border-border";
 const fieldClass = "h-10 w-full text-sm text-center";
 const labelClass = "text-sm font-semibold";
-const subLabelClass = "text-xs text-muted-foreground pl-2";
+const subLabelClass = "text-xs text-muted-foreground pe-2";
 
 export default function FollowupForm() {
   const { isAuthenticated } = useAuth();
@@ -187,10 +187,7 @@ export default function FollowupForm() {
 
       const sheetType =
         (patient?.serviceType as
-          | "consultant"
-          | "specialist"
-          | "lasik"
-          | "external") || "consultant";
+          "consultant" | "specialist" | "lasik" | "external") || "consultant";
 
       await saveFollowupMutation.mutateAsync({
         patientId,
@@ -198,22 +195,52 @@ export default function FollowupForm() {
         followupItems,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "فشل حفظ بيانات المتابعة");
+      toast.error(
+        error instanceof Error ? error.message : "فشل حفظ بيانات المتابعة",
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const showPatientLoading = patientId > 0 && patientQuery.isLoading;
+  const showPatientError = patientId > 0 && patientQuery.isError;
+
   return (
     <div className="min-h-screen bg-background">
       <PageHeader backTo="/dashboard" />
       <main className="w-full space-y-6 px-3 py-6 sm:px-4">
-        {patientId > 0 && patient ? (
+        {showPatientLoading ? (
+          <Card className="border-border/80">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              جاري تحميل بيانات المريض…
+            </CardContent>
+          </Card>
+        ) : showPatientError ? (
+          <Card className="border-destructive/40">
+            <CardContent
+              className="flex flex-col items-center gap-4 py-10 text-center"
+              role="alert"
+            >
+              <p className="text-sm text-destructive">
+                {getTrpcErrorMessage(
+                  patientQuery.error,
+                  "تعذر تحميل بيانات المريض.",
+                )}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => patientQuery.refetch()}
+              >
+                إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        ) : patientId > 0 && patient ? (
           <Card className="border-border/80 shadow-sm">
-            {/* Header with Patient Info */}
             <CardHeader className="border-b border-border pb-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                {/* Patient Info */}
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <CardTitle className="text-2xl">
@@ -247,7 +274,6 @@ export default function FollowupForm() {
                   </div>
                 </div>
 
-                {/* Patient Picker on the Right */}
                 <div className="w-full sm:w-auto sm:min-w-[300px]">
                   <Card className="border-border/80 shadow-sm">
                     <CardHeader>
@@ -266,7 +292,6 @@ export default function FollowupForm() {
               </div>
             </CardHeader>
 
-            {/* Tabs Content */}
             <CardContent className="pt-6">
               <Tabs
                 value={activeTab}
@@ -279,10 +304,8 @@ export default function FollowupForm() {
                   <TabsTrigger value="notes">NOTES</TabsTrigger>
                 </TabsList>
 
-                {/* Auto-Air Tab */}
                 <TabsContent value="auto-air" className="mt-6">
                   <div className="w-full space-y-2" dir="ltr">
-                    {/* Column headers */}
                     <div className={rowClass}>
                       <div />
                       <div className="text-xs font-bold text-center text-muted-foreground">
@@ -293,7 +316,6 @@ export default function FollowupForm() {
                       </div>
                     </div>
 
-                    {/* UCVA */}
                     <div className={rowClass}>
                       <div className={labelClass}>UCVA</div>
                       <RefractionValueSelect
@@ -323,7 +345,6 @@ export default function FollowupForm() {
                         options={UCVA_BCVA_OPTIONS}
                       />
                     </div>
-                    {/* BCVA */}
                     <div className={rowClass}>
                       <div className={labelClass}>BCVA</div>
                       <RefractionValueSelect
@@ -354,7 +375,6 @@ export default function FollowupForm() {
                       />
                     </div>
 
-                    {/* Autoref */}
                     <div className={sectionDivider}>
                       <div className={labelClass}>Autoref S</div>
                       <RefractionValueSelect
@@ -419,7 +439,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>Axis</div>
-                      <Input
+                      <Input aria-label="0-180"
                         value={examData.autorefraction.od.axis}
                         onChange={(e) =>
                           setExamData((p) => ({
@@ -436,7 +456,7 @@ export default function FollowupForm() {
                         className={fieldClass}
                         placeholder="0-180"
                       />
-                      <Input
+                      <Input aria-label="0-180"
                         value={examData.autorefraction.os.axis}
                         onChange={(e) =>
                           setExamData((p) => ({
@@ -455,7 +475,6 @@ export default function FollowupForm() {
                       />
                     </div>
 
-                    {/* After */}
                     <div className={sectionDivider}>
                       <div className={labelClass}>After S</div>
                       <RefractionValueSelect
@@ -520,7 +539,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>Axis</div>
-                      <Input
+                      <Input aria-label="0-180"
                         value={examData.autorefraction.od.afterA}
                         onChange={(e) =>
                           setExamData((p) => ({
@@ -537,7 +556,7 @@ export default function FollowupForm() {
                         className={fieldClass}
                         placeholder="0-180"
                       />
-                      <Input
+                      <Input aria-label="0-180"
                         value={examData.autorefraction.os.afterA}
                         onChange={(e) =>
                           setExamData((p) => ({
@@ -556,7 +575,6 @@ export default function FollowupForm() {
                       />
                     </div>
 
-                    {/* Air Puff */}
                     <div className={sectionDivider}>
                       <div className={labelClass}>Air Puff</div>
                       <RefractionValueSelect
@@ -587,10 +605,9 @@ export default function FollowupForm() {
                       />
                     </div>
 
-                    {/* Fundus */}
                     <div className={sectionDivider}>
                       <div className={labelClass}>Disc</div>
-                      <Input
+                      <Input aria-label="Disc Status"
                         placeholder="Disc Status"
                         value={examData.fundus.od.discStatus}
                         onChange={(e) =>
@@ -607,7 +624,7 @@ export default function FollowupForm() {
                         }
                         className={fieldClass}
                       />
-                      <Input
+                      <Input aria-label="Disc Status"
                         placeholder="Disc Status"
                         value={examData.fundus.os.discStatus}
                         onChange={(e) =>
@@ -627,7 +644,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>C/D</div>
-                      <Input
+                      <Input aria-label="C/D"
                         placeholder="C/D"
                         value={examData.fundus.od.cupDiscRatio}
                         onChange={(e) =>
@@ -644,7 +661,7 @@ export default function FollowupForm() {
                         }
                         className={fieldClass}
                       />
-                      <Input
+                      <Input aria-label="C/D"
                         placeholder="C/D"
                         value={examData.fundus.os.cupDiscRatio}
                         onChange={(e) =>
@@ -664,7 +681,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>Macula</div>
-                      <Input
+                      <Input aria-label="Macula"
                         placeholder="Macula"
                         value={examData.fundus.od.macuaStatus}
                         onChange={(e) =>
@@ -681,7 +698,7 @@ export default function FollowupForm() {
                         }
                         className={fieldClass}
                       />
-                      <Input
+                      <Input aria-label="Macula"
                         placeholder="Macula"
                         value={examData.fundus.os.macuaStatus}
                         onChange={(e) =>
@@ -701,7 +718,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>Vessels</div>
-                      <Input
+                      <Input aria-label="Vessels"
                         placeholder="Vessels"
                         value={examData.fundus.od.vesselStatus}
                         onChange={(e) =>
@@ -718,7 +735,7 @@ export default function FollowupForm() {
                         }
                         className={fieldClass}
                       />
-                      <Input
+                      <Input aria-label="Vessels"
                         placeholder="Vessels"
                         value={examData.fundus.os.vesselStatus}
                         onChange={(e) =>
@@ -738,7 +755,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>Other</div>
-                      <Input
+                      <Input aria-label="Other"
                         placeholder="Other"
                         value={examData.fundus.od.otherFindings}
                         onChange={(e) =>
@@ -755,7 +772,7 @@ export default function FollowupForm() {
                         }
                         className={fieldClass}
                       />
-                      <Input
+                      <Input aria-label="Other"
                         placeholder="Other"
                         value={examData.fundus.os.otherFindings}
                         onChange={(e) =>
@@ -774,7 +791,6 @@ export default function FollowupForm() {
                       />
                     </div>
 
-                    {/* Refraction */}
                     <div className={sectionDivider}>
                       <div className={labelClass}>Refrac S</div>
                       <RefractionValueSelect
@@ -827,7 +843,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>Axis</div>
-                      <Input
+                      <Input aria-label="0-180"
                         value={refractionTableData.od.a}
                         onChange={(e) =>
                           setRefractionTableData((p) => ({
@@ -838,7 +854,7 @@ export default function FollowupForm() {
                         className={fieldClass}
                         placeholder="0-180"
                       />
-                      <Input
+                      <Input aria-label="0-180"
                         value={refractionTableData.os.a}
                         onChange={(e) =>
                           setRefractionTableData((p) => ({
@@ -852,7 +868,7 @@ export default function FollowupForm() {
                     </div>
                     <div className={rowClass}>
                       <div className={subLabelClass}>P.D</div>
-                      <Input
+                      <Input aria-label="PD"
                         value={refractionTableData.od.pd}
                         onChange={(e) =>
                           setRefractionTableData((p) => ({
@@ -863,7 +879,7 @@ export default function FollowupForm() {
                         className={fieldClass}
                         placeholder="PD"
                       />
-                      <Input
+                      <Input aria-label="PD"
                         value={refractionTableData.os.pd}
                         onChange={(e) =>
                           setRefractionTableData((p) => ({
@@ -878,7 +894,6 @@ export default function FollowupForm() {
                   </div>
                 </TabsContent>
 
-                {/* Pentacam Tab */}
                 <TabsContent value="pentacam" className="mt-6">
                   <div className="w-full space-y-2" dir="ltr">
                     <div className={rowClass}>
@@ -1172,7 +1187,6 @@ export default function FollowupForm() {
                   </div>
                 </TabsContent>
 
-                {/* Notes Tab */}
                 <TabsContent value="notes" className="mt-6">
                   <div className="mx-auto max-w-2xl space-y-4">
                     <div className="space-y-2">
@@ -1192,14 +1206,13 @@ export default function FollowupForm() {
                 </TabsContent>
               </Tabs>
 
-              {/* Save Button */}
               <div className="mt-8 flex gap-4">
                 <Button
                   onClick={handleSave}
                   disabled={loading}
                   className="bg-primary hover:bg-primary/90"
                 >
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-4 w-4 ms-2" />
                   {loading ? "جاري الحفظ…" : "حفظ"}
                 </Button>
                 <Button

@@ -1,0 +1,54 @@
+@media screen {
+  .clinical-workspace {
+    min-width: 0;
+    color: var(--foreground);
+    background: var(--background);
+  }
+  .clinical-workspace > div {
+    padding: 16px;
+  }
+  .clinical-workspace [role="tablist"] {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    gap: 4px;
+  }
+  .clinical-workspace [role="tab"] {
+    min-width: 0;
+    min-height: 44px;
+    flex: 0 1 auto;
+    padding: 8px 12px;
+    white-space: normal;
+    text-align: start;
+    font-size: 14px;
+  }
+  .clinical-workspace [role="tab"][data-state="active"] {
+    color: var(--primary-foreground);
+    background: var(--primary);
+  }
+  .clinical-workspace [role="tab"] svg {
+    color: currentColor;
+  }
+  .clinical-workspace [data-admin-page-header] button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .clinical-workspace [role="tabpanel"] > div {
+    min-width: 0;
+  }
+  .clinical-workspace
+    :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 3px;
+  }
+}
+@media screen and (max-width: 599px) {
+  .clinical-workspace > div {
+    padding: 12px;
+  }
+  .clinical-workspace [role="tab"] {
+    flex: 1 1 145px;
+  }
+}

@@ -259,12 +259,12 @@ function ClinicalTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full min-w-[520px] border-collapse text-sm">
         <thead className="bg-muted/60 text-xs font-semibold text-muted-foreground">
           <tr>
             {columns.map((column) => (
-              <th key={column} className="px-3 py-2 text-left">
+              <th key={column} className="px-3 py-2 text-end">
                 {column}
               </th>
             ))}
@@ -334,7 +334,7 @@ function PatientHeader({
               key={label}
               className="rounded-md border border-border bg-muted/30 p-2"
             >
-              <dt className="text-[11px] font-semibold uppercase text-muted-foreground">
+              <dt className="text-[13px] font-semibold uppercase text-muted-foreground">
                 {label}
               </dt>
               <dd className="mt-1 font-semibold text-foreground">
@@ -497,6 +497,26 @@ function DiagnosticImages({ patientId }: { patientId: number }) {
       <div className="grid grid-cols-2 gap-3">
         <Skeleton className="h-44 rounded-lg" />
         <Skeleton className="h-44 rounded-lg" />
+      </div>
+    );
+  }
+
+  if (uploadsQuery.isError) {
+    return (
+      <div
+        role="alert"
+        className="flex flex-col items-start gap-3 rounded-md border border-warning/50 bg-warning/10 px-3 py-3 text-sm"
+      >
+        <p className="text-foreground">تعذر تحميل الصور التشخيصية حالياً.</p>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => void uploadsQuery.refetch()}
+          disabled={uploadsQuery.isFetching}
+        >
+          {uploadsQuery.isFetching ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}
+        </Button>
       </div>
     );
   }
@@ -756,7 +776,7 @@ export default function ClinicalPortal({ mode }: ClinicalPortalProps) {
     return (
       <div className="min-h-full bg-muted/20 p-4 text-left md:p-6" dir="ltr">
         <div className="mx-auto max-w-3xl rounded-lg border border-border bg-background p-5 shadow-sm">
-          <h1 className="mb-2 text-xl font-bold">
+          <h1 className="mb-2 text-2xl font-bold">
             {mode === "file" ? "ملف المريض" : "تقرير المريض"}
           </h1>
           <p className="mb-4 text-sm text-muted-foreground">

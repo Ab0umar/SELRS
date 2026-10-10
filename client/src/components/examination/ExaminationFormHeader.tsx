@@ -38,7 +38,7 @@ export default function ExaminationFormHeader({
             onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
             className="h-5 w-5 border-2 border-warning data-[state=checked]:bg-warning data-[state=checked]:text-warning-foreground"
           />
-          <span className="text-base font-extrabold text-warning">متابعة</span>
+          <span className="text-base font-extrabold text-warning-text">متابعة</span>
         </label>
       </div>
     </div>

@@ -1376,7 +1376,7 @@ export function useExaminationForm(
 
       if (!effectivePatientId) {
         if (!canEditPatientData) {
-          toast.error("Please search and select an existing patient.");
+          toast.error("يرجى البحث عن مريض مسجل واختياره.");
           return;
         }
         if (!patientInfo.name.trim()) {

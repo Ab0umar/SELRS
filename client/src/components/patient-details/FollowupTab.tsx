@@ -171,7 +171,7 @@ export function FollowupTab({
               dir="ltr"
             />
             {(typeFilter !== "all" || dateFrom || dateTo) && (
-              <button
+              <Button variant="bare"
                 type="button"
                 onClick={() => {
                   setTypeFilter("all");
@@ -181,7 +181,7 @@ export function FollowupTab({
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 مسح
-              </button>
+              </Button>
             )}
           </div>
 
@@ -220,7 +220,7 @@ export function FollowupTab({
                           className="w-32 h-7 text-xs"
                           dir="ltr"
                         />
-                        <Button
+                        <Button aria-label="حفظ تاريخ الزيارة" title="حفظ تاريخ الزيارة"
                           size="sm"
                           variant="ghost"
                           onClick={() =>
@@ -247,7 +247,7 @@ export function FollowupTab({
                           {formatDate(entry._date)}
                         </span>
                         {isExam && isAdmin && (
-                          <Button
+                          <Button aria-label="تعديل تاريخ الزيارة" title="تعديل تاريخ الزيارة"
                             size="sm"
                             variant="ghost"
                             onClick={() => {

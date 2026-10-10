@@ -1132,12 +1132,12 @@ export default function RequestTests({
                 <div className="grid grid-cols-1 gap-2 mt-2">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-muted-foreground">التشخيص (Diagnosis)</label>
-                    <Input
+                    <Input aria-label="اكتب التشخيص هنا…"
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
                       placeholder="اكتب التشخيص هنا…"
                       disabled={editingForbidden}
-                      className="h-9 border-border/60 bg-muted/30 text-right font-medium"
+                      className="h-9 border-border/60 bg-muted/30 text-start font-medium"
                       dir="rtl"
                     />
                   </div>
@@ -1181,7 +1181,7 @@ export default function RequestTests({
                             size="sm"
                             onClick={startFilePick}
                           >
-                            <Upload className="h-4 w-4 ml-1" />
+                            <Upload className="h-4 w-4 me-1" />
                             استيراد Excel
                           </Button>
                         </div>
@@ -1220,7 +1220,7 @@ export default function RequestTests({
                               templatesInTab.map((template) => (
                                 <DropdownMenuItem
                                   key={template.id}
-                                  className="text-right text-xs cursor-pointer hover:bg-primary/10 pr-4 py-2"
+                                  className="text-start text-xs cursor-pointer hover:bg-primary/10 ps-4 py-2"
                                   onClick={() =>
                                     handleApplyReadyTestTemplate(template.id)
                                   }
@@ -1246,7 +1246,7 @@ export default function RequestTests({
                             استيراد مباشر من مسار السيرفر
                           </div>
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <Input
+                            <Input aria-label="E:\\\\path\\\\to\\\\file.xlsx"
                               value={importPath}
                               onChange={(e) => setImportPath(e.target.value)}
                               placeholder="E:\\path\\to\\file.xlsx"
@@ -1422,12 +1422,12 @@ export default function RequestTests({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  <Textarea
+                  <Textarea aria-label="ملاحظات إضافية…"
                     value={generalNotes}
                     readOnly={editingForbidden}
                     onChange={(e) => setGeneralNotes(e.target.value)}
                     placeholder="ملاحظات إضافية…"
-                    className="min-h-28 border-border/60 bg-muted/30 text-right text-sm"
+                    className="min-h-28 border-border/60 bg-muted/30 text-start text-sm"
                   />
                 </CardContent>
               </Card>
@@ -1459,7 +1459,7 @@ export default function RequestTests({
                 </div>
                 <div className="request-patient-diagnosis">
                   <span className="request-patient-label">التشخيص:</span>
-                  <span className="request-patient-value font-bold mr-1">{diagnosis || "غير محدد"}</span>
+                  <span className="request-patient-value font-bold ms-1">{diagnosis || "غير محدد"}</span>
                 </div>
               </div>
             </div>
@@ -1509,14 +1509,14 @@ export default function RequestTests({
                         <label className="block text-xs font-medium text-muted-foreground mb-1">
                           Notes / ملاحظات
                         </label>
-                        <Textarea
+                        <Textarea aria-label="ملاحظات خاصة بهذا الفحص…"
                           value={test.notes}
                           readOnly={editingForbidden}
                           onChange={(e) =>
                             handleUpdateTestNotes(test.id, e.target.value)
                           }
                           placeholder="ملاحظات خاصة بهذا الفحص…"
-                          className="min-h-12 text-sm text-right"
+                          className="min-h-12 text-sm text-start"
                         />
                       </div>
                       {test.notes && (
@@ -1557,7 +1557,7 @@ export default function RequestTests({
                   disabled={createRequestMutation.isPending}
                   type="button"
                 >
-                  <Save className="h-4 w-4 ml-1.5" />
+                  <Save className="h-4 w-4 me-1.5" />
                   حفظ الطلب
                 </Button>
               ) : patientHubReadOnly ? (
@@ -1571,7 +1571,7 @@ export default function RequestTests({
                 type="button"
                 className="border-border text-foreground hover:bg-muted/50 font-semibold h-9 px-4 rounded-xl"
               >
-                <Printer className="h-4 w-4 ml-1.5 text-muted-foreground" />
+                <Printer className="h-4 w-4 me-1.5 text-muted-foreground" />
                 طباعة
               </Button>
             </div>

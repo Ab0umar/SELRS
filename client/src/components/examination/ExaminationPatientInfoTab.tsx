@@ -34,11 +34,11 @@ function MobileCollapsibleSection({
 
   return (
     <div className="mobile-collapsible-section">
-      <button
+      <Button variant="bare"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
-        className="mobile-collapsible-toggle flex w-full items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-right"
+        className="mobile-collapsible-toggle flex w-full items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-start"
       >
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-bold text-foreground">
@@ -55,7 +55,7 @@ function MobileCollapsibleSection({
         ) : (
           <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         )}
-      </button>
+      </Button>
       {open ? <div className="mt-2">{children}</div> : null}
     </div>
   );
@@ -220,7 +220,7 @@ export default function ExaminationPatientInfoTab({
               </div>
               <div className="flex w-full items-end gap-3 sm:w-auto">
                 <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
-                  <Label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+                  <Label className="mb-1 block text-[13px] font-semibold text-muted-foreground">
                     الكود
                   </Label>
                   <Input
@@ -230,7 +230,7 @@ export default function ExaminationPatientInfoTab({
                   />
                 </div>
                 <div className="min-w-0 flex-1 sm:w-44 sm:flex-none">
-                  <Label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
+                  <Label className="mb-1 block text-[13px] font-semibold text-muted-foreground">
                     تاريخ الزيارة
                   </Label>
                   <DateInput
@@ -247,7 +247,7 @@ export default function ExaminationPatientInfoTab({
             {/* Column 1: Patient Information */}
             <div className="patient-personal-card space-y-4 border border-border/60 rounded-2xl p-4 bg-card shadow-xs">
               <h3 className="font-bold text-foreground text-sm border-b border-border/40 pb-2">
-                👤 البيانات الشخصية للمريض:
+                البيانات الشخصية للمريض:
               </h3>
               <div className="patient-details-fields space-y-3">
                 {/* Row 1: الاسم - تاريخ الميلاد - السن */}
@@ -256,10 +256,10 @@ export default function ExaminationPatientInfoTab({
                   style={identityRowStyle}
                 >
                   <div className="patient-name-field min-w-0" style={fieldFull}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       الاسم بالكامل
                     </Label>
-                    <Input
+                    <Input aria-label="اسم المريض…"
                       value={patientInfo.name}
                       onChange={(e) =>
                         setPatientInfo((prev) => ({
@@ -273,7 +273,7 @@ export default function ExaminationPatientInfoTab({
                     />
                   </div>
                   <div className="patient-dob-field min-w-0" style={fieldTwoThirds}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       تاريخ الميلاد
                     </Label>
                     <DateInput
@@ -297,7 +297,7 @@ export default function ExaminationPatientInfoTab({
                     />
                   </div>
                   <div className="patient-age-field min-w-0" style={fieldOneThird}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       السن
                     </Label>
                     <Input
@@ -320,10 +320,10 @@ export default function ExaminationPatientInfoTab({
                   style={fieldRowStyle}
                 >
                   <div style={fieldHalf}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       رقم الموبايل
                     </Label>
-                    <Input
+                    <Input aria-label="01xxxxxxxxx"
                       value={patientDetails.phone}
                       onChange={(e) =>
                         setPatientDetails((prev) => ({
@@ -332,16 +332,16 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-xs border h-8 px-2.5 tracking-wider bg-background rounded-lg"
+                      className="text-xs border h-8 px-2.5 bg-background rounded-lg"
                       placeholder="01xxxxxxxxx"
                       dir="ltr"
                     />
                   </div>
                   <div style={fieldHalf}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       رقم موبايل بديل
                     </Label>
-                    <Input
+                    <Input aria-label="01xxxxxxxxx (اختياري)"
                       value={patientDetails.alternatePhone}
                       onChange={(e) =>
                         setPatientDetails((prev) => ({
@@ -350,7 +350,7 @@ export default function ExaminationPatientInfoTab({
                         }))
                       }
                       readOnly={!canEditPatientData}
-                      className="text-xs border h-8 px-2.5 tracking-wider bg-background rounded-lg"
+                      className="text-xs border h-8 px-2.5 bg-background rounded-lg"
                       placeholder="01xxxxxxxxx (اختياري)"
                       dir="ltr"
                     />
@@ -363,10 +363,10 @@ export default function ExaminationPatientInfoTab({
                   style={fieldRowStyle}
                 >
                   <div className="patient-address-field sm:col-span-5" style={fieldFull}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       العنوان
                     </Label>
-                    <Input
+                    <Input aria-label="العنوان…"
                       value={patientDetails.address}
                       onChange={(e) =>
                         setPatientDetails((prev) => ({
@@ -380,10 +380,10 @@ export default function ExaminationPatientInfoTab({
                     />
                   </div>
                   <div className="patient-job-field sm:col-span-4" style={fieldTwoThirds}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       الوظيفة
                     </Label>
-                    <Input
+                    <Input aria-label="الوظيفة…"
                       value={patientDetails.job}
                       onChange={(e) =>
                         setPatientDetails((prev) => ({
@@ -397,7 +397,7 @@ export default function ExaminationPatientInfoTab({
                     />
                   </div>
                   <div className="patient-gender-field sm:col-span-3" style={fieldOneThird}>
-                    <Label className="font-semibold text-[11px] mb-1 block text-muted-foreground">
+                    <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                       الجنس
                     </Label>
                     <Select
@@ -426,13 +426,13 @@ export default function ExaminationPatientInfoTab({
             {/* Column 2: Doctor & Services, with Medical History stacked below */}
             <div className="min-w-0">
             <MobileCollapsibleSection
-              title="💳 الخدمة"
+              title="الخدمة"
               summary={`${patientShare.toFixed(2)} EGP`}
             >
           <div className="patient-services-panel min-w-0 space-y-3 h-full flex flex-col border border-border/60 rounded-2xl p-4 bg-card shadow-xs">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-end">
               <div className="space-y-1">
-                <Label className="font-semibold text-[11px] text-muted-foreground">
+                <Label className="font-semibold text-[13px] text-muted-foreground">
                   الطبيب
                 </Label>
                 <SearchableCombobox
@@ -448,7 +448,7 @@ export default function ExaminationPatientInfoTab({
               </div>
 
               <div className="space-y-1">
-                <Label className="font-semibold text-[11px] text-muted-foreground">
+                <Label className="font-semibold text-[13px] text-muted-foreground">
                   الخدمة
                 </Label>
                 <SearchableCombobox
@@ -463,7 +463,7 @@ export default function ExaminationPatientInfoTab({
 
               <div className="flex items-end gap-2 sm:col-span-2">
                 <div className="flex-1 space-y-1">
-                  <Label className="font-semibold text-[11px] text-muted-foreground">
+                  <Label className="font-semibold text-[13px] text-muted-foreground">
                     الوردية
                   </Label>
                   <Select
@@ -499,8 +499,8 @@ export default function ExaminationPatientInfoTab({
               </div>
             </div>
 
-            <div className="patient-services-list space-y-2 max-h-[220px] overflow-y-auto pr-1">
-              <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_auto] gap-2 px-1 text-[9px] font-bold text-muted-foreground">
+            <div className="patient-services-list space-y-2 max-h-[220px] overflow-y-auto ps-1">
+              <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_auto] gap-2 px-1 text-[13px] font-bold text-muted-foreground">
                 <span>الخدمة</span>
                 <span className="text-center">الكمية</span>
                 <span className="text-center">السعر</span>
@@ -520,7 +520,7 @@ export default function ExaminationPatientInfoTab({
                       options={serviceOptions}
                       placeholder="اختر الخدمة"
                       searchPlaceholder="ابحث بالاسم أو الكود…"
-                      className="h-8 min-w-0 border-border/60 px-2 text-[11px] font-semibold"
+                      className="h-8 min-w-0 border-border/60 px-2 text-[13px] font-semibold"
                     />
                     <Input
                       type="number"
@@ -528,7 +528,7 @@ export default function ExaminationPatientInfoTab({
                       onChange={(e) =>
                         updateService(idx, { qty: e.target.value })
                       }
-                      className="h-8 border-border/60 text-center font-bold text-[11px]"
+                      className="h-8 border-border/60 text-center font-bold text-[13px]"
                       min="1"
                     />
                     <Input
@@ -540,7 +540,7 @@ export default function ExaminationPatientInfoTab({
                           price: Math.max(0, Number(e.target.value) || 0),
                         })
                       }
-                      className="h-8 border-border/60 text-center font-bold text-[11px]"
+                      className="h-8 border-border/60 text-center font-bold text-[13px]"
                     />
                     <Input
                       type="number"
@@ -554,7 +554,7 @@ export default function ExaminationPatientInfoTab({
                           discount: Math.min(value, total),
                         });
                       }}
-                      className="h-8 border-border/60 text-center font-bold text-[11px] text-destructive"
+                      className="h-8 border-border/60 text-center font-bold text-[13px] text-destructive"
                     />
                     {services.length > 1 ? (
                       <Button
@@ -577,24 +577,24 @@ export default function ExaminationPatientInfoTab({
 
             <div className="mt-auto pt-3 border-t border-border/40 flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="font-bold text-[11px] text-foreground block">
+                <Label className="font-bold text-[13px] text-foreground block">
                   المطلوب تحصيله
                 </Label>
                 <div className="text-2xl font-black text-success tabular-nums">
-                  <span className="text-[10px] font-normal opacity-60 ml-1">
+                  <span className="text-[13px] font-normal opacity-60 me-1">
                     EGP
                   </span>
                   {patientShare.toFixed(2)}
                 </div>
               </div>
-              <div className="text-left space-y-1">
-                <Label className="font-bold text-[10px] text-muted-foreground block">
+              <div className="text-end space-y-1">
+                <Label className="font-bold text-[13px] text-muted-foreground block">
                   توقيع الاستقبال
                 </Label>
-                <Input
+                <Input aria-label="…"
                   value={receptionSignature}
                   onChange={(e) => setReceptionSignature(e.target.value)}
-                  className="text-xs border-0 border-b border-muted rounded-none h-7 p-0 bg-transparent text-left w-32 focus-visible:ring-0"
+                  className="text-xs border-0 border-b border-muted rounded-none h-7 p-0 bg-transparent text-end w-32 focus-visible:ring-0"
                   placeholder="…"
                 />
               </div>
@@ -605,7 +605,7 @@ export default function ExaminationPatientInfoTab({
           {/* Medical History (stacked under the services column) */}
           {showMedicalHistory ? (
             <div className="patient-medical-history min-w-0 mt-4">
-              <MobileCollapsibleSection title="🩺 التاريخ المرضي">
+              <MobileCollapsibleSection title="التاريخ المرضي">
                 <MedicalHistoryTab
                   patientId={patientInfo.id ? Number(patientInfo.id) : undefined}
                   symptoms={[]}

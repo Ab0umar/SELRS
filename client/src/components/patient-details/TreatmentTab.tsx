@@ -21,7 +21,7 @@ export function TreatmentTab({ treatmentRows }: TreatmentTabProps) {
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle>Treatment Plan</CardTitle>
-            <span className="font-mono text-[10px] text-muted-foreground">
+            <span className="font-mono text-[13px] text-muted-foreground">
               prescriptions + prescriptionitems
             </span>
           </div>
@@ -33,9 +33,9 @@ export function TreatmentTab({ treatmentRows }: TreatmentTabProps) {
             </p>
           )}
           {treatmentRows.length > 0 && (
-            <div className="overflow-x-auto rounded-[1.25rem] border border-border bg-background">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded-[1.25rem] border border-border bg-background">
               <table className="w-full min-w-[920px] border-collapse text-center">
-                <thead className="bg-muted text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <thead className="bg-muted text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="border px-3 py-3">Date</th>
                     <th className="border px-3 py-3">Medication</th>

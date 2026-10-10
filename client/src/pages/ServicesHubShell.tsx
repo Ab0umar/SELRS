@@ -83,7 +83,7 @@ export default function ServicesHubShell() {
 
   if (accessibleTabs.length === 0) {
     return (
-      <div className="w-full p-6 text-right text-sm text-rose-700" dir="rtl">
+      <div className="w-full p-6 text-start text-sm text-rose-700" dir="rtl">
         لا تملك صلاحية فتح أي قسم من مركز الخدمات.
       </div>
     );
@@ -91,7 +91,7 @@ export default function ServicesHubShell() {
 
   return (
     <div className="w-full bg-background text-foreground" dir="rtl">
-      <div className="w-full space-y-4 p-3 sm:p-5">
+      <div data-module-content-start className="w-full space-y-4 p-3 sm:p-5">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}

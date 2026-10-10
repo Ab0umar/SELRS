@@ -1133,7 +1133,7 @@ export default function WritePrescription({
                     <label className="text-xs font-bold text-muted-foreground">
                       التشخيص (Diagnosis)
                     </label>
-                    <Input
+                    <Input aria-label="اكتب التشخيص هنا…"
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
                       placeholder="اكتب التشخيص هنا…"
@@ -1153,7 +1153,7 @@ export default function WritePrescription({
                     الأدوية
                   </div>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Input
+                    <Input aria-label="ابحث في الأدوية"
                       value={medicationSearch}
                       onChange={(e) => setMedicationSearch(e.target.value)}
                       placeholder="ابحث في الأدوية"
@@ -1385,7 +1385,7 @@ export default function WritePrescription({
                             استيراد مباشر من مسار السيرفر
                           </div>
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <Input
+                            <Input aria-label="E:\\\\path\\\\to\\\\file.xlsx"
                               value={importPath}
                               onChange={(e) => setImportPath(e.target.value)}
                               placeholder="E:\\path\\to\\file.xlsx"
@@ -1636,7 +1636,7 @@ export default function WritePrescription({
                           dir="ltr"
                         >
                           <div className="flex-1 space-y-2">
-                            <Input
+                            <Input aria-label="Medication name"
                               value={item.medicationName}
                               onChange={(e) =>
                                 setPrescriptionItems((prev) =>
@@ -1666,7 +1666,7 @@ export default function WritePrescription({
                               className="grid grid-cols-1 gap-2 sm:grid-cols-3 print:hidden"
                               dir="rtl"
                             >
-                              <Input
+                              <Input aria-label="الجرعة"
                                 value={item.dosage}
                                 onChange={(e) =>
                                   setPrescriptionItems((prev) =>
@@ -1680,7 +1680,7 @@ export default function WritePrescription({
                                 placeholder="الجرعة"
                                 className="h-9 border-border/60 bg-muted/30 text-right"
                               />
-                              <Input
+                              <Input aria-label="التكرار"
                                 value={item.frequency}
                                 onChange={(e) =>
                                   setPrescriptionItems((prev) =>
@@ -1694,7 +1694,7 @@ export default function WritePrescription({
                                 placeholder="التكرار"
                                 className="h-9 border-border/60 bg-muted/30 text-right"
                               />
-                              <Input
+                              <Input aria-label="المدة"
                                 value={item.duration}
                                 onChange={(e) =>
                                   setPrescriptionItems((prev) =>
@@ -1709,7 +1709,7 @@ export default function WritePrescription({
                                 className="h-9 border-border/60 bg-muted/30 text-right"
                               />
                             </div>
-                            <Textarea
+                            <Textarea aria-label="تعليمات إضافية"
                               value={item.instructions}
                               onChange={(e) =>
                                 setPrescriptionItems((prev) =>

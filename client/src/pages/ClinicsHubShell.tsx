@@ -11,6 +11,7 @@ import {
   Pill,
   TestTube2,
   LayoutGrid,
+  RefreshCw,
 } from "lucide-react";
 import ExaminationForm from "./ExaminationForm";
 import MedicalReports from "./MedicalReports";
@@ -107,17 +108,55 @@ const MORE_LINKS: { href: string; label: string }[] = [];
 
 export default function ClinicsHubShell() {
   const [location] = useLocation();
-  const { canAccess } = usePermissions();
+  const {
+    canAccess,
+    isError: permissionsError,
+    isLoading: permissionsLoading,
+    isLoaded: permissionsLoaded,
+    refetch: refetchPermissions,
+  } = usePermissions();
 
   const isHubHome = location === "/clinics-hub" || location === "/clinics-hub/";
 
   const renderComponent = () => {
     if (isHubHome) return null;
+    if (permissionsLoading) {
+      return (
+        <div
+          role="status"
+          className="rounded-xl border border-border/80 bg-card p-6 text-start text-sm text-muted-foreground"
+        >
+          جاري تحميل صلاحيات مركز العيادات…
+        </div>
+      );
+    }
+    if (permissionsError) {
+      return (
+        <div
+          role="alert"
+          className="flex flex-col items-start gap-3 rounded-xl border border-warning/50 bg-warning/10 p-6 text-start"
+        >
+          <p className="text-sm text-foreground">
+            تعذر تحميل صلاحيات هذه الصفحة.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 gap-2"
+            onClick={() => void refetchPermissions()}
+            disabled={permissionsLoading}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden />
+            {permissionsLoading ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}
+          </Button>
+        </div>
+      );
+    }
     // Hub sub-paths inherit the hub permission, so re-check the permission that
     // actually guards the page being rendered.
     if (!canAccess(permissionPathForHubLink(location))) {
       return (
-        <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
+        <div className="rounded-xl border border-border/80 bg-card p-6 text-start text-sm text-muted-foreground">
           لا تملك صلاحية فتح هذه الصفحة.
         </div>
       );
@@ -138,7 +177,7 @@ export default function ClinicsHubShell() {
     if (location === "/clinics-hub/request-tests") return <RequestTests />;
 
     return (
-      <div className="rounded-xl border border-border/80 bg-card p-6 text-right text-sm text-muted-foreground">
+      <div className="rounded-xl border border-border/80 bg-card p-6 text-start text-sm text-muted-foreground">
         المسار غير معروف. ارجع إلى{" "}
         <Link
           href="/clinics-hub"
@@ -160,51 +199,89 @@ export default function ClinicsHubShell() {
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MAIN_MODULES.filter((mod) =>
-          canAccess(permissionPathForHubLink(mod.href)),
-        ).map((mod) => {
-          const Icon = mod.icon;
-          return (
-            <Card
-              key={mod.href}
-              className={cn(
-                "border-border/80 bg-card shadow-sm transition-all hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md",
-              )}
+        {permissionsLoading ? (
+          <div
+            role="status"
+            className="rounded-xl border border-border/80 bg-card p-6 text-start text-sm text-muted-foreground md:col-span-2 lg:col-span-3"
+          >
+            جاري تحميل وحدات مركز العيادات…
+          </div>
+        ) : permissionsError ? (
+          <div
+            role="alert"
+            className="flex flex-col items-start gap-3 rounded-xl border border-warning/50 bg-warning/10 p-6 text-start md:col-span-2 lg:col-span-3"
+          >
+            <p className="text-sm text-foreground">
+              تعذر تحميل وحدات مركز العيادات.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 gap-2"
+              onClick={() => void refetchPermissions()}
+              disabled={permissionsLoading}
             >
-              <CardContent className="flex h-full flex-col gap-4 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-1 text-right">
-                    <h3 className="font-black text-base tracking-tight">
-                      {mod.title}
-                    </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {mod.description}
-                    </p>
+              <RefreshCw className="h-4 w-4" aria-hidden />
+              {permissionsLoading ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}
+            </Button>
+          </div>
+        ) : !permissionsLoaded ? null : (
+          MAIN_MODULES.filter((mod) =>
+            canAccess(permissionPathForHubLink(mod.href)),
+          ).map((mod) => {
+            const Icon = mod.icon;
+            return (
+              <Card
+                key={mod.href}
+                className={cn(
+                  "border-border/80 bg-card shadow-sm transition-all hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md",
+                )}
+              >
+                <CardContent className="flex h-full flex-col gap-4 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-1 text-start">
+                      <h3 className="font-black text-base">
+                        {mod.title}
+                      </h3>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {mod.description}
+                      </p>
+                    </div>
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
+                        mod.iconWrap,
+                      )}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </div>
                   </div>
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
-                      mod.iconWrap,
-                    )}
-                  >
-                    <Icon className="h-6 w-6" />
+                  <div className="mt-auto pt-2">
+                    <Button
+                      asChild
+                      className="w-full selrs-gradient-btn text-primary-foreground hover:opacity-95 gap-2"
+                    >
+                      <Link href={mod.href}>
+                        <LayoutGrid className="h-4 w-4" />
+                        فتح الموديول
+                      </Link>
+                    </Button>
                   </div>
-                </div>
-                <div className="mt-auto pt-2">
-                  <Button
-                    asChild
-                    className="w-full selrs-gradient-btn text-primary-foreground hover:opacity-95 gap-2"
-                  >
-                    <Link href={mod.href}>
-                      <LayoutGrid className="h-4 w-4" />
-                      فتح الموديول
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+        {permissionsLoaded &&
+        !permissionsError &&
+        !permissionsLoading &&
+        MAIN_MODULES.every(
+          (mod) => !canAccess(permissionPathForHubLink(mod.href)),
+        ) ? (
+          <div className="rounded-xl border border-dashed border-border bg-card p-6 text-start text-sm text-muted-foreground md:col-span-2 lg:col-span-3">
+            لا توجد وحدات متاحة لحسابك حالياً.
+          </div>
+        ) : null}
       </div>
 
       {MORE_LINKS.length > 0 && (
@@ -233,7 +310,8 @@ export default function ClinicsHubShell() {
 
   return (
     <div
-      className="w-full space-y-5 px-4 py-6 sm:px-6 pb-10 text-right"
+      data-module-content-start
+      className="w-full space-y-5 px-4 py-6 sm:px-6 pb-10 text-start"
       dir="rtl"
     >
       {!isHubHome ? (

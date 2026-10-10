@@ -113,13 +113,13 @@ function formatEyeLabel(label: "RT" | "LT", row: RefractionRow) {
 
   return (
     <div className="space-y-1">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="text-[13px] font-semibold uppercase text-muted-foreground">
         {label}
       </div>
       <div className="text-xs font-semibold text-foreground">
         {formatTriplet(sphere, cylinder, axis)}
       </div>
-      <div className="text-[11px] text-muted-foreground">
+      <div className="text-[13px] text-muted-foreground">
         UCVA {hasValue(ucva) ? ucva : "—"} / BCVA {hasValue(bcva) ? bcva : "—"}{" "}
         / IOP {hasValue(iop) ? iop : "—"}
       </div>
@@ -130,13 +130,13 @@ function formatEyeLabel(label: "RT" | "LT", row: RefractionRow) {
 function statusBadge(status: RefractionStatus) {
   if (status === "complete") {
     return (
-      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success">
+      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[13px] font-semibold text-success">
         مكتمل
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-warning/20 px-2.5 py-1 text-[11px] font-semibold text-warning/90">
+    <span className="rounded-full bg-warning/20 px-2.5 py-1 text-[13px] font-semibold text-warning-text/90">
       ناقص
     </span>
   );
@@ -259,7 +259,7 @@ export default function RefractionsDashboard() {
           value={stats.partial}
           icon={AlertTriangle}
           description="مراجعة أو استكمال"
-          iconColor="bg-warning/20 text-warning/90"
+          iconColor="bg-warning/20 text-warning-text/90"
         />
       </div>
 
@@ -287,7 +287,7 @@ export default function RefractionsDashboard() {
 
       {/* Tab Selector */}
       <div className="mb-4 flex border-b border-border">
-        <button
+        <Button variant="bare"
           type="button"
           onClick={() => setViewMode("list")}
           className={cn(
@@ -298,8 +298,8 @@ export default function RefractionsDashboard() {
           )}
         >
           قائمة السجلات ({total})
-        </button>
-        <button
+        </Button>
+        <Button variant="bare"
           type="button"
           onClick={() => setViewMode("review")}
           className={cn(
@@ -319,7 +319,7 @@ export default function RefractionsDashboard() {
               0
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
       {viewMode === "list" ? (
@@ -335,8 +335,8 @@ export default function RefractionsDashboard() {
                 : "لا توجد سجلات مطابقة للتصفية."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1160px] text-right text-sm">
+            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+              <table className="w-full min-w-[1160px] text-start text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
                     <th className="px-4 py-3 font-semibold">المريض</th>
@@ -363,7 +363,7 @@ export default function RefractionsDashboard() {
                           <div className="font-semibold">
                             {row.patientName || `مريض #${row.patientId}`}
                           </div>
-                          <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                          <div className="mt-1 flex flex-wrap gap-2 text-[13px] text-muted-foreground">
                             <span dir="ltr">{row.patientCode || "—"}</span>
                             <span>•</span>
                             <span>
@@ -440,28 +440,28 @@ export default function RefractionsDashboard() {
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <button
+                      <Button variant="bare"
                         type="button"
                         onClick={() =>
                           setLocation(`/refraction/${row.patientId}`)
                         }
-                        className="min-w-0 flex-1 text-right"
+                        className="min-w-0 flex-1 text-start"
                       >
                         <div className="font-semibold text-sm">
                           {row.patientName || `مريض #${row.patientId}`}
                         </div>
                         <div
-                          className="mt-1 text-[11px] text-muted-foreground"
+                          className="mt-1 text-[13px] text-muted-foreground"
                           dir="ltr"
                         >
                           {row.patientCode || "—"}
                         </div>
-                      </button>
+                      </Button>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[11px] font-semibold text-warning-foreground">
+                        <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[13px] font-semibold text-warning-foreground">
                           ناقص
                         </span>
-                        <button
+                        <Button variant="bare"
                           type="button"
                           aria-label="تجاهل التنبيه"
                           onClick={() =>
@@ -472,10 +472,10 @@ export default function RefractionsDashboard() {
                           className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-success/10 hover:text-success"
                         >
                           <CheckCircle2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[13px] text-muted-foreground border-t border-border/50 pt-2">
                       <div>
                         RT{" "}
                         {formatTriplet(
