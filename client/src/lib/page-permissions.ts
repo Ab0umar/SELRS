@@ -285,6 +285,131 @@ export const PAGE_PERMISSION_DEFINITIONS = [
 
   // ── مركز المريض ──
   {
+    id: "/patient-hub/examination/:id",
+    label: "مركز المريض — فحوصات المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/examination",
+    label: "مركز المريض — الفحوصات",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/prescription/:id",
+    label: "مركز المريض — روشتة المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/prescription",
+    label: "مركز المريض — الروشتة",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/request-tests/:id",
+    label: "مركز المريض — تحاليل وأشعة المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/request-tests",
+    label: "مركز المريض — التحاليل والأشعة",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/visits/:id",
+    label: "مركز المريض — زيارات المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/visits",
+    label: "مركز المريض — الزيارات",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/followups/:id",
+    label: "مركز المريض — متابعات المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/followups",
+    label: "مركز المريض — المتابعات",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/sheets/consultant/:id",
+    label: "مركز المريض — شيت استشاري للمريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/sheets/consultant",
+    label: "مركز المريض — شيت استشاري",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/pentacam-dashboard/:id",
+    label: "مركز المريض — بنتكام المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/pentacam-dashboard",
+    label: "مركز المريض — نتائج البنتكام",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/brief/:id",
+    label: "مركز المريض — ملخص المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/brief",
+    label: "مركز المريض — الملخص",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/file/:id",
+    label: "مركز المريض — ملف المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/file",
+    label: "مركز المريض — الملف الطبي",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/summary/:id",
+    label: "مركز المريض — تقرير المريض المجمع",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/summary",
+    label: "مركز المريض — التقرير المجمع",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/reports/:id",
+    label: "مركز المريض — تقارير المريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/reports",
+    label: "مركز المريض — التقارير الطبية",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/clinical-report/:id",
+    label: "مركز المريض — التقرير الشامل للمريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/doctor/:id",
+    label: "مركز المريض — عرض الطبيب للمريض",
+    group: "مركز المريض",
+  },
+  {
+    id: "/patient-hub/doctor",
+    label: "مركز المريض — عرض الطبيب",
+    group: "مركز المريض",
+  },
+  {
     id: "/patient-hub",
     label: "مركز المريض (Patient hub)",
     group: "مركز المريض",
@@ -298,6 +423,35 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   },
 
   // ── العيادات ──
+  { id: "/records/medical", label: "السجلات الطبية", group: "العيادات" },
+  {
+    id: "/medical-records",
+    label: "السجلات الطبية (مسار بديل)",
+    group: "العيادات",
+  },
+  {
+    id: "/medical-report/:id",
+    label: "التقرير الطبي للطباعة (برقم مريض)",
+    group: "العيادات",
+  },
+  { id: "/examination/:id", label: "فحوصات المريض", group: "العيادات" },
+  { id: "/sheets", label: "اختيار الشيت الطبي", group: "العيادات" },
+  {
+    id: "/sheets/specialist/:id/followup",
+    label: "متابعة شيت الأخصائي",
+    group: "العيادات",
+  },
+  {
+    id: "/sheets/external",
+    label: "اختيار مريض — شيت خارجي",
+    group: "العيادات",
+  },
+  { id: "/reports", label: "مركز التقارير الطبية", group: "العيادات" },
+  {
+    id: "/clinical-reports",
+    label: "مركز التقارير الطبية (مسار بديل)",
+    group: "العيادات",
+  },
   {
     id: "/clinical-suite",
     label: "المجموعة الإكلينيكية والتشغيلية (Clinical Suite)",
@@ -484,6 +638,13 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/doctor/patient/:id", label: "عرض الطبيب للمريض", group: "العيادات" },
 
   // ── المرضى ──
+  { id: "/records/patients", label: "سجلات المرضى", group: "المرضى" },
+  {
+    id: "/patients-records",
+    label: "سجلات المرضى (مسار بديل)",
+    group: "المرضى",
+  },
+  { id: "/archive", label: "الأرشيف", group: "المرضى" },
   { id: "/patients-hub", label: "مركز المرضى (Patients hub)", group: "المرضى" },
   { id: "/patients", label: "المرضى", group: "المرضى" },
   { id: "/patients/:id", label: "تفاصيل المريض", group: "المرضى" },
@@ -764,6 +925,46 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/kf/accounting/ledger", label: "KF — الخزنة", group: "وحدة KF" },
 
   // ── أخرى ──
+  {
+    id: "/admin-hub/pentacam/:id",
+    label: "ربط بنتكام المريض (مسار بديل)",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/admin-hub/external-doctors",
+    label: "الأطباء الخارجيون (الإدارة)",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/admin-hub/external-referrals",
+    label: "إحالات الأطباء الخارجيين (الإدارة)",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/admin-hub/diagnostics",
+    label: "تشخيص أعطال النظام",
+    group: "مركز الإدارة",
+  },
+  {
+    id: "/accounting/service-entry",
+    label: "إدخال خدمة حسابية",
+    group: "الحسابات",
+  },
+  { id: "/treatment", label: "مركز العلاج (مسار بديل)", group: "مركز الخدمات" },
+  {
+    id: "/kf/patients/:kfPatientId/history",
+    label: "KF — تاريخ المريض",
+    group: "وحدة KF",
+  },
+  {
+    id: "/booking-triage",
+    label: "مركز الإدارة (مسار قديم)",
+    group: "مركز الإدارة",
+  },
+  { id: "/showcase", label: "عرض المكونات", group: "أخرى" },
+  { id: "/styleguide", label: "دليل التصميم", group: "أخرى" },
+  { id: "/components-gallery", label: "معرض المكونات", group: "أخرى" },
+  { id: "/documentation", label: "توثيق النظام", group: "أخرى" },
   { id: "/profile", label: "الملف الشخصي", group: "أخرى" },
 ] as const satisfies readonly PagePermissionEntry[];
 

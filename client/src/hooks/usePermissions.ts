@@ -42,6 +42,9 @@ export function usePermissions() {
     canAccess,
     /** True once permissions have loaded (or the user is admin). */
     isLoaded: isAdmin || permissionsQuery.isSuccess,
+    isLoading: !isAdmin && permissionsQuery.isLoading,
+    isError: !isAdmin && permissionsQuery.isError,
+    refetch: permissionsQuery.refetch,
     isAdmin,
   };
 }

@@ -528,7 +528,7 @@ export default function ProtectedRoute({
     cachedPermissions === null
   ) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="w-full max-w-md rounded-2xl border bg-background p-6 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
@@ -574,7 +574,7 @@ export default function ProtectedRoute({
 
   if (roleMismatch && !roleOverrideByPermission) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
@@ -582,12 +582,12 @@ export default function ProtectedRoute({
           <p className="text-destructive font-semibold mb-4">
             ليس لديك صلاحية للوصول لهذه الصفحة
           </p>
-          <button
+          <Button variant="bare"
             onClick={() => setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -599,7 +599,7 @@ export default function ProtectedRoute({
     !requiredBranches.includes(user.branch)
   ) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
@@ -607,12 +607,12 @@ export default function ProtectedRoute({
           <p className="text-destructive font-semibold mb-4">
             هذه الصفحة غير متاحة لفرعك
           </p>
-          <button
+          <Button variant="bare"
             onClick={() => setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -620,7 +620,7 @@ export default function ProtectedRoute({
 
   if (userRole !== "admin" && permissionsQuery.isSuccess && !isPathAllowed) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="rounded-[28px] border border-border bg-background/95 p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive">
             <ShieldAlert className="h-6 w-6" />
@@ -628,12 +628,12 @@ export default function ProtectedRoute({
           <p className="text-destructive font-semibold mb-4">
             ليس لديك صلاحية للوصول لهذه الصفحة
           </p>
-          <button
+          <Button variant="bare"
             onClick={() => setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
             العودة للصفحة الرئيسية
-          </button>
+          </Button>
         </div>
       </div>
     );

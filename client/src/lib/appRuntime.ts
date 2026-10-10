@@ -1,7 +1,9 @@
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Network } from "@capacitor/network";
-import { QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
 import { TRPCClientError } from "@trpc/client";
 
 export type BuildInfo = {
@@ -382,7 +384,19 @@ const shouldRetry = (failureCount: number, error: unknown) => {
   return failureCount < 2;
 };
 
+// Mutations that define no onError of their own still tell the user the save failed
+// (DESIGN.md: save actions report success or failure and keep usable input).
+const mutationCache = new MutationCache({
+  onError: (error, _variables, _context, mutation) => {
+    if (mutation.options.onError || mutation.meta?.silent) return;
+    const code = (error as { data?: { code?: string } })?.data?.code;
+    if (code === "UNAUTHORIZED") return;
+    toast.error(getTrpcErrorMessage(error, "تعذر حفظ التغييرات. حاول مرة أخرى"));
+  },
+});
+
 export const queryClient = new QueryClient({
+  mutationCache,
   defaultOptions: {
     queries: {
       staleTime: 30_000,
