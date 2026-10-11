@@ -8,6 +8,7 @@ import {
   type SyntheticEvent,
 } from "react";
 import MedicalFilePanel from "@/components/MedicalFilePanel";
+import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
 import ConsultantSheet from "@/pages/ConsultantSheet";
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
 import { localISODate } from "@/lib/utils";
@@ -51,9 +52,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import { AssistantInput as Input, AssistantTextarea as Textarea, AssistantFieldsProvider } from "@/components/medical-assistant/AssistantFields";
 import { DateInput } from "@/components/ui/date-input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 type StageId =
@@ -331,6 +331,7 @@ function Field({
       </span>
       <Input
         dir={dir}
+        aria-label={label}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
@@ -3578,6 +3579,7 @@ export default function WorkflowPrototypeLive() {
         <section className="rounded-xl border-2 border-slate-300 p-4 print:break-inside-avoid print:p-3">
           <h3 className="text-lg font-black text-blue-950">Final Decision</h3>
           <Textarea aria-label="اكتب القرار النهائي…"
+            data-medical-proposals="decision"
             value={data.consultant.finalDecision}
             onChange={(event) =>
               update("consultant", {
@@ -3741,6 +3743,13 @@ export default function WorkflowPrototypeLive() {
           <div className="flex min-w-0 flex-wrap items-end justify-between gap-2 border-b border-border/60 pb-2">
             {renderLivePatientPicker()}
             <div className="flex shrink-0 items-center gap-1">
+              <MedicalAssistantPreview
+                key={`${selectedLivePatient.id}-${activeWorkflowVisitId ?? selectedDate}`}
+                patientId={selectedLivePatient.id}
+                patientName={selectedLivePatient.fullName ?? undefined}
+                visitId={activeWorkflowVisitId}
+                visitDate={selectedDate}
+              />
               {sidebarOpen ? (
                 <Button
                   type="button"
@@ -3831,6 +3840,14 @@ export default function WorkflowPrototypeLive() {
 
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900" dir="rtl">
+      <AssistantFieldsProvider
+        key={`${selectedLivePatient?.id ?? "none"}-${activeWorkflowVisitId ?? selectedDate}`}
+        patientId={selectedLivePatient?.id ?? 0}
+        patientName={selectedLivePatient?.fullName ?? undefined}
+        visitId={activeWorkflowVisitId}
+        visitDate={selectedDate}
+        disabled={!selectedLivePatient}
+      >
       <main className="mx-auto max-w-[1500px] space-y-2 px-2 py-0 lg:px-3">
         <h1 className="sr-only">مسار اليوم</h1>
         <QueueLoadStatus {...liveQueue} />
@@ -3838,6 +3855,7 @@ export default function WorkflowPrototypeLive() {
           ? renderLiveWorkspace()
           : renderLivePatientPicker()}
       </main>
+      </AssistantFieldsProvider>
     </div>
   );
 }

@@ -4,8 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import { DiagnosisImagesPanel } from "./patient-details/DiagnosisImagesPanel";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+import { AssistantInput as Input, AssistantTextarea as Textarea, AssistantFieldsProvider } from "./medical-assistant/AssistantFields";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import {
@@ -33,6 +32,7 @@ import {
 } from "@/lib/refractionOptions";
 import { cn } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
+import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
 
 interface MedicalFilePanelProps {
   patientId: number;
@@ -1653,8 +1653,16 @@ export default function MedicalFilePanel({
     : "flex h-[95vh] max-h-[95vh] w-full max-w-[960px] flex-col rounded-xl border border-border/60 bg-card text-foreground shadow-xl min-h-0";
 
   return (
-    <div className={outerCls}>
-      <div className={innerCls}>
+    <AssistantFieldsProvider
+      key={`${patientId}-${hubVisitId ?? selectedExamination?.visitId ?? selectedExaminationId ?? visitDate}`}
+      patientId={patientId}
+      patientName={patient?.fullName}
+      visitId={hubVisitId ?? selectedExamination?.visitId}
+      visitDate={visitDate}
+      disabled={hubRo || patientQuery.isLoading}
+    >
+    <div className={outerCls} data-medical-file-overlay={!embedded || undefined}>
+      <div className={innerCls} data-medical-file-surface>
         {/* Header */}
         <div
           data-impeccable-variants="c28c42c2"
@@ -1698,6 +1706,16 @@ export default function MedicalFilePanel({
 
         {/* Followup + Exam selector */}
         <div className="flex items-center gap-3 border-b border-border/40 bg-muted/20 px-4 py-2 flex-shrink-0 flex-wrap">
+          {!embedded && (
+            <MedicalAssistantPreview
+              key={`${patientId}-${hubVisitId ?? selectedExamination?.visitId ?? selectedExaminationId ?? visitDate}`}
+              patientId={patientId}
+              patientName={patient?.fullName}
+              visitId={hubVisitId ?? selectedExamination?.visitId}
+              visitDate={visitDate}
+              disabled={hubRo || patientQuery.isLoading}
+            />
+          )}
           <label
             className={cn(
               "inline-flex items-center gap-2 rounded-md border border-warning/60 bg-warning/10/60 px-2.5 py-1.5 text-xs font-semibold text-warning-text",
@@ -3819,5 +3837,6 @@ export default function MedicalFilePanel({
         </div>
       </div>
     </div>
+    </AssistantFieldsProvider>
   );
 }

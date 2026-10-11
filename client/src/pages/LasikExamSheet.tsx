@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { AssistantField } from "@/components/medical-assistant/AssistantFields";
 import {
   Printer,
   User,
@@ -2380,6 +2381,7 @@ export default function LasikExamSheet({
                 <p className="mb-2 text-[13px] font-bold text-[#003d9b]">
                   Complains:
                 </p>
+                <AssistantField label="Complaints">
                 <textarea aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
                   className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b] print:placeholder-transparent"
                   value={consultantExam.complains}
@@ -2388,6 +2390,7 @@ export default function LasikExamSheet({
                   }
                   placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
                 />
+                </AssistantField>
                 <div className="relative mt-2 print:hidden">
                   <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input aria-label="ابحث عن الأعراض…"

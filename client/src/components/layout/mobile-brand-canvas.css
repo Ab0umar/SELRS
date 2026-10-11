@@ -38,7 +38,7 @@
   .selrs-mobile-brand-canvas .selrs-app-content div:has(> [data-admin-page-header]:only-child:not(:has([data-page-commands]))) + * {
     margin-top: 0 !important;
   }
-  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content :is([data-slot="card"], section.bg-card, div.bg-card.border, div:has(> [data-admin-page-header]), .clinical-workspace [role="tabpanel"] > div):not([role="dialog"], [role="dialog"] *, [data-print-document], [data-print-document] *, .medical-report-brand, .medical-report-brand *, .prescription-root, .prescription-root *) {
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content :is([data-slot="card"], section.bg-card, div.bg-card.border, div:has(> [data-admin-page-header]), .clinical-workspace [role="tabpanel"] > div):not([data-medical-file-surface], [role="dialog"], [role="dialog"] *, [data-print-document], [data-print-document] *, .medical-report-brand, .medical-report-brand *, .prescription-root, .prescription-root *) {
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -92,7 +92,7 @@
   }
   html:not(.dark) .selrs-mobile-brand-canvas [data-app-scroll-container],
   html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content,
-  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content > :not([aria-hidden="true"]) {
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content > :not([aria-hidden="true"], [data-medical-file-overlay], [data-medical-file-surface]) {
     background: transparent !important;
   }
   html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] {
@@ -124,7 +124,7 @@
   html:not(.dark) .selrs-mobile-brand-canvas .attendance-studio {
     --attendance-surface: #ffffff;
   }
-  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content > :not([aria-hidden="true"]),
+  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content > :not([aria-hidden="true"], [data-medical-file-overlay], [data-medical-file-surface]),
   html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content [data-operational-module] #module-content,
   html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content main[id^="dashboard-panel-"],
   html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content section.accounting-entry-workspace {
