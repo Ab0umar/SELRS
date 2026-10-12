@@ -404,6 +404,19 @@ function combineWhereClauses(...clauses: Array<any | undefined>) {
   return cleanClauses.length > 0 ? and(...(cleanClauses as any)) : undefined;
 }
 
+/**
+ * Repairs legacy mojibake (UTF-8 read as latin1) in stored text.
+ * Invariant: idempotent on clean text; do not remove or bypass.
+ * Runbook: docs/troubleshooting-patient-sync.md
+ */
+/**
+ * Repairs legacy mojibake (mis-decoded Arabic) in a single value.
+ * INVARIANT: do not remove/bypass; see docs/troubleshooting-patient-sync.md.
+ */
+/**
+ * Repairs legacy mis-encoded (mojibake) strings; returns input unchanged when
+ * it is not mojibake. Do not remove/bypass. See docs/troubleshooting-patient-sync.md
+ */
 function decodeMojibake(value: unknown): string {
   const raw = String(value ?? "");
   if (!raw || !MOJIBAKE_HINT.test(raw)) return raw;
@@ -422,6 +435,20 @@ function encodeForLegacySearch(value: string): string {
   }
 }
 
+/**
+ * Applies decodeMojibake to patient text fields on read.
+ * Invariant: keep in the read path; do not bypass without checking the data path.
+ * Runbook: docs/troubleshooting-patient-sync.md
+ */
+/**
+ * Decodes mojibake in patient text fields on read. INVARIANT: keep in the read
+ * path; do not bypass without understanding legacy encoding.
+ * See docs/troubleshooting-patient-sync.md.
+ */
+/**
+ * Decodes legacy mojibake text fields on a patient row. Do not bypass on read
+ * paths. See docs/troubleshooting-patient-sync.md
+ */
 function decodePatientRow<T extends Record<string, any>>(row: T): T {
   return {
     ...row,
@@ -1502,6 +1529,21 @@ export async function invalidatePatientPageStateCache(
     );
 }
 
+/**
+ * Bulk-clears doctorCode/doctorId/serviceCode and deletes mssql-sourced
+ * patientServiceEntries; run a full MSSQL sync afterwards to repopulate.
+ * Runbook: docs/troubleshooting-patient-sync.md
+ */
+/**
+ * Bulk-clears doctorCode/doctorId/serviceCode and deletes mssql-sourced
+ * patientServiceEntries; run a full MSSQL sync afterwards.
+ * See docs/troubleshooting-patient-sync.md.
+ */
+/**
+ * Bulk-clears doctorCode/doctorId/serviceCode and deletes mssql-sourced
+ * patientServiceEntries; run a full MSSQL sync afterwards to repopulate.
+ * See docs/troubleshooting-patient-sync.md
+ */
 export async function resetMssqlSyncCodes(): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -2307,6 +2349,22 @@ export async function checkVisitsWithoutAppointments() {
   };
 }
 
+/**
+ * Builds WHERE clauses for patient list filters.
+ * Invariant: serviceType filters are exact-match only via
+ * getServiceTypeFilterVariants() (shared/serviceType.ts); no variant blending.
+ * Runbook: docs/troubleshooting-patient-sync.md
+ */
+/**
+ * Builds list filters. INVARIANT: serviceType filters are exact-match only via
+ * getServiceTypeFilterVariants (shared/serviceType.ts); no variant blending.
+ * See docs/troubleshooting-patient-sync.md.
+ */
+/**
+ * Builds WHERE clauses for patient list filters.
+ * INVARIANT: serviceType filter is exact-match via getServiceTypeFilterVariants()
+ * (shared/serviceType.ts); never blend variants. See docs/troubleshooting-patient-sync.md
+ */
 function buildPatientFilterClauses(filters?: {
   branch?: string;
   searchTerm?: string;
@@ -2853,6 +2911,25 @@ export async function getTodayPatientsBySheet(dateIso?: string) {
   return result;
 }
 
+/**
+ * Enriches patient rows with doctor/service metadata (used by getAllPatients).
+ * Invariant: non-blank DB `serviceType`/`locationType` always win; derive from
+ * service codes only when the column is blank. Otherwise manual edits are
+ * discarded on the next list fetch ("change doesn't stick").
+ * Runbook: docs/troubleshooting-patient-sync.md
+ */
+/**
+ * Enriches patient rows with doctor/service metadata.
+ * INVARIANT: never overwrite non-blank DB `serviceType`/`locationType`; the DB
+ * column wins and service-code derivation is only a fallback when blank.
+ * See docs/troubleshooting-patient-sync.md.
+ */
+/**
+ * Enriches patient rows with doctor/service metadata (used by getAllPatients).
+ * INVARIANT: non-blank DB `patients.serviceType` / `locationType` always win;
+ * service-code-derived values are fallback only when the column is blank.
+ * Violating this makes edits "not stick". See docs/troubleshooting-patient-sync.md
+ */
 async function attachTreatingDoctor(patientRows: any[]) {
   const db = await getDb();
   if (!db) return patientRows;
