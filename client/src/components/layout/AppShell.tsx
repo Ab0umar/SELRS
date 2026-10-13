@@ -305,6 +305,13 @@ export function AppShell({
           )}
           <RouteTitleFallback location={location} />
           {children}
+          {!hideSidebar && !extractHubPatientId(location) && (
+            <div
+              data-app-bottom-nav-clearance
+              aria-hidden="true"
+              className="h-[calc(92px+env(safe-area-inset-bottom))] shrink-0 md:hidden print:hidden"
+            />
+          )}
         </div>
       </main>
 

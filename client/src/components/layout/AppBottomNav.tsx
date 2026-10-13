@@ -348,8 +348,8 @@ export function AppBottomNav({
       ...previous.filter((item) => !reordered.includes(item)),
     ]);
   };
-  const mobilePrimaryTabs = visibleTabs.slice(0, 4);
-  const mobileOverflowItems: NavLeaf[] = visibleTabs.slice(4).map((tab) => ({
+  const mobilePrimaryTabs = visibleTabs.slice(0, 5);
+  const mobileOverflowItems: NavLeaf[] = visibleTabs.slice(5).map((tab) => ({
     icon: tab.icon,
     label: tab.label,
     path: tab.paths[0],
@@ -440,16 +440,13 @@ export function AppBottomNav({
         aria-label="التنقل الرئيسي"
         dir="rtl"
         className={cn(
-          "md:hidden shrink-0 overflow-hidden bg-primary text-primary-foreground transition-[max-height,transform,padding,border-color] duration-200 ease-out print:hidden",
+          "fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 md:hidden overflow-hidden rounded-[28px] border border-border bg-card text-foreground shadow-[0_8px_32px_rgba(0,0,0,0.14)] transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none print:hidden",
           navHidden && !sheetOpen && !moreSheetOpen
-            ? "pointer-events-none max-h-0 translate-y-full border-transparent"
-            : "max-h-24 translate-y-0 border-t border-border",
+            ? "pointer-events-none translate-y-[calc(100%+24px+env(safe-area-inset-bottom))] opacity-0"
+            : "translate-y-0 opacity-100",
         )}
         style={{
-          paddingBottom:
-            navHidden && !sheetOpen && !moreSheetOpen
-              ? "0px"
-              : "env(safe-area-inset-bottom)",
+          paddingBottom: "0px",
         }}
       >
         <div className="flex h-16 items-stretch gap-1 overflow-hidden px-1">
@@ -465,8 +462,8 @@ export function AppBottomNav({
                 className={cn(
                   "relative flex min-w-16 flex-1 shrink-0 flex-col items-center justify-center gap-1 px-2 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary",
                   active
-                    ? "text-secondary dark:text-primary-foreground"
-                    : "text-primary-foreground/80 hover:text-primary-foreground",
+                    ? "text-foreground bg-muted/70 rounded-[22px]"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 onClick={() => onNavigate(tab.paths[0])}
               >
@@ -477,17 +474,17 @@ export function AppBottomNav({
                   />
                 )}
                 <Icon
-                  className="size-5 shrink-0"
+                  className="size-6 shrink-0"
                   strokeWidth={active ? 2.2 : 1.8}
                 />
-                <span
+                {tab.key !== "dashboard" && <span
                   className={cn(
-                    "whitespace-nowrap text-xs leading-tight",
+                    "max-w-full whitespace-normal text-center text-xs leading-tight",
                     active ? "font-semibold" : "font-medium",
                   )}
                 >
                   {tab.label}
-                </span>
+                </span>}
               </Button>
             );
           })}
@@ -500,8 +497,8 @@ export function AppBottomNav({
             className={cn(
               "relative flex min-w-16 flex-1 shrink-0 flex-col items-center justify-center gap-1 px-2 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary",
               moreSheetOpen || moreOpen
-                ? "text-secondary dark:text-primary-foreground"
-                : "text-primary-foreground/80 hover:text-primary-foreground",
+                ? "text-foreground bg-muted/70 rounded-[22px]"
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => {
               setMoreSheetOpen(true);
@@ -509,7 +506,7 @@ export function AppBottomNav({
             }}
           >
             <LayoutGrid
-              className="size-5 shrink-0"
+              className="size-6 shrink-0"
               strokeWidth={moreSheetOpen || moreOpen ? 2.2 : 1.8}
             />
             <span

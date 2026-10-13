@@ -1,14 +1,5 @@
 @media screen {
-  html:not(.dark) .selrs-mobile-brand-canvas:has(:is(.dashboard-workspace, .main-home-focused, .portal-bookings-workspace)) {
-    --background: #ffffff;
-    --card: #ffffff;
-    --popover: #ffffff;
-    --muted: #f3f4f5;
-    --mobile-content-surface: #ffffff;
-    --mobile-brand-gradient: #ffffff;
-    background: #ffffff !important;
-  }
-  .dashboard-workspace, .main-home-focused { background: var(--card); }
+  .dashboard-workspace, .main-home-focused { background: var(--background); }
   .dashboard-workspace > div { max-width: 1600px; margin-inline: auto; }
   :is(.dashboard-workspace, .main-home-focused, .portal-bookings-workspace) :is(a, button, input, select, textarea, [tabindex]):focus-visible {
     outline: 2px solid var(--foreground);
@@ -93,8 +84,15 @@
 
 @media screen and (max-width: 699px) {
   html .selrs-mobile-brand-canvas .selrs-app-content div.dashboard-workspace div[role="tablist"][aria-label="أقسام لوحة التحكم"] {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-radius: 0 !important;
   }
   .dashboard-workspace [role="tablist"] > button { min-width: 0; }
   .dashboard-workspace [role="tablist"] > button span { white-space: normal; }

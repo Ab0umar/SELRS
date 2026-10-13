@@ -169,7 +169,7 @@ function TabsTrigger({
       data-slot="tabs-trigger"
       data-tab-value={typeof props.value === "string" ? props.value : undefined}
       className={cn(
-        "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground focus-visible:outline-ring text-foreground inline-flex min-h-11 shrink-0 flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground focus-visible:outline-ring text-foreground inline-flex min-h-11 shrink-0 grow items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
