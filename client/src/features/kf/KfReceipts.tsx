@@ -97,8 +97,8 @@ export default function KfReceipts() {
             />
           </label>
           {dateError && <p className="col-span-full text-sm text-destructive">{dateError}</p>}
-          <div className="flex items-end gap-2">
-            <Button className="flex-1" onClick={apply}><Search className="me-2 h-4 w-4" />تطبيق</Button>
+          <div className="col-span-full flex flex-wrap items-end gap-2">
+            <Button className="min-w-max flex-1 sm:flex-none" onClick={apply}><Search className="me-2 h-4 w-4" />تطبيق</Button>
             <Button variant="outline" onClick={reset}>إعادة ضبط</Button>
           </div>
         </CardContent>
