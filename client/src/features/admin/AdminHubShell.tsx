@@ -356,6 +356,13 @@ export default function AdminHubShell({
     );
   }, [normalizedHubLocation]);
 
+  const moduleGroups = CATEGORIES.filter(category => category.id !== "all")
+    .map(category => ({
+      ...category,
+      modules: filteredModules.filter(module => module.category === category.id),
+    }))
+    .filter(category => category.modules.length > 0);
+
   const renderComponent = () => {
     const loc = normalizedHubLocation;
     if (loc === "/admin-hub/users") return <AdminUsers />;
@@ -408,7 +415,7 @@ export default function AdminHubShell({
       canAccess(getRoutePermissionPath(normalizedHubLocation)));
 
   const cardClassName =
-    "group flex min-h-20 w-full items-start gap-3 border-b border-border px-2 py-4 text-start transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+    "admin-tool-link group";
   const hasHomeFilters =
     activeCategory !== "all" || Boolean(searchQuery.trim());
 
@@ -420,20 +427,20 @@ export default function AdminHubShell({
     >
       <main className="w-full px-2 py-3 sm:px-4 sm:py-4">
         {isHubHome ? (
-          <section className="space-y-6">
-            <div className="flex flex-col gap-4 border-b border-border/60 pb-5 md:flex-row md:items-center md:justify-between">
+          <section className="admin-directory">
+            <div className="admin-directory-heading">
               <div>
                 <h1 className="text-2xl font-semibold text-foreground">
-                  مركز الإدارة والتحكم
+                  مركز الإدارة
                 </h1>
               </div>
 
               <div
-                className="flex flex-wrap items-center gap-2"
+                className="admin-health"
                 aria-label="حالة النظام"
               >
                 <div
-                  className="flex min-h-11 items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground"
+                  className="admin-health-item"
                   role="status"
                   aria-live="polite"
                   aria-atomic="true"
@@ -460,12 +467,12 @@ export default function AdminHubShell({
                   </span>
                 </div>
                 <div
-                  className="flex min-h-11 items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground"
+                  className="admin-health-item"
                   role="status"
                   aria-live="polite"
                   aria-atomic="true"
                 >
-                  <Zap className="size-3.5 text-emerald-600" />
+                  <Zap aria-hidden="true" className="size-3.5 text-muted-foreground" />
                   <span>
                     النفق الآمن:{" "}
                     {opsHealthQuery.isError
@@ -478,7 +485,7 @@ export default function AdminHubShell({
                   </span>
                 </div>
                 <div
-                  className="flex min-h-11 items-center gap-2 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground font-mono"
+                  className="admin-health-item"
                   role="status"
                   aria-live="polite"
                   aria-atomic="true"
@@ -503,9 +510,9 @@ export default function AdminHubShell({
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+            <div className="admin-directory-controls">
               <div
-                className="flex flex-wrap items-center gap-1.5 max-w-full"
+                className="admin-category-nav"
                 role="group"
                 aria-label="تصفية أقسام الإدارة"
               >
@@ -547,7 +554,7 @@ export default function AdminHubShell({
                 })}
               </div>
 
-              <div className="relative w-full sm:w-64 sm:shrink-0">
+              <div className="admin-directory-search relative">
                 <Search
                   aria-hidden="true"
                   className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -558,7 +565,7 @@ export default function AdminHubShell({
                   placeholder="بحث في أدوات الإدارة"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="min-h-11 w-full rounded-md border border-input bg-card py-2 pe-3 ps-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="min-h-11 w-full rounded-md border border-input bg-card py-2 pe-12 ps-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
                 {searchQuery && (
                   <Button variant="bare"
@@ -619,24 +626,32 @@ export default function AdminHubShell({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredModules.map((card) => {
-                  const Icon = card.icon;
-                  return (
+              <div className="admin-directory-results">
+                {moduleGroups.map(category => (
+                  <section key={category.id} className="admin-tool-group" aria-labelledby={`admin-group-${category.id}`}>
+                    <header className="admin-tool-group-heading">
+                      <h2 id={`admin-group-${category.id}`}>{category.label}</h2>
+                      <span>{category.modules.length}</span>
+                    </header>
+                    <div className="admin-tool-list">
+                    {category.modules.map(card => {
+                      const Icon = card.icon;
+                      return (
                     <Link
                       key={card.href}
                       href={card.href}
                       className={cardClassName}
+                      data-category={card.category}
                     >
                       <div className="shrink-0">
-                        <span className="flex size-10 items-center justify-center text-primary">
+                        <span className="admin-tool-icon">
                           <Icon
                             className="size-4.5 sm:size-5"
                             strokeWidth={2}
                           />
                         </span>
                       </div>
-                      <div className="min-w-0">
+                      <div className="admin-tool-copy min-w-0">
                         <h3 className="text-sm font-semibold leading-normal text-foreground">
                           {card.label}
                         </h3>
@@ -644,9 +659,13 @@ export default function AdminHubShell({
                           {card.helper}
                         </p>
                       </div>
+                      <ChevronRight aria-hidden="true" className="admin-tool-arrow" />
                     </Link>
-                  );
-                })}
+                      );
+                    })}
+                    </div>
+                  </section>
+                ))}
               </div>
             )}
           </section>
