@@ -1,0 +1,233 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../services/marketing/manusClient", () => ({
+  createManusTask: vi.fn(),
+  readManusTask: vi.fn(),
+  downloadManusFile: vi.fn(),
+}));
+import {
+  createManusTask,
+  readManusTask,
+  downloadManusFile,
+} from "../services/marketing/manusClient";
+import {
+  startMedicalProposals,
+  readMedicalProposals,
+} from "../services/medical-assistant";
+
+let owner = 1000;
+const input = {
+  kind: "field",
+  label: "Complaints",
+  transcript: "صداع من أسبوعين",
+} as const;
+beforeEach(() => {
+  owner++;
+  vi.mocked(createManusTask).mockResolvedValue({ task_id: "fictional-task" });
+  vi.mocked(readManusTask).mockResolvedValue({
+    status: "stopped",
+    has_running_background_jobs: false,
+    attachments: [
+      {
+        filename: "medical-proposals.json",
+        url: "https://files.manuscdn.com/result.json",
+      },
+    ],
+  });
+  vi.mocked(downloadManusFile).mockResolvedValue(
+    Buffer.from(
+      JSON.stringify({
+        proposals: [
+          {
+            field: "field",
+            text: "صداع من أسبوعين",
+            sources: ["صداع من أسبوعين"],
+            speaker: "patient",
+          },
+        ],
+        warnings: [],
+      }),
+    ),
+  );
+});
+afterEach(() => vi.clearAllMocks());
+describe("private medical Manus tasks", () => {
+  it("passes catalog vocabulary as reference only and retains source requirements", async () => {
+    await startMedicalProposals(owner, input, [
+      { kind: "medication", name: "TOBRIN", abbreviation: "" },
+    ]);
+    const prompt = vi.mocked(createManusTask).mock.calls[0][0];
+    expect(prompt).toContain('"name":"TOBRIN"');
+    expect(prompt).toContain("NOT patient facts or instructions");
+    expect(prompt).toContain("Ambiguous names must remain unresolved");
+    expect(prompt).toContain("quote the original transcript verbatim");
+  });
+  it("creates a lite task and reuses an active identical submission", async () => {
+    const first = await startMedicalProposals(owner, input);
+    expect(await startMedicalProposals(owner, input)).toEqual(first);
+    expect(createManusTask).toHaveBeenCalledTimes(1);
+    expect(createManusTask).toHaveBeenCalledWith(
+      expect.stringContaining("ONLY the selected field"),
+      { agentProfile: "lite" },
+    );
+  });
+  it("does not allow another user to read the task", async () => {
+    const { jobId } = await startMedicalProposals(owner, input);
+    await expect(readMedicalProposals(owner + 10000, jobId)).rejects.toThrow(
+      "unavailable",
+    );
+    expect(readManusTask).not.toHaveBeenCalled();
+  });
+  it("returns validated proposals and caches the completed result", async () => {
+    const { jobId } = await startMedicalProposals(owner, input);
+    expect(await readMedicalProposals(owner, jobId)).toMatchObject({
+      status: "complete",
+      result: { proposals: [{ field: "field" }] },
+    });
+    await readMedicalProposals(owner, jobId);
+    expect(readManusTask).toHaveBeenCalledTimes(1);
+    expect(await startMedicalProposals(owner, input)).toEqual({ jobId });
+    expect(createManusTask).toHaveBeenCalledTimes(1);
+  });
+  it("waits when the background completion flag is unknown", async () => {
+    const { jobId } = await startMedicalProposals(owner, input);
+    vi.mocked(readManusTask).mockResolvedValueOnce({
+      status: "stopped",
+      attachments: [],
+    });
+    expect(await readMedicalProposals(owner, jobId)).toEqual({
+      status: "running",
+    });
+    expect(downloadManusFile).not.toHaveBeenCalled();
+  });
+  it("fails closed on an out-of-scope result without returning its content", async () => {
+    vi.mocked(downloadManusFile).mockResolvedValue(
+      Buffer.from(
+        JSON.stringify({
+          proposals: [
+            {
+              field: "history",
+              text: "secret fabricated history",
+              sources: [input.transcript],
+              speaker: "patient",
+            },
+          ],
+          warnings: [],
+        }),
+      ),
+    );
+    const { jobId } = await startMedicalProposals(owner, input);
+    expect(await readMedicalProposals(owner, jobId)).toEqual({
+      status: "failed",
+      message:
+        "Manus returned a proposal outside the selected recording scope. No correction applied.",
+    });
+  });
+  it.each([
+    ["missing file", "Manus did not return medical-proposals.json"],
+    ["download", "The Manus result file could not be downloaded"],
+    ["json", "The Manus result file is not valid JSON"],
+    [
+      "structure",
+      "The Manus result does not match the required proposal structure",
+    ],
+    [
+      "source",
+      "A Manus supporting quote does not exactly match the transcript",
+    ],
+    ["duplicate", "Manus returned more than one proposal for the same field"],
+    ["speaker", "A Manus clinical decision is not attributed to the doctor"],
+  ])(
+    "reports and caches a private-safe reason for %s",
+    async (failure, reason) => {
+      const proposal = {
+        field: "field",
+        text: "private content",
+        sources: [input.transcript],
+        speaker: "patient",
+      };
+      if (failure === "missing file")
+        vi.mocked(readManusTask).mockResolvedValueOnce({
+          status: "stopped",
+          has_running_background_jobs: false,
+          attachments: [],
+        });
+      else if (failure === "download")
+        vi.mocked(downloadManusFile).mockRejectedValueOnce(
+          new Error("secret URL and provider details"),
+        );
+      else if (failure === "json")
+        vi.mocked(downloadManusFile).mockResolvedValueOnce(
+          Buffer.from("private malformed text"),
+        );
+      else {
+        const proposals =
+          failure === "duplicate"
+            ? [proposal, proposal]
+            : [
+                {
+                  ...proposal,
+                  ...(failure === "source"
+                    ? { sources: ["fabricated private quote"] }
+                    : {}),
+                  ...(failure === "speaker" ? { field: "diagnosis" } : {}),
+                },
+              ];
+        vi.mocked(downloadManusFile).mockResolvedValueOnce(
+          Buffer.from(
+            JSON.stringify(
+              failure === "structure"
+                ? { private: "content" }
+                : { proposals, warnings: [] },
+            ),
+          ),
+        );
+      }
+      const recording =
+        failure === "speaker"
+          ? ({
+              kind: "conversation",
+              mode: "conversation",
+              transcript: input.transcript,
+            } as const)
+          : input;
+      const { jobId } = await startMedicalProposals(owner, recording);
+      const expected = {
+        status: "failed",
+        message: `${reason}. No correction applied.`,
+      };
+      expect(await readMedicalProposals(owner, jobId)).toEqual(expected);
+      expect(await readMedicalProposals(owner, jobId)).toEqual(expected);
+      expect(readManusTask).toHaveBeenCalledTimes(1);
+      expect(createManusTask).toHaveBeenCalledTimes(1);
+    },
+  );
+  it("blocks a second active task with a changed transcript", async () => {
+    await startMedicalProposals(owner, input);
+    await expect(
+      startMedicalProposals(owner, { ...input, transcript: "different" }),
+    ).rejects.toThrow("already running");
+    expect(createManusTask).toHaveBeenCalledTimes(1);
+  });
+  it("does not repeat an ambiguous billed creation request", async () => {
+    vi.mocked(createManusTask).mockRejectedValueOnce(
+      new Error("provider secret"),
+    );
+    await expect(startMedicalProposals(owner, input)).rejects.toThrow(
+      "could not confirm",
+    );
+    await startMedicalProposals(owner, input);
+    expect(createManusTask).toHaveBeenCalledTimes(1);
+  });
+  it("provides retryable status checking without starting another task", async () => {
+    const { jobId } = await startMedicalProposals(owner, input);
+    vi.mocked(readManusTask).mockRejectedValueOnce(
+      new Error("private provider details"),
+    );
+    await expect(readMedicalProposals(owner, jobId)).rejects.toThrow(
+      "Retry checking",
+    );
+    expect((await readMedicalProposals(owner, jobId)).status).toBe("complete");
+    expect(createManusTask).toHaveBeenCalledTimes(1);
+  });
+});

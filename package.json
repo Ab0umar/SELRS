@@ -125,6 +125,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.577.0",
     "mdb-reader": "^3.2.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.52.0",
     "msnodesqlv8": "^5.4.0",
     "mssql": "^12.7.1",
     "mysql2": "^3.24.4",

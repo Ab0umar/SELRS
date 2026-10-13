@@ -1576,7 +1576,7 @@ async function startServer() {
     );
     res.setHeader(
       "Permissions-Policy",
-      "camera=(), microphone=(), geolocation=()",
+      "camera=(), microphone=(self), geolocation=()",
     );
     if (process.env.NODE_ENV === "production" && req.secure) {
       res.setHeader(

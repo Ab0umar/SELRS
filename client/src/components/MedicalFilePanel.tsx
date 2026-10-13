@@ -33,6 +33,8 @@ import {
 import { cn } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
 import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
+import PrescriptionBinding from "@/components/medical-assistant/PrescriptionBinding";
+import { readPrescriptionTemplates } from "@/components/medical-assistant/prescription-template";
 
 interface MedicalFilePanelProps {
   patientId: number;
@@ -3263,6 +3265,7 @@ export default function MedicalFilePanel({
                             {(symptomsQuery.data ?? []).filter((symptom: any) =>
                               symptom.name
                                 .toLowerCase()
+                      data-medical-proposals="complaints symptoms"
                                 .includes(symptomSearchText.toLowerCase()),
                             ).length === 0 ? (
                               <p className="text-xs text-muted-foreground px-1.5">
@@ -3310,7 +3313,8 @@ export default function MedicalFilePanel({
                     Diagnosis:
                   </p>
                   <Textarea aria-label="اكتب التشخيص يدويًا أو ابحث بالأسفل…"
-                    value={formData.diagnosis}
+                      data-medical-proposals="diagnosis"
+                      value={formData.diagnosis}
                     onChange={(e) =>
                       setFormData((prev: any) => ({
                         ...prev,
@@ -3433,6 +3437,7 @@ export default function MedicalFilePanel({
                       </Button>
                     </div>
                     <div className="relative order-2 mb-2 me-auto w-full md:w-80">
+                      data-medical-proposals="decision"
                       <Search className="absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input aria-label="ابحث عن الفحوصات…"
                         placeholder="ابحث عن الفحوصات…"
@@ -3614,6 +3619,16 @@ export default function MedicalFilePanel({
                         ) : medicationsQuery.isError ? (
                           <p className="order-3 text-xs text-destructive">
                             خطأ في تحميل العلاجات
+                    <PrescriptionBinding
+                      templates={readPrescriptionTemplates(prescriptionsQuery.data)}
+                      medications={medicationsQuery.data ?? []}
+                      draft={{ ids: formData.treatment ?? [], details: treatmentDetailsByMedicationId }}
+                      disabled={hubRo || patientQuery.isLoading || medicationsQuery.isLoading || medicationsQuery.isError || prescriptionsQuery.isLoading || prescriptionsQuery.isError}
+                      change={(draft) => {
+                        setTreatmentDetailsByMedicationId(draft.details);
+                        setFormData((previous: typeof formData) => ({ ...previous, treatment: draft.ids.map(Number) }));
+                      }}
+                    />
                           </p>
                         ) : (
                           <div className="order-3 space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
@@ -3807,6 +3822,7 @@ export default function MedicalFilePanel({
 
         {/* Footer */}
         <div className="border-t border-border/50 px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0">
+                    data-medical-proposals="decision"
           {!hubRo ? (
             <Button
               size="sm"

@@ -9,6 +9,8 @@ import {
 } from "react";
 import MedicalFilePanel from "@/components/MedicalFilePanel";
 import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
+import PrescriptionBinding from "@/components/medical-assistant/PrescriptionBinding";
+import { readPrescriptionTemplates, type PrescriptionDraft } from "@/components/medical-assistant/prescription-template";
 import ConsultantSheet from "@/pages/ConsultantSheet";
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
 import { localISODate } from "@/lib/utils";
@@ -692,7 +694,7 @@ export default function WorkflowPrototypeLive() {
   const [medicationDetailsById, setMedicationDetailsById] = useState<
     Record<
       string,
-      { frequency: string; duration: string; instructions: string }
+      { dosage?: string; frequency: string; duration: string; instructions: string }
     >
   >({});
   const [referenceMedicationItems, setReferenceMedicationItems] = useState<
@@ -928,6 +930,7 @@ export default function WorkflowPrototypeLive() {
         items.map((item: any) => [
           String(item.medicationId),
           {
+            dosage: item.dosage ?? "",
             frequency: item.frequency ?? "",
             duration: item.duration ?? "",
             instructions: item.instructions ?? "",
@@ -1347,6 +1350,7 @@ export default function WorkflowPrototypeLive() {
             medicationId: Number(medicationId),
             medicationName: medication?.name || String(medicationId),
             frequency: details?.frequency || undefined,
+            dosage: details?.dosage || undefined,
             duration: details?.duration || undefined,
             instructions: details?.instructions || undefined,
           };
@@ -3023,6 +3027,20 @@ export default function WorkflowPrototypeLive() {
           >
             {kind === "tests" ? "قوالب:" : "وصفات جاهزة:"}
           </span>
+    const assistantPrescriptionBinding = (
+      <PrescriptionBinding
+        templates={readPrescriptionTemplates(prescriptionTemplatesQuery.data)}
+        medications={medicationItems}
+        draft={{ ids: selectedMedicationIds, details: Object.fromEntries(Object.entries(medicationDetailsById).map(([id, details]) => [id, { ...details, dosage: details.dosage ?? "" }])) }}
+        disabled={medicationsQuery.isLoading || medicationsQuery.isError || prescriptionTemplatesQuery.isLoading || prescriptionTemplatesQuery.isError}
+        change={(draft: PrescriptionDraft) => {
+          setSelectedMedicationIds(draft.ids);
+          setMedicationDetailsById(draft.details);
+          const value = selectedNames(medicationItems, draft.ids);
+          setData(previous => ({ ...previous, specialist: { ...previous.specialist, prescription: value }, consultant: { ...previous.consultant, prescription: value } }));
+        }}
+      />
+    );
           <div className="flex flex-wrap items-center gap-1.5">
             {tabsToShow.map((tab) => {
               const templatesInTab = Object.entries(templateData).filter(
@@ -3516,6 +3534,7 @@ export default function WorkflowPrototypeLive() {
           dir="ltr"
         >
           <div className="flex flex-col gap-4 lg:col-span-1 print:col-span-1 print:gap-2">
+                data-medical-proposals="diagnosis"
             <div className="rounded-xl border-2 border-slate-300 p-4">
               <h3 className="text-lg font-black text-blue-950">
                 Tests &amp; Rays
@@ -3569,6 +3588,7 @@ export default function WorkflowPrototypeLive() {
               />
             </div>
             <p
+            {assistantPrescriptionBinding}
               className="mt-3 hidden flex-1 whitespace-pre-line text-base leading-7 print:block"
               dir="ltr"
             >
@@ -3722,6 +3742,7 @@ export default function WorkflowPrototypeLive() {
             onToggle={toggleMedication}
             isLoading={medicationsQuery.isLoading}
             isError={medicationsQuery.isError}
+          {assistantPrescriptionBinding}
             errorText="Failed to load medications"
           />
           {renderReadyTemplateMenus(

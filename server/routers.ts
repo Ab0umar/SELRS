@@ -7,6 +7,7 @@ import {
   router,
 } from "./_core/procedures";
 import { medicalRouter } from "./routers/medical";
+import { medicalAssistantRouter } from "./routers/medical-assistant";
 import { patientRouter } from "./routers/patient";
 import { accountingRouter } from "./routers/accounting";
 import { stockroomRouter } from "./routers/stockroom";
@@ -203,6 +204,7 @@ export const appRouter = router({
   referralDoctors: referralDoctorsRouter,
   doctorPortal: doctorPortalRouter,
   medical: medicalRouter,
+  medicalAssistant: medicalAssistantRouter,
   patient: patientRouter,
   accounting: accountingRouter,
   attendance: attendanceRouter,
