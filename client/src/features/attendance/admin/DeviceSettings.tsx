@@ -524,7 +524,7 @@ export default function DeviceSettings() {
                 }}
                 disabled={resetFkHwm.isPending}
                 variant="outline"
-                className="w-full text-xs font-bold border-destructive/30 text-destructive-text  hover:bg-muted rounded-lg py-2 h-auto"
+                className="w-full whitespace-normal text-xs font-bold border-destructive/30 text-destructive-text hover:bg-muted rounded-lg py-2 h-auto"
               >
                 {resetFkHwm.isPending ? "جاري" : "إعادة ضبط FK من 1 يناير 2026"}
               </Button>
@@ -638,7 +638,7 @@ export default function DeviceSettings() {
                 }}
                 disabled={resetZkHwm.isPending}
                 variant="outline"
-                className="w-full text-xs font-bold border-destructive/30 text-destructive-text  hover:bg-muted rounded-lg py-2 h-auto"
+                className="w-full whitespace-normal text-xs font-bold border-destructive/30 text-destructive-text hover:bg-muted rounded-lg py-2 h-auto"
               >
                 {resetZkHwm.isPending
                   ? "جاري"

@@ -1,18 +1,8 @@
 @media screen {
   html:not(.dark)
-    .selrs-mobile-brand-canvas:has([data-operational-module="attendance"]) {
-    --background: #ffffff;
-    --card: #ffffff;
-    --popover: #ffffff;
-    --muted: #ffffff;
-    --mobile-content-surface: #ffffff;
-    --mobile-brand-gradient: #ffffff;
-    background: #ffffff !important;
-  }
-  html:not(.dark)
     .selrs-mobile-brand-canvas:has([data-operational-module="attendance"])
     .attendance-studio {
-    --attendance-surface: #ffffff;
+    --attendance-surface: var(--card);
   }
   html:not(.dark)
     .selrs-mobile-brand-canvas:has([data-operational-module="attendance"])
@@ -22,32 +12,32 @@
       [data-operational-module="attendance"],
       #module-content
     ) {
-    background: #ffffff !important;
+    background: var(--background) !important;
   }
   .attendance-studio[data-operational-module="attendance"]:has(
       .attendance-home-focused
     ) {
-    --attendance-canvas: #ffffff;
+    --attendance-canvas: var(--background);
   }
   .attendance-studio[data-operational-module="attendance"]:has(
       .attendance-home-focused
     )
     #module-content {
     border: 0;
-    background: #ffffff;
+    background: var(--background);
   }
   .dark
     .attendance-studio[data-operational-module="attendance"]:has(
       .attendance-home-focused
     ) {
-    --attendance-canvas: #11151b;
+    --attendance-canvas: var(--background);
   }
   .dark
     .attendance-studio[data-operational-module="attendance"]:has(
       .attendance-home-focused
     )
     #module-content {
-    background: var(--attendance-surface);
+    background: var(--background);
   }
   .attendance-studio .attendance-home-focused {
     --day-ink: #233a39;
@@ -110,8 +100,11 @@
     background: var(--day-tray);
   }
   .attendance-home-focused .attendance-home-actions button {
-    width: 44px;
-    height: 44px;
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    flex-shrink: 0;
     border-radius: 50%;
     background: var(--day-surface);
     color: var(--day-ink);

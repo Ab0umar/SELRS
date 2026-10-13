@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "@playwright/test";
+import { inspectLayout } from './lib/layout-scan.mjs';
 
 const output = "outputs/attendance-module";
 await mkdir(output, { recursive: true });
@@ -219,6 +220,10 @@ try {
       });
       const check = async (name) => {
         await page.waitForTimeout(300);
+        const layout = await inspectLayout(page);
+        assert.deepEqual(layout.collisions, [], `${name}: overlapping text`);
+        assert.deepEqual(layout.fieldCollisions, [], `${name}: text covering fields`);
+        assert.deepEqual(layout.clippedButtons, [], `${name}: clipped button labels`);
         assert.deepEqual(errors, [], name);
         assert.equal(
           await page.evaluate(
@@ -236,9 +241,17 @@ try {
           path: `${output}/${name}-${theme}-${width}.png`,
           fullPage: true,
         });
+        for (const list of await page.locator('.attendance-workspace [role="tablist"]').all()) {
+          if (!(await list.isVisible())) continue;
+          const listBox = await list.boundingBox();
+          for (const tab of await list.getByRole('tab').all()) {
+            const tabBox = await tab.boundingBox();
+            assert(tabBox.y >= listBox.y - 1 && tabBox.y + tabBox.height <= listBox.y + listBox.height + 1, `${name}: tabs must remain within their strip rather than overlap following content`);
+          }
+        }
         cases++;
       };
-      for (const hub of hubs) {
+      for (const hub of hubs.filter(hub => !process.env.DESIGN_VERIFY_PATHS || process.env.DESIGN_VERIFY_PATHS.split(',').includes(hub.path))) {
         await page.goto(
           `${process.env.DESIGN_PREVIEW_URL || "http://127.0.0.1:5177"}${hub.path}`,
         );
@@ -321,6 +334,7 @@ try {
         );
       }
       for (const [name, path] of [
+        ["home", "/attendance"],
         ["live", "/attendance/live"],
         ["employee-detail", "/attendance/employees/TEST001"],
         ["personal", "/attendance/my"],
@@ -328,11 +342,18 @@ try {
         ["sync", "/attendance/admin/sync"],
         ["roster", "/attendance/shift-schedule"],
       ]) {
+        if (process.env.DESIGN_VERIFY_PATHS && !process.env.DESIGN_VERIFY_PATHS.split(',').includes(path)) continue;
         await page.goto(
           `${process.env.DESIGN_PREVIEW_URL || "http://127.0.0.1:5177"}${path}`,
         );
         await page.locator(".attendance-workspace").first().waitFor();
         await check(name);
+        if (name === "home") {
+          for (const button of await page.locator('.attendance-home-actions button').all()) {
+            assert.equal(await button.innerText(), '', 'Compact attendance actions must not overflow with visible text');
+            assert(await button.evaluate(node => node.scrollWidth <= node.clientWidth + 1));
+          }
+        }
         if (name === "live") {
           await page
             .getByRole("button", { name: "إيقاف الاستلام", exact: true })

@@ -154,7 +154,6 @@ export default function AttendanceHome() {
         }}
       >
         <RefreshCw aria-hidden="true" className="h-4 w-4" />
-        <span>تحديث</span>
       </Button>
       {canUseOperationalShortcuts && (
         <>
@@ -167,7 +166,6 @@ export default function AttendanceHome() {
             onClick={handleSync}
           >
             <Fingerprint aria-hidden="true" className="h-4 w-4" />
-            <span>مزامنة البصمات</span>
           </Button>
           <Button
             type="button"
@@ -178,7 +176,6 @@ export default function AttendanceHome() {
             onClick={handleRecompute}
           >
             <Calculator aria-hidden="true" className="h-4 w-4" />
-            <span>إعادة الاحتساب</span>
           </Button>
         </>
       )}

@@ -1,7 +1,7 @@
 @media screen {
   .attendance-studio[data-operational-module="attendance"] {
-    --attendance-canvas: #ffffff;
-    --attendance-surface: #ffffff;
+    --attendance-canvas: var(--background);
+    --attendance-surface: var(--card);
     min-height: 100%;
     min-width: 0;
     padding: 16px;
@@ -9,8 +9,8 @@
     color: var(--foreground);
   }
   .dark .attendance-studio {
-    --attendance-canvas: #11151b;
-    --attendance-surface: #1c222b;
+    --attendance-canvas: var(--background);
+    --attendance-surface: var(--card);
   }
   .attendance-studio-grid {
     display: grid;
@@ -194,15 +194,16 @@
 }
   @media screen and (max-width: 699px) {
     .attendance-studio[data-operational-module="attendance"] nav.attendance-topnav {
-      display: grid !important;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      overflow: visible !important;
-      gap: 6px !important;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      gap: 0 !important;
     }
     .attendance-studio[data-operational-module="attendance"] nav.attendance-topnav a {
       min-width: 0;
       padding-inline: 8px;
-      white-space: normal !important;
+      white-space: nowrap !important;
     }
     .attendance-studio[data-operational-module="attendance"] { padding-inline: 10px; }
     .attendance-studio[data-operational-module="attendance"] #module-content { padding: 16px 12px; }

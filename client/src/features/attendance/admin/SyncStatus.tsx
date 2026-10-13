@@ -145,11 +145,11 @@ export default function SyncStatus() {
             نموذج الإعدادات.
           </p>
 
-          <div className="flex gap-2 pt-2 border-t border-border/60">
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-border/60">
             <Button
               onClick={handleSync}
               disabled={busy || exportMut.isPending}
-              className="text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto flex-1 gap-1.5 transition-colors"
+              className="min-w-0 whitespace-normal text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-2 h-auto flex-1 gap-1.5 transition-colors"
             >
               {busy ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
