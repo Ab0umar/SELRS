@@ -1369,7 +1369,7 @@ export default function SalaryBasics() {
         onValueChange={(val) => setActiveSectionTab(val as "center" | "clinic")}
         className="space-y-4"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-3 gap-3">
+        <div className="salary-basics-toolbar border-b border-border pb-3">
           <TabsList
             dir="rtl"
             className="h-11 bg-muted/60 p-1 rounded-xl border border-border/60"
@@ -1396,7 +1396,7 @@ export default function SalaryBasics() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="salary-basics-actions flex flex-wrap items-center gap-2">
             <div className="relative">
               <Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input bare
@@ -1441,7 +1441,7 @@ export default function SalaryBasics() {
           {activeSectionTab === "center" && (
             <div
               dir="rtl"
-              className="flex bg-muted/40 rounded-lg p-1 border border-border/60 self-start sm:self-auto"
+              className="salary-basics-sections flex bg-muted/40 rounded-lg p-1 border border-border/60"
             >
               <Button variant="bare"
                 onClick={() => setCenterTab("salaries")}

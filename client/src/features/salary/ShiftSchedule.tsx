@@ -928,12 +928,17 @@ export default function ShiftSchedule() {
 
         <section className="rounded-xl border border-border bg-card p-3">
           <div className="grid grid-cols-6 text-center">
-            {DAYS_AR_CALENDAR.map((dayName) => (
+            {DAYS_AR_CALENDAR.map((dayName, index) => (
               <div
                 key={dayName}
+                aria-label={dayName}
+                title={dayName}
                 className="py-2 text-xs font-black text-muted-foreground"
               >
-                {dayName}
+                <span className="hidden min-[480px]:inline">{dayName}</span>
+                <span className="min-[480px]:hidden" aria-hidden="true">
+                  {["س", "ح", "ن", "ث", "ر", "خ"][index]}
+                </span>
               </div>
             ))}
           </div>

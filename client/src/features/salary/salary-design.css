@@ -1,12 +1,48 @@
 @media screen {
-  html:not(.dark) .selrs-mobile-brand-canvas:has([data-operational-module="salary"]) {
-    --background: #ffffff;
-    --card: #ffffff;
-    --popover: #ffffff;
-    --muted: #f3f4f5;
-    --mobile-content-surface: #ffffff;
-    --mobile-brand-gradient: #ffffff;
-    background: #ffffff !important;
+  [data-operational-module="salary"] .salary-pool-tabs > [role="tab"] {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+  [data-operational-module="salary"] .salary-basics-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+  }
+  [data-operational-module="salary"] .salary-basics-toolbar > [role="tablist"] {
+    width: max-content;
+    max-width: 100%;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+  [data-operational-module="salary"] .salary-basics-toolbar [role="tab"] {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+  [data-operational-module="salary"] .salary-basics-toolbar [role="tab"] > span {
+    flex-shrink: 0;
+  }
+  [data-operational-module="salary"] .salary-basics-actions {
+    min-width: 0;
+  }
+  [data-operational-module="salary"] .salary-basics-sections {
+    grid-column: 1 / -1;
+    min-width: 0;
+    max-width: 100%;
+    width: max-content;
+    flex-wrap: wrap;
+  }
+  [data-operational-module="salary"] .salary-basics-sections button {
+    min-height: 44px;
+    flex: 0 0 auto;
+  }
+  @media (min-width: 1100px) {
+    [data-operational-module="salary"] .salary-basics-toolbar {
+      grid-template-columns: max-content minmax(0, 1fr);
+    }
+    [data-operational-module="salary"] .salary-basics-actions {
+      justify-content: flex-end;
+    }
   }
   div[data-operational-module="salary"][data-ledger] #module-content {
     background: var(--card) !important;

@@ -685,7 +685,7 @@ export default function CommissionPools() {
                 {/* Tabs Switcher for Center */}
                 <div className="overflow-x-auto pb-1" dir="rtl">
                   <TabsList
-                    className="h-11 bg-muted/60 p-1 rounded-xl border border-border/60 flex w-full min-w-[500px] justify-start"
+                    className="salary-pool-tabs h-11 bg-muted/60 p-1 rounded-xl border border-border/60 flex w-full min-w-[500px] justify-start"
                     dir="rtl"
                   >
                     <TabsTrigger

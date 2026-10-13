@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "@playwright/test";
+import { inspectLayout } from './lib/layout-scan.mjs';
 
 const output = "outputs/salary-module";
 await mkdir(output, { recursive: true });
@@ -41,10 +42,15 @@ try {
       await page.waitForTimeout(700);
       assert.deepEqual(errors, [], path);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `${path}: page overflow`);
+      const layout = await inspectLayout(page);
+      assert.deepEqual(layout.collisions, [], `${path}: overlapping text`);
+      assert.deepEqual(layout.fieldCollisions, [], `${path}: text covering fields`);
+      assert.deepEqual(layout.clippedButtons, [], `${path}: clipped button labels`);
       const nav = page.getByRole("navigation", { name: "أقسام الوحدة", exact: true });
       await nav.locator('a[aria-current="page"]').waitFor();
       assert.equal(await nav.locator('a[aria-current="page"]').count(), 1, path);
       for (const link of await nav.locator("a").all()) {
+        await link.evaluate(node => node.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
         const bounds = await link.boundingBox();
         assert(bounds && bounds.height >= 44 && bounds.x >= 0 && bounds.x + bounds.width <= width + 1, `${path}: nav target`);
       }
