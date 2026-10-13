@@ -91,7 +91,7 @@ export default function ClinicalSuiteShell() {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 h-auto p-1 bg-muted/50 border border-border rounded-xl">
+        <TabsList className="flex h-auto max-w-full flex-nowrap overflow-x-auto p-1 bg-muted/50 border border-border rounded-xl">
           <TabsTrigger
             value="clinical"
             className="py-2 text-xs flex items-center justify-center gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-lg"
