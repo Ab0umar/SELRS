@@ -290,3 +290,6 @@ docs/graphify-out/
 /.manus/mcp-results/
 /.work/previews/
 /.work/review/
+
+# Local release-verification bundles; keep builds on disk, not in Git
+/.release-builds/
