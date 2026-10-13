@@ -1,0 +1,85 @@
+/* White screen canvas in light mode, layered surfaces in dark mode. */
+@media screen {
+  html .selrs-mobile-brand-canvas.selrs-mobile-brand-canvas,
+  html .selrs-mobile-brand-canvas.selrs-mobile-brand-canvas [data-app-scroll-container],
+  html .selrs-mobile-brand-canvas.selrs-mobile-brand-canvas .selrs-app-content.selrs-app-content {
+    background-color: var(--background) !important;
+  }
+
+  html [data-app-top-nav] {
+    background: var(--card) !important;
+    color: var(--foreground);
+  }
+
+  .selrs-app-content :is(.page-layout, [data-operational-module], .workflow-day-workspace) {
+    background-color: var(--background) !important;
+    color: var(--foreground);
+  }
+
+  /* Compatibility for older screen utilities; paper and custom overlays are excluded. */
+  .selrs-app-content :is(.bg-white, .bg-card, [data-slot="card"]):not(:where(
+    [data-medical-file-overlay], [data-medical-file-overlay] *,
+    [data-medical-file-surface], [data-medical-file-surface] *,
+    [data-print-document], [data-print-document] *,
+    [data-accounting-print-root], [data-accounting-print-root] *,
+    [data-mobile-pdf-root], [data-mobile-pdf-root] *,
+    .a4-page-card, .a4-page-card *, .lasik-sheet, .lasik-sheet *,
+    .specialist-sheet, .specialist-sheet *, .sheet-followup-body, .sheet-followup-body *,
+    .prescription-root, .prescription-root *, .clinical-report-root, .clinical-report-root *,
+    .medical-report-page, .medical-report-page *, .patient-summary-print-root, .patient-summary-print-root *,
+    .final-report-sheet, .final-report-sheet *, .refraction-print-card, .refraction-print-card *,
+    .offdays-paper, .offdays-paper *, .offdays-en-paper, .offdays-en-paper *,
+    .prepost-paper, .prepost-paper *, .mcr-paper, .mcr-paper *,
+    .medical-report-brand, .medical-report-brand *, .request-tests-paper, .request-tests-paper *
+  )) {
+    background-color: var(--card) !important;
+    color: var(--foreground);
+  }
+
+  .selrs-app-content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), textarea, select, [data-slot="select-trigger"]):not(:where(
+    [data-print-document] *, [data-accounting-print-root] *, [data-mobile-pdf-root] *,
+    .a4-page-card *, .lasik-sheet *, .specialist-sheet *, .sheet-followup-body *,
+    .prescription-root *, .clinical-report-root *, .medical-report-page *,
+    .patient-summary-print-root *, .final-report-sheet *, .refraction-print-card *,
+    .offdays-paper *, .offdays-en-paper *, .prepost-paper *, .mcr-paper *,
+    .medical-report-brand *, .request-tests-paper *
+  )) {
+    background-color: var(--field-surface);
+    color: var(--foreground);
+  }
+
+  html .selrs-app-content .attendance-studio .attendance-home-focused {
+    --day-ink: var(--foreground);
+    --day-muted: var(--muted-foreground);
+    --day-surface: var(--card);
+    --day-tray: var(--field-surface);
+    --day-accent: var(--primary);
+    --day-line: var(--border);
+  }
+
+  html .selrs-app-content .attendance-studio #module-content:has(.attendance-home-focused) {
+    background: var(--background) !important;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .selrs-app-content .attendance-studio .attendance-home-pane {
+    box-shadow: var(--surface-shadow);
+  }
+
+  html .selrs-app-content .workflow-day-workspace > main {
+    background: var(--background) !important;
+  }
+
+  html .selrs-app-content .workflow-day-workspace main.min-w-0 {
+    background: var(--background) !important;
+  }
+
+  .dark .selrs-app-content .workflow-day-workspace :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-slate-500):not(.final-report-sheet, .final-report-sheet *) {
+    color: var(--foreground);
+  }
+
+  .dark .selrs-app-content .workflow-day-workspace :is(.bg-slate-50, .bg-slate-100):not(.final-report-sheet, .final-report-sheet *) {
+    background-color: var(--muted);
+  }
+}

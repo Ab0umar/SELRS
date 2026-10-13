@@ -9,12 +9,14 @@
   :root {
     --radius: 1rem;
     --background: #ffffff;
-    --canvas: #f3f5f8;
+    --canvas: #ffffff;
     --foreground: #20252b;
     --card: #ffffff;
     --card-foreground: #20252b;
     --popover: #ffffff;
     --popover-foreground: #20252b;
+    --field-surface: #ffffff;
+    --surface-shadow: 0 2px 5px #24314305;
     --primary: #003d82;
     --primary-foreground: #ffffff;
     --secondary: #ff9500;
@@ -52,21 +54,24 @@
   }
 
   .dark {
-    --background: #17191c;
-    --foreground: #f1f3f5;
-    --card: #17191c;
-    --card-foreground: #f1f3f5;
-    --popover: #202328;
-    --popover-foreground: #f1f3f5;
+    --background: #121820;
+    --canvas: #121820;
+    --foreground: #edf3fb;
+    --card: #202936;
+    --card-foreground: #edf3fb;
+    --popover: #202936;
+    --popover-foreground: #edf3fb;
+    --field-surface: #17202b;
+    --surface-shadow: 0 3px 12px #00000017;
     --primary: #8bbcff;
     --primary-foreground: #14263d;
     --secondary: #ffad42;
     --secondary-foreground: #20252b;
-    --muted: #2b3037;
-    --muted-foreground: #b8c0ca;
-    --accent: #293c53;
+    --muted: #17202b;
+    --muted-foreground: #aab9cb;
+    --accent: #273c55;
     --accent-foreground: #c1d9ff;
-    --border: #515b68;
+    --border: #354457;
     --input: #8794a4;
     --ring: #8bbcff;
     --destructive: #fca5a5;
@@ -151,32 +156,32 @@
     background-color: var(--canvas);
   }
   html:not(.dark) [data-app-top-nav] {
-    background: var(--primary) !important;
-    color: var(--primary-foreground);
-    border-color: var(--primary);
+    background: var(--card) !important;
+    color: var(--foreground);
+    border-color: var(--border);
     border-bottom-width: 0;
   }
   html:not(.dark) [data-app-top-nav] :is(button, [role="button"]) {
-    background: rgb(255 255 255 / 0.14) !important;
-    color: var(--primary-foreground) !important;
-    border-color: rgb(255 255 255 / 0.32) !important;
+    background: var(--card) !important;
+    color: var(--foreground) !important;
+    border-color: var(--border) !important;
   }
   html:not(.dark) [data-app-top-nav] [class*="bg-card"] {
-    background: rgb(255 255 255 / 0.12) !important;
-    border-color: rgb(255 255 255 / 0.32) !important;
+    background: var(--card) !important;
+    border-color: var(--border) !important;
   }
   html:not(.dark) [data-app-top-nav] :is(button, [role="button"]):hover {
-    background: rgb(255 255 255 / 0.24) !important;
+    background: var(--muted) !important;
   }
   html:not(.dark)
     [data-app-top-nav]
     :is([class*="text-muted-foreground"], [class*="text-foreground"]) {
-    color: var(--primary-foreground) !important;
+    color: var(--foreground) !important;
   }
   /* Solid app bar: DESIGN.md keeps decorative gradients out of navigation. */
   @media (min-width: 768px) {
     html:not(.dark) [data-app-top-nav] {
-      background: var(--primary) !important;
+      background: var(--card) !important;
     }
   }
   html:not(.dark) [data-app-top-nav] nav button.bg-secondary {
@@ -339,12 +344,9 @@
   }
 }
 
-/* Paper surfaces (clinical sheets, summaries, prescriptions) stay light in dark
-   mode (DESIGN.md: print output remains light). Give them the light tokens so
-   token-based text and borders inside stay readable on the white paper. */
+/* Clinical paper keeps light tokens in both screen themes. */
 @media screen {
-  .dark
-    :is(
+  :is(
       .lasik-print-root,
       .specialist-print-root,
       .followup-print-root,
@@ -371,6 +373,7 @@
       .refraction-print-card,
       .refraction-print-wrapper,
       .refraction-print-section,
+      .final-report-sheet,
       .specialist-sheet,
       .mcr-paper,
       .prepost-paper,
@@ -381,6 +384,7 @@
       [data-mobile-pdf-root]
     ) {
     --background: #ffffff;
+    --field-surface: #ffffff;
     --foreground: #20252b;
     --card: #ffffff;
     --card-foreground: #20252b;
