@@ -24,6 +24,15 @@ describe("Manus API contract", () => {
     expect(body.share_visibility).toBe("private");
     expect(body.message.connectors).toEqual([]);
     expect(body.message.content).toBe("Write one draft");
+    expect(body.agent_profile).toBeUndefined();
+  });
+  it("selects Lite only when explicitly requested", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, task_id: "lite-task" })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await createManusTask("Review a fictional transcript", { agentProfile: "lite" });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).agent_profile).toBe("lite");
   });
   it("keeps background completion unknown when Manus omits the flag", async () => {
     vi.stubGlobal(

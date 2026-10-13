@@ -77,11 +77,15 @@ async function request(endpoint: string, body?: unknown): Promise<unknown> {
   return result;
 }
 
-export async function createManusTask(prompt: string) {
+export async function createManusTask(
+  prompt: string,
+  options: { agentProfile?: "standard" | "lite" | "max" } = {},
+) {
   return z.object({ task_id: z.string().min(1) }).parse(
     await request("task.create", {
       share_visibility: "private",
       interactive_mode: false,
+      ...(options.agentProfile ? { agent_profile: options.agentProfile } : {}),
       message: { content: prompt, connectors: [] },
     }),
   );
