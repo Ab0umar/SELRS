@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { formatCountAr, formatMoneyAr } from "./accountingFormat";
 import { Button } from "@/components/ui/button";
+import "./AccountingPrototypes.css";
 
 const reports = [
   {
@@ -177,7 +178,7 @@ function MetricsRow({
   };
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="accounting-prototype-metrics">
       <div className="rounded-2xl border border-primary/20 bg-primary/80 p-4">
         <div className="text-[13px] font-medium uppercase text-primary/80">
           إيراد اليوم
@@ -386,8 +387,9 @@ function PrototypePanel({
 
   return (
     <section
+      data-prototype-variant={variant}
       className={cn(
-        "rounded-[32px] border bg-background/90 p-4 shadow-sm",
+        "accounting-prototype-preview rounded-[32px] border bg-background/90 p-4 shadow-sm",
         selected ? "border-primary ring-2 ring-primary/20" : "border-border",
       )}
     >
@@ -443,19 +445,10 @@ function PrototypePanel({
           <MetricsRow summary={summary} cashbook={cashbook} />
         )}
 
-        <div
-          className={cn(
-            "grid gap-4",
-            variant === "command"
-              ? "lg:grid-cols-[minmax(0,1fr)_320px]"
-              : variant === "workspace"
-                ? "lg:grid-cols-[minmax(0,1fr)_280px]"
-                : "lg:grid-cols-[minmax(0,1fr)_300px]",
-          )}
-        >
+        <div className="accounting-prototype-content-layout">
           <div className="space-y-4">
             {variant === "workspace" ? (
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="accounting-prototype-metrics">
                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
                   <div className="text-[13px] font-medium text-muted-foreground">
                     إيراد الشهر

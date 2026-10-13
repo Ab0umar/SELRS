@@ -1,0 +1,42 @@
+@media screen {
+  .accounting-prototype-preview {
+    container-type: inline-size;
+    container-name: accounting-preview;
+  }
+  .accounting-prototype-metrics {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .accounting-prototype-metrics > div,
+  .accounting-prototype-content-layout > div {
+    min-width: 0;
+  }
+  .accounting-prototype-metrics .tabular-nums {
+    overflow-wrap: anywhere;
+  }
+  .accounting-prototype-content-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  @container accounting-preview (min-width: 480px) {
+    .accounting-prototype-metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @container accounting-preview (min-width: 900px) {
+    .accounting-prototype-metrics {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .accounting-prototype-content-layout {
+      grid-template-columns: minmax(0, 1fr) 280px;
+    }
+    [data-prototype-variant="command"] .accounting-prototype-content-layout {
+      grid-template-columns: minmax(0, 1fr) 320px;
+    }
+    [data-prototype-variant="mixed"] .accounting-prototype-content-layout {
+      grid-template-columns: minmax(0, 1fr) 300px;
+    }
+  }
+}

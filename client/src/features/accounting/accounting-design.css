@@ -1,17 +1,7 @@
 @media screen {
-  html:not(.dark) .selrs-mobile-brand-canvas:has([data-operational-module="accounting"]) {
-    --background: #ffffff;
-    --card: #ffffff;
-    --popover: #ffffff;
-    --muted: #f3f4f5;
-    --mobile-content-surface: #ffffff;
-    --mobile-brand-gradient: #ffffff;
-    background: #ffffff !important;
-  }
-
   div[data-operational-module="accounting"][data-ledger] {
     padding: 12px;
-    background: var(--card) !important;
+    background: var(--background) !important;
   }
   div[data-operational-module="accounting"][data-ledger] > div {
     max-width: 1600px;
