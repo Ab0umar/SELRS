@@ -201,21 +201,21 @@ export default function MedicalReference() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-2.5">
             <div
-              className="flex items-center gap-2"
+              className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto"
               role="group"
               aria-label="طريقة مطابقة الشروط"
             >
               <span className="text-xs font-semibold text-muted-foreground sm:text-sm">
                 طريقة المطابقة
               </span>
-              <div className="flex rounded-md border border-border bg-background p-0.5">
+              <div className="flex w-full min-w-0 rounded-md border border-border bg-background p-0.5 sm:w-auto">
                 {(["and", "or"] as const).map((value) => (
                   <Button variant="bare"
                     key={value}
                     type="button"
                     aria-pressed={mode === value}
                     onClick={() => setMode(value)}
-                    className={`h-8 rounded px-2.5 text-xs font-semibold ${
+                    className={`h-auto min-h-11 min-w-0 flex-1 whitespace-normal rounded px-2.5 py-1.5 text-xs font-semibold ${
                       mode === value
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-muted"
