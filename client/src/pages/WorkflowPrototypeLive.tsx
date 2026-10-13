@@ -795,7 +795,7 @@ export default function WorkflowPrototypeLive() {
       const locationType = String(patient.locationType ?? "")
         .trim()
         .toLowerCase();
-      return locationType === "center" && allowedTypes.has(serviceType);
+      return patient.queueStatus !== "treated" && locationType === "center" && allowedTypes.has(serviceType);
     });
   }, [liveQueue.merged]);
   const requestedVisitId = useMemo(() => {
@@ -1303,7 +1303,8 @@ export default function WorkflowPrototypeLive() {
     );
   };
 
-  const saveFinalReportEdits = async () => {
+  const saveFinalReportEdits = async (finish = false) => {
+    if (isSavingFinalReport) return;
     if (!selectedLivePatient?.id || !activeWorkflowVisitId) {
       toast.error("لا توجد زيارة محددة للحفظ");
       return;
@@ -1349,8 +1350,8 @@ export default function WorkflowPrototypeLive() {
           return {
             medicationId: Number(medicationId),
             medicationName: medication?.name || String(medicationId),
-            frequency: details?.frequency || undefined,
             dosage: details?.dosage || undefined,
+            frequency: details?.frequency || undefined,
             duration: details?.duration || undefined,
             instructions: details?.instructions || undefined,
           };
@@ -1362,7 +1363,18 @@ export default function WorkflowPrototypeLive() {
         finalTestRequestsQuery.refetch(),
         finalPrescriptionsQuery.refetch(),
       ]);
-      toast.success("تم حفظ تعديلات الشيت النهائي");
+      if (finish) {
+        await queueStatusMutation.mutateAsync({
+          visitId: activeWorkflowVisitId,
+          patientId: selectedLivePatient.id,
+          date: selectedDate,
+          queueStatus: "treated",
+        });
+        setSelectedLivePatientId(null);
+        setSelectedLiveVisitId(null);
+        setWorkflowVisitId(undefined);
+      }
+      toast.success(finish ? "تم حفظ وإنهاء الزيارة" : "تم حفظ تعديلات الشيت النهائي");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "تعذر حفظ الشيت النهائي",
@@ -2553,6 +2565,7 @@ export default function WorkflowPrototypeLive() {
             }}
             className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             aria-label="المريض"
+            disabled={isSavingFinalReport}
           >
             <option value="">اختر الزيارة</option>
             {livePatients.map((patient) => (
@@ -3014,19 +3027,6 @@ export default function WorkflowPrototypeLive() {
       });
       toast.success(`تم إضافة ${ids.length} دواء من القالب`);
     };
-    const renderReadyTemplateMenus = (
-      templateData: Record<string, any> | undefined,
-      tabsToShow: string[],
-      kind: "tests" | "prescription",
-    ) => {
-      if (!templateData || Object.keys(templateData).length === 0) return null;
-      return (
-        <div className="mt-2">
-          <span
-            className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[13px]"} text-muted-foreground`}
-          >
-            {kind === "tests" ? "قوالب:" : "وصفات جاهزة:"}
-          </span>
     const assistantPrescriptionBinding = (
       <PrescriptionBinding
         templates={readPrescriptionTemplates(prescriptionTemplatesQuery.data)}
@@ -3041,6 +3041,19 @@ export default function WorkflowPrototypeLive() {
         }}
       />
     );
+    const renderReadyTemplateMenus = (
+      templateData: Record<string, any> | undefined,
+      tabsToShow: string[],
+      kind: "tests" | "prescription",
+    ) => {
+      if (!templateData || Object.keys(templateData).length === 0) return null;
+      return (
+        <div className="mt-2">
+          <span
+            className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[13px]"} text-muted-foreground`}
+          >
+            {kind === "tests" ? "قوالب:" : "وصفات جاهزة:"}
+          </span>
           <div className="flex flex-wrap items-center gap-1.5">
             {tabsToShow.map((tab) => {
               const templatesInTab = Object.entries(templateData).filter(
@@ -3116,11 +3129,20 @@ export default function WorkflowPrototypeLive() {
             <div className="flex gap-2 print:hidden">
               <Button
                 type="button"
-                onClick={saveFinalReportEdits}
+                onClick={() => saveFinalReportEdits()}
                 disabled={isSavingFinalReport}
               >
                 <Save className="mr-2 h-4 w-4" />
                 {isSavingFinalReport ? "جاري الحفظ" : "حفظ التقرير"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => saveFinalReportEdits(true)}
+                disabled={isSavingFinalReport || !selectedLivePatient}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                حفظ وإنهاء الزيارة
               </Button>
               <Button type="button" variant="outline" onClick={printSheet}>
                 <Printer className="mr-2 h-4 w-4" />
@@ -3512,6 +3534,7 @@ export default function WorkflowPrototypeLive() {
                 errorText="تعذر تحميل التشخيصات"
               />
               <Textarea aria-label="اكتب التشخيص…"
+                data-medical-proposals="diagnosis"
                 value={data.consultant.diagnosis}
                 onChange={(event) =>
                   update("consultant", {
@@ -3534,7 +3557,6 @@ export default function WorkflowPrototypeLive() {
           dir="ltr"
         >
           <div className="flex flex-col gap-4 lg:col-span-1 print:col-span-1 print:gap-2">
-                data-medical-proposals="diagnosis"
             <div className="rounded-xl border-2 border-slate-300 p-4">
               <h3 className="text-lg font-black text-blue-950">
                 Tests &amp; Rays
@@ -3566,6 +3588,7 @@ export default function WorkflowPrototypeLive() {
           </div>
           <div className="flex h-full min-h-[260px] flex-col rounded-xl border-2 border-slate-300 p-5 lg:col-span-2 print:col-span-2 print:min-h-0 print:p-3">
             <h3 className="text-xl font-black text-blue-950">Prescription</h3>
+            {assistantPrescriptionBinding}
             <div className="mt-3 space-y-3 print:hidden" dir="rtl">
               {renderReadyTemplateMenus(
                 prescriptionTemplatesQuery.data as
@@ -3588,7 +3611,6 @@ export default function WorkflowPrototypeLive() {
               />
             </div>
             <p
-            {assistantPrescriptionBinding}
               className="mt-3 hidden flex-1 whitespace-pre-line text-base leading-7 print:block"
               dir="ltr"
             >
@@ -3720,6 +3742,7 @@ export default function WorkflowPrototypeLive() {
           icon={ClipboardList}
           active
         >
+          {assistantPrescriptionBinding}
           <div className="flex justify-end">
             <Button
               type="button"
@@ -3742,7 +3765,6 @@ export default function WorkflowPrototypeLive() {
             onToggle={toggleMedication}
             isLoading={medicationsQuery.isLoading}
             isError={medicationsQuery.isError}
-          {assistantPrescriptionBinding}
             errorText="Failed to load medications"
           />
           {renderReadyTemplateMenus(

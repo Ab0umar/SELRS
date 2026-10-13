@@ -145,7 +145,7 @@ export function AppointmentsSection({
   const { user } = useAuth();
   const userRole = String((user as any)?.role ?? "").toLowerCase();
   const canDeletePatient = userRole === "admin";
-  const canManageTreated = ["reception", "admin"].includes(userRole);
+  const canManageTreated = ["doctor", "nurse", "technician", "reception", "accountant", "manager", "admin"].includes(userRole);
   const [deleteTarget, setDeleteTarget] = useState<TodayQueuePatient | null>(
     null,
   );
@@ -1025,7 +1025,7 @@ function QueuePatientCard({
   const visitId = coercePositiveInt((patient as { visitId?: unknown }).visitId);
   const canMarkTreated =
     canManageTreated &&
-    ["clinic1", "clinic2", "pentacam"].includes(st) &&
+    st !== "treated" &&
     patient.hasQueueCompletionData === true &&
     visitId != null;
   const markingThis =

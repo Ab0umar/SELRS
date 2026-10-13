@@ -86,10 +86,10 @@ export function buildTodayQueueSnapshot(
   ];
   const unique = new Map<number, TodayQueuePatient>();
   for (const row of [
-    ...byStatus.treated,
     ...byStatus.clinic,
     ...byStatus.next,
     ...byStatus.checkedIn,
+    ...byStatus.treated,
   ]) {
     if (typeof row.id === "number" && !unique.has(row.id))
       unique.set(row.id, row);

@@ -60,7 +60,7 @@ describe("queue query and failure presentation", () => {
 });
 
 describe("daily queue snapshot presentation", () => {
-  it("keeps stage membership but counts each patient once using existing priority", () => {
+  it("keeps a patient's open visit visible when another visit is treated", () => {
     const rows: TodayQueuePatient[] = [
       { id: 1, queueStatus: "checkedIn" },
       { id: 1, queueStatus: "treated" },
@@ -70,7 +70,7 @@ describe("daily queue snapshot presentation", () => {
     const snapshot = buildTodayQueueSnapshot(rows);
     expect(snapshot.merged).toHaveLength(3);
     expect(snapshot.merged.find((row) => row.id === 1)?.queueStatus).toBe(
-      "treated",
+      "checkedIn",
     );
     expect(snapshot.byStatus.checkedIn).toHaveLength(1);
     expect(snapshot.byStatus.clinic).toHaveLength(2);

@@ -293,6 +293,17 @@ export default function MedicalFilePanel({
     string | null
   >(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const finishAfterSave = useRef(false);
+  const utils = trpc.useUtils();
+  const finishVisitMutation = trpc.medical.updateVisitQueueStatus.useMutation();
+  const finishSavedVisit = async (visitId: number) => {
+    await finishVisitMutation.mutateAsync({ visitId, queueStatus: "treated" });
+    await utils.medical.getTodayPatientsByQueueStatus.invalidate();
+    finishAfterSave.current = false;
+    setIsFinishing(false);
+    toast.success("تم حفظ وإنهاء الزيارة");
+  };
   const [destinationTab, setDestinationTab] = useState<string | null>(null);
   const [shouldSaveAfterCreate, setShouldSaveAfterCreate] = useState(false);
   const [isFollowup, setIsFollowup] = useState(false);
@@ -1025,6 +1036,7 @@ export default function MedicalFilePanel({
   // Mutation for updating examination
   const updateExaminationMutation = trpc.medical.updateExamination.useMutation({
     onSuccess: async () => {
+      if (finishAfterSave.current) return;
       await autorefQuery.refetch();
       await onSaved?.();
       toast.success("تم حفظ البيانات بنجاح");
@@ -1034,6 +1046,8 @@ export default function MedicalFilePanel({
       }
     },
     onError: (error) => {
+      finishAfterSave.current = false;
+      setIsFinishing(false);
       setIsSaving(false);
       toast.error(error.message || "خطأ في حفظ البيانات");
     },
@@ -1177,7 +1191,7 @@ export default function MedicalFilePanel({
           const testItems = validTests.map((testId: number) => ({
             testId: testId,
           }));
-          createTestRequestMutation.mutate({
+          await createTestRequestMutation.mutateAsync({
             patientId: patientId,
             visitId: visitId,
             items: testItems,
@@ -1239,6 +1253,7 @@ export default function MedicalFilePanel({
         ]);
       }
 
+      if (finishAfterSave.current && visitId) await finishSavedVisit(visitId);
       await onSaved?.();
 
       setTimeout(() => {
@@ -1248,6 +1263,8 @@ export default function MedicalFilePanel({
     },
     onError: (error) => {
       console.error("saveMedicalVisit error:", error);
+      finishAfterSave.current = false;
+      setIsFinishing(false);
       setIsSaving(false);
       toast.error(error.message || "خطأ في حفظ الزيارة والبيانات");
     },
@@ -1297,11 +1314,12 @@ export default function MedicalFilePanel({
     });
   };
 
-  const handleSave = () => {
+  const handleSave = (finish = false) => {
     if (hubRo) {
       toast.info(patientHubViewOnlyHint);
       return;
     }
+    if (isSaving || isFinishing) return;
     // Build glasses data from refraction table (used for both first visit and no exam selected cases)
     const refVal = (v: string | undefined) => (!v || v === "---" ? "" : v);
     const glassesData = {
@@ -1335,6 +1353,8 @@ export default function MedicalFilePanel({
 
     // Create a new visit when there are no exams OR when exams exist but none is selected.
     if (examinations.length === 0 || !selectedExaminationId) {
+      finishAfterSave.current = finish;
+      setIsFinishing(finish);
       setIsSaving(true);
 
       saveMedicalVisitMutation.mutate({
@@ -1349,7 +1369,7 @@ export default function MedicalFilePanel({
         pentacam: formData.pentacam,
         symptoms: formData.medicalHistory,
         diagnosis: formData.diagnosis,
-        treatment: formData.treatment
+        treatment: formData.treatment?.length
           ? JSON.stringify(formData.treatment)
           : undefined,
         diseases: formData.diseases
@@ -1374,6 +1394,8 @@ export default function MedicalFilePanel({
     }
 
     setIsSaving(true);
+    finishAfterSave.current = finish;
+    setIsFinishing(finish);
 
     // Flatten the nested formData structure to database column names
     const fv = (v: string | undefined | null) => (!v || v === "---" ? null : v);
@@ -1428,7 +1450,8 @@ export default function MedicalFilePanel({
       },
       {
         onSuccess: async () => {
-          saveAfterRefractionMutation.mutate({
+          try {
+          await saveAfterRefractionMutation.mutateAsync({
             examinationId: examIdToSave,
             patientId,
             od: stripDash(formData.measurements?.after?.od),
@@ -1436,7 +1459,7 @@ export default function MedicalFilePanel({
           });
           const visitId = selectedExam?.visitId;
           if (visitId && formData.medicalHistory) {
-            updateVisitChiefComplaintMutation.mutate({
+            await updateVisitChiefComplaintMutation.mutateAsync({
               visitId,
               chiefComplaint: formData.medicalHistory,
             });
@@ -1447,7 +1470,7 @@ export default function MedicalFilePanel({
           if (doctorReport?.id) {
             // Update existing report
             console.log("Updating doctor report:", doctorReport.id);
-            updateDoctorReportMutation.mutate(
+            await updateDoctorReportMutation.mutateAsync(
               {
                 reportId: doctorReport.id,
                 diagnosis: formData.diagnosis || "",
@@ -1479,7 +1502,7 @@ export default function MedicalFilePanel({
           ) {
             // Create new report if none exists and there's data to save
             console.log("Creating new doctor report for visitId:", visitId);
-            createDoctorReportMutation.mutate(
+            await createDoctorReportMutation.mutateAsync(
               {
                 visitId: visitId,
                 patientId: patientId,
@@ -1512,7 +1535,7 @@ export default function MedicalFilePanel({
           if (visitId && hasPentacamData) {
             console.log("Saving pentacam data for visitId:", visitId);
             const existingPentacam = pentacamQuery.data?.[0];
-            updatePentacamResultMutation.mutate({
+            await updatePentacamResultMutation.mutateAsync({
               visitId: visitId,
               patientId: patientId,
               pentacamId: existingPentacam?.id,
@@ -1572,7 +1595,19 @@ export default function MedicalFilePanel({
             });
           }
 
-          setIsSaving(false);
+          if (finishAfterSave.current) {
+            if (!visitId) throw new Error("تعذر تحديد الزيارة لإنهائها");
+            await finishSavedVisit(visitId);
+            await onSaved?.();
+            if (!embedded) dismiss();
+          }
+          } catch (error) {
+            finishAfterSave.current = false;
+            setIsFinishing(false);
+            toast.error(error instanceof Error ? error.message : "تعذر حفظ وإنهاء الزيارة");
+          } finally {
+            setIsSaving(false);
+          }
         },
       },
     );
@@ -3230,6 +3265,7 @@ export default function MedicalFilePanel({
                       الشكوى و الاعراض
                     </h3>
                     <Textarea aria-label="اكتب الشكوى و الاعراض هنا…"
+                      data-medical-proposals="complaints symptoms"
                       value={formData.medicalHistory}
                       onChange={(e) =>
                         setFormData((prev: any) => ({
@@ -3265,7 +3301,6 @@ export default function MedicalFilePanel({
                             {(symptomsQuery.data ?? []).filter((symptom: any) =>
                               symptom.name
                                 .toLowerCase()
-                      data-medical-proposals="complaints symptoms"
                                 .includes(symptomSearchText.toLowerCase()),
                             ).length === 0 ? (
                               <p className="text-xs text-muted-foreground px-1.5">
@@ -3402,6 +3437,7 @@ export default function MedicalFilePanel({
                       Recommendations:
                     </p>
                     <Textarea aria-label="اكتب التوصيات هنا…"
+                      data-medical-proposals="decision"
                       value={formData.recommendations}
                       onChange={(e) =>
                         setFormData((prev: any) => ({
@@ -3437,7 +3473,6 @@ export default function MedicalFilePanel({
                       </Button>
                     </div>
                     <div className="relative order-2 mb-2 me-auto w-full md:w-80">
-                      data-medical-proposals="decision"
                       <Search className="absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input aria-label="ابحث عن الفحوصات…"
                         placeholder="ابحث عن الفحوصات…"
@@ -3584,6 +3619,16 @@ export default function MedicalFilePanel({
 
                   {/* Treatment / Medications */}
                   <div className="flex flex-col rounded-md border border-border/60 p-3">
+                    <PrescriptionBinding
+                      templates={readPrescriptionTemplates(prescriptionsQuery.data)}
+                      medications={medicationsQuery.data ?? []}
+                      draft={{ ids: formData.treatment ?? [], details: treatmentDetailsByMedicationId }}
+                      disabled={hubRo || patientQuery.isLoading || medicationsQuery.isLoading || medicationsQuery.isError || prescriptionsQuery.isLoading || prescriptionsQuery.isError}
+                      change={(draft) => {
+                        setTreatmentDetailsByMedicationId(draft.details);
+                        setFormData((previous: typeof formData) => ({ ...previous, treatment: draft.ids.map(Number) }));
+                      }}
+                    />
                     <div className="order-0 mb-2 flex items-center justify-between gap-2">
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase">
                         العلاج
@@ -3619,16 +3664,6 @@ export default function MedicalFilePanel({
                         ) : medicationsQuery.isError ? (
                           <p className="order-3 text-xs text-destructive">
                             خطأ في تحميل العلاجات
-                    <PrescriptionBinding
-                      templates={readPrescriptionTemplates(prescriptionsQuery.data)}
-                      medications={medicationsQuery.data ?? []}
-                      draft={{ ids: formData.treatment ?? [], details: treatmentDetailsByMedicationId }}
-                      disabled={hubRo || patientQuery.isLoading || medicationsQuery.isLoading || medicationsQuery.isError || prescriptionsQuery.isLoading || prescriptionsQuery.isError}
-                      change={(draft) => {
-                        setTreatmentDetailsByMedicationId(draft.details);
-                        setFormData((previous: typeof formData) => ({ ...previous, treatment: draft.ids.map(Number) }));
-                      }}
-                    />
                           </p>
                         ) : (
                           <div className="order-3 space-y-1 max-h-[160px] overflow-y-auto border rounded-md p-1.5">
@@ -3787,6 +3822,7 @@ export default function MedicalFilePanel({
                     التوصيات
                   </Label>
                   <Textarea aria-label="أدخل التوصيات…"
+                    data-medical-proposals="decision"
                     value={formData.recommendations}
                     onChange={(e) =>
                       setFormData((prev: any) => ({
@@ -3822,17 +3858,30 @@ export default function MedicalFilePanel({
 
         {/* Footer */}
         <div className="border-t border-border/50 px-4 py-2.5 flex items-center justify-between gap-3 flex-shrink-0">
-                    data-medical-proposals="decision"
           {!hubRo ? (
+            <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
               className="gap-1.5 text-xs"
-              onClick={handleSave}
-              disabled={isSaving}
+              onClick={() => handleSave()}
+              disabled={isSaving || isFinishing}
             >
               <Save className="h-3.5 w-3.5" />
               {isSaving ? "جاري الحفظ…" : "حفظ"}
             </Button>
+            {["doctor", "nurse", "technician", "reception", "accountant", "manager", "admin"].includes(String(user?.role ?? "")) && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => handleSave(true)}
+                disabled={isSaving || isFinishing}
+              >
+                <Save className="h-3.5 w-3.5" />
+                {isFinishing ? "جاري حفظ وإنهاء الزيارة…" : "حفظ وإنهاء الزيارة"}
+              </Button>
+            )}
+            </div>
           ) : (
             <span className="text-[13px] text-muted-foreground">
               {patientHubViewOnlyHint}

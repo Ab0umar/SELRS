@@ -271,17 +271,32 @@ function visitQueueCompletionEligibilitySql(_visitIdColumn: any) {
   // `id` in the correlated subqueries as ambiguous once child tables are joined.
   const correlatedVisitId = sql.raw("`visits`.`id`");
   return sql<number>`CASE WHEN
+    NULLIF(TRIM(visits.chiefComplaint), '') IS NOT NULL
+    OR
     EXISTS (
       SELECT 1
       FROM autorefractometryData ard
       INNER JOIN examinations ae ON ae.id = ard.examinationId
       WHERE ae.visitId = ${correlatedVisitId}
+        AND COALESCE(
+          NULLIF(TRIM(ard.sphereOD), ''), NULLIF(TRIM(ard.cylinderOD), ''),
+          NULLIF(TRIM(ard.axisOD), ''), NULLIF(TRIM(ard.ucvaOD), ''),
+          NULLIF(TRIM(ard.bcvaOD), ''), NULLIF(TRIM(ard.iopOD), ''),
+          NULLIF(TRIM(ard.sphereOS), ''), NULLIF(TRIM(ard.cylinderOS), ''),
+          NULLIF(TRIM(ard.axisOS), ''), NULLIF(TRIM(ard.ucvaOS), ''),
+          NULLIF(TRIM(ard.bcvaOS), ''), NULLIF(TRIM(ard.iopOS), '')
+        ) IS NOT NULL
     )
     OR EXISTS (
       SELECT 1
       FROM afterRefractionData afr
       INNER JOIN examinations afe ON afe.id = afr.examinationId
       WHERE afe.visitId = ${correlatedVisitId}
+        AND COALESCE(
+          NULLIF(TRIM(afr.sphereOD), ''), NULLIF(TRIM(afr.cylinderOD), ''),
+          NULLIF(TRIM(afr.axisOD), ''), NULLIF(TRIM(afr.sphereOS), ''),
+          NULLIF(TRIM(afr.cylinderOS), ''), NULLIF(TRIM(afr.axisOS), '')
+        ) IS NOT NULL
     )
     OR EXISTS (
       SELECT 1
@@ -323,11 +338,11 @@ function visitQueueCompletionEligibilitySql(_visitIdColumn: any) {
       WHERE qdr.visitId = ${correlatedVisitId}
         AND COALESCE(
           NULLIF(TRIM(qdr.diagnosis), ''),
-          NULLIF(TRIM(qdr.diseases), ''),
-          NULLIF(TRIM(qdr.treatment), ''),
+          NULLIF(NULLIF(NULLIF(TRIM(qdr.diseases), ''), '[]'), '{}'),
+          NULLIF(NULLIF(NULLIF(TRIM(qdr.treatment), ''), '[]'), '{}'),
           NULLIF(TRIM(qdr.recommendations), ''),
           NULLIF(TRIM(qdr.clinicalOpinion), ''),
-          NULLIF(TRIM(qdr.additionalNotes), '')
+          NULLIF(NULLIF(NULLIF(TRIM(qdr.additionalNotes), ''), '[]'), '{}')
         ) IS NOT NULL
     )
     OR EXISTS (
@@ -356,7 +371,7 @@ function visitQueueCompletionEligibilitySql(_visitIdColumn: any) {
         AND (
           (
             NULLIF(TRIM(qp.notes), '') IS NOT NULL
-            AND TRIM(qp.notes) <> 'Created from examination form'
+            AND TRIM(qp.notes) NOT IN ('Created from examination form', 'Prescribed from medical file panel', 'Updated from final medical report')
           )
           OR EXISTS (
             SELECT 1
@@ -8702,9 +8717,7 @@ export async function visitHasQueueCompletionData(visitId: number) {
     .limit(1);
 
   return (
-    ["clinic1", "clinic2", "pentacam"].includes(
-      String(row?.queueStatus ?? ""),
-    ) && Number(row?.eligible ?? 0) === 1
+    row != null && row.queueStatus !== "treated" && Number(row.eligible ?? 0) === 1
   );
 }
 

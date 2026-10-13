@@ -2249,7 +2249,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, visitId: visitId };
     }),
 
-  updateVisitQueueStatus: receptionProcedure
+  updateVisitQueueStatus: protectedProcedure
     .input(
       z.object({
         visitId: z.number(),
@@ -2290,13 +2290,11 @@ export const medicalExaminationsRoutes = {
         });
       }
 
+      if (input.queueStatus !== "treated" && !["reception", "accountant", "admin", "manager"].includes(role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Reception or accounting access required" });
+      }
+
       if (input.queueStatus === "treated") {
-        if (!["reception", "accountant", "admin"].includes(role)) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "تسجيل المريض كمعالج متاح للاستقبال والأدمن فقط.",
-          });
-        }
         const hasCompletionData = await db.visitHasQueueCompletionData(
           input.visitId,
         );
