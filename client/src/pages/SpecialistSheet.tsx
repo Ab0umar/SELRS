@@ -751,11 +751,11 @@ export default function SpecialistSheet() {
         }
       `}</style>
       <header
-        className={`sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden ${printMode.printView ? "hidden" : ""}`}
+        className={`specialist-screen-toolbar sticky top-0 z-50 flex flex-wrap items-start justify-between gap-3 border-b border-border/60 bg-card px-3 py-2 sm:px-6 print:hidden ${printMode.printView ? "hidden" : ""}`}
         dir="ltr"
         style={{ fontFamily: "Inter, sans-serif" }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-start gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -765,11 +765,11 @@ export default function SpecialistSheet() {
             رجوع
           </Button>
           {user?.role === "admin" && !printMode.printView ? (
-            <details className="print:hidden text-xs" dir="rtl">
+            <details className="max-w-full print:hidden text-xs" dir="rtl">
               <summary className="cursor-pointer select-none text-muted-foreground hover:text-foreground">
                 إعدادات الطباعة
               </summary>
-              <div className="mt-2 flex w-52 flex-col gap-1.5 rounded-md border border-border bg-card p-2">
+              <div className="mt-2 flex w-52 max-w-full flex-col gap-1.5 rounded-md border border-border bg-card p-2">
                 <label className="flex items-center justify-between gap-2">
                   <span>إزاحة أفقية (مم)</span>
                   <input

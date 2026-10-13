@@ -3882,7 +3882,7 @@ export default function WorkflowPrototypeLive() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc] text-slate-900" dir="rtl">
+    <div className="workflow-day-workspace min-h-screen bg-[#f7f9fc] text-slate-900" dir="rtl">
       <AssistantFieldsProvider
         key={`${selectedLivePatient?.id ?? "none"}-${activeWorkflowVisitId ?? selectedDate}`}
         patientId={selectedLivePatient?.id ?? 0}

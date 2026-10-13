@@ -365,7 +365,7 @@ export default function WorkflowPrototype() {
                   type="button"
                   onClick={() => setActiveRole(role)}
                   className={cn(
-                    "flex min-w-[180px] flex-1 items-center gap-2 border-e border-border px-3 py-2.5 text-start last:border-e-0",
+                    "flex min-w-[180px] flex-none items-center gap-2 border-e border-border px-3 py-2.5 text-start last:border-e-0",
                     active ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted/50",
                   )}
                 >
@@ -497,13 +497,13 @@ export default function WorkflowPrototype() {
           </section>
         </div>
 
-        <div className="sticky bottom-0 z-20 mt-4 flex flex-col gap-2 border border-border bg-background/95 p-3 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative z-20 mt-4 flex flex-col gap-2 border border-border bg-background/95 p-3 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur md:sticky md:bottom-0 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2 text-xs">
             <span className={cn("flex h-8 w-8 items-center justify-center rounded border", ROLE_META[activeRole].tone)}>{(() => { const Icon = ROLE_META[activeRole].icon; return <Icon className="h-4 w-4" />; })()}</span>
             <span><strong>{ROLE_META[activeRole].label}</strong><span className="ms-2 text-muted-foreground">يعدّل الجزء المخصص له فقط</span></span>
           </div>
           {activeRole !== "consultant" ? (
-            <Button type="button" onClick={moveToNextRole} className="min-h-10 sm:min-w-52">
+            <Button type="button" onClick={moveToNextRole} className="h-auto min-h-11 whitespace-normal py-2 md:min-w-52">
               حفظ وإتاحة لـ {ROLE_META[ROLES[ROLES.indexOf(activeRole) + 1]].label}
               <ArrowLeft className="h-4 w-4" />
             </Button>
