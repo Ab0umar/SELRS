@@ -462,7 +462,7 @@ export default function DoctorPatientImages() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-border/60 overflow-x-auto gap-2 py-1 scrollbar-none">
+            <div className="flex border-b border-border/60 overflow-x-auto gap-2 py-1 scrollbar-none [&>button]:shrink-0">
               <Button variant="bare"
                 onClick={() => setActiveTab("profile")}
                 className={cn(
