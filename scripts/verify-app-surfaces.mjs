@@ -32,9 +32,9 @@ try {
       if (route === '/home') await page.locator('.home-app').first().waitFor();
       if (route === '/attendance') await page.locator('.attendance-home-focused').waitFor();
       const expected = theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(18, 24, 32)';
-      const surface = theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(32, 41, 54)';
+      const surface = theme === 'light' ? 'rgb(245, 245, 246)' : 'rgb(32, 41, 54)';
       assert.equal(await page.locator('.selrs-app-content').evaluate(node => getComputedStyle(node).backgroundColor), expected, `${route} ${theme} canvas`);
-      assert.equal(await page.locator('[data-app-top-nav]').evaluate(node => getComputedStyle(node).backgroundColor), surface);
+      assert.equal(await page.locator('[data-app-top-nav]').evaluate(node => getComputedStyle(node).backgroundColor), theme === 'light' ? expected : surface);
       if (route === '/home') assert.equal(await page.locator('.home-app').first().evaluate(node => getComputedStyle(node).backgroundColor), surface);
       if (route === '/attendance') assert.equal(await page.locator('.attendance-home-pane').first().evaluate(node => getComputedStyle(node).backgroundColor), surface);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);

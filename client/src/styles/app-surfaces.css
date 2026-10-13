@@ -1,4 +1,4 @@
-/* White screen canvas in light mode, layered surfaces in dark mode. */
+/* White canvas with neutral screen surfaces; dark and print palettes stay separate. */
 @media screen {
   html .selrs-mobile-brand-canvas.selrs-mobile-brand-canvas,
   html .selrs-mobile-brand-canvas.selrs-mobile-brand-canvas [data-app-scroll-container],
@@ -8,6 +8,19 @@
 
   html [data-app-top-nav] {
     background: var(--card) !important;
+    color: var(--foreground);
+  }
+
+  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav][data-app-top-nav] {
+    background: var(--background) !important;
+  }
+
+  html:not(.dark) .main-home-library .home-app-icon {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  html:not(.dark) .main-home-library .home-app h3 {
     color: var(--foreground);
   }
 
