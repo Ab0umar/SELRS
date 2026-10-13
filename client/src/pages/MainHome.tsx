@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -25,6 +25,8 @@ import {
   Stethoscope,
   UserCog,
   Users,
+  Search,
+  ArrowLeft,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -35,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import "./main-home.css";
@@ -349,6 +352,8 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
 ];
 
 export default function MainHome() {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
   const { user } = useAuth();
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
@@ -411,33 +416,38 @@ export default function MainHome() {
   ]);
 
   const cardClassName =
-    "home-section-item group flex min-w-0 w-full items-start gap-3 rounded-md border border-input bg-card p-3 text-start transition-colors hover:border-primary hover:bg-primary/5";
+    "home-app group";
   const dailyLabels = new Set(["الاستقبال", "مسار اليوم", "مركز المريض", "الحسابات", "الشيتات", "كفرالشيخ", "التقارير"]);
-  const adminLabels = new Set(["الموظفين", "مركز الإدارة", "الحساب", "المخزن"]);
-  const dailyGroupTitle = "العمل اليومي";
-  const homeGroups = [
-    { title: dailyGroupTitle, cards: visibleHomeCards.filter(card => dailyLabels.has(card.label)) },
-    { title: "الإدارة والموظفين", cards: visibleHomeCards.filter(card => adminLabels.has(card.label)) },
-    { title: "الخدمات المساندة", cards: visibleHomeCards.filter(card => !dailyLabels.has(card.label) && !adminLabels.has(card.label)) },
-  ].filter(group => group.cards.length > 0);
+  const adminLabels = new Set(["الموظفين", "مركز الإدارة", "الحساب", "المخزن", "رسائل واتساب", "التسويق"]);
+  const categories = [
+    { id: "all", label: "الكل" },
+    { id: "daily", label: "العمل اليومي" },
+    { id: "admin", label: "الإدارة" },
+    { id: "reference", label: "المراجع" },
+  ];
+  const displayedCards = visibleHomeCards.filter(card => {
+    const group = dailyLabels.has(card.label) ? "daily" : adminLabels.has(card.label) ? "admin" : "reference";
+    return (category === "all" || group === category) &&
+      `${card.label} ${card.helper ?? ""}`.includes(search.trim());
+  });
+  const workflowCard = visibleHomeCards.find(card => card.href === "/workflow");
 
-  const renderCard = (card: HomeCard, featured = false) => {
-    const itemClassName = featured
-      ? `${cardClassName} home-section-item--featured`
-      : cardClassName;
+  const renderCard = (card: HomeCard) => {
+    const itemClassName = cardClassName;
     const Icon = card.icon;
     const cardContent = (
       <>
-        <span className="flex size-6 shrink-0 items-center justify-center text-primary">
-          <Icon className="size-4 sm:size-5" strokeWidth={2} aria-hidden />
+        <span className="home-app-icon" data-tone={
+          ["مسار اليوم", "الموظفين"].includes(card.label) ? "orange" :
+          ["الاستقبال", "كفرالشيخ", "رسائل واتساب"].includes(card.label) ? "green" :
+          ["المخزن", "الأرشيف", "مركز الإدارة", "الحساب"].includes(card.label) ? "neutral" : "blue"
+        }>
+          <Icon strokeWidth={1.8} aria-hidden />
         </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="break-words text-sm font-black leading-tight text-foreground sm:text-base">
+        <div className="home-app-name">
+          <h3>
             {card.label}
           </h3>
-          <p className="mt-1 text-xs font-medium leading-snug text-muted-foreground">
-            {card.helper}
-          </p>
         </div>
       </>
     );
@@ -446,7 +456,7 @@ export default function MainHome() {
       return (
         <DropdownMenu key={card.label}>
           <DropdownMenuTrigger asChild>
-            <Button variant="bare" type="button" className={itemClassName}>
+            <Button variant="bare" type="button" className={itemClassName} title={card.helper}>
               {cardContent}
             </Button>
           </DropdownMenuTrigger>
@@ -484,6 +494,7 @@ export default function MainHome() {
         key={card.label}
         href={card.href ?? "/home"}
         className={itemClassName}
+        title={card.helper}
       >
         {cardContent}
       </Link>
@@ -491,10 +502,16 @@ export default function MainHome() {
   };
 
   return (
-    <div className="main-home-focused min-h-screen bg-background text-foreground" dir="rtl">
-      <main data-module-content-start className="mx-auto max-w-[1440px] px-5 py-8 lg:px-10 lg:py-12">
+    <div className="main-home-library min-h-screen bg-background text-foreground" dir="rtl">
+      <main data-module-content-start className="home-library-content">
         <section className="mt-0">
-          <h1 className="mb-4 text-2xl font-bold text-primary">الرئيسية</h1>
+          <header className="home-library-heading">
+            <div><h1>أقسام المركز</h1><p>عيون الشروق</p></div>
+            <label className="home-library-search">
+              <Search className="size-5 shrink-0" aria-hidden />
+              <Input type="search" aria-label="البحث في أقسام المركز" placeholder="ابحث عن قسم…" value={search} onChange={event => setSearch(event.target.value)} />
+            </label>
+          </header>
 
           {!isAdmin && permissionsQuery.isLoading ? (
             <div
@@ -529,15 +546,17 @@ export default function MainHome() {
               لا توجد أقسام متاحة لحسابك. اطلب الصلاحيات من مدير النظام.
             </div>
           ) : (
-            <div className="legacy-home-menu space-y-6">
-              {homeGroups.map(group => (
-                <section key={group.title} aria-label={group.title} className="home-section-group">
-                  <h2 className="mb-3 text-sm font-bold text-foreground">{group.title}</h2>
-                  <div className="home-section-grid grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
-                    {group.cards.map(card => renderCard(card, group.title === dailyGroupTitle))}
-                  </div>
-                </section>
-              ))}
+            <div>
+              <nav className="home-library-categories" aria-label="تصنيف الأقسام">
+                {categories.map(item => (
+                  <Button key={item.id} variant="bare" type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)}>{item.label}</Button>
+                ))}
+              </nav>
+              <div className="home-library-grid" aria-label="أقسام المركز">
+                {displayedCards.map(renderCard)}
+              </div>
+              {displayedCards.length === 0 && <div className="home-library-empty" role="status"><p>لا توجد أقسام مطابقة.</p><Button variant="outline" onClick={() => { setSearch(""); setCategory("all"); }}>عرض كل الأقسام</Button></div>}
+              {workflowCard && <div className="home-library-quickline"><div><strong>مسار اليوم</strong><p>الزيارات والفحص</p></div><Button asChild className="home-library-open"><Link href="/workflow">فتح المسار <ArrowLeft className="size-4" aria-hidden /></Link></Button></div>}
             </div>
           )}
         </section>

@@ -1,0 +1,73 @@
+import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import { chromium } from '@playwright/test';
+
+await mkdir('outputs/main-home-library', { recursive: true });
+const browser = await chromium.launch({ executablePath: 'C:/Users/SELRS/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe' });
+async function openPage(width, theme, role = 'admin', failPermissions = false) {
+  const page = await browser.newPage({ viewport: { width, height: 1000 } });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(value => localStorage.setItem('theme', value), theme);
+  await page.route('**/api/**', async route => {
+    assert.equal(route.request().method(), 'GET', 'No writes during home verification');
+    const url = new URL(route.request().url());
+    const responses = (url.pathname.split('/api/trpc/')[1]?.split(',') ?? []).map(method => {
+      if (failPermissions && method === 'medical.getMyPermissions') return { error: { json: { message: 'FIXTURE_PERMISSIONS_FAILED', code: -32003, data: { code: 'FORBIDDEN', httpStatus: 403 } } } };
+      const value = method === 'auth.me' ? { id: 999999, role, name: 'Fixture user' } : method === 'medical.getMyPermissions' ? ['/patient-hub'] : [];
+      return { result: { data: { json: value } } };
+    });
+    await route.fulfill({ json: url.searchParams.has('batch') ? responses : responses[0] ?? {} });
+  });
+  await page.goto('http://127.0.0.1:5181/home');
+  if (failPermissions) await page.getByText('Unable to verify page permissions', { exact: true }).waitFor();
+  else await page.locator('.main-home-library').waitFor();
+  return { page, errors };
+}
+try {
+  for (const width of [320, 390, 768, 1440]) for (const theme of ['light', 'dark']) {
+    const { page, errors } = await openPage(width, theme);
+    const tiles = page.locator('.home-app');
+    await page.getByRole('link', { name: 'الاستقبال', exact: true }).waitFor();
+    assert(await tiles.count() >= 15, 'Existing sections retained');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+    const columns = await page.locator('.home-library-grid').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
+    assert.equal(columns, width <= 650 ? 3 : width <= 900 ? 4 : 5);
+    for (const tile of await tiles.all()) {
+      const box = await tile.boundingBox();
+      assert(box.width >= 44 && box.height >= 44);
+      assert(await tile.locator('h3').evaluate(node => node.scrollWidth <= node.clientWidth + 1));
+    }
+    await page.screenshot({ path: `outputs/main-home-library/${theme}-${width}.png`, fullPage: true });
+    await page.getByRole('button', { name: 'الإدارة', exact: true }).click();
+    assert.equal(await page.getByRole('link', { name: 'المخزن', exact: true }).count(), 1);
+    assert.equal(await page.getByRole('link', { name: 'الاستقبال', exact: true }).count(), 0);
+    await page.getByRole('button', { name: 'الموظفين', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'الحضور', exact: true }).waitFor();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'الكل', exact: true }).click();
+    await page.getByRole('searchbox').fill('الحسابات');
+    assert.equal(await tiles.count(), 1);
+    assert.equal(await tiles.first().getAttribute('href'), '/accounting');
+    await page.getByRole('searchbox').fill('zzzzzz');
+    await page.getByText('لا توجد أقسام مطابقة.', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'عرض كل الأقسام', exact: true }).click();
+    assert(await tiles.count() >= 15);
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+  const restricted = await openPage(390, 'light', 'doctor');
+  await restricted.page.getByRole('link', { name: 'مركز المريض', exact: true }).waitFor();
+  assert.deepEqual(await restricted.page.locator('a.home-app').evaluateAll(links => links.map(link => link.getAttribute('href'))), ['/patient-hub', '/account']);
+  assert.equal(await restricted.page.locator('.home-library-quickline').count(), 0);
+  await restricted.page.getByRole('button', { name: 'الإدارة', exact: true }).click();
+  assert.equal(await restricted.page.locator('.home-app').count(), 1);
+  assert.equal(await restricted.page.getByRole('link', { name: 'الحساب', exact: true }).getAttribute('href'), '/account');
+  assert.deepEqual(restricted.errors, []);
+  await restricted.page.close();
+  const failed = await openPage(390, 'light', 'doctor', true);
+  assert.equal(await failed.page.locator('.home-app').count(), 0);
+  assert.equal(await failed.page.getByRole('button', { name: 'Retry', exact: true }).count(), 1);
+  await failed.page.close();
+  console.log('Home library passed 8 light/dark responsive cases, navigation/search/categories/employee menu, restricted permissions, and error state. No real writes.');
+} finally { await browser.close(); }
