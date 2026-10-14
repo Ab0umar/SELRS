@@ -1545,7 +1545,16 @@ async function startServer() {
   server.setTimeout(600_000);
   const pentacamExportsDir = path.resolve(process.cwd(), "Pentacam", "Jpgs");
   const allowedCorsOrigins = getAllowedCorsOrigins();
-  registerWsServer(server);
+  registerWsServer(server, {
+    isOriginAllowed: (origin, host) => {
+      if (isAllowedCorsOrigin(origin, allowedCorsOrigins)) return true;
+      try {
+        return new URL(origin).host === host;
+      } catch {
+        return false;
+      }
+    },
+  });
   // ZKTeco ADMS push endpoint — must be before global body parsers so express.text() can read the raw body
   registerZKTecoAdms(app);
   // WhatsApp Cloud API webhook — must be before global body parsers so it can capture the raw body for signature verification
