@@ -2028,7 +2028,7 @@ export default function PayrollReport() {
   }
 
   return (
-    <div className="min-w-0 space-y-4" dir="rtl">
+    <div className="salary-compact-payroll min-w-0 space-y-4" dir="rtl">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -2297,14 +2297,14 @@ export default function PayrollReport() {
 
       {/* Tabs Navigation */}
       {rows.length > 0 && (
-        <div className="flex flex-col gap-2 border-b border-border sm:flex-row sm:items-end sm:justify-between">
+        <div className="salary-payroll-navigation flex min-w-0 flex-col gap-2 border-b border-border sm:flex-row sm:items-end sm:justify-between">
           {section === "مركز" && (
-            <div
-              className="flex flex-col gap-2"
-              role="tablist"
-              aria-label="أقسام كشف الشهر"
-            >
-              <div className="flex flex-wrap gap-2">
+            <div className="flex min-w-0 flex-col gap-2">
+              <div
+                className="flex min-w-0 max-w-full flex-nowrap gap-2 overflow-x-auto"
+                role="tablist"
+                aria-label="أقسام كشف الشهر"
+              >
                 {(
                   [
                     ["salaries", "الرواتب"],
@@ -2328,7 +2328,11 @@ export default function PayrollReport() {
                 ))}
               </div>
               {activeTab !== "supervision" && (
-                <div className="flex w-fit gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+                <div
+                  className="salary-payroll-subtabs flex max-w-full w-fit gap-1 p-1"
+                  role="group"
+                  aria-label="نوع كشف الشهر"
+                >
                   <button
                     onClick={() =>
                       activeTab === "salaries"
@@ -2421,7 +2425,13 @@ export default function PayrollReport() {
                 </div>
               </div>
 
-              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+              <div
+                role="region"
+                aria-label="جدول بيانات"
+                tabIndex={0}
+                className="hidden xl:block overflow-x-auto"
+                dir="rtl"
+              >
                 <table
                   aria-label="الرواتب الأساسية"
                   dir="rtl"
@@ -2913,7 +2923,13 @@ export default function PayrollReport() {
                 )}
               </div>
 
-              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+              <div
+                role="region"
+                aria-label="جدول بيانات"
+                tabIndex={0}
+                className="hidden xl:block overflow-x-auto"
+                dir="rtl"
+              >
                 <table
                   aria-label="الشفتات"
                   dir="rtl"
@@ -3394,7 +3410,13 @@ export default function PayrollReport() {
                 </div>
               </div>
 
-              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+              <div
+                role="region"
+                aria-label="جدول بيانات"
+                tabIndex={0}
+                className="hidden xl:block overflow-x-auto"
+                dir="rtl"
+              >
                 <table
                   aria-label="عمولات الشفتات"
                   dir="rtl"
@@ -3689,7 +3711,13 @@ export default function PayrollReport() {
                 )}
               </div>
 
-              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+              <div
+                role="region"
+                aria-label="جدول بيانات"
+                tabIndex={0}
+                className="hidden xl:block overflow-x-auto"
+                dir="rtl"
+              >
                 <table
                   aria-label="العمولات"
                   dir="rtl"
@@ -4645,7 +4673,13 @@ export default function PayrollReport() {
                   </Button>
                 </div>
               </div>
-              <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+              <div
+                role="region"
+                aria-label="جدول بيانات"
+                tabIndex={0}
+                className="overflow-x-auto"
+                dir="rtl"
+              >
                 <table
                   aria-label="مكافآت الإشراف"
                   dir="rtl"

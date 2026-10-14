@@ -27,7 +27,7 @@
   #root :is([data-slot="table-container"], .overflow-x-auto, .overflow-auto):has(
       table
     )
-    table {
+    table:not(.salary-employee-settings-table) {
     width: max-content !important;
     min-width: 100% !important;
     max-width: none !important;
@@ -42,7 +42,7 @@
     table-layout: fixed !important;
   }
 
-  #root table :is(th, td) {
+  #root table:not(.salary-employee-settings-table) :is(th, td) {
     height: auto !important;
     padding: 0.4rem 0.5rem !important;
     white-space: nowrap !important;

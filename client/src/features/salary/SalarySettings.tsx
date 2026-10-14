@@ -651,7 +651,7 @@ function EmployeeSettingsGrid() {
         <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
           <table
             aria-label="إعدادات الموظفين الخاصة"
-            className="w-full text-start border-collapse text-xs"
+            className="salary-employee-settings-table w-full text-start border-collapse text-xs"
           >
             <thead>
               <tr className="border-t border-b border-border bg-muted/40 text-muted-foreground font-bold">
@@ -1117,10 +1117,10 @@ function LateTiersCard() {
 
 export default function SalarySettings() {
   return (
-    <div className="w-full space-y-6">
+    <div className="salary-compact-settings w-full space-y-4">
       <DeductionsControl />
       <Tabs defaultValue="global" dir="rtl" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-1 rounded-xl sm:grid-cols-3 bg-muted/60 p-1">
+        <TabsList className="flex h-auto w-full flex-nowrap overflow-x-auto p-1">
           <TabsTrigger value="global">نسب الحضور العامة (المركز)</TabsTrigger>
           <TabsTrigger value="late">شرائح خصم التأخير (لكل يوم)</TabsTrigger>
           <TabsTrigger value="employees">إعدادات الموظفين الخاصة</TabsTrigger>

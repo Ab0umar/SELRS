@@ -93,7 +93,7 @@ export default function SalaryDashboard() {
           return (
             <section key={key} className="salary-home-pane" aria-labelledby={headingId}>
               <h2 id={headingId} className="salary-home-eyebrow">
-                {label} · صافي الرواتب المستحقة · {month}/{year}
+                {label} · صافي الرواتب
               </h2>
               <p className="salary-home-net">{figure(data?.totalPay)}</p>
               {!summaryQ.isLoading && !summaryQ.isError && staff > 0 && (

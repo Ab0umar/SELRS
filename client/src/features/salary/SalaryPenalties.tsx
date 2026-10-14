@@ -850,7 +850,7 @@ export default function SalaryPenalties() {
   ];
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="salary-compact-penalties space-y-4" dir="rtl">
       {activeQueryError && (
         <div
           role="alert"
@@ -863,15 +863,21 @@ export default function SalaryPenalties() {
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex max-w-full shrink-0 flex-wrap gap-1 rounded-lg border border-border bg-muted/30 p-1">
+        <div
+          className="salary-penalty-tabs flex max-w-full gap-1 p-1"
+          role="group"
+          aria-label="تقارير الخصومات"
+        >
           {tabDefs.map(({ key, label }) => (
-            <Button variant="bare"
+            <Button
+              variant="bare"
               key={key}
               onClick={() => {
                 setTab(key);
                 resetForm();
                 setEditingInsurance(null);
               }}
+              aria-pressed={tab === key}
               className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                 tab === key
                   ? "bg-background shadow-xs text-foreground"
@@ -1041,14 +1047,16 @@ export default function SalaryPenalties() {
                   <div className="flex items-center gap-3 mb-1">
                     <label className="block text-sm font-medium">الجزاء</label>
                     <div className="flex rounded-md border border-border overflow-hidden text-xs">
-                      <Button variant="bare"
+                      <Button
+                        variant="bare"
                         type="button"
                         onClick={() => setPenaltyMode("days")}
                         className={`px-3 py-1 ${penaltyMode === "days" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
                       >
                         بالأيام
                       </Button>
-                      <Button variant="bare"
+                      <Button
+                        variant="bare"
                         type="button"
                         onClick={() => setPenaltyMode("amount")}
                         className={`px-3 py-1 ${penaltyMode === "amount" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
@@ -1058,7 +1066,8 @@ export default function SalaryPenalties() {
                     </div>
                   </div>
                   {penaltyMode === "days" ? (
-                    <Input bare
+                    <Input
+                      bare
                       type="number"
                       value={form.penaltyDays}
                       min={0.25}
@@ -1073,7 +1082,8 @@ export default function SalaryPenalties() {
                       required
                     />
                   ) : (
-                    <Input bare
+                    <Input
+                      bare
                       type="number"
                       value={form.amount}
                       min={0}
@@ -1091,7 +1101,8 @@ export default function SalaryPenalties() {
               ) : (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium">المبلغ</label>
-                  <Input bare
+                  <Input
+                    bare
                     type="number"
                     value={form.amount}
                     min={0}
@@ -1106,7 +1117,8 @@ export default function SalaryPenalties() {
               )}
               <div className="space-y-2">
                 <label className="block text-sm font-medium">السبب</label>
-                <Input bare
+                <Input
+                  bare
                   type="text"
                   value={form.reason}
                   placeholder="اختياري"
@@ -1142,7 +1154,13 @@ export default function SalaryPenalties() {
               )}
             </div>
           </div>
-          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="block overflow-x-auto" dir="rtl">
+          <div
+            role="region"
+            aria-label="جدول بيانات"
+            tabIndex={0}
+            className="hidden"
+            dir="rtl"
+          >
             <table
               aria-label="الجزاءات والسلف"
               dir="rtl"
@@ -1281,13 +1299,13 @@ export default function SalaryPenalties() {
             </table>
           </div>
 
-          <div className="hidden" aria-hidden="true">
+          <div className="salary-deduction-rows divide-y divide-border/60">
             {rows.map((r: any) => {
               const isExpanded = !!expandedRows[r.id];
               return (
                 <div
                   key={r.id}
-                  className="p-4 bg-card hover:bg-muted/20 transition-colors"
+                  className="salary-deduction-row bg-card hover:bg-muted/20 transition-colors"
                 >
                   <div
                     role="button"
@@ -1331,7 +1349,17 @@ export default function SalaryPenalties() {
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 pt-4 border-t border-border/40 space-y-3 text-xs">
+                    <div className="salary-deduction-details text-xs">
+                      {tab === "penalties" && (
+                        <div className="flex flex-wrap justify-between gap-2">
+                          <span className="text-muted-foreground">التاريخ</span>
+                          <bdi>
+                            {r.penaltyDate
+                              ? String(r.penaltyDate).slice(0, 10)
+                              : "-"}
+                          </bdi>
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <div className="flex justify-between border-b border-border/20 pb-1">
                           <span className="text-muted-foreground">السبب:</span>
@@ -1342,6 +1370,16 @@ export default function SalaryPenalties() {
                       </div>
 
                       <div className="flex justify-end gap-2 pt-2">
+                        {tab === "penalties" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditPenalty(r)}
+                            aria-label={`تعديل الجزاء للموظف ${r.fullName ?? empName(r.empCd)}`}
+                          >
+                            <Pencil size={14} /> تعديل
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -1398,7 +1436,12 @@ export default function SalaryPenalties() {
                 </div>
               ) : (
                 <>
-                  <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+                  <div
+                    role="region"
+                    aria-label="جدول بيانات"
+                    tabIndex={0}
+                    className="overflow-x-auto"
+                  >
                     <table
                       aria-label="سلف المحاسبة"
                       className="w-full text-sm border border-border/40 rounded-lg overflow-hidden"
@@ -1469,7 +1512,8 @@ export default function SalaryPenalties() {
                                 {Number(r.net).toLocaleString("ar-EG")} ج.م
                               </td>
                               <td className="px-3 py-2 text-center">
-                                <Input bare
+                                <Input
+                                  bare
                                   type="number"
                                   min={0}
                                   step="0.01"
@@ -1488,7 +1532,8 @@ export default function SalaryPenalties() {
                                 />
                               </td>
                               <td className="px-3 py-2 text-center">
-                                <Button variant="bare"
+                                <Button
+                                  variant="bare"
                                   type="button"
                                   onClick={() =>
                                     setImportState((prev) => ({
@@ -1542,7 +1587,7 @@ export default function SalaryPenalties() {
       )}
 
       {tab === "absent" && (
-        <section className="rounded-xl border border-border bg-background p-4">
+        <section className="salary-embedded-absence">
           <AbsentReport
             sharedFromDate={fromDate}
             sharedToDate={toDate}
@@ -1637,7 +1682,12 @@ export default function SalaryPenalties() {
                       </div>
                     </div>
                     {isExpanded && (
-                      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto px-4 pb-4">
+                      <div
+                        role="region"
+                        aria-label="جدول بيانات"
+                        tabIndex={0}
+                        className="overflow-x-auto px-4 pb-4"
+                      >
                         <table
                           aria-label="أيام التأخير"
                           className="w-full text-sm border border-border/40 rounded-lg overflow-hidden"
@@ -1772,7 +1822,12 @@ export default function SalaryPenalties() {
                       </div>
                     </div>
                     {isExpanded && (
-                      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto px-4 pb-4">
+                      <div
+                        role="region"
+                        aria-label="جدول بيانات"
+                        tabIndex={0}
+                        className="overflow-x-auto px-4 pb-4"
+                      >
                         <table
                           aria-label="أيام الخروج المبكر"
                           className="w-full text-sm border border-border/40 rounded-lg overflow-hidden"
@@ -1904,7 +1959,12 @@ export default function SalaryPenalties() {
                       </div>
                     </div>
                     {isExpanded && (
-                      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto px-4 pb-4">
+                      <div
+                        role="region"
+                        aria-label="جدول بيانات"
+                        tabIndex={0}
+                        className="overflow-x-auto px-4 pb-4"
+                      >
                         <table
                           aria-label="أيام البصمة الواحدة"
                           className="w-full text-sm border border-border/40 rounded-lg overflow-hidden"
@@ -1940,7 +2000,8 @@ export default function SalaryPenalties() {
                                     {d}
                                   </td>
                                   <td className="px-3 py-2 text-center">
-                                    <Button variant="bare"
+                                    <Button
+                                      variant="bare"
                                       type="button"
                                       disabled={toggleMcExclusionMut.isPending}
                                       onClick={() =>
@@ -2000,9 +2061,17 @@ export default function SalaryPenalties() {
       {tab === "insurance" && (
         <section className="rounded-xl border border-border bg-background">
           <div className="flex flex-wrap items-center justify-between border-b border-border px-4 py-3">
-            <div />
+            <h3 className="text-base font-semibold">
+              التأمينات: {periodLabel}
+            </h3>
           </div>
-          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="hidden xl:block overflow-x-auto" dir="rtl">
+          <div
+            role="region"
+            aria-label="جدول بيانات"
+            tabIndex={0}
+            className="hidden"
+            dir="rtl"
+          >
             <table
               aria-label="خصومات الراتب"
               dir="rtl"
@@ -2048,7 +2117,8 @@ export default function SalaryPenalties() {
                       </td>
                       <td className="px-4 py-3">
                         {editing ? (
-                          <Input bare
+                          <Input
+                            bare
                             type="number"
                             min={0}
                             step="0.01"
@@ -2080,7 +2150,9 @@ export default function SalaryPenalties() {
                       <td className="px-4 py-3">
                         {editing ? (
                           <div className="flex gap-1">
-                            <Button aria-label="حفظ" title="حفظ"
+                            <Button
+                              aria-label="حفظ"
+                              title="حفظ"
                               variant="ghost"
                               size="sm"
                               disabled={updateBasicMut.isPending}
@@ -2107,7 +2179,9 @@ export default function SalaryPenalties() {
                             </Button>
                           </div>
                         ) : (
-                          <Button aria-label="تعديل التأمين" title="تعديل التأمين"
+                          <Button
+                            aria-label="تعديل التأمين"
+                            title="تعديل التأمين"
                             variant="ghost"
                             size="sm"
                             onClick={() =>
@@ -2138,7 +2212,8 @@ export default function SalaryPenalties() {
             </table>
           </div>
 
-          <div className="block xl:hidden divide-y divide-border/60">
+          <div className="salary-deduction-rows divide-y divide-border/60">
+            {latestByEmp.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">لا يوجد موظفون بإعدادات راتب</p>}
             {latestByEmp.map((b: any) => {
               const isExpanded = !!expandedRows[b.id];
               const editing =
@@ -2177,7 +2252,8 @@ export default function SalaryPenalties() {
                         </div>
                         <div className="text-sm font-semibold text-foreground tabular-nums">
                           {editing ? (
-                            <Input bare
+                            <Input
+                              bare
                               type="number"
                               min={0}
                               step="0.01"
