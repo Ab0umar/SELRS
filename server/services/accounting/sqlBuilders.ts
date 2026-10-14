@@ -604,8 +604,10 @@ export function buildPatientLasikSummarySql(
     ...sectionWhere(input.sectionCode, params),
     ...patientWhere(input.patientCode, params),
     ...patientNameWhere(input.patientName, params),
-    "h.CNCL IS NULL",
-    "(s.SRV_CD IS NULL OR s.CNCL IS NULL)",
+    // Receipts the app creates carry CNCL = '0' (about half of PAJRNRCVH), so
+    // `IS NULL` would hide them from the patient ledger.
+    "ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')",
+    "(s.SRV_CD IS NULL OR ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0'))",
   ];
 
   const sql = `
