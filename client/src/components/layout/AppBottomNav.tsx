@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Clock,
   DollarSign,
+  Ellipsis,
   ArrowUp,
   ArrowDown,
   Hospital,
@@ -467,12 +468,6 @@ export function AppBottomNav({
                 )}
                 onClick={() => onNavigate(tab.paths[0])}
               >
-                {active && (
-                  <span
-                    className="absolute inset-x-3 top-0 h-0.5 rounded-b-full bg-secondary"
-                    aria-hidden
-                  />
-                )}
                 <Icon
                   className="size-6 shrink-0"
                   strokeWidth={active ? 2.2 : 1.8}
@@ -494,6 +489,7 @@ export function AppBottomNav({
             ref={moreButtonRef}
             type="button"
             aria-label="المزيد"
+            aria-expanded={moreSheetOpen || moreOpen}
             className={cn(
               "relative flex min-w-16 flex-1 shrink-0 flex-col items-center justify-center gap-1 px-2 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary",
               moreSheetOpen || moreOpen
@@ -505,7 +501,7 @@ export function AppBottomNav({
               onOpenMore?.();
             }}
           >
-            <LayoutGrid
+            <Ellipsis
               className="size-6 shrink-0"
               strokeWidth={moreSheetOpen || moreOpen ? 2.2 : 1.8}
             />

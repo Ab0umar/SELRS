@@ -1,12 +1,23 @@
 @media screen and (max-width: 767px) {
+  .selrs-mobile-brand-canvas [data-app-bottom-nav] {
+    inset-inline: 20px;
+    width: auto;
+    max-width: 480px;
+    margin-inline: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    border: 1px solid color-mix(in srgb, var(--foreground) 12%, var(--card)) !important;
+    border-radius: 999px !important;
+    background: var(--card);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--card) 65%, transparent), 0 4px 16px rgb(0 0 0 / 12%);
+  }
   .selrs-mobile-brand-canvas [data-app-scroll-container] {
     scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
   @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .selrs-mobile-brand-canvas [data-app-bottom-nav] {
-      background: color-mix(in srgb, var(--card) 84%, transparent) !important;
-      -webkit-backdrop-filter: blur(20px) saturate(140%);
-      backdrop-filter: blur(20px) saturate(140%);
+      background: color-mix(in srgb, var(--card) 65%, transparent) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      backdrop-filter: blur(24px) saturate(150%);
     }
   }
   @media (prefers-reduced-transparency: reduce) {
@@ -18,16 +29,28 @@
   }
   .selrs-mobile-brand-canvas [data-app-bottom-nav] > div {
     padding: 4px;
-    height: 68px;
+    height: 64px;
     gap: 0;
   }
   .selrs-mobile-brand-canvas [data-app-bottom-nav] button {
     min-width: 0;
     padding-inline: 2px;
+    border: 1px solid transparent !important;
+    border-radius: 999px !important;
+    color: var(--foreground);
+    gap: 2px;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .selrs-mobile-brand-canvas [data-app-bottom-nav] button:is([aria-current="page"], [aria-expanded="true"]) {
+    color: var(--primary);
+    border-color: color-mix(in srgb, var(--card) 85%, transparent) !important;
+    background: color-mix(in srgb, var(--card) 36%, transparent) !important;
+    box-shadow: inset 0 1px 4px color-mix(in srgb, var(--card) 70%, transparent), 0 1px 5px rgb(0 0 0 / 6%) !important;
   }
   .selrs-mobile-brand-canvas [data-app-bottom-nav] button > span:last-child {
     font-size: 11px;
-    min-height: 24px;
+    min-height: 20px;
     max-width: 100%;
     display: flex;
     align-items: center;
