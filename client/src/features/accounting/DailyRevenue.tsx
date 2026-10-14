@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import AccountingCompactRecord from "./AccountingCompactRecord";
 import {
   Card,
   CardContent,
@@ -427,9 +428,16 @@ export default function DailyRevenue() {
                 {!dailyRevenueQuery.isLoading && rows.length > 0 ? (
                   <>
                     {rows.map((row) => (
-                      <div
+                      <AccountingCompactRecord
                         key={row.date}
-                        className="rounded-xl border border-border bg-background p-4 shadow-xs"
+                        title="الإيراد اليومي"
+                        meta={
+                          <>
+                            {formatDateAr(row.date)} ·{" "}
+                            {formatCountAr(row.totalReceipts)} إيصال
+                          </>
+                        }
+                        value={formatMoneyAr(row.netAfterDiscount)}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -485,7 +493,7 @@ export default function DailyRevenue() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </AccountingCompactRecord>
                     ))}
 
                     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">

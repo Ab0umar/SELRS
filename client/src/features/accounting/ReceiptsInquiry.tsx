@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import AccountingCompactRecord from "./AccountingCompactRecord";
 import {
   Card,
   CardContent,
@@ -465,15 +466,16 @@ export default function ReceiptsInquiry() {
               !receiptsQuery.isError &&
               rows.length > 0
                 ? rows.map((row) => (
-                    <Button variant="bare"
+                    <AccountingCompactRecord
                       key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
-                      type="button"
-                      onClick={() =>
-                        setLocation(
-                          receiptDetailUrl(row.sectionCode, row.trTy, row.trNo),
-                        )
+                      title={row.patientName ?? "غير متاح"}
+                      meta={
+                        <>
+                          إيصال {toArabicDigits(row.trNo)} ·{" "}
+                          {formatDateAr(row.transactionDate)}
+                        </>
                       }
-                      className="rounded-xl border border-border bg-background p-4 text-start shadow-xs transition-colors hover:bg-primary/50"
+                      value={formatMoneyAr(row.paidValue)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="shrink-0">
@@ -523,7 +525,22 @@ export default function ReceiptsInquiry() {
                           </div>
                         </div>
                       </div>
-                    </Button>
+                      <Button
+                        variant="outline"
+                        className="mt-2 print:hidden"
+                        onClick={() =>
+                          setLocation(
+                            receiptDetailUrl(
+                              row.sectionCode,
+                              row.trTy,
+                              row.trNo,
+                            ),
+                          )
+                        }
+                      >
+                        فتح الإيصال
+                      </Button>
+                    </AccountingCompactRecord>
                   ))
                 : null}
             </div>
@@ -532,7 +549,12 @@ export default function ReceiptsInquiry() {
               {!receiptsQuery.isLoading &&
               !receiptsQuery.isError &&
               rows.length > 0 ? (
-                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+                <div
+                  role="region"
+                  aria-label="جدول بيانات"
+                  tabIndex={0}
+                  className="overflow-x-auto"
+                >
                   <table className={reportStyles.gridTable}>
                     <thead>
                       <tr>

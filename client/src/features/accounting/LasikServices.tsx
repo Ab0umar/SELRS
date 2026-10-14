@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import AccountingCompactRecord from "./AccountingCompactRecord";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -147,9 +148,16 @@ export default function LasikServices() {
                   <Skeleton className="h-40 w-full" />
                 ) : (
                   rows.map((row) => (
-                    <div
+                    <AccountingCompactRecord
                       key={row.serviceCode}
-                      className="rounded-xl border border-border bg-background p-4 shadow-xs"
+                      title={row.serviceName}
+                      meta={
+                        <>
+                          كود الخدمة {toArabicDigits(row.serviceCode)} · العدد{" "}
+                          {formatCountAr(row.quantity)}
+                        </>
+                      }
+                      value={formatMoneyAr(row.price)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="shrink-0">
@@ -175,11 +183,16 @@ export default function LasikServices() {
                           {formatMoneyAr(row.price)}
                         </div>
                       </div>
-                    </div>
+                    </AccountingCompactRecord>
                   ))
                 )}
               </div>
-              <div role="region" aria-label="جدول الخدمات" tabIndex={0} className="hidden overflow-x-auto sm:block">
+              <div
+                role="region"
+                aria-label="جدول الخدمات"
+                tabIndex={0}
+                className="hidden overflow-x-auto sm:block"
+              >
                 {servicesQuery.isLoading ? (
                   <Skeleton className="h-40 w-full" />
                 ) : (

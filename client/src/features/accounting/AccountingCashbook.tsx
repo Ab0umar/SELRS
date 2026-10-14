@@ -14,6 +14,7 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AccountingCompactRecord from "./AccountingCompactRecord";
 import { toast } from "sonner";
 import { fmt, fmtDate } from "./accountingFormat";
 import {
@@ -21,9 +22,7 @@ import {
   AccountingQueryBoundary,
 } from "./AccountingPagePrimitives";
 import AccEntryDrawer, { type AccEntryRow } from "./AccEntryDrawer";
-import {
-  useAccountingTabMetrics,
-} from "./accountingTabMetrics";
+import { useAccountingTabMetrics } from "./accountingTabMetrics";
 import { Input } from "@/components/ui/input";
 
 const PAGE_SIZE = 50;
@@ -170,7 +169,8 @@ export default function AccountingCashbook() {
   const emptyState = hasActiveFilters ? (
     <div className="flex flex-col items-center gap-3 px-4 py-10 text-center text-sm text-muted-foreground">
       <p>لا توجد حركات مطابقة للفلاتر الحالية.</p>
-      <Button variant="bare"
+      <Button
+        variant="bare"
         type="button"
         onClick={resetFilters}
         className="min-h-11 rounded-md border border-border px-3 py-2 font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -210,10 +210,20 @@ export default function AccountingCashbook() {
         <section className="accounting-filters rounded-xl border border-border/60 bg-card p-3 sm:p-4">
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <select aria-label="تصفية السنة" value={year}
-                onChange={event => { setYear(event.target.value as Year); resetPage(); }}
-                className="h-10 w-24 shrink-0 rounded-lg border border-border bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring">
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              <select
+                aria-label="تصفية السنة"
+                value={year}
+                onChange={(event) => {
+                  setYear(event.target.value as Year);
+                  resetPage();
+                }}
+                className="h-10 w-24 shrink-0 rounded-lg border border-border bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
               </select>
 
               <div className="flex h-10 w-64 max-w-full items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
@@ -224,7 +234,8 @@ export default function AccountingCashbook() {
                 <label htmlFor="cb-notes" className="sr-only">
                   بحث في الملاحظات
                 </label>
-                <Input bare
+                <Input
+                  bare
                   id="cb-notes"
                   type="text"
                   value={notes}
@@ -236,7 +247,8 @@ export default function AccountingCashbook() {
                   className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground"
                 />
                 {notes && (
-                  <Button variant="bare"
+                  <Button
+                    variant="bare"
                     type="button"
                     aria-label="مسح البحث"
                     onClick={() => {
@@ -253,7 +265,8 @@ export default function AccountingCashbook() {
               {tabCenter}
               <div className="flex flex-wrap gap-2">
                 {(["all", "income", "expense"] as TxType[]).map((t) => (
-                  <Button variant="bare"
+                  <Button
+                    variant="bare"
                     key={t}
                     type="button"
                     aria-pressed={type === t}
@@ -281,14 +294,14 @@ export default function AccountingCashbook() {
             data-register-history
             className="accounting-history overflow-hidden rounded-lg border border-border bg-background"
           >
-
             {!ledgerQ.isLoading && rows.length === 0 ? (
               <div className="hidden sm:block">{emptyState}</div>
             ) : null}
 
             <div className="sm:hidden">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <Button variant="bare"
+                <Button
+                  variant="bare"
                   type="button"
                   onClick={() => {
                     setSortDir((d) => (d === "desc" ? "asc" : "desc"));
@@ -306,7 +319,7 @@ export default function AccountingCashbook() {
                 </span>
               </div>
 
-              <div className="grid gap-3 px-4 py-3">
+              <div className="accounting-records grid">
                 {ledgerQ.isLoading && (
                   <div className="py-6 text-center text-sm text-muted-foreground">
                     جاري التحميل...
@@ -316,10 +329,12 @@ export default function AccountingCashbook() {
                 {!ledgerQ.isLoading && rows.length === 0 ? emptyState : null}
 
                 {rows.map((row) => (
-                  <div
+                  <AccountingCompactRecord
                     key={row.id}
+                    title={row.notes ?? "غير متاح"}
+                    meta={<>{fmtDate(row.txDate)} · الرصيد</>}
+                    value={<span className={(row.balance ?? 0) < 0 ? "text-destructive" : "text-success"}>{fmt(row.balance)}</span>}
                     className={cn(
-                      "rounded-lg border border-border bg-background p-4 transition-colors",
                       delConfirm === row.id && "bg-muted ring-1 ring-border",
                     )}
                   >
@@ -383,7 +398,8 @@ export default function AccountingCashbook() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="bare"
+                        <Button
+                          variant="bare"
                           type="button"
                           aria-label="تعديل القيد"
                           className="inline-flex h-9 w-9 items-center justify-center rounded bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
@@ -391,7 +407,8 @@ export default function AccountingCashbook() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="bare"
+                        <Button
+                          variant="bare"
                           type="button"
                           aria-label="حذف القيد"
                           disabled={deleteMut.isPending}
@@ -405,7 +422,8 @@ export default function AccountingCashbook() {
 
                     {delConfirm === row.id ? (
                       <div className="mt-3 flex items-center justify-end gap-2">
-                        <Button variant="bare"
+                        <Button
+                          variant="bare"
                           type="button"
                           aria-label="تأكيد الحذف"
                           className="rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -416,7 +434,8 @@ export default function AccountingCashbook() {
                         >
                           تأكيد
                         </Button>
-                        <Button variant="bare"
+                        <Button
+                          variant="bare"
                           type="button"
                           aria-label="إلغاء الحذف"
                           className="rounded-lg bg-muted text-muted-foreground hover:bg-border"
@@ -426,7 +445,7 @@ export default function AccountingCashbook() {
                         </Button>
                       </div>
                     ) : null}
-                  </div>
+                  </AccountingCompactRecord>
                 ))}
               </div>
             </div>
@@ -447,7 +466,8 @@ export default function AccountingCashbook() {
                       }
                       className="w-[10%] px-2 py-2 text-start font-medium sm:px-4 sm:py-2.5"
                     >
-                      <Button variant="bare"
+                      <Button
+                        variant="bare"
                         type="button"
                         onClick={() => {
                           setSortDir((d) => (d === "desc" ? "asc" : "desc"));
@@ -520,7 +540,7 @@ export default function AccountingCashbook() {
                       key={row.id}
                       className="transition-colors hover:bg-primary/50"
                     >
-                      <td className="whitespace-nowrap px-2 py-2 text-[13px] text-muted-foreground sm:px-4 sm:py-2.5 sm:text-xs">
+                      <td className="accounting-cashbook-date whitespace-nowrap px-2 py-2 text-[13px] text-muted-foreground sm:px-4 sm:py-2.5 sm:text-xs">
                         {fmtDate(row.txDate)}
                       </td>
                       <td className="whitespace-normal break-words px-2 py-2 text-sm leading-6 text-foreground sm:px-4 sm:py-2.5">
@@ -565,7 +585,8 @@ export default function AccountingCashbook() {
                       <td className="w-24 px-2 py-2 text-center">
                         {delConfirm === row.id ? (
                           <div className="flex items-center gap-1">
-                            <Button variant="bare"
+                            <Button
+                              variant="bare"
                               type="button"
                               aria-label="تأكيد الحذف"
                               className="rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
@@ -576,7 +597,8 @@ export default function AccountingCashbook() {
                             >
                               تأكيد
                             </Button>
-                            <Button variant="bare"
+                            <Button
+                              variant="bare"
                               type="button"
                               aria-label="إلغاء الحذف"
                               className="rounded bg-muted text-muted-foreground hover:bg-border"
@@ -587,7 +609,8 @@ export default function AccountingCashbook() {
                           </div>
                         ) : (
                           <div className="flex items-center justify-center gap-1">
-                            <Button variant="bare"
+                            <Button
+                              variant="bare"
                               type="button"
                               aria-label="تعديل القيد"
                               className="inline-flex h-9 w-9 items-center justify-center rounded bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
@@ -595,7 +618,8 @@ export default function AccountingCashbook() {
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="bare"
+                            <Button
+                              variant="bare"
                               type="button"
                               aria-label="حذف القيد"
                               disabled={deleteMut.isPending}

@@ -44,6 +44,7 @@ import {
 import { useAccountingTabMetrics } from "./accountingTabMetrics";
 import { DateInput } from "@/components/ui/date-input";
 import { AccountingQueryBoundary } from "./AccountingPagePrimitives";
+import AccountingCompactRecord from "./AccountingCompactRecord";
 import { accountingMetricValue } from "./accountingQueryState";
 import { AccountingMultiSelect } from "./AccountingMultiSelect";
 
@@ -796,9 +797,19 @@ export default function LasikRevenue() {
                     {sections.map((section) => {
                       const sectionTotals = getSectionTotals(section);
                       return (
-                        <div
+                        <AccountingCompactRecord
                           key={section.sectionCode}
-                          className="rounded-xl border border-border bg-background p-4 shadow-xs"
+                          title="إيراد الخدمات"
+                          meta={
+                            <>
+                              القسم{" "}
+                              {toArabicDigits(
+                                section.sectionName || section.sectionCode,
+                              )}{" "}
+                              · {formatCountAr(sectionTotals.quantity)} خدمة
+                            </>
+                          }
+                          value={formatMoneyAr(sectionTotals.patientTotal)}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -846,7 +857,7 @@ export default function LasikRevenue() {
                               return (
                                 <div
                                   key={key}
-                                  className="rounded-xl border border-border bg-muted p-3"
+                                  className="accounting-service-group"
                                 >
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
@@ -866,6 +877,8 @@ export default function LasikRevenue() {
                                       type="button"
                                       variant="ghost"
                                       className="h-9 w-9 shrink-0 px-2"
+                                      aria-label={`تفاصيل الخدمة ${serviceGroupLabel(service.serviceCode, service.serviceName)}`}
+                                      aria-expanded={!collapsed}
                                       onClick={() =>
                                         toggleService(
                                           section.sectionCode,
@@ -909,7 +922,7 @@ export default function LasikRevenue() {
                                       {details.map((detail, dIdx) => (
                                         <div
                                           key={`${key}-${detail.trNo}-${dIdx}`}
-                                          className="rounded-xl border border-border bg-background p-3"
+                                          className="accounting-service-patient"
                                         >
                                           <div className="flex items-start justify-between gap-2">
                                             <div className="min-w-0">
@@ -1025,7 +1038,7 @@ export default function LasikRevenue() {
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </AccountingCompactRecord>
                       );
                     })}
 
@@ -1340,7 +1353,8 @@ export default function LasikRevenue() {
             <Card className={`${styles.noPrint} border-border shadow-xs`}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">ملخص الخدمات</CardTitle>
-                <Button variant="bare"
+                <Button
+                  variant="bare"
                   type="button"
                   onClick={printServiceSummary}
                   className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors"
@@ -1499,7 +1513,8 @@ export default function LasikRevenue() {
                       <CardTitle className="text-base">
                         ملخص بنتاكام: حسب صافي المبلغ بعد الخصم
                       </CardTitle>
-                      <Button variant="bare"
+                      <Button
+                        variant="bare"
                         type="button"
                         onClick={printPentacamSummary}
                         className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/60 transition-colors"

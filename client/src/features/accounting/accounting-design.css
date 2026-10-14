@@ -1,4 +1,38 @@
+@media print {
+  .accounting-record-summary { display: none !important; }
+  .accounting-record-details { display: block !important; }
+}
 @media screen {
+  [data-operational-module="accounting"] #module-content { padding: 12px !important; }
+  [data-operational-module="accounting"] :is(.accounting-page, .accounting-report, .accounting-ledger, .accounting-home-workspace) { width: 100%; max-width: none !important; margin-inline: 0 !important; }
+  [data-operational-module="accounting"] #module-content .accounting-report.accounting-report > h1 { margin-block-end: 12px !important; }
+  [data-operational-module="accounting"] .accounting-report > [data-slot="card"],
+  [data-operational-module="accounting"] .accounting-page > [data-slot="card"] { width: 100%; max-width: 100%; border-radius: 8px; }
+  [data-operational-module="accounting"] #module-content .accounting-history,
+  [data-operational-module="accounting"] #module-content [data-slot="card"]:has(.accounting-compact-record) { border: 0 !important; }
+  [data-operational-module="accounting"] .accounting-report > [data-slot="card"] > [data-slot="card-content"],
+  [data-operational-module="accounting"] .accounting-page > [data-slot="card"] > [data-slot="card-content"] { width: auto; padding: 12px !important; }
+  .accounting-records { width: 100%; padding: 0 12px; gap: 0; }
+  [data-operational-module="accounting"] #module-content [data-slot="card-content"]:has(.accounting-compact-record),
+  [data-operational-module="accounting"] #module-content [data-slot="card-content"]:has(.accounting-receipt-row) { width: auto; padding: 12px !important; }
+  [data-operational-module="accounting"] .accounting-compact-record { width: 100%; min-width: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; box-shadow: none; }
+  [data-operational-module="accounting"] .accounting-record-summary { width: 100%; min-width: 0; min-height: 64px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, max-content) 16px; align-items: start; gap: 8px; padding: 12px 0; border: 0; border-radius: 0; background: transparent; color: var(--foreground); text-align: start; white-space: normal; }
+  .accounting-record-heading { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .accounting-record-title { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+  .accounting-record-meta { font-size: 12px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+  .accounting-record-value { max-width: 120px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .accounting-record-chevron { width: 16px; height: 16px; margin-top: 3px; color: var(--muted-foreground); }
+  .accounting-record-summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .accounting-record-details[data-open="false"] { display: none; }
+  .accounting-record-details { min-width: 0; padding: 0 0 12px; }
+  .accounting-record-details > .flex:first-child { display: none !important; }
+  .accounting-record-details .grid > div { min-width: 0; border: 0 !important; border-radius: 0 !important; background: transparent !important; padding: 4px 0 !important; }
+  .accounting-record-details > .mt-4 { margin-top: 4px; }
+  .accounting-service-group { min-width: 0; padding: 10px 0; border-top: 1px solid var(--border); }
+  .accounting-service-patient { min-width: 0; padding: 10px 0; border-inline-start: 2px solid var(--border); padding-inline-start: 10px; }
+  .accounting-receipt-row { width: 100%; min-width: 0; padding: 12px 0; }
+  .accounting-receipt-row > .mt-3 { margin-top: 5px; gap: 4px 12px; }
+  [data-operational-module="accounting"] .accounting-cashbook-date { white-space: normal; overflow-wrap: anywhere; }
   div[data-operational-module="accounting"][data-ledger] {
     padding: 12px;
     background: var(--background) !important;

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import AccountingCompactRecord from "./AccountingCompactRecord";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -515,9 +516,17 @@ export default function ReceiptDetail() {
 
                   {header && !detailQuery.isLoading
                     ? lines.map((line, index) => (
-                        <div
+                        <AccountingCompactRecord
                           key={`${line.serviceCode}-${line.entryDate}-${index}`}
-                          className="rounded-2xl border border-border bg-background p-4 shadow-sm"
+                          title={line.serviceName || "خدمة غير مسمى"}
+                          meta={
+                            <>
+                              كود الخدمة {toArabicDigits(line.serviceCode)} ·{" "}
+                              {formatDateAr(line.entryDate)}
+                            </>
+                          }
+                          value={formatMoney(line.paidValue)}
+                          forceOpen={editingLineNo === line.lineNo}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -667,7 +676,7 @@ export default function ReceiptDetail() {
                               تعديل البند
                             </Button>
                           )}
-                        </div>
+                        </AccountingCompactRecord>
                       ))
                     : null}
                 </div>

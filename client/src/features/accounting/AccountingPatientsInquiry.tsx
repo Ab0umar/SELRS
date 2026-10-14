@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import AccountingCompactRecord from "./AccountingCompactRecord";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -347,11 +348,16 @@ export default function AccountingPatientsInquiry() {
                   {!q.isLoading && rows.length > 0 ? (
                     <>
                       {rows.map((row) => (
-                        <Button variant="bare"
+                        <AccountingCompactRecord
                           key={`${row.sectionCode}-${row.trTy}-${row.trNo}`}
-                          type="button"
-                          onClick={() => goReceipt(row)}
-                          className="border-b border-border p-4 text-start transition-colors hover:bg-primary/50 last:border-b-0"
+                          title={row.patientName?.trim() || "غير متاح"}
+                          meta={
+                            <>
+                              إيصال {toArabicDigits(row.trNo)} ·{" "}
+                              {formatDateAr(row.transactionDate)}
+                            </>
+                          }
+                          value={formatMoneyAr(row.paidValue)}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="shrink-0">
@@ -417,7 +423,14 @@ export default function AccountingPatientsInquiry() {
                               </div>
                             </div>
                           </div>
-                        </Button>
+                          <Button
+                            variant="outline"
+                            className="mt-2 print:hidden"
+                            onClick={() => goReceipt(row)}
+                          >
+                            فتح الإيصال
+                          </Button>
+                        </AccountingCompactRecord>
                       ))}
                     </>
                   ) : null}
