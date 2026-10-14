@@ -306,7 +306,8 @@ export default function LeaveManagement() {
                 >
                   ملاحظة
                 </label>
-                <Input bare
+                <Input
+                  bare
                   id="attendance-leave-form-note"
                   type="text"
                   value={form.note}
@@ -389,122 +390,122 @@ export default function LeaveManagement() {
               لا توجد إجازات
             </div>
           ) : isMobile ? (
-            <div
-              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
-              dir="rtl"
-            >
+            <div className="attendance-compact-register" dir="rtl">
               {leaves.map((l: any) => (
-                <div
-                  key={l.id}
-                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-semibold text-foreground">
-                        {l.empName ?? "-"}
-                      </div>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {l.empCd}
-                      </div>
-                    </div>
-                    {l.approved ? (
-                      <span className="flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
-                        <CheckCircle size={12} />
-                        معتمدة
-                      </span>
-                    ) : (
-                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning-text">
-                        انتظار
-                      </span>
-                    )}
+                <div key={l.id} className="attendance-compact-entry">
+                  <div className="attendance-compact-date">
+                    <span>من</span>
+                    <bdi>{l.dateFrom}</bdi>
                   </div>
+                  <div className="attendance-compact-body">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-foreground">
+                          {l.empName ?? "-"}
+                        </div>
+                        <div className="font-mono text-xs text-muted-foreground">
+                          {l.empCd}
+                        </div>
+                      </div>
+                      {l.approved ? (
+                        <span className="flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+                          <CheckCircle size={12} />
+                          معتمدة
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning-text">
+                          انتظار
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
-                    <div>
-                      <div className="text-muted-foreground">من</div>
-                      <div className="font-medium text-foreground">
-                        {l.dateFrom}
+                    <div className="attendance-compact-facts">
+                      <div>
+                        <div className="text-muted-foreground">إلى</div>
+                        <div className="font-medium text-foreground">
+                          {l.dateTo}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">أيام</div>
+                        <div className="font-medium text-foreground">
+                          {dayCount(l.dateFrom, l.dateTo)}
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-muted-foreground">إلى</div>
-                      <div className="font-medium text-foreground">
-                        {l.dateTo}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">أيام</div>
-                      <div className="font-medium text-foreground">
-                        {dayCount(l.dateFrom, l.dateTo)}
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                      {TYPE_LABELS[l.type as LeaveType] ?? l.type}
-                    </span>
-                    {l.note ? (
-                      <span className="truncate text-muted-foreground">
-                        {l.note}
+                    <div className="attendance-compact-note flex flex-wrap items-center gap-2 text-xs">
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                        {TYPE_LABELS[l.type as LeaveType] ?? l.type}
                       </span>
-                    ) : null}
-                  </div>
+                      {l.note ? (
+                        <span className="break-words text-muted-foreground">
+                          {l.note}
+                        </span>
+                      ) : null}
+                    </div>
 
-                  <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
-                    {!l.approved && (
+                    <div className="attendance-compact-actions">
+                      {!l.approved && (
+                        <Button
+                          aria-label="تعديل"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            if (
+                              await askConfirm(
+                                `تأكيد اعتماد إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
+                              )
+                            ) {
+                              approveMut.mutate({ leaveId: l.id });
+                            }
+                          }}
+                          disabled={approveMut.isPending}
+                          className="min-h-10 px-3 text-success border-success/30"
+                        >
+                          اعتماد
+                        </Button>
+                      )}
                       <Button
-                        aria-label="تعديل"
-                        variant="outline"
+                        aria-label={`تعديل إجازة ${l.empName ?? l.empCd}`}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(l)}
+                        className="h-10 w-10 p-0"
+                      >
+                        <Pencil size={15} className="text-primary" />
+                      </Button>
+                      <Button
+                        aria-label="حذف"
+                        variant="ghost"
                         size="sm"
                         onClick={async () => {
                           if (
                             await askConfirm(
-                              `تأكيد اعتماد إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
+                              `تأكيد حذف إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
                             )
                           ) {
-                            approveMut.mutate({ leaveId: l.id });
+                            deleteMut.mutate({ leaveId: l.id });
                           }
                         }}
-                        disabled={approveMut.isPending}
-                        className="min-h-10 px-3 text-success border-success/30"
+                        disabled={deleteMut.isPending}
+                        className="h-10 w-10 p-0"
                       >
-                        اعتماد
+                        <Trash2 size={15} className="text-destructive" />
                       </Button>
-                    )}
-                    <Button
-                      aria-label={`تعديل إجازة ${l.empName ?? l.empCd}`}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(l)}
-                      className="h-10 w-10 p-0"
-                    >
-                      <Pencil size={15} className="text-primary" />
-                    </Button>
-                    <Button
-                      aria-label="حذف"
-                      variant="ghost"
-                      size="sm"
-                      onClick={async () => {
-                        if (
-                          await askConfirm(
-                            `تأكيد حذف إجازة ${l.empName ?? l.empCd} من ${l.dateFrom} إلى ${l.dateTo}؟`,
-                          )
-                        ) {
-                          deleteMut.mutate({ leaveId: l.id });
-                        }
-                      }}
-                      disabled={deleteMut.isPending}
-                      className="h-10 w-10 p-0"
-                    >
-                      <Trash2 size={15} className="text-destructive" />
-                    </Button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+            <div
+              role="region"
+              aria-label="جدول بيانات"
+              tabIndex={0}
+              className="overflow-x-auto"
+              dir="rtl"
+            >
               <table
                 aria-label="طلبات الإجازة"
                 dir="rtl"
@@ -590,9 +591,9 @@ export default function LeaveManagement() {
                               اعتماد
                             </Button>
                           )}
-                    <Button
-                      aria-label={`تعديل إجازة ${l.empName ?? l.empCd}`}
-                      variant="ghost"
+                          <Button
+                            aria-label={`تعديل إجازة ${l.empName ?? l.empCd}`}
+                            variant="ghost"
                             size="sm"
                             onClick={() => openEdit(l)}
                             className="h-10 w-10 p-0"

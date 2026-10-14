@@ -241,7 +241,7 @@ export default function MyAttendanceProfile({
       >
         <div className="attendance-personal-totals grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Leave Balance */}
-          <div className="p-4 sm:p-6 bg-card border border-border/60 rounded-xl space-y-4">
+          <div className="attendance-personal-summary p-4 sm:p-6 bg-card border border-border/60 rounded-xl space-y-4">
             <div className="flex items-center gap-2 border-b border-border/40 pb-2">
               <Calendar className="h-4 w-4 text-success-text" />
               <h3 className="text-xs font-black text-foreground">
@@ -286,7 +286,7 @@ export default function MyAttendanceProfile({
           </div>
 
           {/* Monthly Stats */}
-          <div className="p-4 sm:p-6 bg-card border border-border/60 rounded-xl space-y-4 flex flex-col justify-between">
+          <div className="attendance-personal-summary p-4 sm:p-6 bg-card border border-border/60 rounded-xl space-y-4 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 border-b border-border/60/50 pb-2">
                 <Clock className="h-4 w-4 text-warning-text" />
@@ -328,7 +328,7 @@ export default function MyAttendanceProfile({
 
         {/* Pending Requests */}
         {data.pendingLeaves && data.pendingPerms && (
-          <div className="p-4 sm:p-6 bg-card border border-border/60 rounded-xl space-y-4">
+          <div className="attendance-personal-pending p-4 sm:p-6 bg-card border border-border/60 rounded-xl space-y-4">
             <div className="flex items-center gap-2 border-b border-border/40 pb-2">
               <Hourglass className="h-4 w-4 text-info" />
               <h3 className="text-xs font-black text-foreground">

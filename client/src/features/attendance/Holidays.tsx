@@ -192,7 +192,7 @@ export default function Holidays() {
             </div>
           ) : isMobile ? (
             <div
-              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              className="attendance-flat-register"
               dir="rtl"
             >
               {holidays.map((h: any) => {
@@ -200,7 +200,7 @@ export default function Holidays() {
                 return (
                   <div
                     key={h.date}
-                    className={`rounded-xl border p-3 shadow-xs ${isEditing ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                    className={`attendance-flat-record ${isEditing ? "bg-primary/5" : ""}`}
                   >
                     <div className="font-mono text-xs text-muted-foreground">
                       {h.date}

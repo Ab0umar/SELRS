@@ -170,7 +170,7 @@ export default function DailyView({
   return (
     <div className="w-full p-0" dir="rtl">
       <ReportToolbar>
-        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
+        <div className="attendance-compact-toolbar flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
           <Button
             onClick={handleLoadRange}
             className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -220,13 +220,13 @@ export default function DailyView({
           ) : records.length > 0 ? (
             isMobile ? (
               <div
-                className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+                className="attendance-flat-register"
                 dir="rtl"
               >
                 {filtered.map((record: any, idx: number) => (
                   <div
                     key={idx}
-                    className="rounded-xl border border-border bg-background p-3 shadow-xs"
+                    className="attendance-flat-record"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div>

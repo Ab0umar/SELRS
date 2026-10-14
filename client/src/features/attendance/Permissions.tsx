@@ -335,7 +335,8 @@ export default function Permissions() {
                   >
                     المدة (دقيقة)
                   </label>
-                  <Input bare
+                  <Input
+                    bare
                     id="attendance-perm-form-duration"
                     type="number"
                     min={1}
@@ -373,7 +374,8 @@ export default function Permissions() {
                 >
                   ملاحظة
                 </label>
-                <Input bare
+                <Input
+                  bare
                   id="attendance-perm-form-note"
                   type="text"
                   value={form.note}
@@ -425,124 +427,124 @@ export default function Permissions() {
               لا توجد أذونات في هذه الفترة
             </div>
           ) : isMobile ? (
-            <div
-              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
-              dir="rtl"
-            >
+            <div className="attendance-compact-register" dir="rtl">
               {(permsQuery.data as any[]).map((p: any) => (
-                <div
-                  key={p.id}
-                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {p.empCd} · {p.empName ?? "-"}
-                      </div>
-                      <div
-                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeColorClass(p.type)}`}
-                      >
-                        {typeLabel(p.type)}
-                      </div>
-                    </div>
-                    {p.approved ? (
-                      <span className="flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
-                        <CheckCircle size={12} />
-                        معتمد
-                      </span>
-                    ) : (
-                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning-text">
-                        انتظار الموافقة
-                      </span>
-                    )}
+                <div key={p.id} className="attendance-compact-entry">
+                  <div className="attendance-compact-date">
+                    <span>التاريخ</span>
+                    <bdi>{displayDate(p.date)}</bdi>
                   </div>
+                  <div className="attendance-compact-body">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-mono text-xs text-muted-foreground">
+                          {p.empCd} · {p.empName ?? "-"}
+                        </div>
+                        <div
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeColorClass(p.type)}`}
+                        >
+                          {typeLabel(p.type)}
+                        </div>
+                      </div>
+                      {p.approved ? (
+                        <span className="flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+                          <CheckCircle size={12} />
+                          معتمد
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning-text">
+                          انتظار الموافقة
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
-                    <div>
-                      <div className="text-muted-foreground">التاريخ</div>
-                      <div className="font-medium text-foreground">
-                        {displayDate(p.date)}
+                    <div className="attendance-compact-facts">
+                      <div>
+                        <div className="text-muted-foreground">المدة</div>
+                        <div className="font-medium text-foreground">
+                          {p.durationMinutes} د
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">
+                          يؤثر على الراتب
+                        </div>
+                        <div className="font-medium">
+                          {p.notAffectSalary ? (
+                            <span className="text-muted-foreground">لا</span>
+                          ) : (
+                            <span className="text-destructive">نعم</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-muted-foreground">المدة</div>
-                      <div className="font-medium text-foreground">
-                        {p.durationMinutes} د
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">
-                        يؤثر على الراتب
-                      </div>
-                      <div className="font-medium">
-                        {p.notAffectSalary ? (
-                          <span className="text-muted-foreground">لا</span>
-                        ) : (
-                          <span className="text-destructive">نعم</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
 
-                  {p.note ? (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {p.note}
-                    </div>
-                  ) : null}
+                    {p.note ? (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {p.note}
+                      </div>
+                    ) : null}
 
-                  <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2">
-                    {!p.approved && (
+                    <div className="attendance-compact-actions">
+                      {!p.approved && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            if (
+                              await askConfirm(
+                                `تأكيد اعتماد إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
+                              )
+                            ) {
+                              approveMut.mutate({ id: p.id });
+                            }
+                          }}
+                          disabled={approveMut.isPending}
+                          className="min-h-10 px-3 text-success border-success/30"
+                        >
+                          اعتماد
+                        </Button>
+                      )}
                       <Button
-                        variant="outline"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(p)}
+                        className="h-10 w-10 p-0"
+                        aria-label="تعديل"
+                      >
+                        <Pencil size={14} className="text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={async () => {
                           if (
                             await askConfirm(
-                              `تأكيد اعتماد إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
+                              `تأكيد حذف إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
                             )
                           ) {
-                            approveMut.mutate({ id: p.id });
+                            deleteMut.mutate({ id: p.id });
                           }
                         }}
-                        disabled={approveMut.isPending}
-                        className="min-h-10 px-3 text-success border-success/30"
+                        disabled={deleteMut.isPending}
+                        className="h-10 w-10 p-0"
+                        aria-label={`حذف إذن ${p.empCd}`}
                       >
-                        اعتماد
+                        <Trash2 size={15} className="text-destructive" />
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(p)}
-                      className="h-10 w-10 p-0"
-                      aria-label="تعديل"
-                    >
-                      <Pencil size={14} className="text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={async () => {
-                        if (
-                          await askConfirm(
-                            `تأكيد حذف إذن ${p.empCd} بتاريخ ${displayDate(p.date)}؟`,
-                          )
-                        ) {
-                          deleteMut.mutate({ id: p.id });
-                        }
-                      }}
-                      disabled={deleteMut.isPending}
-                      className="h-10 w-10 p-0"
-                      aria-label={`حذف إذن ${p.empCd}`}
-                    >
-                      <Trash2 size={15} className="text-destructive" />
-                    </Button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto" dir="rtl">
+            <div
+              role="region"
+              aria-label="جدول بيانات"
+              tabIndex={0}
+              className="overflow-x-auto"
+              dir="rtl"
+            >
               <table
                 aria-label="سجل الأذونات"
                 dir="rtl"

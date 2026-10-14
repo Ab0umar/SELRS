@@ -727,11 +727,11 @@ export default function ShiftManagement() {
             لا توجد ورديات نشطة. أضف وردية جديدة للبدء.
           </p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="attendance-shift-definitions grid gap-4 sm:grid-cols-2">
             {shifts.map((s) => (
               <div
                 key={s.id}
-                className="rounded-xl border border-border/70 bg-card p-5 shadow-xs flex flex-col justify-between transition-shadow duration-200 relative overflow-hidden group"
+                className="attendance-shift-definition flex flex-col justify-between relative group"
               >
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-2 border-b border-border/40 pb-2.5">

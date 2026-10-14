@@ -677,9 +677,9 @@ export default function EmployeesList() {
             return (
               <div
                 key={emp.empCd}
-                className={`attendance-employee-card rounded-xl border border-border bg-background p-3 shadow-xs ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : ""}`}
+                className={`attendance-employee-card attendance-flat-record ${isEditing ? "bg-primary/5" : showPanel ? "bg-muted/20" : ""}`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="attendance-employee-identity flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs text-muted-foreground">
                       {emp.empCd}
@@ -701,7 +701,7 @@ export default function EmployeesList() {
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                <div className="attendance-summary-facts attendance-balance-facts">
                   <div>
                     <div className="text-muted-foreground">القسم</div>
                     {isEditing ? (
@@ -765,7 +765,7 @@ export default function EmployeesList() {
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="attendance-employee-assignment mt-2 flex flex-wrap items-center gap-2">
                   {shiftNames.length > 0 ? (
                     shiftNames.map((name, i) => (
                       <span
@@ -787,7 +787,7 @@ export default function EmployeesList() {
                   )}
                 </div>
 
-                <div className="attendance-employee-actions mt-3 flex flex-wrap justify-end gap-1 border-t border-border/60 pt-2">
+                <div className="attendance-employee-actions mt-1 flex flex-wrap justify-end gap-1">
                   {!isEditing && (
                     <Button
                       variant="ghost"

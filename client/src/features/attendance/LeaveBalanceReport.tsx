@@ -287,7 +287,7 @@ export default function LeaveBalanceReport({
             </div>
           ) : isMobile ? (
             <div
-              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              className="attendance-flat-register"
               dir="rtl"
             >
               {rows.map((row: any) => {
@@ -299,7 +299,7 @@ export default function LeaveBalanceReport({
                 return (
                   <div
                     key={row.empCd}
-                    className={`rounded-xl border p-3 shadow-xs ${isEditingThis ? "border-primary/40 bg-primary/5" : "border-border bg-background"}`}
+                    className={`attendance-flat-record ${isEditingThis ? "bg-primary/5" : ""}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div>
@@ -403,7 +403,7 @@ export default function LeaveBalanceReport({
                       </div>
                     ) : (
                       <>
-                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                        <div className="attendance-summary-facts attendance-balance-facts">
                           <div>
                             <div className="text-muted-foreground">الرصيد</div>
                             <div className="font-medium text-primary">

@@ -100,11 +100,11 @@ export default function UserMappings() {
         صفحة "حضوري".
       </p>
       {isMobile ? (
-        <div className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0">
+        <div className="attendance-flat-register">
           {rows.map((u) => (
             <div
               key={u.id}
-              className="rounded-xl border border-border bg-background p-3 shadow-xs"
+              className="attendance-flat-record"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -134,7 +134,7 @@ export default function UserMappings() {
                 )}
               </div>
 
-              <div className="mt-3 flex items-center gap-2 border-t border-border/60 pt-2">
+              <div className="mt-1 flex flex-wrap items-center gap-2">
                 {editingId === u.id ? (
                   <>
                     <select

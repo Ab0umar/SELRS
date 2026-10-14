@@ -147,13 +147,13 @@ export default function RawLogs({
             </div>
           ) : punches.length > 0 && isMobile ? (
             <div
-              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              className="attendance-flat-register"
               dir="rtl"
             >
               {punches.map((punch: any, idx: number) => (
                 <div
                   key={idx}
-                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
+                  className="attendance-flat-record"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>

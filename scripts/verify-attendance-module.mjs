@@ -29,6 +29,20 @@ const balance = {
   usedSick: 0,
 };
 const fixtures = {
+  "attendance.listAssignments": [{ id: 999981, empCd: employee.empCd, empName: employee.fullName, shiftId: 1, shiftName: shifts[0].name, effectiveFrom: "2026-07-01", effectiveTo: null, weekdayMask: 127 }],
+  "attendance.listUserMappings": [
+    { id: 999982, name: "مستخدم تجريبي مرتبط", username: "test-linked", role: "admin", empCd: employee.empCd },
+    { id: 999983, name: "مستخدم تجريبي غير مرتبط باسم طويل لاختبار العرض", username: "test-unlinked", role: "worker", empCd: null },
+  ],
+  "attendance.listHolidays": [{ date: "2026-03-20", label: "عطلة تجريبية باسم طويل لاختبار التفاف النص دون تداخل مع الإجراءات", paid: true }],
+  "attendance.listLeaves": [
+    { id: 999991, empCd: employee.empCd, empName: employee.fullName, dateFrom: "2026-10-10", dateTo: "2026-10-10", type: "annual", approved: true, note: "ملاحظة اختبار طويلة للتحقق من التفاف النص دون قص داخل القائمة المدمجة" },
+    { id: 999992, empCd: employee.empCd, empName: "موظف تجريبي باسم طويل لاختبار عرض سجل الإجازات", dateFrom: "2026-10-11", dateTo: "2026-10-13", type: "annual", approved: false, note: "" },
+  ],
+  "attendance.listPermissions": [
+    { id: 999993, empCd: employee.empCd, empName: employee.fullName, date: "2026-10-10", type: "out", durationMinutes: 30, approved: true, notAffectSalary: true, note: "ملاحظة اختبار طويلة للتحقق من عرض البيانات والإجراءات دون تداخل" },
+    { id: 999994, empCd: employee.empCd, empName: "موظف تجريبي باسم طويل لاختبار سجل الأذونات", date: "2026-10-11", type: "in", durationMinutes: 60, approved: false, notAffectSalary: false, note: "" },
+  ],
   "attendance.dailyByDate": [
     {
       empCd: employee.empCd,
@@ -264,6 +278,13 @@ try {
           assert.equal(await control.getAttribute("aria-selected"), "true");
           await check(`${hub.prefix}-${tab}`);
           if (hub.prefix === "employees" && tab === "employees") {
+            const employeeCard = page.locator('.attendance-employee-card').first();
+            if (await employeeCard.isVisible()) {
+              const box = await employeeCard.boundingBox();
+              assert(box.height <= 160, `Employee row must stay compact: ${box.height}px`);
+              const toolbar = await page.locator('.attendance-employee-toolbar').boundingBox();
+              assert(toolbar.height <= 140, `Employee filters must stay compact: ${toolbar.height}px`);
+            }
             const search = page.getByRole("textbox", { name: "بحث بالكود أو الاسم", exact: true });
             await search.fill("no-matching-employee");
             await page.getByText("لا توجد نتائج تطابق البحث في هذا القسم. جرّب اسماً أو كوداً آخر.", { exact: true }).waitFor();

@@ -165,7 +165,7 @@ export default function PermissionReport({
       </ReportToolbar>
 
       {rows.length > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <div className="attendance-permission-metrics mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">
           {summaryCards.map((card) => (
             <Card key={card.label} className="border-border bg-background">
               <CardContent className="space-y-2 px-4 py-4">
@@ -233,13 +233,13 @@ export default function PermissionReport({
             </div>
           ) : isMobile ? (
             <div
-              className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+              className="attendance-flat-register"
               dir="rtl"
             >
               {rows.map((row: any) => (
                 <div
                   key={row.empCd}
-                  className="rounded-xl border border-border bg-background p-3 shadow-xs"
+                  className="attendance-flat-record"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div>
@@ -260,8 +260,8 @@ export default function PermissionReport({
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-2 text-center text-xs">
+                  <div className="attendance-summary-facts">
+                    <div className="text-xs">
                       <div className="font-semibold text-primary">
                         أذونات دخول
                       </div>
@@ -269,7 +269,7 @@ export default function PermissionReport({
                         {row.inCount} عدد · {row.totalInMins} دقيقة
                       </div>
                     </div>
-                    <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-2 text-center text-xs">
+                    <div className="text-xs">
                       <div className="font-semibold text-primary">
                         أذونات خروج
                       </div>

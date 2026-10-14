@@ -62,6 +62,30 @@ export default function TodayAttendanceRegister({
           .includes(needle)) &&
       (!status || displayStatus(row.status, row.lateMinutes) === status),
   );
+  const groups = [
+    { key: "complete", label: "حضور مكتمل" },
+    { key: "review", label: "بصمات تحتاج مراجعة" },
+    { key: "other", label: "حالات أخرى" },
+  ].map((group) => ({
+    ...group,
+    rows: filtered.filter((row) => {
+      const attended = [
+        "present",
+        "late",
+        "partial",
+        "missing_checkout",
+      ].includes(row.status);
+      const key = !attended
+        ? "other"
+        : row.firstIn &&
+            row.lastOut &&
+            row.status !== "partial" &&
+            row.status !== "missing_checkout"
+          ? "complete"
+          : "review";
+      return key === group.key;
+    }),
+  }));
 
   return (
     <section
@@ -87,7 +111,8 @@ export default function TodayAttendanceRegister({
             aria-hidden="true"
             className="h-4 w-4 shrink-0 text-muted-foreground"
           />
-          <Input bare
+          <Input
+            bare
             aria-label="البحث في سجل اليوم"
             placeholder="ابحث بالاسم أو الكود"
             value={search}
@@ -135,47 +160,76 @@ export default function TodayAttendanceRegister({
             : "لا توجد سجلات حضور اليوم. يتحدث السجل تلقائياً عند توفر البيانات."}
         </p>
       ) : (
-        <div className="attendance-register-table-wrap">
-          <table
-            className="attendance-register-table"
-            aria-label="سجل حضور اليوم"
-          >
-            <thead>
-              <tr>
-                <th scope="col">الموظف</th>
-                <th scope="col">الدخول</th>
-                <th scope="col">الخروج</th>
-                <th scope="col">الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((row, index) => {
-                const rowStatus = displayStatus(row.status, row.lateMinutes);
-                return (
-                  <tr key={`${row.empCd}-${row.shiftId ?? "none"}-${index}`}>
-                    <td className="attendance-register-person">
-                      <strong>{row.empName || "بدون اسم"}</strong>
-                      <small>{row.empCd}</small>
-                    </td>
-                    <td data-label="الدخول" className="tabular-nums">
-                      {timeLabel(row.firstIn)}
-                    </td>
-                    <td data-label="الخروج" className="tabular-nums">
-                      {timeLabel(row.lastOut)}
-                    </td>
-                    <td>
-                      <span
-                        className="attendance-status"
-                        data-status={rowStatus}
+        <div
+          className="attendance-register-timeline"
+          aria-label="سجل حضور اليوم"
+        >
+          {groups
+            .filter((group) => group.rows.length)
+            .map((group) => (
+              <section
+                key={group.key}
+                aria-labelledby={`today-register-${group.key}`}
+              >
+                <h3
+                  id={`today-register-${group.key}`}
+                  className="attendance-timeline-group"
+                >
+                  {group.label} <span>· {group.rows.length}</span>
+                </h3>
+                <ol className="attendance-timeline-list">
+                  {group.rows.map((row, index) => {
+                    const rowStatus = displayStatus(
+                      row.status,
+                      row.lateMinutes,
+                    );
+                    return (
+                      <li
+                        className="attendance-timeline-entry"
+                        key={`${row.empCd}-${row.shiftId ?? "none"}-${index}`}
                       >
-                        {statuses[rowStatus] ?? rowStatus}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        <div className="attendance-timeline-time">
+                          <span>
+                            {row.firstIn
+                              ? "دخول"
+                              : row.lastOut
+                                ? "خروج"
+                                : "دخول"}
+                          </span>
+                          <bdi className="tabular-nums">
+                            {timeLabel(row.firstIn || row.lastOut)}
+                          </bdi>
+                        </div>
+                        <div className="attendance-timeline-body">
+                          <div className="attendance-timeline-person">
+                            <strong>{row.empName || "بدون اسم"}</strong>
+                            <small>{row.empCd}</small>
+                          </div>
+                          <div className="attendance-timeline-meta">
+                            <span>
+                              {row.firstIn || !row.lastOut ? "خروج" : "دخول"}{" "}
+                              <bdi className="tabular-nums">
+                                {timeLabel(
+                                  row.firstIn || !row.lastOut
+                                    ? row.lastOut
+                                    : row.firstIn,
+                                )}
+                              </bdi>
+                            </span>
+                            <span
+                              className="attendance-status"
+                              data-status={rowStatus}
+                            >
+                              {statuses[rowStatus] ?? rowStatus}
+                            </span>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            ))}
         </div>
       )}
       {!query.isLoading && !query.isError && (

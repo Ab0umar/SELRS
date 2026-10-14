@@ -234,13 +234,13 @@ export default function Reports({
       const [titleCol, ...restCols] = cols;
       return (
         <div
-          className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0"
+          className="attendance-flat-register"
           dir="rtl"
         >
           {rows.map((row: any, i: number) => (
             <div
               key={i}
-              className="rounded-xl border border-border bg-background p-3 shadow-xs"
+              className="attendance-flat-record"
             >
               <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
                 <span className="text-sm font-semibold text-foreground">

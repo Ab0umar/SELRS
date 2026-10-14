@@ -866,14 +866,14 @@ export default function ShiftAssignments() {
                 لا توجد تعيينات
               </div>
             ) : isMobile ? (
-              <div className="space-y-2 md:grid md:grid-cols-2 md:items-start md:gap-2 md:space-y-0">
+              <div className="attendance-flat-register">
                 {assignments.map((assignment: any) => {
                   const isEditing = editingId === assignment.id;
                   const isExpired = assignment.isExpired;
                   return (
                     <div
                       key={assignment.id}
-                      className={`rounded-xl border border-border bg-background p-3 shadow-xs ${
+                      className={`attendance-flat-record ${
                         isEditing
                           ? "bg-primary/5"
                           : isExpired
@@ -991,7 +991,7 @@ export default function ShiftAssignments() {
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                        <div className="attendance-summary-facts attendance-balance-facts">
                           <div>
                             <div className="text-muted-foreground">الوردية</div>
                             <div className="font-medium text-foreground">
@@ -1725,7 +1725,7 @@ export default function ShiftAssignments() {
                     return (
                       <div
                         key={a.id}
-                        className={`rounded-xl border border-border bg-background p-3 shadow-xs ${isEditing ? "bg-primary/5" : ""}`}
+                        className={`attendance-flat-record ${isEditing ? "bg-primary/5" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -1849,7 +1849,7 @@ export default function ShiftAssignments() {
                             </div>
                           </div>
                         ) : (
-                          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border border-border/60 bg-muted/40 p-2 text-center text-xs">
+                          <div className="attendance-summary-facts attendance-balance-facts">
                             <div>
                               <div className="text-muted-foreground">
                                 الدورة
