@@ -506,7 +506,7 @@ export default function MainHome() {
       <main data-module-content-start className="home-library-content">
         <section className="mt-0">
           <header className="home-library-heading">
-            <div><h1>أقسام المركز</h1><p>عيون الشروق</p></div>
+            <div><h1>عيون الشروق</h1><p>أقسام المركز</p></div>
             <label className="home-library-search">
               <Search className="size-5 shrink-0" aria-hidden />
               <Input type="search" aria-label="البحث في أقسام المركز" placeholder="ابحث عن قسم…" value={search} onChange={event => setSearch(event.target.value)} />
@@ -547,6 +547,7 @@ export default function MainHome() {
             </div>
           ) : (
             <div>
+              {workflowCard && <div className="home-library-quickline"><div><strong>مسار اليوم</strong><p>الزيارات والفحص</p></div><Button asChild className="home-library-open"><Link href="/workflow">فتح المسار <ArrowLeft className="size-4" aria-hidden /></Link></Button></div>}
               <nav className="home-library-categories" aria-label="تصنيف الأقسام">
                 {categories.map(item => (
                   <Button key={item.id} variant="bare" type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)}>{item.label}</Button>
@@ -556,7 +557,6 @@ export default function MainHome() {
                 {displayedCards.map(renderCard)}
               </div>
               {displayedCards.length === 0 && <div className="home-library-empty" role="status"><p>لا توجد أقسام مطابقة.</p><Button variant="outline" onClick={() => { setSearch(""); setCategory("all"); }}>عرض كل الأقسام</Button></div>}
-              {workflowCard && <div className="home-library-quickline"><div><strong>مسار اليوم</strong><p>الزيارات والفحص</p></div><Button asChild className="home-library-open"><Link href="/workflow">فتح المسار <ArrowLeft className="size-4" aria-hidden /></Link></Button></div>}
             </div>
           )}
         </section>

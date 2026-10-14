@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
+import { inspectLayout } from './lib/layout-scan.mjs';
 
 await mkdir('outputs/main-home-library', { recursive: true });
 const browser = await chromium.launch({ executablePath: 'C:/Users/SELRS/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe' });
@@ -19,7 +20,7 @@ async function openPage(width, theme, role = 'admin', failPermissions = false) {
     });
     await route.fulfill({ json: url.searchParams.has('batch') ? responses : responses[0] ?? {} });
   });
-  await page.goto('http://127.0.0.1:5181/home');
+  await page.goto(`${process.env.DESIGN_PREVIEW_URL || 'http://127.0.0.1:5186'}/home`);
   if (failPermissions) await page.getByText('Unable to verify page permissions', { exact: true }).waitFor();
   else await page.locator('.main-home-library').waitFor();
   return { page, errors };
@@ -32,12 +33,18 @@ try {
     assert(await tiles.count() >= 15, 'Existing sections retained');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
     const columns = await page.locator('.home-library-grid').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
-    assert.equal(columns, width <= 650 ? 3 : width <= 900 ? 4 : 5);
+    assert.equal(columns, width < 360 ? 3 : width <= 900 ? 4 : 5);
+    const iconColors = await page.locator('.home-app-icon').evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
+    assert(iconColors.length >= 4, 'Category icons must retain their distinct colors');
     for (const tile of await tiles.all()) {
       const box = await tile.boundingBox();
       assert(box.width >= 44 && box.height >= 44);
       assert(await tile.locator('h3').evaluate(node => node.scrollWidth <= node.clientWidth + 1));
     }
+    await page.evaluate(() => document.fonts.ready);
+    const layout = await inspectLayout(page);
+    assert.deepEqual(layout.collisions, [], `${theme} ${width}: text overlaps`);
+    assert.deepEqual(layout.clippedButtons, [], `${theme} ${width}: clipped controls`);
     await page.screenshot({ path: `outputs/main-home-library/${theme}-${width}.png`, fullPage: true });
     await page.getByRole('button', { name: 'الإدارة', exact: true }).click();
     assert.equal(await page.getByRole('link', { name: 'المخزن', exact: true }).count(), 1);

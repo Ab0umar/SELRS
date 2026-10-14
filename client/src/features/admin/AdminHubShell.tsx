@@ -642,6 +642,7 @@ export default function AdminHubShell({
                       href={card.href}
                       className={cardClassName}
                       data-category={card.category}
+                      title={card.helper}
                     >
                       <div className="shrink-0">
                         <span className="admin-tool-icon">

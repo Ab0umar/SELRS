@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
+import { inspectLayout } from './lib/layout-scan.mjs';
 
 await mkdir('outputs/admin-directory', { recursive: true });
 const browser = await chromium.launch({ executablePath: 'C:/Users/SELRS/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe' });
@@ -20,7 +21,7 @@ async function open(width, theme, healthError = false) {
     });
     await route.fulfill({ json: url.searchParams.has('batch') ? results : results[0] ?? {} });
   });
-  await page.goto('http://127.0.0.1:5182/admin-hub');
+  await page.goto(`${process.env.DESIGN_PREVIEW_URL || 'http://127.0.0.1:5186'}/admin-hub`);
   await page.locator('.admin-tool-link').first().waitFor();
   return { page, errors };
 }
@@ -34,6 +35,14 @@ try {
     assert.equal(await page.locator('.admin-directory-search input').evaluate(node => node.scrollWidth > node.clientWidth + 1), false);
     assert(await page.locator('.admin-directory-search input').evaluate(node => Math.abs(node.getBoundingClientRect().width - node.parentElement.getBoundingClientRect().width) < 2), 'Search input and its icon share the same field bounds');
     await page.getByText('قاعدة البيانات: متصلة', { exact: true }).waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    const columns = await page.locator('.admin-tool-list').first().evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
+    assert.equal(columns, width < 360 ? 3 : width <= 1000 ? 4 : 5);
+    const iconColors = await page.locator('.admin-tool-icon').evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
+    assert.equal(iconColors.length, 4, 'Distinct category icon colors');
+    const layout = await inspectLayout(page);
+    assert.deepEqual(layout.collisions, [], `${theme} ${width}: text overlap`);
+    assert.deepEqual(layout.clippedButtons, [], `${theme} ${width}: clipped controls`);
     await page.screenshot({ path: `outputs/admin-directory/${theme}-${width}.png`, fullPage: true });
     for (const link of await links.all()) {
       const box = await link.boundingBox();
