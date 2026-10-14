@@ -9,7 +9,8 @@ This document specifies direction and acceptance criteria. It does not certify
 that every existing screen meets them.
 
 Reading this as: an Arabic RTL clinical and operational workspace for medical-center
-staff, using the existing blue/orange identity, ENERGY 1 / RHYTHM 1 / MOTION 1.
+staff, using the approved white/gray screen palette with navy/lavender controls,
+ENERGY 1 / RHYTHM 1 / MOTION 1.
 
 ## Identity
 
@@ -20,7 +21,7 @@ staff, using the existing blue/orange identity, ENERGY 1 / RHYTHM 1 / MOTION 1.
 | Motion | 1, interaction feedback | State changes need confirmation without continuous distraction. |
 | Focal point | Active record, task, or exception | Staff need to know what requires action. |
 | Motif | Arabic context headers and labelled data groups | Patient, employee, and account identity remain recognizable across modules. |
-| Accent | Selective orange within the blue/neutral identity | Emphasis remains useful when concentrated on a key action. |
+| Accent | Navy actions and soft-lavender selection surfaces | Emphasis remains useful when concentrated on a key action. |
 
 ## Implementation References
 
@@ -38,7 +39,11 @@ with a second hard-coded palette or certify route availability.
 ## Color and Themes
 
 Use shared primary, secondary, surface, foreground, border, and semantic tokens.
-The light identity is blue primary, orange secondary, and neutral surfaces.
+The approved October 14 screen reference uses a white canvas, light-gray surfaces,
+navy primary actions, and soft-lavender secondary and selected controls. Main-home
+navigation uses compact gray tiles with distinct, muted icon colors. These colors
+identify destinations, not record states. The existing dark and clinical-print
+palettes remain separate and unchanged.
 Semantic success, warning, and destructive colors communicate actual state;
 they are not a rotating category palette. Labels also communicate the state.
 
