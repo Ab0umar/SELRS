@@ -3,6 +3,7 @@
 
 /* Service colors identify the visit type; status labels remain independent. */
 @media screen {
+  [data-queue-workspace] .queue-workspace-list { align-items: start; }
   [data-queue-patient-card] { --queue-service: #335886; --queue-wash: #eaf0f7; }
   [data-queue-patient-card][data-service-type="specialist"] { --queue-service: #397c65; --queue-wash: #e9f3ee; }
   [data-queue-patient-card][data-service-type="lasik"] { --queue-service: #826021; --queue-wash: #f7f0e2; }
@@ -47,6 +48,9 @@
     position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap;
   }
+}
+
+@media screen {
   [data-queue-patient-card] {
     position: relative; width: 100%; max-width: none; min-width: 0;
     min-height: 0 !important; padding: 0 !important;
