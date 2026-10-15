@@ -554,8 +554,8 @@ function TodayPanel({
           aria-labelledby="dashboard-today-queue-tab"
           tabIndex={0}
         >
-          <Surface className="w-full">
-            <div className="p-3">
+          <Surface className="queue-patient-frame w-full">
+            <div className="queue-patient-frame-body p-3">
               <AppointmentsSection
                 selectedDate={selectedDate}
                 onSelectedDateChange={onSelectedDateChange}
