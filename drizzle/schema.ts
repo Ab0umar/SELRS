@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { uniqueIndex } from "drizzle-orm/mysql-core";
 import { attendanceTimestamp } from "./attendanceTimestamp";
+import { encryptedText } from "./encryptedText";
 import type { TestReferenceRange } from "../shared/test-reference-ranges";
 /**
  * Core user table with local authentication (username/password)
@@ -2799,7 +2800,7 @@ export const marketingFacebookPages = mysqlTable(
     pageId: varchar("page_id", { length: 255 }).notNull(),
     pageName: varchar("page_name", { length: 255 }).notNull(),
     contentName: varchar("content_name", { length: 255 }),
-    accessToken: text("access_token").notNull(),
+    accessToken: encryptedText("access_token").notNull(),
     category: varchar("category", { length: 255 }),
     autoPublish: boolean("auto_publish").default(false).notNull(),
     saturdayEnabled: boolean("saturday_enabled").default(true).notNull(),
@@ -2909,11 +2910,11 @@ export const marketingSettings = mysqlTable("marketing_settings", {
   thursdayEnabled: boolean("thursday_enabled").default(true).notNull(),
   publishHour: int("publish_hour").default(9).notNull(),
   fbPageId: varchar("fb_page_id", { length: 255 }),
-  fbAccessToken: text("fb_access_token"),
+  fbAccessToken: encryptedText("fb_access_token"),
   fbPageName: varchar("fb_page_name", { length: 255 }),
   fbConnected: boolean("fb_connected").default(false).notNull(),
   fbOauthState: varchar("fb_oauth_state", { length: 128 }),
-  fbPendingPages: text("fb_pending_pages"),
+  fbPendingPages: encryptedText("fb_pending_pages"),
   fbOauthRole: mysqlEnum("fb_oauth_role", ["center", "doctor"]).default(
     "center",
   ),
