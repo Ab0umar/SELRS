@@ -356,7 +356,9 @@ export default function AdminHubShell({
     );
   }, [normalizedHubLocation]);
 
-  const moduleGroups = CATEGORIES.filter(category => category.id !== "all")
+  const moduleGroups = activeCategory === "all"
+    ? [{ id: "all", label: "جميع الأقسام", modules: filteredModules }]
+    : CATEGORIES.filter(category => category.id !== "all")
     .map(category => ({
       ...category,
       modules: filteredModules.filter(module => module.category === category.id),
@@ -628,11 +630,11 @@ export default function AdminHubShell({
             ) : (
               <div className="admin-directory-results">
                 {moduleGroups.map(category => (
-                  <section key={category.id} className="admin-tool-group" aria-labelledby={`admin-group-${category.id}`}>
-                    <header className="admin-tool-group-heading">
+                  <section key={category.id} className="admin-tool-group" aria-label={activeCategory === "all" ? "أدوات الإدارة" : undefined} aria-labelledby={activeCategory === "all" ? undefined : `admin-group-${category.id}`}>
+                    {activeCategory !== "all" && <header className="admin-tool-group-heading">
                       <h2 id={`admin-group-${category.id}`}>{category.label}</h2>
                       <span>{category.modules.length}</span>
-                    </header>
+                    </header>}
                     <div className="admin-tool-list">
                     {category.modules.map(card => {
                       const Icon = card.icon;

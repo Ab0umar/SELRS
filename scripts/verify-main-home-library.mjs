@@ -26,19 +26,25 @@ async function openPage(width, theme, role = 'admin', failPermissions = false) {
   return { page, errors };
 }
 try {
-  for (const width of [320, 390, 768, 1440]) for (const theme of ['light', 'dark']) {
+  for (const width of [320, 390, 768, 1440, 1920]) for (const theme of ['light', 'dark']) {
     const { page, errors } = await openPage(width, theme);
     const tiles = page.locator('.home-app');
+    const contentWidth = await page.locator('.home-library-content').evaluate(node => ({ content: node.getBoundingClientRect().width, parent: node.parentElement.getBoundingClientRect().width }));
+    assert(Math.abs(contentWidth.content - contentWidth.parent) <= 1, 'Home content fills the available page width');
     await page.getByRole('link', { name: 'الاستقبال', exact: true }).waitFor();
     assert(await tiles.count() >= 15, 'Existing sections retained');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
     const columns = await page.locator('.home-library-grid').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
-    assert.equal(columns, width < 360 ? 3 : width <= 900 ? 4 : 5);
+    if (width <= 900) assert.equal(columns, width < 360 ? 3 : 4);
+    else assert(columns >= 5, 'Wide layouts add columns instead of stretching tiles');
     const iconColors = await page.locator('.home-app-icon').evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
     assert(iconColors.length >= 4, 'Category icons must retain their distinct colors');
     for (const tile of await tiles.all()) {
       const box = await tile.boundingBox();
       assert(box.width >= 44 && box.height >= 44);
+      assert(box.width <= 180, 'Home tiles stay compact on wide screens');
+      const icon = await tile.locator('svg').first().boundingBox();
+      assert(icon.width >= 39, 'Home icons stay prominent');
       assert(await tile.locator('h3').evaluate(node => node.scrollWidth <= node.clientWidth + 1));
     }
     await page.evaluate(() => document.fonts.ready);
@@ -76,5 +82,5 @@ try {
   assert.equal(await failed.page.locator('.home-app').count(), 0);
   assert.equal(await failed.page.getByRole('button', { name: 'Retry', exact: true }).count(), 1);
   await failed.page.close();
-  console.log('Home library passed 8 light/dark responsive cases, navigation/search/categories/employee menu, restricted permissions, and error state. No real writes.');
+  console.log('Home library passed 10 full-width light/dark responsive cases, navigation/search/categories/employee menu, restricted permissions, and error state. No real writes.');
 } finally { await browser.close(); }
