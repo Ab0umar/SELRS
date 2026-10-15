@@ -91,3 +91,37 @@
     background-color: var(--muted);
   }
 }
+
+/* White field surfaces are shared by screen forms and portalled pickers, not paper. */
+@layer base {
+@media screen {
+  html :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+    textarea, select, [contenteditable="true"],
+    button[role="combobox"], [data-slot="select-trigger"],
+    [data-slot="select-content"], [data-field-surface],
+    [data-field-surface="date"] > button,
+    [data-field-surface="picker"] [data-slot="command"],
+    [data-field-surface="picker"] .rdp-root
+  ):not(:where(
+    [data-print-document] *, [data-accounting-print-root] *, [data-mobile-pdf-root] *,
+    .a4-page-card *, .lasik-sheet *, .specialist-sheet *, .sheet-followup-body *,
+    .prescription-root *, .clinical-report-root *, .medical-report-page *,
+    .patient-summary-print-root *, .final-report-sheet *, .refraction-print-card *,
+    .offdays-paper *, .offdays-en-paper *, .prepost-paper *, .mcr-paper *,
+    .medical-report-brand *, .request-tests-paper *
+  )) {
+    --foreground: #28282a;
+    --muted-foreground: #626264;
+    --popover-foreground: #28282a;
+    --accent: #eeedf8;
+    --accent-foreground: #293582;
+    --ring: #293582;
+    --destructive: #b91c1c;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #28282a !important;
+    color-scheme: light;
+  }
+}
+}

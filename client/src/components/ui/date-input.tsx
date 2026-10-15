@@ -143,6 +143,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
         }}
       >
         <div
+          data-field-surface="date"
           className={cn(
             "inline-flex h-11 w-full min-w-0 max-w-full shrink items-center gap-0.5 overflow-hidden rounded-lg border border-input bg-background",
             "focus-within:ring-1 focus-within:ring-ring",
@@ -196,7 +197,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             </Button>
           </PopoverTrigger>
         </div>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent data-field-surface="picker" className="w-auto p-0" align="start">
           <Calendar
             mode="single"
             selected={selectedDate}

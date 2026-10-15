@@ -68,6 +68,7 @@ export default function SearchableCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        data-field-surface="picker"
         className="w-[--radix-popover-trigger-width] p-0"
         align="start"
       >
