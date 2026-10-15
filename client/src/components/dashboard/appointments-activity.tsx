@@ -1,4 +1,5 @@
 import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
+import "./queue-patient-card.css";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  Ellipsis,
   FlaskConical,
   Glasses,
   GitBranch,
@@ -417,7 +419,7 @@ export function AppointmentsSection({
   }, [queueFilter, merged, byStatus]);
 
   return (
-    <div className="space-y-4">
+    <div data-queue-workspace className="space-y-4">
       <QueueLoadStatus {...queue} />
       <TodayPatientShortcutsDialog
         open={shortcutPatient != null}
@@ -486,7 +488,7 @@ export function AppointmentsSection({
         </DialogContent>
       </Dialog>
       <div
-        className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
+        className="queue-workspace-tabs mb-5 grid grid-cols-2 gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
         role="tablist"
         aria-label="مسار اليوم والعمليات"
       >
@@ -526,9 +528,9 @@ export function AppointmentsSection({
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {activeSection === "patients" && (
-          <div className="xl:col-span-12 flex flex-col gap-3">
+          <div className="queue-workspace-patients xl:col-span-12 flex flex-col gap-3">
             <div
-              className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
+              className="queue-workspace-date flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
               dir="rtl"
             >
               <div className="flex items-center gap-2 text-sm">
@@ -548,7 +550,7 @@ export function AppointmentsSection({
                   dir="ltr"
                   aria-label="تاريخ مرضى اليوم — تعديل"
                 />
-                <p className="max-w-full min-w-0 text-sm text-muted-foreground sm:max-w-[min(100%,28rem)]">
+                <p className="queue-workspace-long-date max-w-full min-w-0 text-sm text-muted-foreground sm:max-w-[min(100%,28rem)]">
                   {formatDateLongAr(selectedDate)}
                 </p>
               </div>
@@ -608,7 +610,7 @@ export function AppointmentsSection({
                 {queue.isError && !queue.hasData ? "بيانات المرضى غير متاحة حالياً" : "لا يوجد مرضى في هذه الفئة"}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2 min-[520px]:grid-cols-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+              <div className="queue-workspace-list grid grid-cols-1 gap-2 min-[520px]:grid-cols-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {filteredPatients.map((patient) => (
                   <QueuePatientCard
                     key={`${patient.id}-${patient.queueStatus}`}
@@ -1035,11 +1037,36 @@ function QueuePatientCard({
     serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—";
   const doctorText = String(patient.doctorName ?? "").trim() || "—";
   const timeText = String(patient.checkedInTime ?? "").trim() || "—";
+  const clinicText = st === "clinic1" ? "عيادة ١" : st === "clinic2" ? "عيادة ٢" : st === "pentacam" ? "بنتاكام" : "";
   const withVisitDate = (path: string) => {
     const url = new URL(path, window.location.origin);
     url.searchParams.set("visitDate", visitDate);
     return `${url.pathname}${url.search}`;
   };
+  const secondaryCommands = [
+    { label: "طباعة روشتة", icon: Pill, path: `/prescription/${patient.id}` },
+    { label: "طباعة طلب تحاليل", icon: FlaskConical, path: `/request-tests/${patient.id}` },
+    { label: "طباعة مقاس النظارة", icon: Glasses, path: `/refraction/${patient.id}` },
+  ];
+  const openSecondaryPrint = (path: string) => window.open(
+    buildPrintUrl(withVisitDate(path), { autoPrint: false }), "_blank",
+  );
+  const visitLink = visitId != null ? (
+    <Button variant="bare"
+      type="button"
+      title="فتح مسار الزيارة"
+      aria-label="فتح مسار الزيارة"
+      className="queue-patient-visit-link flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const query = new URLSearchParams({ visitId: String(visitId), visitDate });
+        window.location.assign(`/workflow-prototype?${query.toString()}`);
+      }}
+    >
+      <GitBranch className="h-5 w-5" aria-hidden />
+    </Button>
+  ) : null;
 
   return (
     <div
@@ -1047,12 +1074,18 @@ function QueuePatientCard({
       tabIndex={0}
       onClick={() => onSelectPatient()}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onSelectPatient();
         }
       }}
       aria-label={`فتح اختصارات المريض ${patient.fullName ?? ""}`.trim()}
+      data-queue-patient-card
+      data-patient-id={patient.id}
+      data-service-type={patient.serviceType ?? "unknown"}
+      data-queue-status={st}
+      data-has-clinic={clinicText ? "true" : "false"}
       className={cn(
         "overflow-hidden rounded-lg border bg-card transition-[border-color,box-shadow,background-color] duration-200 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         queueCardStyles[st],
@@ -1060,10 +1093,13 @@ function QueuePatientCard({
       )}
     >
       <PatientMedicalStatusStrip status={medicalStatus} />
-      <div className="p-2">
-        <div className="flex min-w-0 items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-1.5">
+      <div className="queue-patient-service-rail">
+        <span><b>{serviceTypeText}</b>{clinicText ? <small>{clinicText}</small> : null}</span>
+      </div>
+      <div className="queue-patient-content p-2">
+        <div className="queue-patient-heading flex min-w-0 items-start justify-between gap-2">
+          <div className="queue-patient-summary min-w-0 flex-1">
+            <div className="queue-patient-name-row flex min-w-0 items-center gap-1.5">
               <p className="min-w-0 flex-1 truncate text-xs font-bold text-foreground">
                 {patient.fullName ?? "—"}
               </p>
@@ -1073,14 +1109,14 @@ function QueuePatientCard({
                 </Badge>
               ) : null}
             </div>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
+            <div className="queue-patient-meta mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
               <Badge
-                className={cn("h-5 px-1.5 text-[13px]", queueStatusStyles[st])}
+                className={cn("queue-patient-state h-5 px-1.5 text-[13px]", queueStatusStyles[st])}
               >
                 {queueStatusLabelsAr[st] ?? st}
               </Badge>
               {["clinic1", "clinic2", "pentacam"].includes(st) ? (
-                <Badge variant="outline" className="h-5 px-1.5 text-[13px]">
+                <Badge variant="outline" className="queue-patient-clinic h-5 px-1.5 text-[13px]">
                   {st === "clinic1"
                     ? "عيادة 1"
                     : st === "clinic2"
@@ -1088,13 +1124,13 @@ function QueuePatientCard({
                       : "الأشعة - بنتاكام"}
                 </Badge>
               ) : null}
-              <span className="min-w-0 max-w-full truncate">
+              <span className="queue-patient-doctor min-w-0 max-w-full truncate">
                 الطبيب: {doctorText}
               </span>
               <Badge
                 variant="outline"
                 className={cn(
-                  "h-5 max-w-full truncate px-1.5 text-[13px]",
+                  "queue-patient-service h-5 max-w-full truncate px-1.5 text-[13px]",
                   serviceTypeStyles[patient.serviceType ?? ""],
                 )}
               >
@@ -1103,27 +1139,7 @@ function QueuePatientCard({
               <span className="shrink-0 text-foreground tabular-nums">
                 {timeText}
               </span>
-              {visitId != null ? (
-                <Button variant="bare"
-                  type="button"
-                  title="فتح مسار الزيارة"
-                  aria-label="فتح مسار الزيارة"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const query = new URLSearchParams({
-                      visitId: String(visitId),
-                      visitDate,
-                    });
-                    window.location.assign(
-                      `/workflow-prototype?${query.toString()}`,
-                    );
-                  }}
-                >
-                  <GitBranch className="h-5 w-5" aria-hidden />
-                </Button>
-              ) : null}
+              <span className="queue-patient-desktop-visit">{visitLink}</span>
               {st === "treated" && patient.treatedByName ? (
                 <span className="min-w-0 max-w-full truncate font-medium text-success">
                   تم بواسطة: {patient.treatedByName}
@@ -1138,7 +1154,7 @@ function QueuePatientCard({
               variant="outline"
               size="sm"
               disabled={markingThis}
-              className="h-7 shrink-0 gap-1 border-success/35 px-2 text-[13px] text-success hover:bg-success/10"
+              className="queue-patient-mark-treated h-7 shrink-0 gap-1 border-success/35 px-2 text-[13px] text-success hover:bg-success/10"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -1146,17 +1162,18 @@ function QueuePatientCard({
               }}
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
-              معالج
+              <span className="queue-patient-mark-label">معالج</span>
             </Button>
           ) : st === "treated" ? (
             <CheckCircle2
-              className="mt-1 h-4 w-4 shrink-0 text-success"
+              className="queue-patient-treated-icon mt-1 h-4 w-4 shrink-0 text-success"
               aria-hidden
             />
           ) : null}
         </div>
 
-        <div className="mt-1.5 flex items-center justify-center gap-1.5">
+        <div className="queue-patient-actions mt-1.5 flex items-center justify-center gap-1.5">
+          <span className="queue-patient-mobile-visit">{visitLink}</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="bare"
@@ -1256,66 +1273,43 @@ function QueuePatientCard({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="bare"
-            type="button"
-            title="طباعة روشتة"
-            aria-label="طباعة روشتة"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(
-                buildPrintUrl(
-                  `/prescription/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
-                  { autoPrint: false },
-                ),
-                "_blank",
-              );
-            }}
-          >
-            <Pill className="h-4 w-4" aria-hidden />
-          </Button>
-          <Button variant="bare"
-            type="button"
-            title="طباعة طلب تحاليل"
-            aria-label="طباعة طلب تحاليل"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(
-                buildPrintUrl(
-                  `/request-tests/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
-                  { autoPrint: false },
-                ),
-                "_blank",
-              );
-            }}
-          >
-            <FlaskConical className="h-4 w-4" aria-hidden />
-          </Button>
-          <Button variant="bare"
-            type="button"
-            title="طباعة مقاس النظارة"
-            aria-label="طباعة مقاس النظارة"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(
-                buildPrintUrl(
-                  `/refraction/${patient.id}?visitDate=${encodeURIComponent(visitDate)}`,
-                  { autoPrint: false },
-                ),
-                "_blank",
-              );
-            }}
-          >
-            <Glasses className="h-4 w-4" aria-hidden />
-          </Button>
+          {secondaryCommands.map(({ label, icon: Icon, path }) => (
+            <Button key={path} variant="bare" type="button" title={label} aria-label={label}
+              className="queue-patient-desktop-command flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+              onClick={(e) => { e.stopPropagation(); openSecondaryPrint(path); }}
+            ><Icon className="h-4 w-4" aria-hidden /></Button>
+          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="bare" type="button" title="المزيد من إجراءات المريض" aria-label="المزيد من إجراءات المريض"
+                className="queue-patient-more h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+                onClick={(e) => e.stopPropagation()}
+              ><Ellipsis className="h-5 w-5" aria-hidden /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" style={{ direction: "rtl" }} onClick={(e) => e.stopPropagation()}>
+              {secondaryCommands.map(({ label, icon: Icon, path }) => (
+                <DropdownMenuItem key={path} onSelect={() => openSecondaryPrint(path)}>
+                  <Icon className="h-4 w-4" aria-hidden />{label}
+                </DropdownMenuItem>
+              ))}
+              {canMarkTreated ? (
+                <DropdownMenuItem disabled={markingThis} onSelect={() => { if (visitId != null) onMarkVisitTreated(visitId); }}>
+                  <Check className="h-4 w-4" aria-hidden />تحديد كمعالج
+                </DropdownMenuItem>
+              ) : null}
+              {canDelete ? (
+                <DropdownMenuItem className="text-destructive" onSelect={() => onRequestDelete?.()}>
+                  <Trash2 className="h-4 w-4" aria-hidden />حذف المريض
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {canDelete ? (
             <Button variant="bare"
               type="button"
               title="حذف المريض"
               aria-label={`حذف ${patient.fullName ?? "المريض"}`}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
+              className="queue-patient-desktop-command flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();

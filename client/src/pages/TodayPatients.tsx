@@ -109,7 +109,7 @@ export default function TodayPatients() {
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground p-4 sm:p-6"
+      className="today-patients-page min-h-screen bg-background text-foreground p-4 sm:p-6"
       dir="rtl"
     >
       {medicalFilePortal}
@@ -188,8 +188,8 @@ export default function TodayPatients() {
         </div>
 
         {/* ── Main Appointments Bento Card ──────────────────────────────── */}
-        <div className="bg-card border border-border/60 rounded-3xl shadow-sm overflow-hidden">
-          <div className="p-4">
+        <div className="queue-patient-frame bg-card border border-border/60 rounded-3xl shadow-sm overflow-hidden">
+          <div className="queue-patient-frame-body p-4">
             <AppointmentsSection
               selectedDate={selectedDate}
               onSelectedDateChange={setSelectedDate}

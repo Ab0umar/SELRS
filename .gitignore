@@ -293,3 +293,18 @@ docs/graphify-out/
 
 # Local release-verification bundles; keep builds on disk, not in Git
 /.release-builds/
+
+# Local Cloudflare and Kotlin caches
+/.wrangler/
+/android/.kotlin/
+
+# Local Android signing configuration (keep example files tracked)
+/android/key.properties
+
+# Generated workflow preview assets; retain preview source and scaffolding
+/client/.workflow-demo-build/assets/
+/client/.workflow-demo-build/__manus__/
+
+# Disposable scratch captures and query output; retain diagnostic scripts
+/.scratch/*.png
+/.scratch/*.txt

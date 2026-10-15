@@ -26,18 +26,22 @@ async function open(width, theme, healthError = false) {
   return { page, errors };
 }
 try {
-  for (const width of [320, 390, 768, 1440]) for (const theme of ['light', 'dark']) {
+  for (const width of [320, 390, 768, 1440, 1920]) for (const theme of ['light', 'dark']) {
     const { page, errors } = await open(width, theme);
     const links = page.locator('.admin-tool-link');
+    const contentWidth = await page.locator('[data-admin-hub] > main').evaluate(node => ({ content: node.getBoundingClientRect().width, parent: node.parentElement.getBoundingClientRect().width }));
+    assert(Math.abs(contentWidth.content - contentWidth.parent) <= 1, 'Administration content fills the available page width');
     assert.equal(await links.count(), 23);
-    assert.equal(await page.locator('.admin-tool-group').count(), 4);
+    assert.equal(await page.locator('.admin-tool-group').count(), 1);
+    assert.equal(await page.locator('.admin-tool-group-heading').count(), 0, 'All sections has no category divisions');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
     assert.equal(await page.locator('.admin-directory-search input').evaluate(node => node.scrollWidth > node.clientWidth + 1), false);
     assert(await page.locator('.admin-directory-search input').evaluate(node => Math.abs(node.getBoundingClientRect().width - node.parentElement.getBoundingClientRect().width) < 2), 'Search input and its icon share the same field bounds');
     await page.getByText('قاعدة البيانات: متصلة', { exact: true }).waitFor();
     await page.evaluate(() => document.fonts.ready);
     const columns = await page.locator('.admin-tool-list').first().evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
-    assert.equal(columns, width < 360 ? 3 : width <= 1000 ? 4 : 5);
+    if (width <= 1000) assert.equal(columns, width < 360 ? 3 : 4);
+    else assert(columns >= 5, 'Wide layouts add columns instead of stretching tiles');
     const iconColors = await page.locator('.admin-tool-icon').evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
     assert.equal(iconColors.length, 4, 'Distinct category icon colors');
     const layout = await inspectLayout(page);
@@ -47,6 +51,9 @@ try {
     for (const link of await links.all()) {
       const box = await link.boundingBox();
       assert(box.height >= 44 && box.width >= 44);
+      assert(box.width <= 180, 'Administration tiles stay compact');
+      const icon = await link.locator('.admin-tool-icon svg').boundingBox();
+      assert(icon.width >= 39, 'Administration icons stay prominent');
       assert.equal(await link.evaluate(node => node.scrollWidth > node.clientWidth + 1), false);
     }
     const filters = page.locator('.admin-category-nav button');
@@ -76,5 +83,5 @@ try {
   assert.equal(await failed.page.locator('.admin-tool-link').count(), 23);
   assert.deepEqual(failed.errors, []);
   await failed.page.close();
-  console.log('Admin directory passed 8 responsive light/dark cases, 23 retained routes, 4 groups, category/search/reset, keyboard focus and failed health state. No real writes.');
+  console.log('Admin directory passed 10 compact full-width responsive cases, 23 retained routes, ungrouped All view, category/search/reset, keyboard focus and failed health state. No real writes.');
 } finally { await browser.close(); }
