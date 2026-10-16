@@ -4,10 +4,10 @@
   Must run under 32-bit PowerShell (SysWOW64) to access the 32-bit COM object.
 
 .PARAMETER IP
-  Device IP address (default: 196.202.50.91)
+  Device IP address from ZK_DEVICE_IP (legacy: ZK4370_IP).
 
 .PARAMETER Port
-  Device port (default: 4370)
+  Device port from ZK_DEVICE_PORT (legacy: ZK4370_PORT).
 
 .PARAMETER MachineNo
   Device machine number (default: 1)
@@ -22,18 +22,21 @@
 
 .EXAMPLE
   # Run via 32-bit PowerShell:
-  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -IP 196.202.50.91 -Port 4370 -OutFile C:\tmp\logs.csv
+  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -OutFile C:\tmp\logs.csv
 #>
 
 param(
-  [string]$IP        = "196.202.50.91",
-  [int]   $Port      = 4370,
+  [string]$IP        = $(if ($env:ZK_DEVICE_IP) { $env:ZK_DEVICE_IP } else { $env:ZK4370_IP }),
+  [int]   $Port      = $(if ($env:ZK_DEVICE_PORT) { $env:ZK_DEVICE_PORT } else { $env:ZK4370_PORT }),
   [int]   $MachineNo = 1,
   [int]   $CommPwd   = 258288,
   [string]$OutFile   = "",
   [string]$Mode      = "pull",
   [string]$EmployeesFile = ""
 )
+
+$IP = if ($env:ZK_DEVICE_IP) { $env:ZK_DEVICE_IP } else { $env:ZK4370_IP }
+$Port = if ($env:ZK_DEVICE_PORT) { [int]$env:ZK_DEVICE_PORT } else { [int]$env:ZK4370_PORT }
 
 # Auto-relaunch under 32-bit PowerShell (required for zkemkeeper.dll COM)
 if ([IntPtr]::Size -ne 4) {
@@ -58,7 +61,11 @@ try {
 if ($CommPwd -ne 0) {
   $null = $zk.SetCommPassword($CommPwd)
 }
-Write-Host "[ZK] Connecting to $IP`:$Port (pwd=$CommPwd)..."
+if (-not $IP -or $Port -lt 1 -or $Port -gt 65535) {
+  Write-Error "Configure ZK_DEVICE_IP and ZK_DEVICE_PORT in the environment."
+  exit 1
+}
+Write-Host "[ZK] Connecting to $IP`:$Port..."
 $connected = $zk.Connect_Net($IP, $Port)
 if (-not $connected) {
   Write-Error "Connection failed to $IP`:$Port"

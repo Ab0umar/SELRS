@@ -13,6 +13,7 @@ import {
 import { getDb } from "../../db";
 import { attendanceDeviceSettings } from "../../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { getDeviceEndpoint } from "./deviceEndpoint";
 
 export interface DeviceSettings {
   enabled: boolean;
@@ -31,23 +32,17 @@ export interface DeviceSettings {
   admsDetectedOffsetsByDevice?: Record<string, number>; // serial -> auto-detected clock drift
 }
 
-// Verified working LAN address for the EF10K device (FK_DLL_DISCOVERY.md) — used
-// as the fallback when ATTENDANCE_DEVICE_IP isn't set.
-const EF10K_DEFAULT_IP = "41.199.252.107";
-
 // Connection fields (ip, port, comm key) come from .env only, never the DB.
 function ef10kEnvConfig() {
   return {
-    ip: process.env.ATTENDANCE_DEVICE_IP || EF10K_DEFAULT_IP,
-    port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "5005", 10),
+    ...getDeviceEndpoint("fk"),
     commPassword: parseInt(process.env.ATTENDANCE_DEVICE_COMM_KEY || "0", 10),
   };
 }
 
 function k40EnvConfig() {
   return {
-    ip: process.env.ZK_DEVICE_IP || "",
-    port: parseInt(process.env.ZK_DEVICE_PORT || "4370", 10),
+    ...getDeviceEndpoint("zk"),
     commPassword: parseInt(process.env.ZK_COMM_KEY || "0", 10),
   };
 }
@@ -375,7 +370,8 @@ export class DeviceSettingsService {
   }
 
   static getConnectionUrl(): string {
-    return `${ef10kSettings.protocol}://${ef10kSettings.ip}:${ef10kSettings.port}`;
+    const settings = this.getSettings();
+    return `${settings.protocol}://${settings.ip}:${settings.port}`;
   }
 }
 

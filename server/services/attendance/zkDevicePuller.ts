@@ -8,6 +8,7 @@
  */
 
 import type { ZKPunch, ZKDeviceUser, ZKDeviceInfo } from "./zkTcpClient";
+import { requireDeviceEndpoint } from "./deviceEndpoint";
 
 const USE_LEGACY = process.env.ZK_USE_LEGACY_PULLER === "true";
 
@@ -15,6 +16,7 @@ export class ZKDevicePuller {
   static readonly usingLegacy = USE_LEGACY;
 
   static async setDeviceTime(ip: string, port: number, commKey = 258288): Promise<void> {
+    ({ ip, port } = requireDeviceEndpoint("zk"));
     if (USE_LEGACY) {
       const { ZK4370LogPuller } = await import("./zk4370LogPuller");
       return ZK4370LogPuller.setDeviceTime(ip, port, commKey);
@@ -30,6 +32,7 @@ export class ZKDevicePuller {
   }
 
   static async pullLogs(ip: string, port: number, commKey = 258288): Promise<ZKPunch[]> {
+    ({ ip, port } = requireDeviceEndpoint("zk"));
     if (USE_LEGACY) {
       const { ZK4370LogPuller } = await import("./zk4370LogPuller");
       return ZK4370LogPuller.pullLogs(ip, port, commKey);
@@ -45,6 +48,7 @@ export class ZKDevicePuller {
   }
 
   static async pullUsers(ip: string, port: number, commKey = 258288): Promise<ZKDeviceUser[]> {
+    ({ ip, port } = requireDeviceEndpoint("zk"));
     if (USE_LEGACY) {
       const { ZK4370LogPuller } = await import("./zk4370LogPuller");
       return ZK4370LogPuller.pullUsers(ip, port, commKey);
@@ -60,6 +64,7 @@ export class ZKDevicePuller {
   }
 
   static async getDeviceInfo(ip: string, port: number, commKey = 258288): Promise<ZKDeviceInfo> {
+    ({ ip, port } = requireDeviceEndpoint("zk"));
     if (USE_LEGACY) {
       const { ZK4370LogPuller } = await import("./zk4370LogPuller");
       return ZK4370LogPuller.getDeviceInfo(ip, port);

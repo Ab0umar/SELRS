@@ -7,6 +7,7 @@
 import { EventEmitter } from "events";
 import * as net from "net";
 import { DeviceSettingsService } from "./deviceSettings.service";
+import { requireDeviceEndpoint } from "./deviceEndpoint";
 
 export interface DeviceConfig {
   ip: string;
@@ -53,6 +54,7 @@ export class DeviceAdapterService extends EventEmitter {
    * Connect to the fingerprint device
    */
   async connect(): Promise<boolean> {
+    this.config = { ...this.config, ...requireDeviceEndpoint("fk") };
     if (this.socket) {
       return true; // already connected
     }
