@@ -55,6 +55,13 @@
 - Validate sync and DB changes with `pnpm db:sync-check` before deployment.
 - For Windows service/desktop packaging, run scripts from elevated PowerShell when required.
 
+## Cursor Cloud specific instructions
+
+- `.cursor/environment.json` installs MySQL when it is missing, then runs `pnpm install --frozen-lockfile`. On boot, `.cursor/start.sh` starts MySQL, prepares `selrs_db` and `selrs_test`, and runs `pnpm dev` on port 4000.
+- Do not run `pnpm db:migrate` against an empty database. The Drizzle journal points at SQL files split between `drizzle/` and `drizzle/New folder`, so the migrator stops on a missing file. Startup applies `pnpm exec drizzle-kit push --force` only when `user_permissions` is absent.
+- First boot writes local credentials to `~/.selrs-local.env` and a gitignored `.env`. The dev admin username is `devadmin`. `.cursor/seed-dev-admin.mjs` grants page permissions and records that the password was already changed. `pnpm create-user` keeps the MySQL pool open and does not exit.
+- The generated `.env` turns off attendance device sync, Pentacam folder import, and MSSQL auto-sync. `DATABASE_TEST_URL` points at `selrs_test` for `pnpm test:backend`.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
