@@ -11,6 +11,7 @@ import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { requireDeviceEndpoint } from "./deviceEndpoint";
 
 const execFileAsync = promisify(execFile);
 
@@ -42,8 +43,8 @@ export class FKAttendLogPuller {
     process.env.FK_PULLER_PATH ??
       path.join(process.cwd(), "server", "FKOldLogPuller.exe");
   private static readonly DEFAULT_CONFIG: FKDeviceConfig = {
-    ip: process.env.ATTENDANCE_DEVICE_IP || "192.168.1.10",
-    port: parseInt(process.env.ATTENDANCE_DEVICE_PORT || "5005", 10),
+    ip: "",
+    port: 0,
     machineNo: 1,
     password: 0,
     license: 1261,
@@ -55,7 +56,7 @@ export class FKAttendLogPuller {
    * Pull attendance logs from device
    */
   static async pullLogs(config?: Partial<FKDeviceConfig>): Promise<FKPunch[]> {
-    const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
+    const fullConfig = { ...this.DEFAULT_CONFIG, ...config, ...requireDeviceEndpoint("fk") };
 
     const tempDir = os.tmpdir();
     const tempFile = path.join(tempDir, `fk_logs_${Date.now()}.csv`);
@@ -172,7 +173,7 @@ export class FKAttendLogPuller {
     config?: Partial<FKDeviceConfig>,
   ): Promise<boolean> {
     try {
-      const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
+      const fullConfig = { ...this.DEFAULT_CONFIG, ...config, ...requireDeviceEndpoint("fk") };
       const tempFile = path.join(os.tmpdir(), `fk_test_${Date.now()}.csv`);
 
       const { stdout } = await execFileAsync(

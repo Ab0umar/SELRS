@@ -79,11 +79,11 @@ export class FKDeviceSyncService {
       console.log("[FKSync] Pulling logs from device...");
       const settings = DeviceSettingsService.getSettings();
       const resolvedConfig = {
+        ...deviceConfig,
         ip: settings.ip || undefined,
         port: settings.port || undefined,
         protocol: settings.fkProtocol ?? 0,
         password: settings.commPassword ?? 0,
-        ...deviceConfig,
       };
       const allPunches =
         await this.pullLogsWithProtocolFallback(resolvedConfig);
