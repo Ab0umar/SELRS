@@ -16,8 +16,10 @@ import {
 import { desc, inArray, sql, and, eq } from "drizzle-orm";
 import { shouldPersistSyncRun } from "./syncRunPolicy";
 import { DeviceSettingsService } from "./deviceSettings.service";
-import { getDeviceEndpoint, requireDeviceEndpoint } from "./deviceEndpoint";
 
+const DEVICE_IP = process.env.ZK4370_IP ?? "196.202.50.91";
+const DEVICE_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
+const DEVICE_ID = `zk_${DEVICE_IP}`;
 
 const BATCH_SIZE = 500;
 
@@ -51,7 +53,8 @@ export class ZK4370SyncService {
     port?: number,
     commKey = 0,
   ): Promise<ZK4370SyncResult> {
-    const { ip: deviceIp, port: devicePort } = requireDeviceEndpoint("zk");
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
     const startedAt = new Date();
     const result: ZK4370SyncResult = {
       success: false,
@@ -229,7 +232,7 @@ export class ZK4370SyncService {
       try {
         const db = await getDb();
         if (db)
-          await recordSyncRun(db, result, userId, `zk_${deviceIp}`);
+          await recordSyncRun(db, result, userId, `zk_${ip ?? DEVICE_IP}`);
       } catch {
         /* ignore */
       }
@@ -244,7 +247,8 @@ export class ZK4370SyncService {
     port?: number,
     commKey = 0,
   ): Promise<ZK4370PushResult> {
-    const { ip: deviceIp, port: devicePort } = requireDeviceEndpoint("zk");
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
     const start = Date.now();
     const result: ZK4370PushResult = {
       success: false,
@@ -307,7 +311,8 @@ export class ZK4370SyncService {
     port?: number,
     commKey = 0,
   ): Promise<{ ok: boolean; userCount?: number; error?: string }> {
-    const { ip: deviceIp, port: devicePort } = requireDeviceEndpoint("zk");
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
     try {
       const users = await ZK4370LogPuller.pullUsers(
         deviceIp,
@@ -324,7 +329,8 @@ export class ZK4370SyncService {
   }
 
   static getDeviceInfo(ip?: string, port?: number) {
-    const { ip: deviceIp, port: devicePort } = getDeviceEndpoint("zk");
+    const deviceIp = ip ?? DEVICE_IP;
+    const devicePort = port ?? DEVICE_PORT;
     return { ip: deviceIp, port: devicePort, deviceId: `zk_${deviceIp}` };
   }
 }
