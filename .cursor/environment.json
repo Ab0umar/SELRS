@@ -1,0 +1,12 @@
+{
+  "name": "SELRS",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "ports": [
+    {
+      "name": "web",
+      "port": 4000
+    }
+  ]
+}

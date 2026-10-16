@@ -234,8 +234,13 @@ strip_plan.py
 update_consultant.py
 view.py
 
-# Local editor/tool settings and generated output
-.cursor/
+# Local editor/tool settings and generated output.
+# Cloud Agent setup files in .cursor/ stay tracked.
+.cursor/*
+!.cursor/environment.json
+!.cursor/install.sh
+!.cursor/start.sh
+!.cursor/seed-dev-admin.mjs
 .playwright-cli/
 graphify-out/
 vendor/
