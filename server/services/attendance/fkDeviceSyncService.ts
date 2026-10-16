@@ -19,6 +19,7 @@ import {
 import { sql, eq, desc, inArray, and } from "drizzle-orm";
 import crypto from "crypto";
 import { shouldPersistSyncRun } from "./syncRunPolicy";
+import { getDefaultDevice } from "./deviceAdapter.service";
 
 const BATCH_SIZE = 500;
 
@@ -85,8 +86,15 @@ export class FKDeviceSyncService {
         password: settings.commPassword ?? 0,
         ...deviceConfig,
       };
-      const allPunches =
-        await this.pullLogsWithProtocolFallback(resolvedConfig);
+      // Raw TCP adapter and FKOldLogPuller cannot share :5005.
+      const device = getDefaultDevice();
+      await device.releaseForPull();
+      let allPunches: FKPunch[];
+      try {
+        allPunches = await this.pullLogsWithProtocolFallback(resolvedConfig);
+      } finally {
+        device.resumeAfterPull();
+      }
       DeviceSettingsService.reportFKConnection(true);
       // Filter to new punches only (after last HWM)
       const syncStart = lastHwm ?? new Date(2026, 0, 1);
