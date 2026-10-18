@@ -28,6 +28,7 @@ import {
   pathGrantedByRoots,
   permissionsToAllowedRoots,
 } from "@/lib/nav-permission-utils";
+import { focusDialogContainer, trapTabKey } from "@/lib/dialog-focus";
 import {
   adminNavGroups,
   staffNavGroups,
@@ -136,6 +137,7 @@ export function AppSidebar({
     {},
   );
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
 
   const navGroupExpanded = (navKey: string) => openNavGroups[navKey] ?? false;
   const toggleNavGroup = (navKey: string) => {
@@ -145,12 +147,18 @@ export function AppSidebar({
     }));
   };
 
-  // Escape closes the panel and focus returns to the control that opened it.
+  // Opening moves focus into the drawer so its name is announced and Tab stays
+  // inside; Escape closes and focus returns to the control that opened it.
   useEffect(() => {
     if (!(isMobile && mobileOpen)) return;
     const previous = document.activeElement as HTMLElement | null;
+    focusDialogContainer(drawerRef.current);
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onMobileOpenChange(false);
+      if (event.key === "Escape") {
+        onMobileOpenChange(false);
+      } else if (event.key === "Tab") {
+        trapTabKey(event, drawerRef.current, document.activeElement);
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => {
@@ -484,11 +492,15 @@ export function AppSidebar({
           aria-label="إغلاق القائمة"
           onClick={() => onMobileOpenChange(false)}
         />
+        {/* tabIndex -1 container takes programmatic focus only, so no visible outline is needed. */}
         <aside
+          ref={drawerRef}
           dir="rtl"
-          className="fixed inset-y-0 start-0 z-[210] flex w-max min-w-[10.25rem] max-w-[min(88vw,14rem)] flex-col overflow-hidden border-s border-border bg-sidebar pt-[env(safe-area-inset-top)] text-sidebar-foreground shadow-2xl print:hidden"
+          className="fixed inset-y-0 start-0 z-[210] flex w-max min-w-[10.25rem] max-w-[min(88vw,14rem)] flex-col overflow-hidden border-s border-border bg-sidebar pt-[env(safe-area-inset-top)] text-sidebar-foreground shadow-2xl focus:outline-none print:hidden"
           role="dialog"
           aria-modal="true"
+          aria-label="القائمة الجانبية"
+          tabIndex={-1}
         >
           {sidebarInner}
         </aside>
