@@ -447,7 +447,7 @@ export function AppSidebar({
               onClick={onOpenAccount}
             >
               <UserCog className="ms-2 h-4 w-4" />
-              <span>Account Settings</span>
+              <span>إعدادات الحساب</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
@@ -462,7 +462,7 @@ export function AppSidebar({
               onClick={() => void logout()}
             >
               <LogOut className="ms-2 h-4 w-4" />
-              <span>Sign Out</span>
+              <span>خروج</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -534,10 +534,10 @@ export default function ProtectedRoute({
             <ShieldAlert className="h-6 w-6" />
           </div>
           <p className="text-base font-semibold text-foreground">
-            Unable to verify page permissions
+            تعذر التحقق من صلاحيات الصفحة
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            The app could not reach the server to confirm access for this page.
+            لم يتمكن التطبيق من الوصول إلى الخادم للتأكد من صلاحية الوصول لهذه الصفحة.
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <Button
@@ -545,20 +545,20 @@ export default function ProtectedRoute({
               variant="ghost"
               onClick={() => void logout({ redirectToLogin: true })}
             >
-              Sign out
+              خروج
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => void permissionsQuery.refetch()}
             >
-              Retry
+              إعادة المحاولة
             </Button>
             <Button
               type="button"
               onClick={() => requestAppReload("permissions-error")}
             >
-              Reload
+              إعادة التحميل
             </Button>
           </div>
         </div>
