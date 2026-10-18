@@ -261,6 +261,7 @@ export function AppBottomNav({
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [navHidden, setNavHidden] = useState(false);
+  const navSuppressed = navHidden && !sheetOpen && !moreSheetOpen;
 
   useEffect(() => {
     saveKeys(storageKey, enabledKeys);
@@ -439,10 +440,12 @@ export function AppBottomNav({
       <nav
         data-app-bottom-nav
         aria-label="التنقل الرئيسي"
+        inert={navSuppressed}
+        aria-hidden={navSuppressed ? true : undefined}
         dir="rtl"
         className={cn(
           "fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 md:hidden overflow-hidden rounded-[28px] border border-border bg-card text-foreground shadow-[0_8px_32px_rgba(0,0,0,0.14)] transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none print:hidden",
-          navHidden && !sheetOpen && !moreSheetOpen
+          navSuppressed
             ? "pointer-events-none translate-y-[calc(100%+24px+env(safe-area-inset-bottom))] opacity-0"
             : "translate-y-0 opacity-100",
         )}
