@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Search, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { getPatientOptionId } from "@/components/patientPickerCombobox";
 
 type PatientOption = {
   id: number;
@@ -94,6 +94,20 @@ export default function PatientPicker({
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
 
+  const baseId = useId();
+  const inputId = `${baseId}-input`;
+  const listboxId = `${baseId}-listbox`;
+  const isPopupVisible = !readOnly && open && normalizedQuery.length >= 1;
+  const isListboxOpen = isPopupVisible && filteredResults.length > 0;
+
+  const selectPatient = (patient: PatientOption) => {
+    if (allowPatient && !allowPatient(patient)) return;
+    setSelected(patient);
+    setQuery(patient.fullName ?? "");
+    setOpen(false);
+    onSelect(patient);
+  };
+
   const formatPhone = (value?: string | null) => {
     if (!value) return "";
     const digits = value.replace(/\D+/g, "");
@@ -107,7 +121,11 @@ export default function PatientPicker({
 
   return (
     <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
-      <label className="block text-sm font-medium hidden">{label}</label>
+      {label?.trim() ? (
+        <label htmlFor={inputId} className="sr-only">
+          {label}
+        </label>
+      ) : null}
       <div
         className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}
       >
@@ -117,6 +135,12 @@ export default function PatientPicker({
           <Search className="h-4 w-4" />
         </div>
         <Input
+          id={inputId}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={isListboxOpen}
+          aria-label={label?.trim() ? undefined : placeholder}
           value={query}
           onChange={(e) => {
             if (readOnly) return;
@@ -137,52 +161,64 @@ export default function PatientPicker({
           readOnly={readOnly}
         />
       </div>
-      {!readOnly && open && normalizedQuery.length >= 1 && (
+      {isPopupVisible && (
         <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
           {searchQuery.isLoading && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
+            <div
+              role="status"
+              aria-live="polite"
+              className="px-3 py-2 text-sm text-muted-foreground"
+            >
               {isEnglish ? "Searching..." : "جاري البحث..."}
             </div>
           )}
           {!searchQuery.isLoading && filteredResults.length === 0 && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
+            <div
+              role="status"
+              aria-live="polite"
+              className="px-3 py-2 text-sm text-muted-foreground"
+            >
               {isEnglish ? "No results found" : "لا توجد نتائج"}
             </div>
           )}
-          {filteredResults.map((patient) => (
-            <Button variant="bare"
-              key={patient.id}
-              type="button"
-              className={`w-full px-3 py-3 transition-colors hover:bg-accent ${isEnglish ? "text-left" : "text-right"}`}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                if (allowPatient && !allowPatient(patient)) return;
-                setSelected(patient);
-                setQuery(patient.fullName ?? "");
-                setOpen(false);
-                onSelect(patient);
-              }}
+          {filteredResults.length > 0 && (
+            <div
+              id={listboxId}
+              role="listbox"
+              aria-label={label?.trim() || placeholder}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
-                    <UserRound className="h-3.5 w-3.5" />
-                  </span>
-                  <span dir="auto" className="font-medium">
-                    {patient.fullName}
-                  </span>
+              {filteredResults.map((patient) => (
+                <div
+                  key={patient.id}
+                  role="option"
+                  id={getPatientOptionId(baseId, patient.id)}
+                  aria-selected={false}
+                  className={`w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent ${isEnglish ? "text-left" : "text-right"}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectPatient(patient)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
+                        <UserRound className="h-3.5 w-3.5" />
+                      </span>
+                      <span dir="auto" className="font-medium">
+                        {patient.fullName}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground" dir="ltr">
+                      {patient.patientCode ?? "—"}
+                    </span>
+                  </div>
+                  {patient.phone && (
+                    <div className="text-xs text-muted-foreground" dir="ltr">
+                      {formatPhone(patient.phone)}
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs text-muted-foreground" dir="ltr">
-                  {patient.patientCode ?? "—"}
-                </span>
-              </div>
-              {patient.phone && (
-                <div className="text-xs text-muted-foreground" dir="ltr">
-                  {formatPhone(patient.phone)}
-                </div>
-              )}
-            </Button>
-          ))}
+              ))}
+            </div>
+          )}
         </div>
       )}
       {selected && (
