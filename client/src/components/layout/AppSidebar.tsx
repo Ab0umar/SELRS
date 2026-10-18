@@ -284,6 +284,7 @@ export function AppSidebar({
               const needsSeparator = !firstGroupSeen && !collapsed;
               firstGroupSeen = true;
               const navKey = item.navKey ?? `g-${idx}`;
+              const sectionListId = `sidebar-section-list-${navKey}`;
               const sectionOpen =
                 collapsed && !isMobile ? true : navGroupExpanded(navKey);
               const locBase = location.split("?")[0];
@@ -316,7 +317,6 @@ export function AppSidebar({
                       <div
                         className="flex w-full items-center gap-0.5 rounded-lg px-1 py-0.5"
                         role="group"
-                        aria-expanded={sectionOpen}
                       >
                         <Button variant="bare"
                           type="button"
@@ -347,6 +347,8 @@ export function AppSidebar({
                         </Button>
                         <Button variant="bare"
                           type="button"
+                          aria-expanded={sectionOpen}
+                          aria-controls={sectionListId}
                           aria-label={sectionOpen ? "طي القسم" : "توسيع القسم"}
                           title={sectionOpen ? "طي القسم" : "توسيع القسم"}
                           onClick={() => toggleNavGroup(navKey)}
@@ -365,7 +367,10 @@ export function AppSidebar({
                       </div>
                     ) : null}
                     {sectionOpen ? (
-                      <div className="max-h-80 space-y-0.5 overflow-y-auto">
+                      <div
+                        id={sectionListId}
+                        className="max-h-80 space-y-0.5 overflow-y-auto"
+                      >
                         {item.items.map((sub) => {
                           const isActive = navLeafActive(location, sub.path);
                           return renderNavButton(sub, isActive, false);
