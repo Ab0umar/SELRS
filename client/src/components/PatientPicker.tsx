@@ -2,7 +2,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Search, UserRound } from "lucide-react";
-import { getPatientOptionId } from "@/components/patientPickerCombobox";
+import {
+  getPatientOptionId,
+  resolveComboboxKey,
+} from "@/components/patientPickerCombobox";
 
 type PatientOption = {
   id: number;
@@ -46,6 +49,7 @@ export default function PatientPicker({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PatientOption | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const hydratedPatientIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -99,12 +103,28 @@ export default function PatientPicker({
   const listboxId = `${baseId}-listbox`;
   const isPopupVisible = !readOnly && open && normalizedQuery.length >= 1;
   const isListboxOpen = isPopupVisible && filteredResults.length > 0;
+  const activePatient =
+    isListboxOpen && activeIndex >= 0 && activeIndex < filteredResults.length
+      ? filteredResults[activeIndex]
+      : undefined;
+  const activeOptionId = activePatient
+    ? getPatientOptionId(baseId, activePatient.id)
+    : undefined;
+
+  // useId ids contain ':' so the option must be looked up by id, not by a CSS selector.
+  useEffect(() => {
+    if (!activeOptionId) return;
+    document
+      .getElementById(activeOptionId)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionId]);
 
   const selectPatient = (patient: PatientOption) => {
     if (allowPatient && !allowPatient(patient)) return;
     setSelected(patient);
     setQuery(patient.fullName ?? "");
     setOpen(false);
+    setActiveIndex(-1);
     onSelect(patient);
   };
 
@@ -140,20 +160,63 @@ export default function PatientPicker({
           aria-autocomplete="list"
           aria-controls={listboxId}
           aria-expanded={isListboxOpen}
+          aria-activedescendant={activeOptionId}
           aria-label={label?.trim() ? undefined : placeholder}
           value={query}
           onChange={(e) => {
             if (readOnly) return;
             setQuery(e.target.value);
             setOpen(true);
+            setActiveIndex(-1);
           }}
           onFocus={() => {
             if (readOnly) return;
             setOpen(true);
+            setActiveIndex(-1);
           }}
           onBlur={() => {
             if (readOnly) return;
-            setTimeout(() => setOpen(false), 150);
+            setTimeout(() => {
+              setOpen(false);
+              setActiveIndex(-1);
+            }, 150);
+          }}
+          onKeyDown={(e) => {
+            if (readOnly) return;
+            const action = resolveComboboxKey({
+              key: e.key,
+              isOpen: isPopupVisible,
+              activeIndex,
+              optionCount: filteredResults.length,
+              canOpen: normalizedQuery.length >= 1,
+            });
+            switch (action.type) {
+              case "open":
+                e.preventDefault();
+                setOpen(true);
+                setActiveIndex(action.activeIndex);
+                break;
+              case "move":
+                e.preventDefault();
+                setActiveIndex(action.activeIndex);
+                break;
+              case "select": {
+                const patient = filteredResults[action.activeIndex];
+                if (!patient) return;
+                e.preventDefault();
+                selectPatient(patient);
+                break;
+              }
+              case "close":
+                e.preventDefault();
+                // Radix Dialog closes on Escape too (document capture phase); known limitation.
+                e.stopPropagation();
+                setOpen(false);
+                setActiveIndex(-1);
+                break;
+              default:
+                break;
+            }
           }}
           placeholder={placeholder}
           className={`h-11 rounded-2xl border-border bg-background shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25 ${isEnglish ? "pl-10 text-left" : "pr-10 text-right"}`}
@@ -187,14 +250,15 @@ export default function PatientPicker({
               role="listbox"
               aria-label={label?.trim() || placeholder}
             >
-              {filteredResults.map((patient) => (
+              {filteredResults.map((patient, index) => (
                 <div
                   key={patient.id}
                   role="option"
                   id={getPatientOptionId(baseId, patient.id)}
-                  aria-selected={false}
-                  className={`w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent ${isEnglish ? "text-left" : "text-right"}`}
+                  aria-selected={index === activeIndex}
+                  className={`w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent ${index === activeIndex ? "bg-accent" : ""} ${isEnglish ? "text-left" : "text-right"}`}
                   onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => selectPatient(patient)}
                 >
                   <div className="flex items-center justify-between gap-3">
