@@ -18,7 +18,7 @@ type WhatsAppTemplateParameter = {
   text: string;
 };
 
-export const KFS_BOOKING_ADDRESS = "كفر الشيخ - أمام مستشفى الرمد";
+export const KFS_BOOKING_ADDRESS = "كفر الشيخ - ٣ عمارة الأوقاف، الدور الثالث، شارع الجيش، أمام البنك الأهلي";
 export const KFS_BOOKING_MAP_FALLBACK = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
   KFS_BOOKING_ADDRESS,
 )}`;

@@ -21,6 +21,9 @@ afterEach(() => {
 describe("Kafr El Sheikh booking confirmation details", () => {
   it("uses the Kafr El Sheikh address and never Tanta's map as a fallback", () => {
     expect(bookingBranch("kfs")).toBe(KFS_BOOKING_ADDRESS);
+    expect(bookingBranch("kfs")).toBe(
+      "كفر الشيخ - ٣ عمارة الأوقاف، الدور الثالث، شارع الجيش، أمام البنك الأهلي",
+    );
     expect(bookingMapLocation("kfs")).toBe(KFS_BOOKING_MAP_FALLBACK);
     expect(bookingMapLocation("kfs")).not.toBe(
       bookingMapLocation("tanta"),
