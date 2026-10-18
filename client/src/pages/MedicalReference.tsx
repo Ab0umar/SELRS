@@ -196,10 +196,10 @@ export default function MedicalReference() {
   const totalPages = Math.max(1, Math.ceil((query.data?.total ?? 0) / 25));
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="archive-reference space-y-6" dir="rtl">
       <section className="overflow-hidden rounded-lg border border-border bg-background">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2.5">
-          <div className="flex flex-wrap items-center gap-2.5">
+        <div className="archive-reference-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2.5">
+          <div className="archive-reference-modes flex flex-wrap items-center gap-2.5">
             <div
               className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto"
               role="group"
@@ -227,7 +227,7 @@ export default function MedicalReference() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="archive-reference-presets flex flex-wrap items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
@@ -294,7 +294,7 @@ export default function MedicalReference() {
           {criteria.map((criterion, index) => (
             <div
               key={criterion.id}
-              className="grid gap-3 px-4 py-4 lg:grid-cols-[2rem_10rem_minmax(0,1fr)_3rem] lg:items-center"
+              className="archive-criterion grid gap-3 px-4 py-4 lg:grid-cols-[2rem_10rem_minmax(0,1fr)_3rem] lg:items-center"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                 {index + 1}
@@ -319,7 +319,7 @@ export default function MedicalReference() {
 
               {criterion.kind === "refraction" ||
               criterion.kind === "pentacam" ? (
-                <div className="grid gap-2 sm:grid-cols-4">
+                <div className="archive-criterion-fields grid gap-2 sm:grid-cols-4">
                   <select
                     aria-label={`المقياس للشرط ${index + 1}`}
                     value={criterion.metric}
@@ -385,7 +385,7 @@ export default function MedicalReference() {
                   />
                 </div>
               ) : criterion.kind === "diagnosis" ? (
-                <div className="grid gap-2 sm:grid-cols-[11rem_1fr]">
+                <div className="archive-criterion-fields grid gap-2 sm:grid-cols-[11rem_1fr]">
                   <select
                     aria-label={`حقل التشخيص للشرط ${index + 1}`}
                     value={criterion.field}
@@ -437,7 +437,7 @@ export default function MedicalReference() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="archive-reference-save flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <Button
             variant="outline"
             onClick={() =>
@@ -542,7 +542,7 @@ export default function MedicalReference() {
           </p>
         ) : (
           <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-sm">
+            <table data-archive-records="reference" className="w-full min-w-[1100px] text-sm">
               <thead className="bg-info/10 text-foreground">
                 <tr>
                   {[
@@ -568,7 +568,7 @@ export default function MedicalReference() {
                 {(query.data?.rows as MedicalReferenceRow[] | undefined)?.map(
                   (row) => (
                     <tr key={row.id} className="hover:bg-info/5">
-                      <td className="px-3 py-3">
+                      <td data-label="المريض" className="px-3 py-3">
                         <Link
                           href={`/patients/${row.id}`}
                           className="font-semibold text-primary hover:underline"
@@ -582,27 +582,27 @@ export default function MedicalReference() {
                           {row.patientCode}
                         </div>
                       </td>
-                      <td className="px-3 py-3 tabular-nums" dir="ltr">
+                      <td data-label="OD Refraction" className="px-3 py-3 tabular-nums" dir="ltr">
                         {[row.sphereOD, row.cylinderOD, row.axisOD]
                           .filter(Boolean)
                           .join(" / ") || "-"}
                       </td>
-                      <td className="px-3 py-3 tabular-nums" dir="ltr">
+                      <td data-label="OS Refraction" className="px-3 py-3 tabular-nums" dir="ltr">
                         {[row.sphereOS, row.cylinderOS, row.axisOS]
                           .filter(Boolean)
                           .join(" / ") || "-"}
                       </td>
-                      <td className="px-3 py-3 tabular-nums" dir="ltr">
+                      <td data-label="OD Pentacam" className="px-3 py-3 tabular-nums" dir="ltr">
                         {[row.k1OD, row.k2OD, row.thicknessOD]
                           .filter(Boolean)
                           .join(" / ") || "-"}
                       </td>
-                      <td className="px-3 py-3 tabular-nums" dir="ltr">
+                      <td data-label="OS Pentacam" className="px-3 py-3 tabular-nums" dir="ltr">
                         {[row.k1OS, row.k2OS, row.thicknessOS]
                           .filter(Boolean)
                           .join(" / ") || "-"}
                       </td>
-                      <td className="max-w-56 px-3 py-3">
+                      <td data-label="التشخيص" className="max-w-56 px-3 py-3">
                         <span
                           className="line-clamp-2"
                           title={row.diagnosis ?? ""}
@@ -610,8 +610,8 @@ export default function MedicalReference() {
                           {row.diagnosis || "-"}
                         </span>
                       </td>
-                      <td className="px-3 py-3">{row.operationType || "-"}</td>
-                      <td className="px-3 py-3 tabular-nums" dir="ltr">
+                      <td data-label="العملية" className="px-3 py-3">{row.operationType || "-"}</td>
+                      <td data-label="آخر زيارة" className="px-3 py-3 tabular-nums" dir="ltr">
                         {formatResultDate(row.lastVisit)}
                       </td>
                     </tr>

@@ -1,0 +1,75 @@
+.archive-mobile-operation-type { display: none; }
+
+@layer base {
+  @media screen and (max-width: 767px) {
+    html #root .archive-page table[data-archive-records] { width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: auto !important; }
+    html #root .archive-tabs [role="tablist"] { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100% !important; min-width: 0 !important; }
+    html #root .archive-tabs [role="tab"] { min-width: 0 !important; width: 100%; padding: 6px 3px !important; white-space: normal !important; font-size: 11px !important; }
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .archive-page, .archive-page * { min-width: 0; }
+  html .archive-page .archive-content { padding: 8px !important; }
+  .archive-page .archive-content > [data-slot="tabs"] { gap: 8px; }
+  .archive-page .archive-content > [data-slot="tabs"] > * { margin-top: 0; margin-bottom: 0; }
+  .archive-print-toolbar { gap: 8px; }
+  .archive-print-toolbar p { font-size: 11px; line-height: 1.6; }
+  .archive-print-toolbar button { width: 44px; height: 44px; min-width: 44px; padding: 0; flex-shrink: 0; justify-content: center; }
+  .archive-print-toolbar button span { display: none; }
+  .archive-tabs { width: 100%; padding-bottom: 0; }
+  html .archive-tabs [role="tablist"] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); min-width: 0; width: 100%; height: auto; padding: 0; gap: 0; border-radius: 0; }
+  html .archive-tabs [role="tab"] { min-width: 0; min-height: 44px; padding: 6px 3px; gap: 4px; font-size: 11px; white-space: normal; }
+  .archive-tabs [role="tab"] svg { width: 16px; height: 16px; }
+  html .archive-page [role="tabpanel"] > div { padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
+  .archive-page :is(.archive-patients, .archive-operations, .archive-reference) { width: 100%; padding-bottom: 8px; }
+  .archive-page :is(.archive-patients, .archive-operations, .archive-reference) > * + * { margin-top: 8px; }
+  html .archive-page :is(.archive-patients, .archive-operations) > [data-slot="card"] { padding: 0; border: 0; box-shadow: none; background: transparent !important; }
+  html .archive-page :is(.archive-patients, .archive-operations) [data-slot="card-content"] { padding: 8px !important; }
+  .archive-patients form { gap: 8px; }
+  .archive-patients form [data-slot="select-trigger"] { padding-inline: 8px; font-size: 12px; }
+  .archive-operation-toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+  .archive-operation-filters { display: grid; width: 100%; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .archive-operation-filters form { grid-column: 1 / -1; width: 100%; }
+  .archive-operation-filters [data-slot="select-trigger"] { width: 100%; padding-inline: 8px; font-size: 12px; }
+  .archive-operation-actions { flex-wrap: nowrap; }
+  .archive-operation-actions button { min-width: 44px; height: 44px; padding: 0 10px; }
+  .archive-operation-actions button[aria-label] { width: 44px; padding: 0; }
+  .archive-operation-actions button[aria-label] span { display: none; }
+  .archive-operation-actions button:last-child { margin-inline-start: auto; }
+  .archive-operation-types { width: 100%; }
+  .archive-mobile-operation-type { display: block; width: 100%; }
+  .archive-mobile-operation-type [data-slot="select-trigger"] { width: 100%; }
+  .archive-operation-type-button { display: none; }
+  .archive-reference > section { border-radius: 0; }
+  .archive-reference-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); padding: 8px; gap: 8px; }
+  .archive-reference-modes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .archive-reference-modes [role="group"] { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .archive-reference-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  .archive-reference-presets button { min-width: 0; padding-inline: 4px; font-size: 12px; }
+  .archive-criterion { grid-template-columns: 28px minmax(0, 1fr) 44px; align-items: center; gap: 8px 6px; padding: 8px; }
+  .archive-criterion > span { grid-column: 1; grid-row: 1; }
+  .archive-criterion > select { grid-column: 2; grid-row: 1; width: 100%; }
+  .archive-criterion > button { grid-column: 3; grid-row: 1; }
+  .archive-criterion-fields { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .archive-criterion > input { grid-column: 1 / -1; }
+  .archive-criterion-fields :is(input, select) { width: 100%; padding-inline: 8px; }
+  .archive-reference-save { padding: 8px; gap: 8px; }
+  .archive-reference-save > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+
+  /* Reflow each existing record, retaining every value and the desktop/print table. */
+  #root .archive-page table[data-archive-records] { display: block; width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: auto !important; }
+  .archive-page table[data-archive-records] > thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .archive-page table[data-archive-records] > tbody { display: grid; gap: 8px; }
+  .archive-page table[data-archive-records] > tbody > tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: 8px; background: var(--background); padding: 8px; gap: 6px 12px; }
+  #root .archive-page table[data-archive-records] td { display: block; width: auto; min-width: 0; max-width: none; padding: 0 !important; text-align: start !important; white-space: normal !important; overflow: visible; text-overflow: clip; font-size: 12px !important; line-height: 1.6 !important; }
+  .archive-page table[data-archive-records] td::before { content: attr(data-label); display: block; color: var(--muted-foreground); font-size: 10px; font-weight: normal; }
+  .archive-page table[data-archive-records] :is(td, td *) { overflow-wrap: anywhere; }
+  .archive-page table[data-archive-records] [data-slot="badge"] { max-width: 100%; white-space: normal; line-height: 1.6; }
+  .archive-page table[data-archive-records] td[dir="ltr"] { text-align: start !important; }
+  .archive-page table[data-archive-records] td[data-label="الخدمات المرتبطة"],
+  .archive-page table[data-archive-records] td[data-label="ملاحظات"],
+  .archive-page table[data-archive-records="reference"] td:first-child { grid-column: 1 / -1; }
+  .archive-page table[data-archive-records] td[data-label="الخدمات المرتبطة"] > div { justify-content: flex-start; }
+  .archive-page table[data-archive-records] td .line-clamp-2 { display: block; -webkit-line-clamp: unset; }
+}
