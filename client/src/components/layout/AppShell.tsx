@@ -230,11 +230,11 @@ export function AppShell({
   const handleUpdateUsername = async () => {
     const nextUsername = accountUsername.trim();
     if (!nextUsername) {
-      toast.error("Username Is Required");
+      toast.error("اسم المستخدم مطلوب");
       return false;
     }
     if (nextUsername.length < 3) {
-      toast.error("Username Must Be At Least 3 Characters");
+      toast.error("يجب أن يكون اسم المستخدم 3 أحرف على الأقل");
       return false;
     }
     if (nextUsername === String((user as User | null)?.username ?? "").trim())
@@ -250,7 +250,7 @@ export function AppShell({
       persistSessionUser(nextUser);
       return true;
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed To Update Username"));
+      toast.error(getTrpcErrorMessage(error, "فشل تحديث اسم المستخدم"));
       return false;
     }
   };
@@ -270,7 +270,7 @@ export function AppShell({
       persistSessionUser(nextUser);
       return true;
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed To Update Profile"));
+      toast.error(getTrpcErrorMessage(error, "فشل تحديث الملف الشخصي"));
       return false;
     }
   };
@@ -444,7 +444,7 @@ export function AppShell({
           <div className="space-y-4">
             {mustForcePasswordChange ? (
               <div className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning-text">
-                For Security, You Must Change Your Password Before Continuing.
+                لأسباب أمنية، يجب تغيير كلمة المرور قبل المتابعة.
               </div>
             ) : null}
             <div className="space-y-2">

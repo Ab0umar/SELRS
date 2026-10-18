@@ -957,7 +957,7 @@ export function AppTopNav({
                 onClick={onOpenAccount}
               >
                 <UserCog className="h-4 w-4" />
-                Account Settings
+                إعدادات الحساب
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer gap-2"
