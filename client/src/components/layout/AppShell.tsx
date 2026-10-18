@@ -36,6 +36,11 @@ import {
 import { requestAppReload } from "@/lib/appRuntime";
 import { RouteTitleFallback } from "./RouteTitleFallback";
 import { extractHubPatientId } from "@/lib/patientHubNavigation";
+import {
+  validateChangePasswordForm,
+  type ChangePasswordFieldErrors,
+  type ChangePasswordFormValues,
+} from "@/lib/change-password-validation";
 
 type AppShellProps = {
   children: ReactNode;
@@ -96,6 +101,8 @@ export function AppShell({
     confirmPassword: "",
   });
 
+  const [fieldErrors, setFieldErrors] = useState<ChangePasswordFieldErrors>({});
+
   const utils = trpc.useUtils();
   const mustForcePasswordChange = Boolean(
     (user as (User & { mustChangePassword?: boolean }) | null)
@@ -117,6 +124,7 @@ export function AppShell({
   });
   const changePasswordMutation = trpc.auth.changePassword.useMutation({
     onSuccess: async () => {
+      setFieldErrors({});
       toast.success("تم تغيير كلمة المرور بنجاح");
       setIsPasswordDialogOpen(false);
       setPasswordForm({
@@ -184,33 +192,37 @@ export function AppShell({
 
 
 
+  const handlePasswordFieldChange = (
+    field: keyof ChangePasswordFormValues,
+    value: string,
+  ) => {
+    const nextForm = { ...passwordForm, [field]: value };
+    setPasswordForm(nextForm);
+    // Live re-validation only after a failed submit so errors never show early.
+    if (Object.keys(fieldErrors).length > 0) {
+      setFieldErrors(validateChangePasswordForm(nextForm));
+    }
+  };
+
   const handleChangePassword = async () => {
-    const currentPassword = passwordForm.currentPassword.trim();
-    const newPassword = passwordForm.newPassword.trim();
-    const confirmPassword = passwordForm.confirmPassword.trim();
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("يرجى ملء جميع حقول كلمة المرور");
+    const validationErrors = validateChangePasswordForm(passwordForm);
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("تأكيد كلمة المرور الجديدة غير متطابق");
-      return;
-    }
-    if (newPassword === currentPassword) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية");
-      return;
-    }
+    setFieldErrors({});
     try {
       await changePasswordMutation.mutateAsync({
-        currentPassword,
-        newPassword,
+        currentPassword: passwordForm.currentPassword.trim(),
+        newPassword: passwordForm.newPassword.trim(),
       });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "فشل تغيير كلمة المرور"));
+      const message = getTrpcErrorMessage(error, "فشل تغيير كلمة المرور");
+      if (message === "كلمة المرور الحالية غير صحيحة") {
+        setFieldErrors({ currentPassword: message });
+        return;
+      }
+      toast.error(message);
     }
   };
 
@@ -407,6 +419,7 @@ export function AppShell({
           if (mustForcePasswordChange && !open) return;
           setIsPasswordDialogOpen(open);
           if (!open) {
+            setFieldErrors({});
             setPasswordForm({
               currentPassword: "",
               newPassword: "",
@@ -440,10 +453,7 @@ export function AppShell({
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    currentPassword: e.target.value,
-                  }))
+                  handlePasswordFieldChange("currentPassword", e.target.value)
                 }
               />
             </div>
@@ -454,10 +464,7 @@ export function AppShell({
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    newPassword: e.target.value,
-                  }))
+                  handlePasswordFieldChange("newPassword", e.target.value)
                 }
               />
             </div>
@@ -468,10 +475,7 @@ export function AppShell({
                 type="password"
                 value={passwordForm.confirmPassword}
                 onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
+                  handlePasswordFieldChange("confirmPassword", e.target.value)
                 }
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !changePasswordMutation.isPending)
