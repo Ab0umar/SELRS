@@ -35,6 +35,7 @@ import AdminMigrations from "./AdminMigrations";
 import AdminApiTools from "./AdminApiTools";
 import AdminStatus from "./AdminStatus";
 import AdminSettings from "./AdminSettings";
+import PrintSettings from "./PrintSettings";
 import AdminPermissions from "./AdminPermissions";
 import AdminSheets from "./AdminSheets";
 import AdminSheetDesigner from "./AdminSheetDesigner";
@@ -84,6 +85,7 @@ const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
 ];
 
 const ALL_MODULES: HubModuleCard[] = [
+  { href: "/admin-hub/print-settings", label: "إعدادات الطباعة", helper: "مقاسات الورق والهوامش والترويسات", icon: PenSquare, tone: "bg-muted text-primary", category: "services" },
   {
     href: "/admin-hub/users",
     label: "المستخدمين",
@@ -374,6 +376,7 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/settings/pricing-rules")
       return <AdminSettings pricingOnly />;
     if (loc === "/admin-hub/settings") return <AdminSettings />;
+    if (loc === "/admin-hub/print-settings") return <PrintSettings />;
     if (loc === "/admin-hub/permissions") return <AdminPermissions />;
     if (loc === "/admin-hub/sheets") return <AdminSheets />;
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;

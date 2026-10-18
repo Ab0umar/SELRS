@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { readPrintMode } from "@/lib/print";
+import { ensureClinicalPrintSettings, applyClinicalPrintSettings } from "@/lib/clinicalPrintSettings";
 import {
   canUseNativeAndroidPrint,
   requestNativeAndroidPrint,
@@ -25,14 +26,18 @@ export function usePrintMode(options: UsePrintModeOptions = {}) {
       return;
     }
     autoPrintDoneRef.current = true;
-    const timer = window.setTimeout(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      await ensureClinicalPrintSettings();
+      if (cancelled) return;
+      applyClinicalPrintSettings();
       if (canUseNativeAndroidPrint()) {
         void requestNativeAndroidPrint(document.title || "SELRS Print");
         return;
       }
       window.print();
     }, delayMs);
-    return () => window.clearTimeout(timer);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [delayMs, printMode.autoPrint, ready]);
 
   return printMode;

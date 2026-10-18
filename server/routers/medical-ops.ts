@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRINT_SETTINGS_KEY, printSettingsSchema } from "../../shared/printSettings";
 import { access, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import * as XLSX from "xlsx";
@@ -2296,6 +2297,11 @@ export const medicalOpsRoutes = {
   updateSystemSetting: adminProcedure
     .input(z.object({ key: z.string().min(1), value: z.any() }))
     .mutation(async ({ input, ctx }) => {
+      if (input.key === PRINT_SETTINGS_KEY) {
+        const parsed = printSettingsSchema.safeParse(input.value);
+        if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message ?? "Invalid print settings" });
+        input.value = parsed.data;
+      }
       await db.updateSystemSettings(input.key, input.value);
       await db.logAuditEvent(
         ctx.user.id,

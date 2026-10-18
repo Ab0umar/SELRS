@@ -820,6 +820,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
     group: "مركز الإدارة",
   },
   { id: "/admin-hub/sheets", label: "الشيتات الطبية", group: "مركز الإدارة" },
+  { id: "/admin-hub/print-settings", label: "إعدادات الطباعة", group: "مركز الإدارة" },
   {
     id: "/admin-hub/sheet-designer",
     label: "مصمم الشيتات",
