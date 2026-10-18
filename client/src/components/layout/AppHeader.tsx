@@ -78,8 +78,8 @@ export function AppHeader({
             size="icon"
             className="relative h-9 w-9 shrink-0"
             onClick={() => onToggleTheme()}
-            title={theme === "light" ? "Dark mode" : "Light mode"}
-            aria-label={theme === "light" ? "Dark mode" : "Light mode"}
+            title="تبديل المظهر"
+            aria-label="تبديل المظهر"
           >
             <Sun className={`h-4 w-4 transition-transform ${theme === "dark" ? "rotate-0 scale-100" : "rotate-90 scale-0"}`} />
             <Moon className={`absolute h-4 w-4 transition-transform ${theme === "light" ? "rotate-0 scale-100" : "rotate-90 scale-0"}`} />
