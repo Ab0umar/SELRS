@@ -37,6 +37,7 @@ import { requestAppReload } from "@/lib/appRuntime";
 import { RouteTitleFallback } from "./RouteTitleFallback";
 import { extractHubPatientId } from "@/lib/patientHubNavigation";
 import {
+  CHANGE_PASSWORD_RULES_HINT,
   validateChangePasswordForm,
   type ChangePasswordFieldErrors,
   type ChangePasswordFormValues,
@@ -451,28 +452,73 @@ export function AppShell({
               <Input
                 id="currentPassword"
                 type="password"
+                autoComplete="current-password"
+                aria-invalid={Boolean(fieldErrors.currentPassword)}
+                aria-describedby={
+                  fieldErrors.currentPassword
+                    ? "currentPassword-error"
+                    : undefined
+                }
                 value={passwordForm.currentPassword}
                 onChange={(e) =>
                   handlePasswordFieldChange("currentPassword", e.target.value)
                 }
               />
+              {fieldErrors.currentPassword ? (
+                <p
+                  id="currentPassword-error"
+                  aria-live="polite"
+                  className="text-sm text-destructive"
+                >
+                  {fieldErrors.currentPassword}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
               <Input
                 id="newPassword"
                 type="password"
+                autoComplete="new-password"
+                aria-invalid={Boolean(fieldErrors.newPassword)}
+                aria-describedby={
+                  fieldErrors.newPassword
+                    ? "newPassword-rules newPassword-error"
+                    : "newPassword-rules"
+                }
                 value={passwordForm.newPassword}
                 onChange={(e) =>
                   handlePasswordFieldChange("newPassword", e.target.value)
                 }
               />
+              <p
+                id="newPassword-rules"
+                className="text-xs text-muted-foreground"
+              >
+                {CHANGE_PASSWORD_RULES_HINT}
+              </p>
+              {fieldErrors.newPassword ? (
+                <p
+                  id="newPassword-error"
+                  aria-live="polite"
+                  className="text-sm text-destructive"
+                >
+                  {fieldErrors.newPassword}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">تأكيد كلمة المرور الجديدة</Label>
               <Input
                 id="confirmPassword"
                 type="password"
+                autoComplete="new-password"
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                aria-describedby={
+                  fieldErrors.confirmPassword
+                    ? "confirmPassword-error"
+                    : undefined
+                }
                 value={passwordForm.confirmPassword}
                 onChange={(e) =>
                   handlePasswordFieldChange("confirmPassword", e.target.value)
@@ -482,6 +528,15 @@ export function AppShell({
                     void handleChangePassword();
                 }}
               />
+              {fieldErrors.confirmPassword ? (
+                <p
+                  id="confirmPassword-error"
+                  aria-live="polite"
+                  className="text-sm text-destructive"
+                >
+                  {fieldErrors.confirmPassword}
+                </p>
+              ) : null}
             </div>
             <div className="flex justify-end gap-2">
               {!mustForcePasswordChange ? (
