@@ -247,6 +247,7 @@ artifacts/
 .codex/agents/
 .codex/plugins/cache/
 .codex-remote-attachments/
+/.codex-attachments/
 .impeccable/live/
 docs/graphify-out/
 
