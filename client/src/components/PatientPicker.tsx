@@ -3,6 +3,12 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import {
+  getPatientSearchGate,
+  normalizePatientSearchTerm,
+  PATIENT_SEARCH_DEBOUNCE_MS,
+} from "@/lib/patientSearchGate";
 
 type PatientOption = {
   id: number;
@@ -56,12 +62,17 @@ export default function PatientPicker({
     enabled: Boolean(initialPatientId),
   });
 
-  const normalizedQuery = query.replace(/\s+/g, " ").trim();
+  const normalizedQuery = normalizePatientSearchTerm(query);
+  const debouncedQuery = useDebouncedValue(
+    normalizedQuery,
+    PATIENT_SEARCH_DEBOUNCE_MS,
+  );
+  const searchGate = getPatientSearchGate(normalizedQuery, debouncedQuery);
 
   const searchQuery = trpc.medical.searchPatients.useQuery(
-    { searchTerm: normalizedQuery, sheetType, locationType },
+    { searchTerm: debouncedQuery, sheetType, locationType },
     {
-      enabled: normalizedQuery.length >= 1,
+      enabled: searchGate.shouldFetch,
       refetchOnWindowFocus: false,
     },
   );
@@ -93,6 +104,8 @@ export default function PatientPicker({
 
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
+
+  const isSearching = searchGate.isDebouncing || searchQuery.isLoading;
 
   const formatPhone = (value?: string | null) => {
     if (!value) return "";
@@ -137,14 +150,14 @@ export default function PatientPicker({
           readOnly={readOnly}
         />
       </div>
-      {!readOnly && open && normalizedQuery.length >= 1 && (
+      {!readOnly && open && searchGate.showDropdown && (
         <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
-          {searchQuery.isLoading && (
+          {isSearching && (
             <div className="px-3 py-2 text-sm text-muted-foreground">
               {isEnglish ? "Searching..." : "جاري البحث..."}
             </div>
           )}
-          {!searchQuery.isLoading && filteredResults.length === 0 && (
+          {!isSearching && filteredResults.length === 0 && (
             <div className="px-3 py-2 text-sm text-muted-foreground">
               {isEnglish ? "No results found" : "لا توجد نتائج"}
             </div>
