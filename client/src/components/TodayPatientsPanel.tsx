@@ -104,11 +104,12 @@ export default function TodayPatientsPanel() {
 
       {/* Quick Action Buttons */}
       <div className="flex-1 space-y-2 overflow-y-auto min-h-0">
-        {quickActionButtons.map((btn, idx) => {
+        {quickActionButtons.map((btn) => {
           const Icon = btn.icon;
           return (
             <Button
-              key={idx}
+              key={btn.path}
+              type="button"
               onClick={btn.onClick}
               variant="outline"
               className={`w-full justify-start gap-2 text-xs ${btn.color} ${btn.hoverColor}`}
