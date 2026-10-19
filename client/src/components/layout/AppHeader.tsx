@@ -20,6 +20,7 @@ import {
   User,
   LogOut,
 } from "lucide-react";
+import { openCommandPalette } from "@/lib/commandPalette";
 
 export type AppHeaderProps = {
   userName: string;
@@ -32,11 +33,6 @@ export type AppHeaderProps = {
   onOpenMobileNav: () => void;
   showMobileNavToggle?: boolean;
 };
-
-function dispatchOpenCommandPalette() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event("selrs:open-command-palette"));
-}
 
 export function AppHeader({
   userName,
@@ -139,7 +135,7 @@ export function AppHeader({
             <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Button variant="bare"
               type="button"
-              onClick={dispatchOpenCommandPalette}
+              onClick={openCommandPalette}
               dir="rtl"
               className="flex h-9 w-full cursor-text items-center rounded-lg border border-border bg-muted/50 ps-10 pe-4 text-end text-sm text-muted-foreground transition-[background-color,border-color,box-shadow] hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-ring"
             >
@@ -153,7 +149,7 @@ export function AppHeader({
             className="h-9 w-9 shrink-0 sm:hidden"
             title="بحث"
             aria-label="فتح لوحة البحث"
-            onClick={dispatchOpenCommandPalette}
+            onClick={openCommandPalette}
           >
             <Search className="h-5 w-5" />
           </Button>
