@@ -60,12 +60,17 @@ export default function PatientPicker({
     enabled: Boolean(initialPatientId),
   });
 
-  const normalizedQuery = query.replace(/\s+/g, " ").trim();
+  const normalizedQuery = normalizePatientSearchTerm(query);
+  const debouncedQuery = useDebouncedValue(
+    normalizedQuery,
+    PATIENT_SEARCH_DEBOUNCE_MS,
+  );
+  const searchGate = getPatientSearchGate(normalizedQuery, debouncedQuery);
 
   const searchQuery = trpc.medical.searchPatients.useQuery(
-    { searchTerm: normalizedQuery, sheetType, locationType },
+    { searchTerm: debouncedQuery, sheetType, locationType },
     {
-      enabled: normalizedQuery.length >= 1,
+      enabled: searchGate.shouldFetch,
       refetchOnWindowFocus: false,
     },
   );
