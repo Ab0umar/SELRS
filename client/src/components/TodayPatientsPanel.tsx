@@ -5,6 +5,7 @@ import { CalendarIcon, Pill, Activity, FileCheck, FileText } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { localISODate } from "@/lib/utils";
+import { ROUTES } from "../../../shared/routes";
 
 // Parses a yyyy-mm-dd string into a local Date fixed at noon, so the
 // calendar never drifts to the neighbouring day across timezones.
@@ -17,36 +18,43 @@ export const QUICK_ACTIONS = [
   {
     icon: FileText,
     label: "الملف الطبي",
-    path: "/patient-file",
+    path: ROUTES.patientFile,
     color: "text-card-foreground",
     hoverColor: "hover:bg-primary/5",
   },
   {
     icon: Pill,
     label: "الروشتة",
-    path: "/prescription",
+    path: ROUTES.prescription,
     color: "text-card-foreground",
     hoverColor: "hover:bg-success/10",
   },
   {
     icon: Activity,
     label: "طلب التحاليل",
-    path: "/request-tests",
+    path: ROUTES.requestTests,
     color: "text-card-foreground",
     hoverColor: "hover:bg-primary/5",
   },
   {
     icon: FileCheck,
     label: "التقارير الطبية",
-    path: "/medical-reports",
+    path: ROUTES.medicalReports,
     color: "text-primary",
     hoverColor: "hover:bg-secondary/10",
   },
 ];
 
-// Carries the date chosen in the panel to the target page as ?visitDate=YYYY-MM-DD.
-export function buildQuickActionTarget(path: string, visitDate: string): string {
-  return `${path}?visitDate=${encodeURIComponent(visitDate)}`;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Carries the date chosen in the panel to the target page as
+// ?visitDate=YYYY-MM-DD. Anything that is not a plain ISO day (empty
+// string, partial input) keeps the bare path so we never navigate to
+// ?visitDate=garbage.
+export function withVisitDate(path: string, visitDate: string): string {
+  return ISO_DATE_RE.test(visitDate)
+    ? `${path}?visitDate=${encodeURIComponent(visitDate)}`
+    : path;
 }
 
 export default function TodayPatientsPanel() {
@@ -57,7 +65,7 @@ export default function TodayPatientsPanel() {
 
   const quickActionButtons = QUICK_ACTIONS.map(action => ({
     ...action,
-    onClick: () => setLocation(buildQuickActionTarget(action.path, selectedDate)),
+    onClick: () => setLocation(withVisitDate(action.path, selectedDate)),
   }));
 
   return (
