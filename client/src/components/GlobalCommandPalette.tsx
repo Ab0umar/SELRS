@@ -16,6 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { OPEN_COMMAND_PALETTE_EVENT } from "@/lib/commandPalette";
 import { trpc } from "@/lib/trpc";
 import {
   CommandDialog,
@@ -65,9 +66,9 @@ export default function GlobalCommandPalette() {
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
-    window.addEventListener("selrs:open-command-palette", onOpen);
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
     return () =>
-      window.removeEventListener("selrs:open-command-palette", onOpen);
+      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
   }, []);
 
   useEffect(() => {

@@ -36,7 +36,6 @@ import {
   Network,
   RefreshCw,
   ScrollText,
-  Search,
   Settings,
   Syringe,
   UserCog,
@@ -67,11 +66,7 @@ import {
   type NavGroupSection,
   type NavLeaf,
 } from "./AppNav";
-
-function dispatchOpenCommandPalette() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event("selrs:open-command-palette"));
-}
+import { CommandPaletteTrigger } from "./CommandPaletteTrigger";
 
 function tabActive(location: string, path: string): boolean {
   const navBase = path.split("?")[0];
@@ -883,17 +878,7 @@ export function AppTopNav({
           )}
 
           {/* Search */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 shrink-0 rounded-lg border border-border bg-background/70 md:h-9 md:w-9 md:rounded-2xl"
-            title="بحث (⌘K)"
-            aria-label="فتح لوحة البحث"
-            onClick={dispatchOpenCommandPalette}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          <CommandPaletteTrigger />
 
           {/* Date badge, hidden on small screens */}
           <Badge
@@ -957,7 +942,7 @@ export function AppTopNav({
                 onClick={onOpenAccount}
               >
                 <UserCog className="h-4 w-4" />
-                Account Settings
+                إعدادات الحساب
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer gap-2"

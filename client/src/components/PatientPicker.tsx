@@ -1,14 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Search, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
-  getPatientSearchGate,
-  normalizePatientSearchTerm,
-  PATIENT_SEARCH_DEBOUNCE_MS,
-} from "@/lib/patientSearchGate";
+  getPatientOptionId,
+  resolveComboboxKey,
+} from "@/components/patientPickerCombobox";
 
 type PatientOption = {
   id: number;
@@ -52,6 +49,7 @@ export default function PatientPicker({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PatientOption | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const hydratedPatientIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -105,7 +103,35 @@ export default function PatientPicker({
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
 
-  const isSearching = searchGate.isDebouncing || searchQuery.isLoading;
+  const baseId = useId();
+  const inputId = `${baseId}-input`;
+  const listboxId = `${baseId}-listbox`;
+  const isPopupVisible = !readOnly && open && normalizedQuery.length >= 1;
+  const isListboxOpen = isPopupVisible && filteredResults.length > 0;
+  const activePatient =
+    isListboxOpen && activeIndex >= 0 && activeIndex < filteredResults.length
+      ? filteredResults[activeIndex]
+      : undefined;
+  const activeOptionId = activePatient
+    ? getPatientOptionId(baseId, activePatient.id)
+    : undefined;
+
+  // useId ids contain ':' so the option must be looked up by id, not by a CSS selector.
+  useEffect(() => {
+    if (!activeOptionId) return;
+    document
+      .getElementById(activeOptionId)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionId]);
+
+  const selectPatient = (patient: PatientOption) => {
+    if (allowPatient && !allowPatient(patient)) return;
+    setSelected(patient);
+    setQuery(patient.fullName ?? "");
+    setOpen(false);
+    setActiveIndex(-1);
+    onSelect(patient);
+  };
 
   const formatPhone = (value?: string | null) => {
     if (!value) return "";
@@ -120,7 +146,11 @@ export default function PatientPicker({
 
   return (
     <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
-      <label className="block text-sm font-medium hidden">{label}</label>
+      {label?.trim() ? (
+        <label htmlFor={inputId} className="sr-only">
+          {label}
+        </label>
+      ) : null}
       <div
         className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}
       >
@@ -130,19 +160,68 @@ export default function PatientPicker({
           <Search className="h-4 w-4" />
         </div>
         <Input
+          id={inputId}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={isListboxOpen}
+          aria-activedescendant={activeOptionId}
+          aria-label={label?.trim() ? undefined : placeholder}
           value={query}
           onChange={(e) => {
             if (readOnly) return;
             setQuery(e.target.value);
             setOpen(true);
+            setActiveIndex(-1);
           }}
           onFocus={() => {
             if (readOnly) return;
             setOpen(true);
+            setActiveIndex(-1);
           }}
           onBlur={() => {
             if (readOnly) return;
-            setTimeout(() => setOpen(false), 150);
+            setTimeout(() => {
+              setOpen(false);
+              setActiveIndex(-1);
+            }, 150);
+          }}
+          onKeyDown={(e) => {
+            if (readOnly) return;
+            const action = resolveComboboxKey({
+              key: e.key,
+              isOpen: isPopupVisible,
+              activeIndex,
+              optionCount: filteredResults.length,
+              canOpen: normalizedQuery.length >= 1,
+            });
+            switch (action.type) {
+              case "open":
+                e.preventDefault();
+                setOpen(true);
+                setActiveIndex(action.activeIndex);
+                break;
+              case "move":
+                e.preventDefault();
+                setActiveIndex(action.activeIndex);
+                break;
+              case "select": {
+                const patient = filteredResults[action.activeIndex];
+                if (!patient) return;
+                e.preventDefault();
+                selectPatient(patient);
+                break;
+              }
+              case "close":
+                e.preventDefault();
+                // Radix Dialog closes on Escape too (document capture phase); known limitation.
+                e.stopPropagation();
+                setOpen(false);
+                setActiveIndex(-1);
+                break;
+              default:
+                break;
+            }
           }}
           placeholder={placeholder}
           className={`h-11 rounded-2xl border-border bg-background shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25 ${isEnglish ? "pl-10 text-left" : "pr-10 text-right"}`}
@@ -150,52 +229,65 @@ export default function PatientPicker({
           readOnly={readOnly}
         />
       </div>
-      {!readOnly && open && searchGate.showDropdown && (
+      {isPopupVisible && (
         <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
-          {isSearching && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
+          {searchQuery.isLoading && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="px-3 py-2 text-sm text-muted-foreground"
+            >
               {isEnglish ? "Searching..." : "جاري البحث..."}
             </div>
           )}
-          {!isSearching && filteredResults.length === 0 && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
+          {!searchQuery.isLoading && filteredResults.length === 0 && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="px-3 py-2 text-sm text-muted-foreground"
+            >
               {isEnglish ? "No results found" : "لا توجد نتائج"}
             </div>
           )}
-          {filteredResults.map((patient) => (
-            <Button variant="bare"
-              key={patient.id}
-              type="button"
-              className={`w-full px-3 py-3 transition-colors hover:bg-accent ${isEnglish ? "text-left" : "text-right"}`}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                if (allowPatient && !allowPatient(patient)) return;
-                setSelected(patient);
-                setQuery(patient.fullName ?? "");
-                setOpen(false);
-                onSelect(patient);
-              }}
+          {filteredResults.length > 0 && (
+            <div
+              id={listboxId}
+              role="listbox"
+              aria-label={label?.trim() || placeholder}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
-                    <UserRound className="h-3.5 w-3.5" />
-                  </span>
-                  <span dir="auto" className="font-medium">
-                    {patient.fullName}
-                  </span>
+              {filteredResults.map((patient, index) => (
+                <div
+                  key={patient.id}
+                  role="option"
+                  id={getPatientOptionId(baseId, patient.id)}
+                  aria-selected={index === activeIndex}
+                  className={`w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent ${index === activeIndex ? "bg-accent" : ""} ${isEnglish ? "text-left" : "text-right"}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => selectPatient(patient)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
+                        <UserRound className="h-3.5 w-3.5" />
+                      </span>
+                      <span dir="auto" className="font-medium">
+                        {patient.fullName}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground" dir="ltr">
+                      {patient.patientCode ?? "—"}
+                    </span>
+                  </div>
+                  {patient.phone && (
+                    <div className="text-xs text-muted-foreground" dir="ltr">
+                      {formatPhone(patient.phone)}
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs text-muted-foreground" dir="ltr">
-                  {patient.patientCode ?? "—"}
-                </span>
-              </div>
-              {patient.phone && (
-                <div className="text-xs text-muted-foreground" dir="ltr">
-                  {formatPhone(patient.phone)}
-                </div>
-              )}
-            </Button>
-          ))}
+              ))}
+            </div>
+          )}
         </div>
       )}
       {selected && (
