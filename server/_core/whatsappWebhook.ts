@@ -71,6 +71,8 @@ function extractMessages(body: any): WhatsAppMessage[] {
   for (const entry of entries) {
     const changes = Array.isArray(entry?.changes) ? entry.changes : [];
     for (const change of changes) {
+      // WABA subscriptions can deliver several numbers; this route owns confirmations only.
+      if (ENV.whatsappPhoneNumberId && change?.value?.metadata?.phone_number_id !== ENV.whatsappPhoneNumberId) continue;
       const msgs = change?.value?.messages;
       if (Array.isArray(msgs)) messages.push(...msgs);
     }
