@@ -311,5 +311,23 @@ docs/graphify-out/
 /client/.workflow-demo-build/__manus__/
 
 # Disposable scratch captures and query output; retain diagnostic scripts
+/.auto-claude/
+/.scratch/home-width-check/.edge-profile*/
 /.scratch/*.png
 /.scratch/*.txt
+
+# Machine-local agent configuration and security scan state
+.auto-claude-security.json
+/.claude/settings.local.json
+/.claude_settings.json
+/.zcodeignore
+
+# Local layout probes and design preview workspace
+/.scratch/home-width-check/
+/.scratch/uiux_*.mjs
+/design/
+
+# Accidental shell redirection artifacts
+/$null
+/nul
+/{f
