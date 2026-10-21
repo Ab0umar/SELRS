@@ -36,6 +36,12 @@ import {
 import { requestAppReload } from "@/lib/appRuntime";
 import { RouteTitleFallback } from "./RouteTitleFallback";
 import { extractHubPatientId } from "@/lib/patientHubNavigation";
+import {
+  CHANGE_PASSWORD_RULES_HINT,
+  validateChangePasswordForm,
+  type ChangePasswordFieldErrors,
+  type ChangePasswordFormValues,
+} from "@/lib/change-password-validation";
 
 type AppShellProps = {
   children: ReactNode;
@@ -96,6 +102,8 @@ export function AppShell({
     confirmPassword: "",
   });
 
+  const [fieldErrors, setFieldErrors] = useState<ChangePasswordFieldErrors>({});
+
   const utils = trpc.useUtils();
   const mustForcePasswordChange = Boolean(
     (user as (User & { mustChangePassword?: boolean }) | null)
@@ -117,6 +125,7 @@ export function AppShell({
   });
   const changePasswordMutation = trpc.auth.changePassword.useMutation({
     onSuccess: async () => {
+      setFieldErrors({});
       toast.success("تم تغيير كلمة المرور بنجاح");
       setIsPasswordDialogOpen(false);
       setPasswordForm({
@@ -184,44 +193,48 @@ export function AppShell({
 
 
 
+  const handlePasswordFieldChange = (
+    field: keyof ChangePasswordFormValues,
+    value: string,
+  ) => {
+    const nextForm = { ...passwordForm, [field]: value };
+    setPasswordForm(nextForm);
+    // Live re-validation only after a failed submit so errors never show early.
+    if (Object.keys(fieldErrors).length > 0) {
+      setFieldErrors(validateChangePasswordForm(nextForm));
+    }
+  };
+
   const handleChangePassword = async () => {
-    const currentPassword = passwordForm.currentPassword.trim();
-    const newPassword = passwordForm.newPassword.trim();
-    const confirmPassword = passwordForm.confirmPassword.trim();
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("يرجى ملء جميع حقول كلمة المرور");
+    const validationErrors = validateChangePasswordForm(passwordForm);
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("تأكيد كلمة المرور الجديدة غير متطابق");
-      return;
-    }
-    if (newPassword === currentPassword) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية");
-      return;
-    }
+    setFieldErrors({});
     try {
       await changePasswordMutation.mutateAsync({
-        currentPassword,
-        newPassword,
+        currentPassword: passwordForm.currentPassword.trim(),
+        newPassword: passwordForm.newPassword.trim(),
       });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "فشل تغيير كلمة المرور"));
+      const message = getTrpcErrorMessage(error, "فشل تغيير كلمة المرور");
+      if (message === "كلمة المرور الحالية غير صحيحة") {
+        setFieldErrors({ currentPassword: message });
+        return;
+      }
+      toast.error(message);
     }
   };
 
   const handleUpdateUsername = async () => {
     const nextUsername = accountUsername.trim();
     if (!nextUsername) {
-      toast.error("Username Is Required");
+      toast.error("اسم المستخدم مطلوب");
       return false;
     }
     if (nextUsername.length < 3) {
-      toast.error("Username Must Be At Least 3 Characters");
+      toast.error("يجب أن يكون اسم المستخدم 3 أحرف على الأقل");
       return false;
     }
     if (nextUsername === String((user as User | null)?.username ?? "").trim())
@@ -237,7 +250,7 @@ export function AppShell({
       persistSessionUser(nextUser);
       return true;
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed To Update Username"));
+      toast.error(getTrpcErrorMessage(error, "فشل تحديث اسم المستخدم"));
       return false;
     }
   };
@@ -257,7 +270,7 @@ export function AppShell({
       persistSessionUser(nextUser);
       return true;
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "Failed To Update Profile"));
+      toast.error(getTrpcErrorMessage(error, "فشل تحديث الملف الشخصي"));
       return false;
     }
   };
@@ -407,6 +420,7 @@ export function AppShell({
           if (mustForcePasswordChange && !open) return;
           setIsPasswordDialogOpen(open);
           if (!open) {
+            setFieldErrors({});
             setPasswordForm({
               currentPassword: "",
               newPassword: "",
@@ -430,7 +444,7 @@ export function AppShell({
           <div className="space-y-4">
             {mustForcePasswordChange ? (
               <div className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning-text">
-                For Security, You Must Change Your Password Before Continuing.
+                لأسباب أمنية، يجب تغيير كلمة المرور قبل المتابعة.
               </div>
             ) : null}
             <div className="space-y-2">
@@ -438,46 +452,91 @@ export function AppShell({
               <Input
                 id="currentPassword"
                 type="password"
+                autoComplete="current-password"
+                aria-invalid={Boolean(fieldErrors.currentPassword)}
+                aria-describedby={
+                  fieldErrors.currentPassword
+                    ? "currentPassword-error"
+                    : undefined
+                }
                 value={passwordForm.currentPassword}
                 onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    currentPassword: e.target.value,
-                  }))
+                  handlePasswordFieldChange("currentPassword", e.target.value)
                 }
               />
+              {fieldErrors.currentPassword ? (
+                <p
+                  id="currentPassword-error"
+                  aria-live="polite"
+                  className="text-sm text-destructive"
+                >
+                  {fieldErrors.currentPassword}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
               <Input
                 id="newPassword"
                 type="password"
+                autoComplete="new-password"
+                aria-invalid={Boolean(fieldErrors.newPassword)}
+                aria-describedby={
+                  fieldErrors.newPassword
+                    ? "newPassword-rules newPassword-error"
+                    : "newPassword-rules"
+                }
                 value={passwordForm.newPassword}
                 onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    newPassword: e.target.value,
-                  }))
+                  handlePasswordFieldChange("newPassword", e.target.value)
                 }
               />
+              <p
+                id="newPassword-rules"
+                className="text-xs text-muted-foreground"
+              >
+                {CHANGE_PASSWORD_RULES_HINT}
+              </p>
+              {fieldErrors.newPassword ? (
+                <p
+                  id="newPassword-error"
+                  aria-live="polite"
+                  className="text-sm text-destructive"
+                >
+                  {fieldErrors.newPassword}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">تأكيد كلمة المرور الجديدة</Label>
               <Input
                 id="confirmPassword"
                 type="password"
+                autoComplete="new-password"
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                aria-describedby={
+                  fieldErrors.confirmPassword
+                    ? "confirmPassword-error"
+                    : undefined
+                }
                 value={passwordForm.confirmPassword}
                 onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
+                  handlePasswordFieldChange("confirmPassword", e.target.value)
                 }
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !changePasswordMutation.isPending)
                     void handleChangePassword();
                 }}
               />
+              {fieldErrors.confirmPassword ? (
+                <p
+                  id="confirmPassword-error"
+                  aria-live="polite"
+                  className="text-sm text-destructive"
+                >
+                  {fieldErrors.confirmPassword}
+                </p>
+              ) : null}
             </div>
             <div className="flex justify-end gap-2">
               {!mustForcePasswordChange ? (

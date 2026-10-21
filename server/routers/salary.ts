@@ -312,7 +312,7 @@ export const salaryRouter = router({
       return { id: insertIdOf(result) };
     }),
 
-  updateBasic: makeSalaryWriteProcedure(["/salary/basics", "/salary/current-data", "/salary/penalties"])
+  updateBasic: makeSalaryWriteProcedure(["/salary/basics", "/salary/current-data"])
     .input(
       z.object({
         id: z.number().int(),
@@ -361,6 +361,25 @@ export const salaryRouter = router({
           .update(salaryBasics)
           .set(upd)
           .where(eq(salaryBasics.id, input.id));
+      return { success: true };
+    }),
+
+  // Penalties clerks edit the insurance column only. The full salary row stays
+  // on the basics and current-data pages.
+  setInsuranceDeduction: makeSalaryWriteProcedure("/salary/penalties")
+    .input(
+      z.object({
+        id: z.number().int(),
+        insuranceDeduction: z.number().min(0),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("DB unavailable");
+      await db
+        .update(salaryBasics)
+        .set({ insuranceDeduction: String(input.insuranceDeduction) })
+        .where(eq(salaryBasics.id, input.id));
       return { success: true };
     }),
 
