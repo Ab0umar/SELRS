@@ -1,6 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import {
+  getPatientSearchGate,
+  normalizePatientSearchTerm,
+  PATIENT_SEARCH_DEBOUNCE_MS,
+} from "@/lib/patientSearchGate";
 import { Search, UserRound } from "lucide-react";
 import {
   getPatientOptionId,
