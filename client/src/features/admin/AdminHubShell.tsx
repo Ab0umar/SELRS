@@ -52,6 +52,7 @@ import AdminPortalBookings from "./AdminPortalBookings";
 import AdminLegacyPatients from "./AdminLegacyPatients";
 import OpHistory from "./OpHistory";
 import AdminWhatsAppInbox from "./AdminWhatsAppInbox";
+import AutoReply from "./AutoReply";
 import AdminPentacamLinking from "./AdminPentacamLinking";
 import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
 import PentacamPage from "../../pages/PentacamPage";
@@ -85,6 +86,7 @@ const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
 ];
 
 const ALL_MODULES: HubModuleCard[] = [
+  { href: "/admin-hub/auto-reply", label: "الرد الآلي", helper: "محادثات واتساب وماسنجر وتعليقات الصفحة", icon: Bell, tone: "bg-muted text-primary", category: "portal" },
   { href: "/admin-hub/print-settings", label: "إعدادات الطباعة", helper: "مقاسات الورق والهوامش والترويسات", icon: PenSquare, tone: "bg-muted text-primary", category: "services" },
   {
     href: "/admin-hub/users",
@@ -392,6 +394,7 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/legacy-patients")
       return <PatientsRecordsPage defaultTab="record" embeddedInHub />;
     if (loc === "/admin-hub/whatsapp-inbox") return <AdminWhatsAppInbox />;
+    if (loc === "/admin-hub/auto-reply") return <AutoReply />;
     if (loc === "/admin-hub/op-history")
       return <PatientsRecordsPage defaultTab="op" embeddedInHub />;
     if (loc === "/admin-hub/pentacam-duplicates")

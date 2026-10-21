@@ -394,6 +394,7 @@ export function AppTopNav({
         label: "مركز الإدارة",
         path: "/admin-hub",
       },
+      { type: "link" as const, icon: MessageCircle, label: "الرد الآلي", path: "/admin-hub/auto-reply" },
     ],
     [],
   );

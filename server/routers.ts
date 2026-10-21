@@ -22,6 +22,7 @@ import { kfRouter } from "./routers/kf";
 import { legacyPatientsRouter } from "./routers/legacyPatients";
 import { opHistoryRouter } from "./routers/opHistory";
 import { whatsappInboxRouter } from "./routers/whatsappInbox";
+import { autoReplyRouter } from "./routers/autoReply";
 import * as db from "./db";
 import {
   authService,
@@ -215,6 +216,7 @@ export const appRouter = router({
   legacyPatients: legacyPatientsRouter,
   opHistory: opHistoryRouter,
   whatsappInbox: whatsappInboxRouter,
+  autoReply: autoReplyRouter,
 });
 
 export type AppRouter = typeof appRouter;

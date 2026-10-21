@@ -204,6 +204,7 @@ export const adminNavGroups: NavGroup[] = [
     path: "/admin-hub/whatsapp-inbox",
     isMain: true,
   },
+  { icon: MessageCircle, label: "الرد الآلي", path: "/admin-hub/auto-reply", isMain: true },
   {
     label: "ملف المريض",
     navKey: "clinics-file",

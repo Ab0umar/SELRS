@@ -122,6 +122,7 @@ export const ROUTES = {
   adminLegacyPatients: "/admin/legacy-patients",
   opHistory: "/admin/op-history",
   whatsappInbox: "/admin/whatsapp-inbox",
+  autoReply: "/admin-hub/auto-reply",
   adminApiTools: "/admin/api-tools",
   adminCardVisibility: "/admin/card-visibility",
   adminDataSourceAudit: "/admin/data-source-audit",

@@ -31,7 +31,7 @@ try {
     const links = page.locator('.admin-tool-link');
     const contentWidth = await page.locator('[data-admin-hub] > main').evaluate(node => ({ content: node.getBoundingClientRect().width, parent: node.parentElement.getBoundingClientRect().width }));
     assert(Math.abs(contentWidth.content - contentWidth.parent) <= 1, 'Administration content fills the available page width');
-    assert.equal(await links.count(), 23);
+    assert.equal(await links.count(), 25);
     assert.equal(await page.locator('.admin-tool-group').count(), 1);
     assert.equal(await page.locator('.admin-tool-group-heading').count(), 0, 'All sections has no category divisions');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
@@ -63,14 +63,14 @@ try {
     assert.equal(await filters.nth(1).getAttribute('aria-pressed'), 'true');
     await filters.nth(0).click();
     await page.getByRole('searchbox', { name: 'بحث في أدوات الإدارة' }).fill('واتساب');
-    assert.equal(await links.count(), 1);
-    assert.equal(await links.first().getAttribute('href'), '/admin-hub/whatsapp-inbox');
+    assert.equal(await links.count(), 2);
+    assert.deepEqual((await links.evaluateAll(nodes => nodes.map(n => n.getAttribute('href')))).sort(), ['/admin-hub/auto-reply', '/admin-hub/whatsapp-inbox']);
     await page.getByRole('button', { name: 'مسح البحث', exact: true }).click();
-    assert.equal(await links.count(), 23);
+    assert.equal(await links.count(), 25);
     await page.getByRole('searchbox').fill('zzzzzz');
     await page.getByText('لا توجد أدوات مطابقة للتصفية الحالية.', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'مسح التصفية', exact: true }).click();
-    assert.equal(await links.count(), 23);
+    assert.equal(await links.count(), 25);
     await page.getByRole('searchbox').focus();
     await page.keyboard.press('Tab');
     assert.equal(await page.locator('.admin-tool-link').first().evaluate(node => node === document.activeElement), true);
@@ -80,8 +80,8 @@ try {
   const failed = await open(390, 'light', true);
   await failed.page.getByText('قاعدة البيانات: تعذر التحقق', { exact: true }).waitFor({ timeout: 30000 });
   assert.equal(await failed.page.getByRole('button', { name: 'إعادة المحاولة', exact: true }).count(), 1);
-  assert.equal(await failed.page.locator('.admin-tool-link').count(), 23);
+  assert.equal(await failed.page.locator('.admin-tool-link').count(), 25);
   assert.deepEqual(failed.errors, []);
   await failed.page.close();
-  console.log('Admin directory passed 10 compact full-width responsive cases, 23 retained routes, ungrouped All view, category/search/reset, keyboard focus and failed health state. No real writes.');
+  console.log('Admin directory passed 10 compact full-width responsive cases, 25 current routes, ungrouped All view, category/search/reset, keyboard focus and failed health state. No real writes.');
 } finally { await browser.close(); }
