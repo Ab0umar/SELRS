@@ -35,6 +35,7 @@ import AdminMigrations from "./AdminMigrations";
 import AdminApiTools from "./AdminApiTools";
 import AdminStatus from "./AdminStatus";
 import AdminSettings from "./AdminSettings";
+import PrintSettings from "./PrintSettings";
 import AdminPermissions from "./AdminPermissions";
 import AdminSheets from "./AdminSheets";
 import AdminSheetDesigner from "./AdminSheetDesigner";
@@ -51,6 +52,7 @@ import AdminPortalBookings from "./AdminPortalBookings";
 import AdminLegacyPatients from "./AdminLegacyPatients";
 import OpHistory from "./OpHistory";
 import AdminWhatsAppInbox from "./AdminWhatsAppInbox";
+import AutoReply from "./AutoReply";
 import AdminPentacamLinking from "./AdminPentacamLinking";
 import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
 import PentacamPage from "../../pages/PentacamPage";
@@ -84,6 +86,8 @@ const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
 ];
 
 const ALL_MODULES: HubModuleCard[] = [
+  { href: "/admin-hub/auto-reply", label: "الرد الآلي", helper: "محادثات واتساب وماسنجر وتعليقات الصفحة", icon: Bell, tone: "bg-muted text-primary", category: "portal" },
+  { href: "/admin-hub/print-settings", label: "إعدادات الطباعة", helper: "مقاسات الورق والهوامش والترويسات", icon: PenSquare, tone: "bg-muted text-primary", category: "services" },
   {
     href: "/admin-hub/users",
     label: "المستخدمين",
@@ -374,6 +378,7 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/settings/pricing-rules")
       return <AdminSettings pricingOnly />;
     if (loc === "/admin-hub/settings") return <AdminSettings />;
+    if (loc === "/admin-hub/print-settings") return <PrintSettings />;
     if (loc === "/admin-hub/permissions") return <AdminPermissions />;
     if (loc === "/admin-hub/sheets") return <AdminSheets />;
     if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
@@ -389,6 +394,7 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/legacy-patients")
       return <PatientsRecordsPage defaultTab="record" embeddedInHub />;
     if (loc === "/admin-hub/whatsapp-inbox") return <AdminWhatsAppInbox />;
+    if (loc === "/admin-hub/auto-reply") return <AutoReply />;
     if (loc === "/admin-hub/op-history")
       return <PatientsRecordsPage defaultTab="op" embeddedInHub />;
     if (loc === "/admin-hub/pentacam-duplicates")

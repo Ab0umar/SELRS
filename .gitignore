@@ -252,6 +252,7 @@ artifacts/
 .codex/agents/
 .codex/plugins/cache/
 .codex-remote-attachments/
+/.codex-attachments/
 .impeccable/live/
 docs/graphify-out/
 
@@ -331,3 +332,10 @@ docs/graphify-out/
 /$null
 /nul
 /{f
+# Keep the auto-reply setup and approved plan with the feature.
+!/docs/
+/docs/*
+!/docs/auto-reply-setup.md
+!/docs/auto-reply-plan.md
+!/docs/auto-reply-verification.md
+.auto-reply/

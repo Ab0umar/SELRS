@@ -130,6 +130,7 @@ export default function RequestTests({
   }, [requestedVisitDate]);
 
   const [selectedTests, setSelectedTests] = useState<TestItem[]>([]);
+  const [printProfile, setPrintProfile] = useState<"tests" | "radiology">(() => new URLSearchParams(window.location.search).get("printProfile") === "radiology" ? "radiology" : "tests");
   const [generalNotes, setGeneralNotes] = useState("");
   const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
     { patientId: patientId ?? 0, page: "request-tests" },
@@ -1435,7 +1436,7 @@ export default function RequestTests({
           </aside>
 
           {/* Test List & Notes (Single Column) */}
-          <div className="request-tests-print-content request-tests-paper space-y-5">
+          <div data-clinical-print-profile={printProfile} className="request-tests-print-content request-tests-paper space-y-5">
             <div className="request-tests-paper-header">
               <div
                 className="request-patient-grid"
@@ -1549,7 +1550,11 @@ export default function RequestTests({
               <FileText className="h-4 w-4 text-primary" />
               <span>طلب الفحوصات والتحاليل</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={printProfile} onValueChange={value => setPrintProfile(value as "tests" | "radiology")}>
+                <SelectTrigger aria-label="قالب طباعة الطلب" className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="tests">تحاليل وفحوصات</SelectItem><SelectItem value="radiology">أشعة</SelectItem></SelectContent>
+              </Select>
               {!editingForbidden ? (
                 <Button
                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-sm h-9 px-5 rounded-xl"

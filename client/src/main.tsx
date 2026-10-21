@@ -440,6 +440,10 @@ const trpcClient = trpc.createClient({
       url: getApiUrl("/api/trpc"),
       transformer: superjson,
       async fetch(input, init) {
+        if (new URLSearchParams(window.location.search).get("printPreview") === "1" &&
+            !["GET", "HEAD"].includes((init?.method ?? "GET").toUpperCase())) {
+          throw new Error("Clinical print preview is read-only");
+        }
         const requestUrl =
           typeof input === "string"
             ? input

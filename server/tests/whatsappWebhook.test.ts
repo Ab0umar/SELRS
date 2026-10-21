@@ -33,6 +33,7 @@ describe("WhatsApp webhook authentication", () => {
   beforeEach(async () => {
     vi.resetAllMocks();
     ENV.whatsappAppSecret = "test-webhook-secret";
+    ENV.whatsappPhoneNumberId = "";
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
     const app = express();
@@ -307,5 +308,40 @@ describe("WhatsApp webhook authentication", () => {
   it("rejects a missing message ID instead of storing an undeduplicatable row", async () => {
     expect((await deliver([""])).status).toBe(400);
     expect(getDb).not.toHaveBeenCalled();
+  });
+  it("keeps customer-service number messages out of the confirmation webhook", async () => {
+    ENV.whatsappPhoneNumberId = "confirmation-id";
+    const payload = JSON.stringify({
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                metadata: { phone_number_id: "support-id" },
+                messages: [
+                  {
+                    id: "support-message",
+                    from: "201000000000",
+                    type: "text",
+                    text: { body: "hello" },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const response = await fetch(url, {
+      method: "POST",
+      body: payload,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Hub-Signature-256": signature(payload),
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(getDb).not.toHaveBeenCalled();
+    expect(sendWhatsAppReply).not.toHaveBeenCalled();
   });
 });

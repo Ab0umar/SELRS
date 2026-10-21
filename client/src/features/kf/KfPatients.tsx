@@ -15,15 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { TRPCClientError } from "@trpc/client";
 import { DateInput } from "@/components/ui/date-input";
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debouncedValue;
-}
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 type FormState = {
   fullName: string;
@@ -222,7 +214,7 @@ export default function KfPatients() {
   const [addOpen, setAddOpen] = useState(false);
   const pageSize = 15;
 
-  const debouncedSearch = useDebounce(searchTerm, 300);
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
   const utils = trpc.useUtils();
 
   const { data, isLoading, isError, error } = trpc.kf.listPatients.useQuery({

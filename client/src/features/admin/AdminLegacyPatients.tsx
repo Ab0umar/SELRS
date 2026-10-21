@@ -77,7 +77,7 @@ export default function AdminLegacyPatients() {
   const hasMore = rows.length === pageSize;
 
   return (
-    <div className="w-full space-y-4 pb-6 text-start" dir="rtl">
+    <div className="archive-patients w-full space-y-4 pb-6 text-start" dir="rtl">
       <Card
         dir="rtl"
         className="overflow-hidden rounded-lg border-border text-start shadow-none"
@@ -197,6 +197,7 @@ export default function AdminLegacyPatients() {
           ) : (
             <div className="overflow-x-auto">
               <Table
+                data-archive-records="patients"
                 dir="rtl"
                 className="min-w-[1180px] text-center [&_td]:text-center [&_th]:text-center"
               >
@@ -229,7 +230,7 @@ export default function AdminLegacyPatients() {
                       key={patient.id}
                       className={index % 2 === 1 ? "bg-muted/20" : undefined}
                     >
-                      <TableCell dir="rtl" className="text-start">
+                      <TableCell data-label="كود المريض" dir="rtl" className="text-start">
                         <Badge
                           dir="rtl"
                           variant="outline"
@@ -238,32 +239,32 @@ export default function AdminLegacyPatients() {
                           {patient.patientCode || "—"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-semibold text-foreground">
+                      <TableCell data-label="الاسم" className="font-semibold text-foreground">
                         {patient.fullName || "—"}
                       </TableCell>
-                      <TableCell dir="ltr" className="font-mono tabular-nums">
+                      <TableCell data-label="الهاتف" dir="ltr" className="font-mono tabular-nums">
                         {patient.phone || "—"}
                       </TableCell>
-                      <TableCell className="tabular-nums">
+                      <TableCell data-label="تاريخ الميلاد" className="tabular-nums">
                         {formatDate(patient.dateOfBirth)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="الجنس">
                         {patient.gender === "male"
                           ? "ذكر"
                           : patient.gender === "female"
                             ? "أنثى"
                             : "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="الطبيب">
                         {patient.doctorName || patient.doctorCode || "—"}
                       </TableCell>
-                      <TableCell className="tabular-nums">
+                      <TableCell data-label="آخر زيارة" className="tabular-nums">
                         {formatDate(patient.lastVisit)}
                       </TableCell>
-                      <TableCell className="tabular-nums text-muted-foreground">
+                      <TableCell data-label="تاريخ الإضافة" className="tabular-nums text-muted-foreground">
                         {formatDate(patient.createdAt)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="الخدمات المرتبطة">
                         <div className="flex flex-wrap justify-center gap-1.5">
                           {(patient.services ?? []).length === 0 ? (
                             <span className="text-muted-foreground">—</span>

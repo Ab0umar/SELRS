@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { Printer } from "@bcyesil/capacitor-plugin-printer";
 import { toast } from "sonner";
+import { ensureClinicalPrintSettings, applyClinicalPrintSettings } from "./clinicalPrintSettings";
 
 export function canUseNativeAndroidPrint() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
@@ -226,6 +227,7 @@ export async function requestNativeAndroidPrint(jobName = "SELRS Print", htmlCon
   }
 
   try {
+    if (!htmlContent) { await ensureClinicalPrintSettings(); applyClinicalPrintSettings(); }
     const content = htmlContent ?? buildScopedPrintHtml();
     await Printer.print({
       content,

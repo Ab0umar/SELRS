@@ -29,7 +29,7 @@ export function readPrintMode(search?: string) {
   return {
     printView: params.get("print") === "1",
     autoPrint:
-      params.get("autoprint") === "1" || params.get("nativeprint") === "1",
+      params.get("printPreview") !== "1" && (params.get("autoprint") === "1" || params.get("nativeprint") === "1"),
     nativePrint: params.get("nativeprint") === "1",
   };
 }

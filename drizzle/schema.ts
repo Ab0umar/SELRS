@@ -18,6 +18,7 @@ import { uniqueIndex } from "drizzle-orm/mysql-core";
 import { attendanceTimestamp } from "./attendanceTimestamp";
 import { encryptedText } from "./encryptedText";
 import type { TestReferenceRange } from "../shared/test-reference-ranges";
+export * from "./autoReply";
 /**
  * Core user table with local authentication (username/password)
  */

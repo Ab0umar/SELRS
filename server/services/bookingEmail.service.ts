@@ -18,7 +18,7 @@ function formatBookingDate(bookingDate: Date | string): string {
 
 function branchLabel(branch: string | null | undefined): string {
   if (branch === "tanta") return "فرع طنطا";
-  if (branch === "kfs") return "كفر الشيخ - أمام مستشفى الرمد";
+  if (branch === "kfs") return "كفر الشيخ - ٣ عمارة الأوقاف، الدور الثالث، شارع الجيش، أمام البنك الأهلي";
   return "مركز عيون الشروق";
 }
 

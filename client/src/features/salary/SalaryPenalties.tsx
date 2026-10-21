@@ -368,13 +368,13 @@ export default function SalaryPenalties() {
     }, {}),
   );
 
-  const updateBasicMut = (trpc as any).salary.updateBasic.useMutation({
+  const setInsuranceMut = (trpc as any).salary.setInsuranceDeduction.useMutation({
     onSuccess: () => {
       basicsQ.refetch();
       setEditingInsurance(null);
       toast.success("تم التحديث");
     },
-    onError: (e: any) => toast.error("تعذر تعديل الراتب الأساسي: " + e.message),
+    onError: (e: any) => toast.error("تعذر تعديل خصم التأمين: " + e.message),
   });
 
   // Tab-specific print functions
@@ -2155,14 +2155,14 @@ export default function SalaryPenalties() {
                               title="حفظ"
                               variant="ghost"
                               size="sm"
-                              disabled={updateBasicMut.isPending}
+                              disabled={setInsuranceMut.isPending}
                               onClick={() => {
                                 const v = parseFloat(editing.value);
                                 if (isNaN(v) || v < 0) {
                                   toast.error("أدخل مبلغ صحيح");
                                   return;
                                 }
-                                updateBasicMut.mutate({
+                                setInsuranceMut.mutate({
                                   id: b.id,
                                   insuranceDeduction: v,
                                 });
@@ -2300,14 +2300,14 @@ export default function SalaryPenalties() {
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={updateBasicMut.isPending}
+                              disabled={setInsuranceMut.isPending}
                               onClick={() => {
                                 const v = parseFloat(editing.value);
                                 if (isNaN(v) || v < 0) {
                                   toast.error("أدخل مبلغ صحيح");
                                   return;
                                 }
-                                updateBasicMut.mutate({
+                                setInsuranceMut.mutate({
                                   id: b.id,
                                   insuranceDeduction: v,
                                 });

@@ -22,6 +22,9 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { authService, registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
 import { registerWhatsAppWebhook } from "./whatsappWebhook";
+import { registerAutoReplyWebhook } from "./autoReplyWebhook";
+import { startAutoReplyWorker } from "../services/auto-reply/worker";
+import { startCoexistenceWorker } from "../services/auto-reply/coexistence-sync";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -1564,6 +1567,7 @@ async function startServer() {
   registerZKTecoAdms(app);
   // WhatsApp Cloud API webhook — must be before global body parsers so it can capture the raw body for signature verification
   registerWhatsAppWebhook(app);
+  registerAutoReplyWebhook(app);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -2603,6 +2607,8 @@ async function startServer() {
   startPunchReception();
   initMarketingScheduler();
   initManusGenerationWorker();
+  startAutoReplyWorker();
+  startCoexistenceWorker();
   // Pentacam/Srv100 import+OCR loops now run as a standalone service
   // (server/services/pentacam.ts, `pnpm pentacam:service`), not in the web server.
   startOpReminderScheduler();

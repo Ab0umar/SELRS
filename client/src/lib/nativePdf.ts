@@ -4,6 +4,8 @@ import html2canvas from "html2canvas";
 import { Capacitor } from "@capacitor/core";
 import { PDFDocument } from "pdf-lib";
 import { triggerBlobDownload } from "@/_core/utils/export";
+import { ensureClinicalPrintSettings, currentPrintDocument, currentPrintProfile, profileRootCss, addPrintText, applyClinicalPrintSettings } from "./clinicalPrintSettings";
+import type { PrintProfile } from "../../../shared/printSettings";
 import {
   canUseNativeAndroidPrint,
   requestNativeAndroidPrint,
@@ -58,6 +60,7 @@ type ExportElementToPdfOptions = {
   fileName: string;
   selector?: string;
   element?: HTMLElement | null;
+  printProfile?: PrintProfile;
 };
 type ExportElementToJpgOptions = {
   selector?: string;
@@ -371,12 +374,19 @@ export async function exportElementToPdf({
   fileName,
   selector = "[data-mobile-pdf-root]",
   element,
+  printProfile,
 }: ExportElementToPdfOptions) {
   if (typeof window === "undefined" || typeof document === "undefined")
     return false;
-  const target =
+  let target =
     element ?? (document.querySelector(selector) as HTMLElement | null);
   if (!target) return false;
+  await ensureClinicalPrintSettings();
+  const configuredProfile = printProfile ?? currentPrintProfile();
+  const definition = currentPrintDocument();
+  if (configuredProfile && !printProfile && definition && !target.matches(definition.selector)) {
+    target = target.querySelector<HTMLElement>(definition.selector) ?? target;
+  }
 
   const previousScrollTop = target.scrollTop;
   target.scrollTop = 0;
@@ -388,6 +398,18 @@ export async function exportElementToPdf({
 
     const snapshot = await createIsolatedSnapshotTarget(target);
     if (!snapshot) return false;
+
+    if (configuredProfile) {
+      snapshot.cloneRoot.style.cssText += profileRootCss(configuredProfile, true);
+      if (!printProfile) {
+        // The snapshot freezes grid tracks in pixels; preserve that layout and fit it into the configured printable area.
+        const sourceStyle = window.getComputedStyle(target);
+        const contentWidth = Math.max(target.clientWidth, target.scrollWidth) - parseFloat(sourceStyle.paddingLeft || "0") - parseFloat(sourceStyle.paddingRight || "0");
+        snapshot.cloneRoot.style.setProperty("width", `${Math.max(1, contentWidth)}px`, "important");
+        snapshot.cloneRoot.style.setProperty("min-height", "0", "important");
+      }
+      addPrintText(snapshot.cloneRoot, configuredProfile, true);
+    }
 
     try {
       const canvas = await html2canvas(snapshot.cloneRoot, {
@@ -410,14 +432,18 @@ export async function exportElementToPdf({
       });
 
       const pdf = await PDFDocument.create();
-      const pageWidth = 595.28;
-      const pageHeight = 841.89;
-      const margin = 12;
-      const usableWidth = pageWidth - margin * 2;
+      const pageWidth = configuredProfile ? configuredProfile.widthMm * 72 / 25.4 : 595.28;
+      const pageHeight = configuredProfile ? configuredProfile.heightMm * 72 / 25.4 : 841.89;
+      const left = configuredProfile ? configuredProfile.leftMm * 72 / 25.4 : 12;
+      const right = configuredProfile ? configuredProfile.rightMm * 72 / 25.4 : 12;
+      const top = configuredProfile ? configuredProfile.topMm * 72 / 25.4 : 12;
+      const bottom = configuredProfile ? configuredProfile.bottomMm * 72 / 25.4 : 12;
+      const usableWidth = pageWidth - left - right;
       const scale = usableWidth / canvas.width;
-      const sourcePageHeight = Math.max(
+      const rawPageHeight = (pageHeight - top - bottom) / scale;
+      const sourcePageHeight = configuredProfile && canvas.height <= rawPageHeight + 2 ? canvas.height : Math.max(
         1,
-        Math.floor((pageHeight - margin * 2) / scale),
+        Math.floor(rawPageHeight),
       );
 
       for (
@@ -447,11 +473,11 @@ export async function exportElementToPdf({
 
         const dataUrl = sliceCanvas.toDataURL("image/jpeg", 0.92);
         const image = await pdf.embedJpg(dataUrl);
-        const renderedHeight = sliceHeight * scale;
+        const renderedHeight = configuredProfile ? Math.min(sliceHeight * scale, pageHeight - top - bottom) : sliceHeight * scale;
         const page = pdf.addPage([pageWidth, pageHeight]);
         page.drawImage(image, {
-          x: margin,
-          y: pageHeight - margin - renderedHeight,
+          x: left,
+          y: pageHeight - top - renderedHeight,
           width: usableWidth,
           height: renderedHeight,
         });
@@ -552,6 +578,9 @@ export async function printOrExportPdf(
   if (typeof window === "undefined" || typeof document === "undefined") {
     return false;
   }
+
+  await ensureClinicalPrintSettings();
+  applyClinicalPrintSettings();
 
   const selector = options?.selector ?? "[data-mobile-pdf-root]";
   const hasSpecificTarget = Boolean(options?.selector || options?.element);

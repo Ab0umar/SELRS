@@ -138,11 +138,11 @@ export default function OpHistory() {
   };
 
   return (
-    <div className="w-full space-y-6 pb-4 text-start" dir="rtl">
+    <div className="archive-operations w-full space-y-6 pb-4 text-start" dir="rtl">
       <Card className="rounded-lg border-border shadow-none">
         <CardContent className="space-y-3 p-3 sm:p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex flex-wrap flex-1 items-center gap-2 min-w-[280px]">
+          <div className="archive-operation-toolbar flex flex-wrap items-center justify-between gap-2.5">
+            <div className="archive-operation-filters flex flex-wrap flex-1 items-center gap-2 min-w-[280px]">
               <form
                 onSubmit={handleSearchSubmit}
                 className="flex min-w-0 flex-1 items-center gap-1.5 sm:min-w-[220px]"
@@ -205,12 +205,14 @@ export default function OpHistory() {
               </Select>
             </div>
 
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
+            <div className="archive-operation-actions flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
               {isAdmin && (
                 <Button
                   variant="outline"
                   size="sm"
                   type="button"
+                  title="مزامنة الآن"
+                  aria-label={syncMutation.isPending ? "جاري المزامنة" : "مزامنة الآن"}
                   onClick={() => syncMutation.mutate()}
                   disabled={syncMutation.isPending}
                   className="min-h-11 text-xs gap-1"
@@ -228,6 +230,8 @@ export default function OpHistory() {
                   variant="outline"
                   size="sm"
                   type="button"
+                  title="ربط أكواد الخدمات"
+                  aria-label="ربط أكواد الخدمات"
                   onClick={() => setMappingOpen(true)}
                   className="min-h-11 text-xs gap-1"
                 >
@@ -247,7 +251,17 @@ export default function OpHistory() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
+          <div className="archive-operation-types flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
+            {counts.length > 0 ? (
+              <div className="archive-mobile-operation-type hidden">
+                <Select value={activeType ?? undefined} onValueChange={handleTypeClick}>
+                  <SelectTrigger aria-label="نوع العملية"><SelectValue placeholder="نوع العملية" /></SelectTrigger>
+                  <SelectContent>{counts.map((c: { operationType: string; count: number }) => (
+                    <SelectItem key={c.operationType} value={c.operationType}>{operationTypeLabelAr(c.operationType)} ({c.count})</SelectItem>
+                  ))}</SelectContent>
+                </Select>
+              </div>
+            ) : null}
             {countsQuery.isLoading ? (
               <span
                 className="py-1 text-xs text-muted-foreground"
@@ -280,7 +294,7 @@ export default function OpHistory() {
                   type="button"
                   aria-pressed={activeType === c.operationType}
                   onClick={() => handleTypeClick(c.operationType)}
-                  className={`min-h-11 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                  className={`archive-operation-type-button min-h-11 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                     activeType === c.operationType
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-muted/40 hover:bg-accent border-border/80 text-foreground"
@@ -330,7 +344,7 @@ export default function OpHistory() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table className="min-w-[900px] table-fixed">
+                <Table data-archive-records="operations" className="min-w-[900px] table-fixed">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[9%]">كود المريض</TableHead>
@@ -347,33 +361,33 @@ export default function OpHistory() {
                   <TableBody>
                     {rows.map((row: any) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-mono truncate">
+                        <TableCell data-label="كود المريض" className="font-mono truncate">
                           {row.patientCode}
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="الاسم" className="truncate">
                           {row.patientFullName}
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="اسم العملية" className="truncate">
                           {operationTypeLabelAr(row.operationType)}
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="تاريخ العملية" className="truncate">
                           {formatDate(row.operationDate)}
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="العين" className="truncate">
                           {row.eye || "—"}
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="الطبيب" className="truncate">
                           {row.doctorName || row.doctorCode || "—"}
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="المصدر" className="truncate">
                           <Badge variant="secondary">
                             {SOURCE_LABEL[row.source] ?? row.source}
                           </Badge>
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="ملاحظات" className="truncate">
                           {row.notes || "—"}
                         </TableCell>
-                        <TableCell className="truncate">
+                        <TableCell data-label="الإجراء" className="truncate">
                           <Button
                             variant="ghost"
                             size="sm"

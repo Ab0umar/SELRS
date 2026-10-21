@@ -64,6 +64,7 @@ import {
 } from "./lib/nativePrint";
 import { ensureNativeNotificationPermission } from "./lib/nativeNotifications";
 import { useAuth } from "./hooks/useAuth";
+import ClinicalPrintSettingsBridge from "./components/ClinicalPrintSettingsBridge";
 
 const RUNTIME_ISSUE_STORAGE_KEY = "selrs:last-runtime-issue";
 const HEALTH_POLL_MS = 60_000;
@@ -691,6 +692,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>
         <TooltipProvider>
+          <ClinicalPrintSettingsBridge />
           <GlobalCommandPalette />
           {isNativeShell ? (
             <MobileAppEnhancements nativeAppInfo={nativeAppInfo} />

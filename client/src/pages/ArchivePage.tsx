@@ -8,6 +8,7 @@ import AdminLegacyPatients from "@/features/admin/AdminLegacyPatients";
 import OpHistory from "@/features/admin/OpHistory";
 import MedicalReference from "./MedicalReference";
 import { Button } from "@/components/ui/button";
+import "./archive-mobile.css";
 
 export type ArchiveTabKey = "patients" | "operations" | "reference";
 
@@ -97,30 +98,32 @@ export default function ArchivePage({
 
   return (
     <div
-      className="w-full bg-background text-foreground print:bg-white"
+      className="archive-page w-full bg-background text-foreground print:bg-white"
       dir="rtl"
     >
-      <div data-module-content-start className="w-full space-y-4 p-3 sm:p-5 print:p-0 print:space-y-0">
+      <div data-module-content-start className="archive-content w-full space-y-4 p-3 sm:p-5 print:p-0 print:space-y-0">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="w-full space-y-4 print:space-y-0"
           dir="rtl"
         >
-          <div className="mb-3 flex items-center justify-between gap-3 print:hidden">
+          <div className="archive-print-toolbar mb-3 flex items-center justify-between gap-3 print:hidden">
             <p className="text-sm text-muted-foreground">
               الطباعة تقتصر على التبويب النشط: {activeTabLabel}
             </p>
             <Button variant="bare"
               type="button"
+              title="طباعة التبويب النشط"
+              aria-label={`طباعة ${activeTabLabel}`}
               onClick={() => window.print()}
               className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-semibold hover:bg-muted"
             >
               <Printer className="h-4 w-4" aria-hidden="true" />
-              طباعة التبويب النشط
+              <span>طباعة التبويب النشط</span>
             </Button>
           </div>
-          <div className="overflow-x-auto pb-1 print:hidden">
+          <div className="archive-tabs overflow-x-auto pb-1 print:hidden">
             <TabsList
               className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1"
               dir="rtl"
