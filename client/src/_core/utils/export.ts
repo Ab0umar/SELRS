@@ -169,6 +169,14 @@ export const exportToCSV = async (
   }
 };
 
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 /**
  * Print data
  */
@@ -179,7 +187,7 @@ export const printData = (data: any[], title: string, columns: string[]) => {
   let html = `
     <html dir="rtl">
       <head>
-        <title>${title}</title>
+        <title>${escapeHtml(title)}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
           h1 { text-align: center; color: #333; }
@@ -194,12 +202,12 @@ export const printData = (data: any[], title: string, columns: string[]) => {
         </style>
       </head>
       <body>
-        <h1>${title}</h1>
+        <h1>${escapeHtml(title)}</h1>
         <p>تاريخ الطباعة: ${new Date().toLocaleString("ar-EG")}</p>
         <table>
           <thead>
             <tr>
-              ${columns.map((col) => `<th>${col}</th>`).join("")}
+              ${columns.map((col) => `<th>${escapeHtml(col)}</th>`).join("")}
             </tr>
           </thead>
           <tbody>
@@ -208,8 +216,11 @@ export const printData = (data: any[], title: string, columns: string[]) => {
   data.forEach((row) => {
     html += "<tr>";
     columns.forEach((col) => {
-      const value = row[col.replace(/\s+/g, "")] || "-";
-      html += `<td>${value}</td>`;
+      // Excel exporters key rows by the exact header (Arabic headers contain
+      // spaces), so try it first and fall back to the space-stripped key.
+      const raw = row[col] ?? row[col.replace(/\s+/g, "")];
+      const value = raw === null || raw === undefined || raw === "" ? "-" : raw;
+      html += `<td>${escapeHtml(value)}</td>`;
     });
     html += "</tr>";
   });

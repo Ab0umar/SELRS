@@ -7,7 +7,6 @@
 import { EventEmitter } from "events";
 import * as net from "net";
 import { DeviceSettingsService } from "./deviceSettings.service";
-import { requireDeviceEndpoint } from "./deviceEndpoint";
 
 export interface DeviceConfig {
   ip: string;
@@ -44,6 +43,9 @@ export class DeviceAdapterService extends EventEmitter {
   private punchCount = 0;
   private lastConnected?: Date;
   private connectionError?: string;
+  /** When true, raw TCP must stay down so FKOldLogPuller can own port 5005. */
+  private exclusiveUse = false;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(config: DeviceConfig) {
     super();
@@ -54,7 +56,9 @@ export class DeviceAdapterService extends EventEmitter {
    * Connect to the fingerprint device
    */
   async connect(): Promise<boolean> {
-    this.config = { ...this.config, ...requireDeviceEndpoint("fk") };
+    if (this.exclusiveUse) {
+      return false;
+    }
     if (this.socket) {
       return true; // already connected
     }
@@ -72,6 +76,13 @@ export class DeviceAdapterService extends EventEmitter {
           timeout: this.config.timeout,
         },
         () => {
+          if (this.exclusiveUse) {
+            this.isConnecting = false;
+            this.socket = null;
+            socket.destroy();
+            resolve(false);
+            return;
+          }
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.connectionError = undefined;
@@ -85,8 +96,14 @@ export class DeviceAdapterService extends EventEmitter {
       );
 
       socket.on("data", (data: Buffer) => this.handleData(data));
-      socket.on("error", (err: Error) => this.handleError(err));
-      socket.on("close", () => this.handleClose());
+      socket.on("error", (err: Error) => {
+        if (this.socket !== socket) return;
+        this.handleError(err);
+      });
+      socket.on("close", () => {
+        if (this.socket !== socket) return;
+        this.handleClose();
+      });
       socket.setTimeout(this.config.timeout, () => socket.destroy());
 
       this.socket = socket;
@@ -107,10 +124,44 @@ export class DeviceAdapterService extends EventEmitter {
    */
   disconnect(): void {
     if (this.socket) {
-      this.socket.destroy();
+      const socket = this.socket;
       this.socket = null;
       this.isConnecting = false;
+      socket.destroy();
     }
+  }
+
+  /**
+   * Drop the raw TCP session and block reconnects while FKOldLogPuller runs.
+   * The EF10K accepts only one session on :5005; a competing socket causes Load failed.
+   */
+  async releaseForPull(): Promise<void> {
+    this.exclusiveUse = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    const hadSocket = this.socket !== null;
+    const socket = this.socket;
+    this.disconnect();
+    console.log(
+      `[Device] Released for FK pull (wasConnected=${hadSocket}, exclusive=true)`,
+    );
+    if (socket && !socket.destroyed) {
+      await new Promise<void>((resolve) => {
+        socket.once("close", () => resolve());
+        setTimeout(resolve, 2000);
+      });
+    }
+    // Extra settle so the device drops the prior session before the puller connects.
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+
+  resumeAfterPull(): void {
+    this.exclusiveUse = false;
+    this.reconnectAttempts = 0;
+    console.log("[Device] Resuming after FK pull");
+    void this.connect();
   }
 
   /**
@@ -249,14 +300,18 @@ export class DeviceAdapterService extends EventEmitter {
    * Attempt to reconnect to device
    */
   private attemptReconnect(): void {
+    if (this.exclusiveUse) return;
     if (this.reconnectAttempts >= this.config.maxRetries) {
       this.connectionError = "Max reconnection attempts reached";
       return;
     }
 
     this.reconnectAttempts++;
-    setTimeout(() => {
-      this.connect();
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.exclusiveUse) return;
+      void this.connect();
     }, this.config.reconnectInterval);
   }
 

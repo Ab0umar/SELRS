@@ -92,9 +92,9 @@ export default function AccountingLoanEntry() {
     }
   };
   const field =
-    "h-14 w-full border-[3px] border-foreground/45 bg-card px-3 text-start text-xl font-bold text-foreground outline-none focus:border-primary";
+    "h-14 w-full border-[3px] border-primary/45 bg-card px-3 text-start text-xl font-bold text-foreground outline-none focus:border-primary";
   const label =
-    "flex h-14 items-center justify-center border-2 border-foreground/35 bg-muted px-3 text-2xl font-black text-foreground whitespace-nowrap";
+    "flex h-14 items-center justify-center border-2 border-primary/35 bg-muted px-3 text-2xl font-black text-foreground whitespace-nowrap";
   const remaining = (Number(amount) || 0) - (Number(repayment) || 0);
   const employeeLoan = (loansSummaryQ.data?.byPerson ?? []).find(
     (row) => row.name.trim() === name.trim(),

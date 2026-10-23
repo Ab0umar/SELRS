@@ -573,7 +573,7 @@ export function AppointmentsSection({
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
                         active
-                          ? "border-foreground bg-foreground text-background"
+                          ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-card text-foreground",
                       )}
                     >

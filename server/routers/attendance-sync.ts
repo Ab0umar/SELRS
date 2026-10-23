@@ -28,7 +28,6 @@ import { LeaveManagementService } from "../services/attendance/leaveManagement.s
 import { PermissionAdjustmentService } from "../services/attendance/permissionAdjustment.service";
 import { AuditLogService } from "../services/attendance/auditLog.service";
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
-import { requireDeviceEndpoint } from "../services/attendance/deviceEndpoint";
 import {
   resetSyncHistory,
   resetFkSyncHistory,
@@ -170,9 +169,9 @@ export const attendanceSyncRoutes = {
       if (k40.zk40Protocol !== "tcp") {
         throw new Error("ZK40 is configured for ADMS, not TCP sync");
       }
-      const ip = k40.ip;
+      const ip = process.env.ZK4370_IP || k40.ip || "";
       const port =
-        k40.port;
+        parseInt(process.env.ZK4370_PORT ?? "", 10) || k40.port || 4370;
       if (!ip) throw new Error("ZK40 IP not configured");
       return ZK4370SyncService.pull(
         ctx.user?.id,
@@ -613,8 +612,8 @@ export const attendanceSyncRoutes = {
     .mutation(async ({ input }) => {
       const diagnostics = getDeviceDiagnostics();
       const results = await diagnostics.runFullDiagnostics(
-        requireDeviceEndpoint("fk").ip,
-        requireDeviceEndpoint("fk").port,
+        input.ip,
+        input.port,
       );
       const report = diagnostics.generateReport();
 
@@ -634,7 +633,8 @@ export const attendanceSyncRoutes = {
     )
     .mutation(async ({ input }) => {
       const device = new ZKTecoDevice({
-        ...requireDeviceEndpoint("zk"),
+        ip: input.ip,
+        port: input.port,
         timeout: 5000,
       });
 
@@ -684,7 +684,8 @@ export const attendanceSyncRoutes = {
       try {
         const settings = DeviceSettingsService.getSettings();
         const config = {
-          ...requireDeviceEndpoint("fk"),
+          ip: input.ip || settings.ip || undefined,
+          port: input.port || settings.port || undefined,
           protocol: settings.fkProtocol ?? 0,
           password: settings.commPassword ?? 0,
         };
@@ -732,7 +733,8 @@ export const attendanceSyncRoutes = {
     .mutation(async ({ input }) => {
       const settings = DeviceSettingsService.getSettings();
       const config = {
-        ...requireDeviceEndpoint("fk"),
+        ip: input.ip || settings.ip || undefined,
+        port: input.port || settings.port || undefined,
         protocol: settings.fkProtocol ?? 0,
         password: settings.commPassword ?? 0,
       };
@@ -766,13 +768,14 @@ export const attendanceSyncRoutes = {
     )
     .mutation(async ({ input }) => {
       const settings = DeviceSettingsService.getSettings();
-      const { ip, port } = requireDeviceEndpoint("fk");
+      const ip = input.ip || settings.ip;
       if (!ip) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message: "عنوان جهاز البصمة غير مضبوط (ATTENDANCE_DEVICE_IP)",
         });
       }
+      const port = input.port || settings.port || 5005;
       const validatedIp = ipv4Address.parse(ip);
 
       const pullerPath =
@@ -898,8 +901,12 @@ export const attendanceSyncRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       try {
+        const deviceConfig = input.ip
+          ? { ip: input.ip, port: input.port }
+          : undefined;
         const result = await FKDeviceSyncService.syncNow(
           ctx.user.id,
+          deviceConfig,
         );
 
         await AuditLogService.log({
@@ -953,7 +960,10 @@ export const attendanceSyncRoutes = {
     )
     .mutation(async ({ input }) => {
       try {
-        const connected = await FKAttendLogPuller.testConnection();
+        const deviceConfig = input.ip
+          ? { ip: input.ip, port: input.port }
+          : undefined;
+        const connected = await FKAttendLogPuller.testConnection(deviceConfig);
 
         if (connected) {
           return {
@@ -980,13 +990,13 @@ export const attendanceSyncRoutes = {
 
         // ZK device (K40) — TCP pull if enabled and IP set
         const k40 = DeviceSettingsService.getK40Settings();
-        const zkIp = k40.ip;
+        const zkIp = process.env.ZK4370_IP || k40.ip || "";
         let zkError: string | null = null;
         if (k40.enabled && k40.zk40Protocol === "tcp" && zkIp) {
           const zkResult = await ZK4370SyncService.pull(
             ctx.user?.id,
             zkIp,
-            k40.port,
+            parseInt(process.env.ZK4370_PORT ?? "", 10) || k40.port || 4370,
             k40.commPassword ?? 0,
           );
           if (!zkResult.success) zkError = zkResult.error ?? "ZK pull failed";

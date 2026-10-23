@@ -7,7 +7,6 @@ import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { getDeviceEndpoint, requireDeviceEndpoint } from "./deviceEndpoint";
 
 const PS32     = "C:\\Windows\\SysWOW64\\WindowsPowerShell\\v1.0\\powershell.exe";
 const PS1_PATH = process.env.ZK_PULL_PS1_PATH
@@ -36,11 +35,10 @@ export interface ZKDeviceInfo {
 }
 
 export class ZK4370LogPuller {
-  static get DEFAULT_IP() { return getDeviceEndpoint("zk").ip; }
-  static get DEFAULT_PORT() { return getDeviceEndpoint("zk").port; }
+  static readonly DEFAULT_IP   = process.env.ZK4370_IP   ?? "196.202.50.91";
+  static readonly DEFAULT_PORT = parseInt(process.env.ZK4370_PORT ?? "4370", 10);
 
   static async setDeviceTime(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 258288): Promise<void> {
-    ({ ip, port } = requireDeviceEndpoint("zk"));
     try {
       const out = run(`-Mode settime -IP ${ip} -Port ${port} -CommPwd ${commKey}`, 15_000);
       console.log(`[ZK4370Puller] settime: ${out.trim()}`);
@@ -50,7 +48,6 @@ export class ZK4370LogPuller {
   }
 
   static async pullLogs(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 258288): Promise<ZKPunch[]> {
-    ({ ip, port } = requireDeviceEndpoint("zk"));
     await this.setDeviceTime(ip, port, commKey);
     const tmp = tmpPath("zk_logs");
     try {
@@ -63,7 +60,6 @@ export class ZK4370LogPuller {
   }
 
   static async pullUsers(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT, commKey = 258288): Promise<ZKDeviceUser[]> {
-    ({ ip, port } = requireDeviceEndpoint("zk"));
     const tmp = tmpPath("zk_users");
     try {
       const out = run(`-Mode users -IP ${ip} -Port ${port} -CommPwd ${commKey} -OutFile "${tmp}"`, 30_000);
@@ -79,7 +75,6 @@ export class ZK4370LogPuller {
     ip = this.DEFAULT_IP,
     port = this.DEFAULT_PORT,
   ): Promise<{ pushed: number; failed: number }> {
-    ({ ip, port } = requireDeviceEndpoint("zk"));
     const empFile = tmpPath("zk_emp", "csv");
     try {
       const lines = [
@@ -99,7 +94,6 @@ export class ZK4370LogPuller {
   }
 
   static async getDeviceInfo(ip = this.DEFAULT_IP, port = this.DEFAULT_PORT): Promise<ZKDeviceInfo> {
-    ({ ip, port } = requireDeviceEndpoint("zk"));
     try {
       const out = run(`-Mode info -IP ${ip} -Port ${port}`, 15_000);
       return {

@@ -217,9 +217,9 @@ export default function AccountingLedger() {
     ["النهاية", () => goTo(rows.length - 1)],
   ];
   const fieldClass =
-    "h-14 w-full border-[3px] border-foreground/45 bg-card px-3 text-start text-xl font-bold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+    "h-14 w-full border-[3px] border-primary/45 bg-card px-3 text-start text-xl font-bold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
   const labelClass =
-    "flex h-14 items-center justify-center border-2 border-foreground/35 bg-muted px-3 text-2xl font-black text-foreground whitespace-nowrap";
+    "flex h-14 items-center justify-center border-2 border-primary/35 bg-muted px-3 text-2xl font-black text-foreground whitespace-nowrap";
   return (
     <AccountingPage title="القيود">
       <section
@@ -293,7 +293,7 @@ export default function AccountingLedger() {
                   <span className="text-base font-semibold">الرصيد الحالي</span>
                   <output
                     dir="ltr"
-                    className="h-14 border-2 border-foreground/35 bg-card px-4 py-2 text-center text-3xl font-black"
+                    className="h-14 border-2 border-primary/35 bg-card px-4 py-2 text-center text-3xl font-black"
                   >
                     {accountingMetricValue(
                       summaryQ,
@@ -421,7 +421,7 @@ export default function AccountingLedger() {
                   <span className={labelClass}>الرصيد</span>
                   <output
                     dir="ltr"
-                    className="h-14 border-2 border-foreground/35 bg-card px-3 py-2 text-center text-xl font-black"
+                    className="h-14 border-2 border-primary/35 bg-card px-3 py-2 text-center text-xl font-black"
                   >
                     {fmt((Number(income) || 0) - (Number(expense) || 0))}
                   </output>

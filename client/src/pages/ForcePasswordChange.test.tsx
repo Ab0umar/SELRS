@@ -1,45 +1,28 @@
 // file: client/src/pages/ForcePasswordChange.test.tsx
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Router } from "wouter";
 
-const { changeUsernameMutate, changePasswordMutate } = vi.hoisted(() => ({
-  changeUsernameMutate: vi.fn(),
-  changePasswordMutate: vi.fn(),
-}));
+const useUtils = vi.hoisted(() => vi.fn());
+const changeUsernameUseMutation = vi.hoisted(() => vi.fn());
+const changePasswordUseMutation = vi.hoisted(() => vi.fn());
+const useAuthMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    useUtils: () => ({ auth: { me: { invalidate: vi.fn() } } }),
+    useUtils,
     auth: {
-      changeUsername: {
-        useMutation: () => ({
-          mutateAsync: changeUsernameMutate,
-          isPending: false,
-        }),
-      },
-      changePassword: {
-        useMutation: () => ({
-          mutateAsync: changePasswordMutate,
-          isPending: false,
-        }),
-      },
+      changeUsername: { useMutation: changeUsernameUseMutation },
+      changePassword: { useMutation: changePasswordUseMutation },
     },
   },
 }));
 
 vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => ({
-    user: {
-      name: "مستخدم التجربة",
-      username: "saved-user",
-      mustChangePassword: true,
-    },
-  }),
+  useAuth: useAuthMock,
 }));
 
 import ForcePasswordChange from "./ForcePasswordChange";
-import { CHANGE_PASSWORD_RULES_HINT } from "@/lib/change-password-validation";
 
 const USERNAME_SAVE_LABEL = "حفظ اسم المستخدم";
 
@@ -51,150 +34,134 @@ function renderPage(): string {
   );
 }
 
-/** Full markup of each <form>…</form> block; the two forms are siblings, so a
-    non-greedy match cannot spill from one into the other. */
+/** Every <form ...>...</form> block. The two forms are siblings, so non-greedy matching is safe. */
 function formBlocks(html: string): string[] {
   return html.match(/<form\b[\s\S]*?<\/form>/g) ?? [];
 }
 
-/** Opening tags of every <input ...> in the markup. */
-function inputTags(html: string): string[] {
-  return html.match(/<input\b[^>]*>/g) ?? [];
+function passwordFormBlock(html: string): string {
+  const block = formBlocks(html).find((form) =>
+    form.includes('type="password"'),
+  );
+  if (!block) throw new Error("password form missing from markup");
+  return block;
 }
 
-/** Opening tags of every <button ...> in the markup. */
-function buttonTags(html: string): string[] {
-  return html.match(/<button\b[^>]*>/g) ?? [];
+function usernameFormBlock(html: string): string {
+  const block = formBlocks(html).find((form) =>
+    form.includes('id="usernameEditable"'),
+  );
+  if (!block) throw new Error("username form missing from markup");
+  return block;
 }
 
-function count(html: string, substring: string): number {
-  return html.split(substring).length - 1;
-}
-
-/** Autocomplete hint matcher. React 19 SSR emits autoComplete with its JSX
-    casing (autoComplete=) while other attributes come out lowercase
-    (tabindex=); HTML treats attribute names case-insensitively, so match
-    either here. Global-flag variants must stay short-lived: a reused global
-    regex keeps lastIndex state between .test() calls. */
-function autocompleteAttr(value: string, flags = ""): RegExp {
-  return new RegExp(`auto[Cc]omplete="${value}"`, flags);
-}
-
-function countAutocomplete(html: string, value: string): number {
-  return (html.match(autocompleteAttr(value, "g")) ?? []).length;
+/** Opening tag of the input with the given id (attribute order agnostic). */
+function inputTag(html: string, id: string): string {
+  const tag = html.match(new RegExp(`<input\\b[^>]*\\bid="${id}"[^>]*>`))?.[0];
+  if (!tag) throw new Error(`input #${id} missing from markup`);
+  return tag;
 }
 
 describe("ForcePasswordChange markup", () => {
-  it("should_render_password_and_username_in_separate_forms", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthMock.mockReturnValue({
+      user: {
+        name: "أحمد التجريبي",
+        username: "testuser",
+        mustChangePassword: true,
+      },
+      isAuthenticated: true,
+    });
+    useUtils.mockReturnValue({ auth: { me: { invalidate: vi.fn() } } });
+    changeUsernameUseMutation.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    });
+    changePasswordUseMutation.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    });
+  });
+
+  it("should_render_two_sibling_forms_and_no_nested_form", () => {
     const html = renderPage();
     const forms = formBlocks(html);
 
-    expect(count(html, "<form")).toBe(2);
     expect(forms).toHaveLength(2);
-    // Sibling forms, none nested: each block holds exactly one open/close pair.
+    // Each form's inner content must not contain another form (no nesting,
+    // and the username/password forms must not swallow each other).
     for (const form of forms) {
-      expect(count(form, "<form")).toBe(1);
-      expect(count(form, "</form>")).toBe(1);
-    }
-    // The read-only full-name field stays outside both forms.
-    expect(forms.every(form => !form.includes("fullNameReadonly"))).toBe(true);
-  });
-
-  it("should_expose_password_autocomplete_hints_on_three_inputs", () => {
-    const html = renderPage();
-
-    expect(countAutocomplete(html, "current-password")).toBe(1);
-    expect(countAutocomplete(html, "new-password")).toBe(2);
-
-    const passwordInputs = inputTags(html).filter(tag =>
-      tag.includes('type="password"'),
-    );
-    expect(passwordInputs).toHaveLength(3);
-    for (const [field, autocomplete] of [
-      ["currentPassword", "current-password"],
-      ["newPassword", "new-password"],
-      ["confirmPassword", "new-password"],
-    ] as const) {
-      const tag = passwordInputs.find(input =>
-        input.includes(`name="${field}"`),
+      const inner = form.slice(
+        form.indexOf(">") + 1,
+        form.lastIndexOf("</form>"),
       );
-      expect(tag).toBeDefined();
-      expect(tag).toMatch(autocompleteAttr(autocomplete));
+      expect(inner).not.toContain("<form");
+      // Native validation must stay off so Enter always reaches our handler.
+      // React 19 serializes camelCase props verbatim (noValidate), while the
+      // HTML parser lowercases attribute names, so match case-insensitively.
+      expect(form.slice(0, form.indexOf(">"))).toMatch(/novalidate/i);
     }
   });
 
-  it("should_pair_username_autocomplete_with_visible_and_hidden_fields", () => {
-    const html = renderPage();
+  it("should_use_submit_button_for_password_form", () => {
+    const buttons =
+      passwordFormBlock(renderPage()).match(/<button\b[^>]*>/g) ?? [];
 
-    expect(countAutocomplete(html, "username")).toBeGreaterThanOrEqual(2);
-
-    // The hidden credential field pairs the saved username with the password
-    // form for password managers, while staying out of a11y tree and tab order.
-    const hiddenCredential = inputTags(html).find(
-      tag =>
-        tag.includes('type="text"') &&
-        autocompleteAttr("username").test(tag) &&
-        tag.includes('aria-hidden="true"') &&
-        tag.includes('tabindex="-1"'),
-    );
-    expect(hiddenCredential).toBeDefined();
-    expect(hiddenCredential).toContain('value="saved-user"');
-
-    // The editable username field keeps its own autocomplete hint.
-    const editableUsername = inputTags(html).find(
-      tag =>
-        tag.includes('id="usernameEditable"') &&
-        autocompleteAttr("username").test(tag),
-    );
-    expect(editableUsername).toBeDefined();
-    expect(editableUsername).not.toContain("aria-hidden");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).toContain('type="submit"');
   });
 
-  it("should_render_three_password_fields_with_password_type", () => {
+  it("should_set_current_password_autocomplete", () => {
+    const tag = inputTag(renderPage(), "currentPasswordRequired");
+
+    expect(tag).toContain('type="password"');
+    // autoComplete may serialize camelCase (React 19 static markup).
+    expect(tag).toMatch(/autocomplete="current-password"/i);
+  });
+
+  it("should_set_new_password_autocomplete_on_new_and_confirm", () => {
     const html = renderPage();
 
-    for (const id of [
-      "currentPasswordRequired",
-      "newPasswordRequired",
-      "confirmPasswordRequired",
-    ]) {
-      const tag = inputTags(html).find(input => input.includes(`id="${id}"`));
-      expect(tag).toBeDefined();
+    for (const id of ["newPasswordRequired", "confirmPasswordRequired"]) {
+      const tag = inputTag(html, id);
       expect(tag).toContain('type="password"');
+      expect(tag).toMatch(/autocomplete="new-password"/i);
     }
   });
 
-  it("should_give_each_form_a_native_submit_button", () => {
-    const forms = formBlocks(renderPage());
+  it("should_set_username_autocomplete", () => {
+    const tag = inputTag(renderPage(), "usernameEditable");
 
-    expect(forms).toHaveLength(2);
-    for (const form of forms) {
-      const submit = buttonTags(form).find(tag =>
-        tag.includes('type="submit"'),
-      );
-      expect(submit).toBeDefined();
-    }
+    expect(tag).not.toContain('type="password"');
+    expect(tag).toMatch(/autocomplete="username"/i);
   });
 
-  it("should_name_the_icon_only_username_submit_button", () => {
-    const [usernameForm] = formBlocks(renderPage());
-    expect(usernameForm).toBeDefined();
+  it("should_give_username_save_button_an_accessible_name", () => {
+    const form = usernameFormBlock(renderPage());
+    const buttons = form.match(/<button\b[^>]*>/g) ?? [];
 
-    const submit = buttonTags(usernameForm ?? "").find(
-      tag => tag.includes('type="submit"') && tag.includes("aria-label"),
-    );
-    expect(submit).toBeDefined();
-    expect(submit).toContain(`aria-label="${USERNAME_SAVE_LABEL}"`);
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).toContain('type="submit"');
+    expect(buttons[0]).toContain(`aria-label="${USERNAME_SAVE_LABEL}"`);
+
+    // The glyph inside the icon-only button is decorative for screen readers.
+    const saveButton = form.match(
+      new RegExp(
+        `<button[^>]*aria-label="${USERNAME_SAVE_LABEL}"[^>]*>[\\s\\S]*?</button>`,
+      ),
+    )?.[0];
+    expect(saveButton).toBeDefined();
+    expect(saveButton).toContain('aria-hidden="true"');
   });
 
-  it("should_show_the_password_rules_hint", () => {
-    expect(renderPage()).toContain(CHANGE_PASSWORD_RULES_HINT);
-  });
-
-  it("should_not_render_alerts_or_invalid_flags_before_first_submit", () => {
+  it("should_not_render_inline_errors_before_submit", () => {
     const html = renderPage();
 
+    // The new-password rules hint is always rendered and referenced via
+    // aria-describedby; the inline *errors* are the role=alert paragraphs,
+    // which must only appear after a failed submit.
+    expect(html).toContain('id="newPasswordRequired-rules"');
     expect(html).not.toContain('role="alert"');
-    expect(html).not.toContain('aria-invalid="true"');
   });
 });

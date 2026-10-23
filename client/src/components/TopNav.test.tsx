@@ -24,6 +24,16 @@ function anchorsByHref(html: string): Map<string, string> {
   return anchors;
 }
 
+/** Opening tag of the first <div>, the layout container inside the header. */
+function containerTag(html: string): string | undefined {
+  return /<div\s[^>]*>/.exec(html)?.[0];
+}
+
+/** Opening <nav ...> tag that wraps the four nav links. */
+function navTag(html: string): string | undefined {
+  return /<nav\s[^>]*>/.exec(html)?.[0];
+}
+
 describe("TopNav current page indication", () => {
   it("should_mark_only_matching_link_as_current", () => {
     const html = renderTopNavAt("/patients");
@@ -91,5 +101,64 @@ describe("TopNav current page indication", () => {
     expect(inactiveTag).not.toContain("bg-primary-foreground/15");
     expect(inactiveTag).toContain("after:scale-x-0");
     expect(inactiveTag).not.toContain("font-semibold");
+  });
+});
+
+describe("TopNav responsive layout and focus", () => {
+  const navHrefs = ["/dashboard", "/patients", "/appointments", "/reports"];
+
+  it("should_stack_brand_above_links_below_sm", () => {
+    const tag = containerTag(renderTopNavAt("/patients"));
+
+    expect(tag).toContain("flex-col");
+    expect(tag).toContain("sm:flex-row");
+  });
+
+  it("should_lay_out_links_as_full_width_four_column_grid_on_mobile", () => {
+    const tag = navTag(renderTopNavAt("/patients"));
+
+    expect(tag).toContain("w-full");
+    expect(tag).toContain("grid-cols-4");
+    expect(tag).toContain("sm:flex");
+    expect(tag).not.toContain("space-x-");
+  });
+
+  it("should_not_scroll_nav_horizontally", () => {
+    const tag = navTag(renderTopNavAt("/patients"));
+
+    expect(tag).not.toContain("overflow-x-auto");
+  });
+
+  it("should_give_every_link_a_44px_tap_target", () => {
+    const anchors = anchorsByHref(renderTopNavAt("/patients"));
+
+    for (const href of ["/", ...navHrefs]) {
+      expect(anchors.get(href)).toContain("min-h-11");
+    }
+  });
+
+  it("should_draw_light_focus_outline_on_primary_background", () => {
+    const anchors = anchorsByHref(renderTopNavAt("/patients"));
+
+    for (const href of ["/", ...navHrefs]) {
+      expect(anchors.get(href)).toContain("focus-visible:!outline-primary-foreground");
+    }
+  });
+
+  it("should_reveal_underline_on_keyboard_focus", () => {
+    // Rendered at /patients so one link is active and three are inactive.
+    const anchors = anchorsByHref(renderTopNavAt("/patients"));
+
+    for (const href of navHrefs) {
+      expect(anchors.get(href)).toContain("focus-visible:after:scale-x-100");
+    }
+  });
+
+  it("should_step_brand_size_across_breakpoints", () => {
+    const brand = anchorsByHref(renderTopNavAt("/patients")).get("/");
+
+    expect(brand).toContain("text-lg");
+    expect(brand).toContain("sm:text-xl");
+    expect(brand).toContain("md:text-2xl");
   });
 });
