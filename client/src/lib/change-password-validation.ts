@@ -14,6 +14,10 @@ export type ChangePasswordFieldErrors = {
 export const CHANGE_PASSWORD_RULES_HINT =
   "6 أحرف على الأقل ويجب أن تختلف عن كلمة المرور الحالية";
 
+// Mirrors the server message thrown by auth.changePassword for a wrong current password.
+export const CURRENT_PASSWORD_INCORRECT_MESSAGE =
+  "كلمة المرور الحالية غير صحيحة";
+
 // Message parity with server/routers.ts auth.changePassword.
 const REQUIRED_CURRENT = "كلمة المرور الحالية مطلوبة";
 const REQUIRED_NEW = "كلمة المرور الجديدة مطلوبة";
