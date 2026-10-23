@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { marketingSlotForWeekday } from "../../shared/marketingSchedule";
 import { desc, eq, count as drizzleCount, and, inArray } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -1222,13 +1223,9 @@ export const marketingRouter = router({
       // Determine which day to run
       let day = input.day as "saturday" | "tuesday" | "thursday" | undefined;
       if (!day) {
-        const jsDay = new Date().getDay();
-        const JS_MAP: Record<number, "saturday" | "tuesday" | "thursday"> = {
-          6: "saturday",
-          2: "tuesday",
-          4: "thursday",
-        };
-        day = JS_MAP[jsDay];
+        const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Cairo", weekday: "short" }).format(new Date());
+        const jsDay = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
+        day = marketingSlotForWeekday("center", jsDay);
         if (!day) {
           // Today is not a scheduled day — default to saturday for manual testing
           day = "saturday";

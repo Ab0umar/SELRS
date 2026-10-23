@@ -22,11 +22,8 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-const DAY_LABELS: Record<string, string> = {
-  saturday: "السبت — تصحيح الإبصار",
-  tuesday: "الثلاثاء — المياه البيضاء",
-  thursday: "الخميس — صحة عامة",
-};
+import { marketingSlotLabel } from "@shared/marketingSchedule";
+
 type PageRole = "center" | "doctor";
 
 export default function DraftPosts() {
@@ -211,7 +208,7 @@ export default function DraftPosts() {
                           <>
                             <span>·</span>
                             <span>
-                              {DAY_LABELS[post.postDay] ?? post.postDay}
+                              {marketingSlotLabel(post.postDay, post.pageRole ?? "center")}
                             </span>
                           </>
                         )}
