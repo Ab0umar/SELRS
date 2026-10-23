@@ -13,7 +13,7 @@ export default function QuickPatientEntry() {
   const { goBack, goTo } = useAppNavigation();
   const parsed = parseQuickEntryPatientId(params?.id);
   // This page renders both standalone (/quick-entry) and inside the patients
-  // hub (/patients-hub/quick). AppShell already supplies the page's <main>
+  // hub (/patients-hub/quick). AppShell already supplies the page's main
   // landmark and the hub draws its own back control, so this page adds
   // neither and shows a back button only on its own routes.
   const isStandaloneRoute =
