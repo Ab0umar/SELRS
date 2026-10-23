@@ -29,7 +29,7 @@ import {
   validateUsername,
 } from "@/lib/username-validation";
 import { useAuth } from "@/hooks/useAuth";
-import { AlertCircle, KeyRound, ShieldAlert, UserRound } from "lucide-react";
+import { KeyRound, Loader2, ShieldAlert, UserRound } from "lucide-react";
 import type { User } from "@shared/types";
 import {
   CHANGE_PASSWORD_RULES_HINT,
@@ -222,6 +222,9 @@ export default function ForcePasswordChange() {
                   type="submit"
                   aria-label="حفظ اسم المستخدم"
                   disabled={changeUsernameMutation.isPending}
+                  aria-busy={changeUsernameMutation.isPending}
+                  aria-label="حفظ اسم المستخدم"
+                  title="حفظ اسم المستخدم"
                 >
                   <UserRound aria-hidden className="h-4 w-4" />
                 </Button>
