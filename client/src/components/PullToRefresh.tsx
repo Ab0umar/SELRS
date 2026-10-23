@@ -1,5 +1,11 @@
+import {
+  computePullDistance,
+  MAX_PULL,
+  REFRESH_THRESHOLD,
+} from "@/lib/pull-to-refresh";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowDown, Loader2, Sparkles } from "lucide-react";
+import { ArrowDown, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import * as React from "react";
 
 type PullToRefreshProps = {
@@ -8,9 +14,6 @@ type PullToRefreshProps = {
   enabled?: boolean;
   className?: string;
 };
-
-const MAX_PULL = 96;
-const REFRESH_THRESHOLD = 72;
 
 export function PullToRefresh({
   children,
@@ -21,6 +24,7 @@ export function PullToRefresh({
   const [pullDistance, setPullDistance] = React.useState(0);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [isCoarsePointer, setIsCoarsePointer] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const startYRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
@@ -66,9 +70,13 @@ export function PullToRefresh({
     [enabled, isCoarsePointer, isRefreshing],
   );
 
-  const handleTouchMove = React.useCallback(
-    (event: React.TouchEvent<HTMLDivElement>) => {
-      if (!enabled || !isCoarsePointer || isRefreshing) return;
+  // React registers touch listeners passively, so preventDefault is ignored
+  // inside onTouchMove; track the pull with a native non-passive listener.
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !enabled || !isCoarsePointer) return;
+    const handleTouchMove = (event: TouchEvent) => {
+      if (isRefreshing) return;
       const startY = startYRef.current;
       if (startY == null) return;
       if ((window.scrollY || document.documentElement.scrollTop || 0) > 0) {
@@ -77,19 +85,17 @@ export function PullToRefresh({
       }
       const touch = event.changedTouches[0];
       if (!touch) return;
-      const deltaY = touch.clientY - startY;
-      if (deltaY <= 0) {
-        setPullDistance(0);
-        return;
-      }
-      const nextDistance = Math.min(MAX_PULL, Math.round(deltaY * 0.45));
-      if (nextDistance > 0) {
+      const nextDistance = computePullDistance(touch.clientY - startY);
+      if (nextDistance > 0 && event.cancelable) {
         event.preventDefault();
       }
       setPullDistance(nextDistance);
-    },
-    [enabled, isCoarsePointer, isRefreshing, resetPull],
-  );
+    };
+    container.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
+    return () => container.removeEventListener("touchmove", handleTouchMove);
+  }, [enabled, isCoarsePointer, isRefreshing, resetPull]);
 
   const handleTouchEnd = React.useCallback(async () => {
     if (!enabled || !isCoarsePointer || isRefreshing) {
@@ -111,14 +117,28 @@ export function PullToRefresh({
 
   return (
     <div
-      className={cn("relative", className)}
+      ref={containerRef}
+      className={cn("relative overscroll-y-contain", className)}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={() => {
         void handleTouchEnd();
       }}
       onTouchCancel={resetPull}
     >
+      {/* Non-gesture refresh for keyboard/mouse users; sr-only until focused. */}
+      {enabled && (
+        <Button
+          type="button"
+          variant="bare"
+          onClick={() => void refresh()}
+          disabled={isRefreshing}
+          aria-busy={isRefreshing}
+          aria-label="تحديث البيانات"
+          className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:z-50 focus-visible:top-2 focus-visible:end-2 focus-visible:grid focus-visible:size-11 focus-visible:place-items-center focus-visible:rounded-full focus-visible:border focus-visible:border-primary/20 focus-visible:bg-background/95 focus-visible:shadow-lg focus-visible:backdrop-blur"
+        >
+          <RefreshCw className="h-4 w-4 text-primary" aria-hidden="true" />
+        </Button>
+      )}
       <div
         className={cn(
           "pointer-events-none sticky top-0 z-20 flex h-0 items-end justify-center overflow-visible transition-all duration-200",
