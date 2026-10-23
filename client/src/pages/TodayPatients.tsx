@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useMedicalFileLauncher } from "@/hooks/useMedicalFileLauncher";
+import { usePersistedOpenState } from "@/hooks/usePersistedOpenState";
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
 import { AppointmentsSection } from "@/components/dashboard/appointments-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { QuickActionsDisclosure } from "@/components/today/QuickActionsDisclosure";
 import { QuickPatientEntryDialog } from "@/components/dashboard/QuickPatientEntryDialog";
 import { ScheduleVisitDialog } from "@/components/dashboard/ScheduleVisitDialog";
 import { AddPortalBookingDialog } from "@/components/dashboard/AddPortalBookingDialog";
@@ -42,7 +44,10 @@ export default function TodayPatients() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [portalBookingOpen, setPortalBookingOpen] = useState(false);
   const [totalsOpen, setTotalsOpen] = useState(true);
-  const [quickActionsOpen, setQuickActionsOpen] = useState(true);
+  const [quickActionsOpen, setQuickActionsOpen] = usePersistedOpenState(
+    `selrs:today-patients:quick-actions-open:${user?.id ?? "anon"}`,
+    true,
+  );
 
   const [selectedDate, setSelectedDate] = useState(() => getLocalDateIso());
 
@@ -137,52 +142,46 @@ export default function TodayPatients() {
         <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex-1 min-w-0">
-              <Button variant="bare"
-                type="button"
-                aria-expanded={quickActionsOpen}
-                onClick={() => setQuickActionsOpen((open) => !open)}
-                className="mb-2 flex w-full items-center justify-between rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+              <QuickActionsDisclosure
+                open={quickActionsOpen}
+                onOpenChange={setQuickActionsOpen}
               >
-                إجراءات سريعة
-                <span aria-hidden>{quickActionsOpen ? "−" : "+"}</span>
-              </Button>
-              {quickActionsOpen ? (
                 <QuickActions
                   onOpenMeasurementsMedicalFile={openMedicalFilePicker}
                   onOpenOperationsBooking={() => setBookingOpen(true)}
                   extraPrimaryAction={
                     <div className="flex items-center gap-2">
-                    {userRole === "reception" || userRole === "admin" ? (
+                      {userRole === "reception" || userRole === "admin" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setLocation("/admin-hub/portal-bookings")
+                          }
+                          className="gap-2 shrink-0 rounded-xl"
+                        >
+                          <CalendarDays className="size-4" />
+                          حجوزات البوابة
+                        </Button>
+                      ) : null}
                       <Button
+                        type="button"
                         variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setLocation("/admin-hub/portal-bookings")
-                        }
-                        className="gap-2 shrink-0 rounded-xl"
+                        size="icon"
+                        onClick={refreshToday}
+                        disabled={isLoading}
+                        aria-label="تحديث"
+                        title="تحديث"
+                        className="shrink-0 rounded-xl"
                       >
-                        <CalendarDays className="size-4" />
-                        حجوزات البوابة
+                        <RefreshCw
+                          className={cn("size-4", isLoading && "animate-spin")}
+                        />
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={refreshToday}
-                      disabled={isLoading}
-                      aria-label="تحديث"
-                      title="تحديث"
-                      className="shrink-0 rounded-xl"
-                    >
-                      <RefreshCw
-                        className={cn("size-4", isLoading && "animate-spin")}
-                      />
-                    </Button>
                     </div>
                   }
                 />
-              ) : null}
+              </QuickActionsDisclosure>
             </div>
           </div>
         </div>
