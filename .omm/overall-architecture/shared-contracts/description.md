@@ -1,0 +1,1 @@
+Shared route constants, types and schemas in shared/ and database schema in drizzle/.

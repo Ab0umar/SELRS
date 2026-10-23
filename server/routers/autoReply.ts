@@ -9,7 +9,7 @@ import {
   requireOnboardingOrigin,
   onboardingSession,
 } from "../services/auto-reply/coexistence";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { adminProcedure, router } from "../_core/procedures";
 import {
@@ -17,12 +17,15 @@ import {
   autoReplySettingsSchema,
   knowledgeSchema,
   isAutoReplyEnabled,
+  supportsGeminiSampling,
+  teachingSchema,
 } from "../../shared/auto-reply";
 import {
   autoReplyConnections as connections,
   autoReplyConversations as conversations,
   autoReplyJobs as jobs,
   autoReplyKnowledge as knowledge,
+  autoReplySettings as settingsTable,
 } from "../../drizzle/autoReply";
 import { services } from "../../drizzle/schema";
 import {
@@ -46,6 +49,11 @@ import {
 } from "../services/auto-reply/providers";
 import { inWorkingHours } from "../services/auto-reply/policy";
 import { logAuditEvent } from "../db";
+import {
+  availableGeminiModels,
+  previewWebsite,
+  publicWebsiteUrl,
+} from "../services/auto-reply/ai-configuration";
 
 const recordId = z.number().int().positive();
 const autoReplyAdminProcedure = adminProcedure.use(async ({ next }) => {
@@ -62,6 +70,141 @@ const autoReplyAdminProcedure = adminProcedure.use(async ({ next }) => {
   return result;
 });
 export const autoReplyRouter = router({
+  models: autoReplyAdminProcedure.query(async () =>
+    (await availableGeminiModels()).map((model) => ({
+      id: model.name.replace(/^models\//, ""),
+      label: model.displayName ?? model.name,
+      outputTokenLimit: model.outputTokenLimit,
+      topK: model.topK,
+    })),
+  ),
+  teaching: autoReplyAdminProcedure.query(async () =>
+    (await getAutoReplyDb())
+      .select()
+      .from(knowledge)
+      .where(inArray(knowledge.kind, ["teach_ai", "website"]))
+      .orderBy(desc(knowledge.updatedAt))
+      .limit(200),
+  ),
+  previewWebsite: autoReplyAdminProcedure
+    .input(z.object({ url: z.string().max(2048) }))
+    .mutation(({ input }) => previewWebsite(input.url)),
+  saveTeaching: autoReplyAdminProcedure
+    .input(teachingSchema.extend({ id: recordId.optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const sourceUrl = input.sourceUrl
+        ? publicWebsiteUrl(input.sourceUrl).href
+        : null;
+      await withKnowledgeUpdate(async (tx) => {
+        if (input.id) {
+          const [existing] = await tx
+            .select({ kind: knowledge.kind })
+            .from(knowledge)
+            .where(eq(knowledge.id, input.id));
+          if (!existing || !["teach_ai", "website"].includes(existing.kind))
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "محتوى التعليم غير موجود",
+            });
+        }
+        const values = {
+          title: input.title,
+          content: input.content,
+          targetPage: input.targetPage,
+          approved: input.enabled,
+          sourceUrl,
+          kind: sourceUrl ? "website" : "teach_ai",
+          source: sourceUrl ? "website" : "teach_ai",
+          keywords: "",
+          updatedBy: ctx.user.id,
+        };
+        if (input.id)
+          await tx
+            .update(knowledge)
+            .set(values)
+            .where(eq(knowledge.id, input.id));
+        else await tx.insert(knowledge).values(values);
+        await tx
+          .update(settingsTable)
+          .set({
+            config: sql`JSON_SET(${settingsTable.config}, '$.knowledgeMode', 'teach_ai')`,
+          })
+          .where(eq(settingsTable.id, 1));
+      });
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_TEACH_AI",
+        "auto_reply",
+        input.id ?? 0,
+        { enabled: input.enabled, targetPage: input.targetPage },
+      );
+      return { ok: true };
+    }),
+  deleteTeaching: autoReplyAdminProcedure
+    .input(recordId)
+    .mutation(async ({ input, ctx }) => {
+      await withKnowledgeUpdate((tx) =>
+        tx
+          .delete(knowledge)
+          .where(
+            and(
+              eq(knowledge.id, input),
+              inArray(knowledge.kind, ["teach_ai", "website"]),
+            ),
+          ),
+      );
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_TEACH_AI_DELETE",
+        "auto_reply",
+        input,
+        {},
+      );
+      return { ok: true };
+    }),
+  clearAIHistory: autoReplyAdminProcedure
+    .input(z.object({ conversationId: recordId.optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getAutoReplyDb();
+      const filter = input.conversationId
+        ? eq(conversations.id, input.conversationId)
+        : undefined;
+      const count = await db.transaction(async (tx) => {
+        const selected = await tx
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(filter)
+          .for("update");
+        if (!selected.length) return 0;
+        const ids = selected.map((row) => row.id);
+        await tx
+          .update(conversations)
+          .set({
+            contextResetAt: new Date(),
+            revision: sql`${conversations.revision}+1`,
+          })
+          .where(inArray(conversations.id, ids));
+        await tx
+          .update(jobs)
+          .set({ state: "cancelled", errorCode: "AI_CONTEXT_RESET" })
+          .where(
+            and(
+              inArray(jobs.conversationId, ids),
+              eq(jobs.kind, "auto"),
+              inArray(jobs.state, ["pending", "retry", "generating"]),
+            ),
+          );
+        return ids.length;
+      });
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_CONTEXT_RESET",
+        "auto_reply",
+        input.conversationId ?? 0,
+        { count },
+      );
+      return { count };
+    }),
   onboardingStatus: autoReplyAdminProcedure.query(() => onboardingStatus()),
   beginOnboarding: autoReplyAdminProcedure.mutation(({ ctx }) => {
     requireOnboardingOrigin(ctx.req.headers.origin);
@@ -144,6 +287,16 @@ export const autoReplyRouter = router({
   saveSettings: autoReplyAdminProcedure
     .input(autoReplySettingsSchema)
     .mutation(async ({ input, ctx }) => {
+      if (input.topK !== null && supportsGeminiSampling(input.model)) {
+        const model = (await availableGeminiModels()).find(
+          (model) => model.name === `models/${input.model}`,
+        );
+        if (!model?.topK)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "هذا الموديل لا يتيح topK؛ اتركه على افتراضي الموديل",
+          });
+      }
       if (input.hoursEnabled && !input.hours.length)
         throw new TRPCError({
           code: "BAD_REQUEST",

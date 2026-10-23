@@ -1,0 +1,12 @@
+created: 2026-10-22T10:04:16.324Z
+updated: 2026-10-22T10:06:27.045Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: client-app
+children:
+  - app-shell
+  - features
+  - routes
+  - shared-ui
+parentPath: []

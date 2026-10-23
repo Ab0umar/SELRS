@@ -1,0 +1,1 @@
+Feature modules under client/src/features/ implement domain screens and their interactions.

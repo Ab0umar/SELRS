@@ -1,0 +1,1 @@
+Route modules in client/src/routes/ organize medical, clinical suite, attendance, accounting, salary, marketing and administration pages and guards.

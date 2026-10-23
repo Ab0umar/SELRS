@@ -112,6 +112,7 @@ describe.skipIf(!testUrl)(
         "0105_auto_reply_facebook_pages.sql",
         "0106_auto_reply_coexistence.sql",
         "0107_auto_reply_targets.sql",
+        "0108_auto_reply_teaching.sql",
       ]) {
         const migration = await readFile(
           new URL(`../../drizzle/${file}`, import.meta.url),
@@ -471,20 +472,105 @@ describe.skipIf(!testUrl)(
         }
       },
     );
+    it("saves free-form Teach AI content with a page target and cancels stale proposals", async () => {
+      await enablePages();
+      await ingestEvents([pageEvent("456")]);
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      await caller.saveTeaching({
+        title: "كل معلومات الصفحة",
+        content: "المياه البيضاء تبدأ من 15000 جنيه. الفحوصات خارج التكلفة.",
+        targetPage: "456",
+        enabled: true,
+      });
+      expect((await caller.teaching())[0]).toMatchObject({
+        kind: "teach_ai",
+        targetPage: "456",
+        approved: true,
+      });
+      expect((await readSettings()).knowledgeMode).toBe("teach_ai");
+      expect((await db.select().from(jobs))[0].state).toBe("cancelled");
+    });
+    it("clears AI context without deleting messages or changing staff takeover", async () => {
+      await enablePages();
+      await ingestEvents([
+        { ...pageEvent("456"), at: new Date(Date.now() - 5000) },
+      ]);
+      const [conversation] = await db.select().from(conversations);
+      await setConversationStatus(conversation.id, "human");
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      await expect(
+        caller.clearAIHistory({ conversationId: conversation.id }),
+      ).resolves.toEqual({ count: 1 });
+      expect((await conversationContext(conversation.id)).rows).toEqual([]);
+      expect(await db.select().from(messages)).toHaveLength(1);
+      expect((await db.select().from(conversations))[0].status).toBe("human");
+    });
+    it("keeps a greeting conversation open so the next question can be answered automatically", async () => {
+      await enablePages();
+      const greeting = { ...pageEvent("456"), text: "سلام عليكم" };
+      await ingestEvents([greeting]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init: RequestInit) => {
+          if (!url.includes("generativelanguage"))
+            return Response.json({ message_id: "greeting-reply" });
+          const message = JSON.parse(
+            JSON.parse(String(init.body)).contents[0].parts[0].text,
+          ).message;
+          return Response.json({
+            candidates: [
+              {
+                finishReason: "STOP",
+                content: {
+                  parts: [
+                    {
+                      text: JSON.stringify({
+                        text:
+                          message === "سلام عليكم"
+                            ? "وعليكم السلام، نقدر نساعدك إزاي؟"
+                            : "العنوان المعتمد للاختبار",
+                        handoff: false,
+                        sourceIds: message === "سلام عليكم" ? [] : [1],
+                      }),
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+        }),
+      );
+      await runAutoReplyTick();
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+      await db.update(connections).set({ lastSentAt: null });
+      await ingestEvents([
+        {
+          ...greeting,
+          key: hash("next-question"),
+          providerId: "next-question",
+          text: "عنوان الفرع؟",
+          at: new Date(),
+        },
+      ]);
+      await runAutoReplyTick();
+      expect((await db.select().from(jobs)).map((j) => j.state)).toEqual([
+        "sent",
+        "sent",
+      ]);
+      expect((await db.select().from(conversations))[0].status).toBe("open");
+    });
     it("persists page-specific knowledge and uses only that page's facts in the worker", async () => {
       await enablePages();
       await db.delete(knowledge);
       for (const targetPage of ["456", "654"])
-        await db
-          .insert(knowledge)
-          .values({
-            kind: "branch",
-            title: `عنوان ${targetPage}`,
-            content: `عنوان خاص بصفحة ${targetPage}`,
-            keywords: "عنوان address",
-            approved: true,
-            targetPage,
-          });
+        await db.insert(knowledge).values({
+          kind: "branch",
+          title: `عنوان ${targetPage}`,
+          content: `عنوان خاص بصفحة ${targetPage}`,
+          keywords: "عنوان address",
+          approved: true,
+          targetPage,
+        });
       const facts = await db.select().from(knowledge);
       await ingestEvents([pageEvent("456"), pageEvent("654")]);
       const prompts: string[] = [];

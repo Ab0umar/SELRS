@@ -1,0 +1,1 @@
+Refresh this perspective when its mapped boundaries change.

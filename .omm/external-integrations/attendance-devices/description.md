@@ -1,0 +1,1 @@
+server/_core/zktecoAdms.ts and server/services/attendance/ handle device reception and synchronization.

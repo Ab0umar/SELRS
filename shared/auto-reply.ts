@@ -15,11 +15,20 @@ const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const replyTargetSchema = z
   .union([
     z.literal("all"),
+    z.literal("whatsapp"),
+    z.string().regex(/^whatsapp,\d{1,23}$/),
     z.literal("facebook"),
     z.string().regex(/^\d{1,32}$/),
   ])
   .default("all");
 export const autoReplySettingsSchema = z.object({
+  knowledgeMode: z.enum(["legacy", "teach_ai"]).default("legacy"),
+  historyMessageLimit: z.number().int().min(0).max(50).default(12),
+  temperature: z.number().min(0).max(2).default(0.2),
+  topP: z.number().min(0.01).max(1).default(0.95),
+  topK: z.number().int().min(1).max(100).nullable().default(null),
+  maxOutputTokens: z.number().int().min(500).max(8192).default(4096),
+  stopSequences: z.array(z.string().trim().min(1).max(40)).max(5).default([]),
   sendingEnabled: z.boolean().default(false),
   facebookPages: z
     .record(
@@ -101,6 +110,9 @@ export function isAutoReplyEnabled(
   );
 }
 export const defaultAutoReplySettings = autoReplySettingsSchema.parse({});
+export function supportsGeminiSampling(model: string) {
+  return /^gemini-(?:[12]\.|3\.[0-5](?:\D|$))/.test(model);
+}
 export const knowledgeKinds = [
   "service",
   "price",
@@ -116,4 +128,11 @@ export const knowledgeSchema = z.object({
   content: z.string().trim().min(1).max(4000),
   keywords: z.string().trim().max(1000).default(""),
   approved: z.boolean().default(false),
+});
+export const teachingSchema = z.object({
+  title: z.string().trim().min(1).max(255),
+  content: z.string().trim().min(1).max(30000),
+  targetPage: replyTargetSchema,
+  enabled: z.boolean().default(true),
+  sourceUrl: z.string().url().max(2048).optional(),
 });

@@ -4,13 +4,14 @@
  * Runs hourly via node-cron.  On each fire it checks:
  *   1. autoPublish setting is enabled
  *   2. Current Cairo hour matches publishHour
- *   3. Today is Saturday / Tuesday / Thursday and the day is enabled
+ *   3. Today matches the page calendar and the topic slot is enabled
  *   4. No non-failed post already exists for that day today (duplicate guard)
  *
  * Starts a persisted Manus job; the worker publishes scheduled posts after generation.
  */
 
 import cron from "node-cron";
+import { MARKETING_SCHEDULE, marketingSlotForWeekday } from "../../../shared/marketingSchedule";
 import { eq, and, gte } from "drizzle-orm";
 import { count as drizzleCount } from "drizzle-orm";
 import { getDb } from "../../db";
@@ -25,12 +26,6 @@ import { getMarketingPageTarget, type MarketingPageRole } from "./page.service";
 
 // ─── Day mapping ──────────────────────────────────────────────────────────────
 
-/** JS getDay() → PostDay.  Only Sat/Tue/Thu are scheduled. */
-const JS_DAY_TO_POST_DAY: Record<number, PostDay> = {
-  6: "saturday",
-  2: "tuesday",
-  4: "thursday",
-};
 
 const CAIRO_TIME_ZONE = "Africa/Cairo";
 const CAIRO_WEEKDAY_TO_JS_DAY: Record<string, number> = {
@@ -101,11 +96,12 @@ export function getNextScheduledTime(settings: {
   tuesdayEnabled: boolean;
   thursdayEnabled: boolean;
   publishHour: number;
+  pageRole?: MarketingPageRole;
 }): { day: PostDay; date: Date } | null {
   const candidates: Array<{ jsDay: number; day: PostDay }> = [
-    { jsDay: 6, day: "saturday" as PostDay },
-    { jsDay: 2, day: "tuesday" as PostDay },
-    { jsDay: 4, day: "thursday" as PostDay },
+    { jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].saturday.jsDay, day: "saturday" },
+    { jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].tuesday.jsDay, day: "tuesday" },
+    { jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].thursday.jsDay, day: "thursday" },
   ];
   const enabled = candidates.filter(({ day }) =>
     day === "saturday"
@@ -256,9 +252,9 @@ export function initMarketingScheduler(): void {
       if (!db) return;
 
       const now = getCairoScheduleParts();
-      const postDay = JS_DAY_TO_POST_DAY[now.jsDay];
-      if (!postDay) return;
       for (const pageRole of ["center", "doctor"] as const) {
+        const postDay = marketingSlotForWeekday(pageRole, now.jsDay);
+        if (!postDay) continue;
         const pageTarget = await getMarketingPageTarget(pageRole);
         if (!pageTarget?.autoPublish || now.hour !== pageTarget.publishHour)
           continue;

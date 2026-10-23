@@ -1,0 +1,12 @@
+graph LR
+    react-client["react client\nclient/src/."]
+    express-entry["express entry\nserver/_core/index.ts"]
+    request-context["request context\nserver/_core/context.ts"]
+    procedures["procedures\nserver/_core/procedures.ts"]
+    domain-routers["domain routers\nserver/routers.ts"]
+    database["database\nserver/db.ts"]
+    react-client -->|"sends HTTP request"| express-entry
+    express-entry -->|"creates context"| request-context
+    request-context -->|"provides session"| procedures
+    procedures -->|"authorizes procedure"| domain-routers
+    domain-routers -->|"queries and persists"| database
