@@ -58,7 +58,7 @@ try {
 if ($CommPwd -ne 0) {
   $null = $zk.SetCommPassword($CommPwd)
 }
-Write-Host "[ZK] Connecting to $IP`:$Port (pwd=$CommPwd)..."
+Write-Host "[ZK] Connecting to $IP`:$Port..."
 $connected = $zk.Connect_Net($IP, $Port)
 if (-not $connected) {
   Write-Error "Connection failed to $IP`:$Port"
