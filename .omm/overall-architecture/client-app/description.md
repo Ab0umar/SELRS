@@ -1,0 +1,1 @@
+React and Vite application: client/src/App.tsx, routes, features, components and printing.

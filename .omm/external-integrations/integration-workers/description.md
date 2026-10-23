@@ -1,0 +1,1 @@
+server/_core/index.ts starts schedulers and workers; server/services/ contains domain services.

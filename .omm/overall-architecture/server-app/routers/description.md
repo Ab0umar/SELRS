@@ -1,0 +1,1 @@
+server/routers/ contains the composed tRPC router and domain routers for medical, accounting, attendance, patient and other workflows.

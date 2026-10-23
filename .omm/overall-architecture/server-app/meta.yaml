@@ -1,0 +1,12 @@
+created: 2026-10-22T10:04:17.361Z
+updated: 2026-10-22T10:06:40.765Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: server-app
+children:
+  - entry
+  - integrations
+  - routers
+  - services
+parentPath: []

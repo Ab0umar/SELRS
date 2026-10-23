@@ -1,0 +1,8 @@
+graph LR
+    app-shell["App shell\nclient/src/App.tsx"]
+    routes["Routes\nclient/src/routes/"]
+    features["Features\nclient/src/features/"]
+    shared-ui["Shared UI\nclient/src/components/"]
+    app-shell -->|"mounts"| routes
+    routes -->|"renders"| features
+    features -->|"uses"| shared-ui

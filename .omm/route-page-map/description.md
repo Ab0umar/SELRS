@@ -1,0 +1,1 @@
+App.tsx composes route modules that organize the client by operational domain.
