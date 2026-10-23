@@ -80,7 +80,8 @@ export const autoReplyKnowledge = mysqlTable("auto_reply_knowledge", {
   id: int("id").autoincrement().primaryKey(),
   kind: varchar("kind", { length: 32 }).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
-  content: text("content").notNull(),
+  content: mediumtext("content").notNull(),
+  sourceUrl: varchar("source_url", { length: 2048 }),
   keywords: text("keywords").notNull(),
   source: varchar("source", { length: 100 }),
   approved: boolean("approved").default(false).notNull(),
@@ -93,6 +94,7 @@ export const autoReplyKnowledge = mysqlTable("auto_reply_knowledge", {
 export const autoReplyConversations = mysqlTable(
   "auto_reply_conversations",
   {
+    contextResetAt: autoReplyTime("context_reset_at"),
     id: int("id").autoincrement().primaryKey(),
     identityHash: varchar("identity_hash", { length: 64 }).notNull(),
     channel: varchar("channel", { length: 32 })

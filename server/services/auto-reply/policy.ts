@@ -21,6 +21,18 @@ export function verifyMetaSignature(
 export function englishFirst(text: string) {
   return /^[a-z]$/i.test(text.match(/\p{L}/u)?.[0] ?? "");
 }
+export function isSocialMessage(text: string) {
+  const normalized = text
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/[ً-ْـ]/g, "")
+    .replace(/[\p{P}\p{S}]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return /^(?:(?:(?:السلام|سلام) عليكم|وعليكم السلام)(?: ورحمه الله| ورحمة الله)?(?: وبركاته)?|اهلا(?: وسهلا)?|مرحبا|هاي|ازيك|ازيكم|ازاي حضرتك|صباح الخير|صباح النور|مساء الخير|مساء النور|شكرا|شكرا جزيلا|متشكر|تسلم|hi|hello|hey|good morning|good evening|thanks|thank you)(?:\s+(?:اهلا|ازيكم|ازيك|شكرا|hi|thanks))*$/i.test(
+    normalized,
+  );
+}
 export function isPriceQuestion(text: string) {
   const normalized = text.replace(/[أإآ]/g, "ا").replace(/[ً-ْ]/g, "");
   return /(سعر|اسعار|تكلف|بكام|بكم|ب كام|(?:^|\s)كام(?:\s|[؟?]|$)|ثمن|price|pricing|cost|how much)/i.test(
@@ -116,9 +128,13 @@ export function replyTargetMatches(
   channel: AutoReplyChannel,
   accountId?: string,
 ) {
+  if (targetPage?.startsWith("whatsapp,")) {
+    return channel === "whatsapp" || targetPage.slice(9) === accountId;
+  }
   return (
     !targetPage ||
     targetPage === "all" ||
+    (targetPage === "whatsapp" && channel === "whatsapp") ||
     (channel !== "whatsapp" &&
       (targetPage === "facebook" || targetPage === accountId))
   );
@@ -147,4 +163,22 @@ export function retrieveKnowledge(query: string, entries: KnowledgeItem[]) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 8)
     .map((r) => r.entry);
+}
+export function selectKnowledgeContext(
+  query: string,
+  entries: KnowledgeItem[],
+) {
+  const candidates = [...retrieveKnowledge(query, entries), ...entries];
+  const selected: KnowledgeItem[] = [];
+  const seen = new Set<number>();
+  let characters = 0;
+  for (const entry of candidates) {
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    const size = JSON.stringify(entry).length;
+    if (characters + size > 64_000) continue;
+    selected.push(entry);
+    characters += size;
+  }
+  return selected;
 }

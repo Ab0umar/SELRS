@@ -2,6 +2,7 @@ import {
   and,
   desc,
   eq,
+  gte,
   inArray,
   isNull,
   lt,
@@ -503,12 +504,19 @@ export async function purgeExpiredConversations() {
 }
 export async function conversationContext(conversationId: number) {
   const db = await getAutoReplyDb();
+  const [conversation] = await db
+    .select({ resetAt: conversations.contextResetAt })
+    .from(conversations)
+    .where(eq(conversations.id, conversationId));
+  const sinceReset = conversation?.resetAt
+    ? gte(messages.createdAt, conversation.resetAt)
+    : undefined;
   const rows = await db
     .select()
     .from(messages)
-    .where(eq(messages.conversationId, conversationId))
+    .where(and(eq(messages.conversationId, conversationId), sinceReset))
     .orderBy(desc(messages.createdAt), desc(messages.id))
-    .limit(20);
+    .limit(50);
   const [first] = await db
     .select({ body: messages.body })
     .from(messages)
@@ -516,6 +524,7 @@ export async function conversationContext(conversationId: number) {
       and(
         eq(messages.conversationId, conversationId),
         eq(messages.direction, "inbound"),
+        sinceReset,
       ),
     )
     .orderBy(messages.createdAt, messages.id)

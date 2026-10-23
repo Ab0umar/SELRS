@@ -3,11 +3,19 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   autoReplyChannels,
   channelLabels,
-  knowledgeKinds,
+  autoReplySettingsSchema,
+  supportsGeminiSampling,
   type AutoReplyChannel,
   type AutoReplySettings,
 } from "../../../../shared/auto-reply";
@@ -36,6 +44,63 @@ function ReplyTargetSelect({
   disabled?: boolean;
   includeAll?: boolean;
 }) {
+  if (includeAll) {
+    const pageIds = pages.map((page) => page.accountId);
+    const options = [
+      { id: "whatsapp", label: "واتساب" },
+      ...pages.map((page, index) => ({
+        id: page.accountId,
+        label:
+          index === 0
+            ? "صفحة المركز"
+            : index === 1
+              ? "صفحة الدكتور"
+              : page.label,
+      })),
+    ];
+    const selected =
+      value === "all"
+        ? options.map((option) => option.id)
+        : value === "facebook"
+          ? pageIds
+          : value.split(",");
+    const toggle = (id: string, checked: boolean) => {
+      const next = options
+        .map((option) => option.id)
+        .filter((option) =>
+          option === id ? checked : selected.includes(option),
+        );
+      if (next.length === options.length) onChange("all");
+      else if (
+        pageIds.length > 1 &&
+        pageIds.every((page) => next.includes(page))
+      )
+        onChange("facebook");
+      else onChange(next.join(","));
+    };
+    return (
+      <fieldset className="ar-targets" disabled={disabled}>
+        <legend>{label}</legend>
+        {options.map((option) => (
+          <Check
+            key={option.id}
+            label={option.label}
+            checked={selected.includes(option.id)}
+            onChange={(checked) => toggle(option.id, checked)}
+          />
+        ))}
+        <Check
+          label="الكل"
+          checked={value === "all"}
+          onChange={(checked) => {
+            if (checked) onChange("all");
+            else onChange("");
+          }}
+        />
+        {!value && <p role="status">اختر قناة واحدة على الأقل قبل الحفظ.</p>}
+      </fieldset>
+    );
+  }
   return (
     <Field label={label}>
       <select
@@ -46,14 +111,7 @@ function ReplyTargetSelect({
         required
         onChange={(e) => onChange(e.target.value)}
       >
-        {includeAll ? (
-          <>
-            <option value="all">مشترك للصفحتين وواتساب</option>
-            <option value="facebook">الصفحتان فقط</option>
-          </>
-        ) : (
-          <option value="">اختر الصفحة</option>
-        )}
+        <option value="">اختر الصفحة</option>
         {pages.map((page) => (
           <option key={page.accountId} value={page.accountId}>
             {page.label}
@@ -62,6 +120,7 @@ function ReplyTargetSelect({
         {value &&
           value !== "all" &&
           value !== "facebook" &&
+          value !== "whatsapp" &&
           !pages.some((page) => page.accountId === value) && (
             <option value={value}>صفحة غير متاحة ({value})</option>
           )}
@@ -85,14 +144,6 @@ const statusLabels: Record<string, string> = {
   failed: "فشل",
   unknown: "إرسال غير محسوم",
   cancelled: "ملغاة",
-};
-const kindLabels: Record<string, string> = {
-  service: "خدمة",
-  price: "سعر",
-  branch: "فرع",
-  doctor_schedule: "مواعيد طبيب",
-  faq: "سؤال شائع",
-  booking: "رابط حجز",
 };
 const time = (date: Date | string | null | undefined) =>
   date
@@ -216,7 +267,7 @@ export default function AutoReply() {
         {(
           [
             ["inbox", "المحادثات"],
-            ["knowledge", "معلومات المركز"],
+            ["knowledge", "Teach AI"],
             ["settings", "الربط والإعدادات"],
             ["test", "اختبار داخلي"],
             ["activity", "سجل الإرسال"],
@@ -619,56 +670,109 @@ function Conversation({
   );
 }
 
-type KnowledgeRow = AutoReplyOutputs["knowledge"][number];
+type KnowledgeRow = AutoReplyOutputs["teaching"][number];
 function Knowledge({ pages }: { pages: FacebookPages }) {
-  const query = trpc.autoReply.knowledge.useQuery();
+  const query = trpc.autoReply.teaching.useQuery();
   const [editing, setEditing] = useState<KnowledgeRow | "new" | null>(null);
   const [search, setSearch] = useState("");
   const utils = trpc.useUtils();
-  const imports = trpc.autoReply.importCatalog.useMutation({
-    onSuccess: async (r) => {
-      await utils.autoReply.knowledge.invalidate();
-      toast.success(`تم استيراد ${r.count} عنصر كمسودات تحتاج اعتمادًا`);
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websiteDraft, setWebsiteDraft] = useState<
+    AutoReplyOutputs["previewWebsite"] | null
+  >(null);
+  const website = trpc.autoReply.previewWebsite.useMutation({
+    onSuccess: (draft) => {
+      setWebsiteDraft(draft);
+      setEditing("new");
     },
-    onError: (e) => toast.error(e.message),
+    onError: (error) => toast.error(error.message),
   });
-  const remove = trpc.autoReply.deleteKnowledge.useMutation({
-    onSuccess: () => utils.autoReply.knowledge.invalidate(),
+  const remove = trpc.autoReply.deleteTeaching.useMutation({
+    onSuccess: () => utils.autoReply.teaching.invalidate(),
     onError: (e) => toast.error(e.message),
   });
   return (
     <section className="ar-panel">
       <div className="ar-toolbar">
-        <h2>المعلومات المعتمدة للرد</h2>
-        <Button onClick={() => setEditing("new")}>إضافة معلومة</Button>
+        <h2>Teach AI</h2>
         <Button
-          variant="outline"
-          disabled={imports.isPending}
-          onClick={() => imports.mutate()}
+          onClick={() => {
+            setWebsiteDraft(null);
+            setEditing("new");
+          }}
         >
-          {imports.isPending
-            ? "جارٍ الاستيراد…"
-            : "استيراد خدمات المركز فقط للمراجعة"}
+          إضافة نص للتعليم
         </Button>
       </div>
       <p>
-        لا يستخدم البوت إلا العناصر المعتمدة. الاستيراد ينقل البيانات الموجودة
-        كمسودات من <a href="/services-hub/services">صفحة خدمات المركز</a> فقط،
-        ولا يستورد قائمة الفحوص أو ينشر سعرًا تلقائيًا. أضف الفروع ومواعيد
-        الأطباء وروابط الحجز بعد مراجعتها.
+        اكتب المعلومات وطريقة الرد بحرية. تقدر تضيف كذا نص، وتحدد الصفحة لكل
+        واحد. المساعد يقرأ النصوص المفعّلة معًا ويرد منها بشكل طبيعي.
       </p>
       {editing !== null && (
-        <KnowledgeEditor
-          key={editing === "new" ? "new" : editing.id}
-          row={editing === "new" ? undefined : editing}
-          pages={pages}
-          close={() => setEditing(null)}
-        />
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditing(null);
+          }}
+        >
+          <DialogContent
+            dir="rtl"
+            className="auto-reply ar-teach-dialog"
+            onInteractOutside={(event) => event.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>
+                {editing === "new"
+                  ? "إضافة محتوى إلى Teach AI"
+                  : "تعديل محتوى Teach AI"}
+              </DialogTitle>
+              <DialogDescription>
+                اكتب النص كما تريد أن يفهمه المساعد، ثم حدد أين يُستخدم.
+              </DialogDescription>
+            </DialogHeader>
+            <KnowledgeEditor
+              key={editing === "new" ? "new" : editing.id}
+              row={editing === "new" ? undefined : editing}
+              pages={pages}
+              websiteDraft={websiteDraft}
+              close={() => setEditing(null)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
-      <Field label="بحث في معلومات المركز">
+      <details>
+        <summary>المواقع كمصدر للمعلومات</summary>
+        <p>
+          أضف رابط صفحة عامة، راجع النص المستخرج ثم احفظه. صفحات تسجيل الدخول
+          والمحتوى الخاص لا تُقرأ.
+        </p>
+        <form
+          className="ar-toolbar"
+          onSubmit={(event) => {
+            event.preventDefault();
+            website.mutate({ url: websiteUrl });
+          }}
+        >
+          <Field label="رابط الموقع">
+            <Input
+              type="url"
+              dir="ltr"
+              required
+              value={websiteUrl}
+              onChange={(event) => setWebsiteUrl(event.target.value)}
+              placeholder="https://example.com/about"
+              maxLength={2048}
+            />
+          </Field>
+          <Button disabled={website.isPending}>
+            {website.isPending ? "جارٍ قراءة الموقع…" : "قراءة ومعاينة الموقع"}
+          </Button>
+        </form>
+      </details>
+      <Field label="بحث في Teach AI">
         <Input value={search} onChange={(e) => setSearch(e.target.value)} />
       </Field>
-      {query.isLoading && <p role="status">جارٍ تحميل معلومات المركز…</p>}
+      {query.isLoading && <p role="status">جارٍ تحميل محتوى Teach AI…</p>}
       {query.error && (
         <ErrorState
           message={query.error.message}
@@ -677,8 +781,8 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
       )}
       {query.data?.length === 0 && (
         <p>
-          لم تُضف معلومات بعد. أضف المعلومات المعتمدة أو استورد الخدمات
-          للمراجعة.
+          لم تضف نصوصًا بعد. اضغط «إضافة نص للتعليم» واكتب المعلومات التي تريد
+          أن يرد منها المساعد.
         </p>
       )}
       <div className="ar-knowledge-list">
@@ -689,32 +793,55 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
               <div>
                 <strong>{k.title}</strong>
                 <p>
-                  {kindLabels[k.kind]} ·{" "}
-                  {k.approved ? "معتمدة للرد" : "مسودة لا تُستخدم"}
+                  {k.kind === "website" ? "محتوى موقع" : "نص تعليمي"} ·{" "}
+                  {k.approved ? "مفعّل" : "متوقف"}
                 </p>
-                <p className="ar-prewrap">{k.content}</p>
+                <p className="ar-prewrap">
+                  {k.content.length > 350
+                    ? `${k.content.slice(0, 350)}…`
+                    : k.content}
+                </p>
                 <p>
                   يُستخدم في:{" "}
                   {!k.targetPage || k.targetPage === "all"
-                    ? "الصفحتان وواتساب"
-                    : k.targetPage === "facebook"
-                      ? "الصفحتان فقط"
-                      : pageLabel(k.targetPage, pages)}
+                    ? "الكل"
+                    : k.targetPage === "whatsapp"
+                      ? "واتساب"
+                      : k.targetPage === "facebook"
+                        ? "الصفحتان فقط"
+                        : k.targetPage
+                            .split(",")
+                            .map((target) =>
+                              target === "whatsapp"
+                                ? "واتساب"
+                                : pageLabel(target, pages),
+                            )
+                            .join("، ")}
                 </p>
                 <small>
-                  المصدر: <bdi>{k.source ?? "إدخال الإدارة"}</bdi> · آخر تعديل:{" "}
-                  {time(k.updatedAt)}
+                  {k.sourceUrl && (
+                    <>
+                      <bdi>{k.sourceUrl}</bdi> ·{" "}
+                    </>
+                  )}
+                  آخر تعديل: {time(k.updatedAt)}
                 </small>
               </div>
               <div className="ar-toolbar">
-                <Button variant="outline" onClick={() => setEditing(k)}>
-                  تعديل واعتماد
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setWebsiteDraft(null);
+                    setEditing(k);
+                  }}
+                >
+                  فتح وتعديل
                 </Button>
                 <Button
                   variant="outline"
                   disabled={remove.isPending}
                   onClick={() => {
-                    if (window.confirm(`حذف «${k.title}» من معرفة البوت؟`))
+                    if (window.confirm(`حذف «${k.title}» من Teach AI؟`))
                       remove.mutate(k.id);
                   }}
                 >
@@ -731,23 +858,26 @@ function KnowledgeEditor({
   row,
   close,
   pages,
+  websiteDraft,
 }: {
   row?: KnowledgeRow;
   close: () => void;
   pages: FacebookPages;
+  websiteDraft: AutoReplyOutputs["previewWebsite"] | null;
 }) {
   const [targetPage, setTargetPage] = useState(row?.targetPage ?? "all");
-  const [kind, setKind] = useState(row?.kind ?? "faq");
-  const [title, setTitle] = useState(row?.title ?? "");
-  const [content, setContent] = useState(row?.content ?? "");
-  const [keywords, setKeywords] = useState(row?.keywords ?? "");
-  const [approved, setApproved] = useState(row?.approved ?? false);
+  const [title, setTitle] = useState(row?.title ?? websiteDraft?.title ?? "");
+  const [content, setContent] = useState(
+    row?.content ?? websiteDraft?.content ?? "",
+  );
+  const [approved, setApproved] = useState(row?.approved ?? !websiteDraft);
   const utils = trpc.useUtils();
-  const save = trpc.autoReply.saveKnowledge.useMutation({
+  const save = trpc.autoReply.saveTeaching.useMutation({
     onSuccess: async () => {
-      await utils.autoReply.knowledge.invalidate();
+      await utils.autoReply.teaching.invalidate();
+      await utils.autoReply.settings.invalidate();
       close();
-      toast.success("حُفظت المعلومة");
+      toast.success("حُفظ محتوى Teach AI");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -758,71 +888,57 @@ function KnowledgeEditor({
         e.preventDefault();
         save.mutate({
           id: row?.id,
-          kind: kind as (typeof knowledgeKinds)[number],
-          title,
+          title: title.trim() || content.trim().split("\n")[0].slice(0, 100),
           content,
-          keywords,
-          approved,
+          enabled: approved,
+          sourceUrl: row?.sourceUrl ?? websiteDraft?.url,
           targetPage,
         });
       }}
     >
-      <h3>{row ? "تعديل المعلومة" : "إضافة معلومة"}</h3>
       <ReplyTargetSelect
         value={targetPage}
         onChange={setTargetPage}
         pages={pages}
         disabled={save.isPending}
       />
-      <div className="ar-form-grid">
-        <Field label="النوع">
-          <select
-            aria-label="النوع"
-            className="ar-select"
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-          >
-            {knowledgeKinds.map((k) => (
-              <option key={k} value={k}>
-                {kindLabels[k]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="العنوان">
-          <Input
-            value={title}
-            maxLength={255}
-            required
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </Field>
-      </div>
-      <Field label="المعلومة المعتمدة وتفاصيلها">
+      <Field label="اسم المحتوى (اختياري)">
+        <Input
+          value={title}
+          maxLength={255}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </Field>
+      <Field label="النص الذي يتعلم منه المساعد">
         <Textarea
+          aria-label="النص الذي يتعلم منه المساعد"
           value={content}
-          maxLength={4000}
+          maxLength={30000}
           required
-          rows={4}
+          rows={12}
           onChange={(e) => setContent(e.target.value)}
         />
       </Field>
-      <Field label="كلمات البحث وصيغ السؤال بالعربي والإنجليزي">
-        <Input
-          value={keywords}
-          maxLength={1000}
-          onChange={(e) => setKeywords(e.target.value)}
-        />
-      </Field>
+      <p>
+        {content.length.toLocaleString("ar-EG")} / ٣٠٬٠٠٠ حرف. اكتب الخدمات
+        والأسعار والمواعيد وأمثلة لطريقة الرد في نفس النص.
+      </p>
+      {websiteDraft?.truncated && (
+        <p role="status">
+          النص المستخرج طويل؛ تعرض المعاينة أول ٣٠٬٠٠٠ حرف. راجعه قبل التفعيل.
+        </p>
+      )}
       <Check
-        label="راجعت المعلومة وأعتمد استخدامها في الرد على العملاء"
+        label="استخدام هذا المحتوى في الردود"
         checked={approved}
         onChange={setApproved}
       />
       <div className="ar-toolbar">
-        <Button disabled={save.isPending}>حفظ المعلومة</Button>
+        <Button disabled={save.isPending || !content.trim() || !targetPage}>
+          حفظ المحتوى
+        </Button>
         <Button type="button" variant="outline" onClick={close}>
-          إلغاء التعديل
+          إلغاء
         </Button>
       </div>
     </form>
@@ -830,11 +946,23 @@ function KnowledgeEditor({
 }
 
 function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
-  const [config, setConfig] = useState<AutoReplySettings>({
-    ...data.config,
-    instructions: data.config.instructions ?? [],
-  });
+  const [config, setConfig] = useState<AutoReplySettings>(() =>
+    autoReplySettingsSchema.parse(data.config),
+  );
+  const [stopDraft, setStopDraft] = useState(config.stopSequences.join("\n"));
   const utils = trpc.useUtils();
+  const models = trpc.autoReply.models.useQuery(undefined, {
+    retry: false,
+    staleTime: 300000,
+  });
+  const clearHistory = trpc.autoReply.clearAIHistory.useMutation({
+    onSuccess: (result) =>
+      toast.success(
+        `تم بدء سياق جديد لـ ${result.count} محادثة، دون حذف سجل الرسائل`,
+      ),
+    onError: (error) => toast.error(error.message),
+  });
+  const samplingSupported = supportsGeminiSampling(config.model);
   const save = trpc.autoReply.saveSettings.useMutation({
     onSuccess: async () => {
       await utils.autoReply.invalidate();
@@ -992,13 +1120,29 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
         ))}
         <div className="ar-form-grid">
           <Field label="موديل Gemini">
-            <Input
+            <select
+              className="ar-select"
+              aria-label="موديل Gemini"
               dir="ltr"
               required
               value={config.model}
-              maxLength={90}
-              onChange={(e) => update("model", e.target.value)}
-            />
+              onChange={(e) =>
+                setConfig((current) => ({
+                  ...current,
+                  model: e.target.value,
+                  topK: null,
+                }))
+              }
+            >
+              {!models.data?.some((model) => model.id === config.model) && (
+                <option value={config.model}>{config.model}</option>
+              )}
+              {models.data?.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.label} ({model.id})
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="أقصى طول للرد بالحروف">
             <Input
@@ -1019,6 +1163,15 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
             />
           </Field>
         </div>
+        {models.isLoading && (
+          <p role="status">جارٍ تحميل الموديلات المتاحة لحسابك…</p>
+        )}
+        {models.error && (
+          <ErrorState
+            message={models.error.message}
+            retry={() => void models.refetch()}
+          />
+        )}
         <p>
           Gemini:{" "}
           {data.geminiConfigured
@@ -1026,6 +1179,140 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
             : "المفتاح غير مضبوط على السيرفر"}
           . لا يتاح للبوت تعديل بيانات المرضى أو الحجوزات.
         </p>
+        <h2>AI Settings · ذاكرة المحادثة</h2>
+        <Field label="عدد الرسائل التي يتذكرها المساعد">
+          <Input
+            type="number"
+            min={0}
+            max={50}
+            value={config.historyMessageLimit}
+            onChange={(event) =>
+              update("historyMessageLimit", Number(event.target.value))
+            }
+          />
+        </Field>
+        <p>
+          من ٠ إلى ٥٠ رسالة لكل محادثة. اختيار ٠ يوقف إرسال التاريخ للموديل، مع
+          بقاء الرسالة الجديدة.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={clearHistory.isPending}
+          onClick={() => {
+            if (
+              window.confirm(
+                "بدء سياق جديد لكل المحادثات؟ سجل الرسائل سيظل محفوظًا، ولن يتغير وضع الموظف أو تشغيل البوت.",
+              )
+            )
+              clearHistory.mutate({});
+          }}
+        >
+          مسح سياق الذكاء الاصطناعي
+        </Button>
+        <details>
+          <summary>AI Parameters · إعدادات التوليد</summary>
+          <p>
+            {samplingSupported
+              ? "غيّر القيم عند الحاجة؛ الإعدادات الافتراضية مناسبة للبدء."
+              : "الموديل الحالي لا يطبق temperature وtopP وtopK؛ يمكن ضبط حد المخرجات وعبارات التوقف."}
+          </p>
+          <div className="ar-form-grid">
+            <Field label="Temperature">
+              <Input
+                type="number"
+                min={0}
+                max={2}
+                step={0.1}
+                disabled={!samplingSupported}
+                value={config.temperature}
+                onChange={(event) =>
+                  update("temperature", Number(event.target.value))
+                }
+              />
+            </Field>
+            <Field label="topP">
+              <Input
+                type="number"
+                min={0.01}
+                max={1}
+                step={0.05}
+                disabled={!samplingSupported}
+                value={config.topP}
+                onChange={(event) => update("topP", Number(event.target.value))}
+              />
+            </Field>
+            <Field label="topK (اختياري)">
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                disabled={
+                  !samplingSupported ||
+                  !models.data?.find((model) => model.id === config.model)?.topK
+                }
+                value={config.topK ?? ""}
+                placeholder="افتراضي الموديل"
+                onChange={(event) =>
+                  update(
+                    "topK",
+                    event.target.value ? Number(event.target.value) : null,
+                  )
+                }
+              />
+            </Field>
+            <Field label="maxOutputTokens">
+              <Input
+                type="number"
+                min={500}
+                max={Math.min(
+                  8192,
+                  models.data?.find((model) => model.id === config.model)
+                    ?.outputTokenLimit ?? 8192,
+                )}
+                value={config.maxOutputTokens}
+                onChange={(event) =>
+                  update("maxOutputTokens", Number(event.target.value))
+                }
+              />
+            </Field>
+          </div>
+          <Field label="stopSequences (كل عبارة في سطر)">
+            <Textarea
+              aria-label="stopSequences (كل عبارة في سطر)"
+              rows={3}
+              value={stopDraft}
+              onChange={(event) => {
+                setStopDraft(event.target.value);
+                update(
+                  "stopSequences",
+                  event.target.value.split("\n").filter(Boolean),
+                );
+              }}
+            />
+          </Field>
+          <p>
+            حتى ٥ عبارات توقف، و٤٠ حرفًا للعبارة. حد المخرجات يشمل توليد JSON
+            وقد يشمل التفكير؛ حد قليل جدًا قد يقطع الرد.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setStopDraft("");
+              setConfig((current) => ({
+                ...current,
+                temperature: 0.2,
+                topP: 0.95,
+                topK: null,
+                maxOutputTokens: 4096,
+                stopSequences: [],
+              }));
+            }}
+          >
+            استعادة إعدادات التوليد
+          </Button>
+        </details>
         <Field label="تعليمات أسلوب الرد">
           <Textarea
             rows={3}
@@ -1215,7 +1502,7 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
         </Button>
         <p className="ar-muted">
           الفترات التي تنتهي قبل بدايتها تمتد لليوم التالي. لا تُرسل هذه
-          المواعيد للعميل إلا إذا أضفتها واعتمدتها في معلومات المركز.
+          المواعيد للعميل إلا إذا كتبتها في محتوى Teach AI المفعّل.
         </p>
         <Field label="رسالة خارج المواعيد بالعربية">
           <Textarea
@@ -1304,8 +1591,12 @@ function InternalTest({ pages }: { pages: FacebookPages }) {
             · السبب: <bdi>{test.data.reason ?? "معلومة معتمدة"}</bdi>
           </p>
           <p>
-            مصادر المعرفة: {test.data.sourceIds.join("، ") || "لا توجد"} ·
-            الموديل: <bdi>{test.data.model ?? "رد سياسة ثابت دون Gemini"}</bdi>
+            مصادر الرد:{" "}
+            {test.data.sourceIds
+              .map((id) => (id < 0 ? `تعليمة ${-id}` : `معلومة ${id}`))
+              .join("، ") || "تواصل عام دون معلومة محددة"}{" "}
+            · الموديل:{" "}
+            <bdi>{test.data.model ?? "رد سياسة ثابت دون Gemini"}</bdi>
           </p>
           <p>
             استهلاك الطلب: إدخال {test.data.inputTokens} · إخراج{" "}

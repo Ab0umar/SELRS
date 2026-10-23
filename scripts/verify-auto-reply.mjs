@@ -46,8 +46,12 @@ async function open(width, theme, mode = "populated") {
   const page = await browser.newPage({ viewport: { width, height: 1000 } });
   const errors = [];
   const mutations = [];
+  const teachingRows = [];
   let onboardingFinished = false;
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) => {
+    errors.push(error.message);
+    console.error("Fixture browser error:", error.message);
+  });
   await page.addInitScript(
     (value) => localStorage.setItem("theme", value),
     theme,
@@ -183,7 +187,28 @@ async function open(width, theme, mode = "populated") {
             : {},
           updatedAt: null,
         },
-        "autoReply.knowledge": [],
+        "autoReply.teaching": teachingRows,
+        "autoReply.models": [
+          {
+            id: "gemini-3.8-flash",
+            label: "Gemini 3.8 Flash",
+            outputTokenLimit: 8192,
+          },
+          {
+            id: "gemini-2.5-flash",
+            label: "Gemini 2.5 Flash",
+            topK: 40,
+            outputTokenLimit: 8192,
+          },
+        ],
+        "autoReply.saveTeaching": { ok: true },
+        "autoReply.clearAIHistory": { count: 1 },
+        "autoReply.previewWebsite": {
+          url: "https://example.com/public",
+          title: "موقع اختبار محلي",
+          content: "محتوى موقع اختبار معلن، دون قراءة موقع حقيقي. ".repeat(12),
+          truncated: false,
+        },
         "autoReply.beginOnboarding": {
           id: "c082a534-6342-40e1-90da-dcd2de6bf934",
           appId: "123",
@@ -208,9 +233,23 @@ async function open(width, theme, mode = "populated") {
       };
       if (route.request().method() !== "GET") {
         mutations.push(method);
+        if (method === "autoReply.saveTeaching")
+          teachingRows.push({
+            id: teachingRows.length + 1000,
+            kind: input.sourceUrl ? "website" : "teach_ai",
+            title: input.title,
+            content: input.content,
+            targetPage: input.targetPage,
+            approved: input.enabled,
+            sourceUrl: input.sourceUrl,
+            updatedAt: date,
+          });
         assert.ok(
           [
             "autoReply.test",
+            "autoReply.saveTeaching",
+            "autoReply.previewWebsite",
+            "autoReply.clearAIHistory",
             ...(mode.startsWith("coexist_")
               ? [
                   "autoReply.beginOnboarding",
@@ -230,16 +269,19 @@ async function open(width, theme, mode = "populated") {
   });
   await page.goto(`${baseUrl}/admin-hub/auto-reply`);
   await page.locator(".auto-reply h1").waitFor();
-  return { page, errors, mutations };
+  return { page, errors, mutations, teachingRows };
 }
 async function checkLayout(page) {
-  await page.locator(".auto-reply").evaluate(async (node) => {
-    await Promise.all(
-      node
-        .getAnimations({ subtree: true })
-        .map((animation) => animation.finished.catch(() => {})),
-    );
-  });
+  await page
+    .locator(".auto-reply")
+    .first()
+    .evaluate(async (node) => {
+      await Promise.all(
+        node
+          .getAnimations({ subtree: true })
+          .map((animation) => animation.finished.catch(() => {})),
+      );
+    });
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth > innerWidth + 1,
@@ -259,7 +301,7 @@ async function checkLayout(page) {
 try {
   for (const width of [320, 390, 768, 1440])
     for (const theme of ["light", "dark"]) {
-      const { page, errors } = await open(width, theme);
+      const { page, errors, teachingRows } = await open(width, theme);
       await page.getByRole("button", { name: /fixture-customer/ }).click();
       await page.getByText("رسالة اختبار محلي", { exact: true }).waitFor();
       assert.equal(
@@ -275,7 +317,7 @@ try {
       await page.keyboard.press("Tab");
       assert.equal(
         await page
-          .getByRole("button", { name: "معلومات المركز", exact: true })
+          .getByRole("button", { name: "Teach AI", exact: true })
           .evaluate(
             (node) =>
               node === document.activeElement &&
@@ -285,7 +327,7 @@ try {
         "Tabs retain keyboard focus with a visible outline",
       );
       for (const tab of [
-        "معلومات المركز",
+        "Teach AI",
         "الربط والإعدادات",
         "اختبار داخلي",
         "سجل الإرسال",
@@ -293,6 +335,35 @@ try {
         await page.getByRole("button", { name: tab, exact: true }).click();
         await checkLayout(page);
         if (tab === "الربط والإعدادات") {
+          await page
+            .getByLabel("موديل Gemini", { exact: true })
+            .selectOption("gemini-2.5-flash");
+          await page
+            .getByText("AI Parameters · إعدادات التوليد", { exact: true })
+            .click();
+          await page.getByLabel("Temperature", { exact: true }).fill("0.3");
+          await page.getByLabel("topK (اختياري)", { exact: true }).fill("20");
+          await page
+            .getByLabel("stopSequences (كل عبارة في سطر)", { exact: true })
+            .fill("STOP\nEND");
+          assert.equal(
+            await page
+              .getByLabel("stopSequences (كل عبارة في سطر)", { exact: true })
+              .inputValue(),
+            "STOP\nEND",
+          );
+          await page
+            .getByLabel("عدد الرسائل التي يتذكرها المساعد", { exact: true })
+            .fill("10");
+          if (width === 390 && theme === "light") {
+            page.once("dialog", (dialog) => dialog.accept());
+            await page
+              .getByRole("button", {
+                name: "مسح سياق الذكاء الاصطناعي",
+                exact: true,
+              })
+              .click();
+          }
           await page.getByText(/رقم تأكيد الحجوزات منفصل/).waitFor();
           assert.equal(
             await page
@@ -310,14 +381,21 @@ try {
           await page
             .getByLabel("نص التعليمة 1", { exact: true })
             .fill("تعليمة اختبار أولى");
-          await page
-            .getByLabel("تطبيق التعليمة 1 على", { exact: true })
-            .selectOption("456");
+          const instructionTargets = page.getByRole("group", {
+            name: "تطبيق التعليمة 1 على",
+            exact: true,
+          });
+          await instructionTargets
+            .getByRole("checkbox", { name: "الكل", exact: true })
+            .uncheck();
+          await instructionTargets
+            .getByRole("checkbox", { name: "صفحة المركز", exact: true })
+            .check();
           assert.equal(
-            await page
-              .getByLabel("تطبيق التعليمة 1 على", { exact: true })
-              .inputValue(),
-            "456",
+            await instructionTargets
+              .getByRole("checkbox", { name: "صفحة المركز", exact: true })
+              .isChecked(),
+            true,
           );
           await page
             .getByRole("button", { name: "إضافة تعليمة", exact: true })
@@ -401,8 +479,12 @@ try {
           );
         }
         if (tab === "اختبار داخلي") {
-          await page.getByLabel("القناة", { exact: true }).selectOption("messenger");
-          await page.getByLabel("صفحة الاختبار", { exact: true }).selectOption("654");
+          await page
+            .getByLabel("القناة", { exact: true })
+            .selectOption("messenger");
+          await page
+            .getByLabel("صفحة الاختبار", { exact: true })
+            .selectOption("654");
           await page.getByLabel("رسالة العميل للاختبار").fill("سؤال اختبار");
           await page
             .getByRole("button", { name: "عرض الرد المقترح", exact: true })
@@ -411,26 +493,112 @@ try {
             .getByRole("heading", { name: "نتيجة اختبار، لم يُرسل رد" })
             .waitFor();
         }
-        if (tab === "معلومات المركز") {
+        if (tab === "Teach AI") {
           await page
-            .getByRole("button", {
-              name: "استيراد خدمات المركز فقط للمراجعة",
-              exact: true,
-            })
+            .getByRole("button", { name: "إضافة نص للتعليم", exact: true })
+            .click();
+          await page.getByRole("dialog").waitFor();
+          await page
+            .getByLabel("اسم المحتوى (اختياري)", { exact: true })
+            .fill("تعليمات اختبار الصفحة");
+          await page
+            .getByLabel("النص الذي يتعلم منه المساعد", { exact: true })
+            .fill(
+              "محتوى تعليمي طويل للاختبار، دون معلومات عملاء حقيقية. ".repeat(
+                110,
+              ),
+            );
+          const teachingTargets = page.getByRole("group", {
+            name: "يُستخدم في",
+            exact: true,
+          });
+          await teachingTargets
+            .getByRole("checkbox", { name: "الكل", exact: true })
+            .uncheck();
+          assert.equal(
+            await page
+              .getByRole("button", { name: "حفظ المحتوى", exact: true })
+              .isDisabled(),
+            true,
+          );
+          await teachingTargets
+            .getByRole("checkbox", { name: "واتساب", exact: true })
+            .check();
+          await teachingTargets
+            .getByRole("checkbox", { name: "صفحة الدكتور", exact: true })
+            .check();
+          assert.equal(
+            await teachingTargets
+              .getByRole("checkbox", { name: "صفحة المركز", exact: true })
+              .isChecked(),
+            false,
+          );
+          await checkLayout(page);
+          if (width === 390)
+            await page.screenshot({
+              path: `outputs/auto-reply/teach-ai-dialog-${theme}-390.png`,
+              animations: "disabled",
+              fullPage: true,
+            });
+          await page
+            .getByRole("button", { name: "حفظ المحتوى", exact: true })
+            .click();
+          await page.getByRole("dialog").waitFor({ state: "hidden" });
+          await page
+            .getByText("تعليمات اختبار الصفحة", { exact: true })
             .waitFor();
+          assert.ok(teachingRows[0].content.length > 4000);
+          assert.equal(teachingRows[0].targetPage, "whatsapp,654");
           await page
-            .getByRole("button", { name: "إضافة معلومة", exact: true })
+            .getByRole("button", { name: "فتح وتعديل", exact: true })
+            .first()
             .click();
+          assert.equal(
+            await teachingTargets
+              .getByRole("checkbox", { name: "واتساب", exact: true })
+              .isChecked(),
+            true,
+          );
+          assert.equal(
+            await teachingTargets
+              .getByRole("checkbox", { name: "صفحة الدكتور", exact: true })
+              .isChecked(),
+            true,
+          );
           await page
-            .getByLabel("النوع", { exact: true })
-            .selectOption("service");
-          await page.getByLabel("النوع", { exact: true }).selectOption("price");
-          await page.getByLabel("يُستخدم في", { exact: true }).selectOption("654");
-          assert.equal(await page.getByLabel("يُستخدم في", { exact: true }).inputValue(), "654");
-          await page.getByLabel("يُستخدم في", { exact: true }).selectOption("facebook");
-          await page
-            .getByRole("button", { name: "إلغاء التعديل", exact: true })
+            .getByRole("button", { name: "إلغاء", exact: true })
             .click();
+          if (width === 390 && theme === "light") {
+            await page
+              .getByText("المواقع كمصدر للمعلومات", { exact: true })
+              .click();
+            await page
+              .getByLabel("رابط الموقع", { exact: true })
+              .fill("https://example.com/public");
+            await page
+              .getByRole("button", {
+                name: "قراءة ومعاينة الموقع",
+                exact: true,
+              })
+              .click();
+            await page.getByRole("dialog").waitFor();
+            assert.equal(
+              await page
+                .getByLabel("استخدام هذا المحتوى في الردود", { exact: true })
+                .isChecked(),
+              false,
+            );
+            assert.ok(
+              (
+                await page
+                  .getByLabel("النص الذي يتعلم منه المساعد", { exact: true })
+                  .inputValue()
+              ).includes("محتوى موقع اختبار"),
+            );
+            await page
+              .getByRole("button", { name: "إلغاء", exact: true })
+              .click();
+          }
         }
       }
       await page
@@ -529,7 +697,7 @@ try {
     "Coexistence SDK fixtures: code-before-assets and assets-before-code passed; no live Meta onboarding.",
   );
   console.log(
-    "Auto-reply UI: 8 viewport/theme cases, multiple instructions, manual service/price options, page isolation/filter, empty/error states and internal test passed (API fixtures only; no live Meta/Gemini calls).",
+    "Auto-reply UI: 8 viewport/theme cases, Teach AI dialogs, website preview, model settings, history reset, page isolation/filter, empty/error states and internal test passed (API fixtures only; no live Meta/Gemini calls).",
   );
   console.log(
     JSON.stringify({

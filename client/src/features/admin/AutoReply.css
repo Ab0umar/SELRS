@@ -4,6 +4,33 @@
   min-width: 0;
   color: var(--foreground);
 }
+.ar-teach-dialog {
+  background: var(--background);
+  width: min(760px, calc(100vw - 24px));
+  max-width: 760px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+.ar-teach-dialog textarea {
+  field-sizing: fixed;
+  max-height: 45dvh;
+  overflow-y: auto;
+}
+.ar-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.ar-targets legend {
+  padding-inline: 4px;
+}
+.ar-targets .ar-check {
+  min-height: 44px;
+}
 .auto-reply h1 {
   font-size: 1.75rem;
   font-weight: 700;
