@@ -23,6 +23,10 @@ import type {
   ChangePasswordFieldErrors,
   ChangePasswordFormValues,
 } from "@/lib/change-password-validation";
+import {
+  mapUsernameServerError,
+  validateUsername,
+} from "@/lib/username-validation";
 import { useAuth } from "@/hooks/useAuth";
 import { AlertCircle, KeyRound, ShieldAlert, UserRound } from "lucide-react";
 import type { User } from "@shared/types";
@@ -38,6 +42,10 @@ export default function ForcePasswordChange() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
   const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | undefined>(
+    undefined,
+  );
+  const usernameInputRef = useRef<HTMLInputElement>(null);
   const [passwordForm, setPasswordForm] =
     useState<ChangePasswordFormValues>(EMPTY_PASSWORD_FORM);
   const [passwordErrors, setPasswordErrors] =
@@ -78,20 +86,27 @@ export default function ForcePasswordChange() {
     }
   }, [setLocation, user]);
 
-  const submitUsername = async () => {
-    const next = username.trim();
-    if (!next) {
-      toast.error("اسم المستخدم مطلوب");
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    setUsernameError(undefined);
+  };
+
+  const handleUsernameSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (changeUsernameMutation.isPending) return;
+    const savedUsername = String((user as User | null)?.username ?? "");
+    const validationError = validateUsername(username, savedUsername);
+    if (validationError) {
+      setUsernameError(validationError);
+      usernameInputRef.current?.focus();
       return;
     }
-    if (next.length < 3) {
-      toast.error("اسم المستخدم يجب أن يكون 3 أحرف على الأقل");
-      return;
-    }
+    setUsernameError(undefined);
     try {
-      await changeUsernameMutation.mutateAsync({ username: next });
+      await changeUsernameMutation.mutateAsync({ username: username.trim() });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "فشل تحديث اسم المستخدم"));
+      const message = getTrpcErrorMessage(error, "فشل تحديث اسم المستخدم");
+      setUsernameError(mapUsernameServerError(message) ?? message);
     }
   };
 
@@ -175,23 +190,45 @@ export default function ForcePasswordChange() {
                 readOnly
               />
             </div>
-            <div className="space-y-2">
+            <form
+              noValidate
+              onSubmit={handleUsernameSubmit}
+              className="space-y-2"
+            >
               <Label htmlFor="usernameEditable">اسم المستخدم</Label>
               <div className="flex gap-2">
                 <Input
                   id="usernameEditable"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  ref={usernameInputRef}
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  aria-invalid={usernameError ? true : undefined}
+                  aria-describedby={
+                    usernameError ? "usernameEditable-error" : undefined
+                  }
                 />
                 <Button
-                  type="button"
-                  onClick={submitUsername}
+                  type="submit"
+                  aria-label="حفظ اسم المستخدم"
                   disabled={changeUsernameMutation.isPending}
                 >
                   <UserRound className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
+              {usernameError && (
+                <p
+                  id="usernameEditable-error"
+                  role="alert"
+                  className="flex items-center gap-1 text-sm text-destructive"
+                >
+                  <AlertCircle aria-hidden="true" className="h-4 w-4" />
+                  <span>{usernameError}</span>
+                </p>
+              )}
+            </form>
           </div>
 
           <form
