@@ -1,17 +1,10 @@
-/**
- * Classifies the :id param of /quick-entry/:id.
- *
- * parseInt is deliberately avoided: it accepts "12abc" (-> 12) and "1.5"
- * (-> 1), which would silently attach the form to the wrong patient.
- * Wouter may hand over an already percent-decoded param, so malformed input
- * yields a result instead of throwing.
- */
-
 export type QuickEntryPatientIdResult =
   | { status: "absent" }
-  | { status: "valid"; id: number }
+  | { status: "valid"; patientId: number }
   | { status: "invalid"; raw: string };
 
+// Deliberately strict: a coerced id ("12abc" read as 12) could file the entry
+// under the wrong patient record, so malformed input is rejected, not salvaged.
 const PATIENT_ID_PATTERN = /^[1-9]\d*$/;
 
 export function parseQuickEntryPatientId(
@@ -21,9 +14,14 @@ export function parseQuickEntryPatientId(
     return { status: "absent" };
   }
 
-  if (!PATIENT_ID_PATTERN.test(raw) || !Number.isSafeInteger(Number(raw))) {
+  if (!PATIENT_ID_PATTERN.test(raw)) {
     return { status: "invalid", raw };
   }
 
-  return { status: "valid", id: Number(raw) };
+  const patientId = Number(raw);
+  if (!Number.isSafeInteger(patientId)) {
+    return { status: "invalid", raw };
+  }
+
+  return { status: "valid", patientId };
 }
