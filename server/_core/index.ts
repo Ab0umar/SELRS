@@ -29,6 +29,11 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerWsServer } from "./ws";
+import {
+  PENTACAM_PATIENT_KEY_RE,
+  isUnsafePentacamName,
+  resolvePentacamObjectCandidates,
+} from "./pentacamKeys";
 import { startMssqlSyncScheduler } from "./mssqlSyncScheduler";
 import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
 import { initMarketingScheduler } from "../services/marketing/scheduler.service";
@@ -1548,7 +1553,16 @@ async function startServer() {
   server.setTimeout(600_000);
   const pentacamExportsDir = path.resolve(process.cwd(), "Pentacam", "Jpgs");
   const allowedCorsOrigins = getAllowedCorsOrigins();
-  registerWsServer(server);
+  registerWsServer(server, {
+    isOriginAllowed: (origin, host) => {
+      if (isAllowedCorsOrigin(origin, allowedCorsOrigins)) return true;
+      try {
+        return new URL(origin).host === host;
+      } catch {
+        return false;
+      }
+    },
+  });
   // ZKTeco ADMS push endpoint — must be before global body parsers so express.text() can read the raw body
   registerZKTecoAdms(app);
   // WhatsApp Cloud API webhook — must be before global body parsers so it can capture the raw body for signature verification
@@ -2198,45 +2212,6 @@ async function startServer() {
   // Local auth routes
   registerAuthRoutes(app);
 
-  function resolvePentacamObjectCandidates(rawName: string) {
-    const normalized = String(rawName ?? "")
-      .trim()
-      .replace(/^\/+/, "");
-    const base = path.posix.basename(normalized);
-    const stem = path.posix.parse(base).name || base;
-    const hasExt = Boolean(path.posix.extname(base));
-    const values = new Set<string>();
-    const variants = hasExt
-      ? [base]
-      : [
-          base,
-          `${base}.jpg`,
-          `${base}.jpeg`,
-          `${base}.png`,
-          `${base}.webp`,
-          stem,
-          `${stem}.jpg`,
-          `${stem}.jpeg`,
-          `${stem}.png`,
-          `${stem}.webp`,
-        ];
-    for (const candidate of [
-      normalized,
-      ...variants.flatMap((value) => [
-        value,
-        `pentacam-exports/${value}`,
-        `Pentacam/${value}`,
-        `pentacam/${value}`,
-      ]),
-    ]) {
-      const value = String(candidate ?? "")
-        .trim()
-        .replace(/^\/+/, "");
-      if (value) values.add(value);
-    }
-    return Array.from(values);
-  }
-
   async function readPentacamObjectBuffer(
     name: string,
   ): Promise<Buffer | null> {
@@ -2357,8 +2332,16 @@ async function startServer() {
           res.status(400).json({ ok: false, error: "Invalid file name" });
           return;
         }
+        if (isUnsafePentacamName(rawName)) {
+          res.status(400).json({ ok: false, error: "Invalid file name" });
+          return;
+        }
         const patientKey = rawName.match(/^pentacam\/patients\/(\d+)\//i);
         if (patientKey) {
+          if (!PENTACAM_PATIENT_KEY_RE.test(rawName.replace(/^\/+/, ""))) {
+            res.status(400).json({ ok: false, error: "Invalid file name" });
+            return;
+          }
           if (!(await canReadSrv100Upload(req, Number(patientKey[1])))) {
             res
               .status(403)
