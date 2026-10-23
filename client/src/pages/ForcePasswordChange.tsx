@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useLocation } from "wouter";
 import {
   Card,
@@ -16,15 +17,38 @@ import { getTrpcErrorMessage } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { KeyRound, Loader2, ShieldAlert, UserRound } from "lucide-react";
 import type { User } from "@shared/types";
+import {
+  CHANGE_PASSWORD_RULES_HINT,
+  validateChangePasswordForm,
+  type ChangePasswordFieldErrors,
+  type ChangePasswordFormValues,
+} from "@/lib/change-password-validation";
+import { validateUsernameField } from "@/lib/force-password-change-validation";
+
+const PASSWORD_FIELD_IDS: Record<keyof ChangePasswordFieldErrors, string> = {
+  currentPassword: "currentPasswordRequired",
+  newPassword: "newPasswordRequired",
+  confirmPassword: "confirmPasswordRequired",
+};
+
+const EMPTY_PASSWORD_FORM: ChangePasswordFormValues = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+};
 
 export default function ForcePasswordChange() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
   const [username, setUsername] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [usernameError, setUsernameError] = useState<string | undefined>(
+    undefined,
+  );
+  const [passwordForm, setPasswordForm] =
+    useState<ChangePasswordFormValues>(EMPTY_PASSWORD_FORM);
+  const [passwordErrors, setPasswordErrors] =
+    useState<ChangePasswordFieldErrors>({});
 
   const changeUsernameMutation = trpc.auth.changeUsername.useMutation({
     onSuccess: async () => {
@@ -36,9 +60,8 @@ export default function ForcePasswordChange() {
   const changePasswordMutation = trpc.auth.changePassword.useMutation({
     onSuccess: async () => {
       toast.success("تم تحديث كلمة المرور");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      setPasswordForm(EMPTY_PASSWORD_FORM);
+      setPasswordErrors({});
       await utils.auth.me.invalidate();
       setLocation("/dashboard");
     },
@@ -55,50 +78,75 @@ export default function ForcePasswordChange() {
     }
   }, [setLocation, user]);
 
-  const submitUsername = async () => {
-    const next = username.trim();
-    if (!next) {
-      toast.error("اسم المستخدم مطلوب");
-      return;
-    }
-    if (next.length < 3) {
-      toast.error("اسم المستخدم يجب أن يكون 3 أحرف على الأقل");
-      return;
-    }
-    try {
-      await changeUsernameMutation.mutateAsync({ username: next });
-    } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "فشل تحديث اسم المستخدم"));
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    // Live re-validation only after a failed submit so the error never shows early.
+    if (usernameError) {
+      setUsernameError(validateUsernameField(value));
     }
   };
 
-  const submitPassword = async () => {
-    const current = currentPassword.trim();
-    const next = newPassword.trim();
-    const confirm = confirmPassword.trim();
-    if (!current || !next || !confirm) {
-      toast.error("يرجى ملء جميع حقول كلمة المرور");
+  const submitUsername = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (changeUsernameMutation.isPending) return;
+
+    const validationError = validateUsernameField(username);
+    if (validationError) {
+      setUsernameError(validationError);
+      document.getElementById("usernameEditable")?.focus();
       return;
     }
-    if (next.length < 6) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل");
+    setUsernameError(undefined);
+    try {
+      await changeUsernameMutation.mutateAsync({ username: username.trim() });
+    } catch (error) {
+      // Field-specific: render under the input instead of a transient toast.
+      setUsernameError(getTrpcErrorMessage(error, "فشل تحديث اسم المستخدم"));
+    }
+  };
+
+  const handlePasswordFieldChange = (
+    field: keyof ChangePasswordFormValues,
+    value: string,
+  ) => {
+    const nextForm = { ...passwordForm, [field]: value };
+    setPasswordForm(nextForm);
+    // Live re-validation only after a failed submit so errors never show early.
+    if (Object.keys(passwordErrors).length > 0) {
+      setPasswordErrors(validateChangePasswordForm(nextForm));
+    }
+  };
+
+  const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (changePasswordMutation.isPending) return;
+
+    const validationErrors = validateChangePasswordForm(passwordForm);
+    if (Object.keys(validationErrors).length > 0) {
+      setPasswordErrors(validationErrors);
+      const firstInvalidField = (
+        ["currentPassword", "newPassword", "confirmPassword"] as const
+      ).find((field) => validationErrors[field]);
+      if (firstInvalidField) {
+        document
+          .getElementById(PASSWORD_FIELD_IDS[firstInvalidField])
+          ?.focus();
+      }
       return;
     }
-    if (next !== confirm) {
-      toast.error("تأكيد كلمة المرور غير متطابق");
-      return;
-    }
-    if (next === current) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون مختلفة");
-      return;
-    }
+    setPasswordErrors({});
     try {
       await changePasswordMutation.mutateAsync({
-        currentPassword: current,
-        newPassword: next,
+        currentPassword: passwordForm.currentPassword.trim(),
+        newPassword: passwordForm.newPassword.trim(),
       });
     } catch (error) {
-      toast.error(getTrpcErrorMessage(error, "فشل تحديث كلمة المرور"));
+      const message = getTrpcErrorMessage(error, "فشل تحديث كلمة المرور");
+      if (message === "كلمة المرور الحالية غير صحيحة") {
+        setPasswordErrors({ currentPassword: message });
+        return;
+      }
+      toast.error(message);
     }
   };
 
@@ -127,42 +175,57 @@ export default function ForcePasswordChange() {
           </CardDescription>
         </CardHeader>
         <CardContent className="relative space-y-6">
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="fullNameReadonly">الاسم الكامل</Label>
-              <Input
-                id="fullNameReadonly"
-                value={String((user as User | null)?.name ?? "")}
-                readOnly
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="fullNameReadonly">الاسم الكامل</Label>
+            <Input
+              id="fullNameReadonly"
+              value={String((user as User | null)?.name ?? "")}
+              readOnly
+            />
+          </div>
+
+          <form onSubmit={submitUsername} noValidate className="space-y-2">
             <div className="space-y-2">
               <Label htmlFor="usernameEditable">اسم المستخدم</Label>
               <div className="flex gap-2">
                 <Input
                   id="usernameEditable"
+                  autoComplete="username"
+                  aria-invalid={Boolean(usernameError)}
+                  aria-describedby={
+                    usernameError ? "usernameEditable-error" : undefined
+                  }
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
                 />
                 <Button
-                  type="button"
-                  onClick={submitUsername}
+                  type="submit"
+                  aria-label="حفظ اسم المستخدم"
                   disabled={changeUsernameMutation.isPending}
                   aria-busy={changeUsernameMutation.isPending}
                   aria-label="حفظ اسم المستخدم"
                   title="حفظ اسم المستخدم"
                 >
-                  {changeUsernameMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  ) : (
-                    <UserRound className="h-4 w-4" aria-hidden />
-                  )}
+                  <UserRound aria-hidden className="h-4 w-4" />
                 </Button>
               </div>
+              {usernameError ? (
+                <p
+                  id="usernameEditable-error"
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
+                  {usernameError}
+                </p>
+              ) : null}
             </div>
-          </div>
+          </form>
 
-          <div className="space-y-3 border-t pt-4">
+          <form
+            onSubmit={submitPassword}
+            noValidate
+            className="space-y-3 border-t pt-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="currentPasswordRequired">
                 كلمة المرور الحالية
@@ -170,18 +233,60 @@ export default function ForcePasswordChange() {
               <Input
                 id="currentPasswordRequired"
                 type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoComplete="current-password"
+                aria-invalid={Boolean(passwordErrors.currentPassword)}
+                aria-describedby={
+                  passwordErrors.currentPassword
+                    ? "currentPasswordRequired-error"
+                    : undefined
+                }
+                value={passwordForm.currentPassword}
+                onChange={(e) =>
+                  handlePasswordFieldChange("currentPassword", e.target.value)
+                }
               />
+              {passwordErrors.currentPassword ? (
+                <p
+                  id="currentPasswordRequired-error"
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
+                  {passwordErrors.currentPassword}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPasswordRequired">كلمة المرور الجديدة</Label>
               <Input
                 id="newPasswordRequired"
                 type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                aria-invalid={Boolean(passwordErrors.newPassword)}
+                aria-describedby={
+                  passwordErrors.newPassword
+                    ? "newPasswordRequired-rules newPasswordRequired-error"
+                    : "newPasswordRequired-rules"
+                }
+                value={passwordForm.newPassword}
+                onChange={(e) =>
+                  handlePasswordFieldChange("newPassword", e.target.value)
+                }
               />
+              <p
+                id="newPasswordRequired-rules"
+                className="text-xs text-muted-foreground"
+              >
+                {CHANGE_PASSWORD_RULES_HINT}
+              </p>
+              {passwordErrors.newPassword ? (
+                <p
+                  id="newPasswordRequired-error"
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
+                  {passwordErrors.newPassword}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPasswordRequired">
@@ -190,19 +295,31 @@ export default function ForcePasswordChange() {
               <Input
                 id="confirmPasswordRequired"
                 type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !changePasswordMutation.isPending) {
-                    void submitPassword();
-                  }
-                }}
+                autoComplete="new-password"
+                aria-invalid={Boolean(passwordErrors.confirmPassword)}
+                aria-describedby={
+                  passwordErrors.confirmPassword
+                    ? "confirmPasswordRequired-error"
+                    : undefined
+                }
+                value={passwordForm.confirmPassword}
+                onChange={(e) =>
+                  handlePasswordFieldChange("confirmPassword", e.target.value)
+                }
               />
+              {passwordErrors.confirmPassword ? (
+                <p
+                  id="confirmPasswordRequired-error"
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
+                  {passwordErrors.confirmPassword}
+                </p>
+              ) : null}
             </div>
             <Button
-              type="button"
+              type="submit"
               className="w-full"
-              onClick={submitPassword}
               disabled={changePasswordMutation.isPending}
             >
               {changePasswordMutation.isPending ? (
@@ -214,7 +331,7 @@ export default function ForcePasswordChange() {
                 </span>
               )}
             </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </div>

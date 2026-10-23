@@ -353,7 +353,6 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
 
 export default function MainHome() {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
   const { user } = useAuth();
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
@@ -417,20 +416,17 @@ export default function MainHome() {
 
   const cardClassName =
     "home-app group";
-  const dailyLabels = new Set(["الاستقبال", "مسار اليوم", "مركز المريض", "الحسابات", "الشيتات", "كفرالشيخ", "التقارير"]);
-  const adminLabels = new Set(["الموظفين", "مركز الإدارة", "الحساب", "المخزن", "رسائل واتساب", "التسويق"]);
-  const categories = [
-    { id: "all", label: "الكل" },
-    { id: "daily", label: "العمل اليومي" },
-    { id: "admin", label: "الإدارة" },
-    { id: "reference", label: "المراجع" },
-  ];
-  const displayedCards = visibleHomeCards.filter(card => {
-    const group = dailyLabels.has(card.label) ? "daily" : adminLabels.has(card.label) ? "admin" : "reference";
-    return (category === "all" || group === category) &&
-      `${card.label} ${card.helper ?? ""}`.includes(search.trim());
-  });
-  const workflowCard = visibleHomeCards.find(card => card.href === "/workflow");
+  const FEATURED_LABELS = ["الاستقبال", "مركز المريض", "الحسابات"];
+  const displayedCards = visibleHomeCards.filter(card =>
+    `${card.label} ${card.helper ?? ""}`.includes(search.trim()),
+  );
+  const workflowCard = displayedCards.find(card => card.href === "/workflow");
+  const featuredCards = FEATURED_LABELS.map(label =>
+    displayedCards.find(card => card.label === label),
+  ).filter(Boolean) as HomeCard[];
+  const restCards = displayedCards.filter(
+    card => card !== workflowCard && !featuredCards.includes(card),
+  );
 
   const renderCard = (card: HomeCard) => {
     const itemClassName = cardClassName;
@@ -547,16 +543,25 @@ export default function MainHome() {
             </div>
           ) : (
             <div>
-              {workflowCard && <div className="home-library-quickline"><div><strong>مسار اليوم</strong><p>الزيارات والفحص</p></div><Button asChild className="home-library-open"><Link href="/workflow">فتح المسار <ArrowLeft className="size-4" aria-hidden /></Link></Button></div>}
-              <nav className="home-library-categories" aria-label="تصنيف الأقسام">
-                {categories.map(item => (
-                  <Button key={item.id} variant="bare" type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)}>{item.label}</Button>
-                ))}
-              </nav>
               <div className="home-library-grid" aria-label="أقسام المركز">
-                {displayedCards.map(renderCard)}
+                {workflowCard && (
+                  <Link href="/workflow" className="home-bento-hero">
+                    <span>الزيارات والفحص</span>
+                    <div><strong>مسار<br />اليوم</strong><ArrowLeft aria-hidden /></div>
+                  </Link>
+                )}
+                {featuredCards.map((card, index) => {
+                  const Icon = card.icon;
+                  return (
+                    <Link key={card.label} href={card.href ?? "/home"} className="home-bento-block" data-block={index} title={card.helper}>
+                      <strong>{card.label}</strong>
+                      <Icon strokeWidth={1.8} aria-hidden />
+                    </Link>
+                  );
+                })}
+                {restCards.map(renderCard)}
               </div>
-              {displayedCards.length === 0 && <div className="home-library-empty" role="status"><p>لا توجد أقسام مطابقة.</p><Button variant="outline" onClick={() => { setSearch(""); setCategory("all"); }}>عرض كل الأقسام</Button></div>}
+              {displayedCards.length === 0 && <div className="home-library-empty" role="status"><p>لا توجد أقسام مطابقة.</p><Button variant="outline" onClick={() => setSearch("")}>عرض كل الأقسام</Button></div>}
             </div>
           )}
         </section>

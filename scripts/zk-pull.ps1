@@ -4,10 +4,10 @@
   Must run under 32-bit PowerShell (SysWOW64) to access the 32-bit COM object.
 
 .PARAMETER IP
-  Device IP address from ZK_DEVICE_IP (legacy: ZK4370_IP).
+  Device IP address (default: 196.202.50.91)
 
 .PARAMETER Port
-  Device port from ZK_DEVICE_PORT (legacy: ZK4370_PORT).
+  Device port (default: 4370)
 
 .PARAMETER MachineNo
   Device machine number (default: 1)
@@ -22,12 +22,12 @@
 
 .EXAMPLE
   # Run via 32-bit PowerShell:
-  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -OutFile C:\tmp\logs.csv
+  & "C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -File zk-pull.ps1 -IP 196.202.50.91 -Port 4370 -OutFile C:\tmp\logs.csv
 #>
 
 param(
-  [string]$IP        = $(if ($env:ZK_DEVICE_IP) { $env:ZK_DEVICE_IP } else { $env:ZK4370_IP }),
-  [int]   $Port      = $(if ($env:ZK_DEVICE_PORT) { $env:ZK_DEVICE_PORT } else { $env:ZK4370_PORT }),
+  [string]$IP        = $env:ZK_DEVICE_IP,
+  [Nullable[int]]$Port = $(if ($env:ZK_DEVICE_PORT) { [int]$env:ZK_DEVICE_PORT } else { $null }),
   [int]   $MachineNo = 1,
   [int]   $CommPwd   = 258288,
   [string]$OutFile   = "",
@@ -35,8 +35,15 @@ param(
   [string]$EmployeesFile = ""
 )
 
-$IP = if ($env:ZK_DEVICE_IP) { $env:ZK_DEVICE_IP } else { $env:ZK4370_IP }
-$Port = if ($env:ZK_DEVICE_PORT) { [int]$env:ZK_DEVICE_PORT } else { [int]$env:ZK4370_PORT }
+if ([string]::IsNullOrWhiteSpace($IP)) {
+  Write-Error "Device IP is not set. Provide -IP or set ZK_DEVICE_IP."
+  exit 2
+}
+
+if (-not $Port -or $Port -le 0) {
+  Write-Error "Device port is not set or invalid. Provide -Port or set ZK_DEVICE_PORT."
+  exit 2
+}
 
 # Auto-relaunch under 32-bit PowerShell (required for zkemkeeper.dll COM)
 if ([IntPtr]::Size -ne 4) {
@@ -60,10 +67,6 @@ try {
 
 if ($CommPwd -ne 0) {
   $null = $zk.SetCommPassword($CommPwd)
-}
-if (-not $IP -or $Port -lt 1 -or $Port -gt 65535) {
-  Write-Error "Configure ZK_DEVICE_IP and ZK_DEVICE_PORT in the environment."
-  exit 1
 }
 Write-Host "[ZK] Connecting to $IP`:$Port..."
 $connected = $zk.Connect_Net($IP, $Port)

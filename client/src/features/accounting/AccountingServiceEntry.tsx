@@ -147,9 +147,9 @@ export default function AccountingServiceEntry() {
     }
   };
   const field =
-    "h-14 w-full border-[3px] border-foreground/45 bg-card px-3 text-start text-xl font-bold text-foreground outline-none focus:border-primary";
+    "h-14 w-full border-[3px] border-primary/45 bg-card px-3 text-start text-xl font-bold text-foreground outline-none focus:border-primary";
   const label =
-    "flex h-14 items-center justify-center border-2 border-foreground/35 bg-muted px-3 text-2xl font-black text-foreground whitespace-nowrap";
+    "flex h-14 items-center justify-center border-2 border-primary/35 bg-muted px-3 text-2xl font-black text-foreground whitespace-nowrap";
   const total = todayServicesQ.data?.grandTotal;
   return (
     <>
@@ -235,7 +235,7 @@ export default function AccountingServiceEntry() {
                       placeholder="كود المريض"
                       dir="ltr"
                     />
-                    <output className="h-14 border-2 border-foreground/35 bg-card px-4 py-2 text-center text-xl font-black">
+                    <output className="h-14 border-2 border-primary/35 bg-card px-4 py-2 text-center text-xl font-black">
                       {patientQ.isFetching
                         ? "جارٍ البحث"
                         : patientQ.isError
