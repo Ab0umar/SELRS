@@ -14,7 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { KeyRound, ShieldAlert, UserRound } from "lucide-react";
+import { KeyRound, Loader2, ShieldAlert, UserRound } from "lucide-react";
 import type { User } from "@shared/types";
 
 export default function ForcePasswordChange() {
@@ -148,8 +148,15 @@ export default function ForcePasswordChange() {
                   type="button"
                   onClick={submitUsername}
                   disabled={changeUsernameMutation.isPending}
+                  aria-busy={changeUsernameMutation.isPending}
+                  aria-label="حفظ اسم المستخدم"
+                  title="حفظ اسم المستخدم"
                 >
-                  <UserRound className="h-4 w-4" />
+                  {changeUsernameMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <UserRound className="h-4 w-4" aria-hidden />
+                  )}
                 </Button>
               </div>
             </div>
