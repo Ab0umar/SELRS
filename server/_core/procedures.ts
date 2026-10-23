@@ -251,7 +251,7 @@ function normalizePermissionPath(path: string): string {
   return normalized || "/";
 }
 
-function permMatchesPath(clean: string, pagePath: string): boolean {
+export function permMatchesPath(clean: string, pagePath: string): boolean {
   const normalizedClean = normalizePermissionPath(clean);
   const normalizedPagePath = normalizePermissionPath(pagePath);
   if (normalizedClean === "/" || normalizedPagePath === "/") {

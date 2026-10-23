@@ -3,7 +3,6 @@ import { attendancePunches, attendanceSyncRuns } from "../../../drizzle/schema";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { ZKTecoDevice } from "./zktecoDevice";
 import { DailyMaterializer } from "./dailyMaterializer";
-import { requireDeviceEndpoint } from "./deviceEndpoint";
 
 /**
  * Direct Device Sync Engine
@@ -36,6 +35,7 @@ export class DeviceSyncEngine {
 
   constructor(config: DeviceSyncConfig) {
     this.config = {
+      devicePort: 5005,
       syncIntervalMinutes: 60,
       enableAutoSync: false,
       ...config,
@@ -47,10 +47,9 @@ export class DeviceSyncEngine {
    */
   async initialize(): Promise<boolean> {
     try {
-      const endpoint = requireDeviceEndpoint("zk");
-      this.config = { ...this.config, deviceIp: endpoint.ip, devicePort: endpoint.port };
       this.device = new ZKTecoDevice({
-        ...endpoint,
+        ip: this.config.deviceIp,
+        port: this.config.devicePort || 5005,
         timeout: 10000,
       });
 
