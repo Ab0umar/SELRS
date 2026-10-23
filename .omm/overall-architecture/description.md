@@ -1,0 +1,1 @@
+SELRS combines a React client, an Express and tRPC backend, shared contracts, and integrations with clinical and operational storage.

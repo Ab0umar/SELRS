@@ -1,0 +1,13 @@
+created: 2026-10-22T10:04:49.618Z
+updated: 2026-10-22T10:04:57.259Z
+update_count: 7
+last_field: note
+git_commit: c1323693
+git_branch: main
+children:
+  - attendance-devices
+  - integration-workers
+  - legacy-mssql
+  - object-storage
+  - pentacam
+  - whatsapp

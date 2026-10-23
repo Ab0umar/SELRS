@@ -1,0 +1,1 @@
+server/db.ts supplies MySQL access and domain queries.

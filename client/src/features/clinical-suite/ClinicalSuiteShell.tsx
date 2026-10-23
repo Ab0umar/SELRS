@@ -17,6 +17,10 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import {
+  getCommandPaletteShortcutLabel,
+  openCommandPalette,
+} from "@/lib/commandPalette";
 import { ROUTES } from "../../../../shared/routes";
 
 export default function ClinicalSuiteShell() {
@@ -24,7 +28,7 @@ export default function ClinicalSuiteShell() {
   const [, setLocation] = useLocation();
 
   const handleOpenCommandPalette = () => {
-    window.dispatchEvent(new CustomEvent("selrs:open-command-palette"));
+    openCommandPalette();
   };
 
   return (
@@ -69,7 +73,7 @@ export default function ClinicalSuiteShell() {
           >
             <Search className="w-3.5 h-3.5" />
             <span>
-              بحث سريع (<bdi dir="ltr">Ctrl + K</bdi>)
+              بحث سريع (<bdi dir="ltr">{getCommandPaletteShortcutLabel()}</bdi>)
             </span>
           </Button>
 

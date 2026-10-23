@@ -22,11 +22,7 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   scheduled: { label: "مجدول", className: "bg-info/15 text-info" },
 };
 
-const DAY_LABELS: Record<string, string> = {
-  saturday: "السبت",
-  tuesday: "الثلاثاء",
-  thursday: "الخميس",
-};
+import { marketingSlotLabel } from "@shared/marketingSchedule";
 
 export default function PostHistory() {
   const [filter, setFilter] = useState<"published" | "failed" | "all">(
@@ -164,7 +160,7 @@ export default function PostHistory() {
                             <>
                               <span>·</span>
                               <span>
-                                {DAY_LABELS[post.postDay] ?? post.postDay}
+                                {marketingSlotLabel(post.postDay, post.pageRole ?? "center")}
                               </span>
                             </>
                           )}

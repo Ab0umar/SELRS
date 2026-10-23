@@ -229,7 +229,15 @@ export default function ShiftPayroll() {
     fromDate,
     toDate,
   });
+  const monthlyPayrollQ = (trpc as any).salary.getPayroll.useQuery({
+    year,
+    month,
+    section: "مركز",
+    fromDate,
+    toDate,
+  });
   const rawRows: any[] = payrollQ.data ?? [];
+  const monthlyPayrollRows: any[] = monthlyPayrollQ.data ?? [];
 
   const setOverrideMut = (
     trpc as any
@@ -253,7 +261,7 @@ export default function ShiftPayroll() {
 
   const totalPay = rows.reduce((s: number, r: any) => s + r.totalPay, 0);
 
-  function printSlips() {
+  function printDay1Slips() {
     // Collect all unique shift names across all rows
     const allShiftNames = Array.from(
       new Set(rows.flatMap((r: any) => Object.keys(r.byShift ?? {}))),
@@ -262,28 +270,28 @@ export default function ShiftPayroll() {
     const SLIP_CSS = `
       @page { size: A4; margin: 10mm; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: "Traditional Arabic", "Simplified Arabic", Arial, sans-serif; font-size: 9px; color: #000; direction: rtl; }
+      body { font-family: "Traditional Arabic", "Simplified Arabic", Arial, sans-serif; font-size: 11px; color: #000; direction: rtl; }
       .slip { padding: 6px 0 4px; page-break-inside: avoid; }
-      .top { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; }
-      .title { text-align: center; font-size: 16px; font-weight: bold; color: #00008B; margin-bottom: 6px; }
+      .top { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px; }
+      .title { text-align: center; font-size: 18px; font-weight: bold; color: #00008B; margin-bottom: 6px; }
       .meta { display: grid; grid-template-columns: 20px 1fr 20px; align-items: start; margin-bottom: 4px; }
-      .meta-right { font-size: 12px; font-weight: bold; text-align: center; grid-column: 2; }
-      .meta-left { font-size: 9px; color: #555; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); grid-column: 1; }
-      .dept { font-size: 10px; margin-top: 2px; text-align: center; }
+      .meta-right { font-size: 13px; font-weight: bold; text-align: center; grid-column: 2; }
+      .meta-left { font-size: 10px; color: #555; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); grid-column: 1; }
+      .dept { font-size: 11px; margin-top: 2px; text-align: center; }
       table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #999; padding: 2px 3px; text-align: center; font-size: 8px; }
-      .emp-cell { font-weight: bold; font-size: 9px; background: #f0f4ff; }
-      .net-cell { font-size: 16px; font-weight: bold; color: #00008B; background: #f0f4ff; vertical-align: middle; min-width: 60px; }
-      .net-label { font-size: 7px; display: block; margin-bottom: 4px; }
+      th, td { border: 1px solid #999; padding: 2px 3px; text-align: center; font-size: 9px; }
+      .emp-cell { font-weight: bold; font-size: 10px; background: #f0f4ff; }
+      .net-cell { font-size: 18px; font-weight: bold; color: #00008B; background: #f0f4ff; vertical-align: middle; min-width: 60px; }
+      .net-label { font-size: 8px; display: block; margin-bottom: 4px; }
       .total-cell { font-weight: bold; }
-      .words { text-align: right; font-size: 10px; margin: 4px 0 3px; }
+      .words { text-align: right; font-size: 11px; margin: 4px 0 3px; }
       .sigs { display: flex; justify-content: space-between; margin-top: 8px; }
-      .sig-block { text-align: center; font-size: 9px; }
+      .sig-block { text-align: center; font-size: 10px; }
       .sig-line { border-bottom: 1px solid #000; width: 120px; margin: 14px auto 3px; }
       hr.sep { border: none; border-top: 1px dashed #888; margin: 8px 0; }
     `;
 
-    const titleAr = `مرتب الشفتات: ${periodLabel}`;
+    const titleAr = `مرتب الشفتات: يوم 1، ${periodLabel}`;
     const today = new Date().toLocaleDateString("ar-EG");
 
     const slips = rows
@@ -377,7 +385,7 @@ export default function ShiftPayroll() {
     const fullHtml = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><style>${SLIP_CSS}</style></head><body>${slips}${footer}</body></html>`;
 
     if (canUseNativeAndroidPrint()) {
-      void requestNativeAndroidPrint("كشف الشيفت", fullHtml);
+      void requestNativeAndroidPrint("قسائم الشفتات يوم 1", fullHtml);
       return;
     }
 
@@ -388,6 +396,74 @@ export default function ShiftPayroll() {
     const doc = iframe.contentDocument!;
     doc.open();
     doc.write(fullHtml);
+    doc.close();
+    const cleanup = () => {
+      iframe.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
+  }
+
+  function printDay10Slips() {
+    const day10Rows = rows.map((row: any) => {
+      const payrollRow = monthlyPayrollRows.find(
+        (item: any) => item.empCd === `shift_${row.id}`,
+      );
+      const attendance = Number(payrollRow?.attendanceCommission ?? 0);
+      const examination = Number(payrollRow?.examCommission ?? 0);
+      const pentacam = Number(payrollRow?.pentacamCommission ?? 0);
+      const costOfLiving = Number(payrollRow?.costOfLivingAllowance ?? 0);
+      const transport = Number(payrollRow?.transportAllowance ?? 0);
+      const overtime = Number(payrollRow?.overtimePay ?? 0);
+      const total =
+        attendance + examination + pentacam + costOfLiving + transport + overtime;
+
+      return `
+        <section class="slip">
+          <div class="top"><span>عيون الشروق للخدمات الطبية</span><span>دفعة يوم 10</span></div>
+          <h1>نسب الشفتات: ${MONTHS[month - 1]} ${year}</h1>
+          <div class="employee">الاسم: ${row.name}</div>
+          <table>
+            <thead><tr><th>الحضور</th><th>الكشف</th><th>البنتاكام</th><th>غلاء معيشة</th><th>بدل مواصلات</th><th>أوفرتايم</th><th>الإجمالي</th></tr></thead>
+            <tbody><tr><td>${fmt(attendance)}</td><td>${fmt(examination)}</td><td>${fmt(pentacam)}</td><td>${fmt(costOfLiving)}</td><td>${fmt(transport)}</td><td>${fmt(overtime)}</td><td class="total">${fmt(total)}</td></tr></tbody>
+          </table>
+          <div class="words">${toArabicWords(total)}</div>
+          <div class="signatures"><span>توقيع المستلم</span><span>يعتمد</span></div>
+        </section>`;
+    }).join("");
+
+    const css = `
+      @page { size: A4 portrait; margin: 8mm; }
+      * { box-sizing: border-box; }
+      body { direction: rtl; font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: #111; font-size: 10px; }
+      .slip { min-height: 64mm; padding: 5mm; margin-bottom: 3mm; break-inside: avoid; page-break-inside: avoid; border: 1px solid #98a2b3; border-radius: 10px; }
+      .top { display: flex; justify-content: space-between; color: #475467; font-size: 9px; font-weight: 700; }
+      h1 { margin: 3mm 0; text-align: center; color: #172554; font-size: 16px; }
+      .employee { margin-bottom: 3mm; font-size: 12px; font-weight: 800; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td { padding: 2.5mm 1.5mm; border: 1px solid #98a2b3; text-align: center; overflow-wrap: anywhere; }
+      th { background: #e8eefc; color: #172554; font-size: 9px; }
+      td { font-size: 11px; font-weight: 700; }
+      .total { background: #fff4d6; color: #7a4b00; font-weight: 900; }
+      .words { margin-top: 3mm; font-size: 10px; font-weight: 700; }
+      .signatures { display: flex; justify-content: space-between; margin-top: 8mm; font-size: 10px; font-weight: 700; }
+      .signatures span { min-width: 34%; padding-top: 4mm; border-top: 1px solid #475467; text-align: center; }
+    `;
+    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>قسائم الشفتات يوم 10</title><style>${css}</style></head><body>${day10Rows}</body></html>`;
+
+    if (canUseNativeAndroidPrint()) {
+      void requestNativeAndroidPrint("قسائم الشفتات يوم 10", html);
+      return;
+    }
+
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(html);
     doc.close();
     const cleanup = () => {
       iframe.remove();
@@ -692,14 +768,27 @@ export default function ShiftPayroll() {
             تحديث
           </Button>
           {rows.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={printSlips}
-              className="gap-2"
-              aria-label="طباعة كشف الشفتات أو حفظه PDF"
-            >
-              <Printer size={15} /> طباعة / حفظ PDF
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={printDay1Slips}
+                className="gap-2"
+                aria-label="طباعة قسائم الشفتات ليوم 1 أو حفظها PDF"
+              >
+                <Printer size={15} /> يوم 1
+              </Button>
+              <Button
+                variant="outline"
+                onClick={printDay10Slips}
+                className="gap-2"
+                disabled={
+                  monthlyPayrollQ.isLoading || monthlyPayrollQ.isError
+                }
+                aria-label="طباعة قسائم الشفتات ليوم 10 أو حفظها PDF"
+              >
+                <Printer size={15} /> يوم 10
+              </Button>
+            </>
           )}
         </div>
       </div>

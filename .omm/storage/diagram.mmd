@@ -1,0 +1,10 @@
+graph LR
+    domain-services["domain services\nserver/"]
+    mysql["mysql\nserver/db.ts"]
+    mssql["mssql\nserver/integrations/mssqlPatients.ts"]
+    s3["s3\nserver/_core/s3.ts"]
+    local-files["local files\nserver/_core/index.ts."]
+    domain-services -->|"persists records"| mysql
+    domain-services -->|"synchronizes patient data"| mssql
+    domain-services -->|"stores and retrieves objects"| s3
+    domain-services -->|"imports and reads files"| local-files

@@ -83,9 +83,15 @@ try {
         assert.match(url.searchParams.get('visitDate'), /^\d{4}-\d{2}-\d{2}$/);
       }
     } else {
-      assert.equal(await cards.first().locator('.queue-patient-service-rail').isVisible(), false);
-      assert.equal(await cards.first().getByRole('button', { name: 'طباعة روشتة', exact: true }).isVisible(), true);
-      assert.equal(await cards.first().getByRole('button', { name: 'المزيد من إجراءات المريض' }).count(), 0);
+      assert((await page.locator('[data-patient-id="999994"]').boundingBox()).height <= 140, 'Desktop cards do not stretch to fill the tallest neighbor');
+      assert.equal(await cards.first().locator('.queue-patient-service-rail').isVisible(), true);
+      assert.equal(await cards.first().getByRole('button', { name: 'طباعة روشتة', exact: true }).count(), 0);
+      assert.equal(await cards.first().getByRole('button', { name: 'المزيد من إجراءات المريض' }).isVisible(), true);
+      assert.equal(await cards.first().locator('.queue-patient-actions button:visible').count(), 3);
+      await cards.first().getByRole('button', { name: 'المزيد من إجراءات المريض' }).click();
+      assert.equal(await page.getByRole('menuitem', { name: 'طباعة روشتة', exact: true }).count(), 1);
+      await page.keyboard.press('Escape');
+      await page.getByRole('menu').waitFor({ state: 'hidden' });
     }
     const colors = await page.locator('[data-service-type]:not([data-service-type="unknown"])').evaluateAll(nodes => nodes.map(el => getComputedStyle(el).backgroundColor));
     assert.equal(new Set(colors).size, 4, 'Four service color families');

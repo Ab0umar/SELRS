@@ -1,0 +1,1 @@
+The React application shell in client/src/App.tsx assembles routing, runtime status, authentication and native integrations.

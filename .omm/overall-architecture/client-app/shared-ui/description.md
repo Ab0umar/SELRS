@@ -1,0 +1,1 @@
+Reusable interface and application shell components live in client/src/components/.

@@ -388,34 +388,32 @@ export default function PayrollReport() {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       direction: rtl;
-      background: oklch(99% 0.004 248);
-      color: oklch(22% 0.035 248);
+      background: #fff;
+      color: #172033;
       font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      font-size: 10px;
+      font-size: 11px;
       line-height: 1.35;
     }
     .payroll-sheet {
       min-height: 190mm;
-      padding: 7mm;
-      border: 1px solid oklch(86% 0.016 248);
-      border-radius: 14px;
-      background: oklch(99.5% 0.004 248);
+      padding: 0;
+      background: #fff;
     }
     .sheet-header {
       display: grid;
       grid-template-columns: 1fr 1.45fr 1fr;
       align-items: start;
-      gap: 10px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid oklch(87% 0.02 248);
+      gap: 12px;
+      padding: 0 0 8px;
+      border-bottom: 2px solid #d1d5db;
     }
     .top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 5px;
-      color: oklch(46% 0.025 248);
-      font-size: 9px;
+      color: #475467;
+      font-size: 10px;
       font-weight: 800;
     }
     .brand {
@@ -423,24 +421,24 @@ export default function PayrollReport() {
       align-items: center;
       gap: 7px;
       font-weight: 800;
-      color: oklch(29% 0.055 248);
+      color: #172033;
     }
     .brand-mark {
       display: grid;
       width: 28px;
       height: 28px;
       place-items: center;
-      border-radius: 999px;
-      background: oklch(92% 0.052 248);
-      color: oklch(38% 0.105 248);
+      border-radius: 0;
+      background: transparent;
+      color: #172033;
       font-size: 12px;
       font-weight: 900;
     }
-    .muted { color: oklch(48% 0.025 248); font-size: 7.5px; font-weight: 600; }
+    .muted { color: #667085; font-size: 8.5px; font-weight: 600; }
     .report-title { text-align: center; }
     h1 {
-      color: oklch(25% 0.045 248);
-      font-size: 15px;
+      color: #172033;
+      font-size: 17px;
       font-weight: 900;
       letter-spacing: -0.02em;
     }
@@ -448,10 +446,10 @@ export default function PayrollReport() {
       display: inline-flex;
       margin-top: 4px;
       padding: 3px 10px;
-      border-radius: 999px;
-      background: oklch(96% 0.018 248);
-      color: oklch(39% 0.055 248);
-      font-size: 8px;
+      border-radius: 0;
+      background: transparent;
+      color: #344054;
+      font-size: 10px;
       font-weight: 800;
     }
     .dept {
@@ -459,95 +457,95 @@ export default function PayrollReport() {
       margin-top: 4px;
       min-width: 92px;
       padding: 6px 10px;
-      border: 1px solid oklch(88% 0.035 56);
-      border-radius: 12px;
-      background: oklch(98% 0.02 56);
-      color: oklch(41% 0.095 56);
+      border: 1px solid #d1d5db;
+      border-radius: 0;
+      background: #fff;
+      color: #172033;
       text-align: center;
       justify-content: center;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 900;
     }
     .summary-strip {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 5px;
-      margin: 7px 0;
+      gap: 6px;
+      margin: 8px 0 10px;
     }
     .summary-pill {
-      min-height: 31px;
-      padding: 4px 7px;
-      border: 1px solid oklch(88% 0.018 248);
-      border-radius: 10px;
-      background: oklch(98.5% 0.006 248);
+      min-height: 38px;
+      padding: 5px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 0;
+      background: #fff;
     }
     .summary-label {
       display: block;
-      color: oklch(50% 0.025 248);
-      font-size: 6.8px;
+      color: #475467;
+      font-size: 8px;
       font-weight: 700;
     }
     .summary-value {
       display: block;
       margin-top: 1px;
-      color: oklch(28% 0.045 248);
-      font-size: 9.5px;
+      color: #172033;
+      font-size: 11px;
       font-weight: 900;
     }
     .table-wrap {
-      overflow: hidden;
-      border: 1px solid oklch(84% 0.017 248);
-      border-radius: 12px;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
     }
     table {
       width: fit-content;
       min-width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
+      border-collapse: collapse;
       table-layout: auto;
     }
     thead th {
-      background: oklch(93.5% 0.025 248);
-      color: oklch(31% 0.047 248);
-      font-size: 9px;
+      background: #f8fafc;
+      color: #172033;
+      font-size: 11px;
       font-weight: 900;
-      padding: 5px 6px;
-      border-inline-start: 1px solid oklch(83% 0.017 248);
-      border-bottom: 1px solid oklch(80% 0.02 248);
+      padding: 5px 4px;
+      border: 1px solid #cbd5e1;
       text-align: center;
-      white-space: nowrap;
+      white-space: normal;
+      overflow-wrap: normal;
+      word-break: keep-all;
     }
     tbody td {
-      background: oklch(99.5% 0.003 248);
-      color: oklch(25% 0.03 248);
-      font-size: 9px;
+      background: #fff;
+      color: #172033;
+      font-size: 10px;
       font-weight: 700;
-      padding: 5px 6px;
-      border-inline-start: 1px solid oklch(88% 0.012 248);
-      border-bottom: 1px solid oklch(88% 0.012 248);
+      padding: 5px 4px;
+      border: 1px solid #d1d5db;
       text-align: center;
       white-space: nowrap;
     }
-    tbody tr:nth-child(even) td { background: oklch(98% 0.006 248); }
-    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:nth-child(even) td { background: #fff; }
     .emp-col {
-      min-width: 115px;
       text-align: right !important;
-      font-size: 10px;
+      white-space: normal !important;
+      overflow-wrap: normal;
+      word-break: keep-all;
+      font-size: 11px;
       font-weight: 900;
-      color: oklch(25% 0.045 248);
+      color: #172033;
     }
     .money-strong {
-      color: oklch(38% 0.105 248);
-      font-size: 10px;
+      color: #172033;
+      font-size: 11px;
       font-weight: 900;
     }
     .total-row td {
-      background: oklch(96% 0.035 56) !important;
-      color: oklch(31% 0.055 56);
-      font-size: 8px;
+      background: #f8fafc !important;
+      color: #172033;
+      font-size: 9px;
       font-weight: 900;
-      border-top: 1px solid oklch(76% 0.06 56);
+      border-top: 2px solid #98a2b3;
     }
     .sig-col { width: 58px; }
     .footer {
@@ -559,7 +557,7 @@ export default function PayrollReport() {
     .footer-block {
       text-align: center;
       color: oklch(31% 0.035 248);
-      font-size: 8.5px;
+      font-size: 9.5px;
       font-weight: 800;
     }
     .footer-line {
@@ -572,13 +570,13 @@ export default function PayrollReport() {
       justify-content: space-between;
       margin-top: 7px;
       color: oklch(50% 0.024 248);
-      font-size: 7px;
+      font-size: 8px;
       font-weight: 700;
     }
     .note {
       margin: 6px 0;
       color: oklch(46% 0.025 248);
-      font-size: 8px;
+      font-size: 9px;
       font-weight: 700;
     }
   `;
@@ -591,7 +589,7 @@ export default function PayrollReport() {
       background: oklch(99% 0.004 248);
       color: oklch(22% 0.035 248);
       font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      font-size: 9px;
+      font-size: 10px;
       line-height: 1.35;
     }
     .slip {
@@ -619,7 +617,7 @@ export default function PayrollReport() {
       gap: 6px;
       margin-bottom: 3px;
       color: oklch(48% 0.025 248);
-      font-size: 7px;
+      font-size: 8px;
       font-weight: 800;
     }
     .slip-badge {
@@ -627,13 +625,13 @@ export default function PayrollReport() {
       border-radius: 999px;
       background: oklch(96% 0.018 248);
       color: oklch(38% 0.105 248);
-      font-size: 7px;
+      font-size: 8px;
       font-weight: 900;
     }
     .slip-title {
       text-align: center;
       color: oklch(25% 0.045 248);
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 900;
       letter-spacing: -0.02em;
     }
@@ -652,18 +650,19 @@ export default function PayrollReport() {
     .box-label {
       display: block;
       color: oklch(50% 0.025 248);
-      font-size: 6.2px;
+      font-size: 7.5px;
       font-weight: 700;
     }
     .box-value {
       display: block;
       margin-top: 1px;
       color: oklch(25% 0.045 248);
-      font-size: 9.5px;
+      font-size: 11px;
       font-weight: 900;
     }
     table.main {
       width: 100%;
+      table-layout: fixed;
       overflow: hidden;
       border: 1px solid oklch(84% 0.017 248);
       border-collapse: separate;
@@ -678,8 +677,10 @@ export default function PayrollReport() {
       color: oklch(31% 0.047 248);
       padding: 2px 3px;
       text-align: center;
-      white-space: nowrap;
-      font-size: 6.4px;
+      white-space: normal;
+      overflow-wrap: normal;
+      word-break: keep-all;
+      font-size: 8px;
       font-weight: 900;
     }
     table.main td {
@@ -689,7 +690,7 @@ export default function PayrollReport() {
       color: oklch(25% 0.03 248);
       padding: 2px 3px;
       text-align: center;
-      font-size: 7.2px;
+      font-size: 9px;
       font-weight: 750;
     }
     table.main tr:last-child td { border-bottom: 0; }
@@ -706,20 +707,20 @@ export default function PayrollReport() {
       display: block;
       margin-bottom: 2px;
       color: oklch(42% 0.065 56);
-      font-size: 6px;
+      font-size: 7.5px;
       font-weight: 800;
     }
     .net-val {
       display: block;
       color: oklch(31% 0.08 56);
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 950;
     }
     .words {
       margin: 3px 0 1px;
       color: oklch(30% 0.035 248);
       text-align: right;
-      font-size: 7.5px;
+      font-size: 9px;
       font-weight: 800;
     }
     .sigs {
@@ -731,7 +732,7 @@ export default function PayrollReport() {
     .sig-block {
       text-align: center;
       color: oklch(31% 0.035 248);
-      font-size: 7px;
+      font-size: 8px;
       font-weight: 800;
     }
     .sig-line {
@@ -2104,19 +2105,31 @@ export default function PayrollReport() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem
-                        onClick={printSheet}
+                        onClick={
+                          activeTab === "shifts"
+                            ? printShiftsSheet
+                            : printSheet
+                        }
                         className="gap-2 justify-start cursor-pointer"
                       >
-                        <Printer size={14} /> كامل
+                        <Printer size={14} /> {activeTab === "shifts" ? "كشف الشفتات الكامل" : "كامل"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={printDay1Slips}
+                        onClick={
+                          activeTab === "shifts"
+                            ? printShiftDay1Slips
+                            : printDay1Slips
+                        }
                         className="gap-2 justify-start cursor-pointer"
                       >
                         <Printer size={14} /> يوم 1
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={printDay10Slips}
+                        onClick={
+                          activeTab === "shifts"
+                            ? printShiftDay10Slips
+                            : printDay10Slips
+                        }
                         className="gap-2 justify-start cursor-pointer"
                       >
                         <Printer size={14} /> يوم 10
@@ -2171,19 +2184,31 @@ export default function PayrollReport() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem
-                        onClick={printSheet}
+                        onClick={
+                          activeTab === "shifts"
+                            ? printShiftsSheet
+                            : printSheet
+                        }
                         className="gap-2 justify-start cursor-pointer"
                       >
-                        <Printer size={14} /> كامل
+                        <Printer size={14} /> {activeTab === "shifts" ? "كشف الشفتات الكامل" : "كامل"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={printDay1Slips}
+                        onClick={
+                          activeTab === "shifts"
+                            ? printShiftDay1Slips
+                            : printDay1Slips
+                        }
                         className="gap-2 justify-start cursor-pointer"
                       >
                         <Printer size={14} /> يوم 1
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={printDay10Slips}
+                        onClick={
+                          activeTab === "shifts"
+                            ? printShiftDay10Slips
+                            : printDay10Slips
+                        }
                         className="gap-2 justify-start cursor-pointer"
                       >
                         <Printer size={14} /> يوم 10

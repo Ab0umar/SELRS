@@ -1,0 +1,1 @@
+server/_core/context.ts resolves staff, patient and external doctor sessions.

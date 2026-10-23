@@ -26,8 +26,10 @@ import {
   Zap,
 } from "lucide-react";
 
+import { marketingSlotLabel } from "@shared/marketingSchedule";
+
 const DAY_LABELS: Record<string, string> = {
-  saturday: "السبت — تصحيح الإبصار والبنتاكام",
+  saturday: "الأحد — تصحيح الإبصار والبنتاكام",
   tuesday: "الثلاثاء — المياه البيضاء والقرنية",
   thursday: "الخميس — صحة العيون العامة",
 };
@@ -226,7 +228,7 @@ export default function MarketingDashboard() {
               }
               className="rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
-              <option value="saturday">السبت</option>
+              <option value="saturday">الأحد</option>
               <option value="tuesday">الثلاثاء</option>
               <option value="thursday">الخميس</option>
             </select>
@@ -454,7 +456,7 @@ export default function MarketingDashboard() {
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {post.postDay && (
-                        <span>{DAY_LABELS[post.postDay] ?? post.postDay}</span>
+                        <span>{marketingSlotLabel(post.postDay, post.pageRole ?? "center")}</span>
                       )}
                       {post.topic && (
                         <>
@@ -533,7 +535,7 @@ export default function MarketingDashboard() {
 // ─── Scheduler Card ───────────────────────────────────────────────────────────
 
 const DAY_AR: Record<string, string> = {
-  saturday: "السبت",
+  saturday: "الأحد",
   tuesday: "الثلاثاء",
   thursday: "الخميس",
 };

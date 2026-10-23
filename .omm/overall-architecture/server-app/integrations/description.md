@@ -1,0 +1,1 @@
+server/integrations/ contains integration and synchronization code, including legacy MSSQL patient access.

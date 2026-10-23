@@ -76,6 +76,8 @@ export function FormField({
             *
           </span>
         )}
+        {/* Wired children get aria-required; without one, speak the state here. */}
+        {required && !control && <span className="sr-only">(مطلوب)</span>}
       </label>
       <div
         className={cn(

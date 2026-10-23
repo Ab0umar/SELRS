@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useMedicalFileLauncher } from "@/hooks/useMedicalFileLauncher";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { AppointmentsSection } from "@/components/dashboard/appointments-activity";
 import {
   Clock,
@@ -136,15 +137,6 @@ function useClock() {
     return () => clearInterval(id);
   }, []);
   return now;
-}
-
-function useDebounce<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return debounced;
 }
 
 function SectionHeader({
@@ -623,7 +615,7 @@ type RecentPatient = {
 
 function PatientHubPanel() {
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 350);
+  const debouncedQuery = useDebouncedValue(query, 350);
   const [recent, setRecent] = useState<RecentPatient[]>([]);
 
   useEffect(() => {

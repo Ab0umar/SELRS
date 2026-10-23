@@ -31,8 +31,7 @@ import {
   Wallet,
   RotateCcw,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { exportElementToPdf, preferPdfOverBrowserPrint } from "@/lib/nativePdf";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import styles from "./LasikRevenue.module.css";
 import {
@@ -100,6 +99,15 @@ function defaultDateRange() {
     fromDate: toDateInputValue(today),
     toDate: toDateInputValue(today),
   };
+}
+
+function escapePrintHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function parseQueryString(search: string): URLSearchParams {
@@ -399,18 +407,29 @@ export default function LasikRevenue() {
     setLocation(buildServiceRevenueUrl(next));
   };
 
-  const printScopeRef = useRef<HTMLDivElement>(null);
-
-  function openIframePrint(html: string, title: string) {
-    const full = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${title}</title>
+  function openIframePrint(
+    html: string,
+    title: string,
+    pageSize = "A4 portrait",
+  ) {
+    const full = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>${escapePrintHtml(title)}</title>
     <style>
-      body { font-family: "Traditional Arabic", Arial, sans-serif; font-size: 11px; direction: rtl; margin: 10mm; }
+      @page { size: ${pageSize}; margin: 8mm; }
+      * { box-sizing: border-box; }
+      body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 10px; direction: rtl; margin: 0; color: #111827; }
       h1 { font-size: 14px; font-weight: bold; margin-bottom: 8px; }
+      .print-meta { margin: 0 0 7px; line-height: 1.5; }
       table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      th, td { border: 1px solid #cbd5e1; padding: 4px 5px; text-align: right; vertical-align: middle; }
       thead th { background: #f3f4f6; font-weight: bold; }
       tfoot td { background: #f3f4f6; font-weight: bold; }
-      @page { size: A4; margin: 12mm; }
+      .numeric { direction: ltr; text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .group td { background: #e5e7eb; font-weight: 800; }
+      .subtotal td, .section-total td { background: #f8fafc; font-weight: 800; }
+      .service-name { font-weight: 700; }
     </style></head><body>${html}</body></html>`;
     const iframe = document.createElement("iframe");
     iframe.style.cssText =
@@ -502,29 +521,81 @@ export default function LasikRevenue() {
       sections.length === 0
     )
       return;
-    const printClass = "print-service-revenue";
-    document.body.classList.add(printClass);
-    const cleanup = () => {
-      document.body.classList.remove(printClass);
-      window.removeEventListener("afterprint", cleanup);
-    };
-    window.addEventListener("afterprint", cleanup);
 
-    if (preferPdfOverBrowserPrint()) {
-      void exportElementToPdf({
-        fileName: "تقرير-إيراد-الخدمات.pdf",
-        element: printScopeRef.current,
+    const bodyRows = sections
+      .flatMap((section) => {
+        const sectionRows = [
+          `<tr class="group"><td colspan="9">القسم: ${escapePrintHtml(section.sectionName || section.sectionCode)}</td></tr>`,
+        ];
+
+        for (const service of section.services) {
+          const details = service.details ?? [];
+          const serviceTotals = getServiceTotals(details);
+          sectionRows.push(
+            `<tr class="group"><td colspan="9">الخدمة: ${escapePrintHtml(serviceGroupLabel(service.serviceCode, service.serviceName))}</td></tr>`,
+          );
+          sectionRows.push(
+            ...details.map(
+              (detail) => `
+                <tr>
+                  <td class="numeric">${toArabicDigits(detail.trNo)}</td>
+                  <td class="numeric">${formatDateAr(detail.trDate)}</td>
+                  <td>${escapePrintHtml(detail.patientName || "-")}</td>
+                  <td class="numeric">${formatCountAr(detail.quantity)}</td>
+                  <td class="numeric">${formatMoneyAr(detail.price)}</td>
+                  <td class="numeric">${formatMoneyAr(detail.patientShare)}</td>
+                  <td class="numeric">${formatMoneyAr(detail.discount)}</td>
+                  <td class="numeric">${formatMoneyAr(detail.patientTotal)}</td>
+                  <td class="numeric">${formatMoneyAr(detail.companyTotal)}</td>
+                </tr>`,
+            ),
+          );
+          sectionRows.push(`
+            <tr class="subtotal">
+              <td colspan="3">إجمالي الخدمة</td>
+              <td class="numeric">${formatCountAr(serviceTotals.quantity)}</td>
+              <td class="numeric">${formatMoneyAr(serviceTotals.price)}</td>
+              <td class="numeric">${formatMoneyAr(serviceTotals.patientShare)}</td>
+              <td class="numeric">${formatMoneyAr(serviceTotals.discount)}</td>
+              <td class="numeric">${formatMoneyAr(serviceTotals.patientTotal)}</td>
+              <td class="numeric">${formatMoneyAr(serviceTotals.companyTotal)}</td>
+            </tr>`);
+        }
+
+        const sectionTotals = getSectionTotals(section);
+        sectionRows.push(`
+          <tr class="section-total">
+            <td colspan="3">إجمالي القسم</td>
+            <td class="numeric">${formatCountAr(sectionTotals.quantity)}</td>
+            <td class="numeric">${formatMoneyAr(sectionTotals.price)}</td>
+            <td class="numeric">${formatMoneyAr(sectionTotals.patientShare)}</td>
+            <td class="numeric">${formatMoneyAr(sectionTotals.discount)}</td>
+            <td class="numeric">${formatMoneyAr(sectionTotals.patientTotal)}</td>
+            <td class="numeric">${formatMoneyAr(sectionTotals.companyTotal)}</td>
+          </tr>`);
+        return sectionRows;
       })
-        .then((ok) => {
-          if (!ok) window.print();
-        })
-        .catch(() => window.print())
-        .finally(() => setTimeout(cleanup, 2000));
-      return;
-    }
+      .join("");
 
-    window.print();
-    setTimeout(cleanup, 1000);
+    const html = `
+      <h1>تقرير إيراد الخدمات</h1>
+      <div class="print-meta">الفترة: من ${escapePrintHtml(formatDateAr(filters.fromDate))} إلى ${escapePrintHtml(formatDateAr(filters.toDate))}</div>
+      <table>
+        <thead><tr>
+          <th>رقم الإيصال</th><th>التاريخ</th><th>المريض</th><th>العدد</th><th>السعر</th><th>ما يخص المريض</th><th>الخصم</th><th>إجمالي المريض</th><th>إجمالي الجهة</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+        <tfoot><tr>
+          <td colspan="3">الإجمالي العام</td>
+          <td class="numeric">${formatCountAr(frontendGrandTotal.quantity)}</td>
+          <td class="numeric">${formatMoneyAr(frontendGrandTotal.price)}</td>
+          <td class="numeric">${formatMoneyAr(frontendGrandTotal.patientShare)}</td>
+          <td class="numeric">${formatMoneyAr(frontendGrandTotal.discount)}</td>
+          <td class="numeric">${formatMoneyAr(frontendGrandTotal.patientTotal)}</td>
+          <td class="numeric">${formatMoneyAr(frontendGrandTotal.companyTotal)}</td>
+        </tr></tfoot>
+      </table>`;
+    openIframePrint(html, "تقرير إيراد الخدمات", "A4 landscape");
   };
 
   return (
@@ -731,7 +802,6 @@ export default function LasikRevenue() {
           label="إيراد الخدمات"
         >
           <Card
-            ref={printScopeRef}
             data-print-service-revenue-table
             className={`${styles.printScope} border-border shadow-xs`}
           >

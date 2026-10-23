@@ -1,11 +1,28 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { Search } from "lucide-react";
-import PatientPickerResults, {
-  type PatientOption,
-} from "./PatientPickerResults";
-import { getPatientOptionId, getNextActiveIndex } from "./patient-picker-utils";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import {
+  getPatientSearchGate,
+  normalizePatientSearchTerm,
+  PATIENT_SEARCH_DEBOUNCE_MS,
+} from "@/lib/patientSearchGate";
+import { Search, UserRound } from "lucide-react";
+import {
+  getPatientOptionId,
+  resolveComboboxKey,
+} from "@/components/patientPickerCombobox";
+
+type PatientOption = {
+  id: number;
+  fullName: string;
+  patientCode?: string | null;
+  locationType?: "center" | "external" | null;
+  phone?: string | null;
+  age?: number | null;
+  dateOfBirth?: string | Date | null;
+  address?: string | null;
+};
 
 type PatientPickerProps = {
   label?: string;
@@ -54,12 +71,17 @@ export default function PatientPicker({
     enabled: Boolean(initialPatientId),
   });
 
-  const normalizedQuery = query.replace(/\s+/g, " ").trim();
+  const normalizedQuery = normalizePatientSearchTerm(query);
+  const debouncedQuery = useDebouncedValue(
+    normalizedQuery,
+    PATIENT_SEARCH_DEBOUNCE_MS,
+  );
+  const searchGate = getPatientSearchGate(normalizedQuery, debouncedQuery);
 
   const searchQuery = trpc.medical.searchPatients.useQuery(
-    { searchTerm: normalizedQuery, sheetType, locationType },
+    { searchTerm: debouncedQuery, sheetType, locationType },
     {
-      enabled: normalizedQuery.length >= 1,
+      enabled: searchGate.shouldFetch,
       refetchOnWindowFocus: false,
     },
   );
@@ -92,8 +114,26 @@ export default function PatientPicker({
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
 
-  const isEnglish = locale === "en";
-  const listVisible = !readOnly && open && normalizedQuery.length >= 1;
+  const baseId = useId();
+  const inputId = `${baseId}-input`;
+  const listboxId = `${baseId}-listbox`;
+  const isPopupVisible = !readOnly && open && normalizedQuery.length >= 1;
+  const isListboxOpen = isPopupVisible && filteredResults.length > 0;
+  const activePatient =
+    isListboxOpen && activeIndex >= 0 && activeIndex < filteredResults.length
+      ? filteredResults[activeIndex]
+      : undefined;
+  const activeOptionId = activePatient
+    ? getPatientOptionId(baseId, activePatient.id)
+    : undefined;
+
+  // useId ids contain ':' so the option must be looked up by id, not by a CSS selector.
+  useEffect(() => {
+    if (!activeOptionId) return;
+    document
+      .getElementById(activeOptionId)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionId]);
 
   const selectPatient = (patient: PatientOption) => {
     if (allowPatient && !allowPatient(patient)) return;
@@ -102,6 +142,15 @@ export default function PatientPicker({
     setOpen(false);
     setActiveIndex(-1);
     onSelect(patient);
+  };
+
+  const formatPhone = (value?: string | null) => {
+    if (!value) return "";
+    const digits = value.replace(/\D+/g, "");
+    if (digits.length === 11) {
+      return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
+    }
+    return value;
   };
 
   // Results changed: drop any stale highlight so it never points at a
@@ -152,9 +201,11 @@ export default function PatientPicker({
 
   return (
     <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
-      <label id={labelId} htmlFor={inputId} className="sr-only">
-        {label}
-      </label>
+      {label?.trim() ? (
+        <label htmlFor={inputId} className="sr-only">
+          {label}
+        </label>
+      ) : null}
       <div
         className={`relative w-full max-w-md ml-auto ${wrapperClassName ?? ""}`}
       >
@@ -165,6 +216,12 @@ export default function PatientPicker({
         </div>
         <Input
           id={inputId}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={isListboxOpen}
+          aria-activedescendant={activeOptionId}
+          aria-label={label?.trim() ? undefined : placeholder}
           value={query}
           onChange={(e) => {
             if (readOnly) return;
@@ -175,13 +232,51 @@ export default function PatientPicker({
           onFocus={() => {
             if (readOnly) return;
             setOpen(true);
+            setActiveIndex(-1);
           }}
           onBlur={() => {
             if (readOnly) return;
-            // The results popup's onMouseDown preventDefault keeps focus on
-            // the input during pointer interaction, so no timeout race.
-            setOpen(false);
-            setActiveIndex(-1);
+            setTimeout(() => {
+              setOpen(false);
+              setActiveIndex(-1);
+            }, 150);
+          }}
+          onKeyDown={(e) => {
+            if (readOnly) return;
+            const action = resolveComboboxKey({
+              key: e.key,
+              isOpen: isPopupVisible,
+              activeIndex,
+              optionCount: filteredResults.length,
+              canOpen: normalizedQuery.length >= 1,
+            });
+            switch (action.type) {
+              case "open":
+                e.preventDefault();
+                setOpen(true);
+                setActiveIndex(action.activeIndex);
+                break;
+              case "move":
+                e.preventDefault();
+                setActiveIndex(action.activeIndex);
+                break;
+              case "select": {
+                const patient = filteredResults[action.activeIndex];
+                if (!patient) return;
+                e.preventDefault();
+                selectPatient(patient);
+                break;
+              }
+              case "close":
+                e.preventDefault();
+                // Radix Dialog closes on Escape too (document capture phase); known limitation.
+                e.stopPropagation();
+                setOpen(false);
+                setActiveIndex(-1);
+                break;
+              default:
+                break;
+            }
           }}
           onKeyDown={handleInputKeyDown}
           placeholder={placeholder}
@@ -200,17 +295,66 @@ export default function PatientPicker({
           autoComplete="off"
         />
       </div>
-      {listVisible && (
-        <PatientPickerResults
-          listboxId={listboxId}
-          labelId={labelId}
-          patients={filteredResults}
-          activeIndex={activeIndex}
-          isLoading={searchQuery.isLoading}
-          isEnglish={isEnglish}
-          onSelectPatient={selectPatient}
-          onActiveIndexChange={setActiveIndex}
-        />
+      {isPopupVisible && (
+        <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
+          {searchQuery.isLoading && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="px-3 py-2 text-sm text-muted-foreground"
+            >
+              {isEnglish ? "Searching..." : "جاري البحث..."}
+            </div>
+          )}
+          {!searchQuery.isLoading && filteredResults.length === 0 && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="px-3 py-2 text-sm text-muted-foreground"
+            >
+              {isEnglish ? "No results found" : "لا توجد نتائج"}
+            </div>
+          )}
+          {filteredResults.length > 0 && (
+            <div
+              id={listboxId}
+              role="listbox"
+              aria-label={label?.trim() || placeholder}
+            >
+              {filteredResults.map((patient, index) => (
+                <div
+                  key={patient.id}
+                  role="option"
+                  id={getPatientOptionId(baseId, patient.id)}
+                  aria-selected={index === activeIndex}
+                  className={`w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent ${index === activeIndex ? "bg-accent" : ""} ${isEnglish ? "text-left" : "text-right"}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => selectPatient(patient)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
+                        <UserRound className="h-3.5 w-3.5" />
+                      </span>
+                      <span dir="auto" className="font-medium">
+                        {patient.fullName}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground" dir="ltr">
+                      {patient.patientCode ?? "—"}
+                    </span>
+                  </div>
+                  {patient.phone && (
+                    <div className="text-xs text-muted-foreground" dir="ltr">
+                      {formatPhone(patient.phone)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       {selected && (
         <div className="hidden rounded-2xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">

@@ -28,8 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useMemo, useState, useRef } from "react";
-import { exportElementToPdf, preferPdfOverBrowserPrint } from "@/lib/nativePdf";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { formatCountAr, formatDateAr, formatMoneyAr } from "./accountingFormat";
 import { useAccountingTabMetrics } from "./accountingTabMetrics";
@@ -74,6 +73,15 @@ function defaultDateRange() {
     fromDate: toDateInputValue(today),
     toDate: toDateInputValue(today),
   };
+}
+
+function escapePrintHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function parseQueryString(search: string): URLSearchParams {
@@ -214,8 +222,6 @@ export default function DailyRevenue() {
     setLocation(buildDailyRevenueUrl(next));
   };
 
-  const printScopeRef = useRef<HTMLDivElement>(null);
-
   const printReport = () => {
     if (
       dailyRevenueQuery.isLoading ||
@@ -223,31 +229,58 @@ export default function DailyRevenue() {
       rows.length === 0
     )
       return;
-    const printClass = "print-daily-revenue";
-    document.body.classList.add(printClass);
+    const bodyRows = rows
+      .map(
+        (row) => `
+          <tr>
+            <td>${escapePrintHtml(formatDateAr(row.date))}</td>
+            <td class="numeric">${formatCountAr(row.totalReceipts)}</td>
+            <td class="numeric">${formatMoneyAr(row.totalGross)}</td>
+            <td class="numeric">${formatMoneyAr(row.totalDiscount)}</td>
+            <td class="numeric">${formatMoneyAr(row.totalCash)}</td>
+            <td class="numeric">${formatMoneyAr(row.totalPaid)}</td>
+            <td class="numeric">${formatMoneyAr(row.netAfterDiscount)}</td>
+          </tr>`,
+      )
+      .join("");
+    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/><title>تقرير الإيراد اليومي</title>
+      <style>
+        @page { size: A4 landscape; margin: 8mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #111827; direction: rtl; font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 11px; }
+        h1 { margin: 0 0 6px; text-align: center; font-size: 17px; }
+        .meta { margin-bottom: 9px; text-align: center; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr { break-inside: avoid; page-break-inside: avoid; }
+        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: right; }
+        th { background: #f3f4f6; font-weight: 800; }
+        .numeric { direction: ltr; text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        tfoot td { background: #f8fafc; font-weight: 900; border-top: 2px solid #98a2b3; }
+      </style></head><body>
+        <h1>تقرير الإيراد اليومي</h1>
+        <div class="meta">الفترة: من ${escapePrintHtml(formatDateAr(filters.fromDate))} إلى ${escapePrintHtml(formatDateAr(filters.toDate))}</div>
+        <table><thead><tr><th>التاريخ</th><th>عدد الإيصالات</th><th>الإجمالي</th><th>الخصم</th><th>نقدي</th><th>المدفوع</th><th>الصافي</th></tr></thead>
+        <tbody>${bodyRows}</tbody>
+        <tfoot><tr><td>الإجمالي العام</td><td class="numeric">${formatCountAr(totals.totalReceipts)}</td><td class="numeric">${formatMoneyAr(totals.totalGross)}</td><td class="numeric">${formatMoneyAr(totals.totalDiscount)}</td><td class="numeric">${formatMoneyAr(totals.totalCash)}</td><td class="numeric">${formatMoneyAr(totals.totalPaid)}</td><td class="numeric">${formatMoneyAr(totals.netAfterDiscount)}</td></tr></tfoot>
+        </table></body></html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText =
+      "position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(html);
+    doc.close();
     const cleanup = () => {
-      document.body.classList.remove(printClass);
+      iframe.remove();
       window.removeEventListener("afterprint", cleanup);
     };
     window.addEventListener("afterprint", cleanup);
-
-    // Mobile: export element to PDF asynchronously (no user-gesture requirement)
-    if (preferPdfOverBrowserPrint()) {
-      void exportElementToPdf({
-        fileName: "تقرير-الإيراد-اليومي.pdf",
-        element: printScopeRef.current,
-      })
-        .then((ok) => {
-          if (!ok) window.print();
-        })
-        .catch(() => window.print())
-        .finally(() => setTimeout(cleanup, 2000));
-      return;
-    }
-
-    // Desktop: must call synchronously within user gesture
-    window.print();
-    setTimeout(cleanup, 1000);
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
   };
 
   return (
@@ -377,10 +410,7 @@ export default function DailyRevenue() {
           query={dailyRevenueQuery}
           label="الإيراد اليومي"
         >
-          <Card
-            ref={printScopeRef}
-            className={`${reportStyles.printScope} border-border/60 shadow-xs`}
-          >
+          <Card className={`${reportStyles.printScope} border-border/60 shadow-xs`}>
             <CardContent className="p-3 sm:p-4">
               <h2 className="hidden print:block text-lg font-semibold mb-3">
                 الإيراد اليومي

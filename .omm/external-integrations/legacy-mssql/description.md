@@ -1,0 +1,1 @@
+server/integrations/mssqlPatients.ts and server/_core/mssqlSyncScheduler.ts handle MSSQL patient synchronization.
