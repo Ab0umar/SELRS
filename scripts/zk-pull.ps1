@@ -26,14 +26,24 @@
 #>
 
 param(
-  [string]$IP        = "196.202.50.91",
-  [int]   $Port      = 4370,
+  [string]$IP        = $env:ZK_DEVICE_IP,
+  [Nullable[int]]$Port = $(if ($env:ZK_DEVICE_PORT) { [int]$env:ZK_DEVICE_PORT } else { $null }),
   [int]   $MachineNo = 1,
   [int]   $CommPwd   = 258288,
   [string]$OutFile   = "",
   [string]$Mode      = "pull",
   [string]$EmployeesFile = ""
 )
+
+if ([string]::IsNullOrWhiteSpace($IP)) {
+  Write-Error "Device IP is not set. Provide -IP or set ZK_DEVICE_IP."
+  exit 2
+}
+
+if (-not $Port -or $Port -le 0) {
+  Write-Error "Device port is not set or invalid. Provide -Port or set ZK_DEVICE_PORT."
+  exit 2
+}
 
 # Auto-relaunch under 32-bit PowerShell (required for zkemkeeper.dll COM)
 if ([IntPtr]::Size -ne 4) {
@@ -58,7 +68,7 @@ try {
 if ($CommPwd -ne 0) {
   $null = $zk.SetCommPassword($CommPwd)
 }
-Write-Host "[ZK] Connecting to $IP`:$Port (pwd=$CommPwd)..."
+Write-Host "[ZK] Connecting to $IP`:$Port..."
 $connected = $zk.Connect_Net($IP, $Port)
 if (-not $connected) {
   Write-Error "Connection failed to $IP`:$Port"
