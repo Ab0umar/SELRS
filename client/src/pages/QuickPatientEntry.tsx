@@ -1,5 +1,5 @@
-import { useRoute } from "wouter";
-import { AlertTriangle } from "lucide-react";
+import { useLocation, useRoute } from "wouter";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import { QuickPatientEntryForm } from "@/components/dashboard/QuickPatientEntryForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,32 @@ import { parseQuickEntryPatientId } from "@/lib/quick-entry-patient-id";
 import { ROUTES } from "@shared/routes";
 
 export default function QuickPatientEntry() {
+  const [location] = useLocation();
   const [, params] = useRoute("/quick-entry/:id");
-  const { goTo } = useAppNavigation();
+  const { goBack, goTo } = useAppNavigation();
   const parsed = parseQuickEntryPatientId(params?.id);
+  // This page renders both standalone (/quick-entry) and inside the patients
+  // hub (/patients-hub/quick). AppShell already supplies the page's <main>
+  // landmark and the hub draws its own back control, so this page adds
+  // neither and shows a back button only on its own routes.
+  const isStandaloneRoute =
+    location === ROUTES.quickEntry ||
+    location.startsWith(`${ROUTES.quickEntry}/`);
 
-  if (parsed.status === "invalid") {
-    return (
-      <div className="min-h-screen selrs-page-bg p-6" dir="rtl">
+  return (
+    <div className="min-h-screen selrs-page-bg p-6" dir="rtl">
+      {isStandaloneRoute && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="mb-4 h-11 w-11 shrink-0"
+          onClick={() => goBack()}
+          aria-label="رجوع"
+        >
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </Button>
+      )}
+      {parsed.status === "invalid" ? (
         <div className="mx-auto max-w-4xl space-y-6">
           <h1 className="text-3xl font-bold">رقم المريض غير صالح</h1>
           <Alert variant="destructive">
@@ -31,17 +50,13 @@ export default function QuickPatientEntry() {
             بدء فحص سريع جديد
           </Button>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen selrs-page-bg p-6" dir="rtl">
-      <QuickPatientEntryForm
-        initialPatientId={
-          parsed.status === "valid" ? parsed.patientId : undefined
-        }
-      />
+      ) : (
+        <QuickPatientEntryForm
+          initialPatientId={
+            parsed.status === "valid" ? parsed.patientId : undefined
+          }
+        />
+      )}
     </div>
   );
 }
