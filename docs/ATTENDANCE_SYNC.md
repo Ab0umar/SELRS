@@ -21,10 +21,8 @@ them matter for a given question.
 5. [File map](#file-map)
 6. [Concurrency and locking](#concurrency-and-locking)
 7. [Time zones and device clock offsets](#time-zones-and-device-clock-offsets)
-8. [Rules engine and materializer semantics](#rules-engine-and-materializer-semantics) (in progress)
-9. [Troubleshooting](#troubleshooting) (in progress)
-
-Sections 8 and 9 are stubs at the moment and are being written into this same file.
+8. [Rules engine and materializer semantics](#rules-engine-and-materializer-semantics)
+9. [Troubleshooting](#troubleshooting)
 
 ## Pipeline overview
 
@@ -518,13 +516,154 @@ misconfigured.
 
 ## Rules engine and materializer semantics
 
-Stub: this section will document shift resolution (direct assignment vs cycle), punch
-partitioning and pairing (30 second collapse, midpoint split, midnight crossing), permission
-application, skip rules, the idempotent upsert with stale-row deletion, and the monthly
-recompute.
+`rulesEngine.ts` is pure: no database access, no `Date.now()`, every input injected, and the
+caller passes "now" (`DayContext.now`). The materializer (`dailyMaterializer.ts`) loads the
+world, then calls the engine per employee, day, and shift. What follows is the decision order
+as the code implements it.
+
+### Which shift applies on a day
+
+For each employee and work date, `recomputeRangeInTransaction` and `resolveShifts` decide:
+
+1. Direct assignments: those whose date range covers the day and whose `weekdayMask` includes
+   the weekday. Within them, the latest `effectiveFrom` per branch (`shift.branch`, with an
+   `__unassigned` bucket) wins; distinct shifts saved together on the same effective day stay a
+   multi-shift day.
+2. An assignment that covers the date but whose weekday mask excludes it is an intentional rest
+   day. The default shift is not applied on top of it.
+3. A cycle blocks the default-shift fallback: when the employee has an active cycle assignment
+   covering the day, `resolveShifts` receives `null` as the default shift.
+4. Cycle vs direct assignment: `cycleOverridesDirectAssignment` returns true when the latest
+   active cycle `effectiveFrom` is on or after the latest covering direct assignment's
+   `effectiveFrom` (same day counts as cycle winning). When it wins, direct shifts are dropped
+   and `resolveCycleShift` provides the day's shift.
+5. `resolveCycleShift` picks the latest active cycle assignment, then a slot: `rotation` cycles
+   are anchored (days since `anchorDate`, mod the pattern length taken from the highest
+   configured slot index), `day`/`week` cycles map to the weekday, `month` cycles to the day of
+   month. A rest slot (`shiftId 0`) resolves to no shift.
+
+After resolution, `mergeContinuousBothDeviceShifts` collapses back-to-back shifts that all
+accept `both` devices, none crosses midnight, and each starts within an hour of the previous
+one ending (operations until 15:00, center from 15:00). The merged row spans first start to
+last end, sums the breaks, and requires punches on every merged shift. One working day, one
+attendance row.
+
+### Which punches belong to which shift
+
+`partitionPunchesForShifts` buckets the day's punches per shift:
+
+- A rest day (no shifts) gets a synthetic bucket under shift 0, so a punch on a rest day
+  produces a `partial` row rather than vanishing.
+- A day where every shift accepts `both` devices is paired as a whole: the first ZK-family scan
+  is the arrival, the last FK-family scan the departure, assigned to the first and last shift.
+  `deviceFamily()` treats `fk` and `fk_*` device ids as FK; everything else (including ADMS
+  serials) is ZK.
+- Otherwise each punch goes to one shift. A punch from the next calendar day is eligible only
+  for `crossesMidnight` shifts whose end time has not passed at the punch's minute. A shift
+  whose device list matches the punch's device narrows the choice; with no device match the
+  punch still counts, assigned to the nearest shift by midpoint (the code comment notes that
+  dropping it would manufacture an absence).
+
+### How punches pair within a shift
+
+`pairPunches` ignores the device `InOutMode` flag entirely; FK and ZK devices have been seen
+emitting it inverted or constant, so direction is derived geometrically:
+
+1. Sort chronologically and collapse punches within 30 seconds of the previous survivor
+   (double-taps become one).
+2. Build the shift window from the work date plus `startTime`/`endTime`, adding 24 hours to the
+   end for `crossesMidnight` shifts, and split at the window's midpoint.
+3. One punch: it is the check-in when at or before the midpoint, otherwise the check-out.
+   Multiple punches: the first at or before the midpoint is `firstIn`, the last at or after it
+   is `lastOut`.
+4. With no assigned shift, pairing falls back to chronological first/last for manual review.
+
+### What computeDay produces
+
+Status outcomes, in the order the code reaches them:
+
+- Approved leave: `leave`, nothing else computed.
+- Holiday with no punches: `holiday`. Holiday with punches stays computed, then the status
+  becomes `holiday` with late and early minutes zeroed (working a holiday is voluntary extra
+  work paid as holiday overtime, not lateness).
+- No shift but punches exist: `partial`, with the chronological first and last scans recorded;
+  a lone scan pairs as a check-in only and becomes `missing_checkout`.
+- A single scan on a shifted day counts as a one-punch day: before the midpoint it is a
+  check-in (then either `absent` when the shift requires punches, or auto-present when
+  `requirePunch` is false, crediting the full shift minus breaks), after the midpoint it is
+  `missing_checkout`. Device direction is unreliable, so absence means a day with no raw scans.
+- Both punches present: `workedMinutes = max(0, out - in - breaks)`; then, for fixed shifts,
+  `lateMinutes = max(0, in - start - graceLateMin)` and `earlyLeaveMin = max(0, end - out -
+  graceEarlyMin)`; overtime in before start and out after end, each gated by its minimum
+  (`otMinInMinutes`/`otMinOutMinutes`, falling back to `otMinMinutes`) and summed under
+  `otMaxMinutes`, never counted when the shift's `allowOT` flags say no. Flexible shifts
+  measure lateness against `flexInTo` instead of start, early leave against `flexOutFrom`,
+  and overtime against `flexInFrom`/`flexOutTo`.
+- `present` becomes `partial` when late or early minutes survive.
+- `insideNow` is set when the work date is today and the employee is paired as currently
+  inside (checked in, not yet out); dashboards use it for live counts.
+
+Approved permissions adjust the result afterwards (`applyApprovedPermissions`): an `in`
+permission reduces `lateMinutes`, an `out` permission reduces `earlyLeaveMin`, and a `mission`
+clears both and flips `absent`/`partial` to `present`. Permissions flagged
+`notAffectSalary: false` do not adjust anything. A `partial` day whose late and early minutes
+both reach zero becomes `present`. The materializer routes each permission to one row: `in`
+permissions apply to the first shift of the day, `out` to the last, `mission` to every
+assigned shift.
+
+### What the materializer skips
+
+`recomputeRangeInTransaction` skips a work date entirely (no row) when the employee's
+termination date has passed, and skips a shift row when there is no shift and no punch and no
+approved leave and no holiday. A shift that has not started yet (later today, or a future day)
+is not written as an absence, but leave and holiday rows are still written for future days.
+
+### Idempotent writes
+
+Desired rows are upserted into `attendance_daily` in batches of 250 via
+`ON DUPLICATE KEY UPDATE` against the unique key `(empCd, workDate, shiftId)`, so rerunning a
+range overwrites in place. Then stale-row cleanup deletes rows that exist in the range for the
+processed employees but are not in the desired set, in batches of 200. The cleanup is scoped
+twice: only employees included in this materialization, and only the requested range (the
+comment above the pre-load notes it cannot affect inactive employees outside the run). Scope
+semantics: `{ empCd }` loads that employee even when inactive; `{ empCds }` and no scope load
+active employees only.
+
+When `options.recomputeMonthly` is set, `MonthlyComputeService.saveEmployeeMonth` runs per
+employee and per covered month after the daily transaction commits, still under the materializer
+lock (section 6).
 
 ## Troubleshooting
 
-Stub: a symptom to cause to fix table covering lock timeouts, `locked` sync runs, punches hours
-off, duplicates after offset changes, missing night-shift checkouts, absent ADMS punches, and
-stale daily rows after a shift change.
+| Symptom | Likely cause | Where to look | Fix |
+|---|---|---|---|
+| Router call fails with `Attendance materialization is already running` | Another recompute holds the materializer lock, typically a long rebuild | Section 6 caller table; server logs for the running rebuild | Wait and retry; if it recurs, find the overlapping trigger (manual rebuild plus punch stream is the common pair) |
+| `attendance_sync_runs` rows with status `locked` | A previous `runSyncOnce` still held the sync lock when the next tick fired | `attendance_sync_runs` history; scheduler interval settings | Expected occasionally under overlapping ticks; investigate only if every run is `locked` |
+| Punches stored hours off (3 or 6) | ADMS device clock offset missing, wrong, or frozen by the env override | Section 7; persisted `admsDetectedOffsetsByDevice` in the K40 settings; `ZK_ADMS_PUNCH_OFFSET_HOURS` in the environment | Remove a wrong override or clear the persisted value, let auto-detect re-measure on a fresh punch, then rebuild the affected range |
+| Duplicate punch rows after an offset change | The corrected time changed, so re-pushed scans got new `sourceRowId` values that no longer collide | Section 7 dedup identity; compare `sourceHash`, which uses raw time and is unchanged | Fix the offset first, then dedupe by `sourceHash`; the unique index cannot catch these |
+| Night-shift day shows `missing_checkout` | The checkout landed after midnight and was not attributed to the prior work date | The shift's `crossesMidnight` flag and `endTime`; next-day punch eligibility in `partitionPunchesForShifts` (punch minute must be within the shift's end) | Correct the shift definition; if the punch is beyond the shift end, the raw punches list is the source of truth |
+| No ADMS punches arrive | Allowlist rejection, ADMS disabled, or the ATTLOG query never queued | Server logs: `403 DENY` means `ZK_ADMS_DEVICE_ALLOWLIST` has no `serial@ip` pair matching the source IP (watch the `::ffff:` IPv6 prefix); `OK: 0` on ATTLOG with no rows means the toggle (`enabled` + `zk40Protocol=adms` + `admsEnabled`) or the one-per-session `DATA QUERY ATTLOG` is the problem | Fix the allowlist entry or the device settings; restart the server session to re-queue the ATTLOG query |
+| Daily rows stale after a shift change | Recompute not run, or run for a narrower range than the change affects | The shift router recomputes scoped to the employee; the nightly job covers 7 days | Run the admin rebuild for the affected range (up to 366 days per call) |
+
+### Known gaps
+
+- No retro-correction: punches stored while the offset was wrong are never rewritten; only
+  recomputed daily rows change, and they change because the stored punches are the input.
+- The `TimeZone=` handshake option is sent but its effect on any given firmware is unverified.
+- `devicePushListener.ts` (raw TCP 7005) is referenced only by `scripts/test-device-push.ts`;
+  its three record formats are guesses and nothing in production reads its events.
+
+### Further reading
+
+- `server/services/attendance/ADMS_TIME_ISSUE.md`: the original investigation of the K40 Pro
+  6-hour offset, including the decisive fresh-punch measurement. Its Date-header and
+  fixed-default conclusions are outdated (see section 7); the measurement method still stands.
+- `DEVICE_PUSH_PROTOCOL_ANALYSIS.md`: exploratory analysis of the device's TCP 7005 push
+  behavior, from May 2026. The ADMS HTTP push is what actually runs in production.
+- `FK_DLL_DISCOVERY.md`: how the 32-bit `FK623Attend.dll` and `FKOldLogPuller.exe` were
+  located and identified. Still the reference for the FK pull chain.
+- `ATTENDANCE_CODE_REVIEW.md`: the September 2026 module review (findings A1 to A6, B, C, D).
+  Several findings are fixed since (A3 lock, A6 tomorrow-absent, C1/C2 recompute window);
+  verify a finding against current code before acting on it.
+- `ATTENDANCE_FUTURE_ROADMAP.md`: phase plan for the attendance module; its timeline entries
+  predate this document.
