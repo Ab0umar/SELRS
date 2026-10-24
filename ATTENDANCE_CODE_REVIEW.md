@@ -2,6 +2,7 @@
 
 Date: 2026-09-27
 Scope: `server/routers/attendance*.ts`, `server/services/attendance/**`, `server/_core/attendanceSyncScheduler.ts`, `drizzle/schema.ts` (attendance tables), `client/src/features/attendance/**` (scan-level).
+Note: this review reflects the code as of the date above. `docs/ATTENDANCE_SYNC.md` is the current canonical doc for the sync pipeline, concurrency locking and clock offsets.
 
 ---
 
