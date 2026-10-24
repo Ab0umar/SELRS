@@ -7,22 +7,14 @@ import {
   normalizePatientSearchTerm,
   PATIENT_SEARCH_DEBOUNCE_MS,
 } from "@/lib/patientSearchGate";
-import { Search, UserRound } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   getPatientOptionId,
   resolveComboboxKey,
 } from "@/components/patientPickerCombobox";
-
-type PatientOption = {
-  id: number;
-  fullName: string;
-  patientCode?: string | null;
-  locationType?: "center" | "external" | null;
-  phone?: string | null;
-  age?: number | null;
-  dateOfBirth?: string | Date | null;
-  address?: string | null;
-};
+import PatientPickerResults, {
+  type PatientOption,
+} from "@/components/PatientPickerResults";
 
 type PatientPickerProps = {
   label?: string;
@@ -56,6 +48,7 @@ export default function PatientPicker({
   const inputId = `${baseId}-input`;
   const labelId = `${baseId}-label`;
   const listboxId = `${baseId}-listbox`;
+  const isEnglish = locale === "en";
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -114,17 +107,13 @@ export default function PatientPicker({
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
 
-  const baseId = useId();
-  const inputId = `${baseId}-input`;
-  const listboxId = `${baseId}-listbox`;
-  const isPopupVisible = !readOnly && open && normalizedQuery.length >= 1;
-  const isListboxOpen = isPopupVisible && filteredResults.length > 0;
+  const isPopupVisible = !readOnly && open && searchGate.showDropdown;
   const activePatient =
-    isListboxOpen && activeIndex >= 0 && activeIndex < filteredResults.length
+    isPopupVisible && activeIndex >= 0 && activeIndex < filteredResults.length
       ? filteredResults[activeIndex]
       : undefined;
   const activeOptionId = activePatient
-    ? getPatientOptionId(baseId, activePatient.id)
+    ? getPatientOptionId(listboxId, activePatient.id)
     : undefined;
 
   // useId ids contain ':' so the option must be looked up by id, not by a CSS selector.
@@ -135,6 +124,12 @@ export default function PatientPicker({
       ?.scrollIntoView({ block: "nearest" });
   }, [activeOptionId]);
 
+  // Results changed: drop any stale highlight so it never points at a
+  // different patient than the one under it before (APG manual selection).
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [normalizedQuery, searchQuery.data]);
+
   const selectPatient = (patient: PatientOption) => {
     if (allowPatient && !allowPatient(patient)) return;
     setSelected(patient);
@@ -144,65 +139,10 @@ export default function PatientPicker({
     onSelect(patient);
   };
 
-  const formatPhone = (value?: string | null) => {
-    if (!value) return "";
-    const digits = value.replace(/\D+/g, "");
-    if (digits.length === 11) {
-      return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
-    }
-    return value;
-  };
-
-  // Results changed: drop any stale highlight so it never points at a
-  // different patient than the one under it before (APG manual selection).
-  useEffect(() => {
-    setActiveIndex(-1);
-  }, [normalizedQuery, searchQuery.data]);
-
-  // Keep the highlighted option visible while arrowing through long lists.
-  useEffect(() => {
-    if (!listVisible) return;
-    const patient = filteredResults[activeIndex];
-    if (!patient) return;
-    document
-      .getElementById(getPatientOptionId(listboxId, patient.id))
-      ?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, listVisible]);
-
-  // Input's useComposition wrapper already swallows Enter during IME
-  // composition, so it is not re-checked here.
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (readOnly) return;
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (!listVisible && normalizedQuery.length >= 1) setOpen(true);
-      if (filteredResults.length > 0) {
-        setActiveIndex(
-          getNextActiveIndex(activeIndex, e.key, filteredResults.length),
-        );
-      }
-      return;
-    }
-    // Without a highlighted option the default stays, so pages wrapping the
-    // picker in a <form> keep their Enter behaviour.
-    if (e.key === "Enter") {
-      if (listVisible && filteredResults[activeIndex]) {
-        e.preventDefault();
-        selectPatient(filteredResults[activeIndex]);
-      }
-      return;
-    }
-    if (e.key === "Escape" && listVisible) {
-      e.preventDefault();
-      setOpen(false);
-      setActiveIndex(-1);
-    }
-  };
-
   return (
     <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
       {label?.trim() ? (
-        <label htmlFor={inputId} className="sr-only">
+        <label id={labelId} htmlFor={inputId} className="sr-only">
           {label}
         </label>
       ) : null}
@@ -218,8 +158,8 @@ export default function PatientPicker({
           id={inputId}
           role="combobox"
           aria-autocomplete="list"
-          aria-controls={listboxId}
-          aria-expanded={isListboxOpen}
+          aria-expanded={isPopupVisible}
+          aria-controls={isPopupVisible ? listboxId : undefined}
           aria-activedescendant={activeOptionId}
           aria-label={label?.trim() ? undefined : placeholder}
           value={query}
@@ -241,6 +181,8 @@ export default function PatientPicker({
               setActiveIndex(-1);
             }, 150);
           }}
+          // Input's useComposition wrapper already swallows Enter during IME
+          // composition, so it is not re-checked here.
           onKeyDown={(e) => {
             if (readOnly) return;
             const action = resolveComboboxKey({
@@ -278,83 +220,24 @@ export default function PatientPicker({
                 break;
             }
           }}
-          onKeyDown={handleInputKeyDown}
           placeholder={placeholder}
           className={`h-11 rounded-2xl border-border bg-background shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25 ${isEnglish ? "pl-10 text-left" : "pr-10 text-right"}`}
           dir={isEnglish ? "ltr" : "rtl"}
           readOnly={readOnly}
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={listVisible}
-          aria-controls={listVisible ? listboxId : undefined}
-          aria-activedescendant={
-            listVisible && filteredResults[activeIndex]
-              ? getPatientOptionId(listboxId, filteredResults[activeIndex].id)
-              : undefined
-          }
           autoComplete="off"
         />
       </div>
       {isPopupVisible && (
-        <div className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg">
-          {searchQuery.isLoading && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="px-3 py-2 text-sm text-muted-foreground"
-            >
-              {isEnglish ? "Searching..." : "جاري البحث..."}
-            </div>
-          )}
-          {!searchQuery.isLoading && filteredResults.length === 0 && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="px-3 py-2 text-sm text-muted-foreground"
-            >
-              {isEnglish ? "No results found" : "لا توجد نتائج"}
-            </div>
-          )}
-          {filteredResults.length > 0 && (
-            <div
-              id={listboxId}
-              role="listbox"
-              aria-label={label?.trim() || placeholder}
-            >
-              {filteredResults.map((patient, index) => (
-                <div
-                  key={patient.id}
-                  role="option"
-                  id={getPatientOptionId(baseId, patient.id)}
-                  aria-selected={index === activeIndex}
-                  className={`w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent ${index === activeIndex ? "bg-accent" : ""} ${isEnglish ? "text-left" : "text-right"}`}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => selectPatient(patient)}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
-                        <UserRound className="h-3.5 w-3.5" />
-                      </span>
-                      <span dir="auto" className="font-medium">
-                        {patient.fullName}
-                      </span>
-                    </div>
-                    <span className="text-xs text-muted-foreground" dir="ltr">
-                      {patient.patientCode ?? "—"}
-                    </span>
-                  </div>
-                  {patient.phone && (
-                    <div className="text-xs text-muted-foreground" dir="ltr">
-                      {formatPhone(patient.phone)}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <PatientPickerResults
+          listboxId={listboxId}
+          labelId={labelId}
+          patients={filteredResults}
+          activeIndex={activeIndex}
+          isLoading={searchQuery.isLoading || searchGate.isDebouncing}
+          isEnglish={isEnglish}
+          onSelectPatient={selectPatient}
+          onActiveIndexChange={setActiveIndex}
+        />
       )}
       {selected && (
         <div className="hidden rounded-2xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
