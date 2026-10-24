@@ -30,38 +30,30 @@ function attrOf(tag: string, name: string) {
   return tag.match(new RegExp(`(?:^|\\s)${name}="([^"]*)"`))?.[1];
 }
 
+// Markup cases shared with the collapsed picker live in PatientPicker.test.tsx;
+// this file keeps only the cases unique to it.
 describe("patient picker combobox markup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getPatientUseQuery.mockReturnValue({ data: undefined });
-    searchUseQuery.mockReturnValue({ data: [], isLoading: false });
+    getPatientUseQuery.mockReturnValue({
+      data: undefined,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    searchUseQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
   });
 
-  it("should_render_input_as_combobox_with_list_autocomplete", () => {
-    const input = inputTag(renderPicker());
-    expect(attrOf(input, "role")).toBe("combobox");
-    expect(attrOf(input, "aria-autocomplete")).toBe("list");
-    expect(attrOf(input, "aria-expanded")).toBe("false");
-    expect(input).not.toContain("aria-activedescendant");
-  });
-
-  it("should_link_label_to_input_via_htmlFor", () => {
+  it("should_omit_aria_controls_while_listbox_is_not_rendered", () => {
     const html = renderPicker();
-    const labelFor = html.match(/<label\b[^>]*\bfor="([^"]+)"/)?.[1];
-    const labelTag = html.match(/<label\b[^>]*>/)?.[0] ?? "";
-    expect(labelFor).toBe(attrOf(inputTag(html), "id"));
-    expect(labelTag).toContain("sr-only");
-    expect(labelTag).not.toContain("hidden");
-    expect(html).toContain("اختر المريض");
-  });
-
-  it("should_point_aria_controls_at_listbox_id_derived_from_same_base", () => {
-    const input = inputTag(renderPicker());
-    const inputId = attrOf(input, "id");
-    const controls = attrOf(input, "aria-controls");
-    expect(controls?.endsWith("-listbox")).toBe(true);
-    expect(inputId?.endsWith("-input")).toBe(true);
-    expect(controls).toBe(`${inputId?.slice(0, -"-input".length)}-listbox`);
+    const input = inputTag(html);
+    expect(html).not.toContain('role="listbox"');
+    expect(input).not.toContain("aria-controls");
+    expect(attrOf(input, "aria-expanded")).toBe("false");
   });
 
   it("should_fall_back_to_placeholder_aria_label_when_label_is_empty", () => {

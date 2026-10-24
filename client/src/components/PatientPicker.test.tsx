@@ -9,10 +9,19 @@ import PatientPickerResults, {
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     patient: {
-      getPatient: { useQuery: () => ({ data: undefined }) },
+      getPatient: {
+        useQuery: () => ({ data: undefined, isError: false, refetch: vi.fn() }),
+      },
     },
     medical: {
-      searchPatients: { useQuery: () => ({ data: [], isLoading: false }) },
+      searchPatients: {
+        useQuery: () => ({
+          data: [],
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+        }),
+      },
     },
   },
 }));
