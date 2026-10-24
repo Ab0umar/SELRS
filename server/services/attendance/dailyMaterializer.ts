@@ -1,7 +1,11 @@
 /**
  * Daily Attendance Materializer
- * Rebuilds attendance_daily from raw punches + rules
- * Idempotent: safe to call multiple times
+ *
+ * Rebuilds attendance_daily from raw punches + rules for a date range.
+ * Idempotent: rerunning a range upserts the desired rows in place, then
+ * deletes rows the current rules no longer produce. Unless the caller
+ * supplies dbOverride, all writes run in one transaction guarded by the
+ * attendance_daily_materializer advisory lock (materializerMutex.ts).
  */
 
 import { getDb, getDbConnection } from "../../db";
@@ -39,8 +43,26 @@ import { toDateOnlyKey } from "./dateOnly";
 
 export class DailyMaterializer {
   /**
-   * Recompute daily attendance for a date range
-   * Loads all raw data, applies rules, UPSERTs to attendance_daily
+   * Recompute daily attendance for a date range: load shifts, assignments,
+   * cycles, leaves, holidays, permissions and punches, apply the rules
+   * engine, upsert attendance_daily, delete stale rows.
+   *
+   * @param from Range start, normalized to local midnight.
+   * @param to Range end. Inclusive and normalized to local midnight: never
+   *   pass tomorrow as an exclusive end or an extra future day is written.
+   * @param scope Restrict the run. `empCd` recomputes that employee even
+   *   when inactive; `empCds` loads only active employees; omit for all
+   *   active employees.
+   * @param dbOverride Caller-owned transaction: takes NO lock and opens NO
+   *   nested transaction. Safe only when the caller already serializes the
+   *   work (withMaterializerTransaction, tests).
+   * @param options `recomputeMonthly` runs MonthlyComputeService per
+   *   employee and month as the afterCommit callback: after the daily
+   *   transaction commits, still under the advisory lock.
+   * @returns Number of daily rows written by the upsert (before stale
+   *   deletion).
+   * @throws "Attendance materialization is already running" when the lock
+   *   times out; range errors for an inverted or >= 366-day range.
    */
   static async recomputeRange(
     from: Date,
@@ -135,6 +157,8 @@ export class DailyMaterializer {
         .map((holiday) => this.dateKey(holiday.date)),
     );
     const permissions = await this.loadPermissions(db, fromDate, toDate);
+    // One day past the inclusive end: a cross-midnight checkout lands on
+    // the next calendar date but still belongs to this day's pairing.
     const punchesEndExclusive = new Date(toDate);
     punchesEndExclusive.setDate(punchesEndExclusive.getDate() + 1);
     const punchesByEmployeeDate = new Map<string, any[]>();
@@ -416,6 +440,8 @@ export class DailyMaterializer {
       insideNow: sql`VALUES(${attendanceDaily.insideNow})`,
       computedAt: sql`VALUES(${attendanceDaily.computedAt})`,
     };
+    // Desired rows go in first; stale rows are deleted after, so a crash
+    // mid-run leaves superseded rows rather than gaps.
     const upsertBatchSize = 250;
     for (
       let index = 0;
@@ -428,6 +454,8 @@ export class DailyMaterializer {
         .onDuplicateKeyUpdate({ set: upsertUpdate });
     }
 
+    // Cleanup deletes only rows inside this range for employees included
+    // in this run; the rest of attendance_daily is untouched.
     const staleRows = existingDailyRows
       .map((row: any) => ({
         ...row,
@@ -607,6 +635,8 @@ export class DailyMaterializer {
 
   // Helpers
 
+  // Local-getter YYYY-MM-DD, same convention as ymd() and toDateOnlyKey();
+  // see docs/ATTENDANCE_SYNC.md, "The local-time model".
   private static dateKey(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }

@@ -1,3 +1,8 @@
+> **Status: exploratory, not a production path.** The TCP 7005 push analysis below was never
+> wired into the server: `devicePushListener.ts` is imported only by `scripts/test-device-push.ts`.
+> What runs in production is the ADMS HTTP push on the K40 Pro. See docs/ATTENDANCE_SYNC.md,
+> section "Choosing a source".
+
 # ZKTeco Device Push Protocol Analysis
 
 **Date:** 2026-05-20  

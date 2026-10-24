@@ -1,3 +1,8 @@
+> **Status: still accurate.** This note remains the reference for the FK623Attend.dll discovery
+> and the `FKOldLogPuller.exe` pull chain, which is in production use via
+> `server/services/attendance/fkAttendLogPuller.ts`. For how FK pulls fit the sync pipeline, see
+> docs/ATTENDANCE_SYNC.md, section "Choosing a source".
+
 # FK Attendance DLL Discovery
 
 **Location:** `C:\Windows\SysWOW64\` (32-bit system directory on 64-bit Windows)

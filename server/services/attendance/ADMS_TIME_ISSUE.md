@@ -1,3 +1,22 @@
+> **Status: historical investigation, superseded by docs/ATTENDANCE_SYNC.md.**
+>
+> The body below is kept as a record of the investigation and is not maintained.
+> Claims it makes that no longer hold (each checked against `server/_core/zktecoAdms.ts`):
+>
+> - The "Layer 2" pre-compensated HTTP `Date` header is gone. The code deliberately does
+>   not touch the `Date` header; the handshake options instead send `TimeZone=<serverOffsetHours()>`.
+> - The offset is no longer one module-level variable. It is a per-device map
+>   (`detectedOffsetByDevice`), persisted through `DeviceSettingsService` so it survives restarts.
+> - There is no 6h code default. With no manual override and nothing detected yet, the offset
+>   is 0 until a fresh punch auto-detects it.
+> - `ZK_ADMS_DEVICE_TZ_OFFSET` is no longer read by any code (the variable line remains in
+>   `.env.example` so existing env files stay valid).
+> - The `File: server/_core/zktecoAdms.ts` reference and the line-level behaviors described
+>   in the body are stale.
+>
+> Current behavior is documented in docs/ATTENDANCE_SYNC.md, section "Time zones and device
+> clock offsets".
+
 # Problem: ZKTeco K40 Pro attendance device records punches 6 hours ahead
 
 ## System context

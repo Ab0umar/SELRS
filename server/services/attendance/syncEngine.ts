@@ -1,12 +1,16 @@
 /**
  * Attendance Sync Engine
- * Manages incremental sync from AttendanceSource to MySQL
- * - HWM tracking (high water mark for dedup)
- * - Advisory locking for concurrency safety
- * - Employee mirror UPSERT
- * - Punch INSERT IGNORE (dedup via unique constraint)
- * - Sync run logging
- * - Triggers daily materializer on success
+ *
+ * Pulls the configured AttendanceSource (see sources/sourceFactory.ts) into
+ * MySQL: employee mirror upsert, punch INSERT IGNORE deduped by the uq_punch
+ * unique index, per-run high-water mark, run history, then a daily
+ * materializer pass.
+ *
+ * Concurrency: runSyncOnce holds its own advisory lock, attendance_sync,
+ * with a 5s GET_LOCK wait. It is a separate, shorter-fused lock from the
+ * materializer's attendance_daily_materializer (120s); do not merge them.
+ * On lock timeout the run is recorded with status 'locked' and returned,
+ * not thrown. See docs/ATTENDANCE_SYNC.md, "Concurrency and locking".
  */
 
 import { getDb, getDbConnection } from "../../db";
@@ -22,11 +26,23 @@ const SYNC_LOCK_NAME = "attendance_sync";
 const SAFETY_WINDOW_MINUTES =
   parseInt(process.env.ATTENDANCE_SAFETY_WINDOW_MIN ?? "120", 10) || 120;
 
+/** What started a run: the scheduler passes 'cron'; 'manual' carries the
+ * acting user id. */
 export interface SyncTrigger {
   trigger: "cron" | "manual";
   triggeredBy?: number; // user ID for manual triggers
 }
 
+/** Outcome of one runSyncOnce call. Status values:
+ *  - running: run row created, work in flight (persisted state, never
+ *    returned to the caller)
+ *  - ok: rows synced, nothing quarantined, materializer succeeded
+ *  - partial: quarantined source rows, or the materializer failed after
+ *    punches were stored (punches are kept; daily rows wait for the next
+ *    trigger)
+ *  - failed: the source threw, or setup failed before any pull
+ *  - locked: another run held attendance_sync; nothing was pulled
+ */
 export interface SyncResult {
   runId: number;
   status: "running" | "ok" | "partial" | "failed" | "locked";
@@ -37,8 +53,32 @@ export interface SyncResult {
 }
 
 /**
- * Execute a single sync run
- * Returns immediately with run status (advisory lock prevents overlap)
+ * Execute one incremental sync from `source` into MySQL.
+ *
+ * Locking: GET_LOCK('attendance_sync', 5) on a dedicated getDbConnection().
+ * On timeout the run is recorded as 'locked' and returned (never thrown).
+ * RELEASE_LOCK errors are swallowed here and the connection goes back to the
+ * pool, unlike materializerMutex.ts which destroys it; a failed release can
+ * therefore leave a lock-owning session in the pool until it dies.
+ *
+ * Window: starts from the newest ok/partial high-water mark for this source,
+ * rewound by ATTENDANCE_SAFETY_WINDOW_MIN minutes (default 120) so late or
+ * drifting rows are re-read (dedup makes that safe). With no mark on record
+ * it starts at January 1 of the current year.
+ *
+ * Materializer: triggered only when the pull did not fail AND at least one
+ * punch was inserted; a materializer error downgrades the run to 'partial'.
+ * Quarantined source rows also downgrade to 'partial'.
+ *
+ * The finally block always releases the lock connection and closes the
+ * source, even on catastrophic errors.
+ *
+ * @param trigger Cron or manual provenance, stored on the run row.
+ * @param source Attendance source; defaults to the configured adapter.
+ *   Injectable for tests.
+ * @returns Run id and outcome; runId is -1 when setup failed before a row
+ *   could be created.
+ * @throws Only when the database itself is unavailable.
  */
 export async function runSyncOnce(
   trigger: SyncTrigger,
@@ -147,7 +187,9 @@ export async function runSyncOnce(
           `rowsInserted=${rowsInserted}, rowsSkipped=${rowsSkipped}, rowsQuarantined=${rowsQuarantined}`,
       );
 
-      // Update HWM if we saw any punches
+      // The mark only advances on newly inserted rows: maxPunchAt is set
+      // from inserted punches, so an all-duplicates poll leaves the
+      // checkpoint where it was.
       if (maxPunchAt) {
         await updateHwm(db, runId, maxPunchAt);
       }
@@ -321,6 +363,8 @@ async function updateHwm(db: any, runId: number, hwm: Date): Promise<void> {
     .where(eq(attendanceSyncRuns.id, runId));
 }
 
+/** Clear the stored high-water mark on all 'access'-source runs, so the
+ * next pull restarts from the default January 1 window. */
 export async function resetSyncHistory(): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -333,6 +377,9 @@ export async function resetSyncHistory(): Promise<void> {
     .where(eq(attendanceSyncRuns.source, "access"));
 }
 
+/** Pin the fk_ef10k high-water mark to the 2026-01-01 baseline: FK devices
+ * return their full on-device history, so the reset must be bounded or the
+ * next pull reimports all of it. */
 export async function resetFkSyncHistory(): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -346,6 +393,8 @@ export async function resetFkSyncHistory(): Promise<void> {
     .where(eq((attendanceSyncRuns as any).deviceId, "fk_ef10k"));
 }
 
+/** Pin the high-water mark of every zk_* device (device id is zk_<ip>) to
+ * the 2026-01-01 baseline. */
 export async function resetZkSyncHistory(): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -356,6 +405,8 @@ export async function resetZkSyncHistory(): Promise<void> {
     .where(sql`${(attendanceSyncRuns as any).deviceId} LIKE 'zk_%'`);
 }
 
+/** Flatten an error for storage in run history, masking absolute Windows
+ * and Unix paths so local filesystem layout never reaches the DB. */
 function sanitizeError(err: unknown): string {
   if (err instanceof Error) {
     // Remove sensitive paths and env values

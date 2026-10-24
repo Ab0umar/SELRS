@@ -7,6 +7,7 @@ Read first:
 - `specs/AI_CONTEXT.md` — full architectural context for AI agents
 - `CLAUDE.md` — coding rules for Claude Code
 - `.claude/rules/` — module-specific rules (frontend.md, backend.md, permissions.md, database.md, verification.md)
+- `docs/ATTENDANCE_SYNC.md`: how attendance punches become daily records (device sources, locking, clock offsets, rules engine, troubleshooting)
 
 Then follow the project Constitution and Project Principles strictly.
 
