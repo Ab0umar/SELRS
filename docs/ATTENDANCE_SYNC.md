@@ -19,12 +19,12 @@ them matter for a given question.
 3. [Scheduler cadence](#scheduler-cadence)
 4. [High-water mark and safety window](#high-water-mark-and-safety-window)
 5. [File map](#file-map)
-6. [Concurrency and locking](#concurrency-and-locking) (in progress)
+6. [Concurrency and locking](#concurrency-and-locking)
 7. [Time zones and device clock offsets](#time-zones-and-device-clock-offsets) (in progress)
 8. [Rules engine and materializer semantics](#rules-engine-and-materializer-semantics) (in progress)
 9. [Troubleshooting](#troubleshooting) (in progress)
 
-Sections 6 to 9 are stubs at the moment and are being written into this same file.
+Sections 7 to 9 are stubs at the moment and are being written into this same file.
 
 ## Pipeline overview
 
@@ -237,11 +237,131 @@ Callers (outside the service folder): `server/routers/attendance.ts` (manual pun
 
 ## Concurrency and locking
 
-Stub: this section will document the two advisory locks (`attendance_daily_materializer` with a
-120 second wait, `attendance_sync` with a 5 second wait), why the lock connection must stay
-checked out of the pool until `RELEASE_LOCK`, the lock-then-transaction-then-afterCommit
-ordering, the `dbOverride` escape hatch, what callers see on timeout, and a table of every
-`recomputeRange` caller.
+Two MySQL advisory locks keep concurrent attendance work from interleaving. They are separate
+locks on purpose: the pull loop and the materializer are different jobs that run at different
+cadences.
+
+| Lock | Defined in | Wait | On timeout |
+|---|---|---|---|
+| `attendance_daily_materializer` | `materializerMutex.ts` (`MATERIALIZER_LOCK_NAME`) | 120 seconds (`GET_LOCK(?, 120)`) | throws `Attendance materialization is already running` |
+| `attendance_sync` | `syncEngine.ts` (`SYNC_LOCK_NAME`, inside `runSyncOnce`) | 5 seconds (`GET_LOCK(?, 5)`) | records a sync run with status `locked` and returns `{ runId, status: "locked" }`; nothing is thrown |
+
+The 120 second materializer wait is deliberate. Long rebuilds (the code comment cites 90-day
+ranges) can hold the lock for a while, and user-initiated mutations should queue behind them
+rather than fail after a short wait. The sync lock's 5 second wait is the opposite trade: when
+another pull is already running there is nothing useful to do, so `runSyncOnce` writes a
+`locked` run row (useful in history: it tells you ticks were overlapping) and returns.
+
+### Advisory locks are session-scoped, so the connection must stay checked out
+
+`GET_LOCK` and `RELEASE_LOCK` in MySQL belong to a single connection (session), not to a user
+or a code path. The pool in `server/db.ts` has a connection limit of 10 and hands out a
+different connection for every query. Acquiring the lock through the ordinary pooled `db`
+handle would put the lock on an arbitrary connection, and the later `RELEASE_LOCK` would run on
+a different one and silently do nothing: two concurrent runs could each believe they hold "the"
+lock. `ATTENDANCE_CODE_REVIEW.md` documents this exact defect as finding A3 from the September
+2026 review, before the fix landed.
+
+Both lock sites now do the same thing structurally: check out one dedicated connection with
+`getDbConnection()`, `GET_LOCK` on it, do all the work (for the materializer, the work itself
+runs in a transaction on a normal pooled connection), `RELEASE_LOCK` on the same dedicated
+connection, and only then `connection.release()` it back to the pool. The dedicated connection
+must stay checked out for the entire cycle; returning it early would hand a lock-owning session
+to an unrelated query.
+
+### Release failure: the two sites differ
+
+- `withMysqlAdvisoryLock` (materializer): if `RELEASE_LOCK` fails, the connection is
+  `destroy()`ed instead of released. A pooled connection that still owns the lock would poison
+  every later borrower, so the pool loses one connection rather than gain a bad one.
+- `runSyncOnce` (sync): release errors are caught and ignored, and the connection is released
+  to the pool regardless. If a release ever fails here, the pool receives a session that may
+  still own `attendance_sync` until the connection dies. The code marks this `// Ignore release
+  errors`. The asymmetry matters when diagnosing a suspicious run of `locked` statuses.
+
+### Ordering: lock, then transaction, then afterCommit
+
+`withMaterializerTransaction(connection, db, work, afterCommit)` runs three steps in order:
+
+1. `GET_LOCK` on the dedicated connection (up to 120 seconds).
+2. `db.transaction(work)`: the materialization, or the manual punch insert plus recompute in
+   the router case, commits as one transaction.
+3. `afterCommit(result)`: runs after the commit but while the advisory lock is still held.
+
+The monthly recompute hook (`options.recomputeMonthly`) is an afterCommit callback, so
+`MonthlyComputeService.saveEmployeeMonth` runs per employee and month here: daily rows are
+already visible to other readers, and no other materialization can start in between. An error
+thrown from an afterCommit callback propagates to the caller but does not roll the transaction
+back; the daily rows stay committed.
+
+### The dbOverride escape hatch
+
+`recomputeRange(from, to, scope, dbOverride, options)` takes no lock and opens no nested
+transaction when `dbOverride` is supplied: the caller owns the transaction. This is safe only
+when the caller already serializes the work. Verified users today: `routers/attendance.ts`
+passes its `tx` from `withMaterializerTransaction`, so the manual punch write and its recompute
+share one transaction under the lock, and the test suite runs against an isolated transaction.
+Anything else should use the default lock path.
+
+### What a timeout looks like, per caller
+
+The literal failure message is `Attendance materialization is already running`. What happens
+next depends on the caller:
+
+- Fire-and-forget (the error only reaches the log): `punchReception.service.ts` recomputes the
+  punch day for the one employee and attaches `.catch` logging; `server/_core/zktecoAdms.ts`
+  recomputes each pushed punch day with `void ... .catch`. The device still receives its `OK`
+  response, and the nightly recompute will repair any day the skipped recompute left stale.
+- Awaited, error propagates to the admin UI through tRPC: the routers (`attendance.ts` manual
+  punches, `attendance-leaves.ts`, `attendance-shifts.ts`, `attendance-sync.ts` rebuilds).
+- Awaited, error downgrades the result instead of failing it: `syncEngine.ts` logs the
+  materializer error and sets the run status to `partial` (punches are stored; daily rows wait
+  for the next trigger). The nightly scheduler catches and logs, then retries hourly.
+
+### Every caller of recomputeRange / withMaterializerTransaction
+
+| Caller | Path | Lock taken | Notes |
+|---|---|---|---|
+| `runSyncOnce` | `syncEngine.ts` | `attendance_sync` first, then the materializer lock via `recomputeRange` | holds the sync lock while waiting on the materializer lock; on materializer error downgrades to `partial` |
+| nightly rebuild | `_core/attendanceSyncScheduler.ts` | materializer via `recomputeRange` (last 7 days, monthly on) | catch-and-log, hourly retry |
+| ADMS push | `_core/zktecoAdms.ts` | materializer via `recomputeRange`, fire-and-forget per punch day | scoped to the day, no employee filter |
+| live punch event | `punchReception.service.ts` | materializer via `recomputeRange`, fire-and-forget per punch | scoped `{ empCd }` plus the punch day |
+| FK pull | `fkDeviceSyncService.ts` | materializer via `recomputeRange` | affected date range or today-only, monthly on |
+| ZK 4370 pull | `zk4370Sync.service.ts` | materializer via `recomputeRange` | imported date range, monthly on |
+| legacy direct sync | `deviceSyncEngine.ts` | materializer via `recomputeRange` | affected range through today, monthly on |
+| manual punch add / delete | `routers/attendance.ts` | `withMaterializerTransaction` | recompute runs inside the same transaction (`dbOverride = tx`); monthly rebuild after, outside the lock |
+| leave / permission / shift mutations | `attendance-leaves.ts`, `attendance-shifts.ts` | materializer via `recomputeRange` | scoped `{ empCd }`; most call sites also rebuild the affected months, a few recompute daily only |
+| manual sync / rebuild / punch batch | `attendance-sync.ts` | materializer via `recomputeRange` | per-day scoped, today-only, or admin rebuild up to 366 days |
+
+There is no lock-ordering deadlock: every path that holds `attendance_sync` waits afterward on
+the materializer lock, and no path that holds the materializer lock ever waits on
+`attendance_sync`.
+
+### Range limits
+
+`recomputeRangeInTransaction` validates before doing any work: it throws when `to` is before
+`from`, and when the span reaches 366 days. The end date is inclusive and normalized to local
+midnight; the code comment explicitly forbids treating tomorrow as an exclusive end, because a
+future day would be materialized as absences (review finding A6 was exactly that bug). Punch
+loading extends one day past the end, next-day-exclusive, so early-morning data from the day
+after the range is at least loaded; where it belongs is decided by the pairing rules (section
+8).
+
+### Known limits
+
+- The advisory locks coordinate any number of processes sharing the MySQL server; that is what
+  they are for. The in-memory state does not coordinate anything: `queriedDevices` and
+  `detectedOffsetByDevice` in `zktecoAdms.ts` and the scheduler's nightly marker live in one
+  process. A second server process against the same database would double-queue ADMS commands
+  and keep its own offset cache. The single-process assumption is deployment-level, not
+  enforced by code.
+- The materializer lock name is one global name, not per employee. A scoped recompute (one
+  employee, one day) still queues behind a 90-day rebuild. Combined with the 120 second wait,
+  the design choice is explicit: wait, do not compute against a table being rebuilt.
+- MySQL `GET_LOCK` semantics (5.7+): a session can hold several named locks at once, and every
+  lock a session holds is released automatically when the session ends. Because lock ownership
+  here lives on a dedicated connection, an abrupt process death releases the locks through
+  connection teardown; a lock cannot outlive its connection.
 
 ## Time zones and device clock offsets
 
