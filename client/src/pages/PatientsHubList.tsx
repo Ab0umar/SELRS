@@ -498,7 +498,13 @@ export default function PatientsHubList() {
           </div>
           <Badge variant="secondary" className="tabular-nums shrink-0">
             <Users className="me-1 h-3 w-3" />
-            {allRows.length}
+            {sheetFilter !== "all" ? (
+              <span dir="ltr">
+                {filteredRows.length} / {allRows.length}
+              </span>
+            ) : (
+              allRows.length
+            )}
           </Badge>
         </CardContent>
       </Card>
@@ -554,10 +560,12 @@ export default function PatientsHubList() {
             </Button>
           </CardContent>
         </Card>
-      ) : allRows.length === 0 ? (
+      ) : filteredRows.length === 0 ? (
         <Card className="border-border/80 bg-card shadow-sm">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            لا توجد بيانات مرضى
+            {sheetFilter !== "all"
+              ? "لا توجد نتائج مطابقة للفلتر المحدد"
+              : "لا توجد بيانات مرضى"}
           </CardContent>
         </Card>
       ) : isMobile ? (
