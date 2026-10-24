@@ -156,7 +156,7 @@ interface ParsedPunch {
 //      ZK_ADMS_PUNCH_OFFSET_HOURS). This is the authoritative data fix. The
 //      detected value is persisted (K40 device settings row) so it survives
 //      restarts instead of resetting to an unverified guess.
-//   2) the ADMS handshake sends TimeZone=<serverOffsetHours> so that IF the
+//   2) the ADMS handshake sends TimeZone=<minutes from UTC> so that IF the
 //      device honors it on NTP sync, its clock lands on correct local time
 //      instead of its own hidden internal TZ.
 //
@@ -334,7 +334,7 @@ export function registerZKTecoAdms(app: Express): void {
   // the device ignores it — when online via ADMS it NTP-syncs itself and applies
   // its hidden internal timezone, landing the clock hours ahead of Cairo (measured
   // 6h, later 3h — the delta has changed as firmware TZ settings drifted). We do
-  // send TimeZone=<hours> in the handshake options in case the firmware honors it
+  // send TimeZone=<minutes> in the handshake options in case the firmware honors it
   // on NTP sync (untested — some ZKTeco push firmwares support it, others ignore
   // it). Either way, attendance data is kept correct by the ingestion offset
   // correction in parseAttlogBody(); the device's displayed clock is cosmetic.

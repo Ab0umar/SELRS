@@ -196,3 +196,12 @@ npx tsx scripts/test-fk-puller.ts
 | P/Invoke Alternative | 🔄 Feasible (future)    |
 
 **Current Recommendation:** Continue with FKOldLogPuller.exe approach. It's simple, reliable, and production-ready. Direct P/Invoke can be added later if needed.
+
+---
+
+## Update: native client (no exe/DLL)
+
+`server/services/attendance/fkTcpClient.ts` speaks the port-5005 protocol directly
+(recovered by proxying FKOldLogPuller.exe; 27,710/27,710 records matched). Logs and
+enrolled user ids are pulled natively; `FK_USE_LEGACY_PULLER=true` restores the exe.
+The device stores user ids only (no names on the wire).
