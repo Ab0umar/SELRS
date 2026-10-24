@@ -59,6 +59,9 @@ export default function PatientPicker({
   const [activeIndex, setActiveIndex] = useState(-1);
   const hydratedPatientIdRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // Wraps the input wrapper and the popup: blur closes the popup only when
+  // the new focus target is outside this container.
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     hydratedPatientIdRef.current = null;
@@ -163,7 +166,21 @@ export default function PatientPicker({
   };
 
   return (
-    <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
+    // React onBlur bubbles (focusout), so blurs from the input, the clear
+    // button and the retry button all run this check; option/Retry/clear
+    // clicks never blur because their mousedown is preventDefault-ed.
+    <div
+      ref={containerRef}
+      dir={isEnglish ? "ltr" : "rtl"}
+      className="space-y-2"
+      onBlur={(e) => {
+        if (readOnly) return;
+        const next = e.relatedTarget as Node | null;
+        if (next && containerRef.current?.contains(next)) return;
+        setOpen(false);
+        setActiveIndex(-1);
+      }}
+    >
       {label?.trim() ? (
         <label id={labelId} htmlFor={inputId} className="sr-only">
           {label}
@@ -197,13 +214,6 @@ export default function PatientPicker({
             if (readOnly) return;
             setOpen(true);
             setActiveIndex(-1);
-          }}
-          onBlur={() => {
-            if (readOnly) return;
-            setTimeout(() => {
-              setOpen(false);
-              setActiveIndex(-1);
-            }, 150);
           }}
           // Input's useComposition wrapper already swallows Enter during IME
           // composition, so it is not re-checked here.
