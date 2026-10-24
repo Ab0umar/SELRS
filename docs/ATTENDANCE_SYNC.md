@@ -184,14 +184,14 @@ Ingest (device or file to `attendance_punches`):
 | `accessDbSync.service.ts` | early Access reader; no importers today |
 | `deviceSettings.service.ts` | per-device settings rows (EF10K id=1, K40 id=2), including the persisted ADMS clock offset |
 | `deviceDiagnostics.service.ts` | connection diagnostics |
-| `../_core/zktecoAdms.ts` | ADMS HTTP push endpoint (`/iclock/*`): allowlist, handshake, ATTLOG parsing, offset correction |
+| `../../_core/zktecoAdms.ts` | ADMS HTTP push endpoint (`/iclock/*`): allowlist, handshake, ATTLOG parsing, offset correction |
 
 Sync orchestration, locking and run history:
 
 | File | Role |
 |---|---|
 | `materializerMutex.ts` | MySQL advisory lock `attendance_daily_materializer` plus `withMaterializerTransaction` |
-| `../_core/attendanceSyncScheduler.ts` | two-tier polling, FK/ZK pulls, nightly recompute and pruning |
+| `../../_core/attendanceSyncScheduler.ts` | two-tier polling, FK/ZK pulls, nightly recompute and pruning |
 | `syncRunPolicy.ts` | decides whether a sync run is worth storing |
 | `syncRunRetention.ts` | 90-day pruning that preserves each device's newest checkpoint |
 | `admsOffsetPolicy.ts` | one-shot guard for ADMS offset auto-detection |
@@ -322,8 +322,8 @@ next depends on the caller:
 | Caller | Path | Lock taken | Notes |
 |---|---|---|---|
 | `runSyncOnce` | `syncEngine.ts` | `attendance_sync` first, then the materializer lock via `recomputeRange` | holds the sync lock while waiting on the materializer lock; on materializer error downgrades to `partial` |
-| nightly rebuild | `_core/attendanceSyncScheduler.ts` | materializer via `recomputeRange` (last 7 days, monthly on) | catch-and-log, hourly retry |
-| ADMS push | `_core/zktecoAdms.ts` | materializer via `recomputeRange`, fire-and-forget per punch day | scoped to the day, no employee filter |
+| nightly rebuild | `server/_core/attendanceSyncScheduler.ts` | materializer via `recomputeRange` (last 7 days, monthly on) | catch-and-log, hourly retry |
+| ADMS push | `server/_core/zktecoAdms.ts` | materializer via `recomputeRange`, fire-and-forget per punch day | scoped to the day, no employee filter |
 | live punch event | `punchReception.service.ts` | materializer via `recomputeRange`, fire-and-forget per punch | scoped `{ empCd }` plus the punch day |
 | FK pull | `fkDeviceSyncService.ts` | materializer via `recomputeRange` | affected date range or today-only, monthly on |
 | ZK 4370 pull | `zk4370Sync.service.ts` | materializer via `recomputeRange` | imported date range, monthly on |
