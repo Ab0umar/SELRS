@@ -20,11 +20,11 @@ them matter for a given question.
 4. [High-water mark and safety window](#high-water-mark-and-safety-window)
 5. [File map](#file-map)
 6. [Concurrency and locking](#concurrency-and-locking)
-7. [Time zones and device clock offsets](#time-zones-and-device-clock-offsets) (in progress)
+7. [Time zones and device clock offsets](#time-zones-and-device-clock-offsets)
 8. [Rules engine and materializer semantics](#rules-engine-and-materializer-semantics) (in progress)
 9. [Troubleshooting](#troubleshooting) (in progress)
 
-Sections 7 to 9 are stubs at the moment and are being written into this same file.
+Sections 8 and 9 are stubs at the moment and are being written into this same file.
 
 ## Pipeline overview
 
@@ -79,8 +79,9 @@ Points the diagram hides:
   rows with `source = "manual"` (`punches.service.ts`).
 - Dedup is two-layered. The `uq_punch` unique index on `(empCd, punchAt, sourceRowId)` is the
   hard guarantee; `sourceRowId` is `empCd_timestamp` for ADMS and event-driven punches, so the
-  same scan seen twice (ADMS push and TCP pull) collides and one copy wins. `sourceHash` is a
-  second identity column used by lookup paths and the event listener.
+  same scan re-arriving on the same path collides and one copy wins (the Access adapter uses
+  the source row's GUID instead). `sourceHash` is a second identity column used by lookup
+  paths and the event listener.
 - The materializer is idempotent. Recomputing a range overwrites the daily rows for that range
   and deletes rows that the current rules no longer produce. Safe to run repeatedly; the
   scheduler does exactly that every night.
@@ -365,10 +366,155 @@ after the range is at least loaded; where it belongs is decided by the pairing r
 
 ## Time zones and device clock offsets
 
-Stub: this section will document the local-time model (server TZ = facility TZ), the per-device
-ADMS clock offset (manual override vs auto-detect vs 0), the dedup identity that uses raw vs
-corrected time, DST behavior, and a payroll-impact checklist for punches that land on the wrong
-day.
+Everything in this section was verified by reading the cited code. One thing code cannot prove
+is why the K40 Pro's clock drifts; statements about the device's behavior are marked inferred.
+
+### The local-time model
+
+The server's timezone must equal the facility's timezone (Cairo). All date arithmetic assumes
+this: `new Date(year, month, day, ...)` component constructors, `setHours`, and local getters
+(`getFullYear`, `getMonth`, `getDate`, `getHours`) everywhere, for example `buildDateTime` and
+`ymd()` in `rulesEngine.ts`, the scheduler's business-hours check, and the materializer's date
+keys. Nothing converts to UTC for storage; a Date stored in a DATETIME column is the wall time
+itself.
+
+DB DATE columns (`workDate`, leave dates, holiday dates) are compared as `YYYY-MM-DD` strings
+produced by local getters: `toDateOnlyKey` (`dateOnly.ts`), `ymd()` (`rulesEngine.ts`), and the
+private `dateKey` in `dailyMaterializer.ts`. The string form sidesteps the classic UTC
+off-by-one where `new Date("2026-06-28")` parses as UTC midnight and shifts a day at UTC+2/+3.
+One known exception: the private `dateKey` in `permissionAdjustment.service.ts` uses the UTC
+getters. It computes leave-recompute ranges; a date near midnight can disagree with the rest of
+the module by a day there.
+
+### Per-source timestamp semantics
+
+| Path | Timestamp treatment | Correction applied |
+|---|---|---|
+| Access `.mdb` pull | `KQDateTime` read as a local Date (`parseDate`) | none |
+| FK EF10K pull | numeric CSV fields from `FKOldLogPuller.exe` built with the local component constructor | none |
+| ZK 4370 TCP pull | device wall-clock fields decoded by `decodeZkTimestamp` into a local Date | none |
+| ADMS push | device sends local time with no timezone suffix; parsed as local, then an offset is subtracted | per-device offset, below |
+| live device events, manual punches | whatever the adapter or admin supplies | none |
+
+So the ADMS path is the only one with a correction layer. The K40 Pro's clock runs hours ahead
+of correct local time when ADMS is connected: the device NTP-syncs and then applies a hidden
+internal timezone setting that is not exposed in its menus. The measured delta was 6 hours in
+June 2026 and 3 hours at the time of writing, which is why the code never hardcodes it (the
+"Device clock handling" comment in `server/_core/zktecoAdms.ts`). Why the firmware's internal TZ
+changes is not documented anywhere in the repo; inferred: the setting drifts with firmware or
+configuration changes outside our control.
+
+### ADMS offset resolution order
+
+`effectiveOffsetHours(deviceId)` picks the first of:
+
+1. `ZK_ADMS_PUNCH_OFFSET_HOURS` from the environment, when it parses as a finite number. A
+   manual override wins over everything.
+2. The per-device auto-detected offset (`detectedOffsetByDevice` map, hydrated from the
+   persisted value in the K40 device settings row on first use, so it survives restarts).
+3. Zero. Unknown means store the punch as-sent; the code comment calls this safer than
+   guessing.
+
+Subtraction happens in `parseAttlogBody` after parsing: every punch in the batch gets
+`punchAt = rawPunchAt - offsetHours`. Worked example (the June 2026 measurement): a fresh punch
+made at real time 01:43 Cairo arrived stamped 07:43. The batch was small enough for
+auto-detection, the computed delta snapped to exactly 6 hours, so the stored punch is
+`07:43 - 6h = 01:43`. That 6 was detected back then and persisted; today the same value would
+come from step 2 (the persisted offset), not from a `deviceTz - serverOffset` formula. The old
+`ZK_ADMS_DEVICE_TZ_OFFSET`-based computation from `ADMS_TIME_ISSUE.md` no longer exists in code.
+
+### Auto-detect guard rules
+
+`maybeDetectOffset` runs before correction on every ATTLOG batch, but only acts when
+`mayAutoDetectAdmsOffset` (`admsOffsetPolicy.ts`) says yes: true only when no manual env
+override is set AND no offset is known for the device. The guards:
+
+- Once per device. Because a detected value is persisted and re-hydrated on startup,
+  auto-detection effectively happens once in the device's life, not once per process.
+- Only batches of 1 to 3 punches. Larger uploads are historical dumps, whose timestamps would
+  poison the "fresh punch" estimate.
+- The newest punch's delta against the server clock is rounded to whole hours and rejected
+  unless it lands in 0 to 12 hours (the device only ever runs ahead, never behind).
+- The raw delta must sit within 0.25 hours of that rounded value; sloppier deltas are ignored.
+
+To change a persisted offset you must clear it in the device settings row and let the next
+fresh batch re-detect, or set the env override. There is no API that re-tunes it automatically,
+by design: a forged or late batch must not be able to retune a value that payroll depends on.
+
+### The handshake and the Date header
+
+The handshake options block sent on `GET /iclock/cdata` includes
+`TimeZone=<serverOffsetHours()>`, read live from the OS on every handshake. The code comment
+marks this as unverified: some ZKTeco push firmwares honor it on NTP sync, others ignore it.
+The HTTP `Date` response header is deliberately not touched (an earlier pre-compensation
+approach was removed; the comment records that testing showed the device ignores the header).
+Correctness does not depend on either: the ingestion offset in `parseAttlogBody` is the
+authoritative fix.
+
+### Dedup identity: corrected time vs raw time
+
+- `sourceRowId` is `${empCd}_${correctedPunchAt.getTime()}`. The FK pull, the ZK 4370 pull, and
+  the live event listener all use the same `empCd_epochMs` shape, so one physical scan stored
+  twice (a live event plus a pull) collides in the `uq_punch` unique index and only one row
+  survives. The Access adapter is the outlier: it uses the source row's GUID. The shape is
+  shared with ADMS on purpose (the code comment calls it the normalized identity shared with
+  TCP pulls), but the collision only happens when both paths agree on the timestamp: ADMS
+  subtracts the offset while the pull does not, so while the device clock is off by a non-zero
+  offset the same scan produces two different rows. In practice the K40 runs either `adms` or
+  `tcp` mode in its settings row, so the two paths are not both active for one device.
+- The ADMS `sourceHash` is `sha1(serial|empCd|rawPunchAt ISO|direction)`, computed from the RAW
+  device time before correction. It is stable across offset changes, which makes it the
+  identity to use when asking "have I seen this exact scan".
+
+Two consequences worth knowing before touching the offset:
+
+- Changing the offset after punches were stored changes the corrected time of a re-pushed scan,
+  which changes its `sourceRowId`, which defeats the unique index: the same scan can be stored a
+  second time. The `sourceHash` remains identical, so duplicates are findable.
+- Punches stored before an offset correction are never rewritten. There is no retro-correction
+  pass in the code; old wrong rows stay wrong, and only daily rows recomputed from them change
+  (they change because the punches themselves are the input).
+
+### DST
+
+`serverOffsetHours()` reads the OS offset live on every call, so both the handshake value and
+any environment-driven behavior follow Egypt's DST transitions (the country alternates between
+UTC+2 and UTC+3, most recently re-introducing summer time in 2023) without a restart. The
+auto-detect comparison against "now" is also DST-affected only in the hours around a
+transition; the 0.25 hour tolerance and integer snapping absorb it.
+
+One silent interaction to remember: setting `ZK_ADMS_PUNCH_OFFSET_HOURS` to any parseable
+number disables auto-detection for all devices without any warning in the logs. The checked-in
+`.env.example` ships such a value; copying it to a live `.env` freezes every device at a fixed
+subtraction.
+
+### FK EF10K timestamps
+
+The FK path builds timestamps from the puller's numeric CSV fields with the local component
+constructor and applies no correction. Code verifies only the absence of a correction layer;
+that the EF10K's clock is correct is an operational observation recorded in the historical
+investigation notes (`ADMS_TIME_ISSUE.md` describes the EF10K as working with correct,
+server-generated timestamps). No code prevents a wrong FK clock if the device is ever
+misconfigured.
+
+### Payroll impact checklist: a punch landed on the wrong day
+
+1. Identify the ingest path of the row: `source` and `deviceId` on the punch row. Only ADMS
+   rows (`deviceId` = the serial) were offset-corrected.
+2. Check the offset state for that serial: the persisted `admsDetectedOffsetsByDevice` in the
+   K40 device settings, and whether `ZK_ADMS_PUNCH_OFFSET_HOURS` is set in the environment (it
+   overrides and freezes everything).
+3. Check the midnight boundary. The work date is the punch's local calendar date via local
+   getters; a 00:05 punch belongs to the new day, and a rebuild maps it there.
+4. Check the shift. A shift flagged `crossesMidnight` pulls its checkout from the next morning
+   into the prior work date during pairing; a punch can sit on the "wrong" calendar day and
+   still be correct for payroll. Details in section 8.
+5. Remember the 30 second collapse. Two punches within 30 seconds pair as one; an offset that
+   shifts punches can push duplicates apart or originals together.
+6. Fix forward, not backward: correct the offset (env override or clear the persisted value),
+   then rebuild the affected range from the attendance admin (up to 366 days per call). The
+   stored punch times themselves are insert-only and are not rewritten; raw rows stored with a
+   wrong offset stay wrong.
 
 ## Rules engine and materializer semantics
 
