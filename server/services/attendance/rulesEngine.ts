@@ -1,9 +1,26 @@
 /**
  * Attendance Rules Engine
- * Pure functions (no DB, no Date.now()) for computing daily attendance
- * Passed structures are immutable; caller provides current time
+ *
+ * Pure decision logic for daily attendance: no database access, no
+ * Date.now(), every input injected. The caller passes "now"
+ * (DayContext.now), so a rerun over the same inputs yields the same
+ * row; dailyMaterializer.ts loads the world and calls these functions
+ * per employee, day and shift. All Date math is facility-local (the
+ * server clock must equal the facility clock) and Shift times are
+ * HH:mm strings in that same local time. See docs/ATTENDANCE_SYNC.md,
+ * "Rules engine and materializer semantics".
  */
 
+/**
+ * One work pattern: clock times, grace, overtime and device rules.
+ * startTime/endTime (and the flex windows) are facility-local HH:mm
+ * strings on the work date; endTime lands on the next day when
+ * crossesMidnight is set. Durations (grace, OT minimums/caps,
+ * breakMinutes) are in minutes. weekdayMask gates the weekdays the
+ * shift runs on. deviceId filters which readers count for pairing:
+ * "both", "fk", "zk" or an exact id (ADMS serials count as ZK,
+ * see shiftMatchesDevice).
+ */
 export interface Shift {
   id: number;
   name: string;
@@ -32,6 +49,14 @@ export interface Shift {
   roundingMinutes?: number; // Default: 30 (Taratus: Round value)
 }
 
+/**
+ * One raw device scan. punchAt is facility-local, already
+ * offset-corrected at ingest for ADMS pushes. direction mirrors the
+ * device InOutMode flag, which readers have shown inverted or
+ * constant, so nothing in this engine reads it: in/out is derived
+ * geometrically in pairPunches. deviceId only feeds device-family
+ * matching when punches are partitioned across shifts.
+ */
 export interface RawPunchRecord {
   id?: number;
   punchAt: Date;
@@ -40,6 +65,13 @@ export interface RawPunchRecord {
   deviceId?: string | null;
 }
 
+/**
+ * Everything computeDay needs for one employee, work date and shift:
+ * the resolved shift, that shift's raw punches (already partitioned
+ * by partitionPunchesForShifts), leave/holiday flags, accumulated
+ * break minutes, and the caller's current time. Passing now in keeps
+ * results reproducible instead of reading the wall clock.
+ */
 export interface DayContext {
   empCd: string;
   workDate: Date; // Shift-anchor date
@@ -51,6 +83,13 @@ export interface DayContext {
   now: Date; // Current time for "inside now" logic
 }
 
+/**
+ * One computed attendance row for an employee, work date and shift.
+ * workedMinutes is null while the checkout is missing, so payroll
+ * never sees a guessed total. insideNow marks a day still in
+ * progress (checked in, not yet out, work date = today) for live
+ * dashboards. The status decision order is documented on computeDay.
+ */
 export interface DayResult {
   empCd: string;
   workDate: Date;
@@ -69,12 +108,33 @@ export interface DayResult {
   computedAt: Date;
 }
 
+/**
+ * An approved absence authorization for the day. "in" trims
+ * lateMinutes, "out" trims earlyLeaveMin, "mission" clears both
+ * and upgrades absent/partial to present. A permission with
+ * notAffectSalary: false is meant to affect salary, so it waives
+ * nothing (see applyApprovedPermissions). durationMinutes is in
+ * minutes.
+ */
 export interface ApprovedPermission {
   type: "in" | "out" | "mission";
   durationMinutes: number;
   notAffectSalary?: boolean;
 }
 
+/**
+ * Whether an active cycle assignment displaces direct shift
+ * assignments: the cycle wins when its effectiveFrom is on or after
+ * the latest covering direct assignment's (same day counts as
+ * cycle), so a newly published cycle takes over without deleting
+ * the old schedule. Callers drop direct shifts and fall back to
+ * resolveCycleShift when this returns true.
+ *
+ * @param cycleFrom YYYY-MM-DD effectiveFrom of the latest active
+ *   cycle assignment, or undefined when none is active.
+ * @param directFrom YYYY-MM-DD effectiveFrom of the latest covering
+ *   direct assignment, or undefined when none covers the date.
+ */
 export function cycleOverridesDirectAssignment(
   cycleFrom: string | undefined,
   directFrom: string | undefined,
@@ -82,6 +142,16 @@ export function cycleOverridesDirectAssignment(
   return !!cycleFrom && (!directFrom || cycleFrom >= directFrom);
 }
 
+/**
+ * Fold approved permissions into a computed day: "in" reduces
+ * lateMinutes, "out" reduces earlyLeaveMin (never below zero), and
+ * "mission" zeroes both and flips absent/partial to present. A
+ * partial day whose late and early minutes both reach zero becomes
+ * present. Permissions with notAffectSalary: false change nothing.
+ *
+ * @param result computeDay output; it is not mutated.
+ * @returns An adjusted copy of the result.
+ */
 export function applyApprovedPermissions(
   result: DayResult,
   permissions: ApprovedPermission[],
@@ -125,8 +195,19 @@ export function applyApprovedPermissions(
 }
 
 /**
- * Resolve which shift applies to an employee on a given date
- * Checks explicit assignments first, falls back to default shift
+ * Resolve which shifts apply to an employee on a date. Direct
+ * assignments covering the date and matching the weekday are kept,
+ * then only the latest effectiveFrom per branch survives
+ * (shift.branch, with an "__unassigned" bucket); distinct shifts
+ * saved together on the same effective day remain a multi-shift
+ * day. An assignment that covers the date but whose weekdayMask
+ * excludes it is an intentional rest day: the default shift is not
+ * applied on top of it. With no covering assignment at all, the
+ * default shift applies; the materializer passes defaultShiftId
+ * null when an active cycle owns the schedule.
+ *
+ * @returns Shifts for the day, in assignment order; empty on a rest
+ *   day.
  */
 export function resolveShifts(
   empCd: string,
@@ -209,6 +290,11 @@ export function resolveShifts(
   return [];
 }
 
+/**
+ * First shift of resolveShifts, or null. Multi-shift days need the
+ * full list from resolveShifts; use this only where a single shift
+ * is expected.
+ */
 export function resolveShift(
   empCd: string,
   date: Date,
@@ -301,7 +387,32 @@ export function pairPunches(
 }
 
 /**
- * Compute all daily attendance metrics
+ * Compute the daily attendance row for one employee, work date and
+ * shift. Statuses, in the order the function reaches them:
+ * - leave: approved leave, nothing else computed.
+ * - holiday: holiday with no punches. Holiday with punches still
+ *   computes, then flips to holiday with late/early minutes zeroed
+ *   (holiday work is paid as overtime, not deducted as lateness).
+ * - partial / missing_checkout: punches without a shift, or any
+ *   lone scan on a shifted day (either side of the midpoint), or a
+ *   fixed shift with unparseable start/end times.
+ * - absent: a shifted day with no raw scans at all and requirePunch
+ *   set. With requirePunch false the shift is credited in full
+ *   minus breaks (auto-present) even without scans.
+ * - present, degraded to partial when late or early minutes
+ *   survive.
+ *
+ * Pairing and rules: pairPunches derives firstIn/lastOut; worked
+ * minutes = max(0, out - in - breaks), rounded to minutes. Fixed
+ * shifts deduct lateness beyond graceLateMin and early leave
+ * beyond graceEarlyMin; flexible shifts measure against
+ * flexInTo/flexOutFrom instead. Overtime needs the shift's allowOT
+ * flags, must reach its per-side minimum (otMinInMinutes/
+ * otMinOutMinutes, falling back to otMinMinutes) and is capped by
+ * otMaxMinutes. insideNow is set when the work date is today and
+ * the employee is paired as still inside.
+ *
+ * @param ctx DayContext for the employee/day/shift, now included.
  */
 export function computeDay(ctx: DayContext): DayResult {
   const result: DayResult = {
@@ -611,6 +722,14 @@ export function mergeContinuousBothDeviceShifts(shifts: Shift[]): Shift | null {
 
 // Shift Cycle Resolution
 
+/**
+ * A rotating shift pattern. slotIndex meaning depends on period:
+ * for "day" and "week" it is the weekday (0 = Sunday, matching
+ * getDay()), for "month" the day of month (1..31), for
+ * "rotation" a 0-based day index counted from anchorDate. A slot
+ * with shiftId 0 is a rest slot and resolves to no shift (see
+ * resolveCycleShift).
+ */
 export interface ShiftCycle {
   id: number;
   period: "day" | "week" | "month" | "rotation";
@@ -618,6 +737,11 @@ export interface ShiftCycle {
   slots: { slotIndex: number; shiftId: number }[]; // day: 0..slotCount-1; week: 0..6; month: 1..31
 }
 
+/**
+ * Binds an employee to a ShiftCycle from effectiveFrom (optionally
+ * to effectiveTo). When several are active, the latest effectiveFrom
+ * wins regardless of list order.
+ */
 export interface CycleAssignment {
   empCd: string;
   cycleId: number;
@@ -626,8 +750,13 @@ export interface CycleAssignment {
 }
 
 /**
- * Resolve which shift applies via a rotating cycle assignment.
- * Called as a fallback when no direct shift assignment exists.
+ * Resolve the day's shift from a rotating cycle assignment: the
+ * latest active CycleAssignment wins, then the slot for the date is
+ * picked from its cycle ("day"/"week" by weekday, "month" by day
+ * of month, "rotation" by days elapsed since anchorDate modulo the
+ * pattern length). Unconfigured days and rest slots (shiftId 0)
+ * yield null, so the day falls through to the no-shift handling in
+ * the materializer.
  */
 export function resolveCycleShift(
   empCd: string,
@@ -713,12 +842,35 @@ function buildDateTime(date: Date, time: { h: number; m: number }): Date {
   return dt;
 }
 
+/**
+ * FK devices are "fk" or "fk_*"; anything else (ADMS serial
+ * numbers included) is ZK family. Empty when the punch carries no
+ * device id.
+ */
 const deviceFamily = (deviceId: string | null | undefined): "fk" | "zk" | "" => {
   const id = deviceId?.toLowerCase();
   if (!id) return "";
   return id === "fk" || id.startsWith("fk_") ? "fk" : "zk";
 };
 
+/**
+ * Bucket the day's punches per shift id for multi-shift days. Each
+ * punch lands in exactly one bucket: a next-day punch is eligible
+ * only for crossesMidnight shifts whose end time has not passed at
+ * the punch's minute of day; a shift whose deviceId matches the
+ * punch wins, otherwise the punch still counts, assigned to the
+ * nearest shift-window midpoint (dropping it would manufacture a
+ * deduction). Two special shapes: a rest day (no shifts) puts every
+ * punch under the synthetic shift 0 so the day reads partial
+ * instead of absent, and a day where every shift accepts "both"
+ * devices is paired as a whole: first ZK scan in, last FK scan out,
+ * attached to the first and last shift.
+ *
+ * @param includeNextDayPunches Extends the window through the next
+ *   day for cross-midnight checkouts and disables the both-device
+ *   fast path.
+ * @returns Punches keyed by shift id; key 0 is the rest-day bucket.
+ */
 export function partitionPunchesForShifts(
   punches: RawPunchRecord[],
   shifts: Shift[],
