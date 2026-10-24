@@ -1,12 +1,35 @@
 /**
- * Device Push Listener Service
- * Receives real-time punch notifications from ZKTeco device
- * Device connects and sends punch data continuously to port 7005
+ * Experimental raw TCP listener for device-initiated punch push (default
+ * port 7005). Nothing in the server startup references this module; only
+ * scripts/test-device-push.ts uses it, to capture real packets.
+ *
+ * Status: the wire format is UNKNOWN. Three parse attempts run in turn and
+ * all are guesses (see DEVICE_PUSH_PROTOCOL_ANALYSIS.md): 24-byte
+ * little-endian fixed records ([empNo:4][ts:4][dir:1] + padding),
+ * newline-delimited JSON, and CSV with Unix seconds. Do not trust the
+ * output against real hardware.
+ *
+ * Unlike server/_core/zktecoAdms.ts, timestamps are NOT offset-corrected;
+ * the fixed and CSV paths interpret them as Unix seconds via
+ * new Date(ts * 1000), with a 2000..2030 sanity window on the resulting
+ * year. An 'OK' ack is written back unconditionally, even when nothing
+ * parsed. Bytes accumulate in a per-connection buffer until a record
+ * parses or no attempt matches.
+ *
+ * Emitted events: 'punch' (PunchPushEvent), 'client-connected',
+ * 'client-disconnected', 'client-error', 'listening'. start() resolves
+ * false when the server itself errors (e.g. port in use). See the source
+ * table in docs/ATTENDANCE_SYNC.md.
  */
 
 import * as net from "net";
 import { EventEmitter } from "events";
 
+/**
+ * One parsed device push. `timestamp` is as-sent, never offset-corrected;
+ * `receivedAt` is the server clock at handling time. `rawBytes` keeps the
+ * exact bytes for protocol analysis.
+ */
 export interface PunchPushEvent {
   empNo: string;
   timestamp: Date;
@@ -28,7 +51,8 @@ export class DevicePushListener extends EventEmitter {
   }
 
   /**
-   * Start listening for device push notifications
+   * Start listening. Resolves true once bound, false on a server error
+   * (the port being taken, for instance).
    */
   async start(): Promise<boolean> {
     return new Promise((resolve) => {
@@ -241,9 +265,7 @@ export class DevicePushListener extends EventEmitter {
 
 let pushListenerInstance: DevicePushListener | null = null;
 
-/**
- * Get or create global push listener
- */
+/** Get (or lazily create) the process-wide listener instance. */
 export function getDevicePushListener(port?: number): DevicePushListener {
   if (!pushListenerInstance) {
     pushListenerInstance = new DevicePushListener(port || 7005);
