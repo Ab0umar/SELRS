@@ -1,6 +1,7 @@
 import { UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatPatientPhone, getPatientOptionId } from "./patient-picker-utils";
+import { getPatientOptionId } from "./patientPickerCombobox";
+import { formatPatientPhone } from "./patient-picker-utils";
 
 export type PatientOption = {
   id: number;

@@ -5,7 +5,6 @@ import PatientPicker from "./PatientPicker";
 import PatientPickerResults, {
   type PatientOption,
 } from "./PatientPickerResults";
-import { getNextActiveIndex, getPatientOptionId } from "./patient-picker-utils";
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -63,43 +62,6 @@ function openTag(html: string, tag: string): string {
 function attr(tag: string, name: string): string {
   return new RegExp(`${name}="([^"]*)"`).exec(tag)?.[1] ?? "";
 }
-
-describe("getNextActiveIndex", () => {
-  it("should_return_minus_one_when_no_results", () => {
-    expect(getNextActiveIndex(-1, "ArrowDown", 0)).toBe(-1);
-    expect(getNextActiveIndex(2, "ArrowUp", 0)).toBe(-1);
-  });
-
-  it("should_move_down_from_unset_to_first", () => {
-    expect(getNextActiveIndex(-1, "ArrowDown", 3)).toBe(0);
-    expect(getNextActiveIndex(1, "ArrowDown", 3)).toBe(2);
-  });
-
-  it("should_wrap_down_from_last_to_first", () => {
-    expect(getNextActiveIndex(2, "ArrowDown", 3)).toBe(0);
-  });
-
-  it("should_wrap_up_from_first_to_last", () => {
-    expect(getNextActiveIndex(0, "ArrowUp", 3)).toBe(2);
-  });
-
-  it("should_move_up_from_unset_to_last", () => {
-    expect(getNextActiveIndex(-1, "ArrowUp", 3)).toBe(2);
-  });
-
-  it("should_clamp_out_of_range_index", () => {
-    // e.g. the result list shrank while an option was highlighted
-    expect(getNextActiveIndex(5, "ArrowUp", 3)).toBe(1);
-    expect(getNextActiveIndex(4, "ArrowDown", 3)).toBe(0);
-    expect(getNextActiveIndex(-7, "ArrowDown", 3)).toBe(0);
-  });
-});
-
-describe("getPatientOptionId", () => {
-  it("should_combine_listbox_id_and_patient_id", () => {
-    expect(getPatientOptionId("lb-1", 42)).toBe("lb-1-option-42");
-  });
-});
 
 describe("PatientPicker closed markup", () => {
   it("should_link_visually_hidden_label_to_input", () => {

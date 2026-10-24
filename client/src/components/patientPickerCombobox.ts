@@ -61,6 +61,9 @@ export function resolveComboboxKey(input: {
   return { type: "none" };
 }
 
-export function getPatientOptionId(baseId: string, patientId: number): string {
-  return `${baseId}-option-${patientId}`;
+export function getPatientOptionId(
+  listboxId: string,
+  patientId: number,
+): string {
+  return `${listboxId}-option-${patientId}`;
 }
