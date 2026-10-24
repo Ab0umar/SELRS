@@ -10,7 +10,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { getDeviceDiagnostics } from "../services/attendance/deviceDiagnostics.service";
-import { FKAttendLogPuller } from "../services/attendance/fkAttendLogPuller";
+import { FKAttendLogPuller, FK_USE_LEGACY } from "../services/attendance/fkAttendLogPuller";
 import {
   FKDeviceSyncService,
   syncFromFKDevice,
@@ -778,12 +778,21 @@ export const attendanceSyncRoutes = {
       const port = input.port || settings.port || 5005;
       const validatedIp = ipv4Address.parse(ip);
 
-      const pullerPath =
-        process.env.FK_USER_PULLER_PATH ??
-        path.join(process.cwd(), "scripts", "FKUserPuller.exe");
       const tempFile = path.join(os.tmpdir(), `fk_users_${Date.now()}.csv`);
-
       try {
+        let employees: { empNo: string; name: string }[];
+        if (!FK_USE_LEGACY) {
+          const ids = await FKAttendLogPuller.pullUserIds({
+            ip: validatedIp,
+            port,
+            password: settings.commPassword ?? 0,
+          });
+          // The device stores ids only; names stay as already entered in the app.
+          employees = [...new Set(ids)].map((id) => ({ empNo: String(id), name: "" }));
+        } else {
+        const pullerPath =
+          process.env.FK_USER_PULLER_PATH ??
+          path.join(process.cwd(), "scripts", "FKUserPuller.exe");
         const { stdout: output } = await execFileAsync(
           pullerPath,
           ["--ip", validatedIp, "--port", String(port), "--out", tempFile],
@@ -799,13 +808,14 @@ export const attendanceSyncRoutes = {
           .trim()
           .split("\n")
           .slice(1);
-        const employees: { empNo: string; name: string }[] = [];
+        employees = [];
         for (const line of lines) {
           const parts = line.trim().split(",");
           if (!parts[0]?.trim()) continue;
           const empNo = parts[0].trim();
           const name = (parts[1] ?? "").trim(); // keep empty if device has no name
           employees.push({ empNo, name });
+        }
         }
 
         if (!employees.length)

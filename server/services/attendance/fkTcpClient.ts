@@ -23,9 +23,11 @@ const CMD_CONNECT = 0x80;
 const CMD_DEVICE_ENABLE = 0x81;
 const CMD_LOG_COUNT = 0xb4;
 const CMD_LOG_PAGE = 0xa4;
+const CMD_USER_READ = 0x97;
 const IDLE_ARG = 0xffff0000;
 const PAGE_SIZE = 1024;
 const RECORD_SIZE = 12;
+const USER_RECORD_SIZE = 8;
 const PAGE_TRAILER = 4;
 const MAX_RECORDS = 5_000_000;
 
@@ -221,6 +223,42 @@ export class FKTcpClient {
           /* best effort: device re-enables itself when the session closes */
         }
       }
+      c.close();
+    }
+  }
+
+  /**
+   * Enrolled user ids. The device holds ids only (8-byte records: id u32 + 4
+   * flag bytes); display names are not stored on the wire.
+   */
+  async pullUserIds(): Promise<number[]> {
+    await this.probe();
+    const c = await Conn.open(this.opts.ip, this.opts.port, this.timeoutMs);
+    let seq = 1;
+    const call = async (cmd: number, param: number, arg: number, len = 0): Promise<Buffer> => {
+      c.socket.write(request(cmd, param, arg, len, seq++));
+      const reply = await c.read(10, this.timeoutMs);
+      if (reply[0] !== 0xaa || reply[1] !== 0x55 || reply[3] !== 1) {
+        throw new Error(`FK command 0x${cmd.toString(16)} failed (status ${reply[3]})`);
+      }
+      return reply;
+    };
+    try {
+      await call(CMD_CONNECT, 0, IDLE_ARG);
+      const first = (await call(CMD_LOG_COUNT, 2, IDLE_ARG)).readUInt32LE(4);
+      const second = (await call(CMD_LOG_COUNT, 1, first)).readUInt32LE(4);
+      const total = first + second;
+      if (total > MAX_RECORDS) throw new Error(`FK reported implausible user count ${total}`);
+      if (total === 0) return [];
+      const len = total * USER_RECORD_SIZE;
+      await call(CMD_USER_READ, len, 2, len);
+      const body = await c.read(2 + len + PAGE_TRAILER, this.timeoutMs);
+      const ids: number[] = [];
+      for (let off = 2; off + USER_RECORD_SIZE <= 2 + len; off += USER_RECORD_SIZE) {
+        ids.push(body.readUInt32LE(off));
+      }
+      return ids;
+    } finally {
       c.close();
     }
   }

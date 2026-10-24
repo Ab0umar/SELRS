@@ -39,7 +39,8 @@ export interface FKDeviceConfig {
 }
 
 // Native TCP client by default; FK_USE_LEGACY_PULLER=true falls back to FKOldLogPuller.exe.
-const USE_LEGACY = process.env.FK_USE_LEGACY_PULLER === "true";
+export const FK_USE_LEGACY = process.env.FK_USE_LEGACY_PULLER === "true";
+const USE_LEGACY = FK_USE_LEGACY;
 
 export class FKAttendLogPuller {
   private static readonly FK_PULLER_PATH =
@@ -110,6 +111,17 @@ export class FKAttendLogPuller {
         // Ignore cleanup errors
       }
     }
+  }
+
+  /** Enrolled user ids straight from the device (no exe). */
+  static async pullUserIds(config?: Partial<FKDeviceConfig>): Promise<number[]> {
+    const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
+    return new FKTcpClient({
+      ip: fullConfig.ip,
+      port: fullConfig.port,
+      password: fullConfig.password,
+      timeoutMs: fullConfig.timeout,
+    }).pullUserIds();
   }
 
   /**
