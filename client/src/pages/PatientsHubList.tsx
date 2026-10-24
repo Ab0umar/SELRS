@@ -562,7 +562,7 @@ export default function PatientsHubList() {
         </Card>
       ) : isMobile ? (
         <div className="space-y-2">
-          {allRows.map((patient) => (
+          {filteredRows.map((patient) => (
             <HubPatientCard
               key={String(patient.__rowKey ?? patient.id)}
               patient={patient}
@@ -591,7 +591,7 @@ export default function PatientsHubList() {
                 </tr>
               </thead>
               <tbody>
-                {allRows.map((patient) => (
+                {filteredRows.map((patient) => (
                   <HubPatientRow
                     key={String(patient.__rowKey ?? patient.id)}
                     patient={patient}
