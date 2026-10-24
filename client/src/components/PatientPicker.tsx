@@ -107,9 +107,14 @@ export default function PatientPicker({
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
 
-  const isPopupVisible = !readOnly && open && searchGate.showDropdown;
+  // The popup opens from the first character (hint row); the listbox itself
+  // needs the gate minimum and at least one result, so aria-controls never
+  // points at a missing id.
+  const isPopupVisible = open && !readOnly && normalizedQuery.length >= 1;
+  const isListboxOpen =
+    isPopupVisible && searchGate.showDropdown && filteredResults.length > 0;
   const activePatient =
-    isPopupVisible && activeIndex >= 0 && activeIndex < filteredResults.length
+    isListboxOpen && activeIndex >= 0 && activeIndex < filteredResults.length
       ? filteredResults[activeIndex]
       : undefined;
   const activeOptionId = activePatient
@@ -158,8 +163,8 @@ export default function PatientPicker({
           id={inputId}
           role="combobox"
           aria-autocomplete="list"
-          aria-expanded={isPopupVisible}
-          aria-controls={isPopupVisible ? listboxId : undefined}
+          aria-expanded={isListboxOpen}
+          aria-controls={isListboxOpen ? listboxId : undefined}
           aria-activedescendant={activeOptionId}
           aria-label={label?.trim() ? undefined : placeholder}
           value={query}
@@ -234,6 +239,12 @@ export default function PatientPicker({
           patients={filteredResults}
           activeIndex={activeIndex}
           isLoading={searchQuery.isLoading || searchGate.isDebouncing}
+          isError={searchQuery.isError}
+          onRetry={() => searchQuery.refetch()}
+          showHint={
+            open && normalizedQuery.length >= 1 && !searchGate.showDropdown
+          }
+          ariaLabel={label?.trim() ? undefined : placeholder}
           isEnglish={isEnglish}
           onSelectPatient={selectPatient}
           onActiveIndexChange={setActiveIndex}
