@@ -18,7 +18,7 @@ import { attendancePunches, attendanceEmployees } from "../../drizzle/schema";
 import { sql, eq } from "drizzle-orm";
 import { broadcastPunch } from "./ws";
 import { DailyMaterializer } from "../services/attendance/dailyMaterializer";
-import { mayAutoDetectAdmsOffset } from "../services/attendance/admsOffsetPolicy";
+import { decideAdmsOffset } from "../services/attendance/admsOffsetPolicy";
 
 // ---------------------------------------------------------------------------
 // Command queue — populated by pushEmployeesToAdms(), drained by /getrequest
@@ -196,6 +196,15 @@ function parseFiniteFloat(raw: string | undefined, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/**
+ * Value sent as TimeZone in the handshake. ADMS firmware reads it in MINUTES
+ * from UTC (Cairo summer = 180), not hours — sending "3" meant UTC+00:03.
+ * ZK_ADMS_HANDSHAKE_TZ overrides it, also in minutes.
+ */
+function handshakeTimeZone(): number {
+  return parseFiniteFloat(process.env.ZK_ADMS_HANDSHAKE_TZ, Math.round(serverOffsetHours() * 60));
+}
+
 /** Hours the device clock runs AHEAD of correct local time (subtract on store). */
 function effectiveOffsetHours(deviceId: string): number {
   const manual = parseFiniteFloat(process.env.ZK_ADMS_PUNCH_OFFSET_HOURS, NaN);
@@ -205,17 +214,11 @@ function effectiveOffsetHours(deviceId: string): number {
   return 0; // unknown until a fresh punch lets us auto-detect — safer than guessing
 }
 
+const pendingOffsetByDevice = new Map<string, number>();
+
 /** From a fresh real-time push, snap (deviceTime − now) to nearest hour. */
 function maybeDetectOffset(punches: ParsedPunch[], deviceId: string): void {
-  // Auto-detect once per serial. Later uploads must not be able to retune the
-  // persisted offset with a forged but otherwise well-formed punch batch.
-  if (
-    !mayAutoDetectAdmsOffset(
-      detectedOffsetByDevice.get(deviceId),
-      process.env.ZK_ADMS_PUNCH_OFFSET_HOURS,
-    )
-  )
-    return;
+  if (process.env.ZK_ADMS_PUNCH_OFFSET_HOURS) return;
   if (punches.length === 0 || punches.length > 3) return; // bulk dumps are historical
   const newest = punches.reduce(
     (mx, p) => (p.punchAt > mx ? p.punchAt : mx),
@@ -227,19 +230,25 @@ function maybeDetectOffset(punches: ParsedPunch[], deviceId: string): void {
   // Rejects stale/delayed uploads of old punches, which would produce a
   // negative or wildly large diff and poison the offset for all later punches.
   if (rounded < 0 || rounded > 12) return;
-  if (Math.abs(diffH - rounded) < 0.25) {
-    if (detectedOffsetByDevice.get(deviceId) !== rounded) {
-      detectedOffsetByDevice.set(deviceId, rounded);
-      console.log(
-        `[ADMS] Detected device clock offset = ${rounded}h ahead — subtracting from punch times`,
-      );
-      import("../services/attendance/deviceSettings.service")
-        .then(({ DeviceSettingsService }) =>
-          DeviceSettingsService.setAdmsDetectedOffset(deviceId, rounded),
-        )
-        .catch(() => {});
-    }
-  }
+  if (Math.abs(diffH - rounded) >= 0.25) return;
+  const decision = decideAdmsOffset(
+    detectedOffsetByDevice.get(deviceId),
+    rounded,
+    pendingOffsetByDevice.get(deviceId),
+    process.env.ZK_ADMS_PUNCH_OFFSET_HOURS,
+  );
+  if (decision.pending === undefined) pendingOffsetByDevice.delete(deviceId);
+  else pendingOffsetByDevice.set(deviceId, decision.pending);
+  if (!decision.changed || decision.offset === undefined) return;
+  detectedOffsetByDevice.set(deviceId, decision.offset);
+  console.log(
+    `[ADMS] Device clock offset for ${deviceId} = ${decision.offset}h ahead — subtracting from punch times`,
+  );
+  import("../services/attendance/deviceSettings.service")
+    .then(({ DeviceSettingsService }) =>
+      DeviceSettingsService.setAdmsDetectedOffset(deviceId, decision.offset!),
+    )
+    .catch(() => {});
 }
 
 async function parseAttlogBody(
@@ -356,7 +365,7 @@ export function registerZKTecoAdms(app: Express): void {
         `TransTimes=00:00;23:59\r\n` +
         `TransInterval=1\r\n` +
         `TransFlag=TransData AttLog OpLog\r\n` +
-        `TimeZone=${serverOffsetHours()}\r\n` +
+        `TimeZone=${handshakeTimeZone()}\r\n` +
         `Realtime=1\r\n` +
         `Encrypt=None\r\n`,
     );

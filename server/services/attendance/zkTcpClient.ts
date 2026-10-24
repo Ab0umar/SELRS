@@ -348,13 +348,14 @@ export class ZKTcpClient {
   }
 }
 
-function parseAttlogBuffer(buf: Buffer): ZKPunch[] {
+// 40-byte record: uid(2) | user_id(24, NUL-padded) | verify(1) | timestamp(4) | inout(1) | reserved(8)
+export function parseAttlogBuffer(buf: Buffer): ZKPunch[] {
   const RECORD_SIZE = 40; // standard fixed-size attlog record on most ZK firmwares
   const out: ZKPunch[] = [];
   for (let off = 0; off + RECORD_SIZE <= buf.length; off += RECORD_SIZE) {
     try {
-      const enrollNo = buf.subarray(off, off + 24).toString("ascii").replace(/\0.*$/, "").trim();
-      const verifyMode = buf.readUInt8(off + 24);
+      const enrollNo = buf.subarray(off + 2, off + 26).toString("ascii").replace(/\0.*$/, "").trim();
+      const verifyMode = buf.readUInt8(off + 26);
       const timestampRaw = buf.readUInt32LE(off + 27);
       const inOutMode = buf.readUInt8(off + 31);
       if (!enrollNo) continue;
