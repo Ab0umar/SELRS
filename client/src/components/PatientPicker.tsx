@@ -7,7 +7,7 @@ import {
   normalizePatientSearchTerm,
   PATIENT_SEARCH_DEBOUNCE_MS,
 } from "@/lib/patientSearchGate";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import {
   getPatientOptionId,
   resolveComboboxKey,
@@ -21,6 +21,8 @@ type PatientPickerProps = {
   placeholder?: string;
   initialPatientId?: number;
   onSelect: (patient: PatientOption) => void;
+  /** Called after the clear button has reset the query and selection. */
+  onClear?: () => void;
   /** When false, fetching `initialPatientId` still fills the picker UI but does not call `onSelect` (avoids duplicate navigation/sync with route-driven parents). Default true for backward compatibility. */
   fireOnInitialPatientLoad?: boolean;
   readOnly?: boolean;
@@ -36,6 +38,7 @@ export default function PatientPicker({
   placeholder = "ابحث بالاسم أو الكود أو الموبايل…",
   initialPatientId,
   onSelect,
+  onClear,
   fireOnInitialPatientLoad = true,
   readOnly = false,
   sheetType,
@@ -55,6 +58,7 @@ export default function PatientPicker({
   const [selected, setSelected] = useState<PatientOption | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
   const hydratedPatientIdRef = useRef<number | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     hydratedPatientIdRef.current = null;
@@ -144,6 +148,20 @@ export default function PatientPicker({
     onSelect(patient);
   };
 
+  // The clear control only exists while there is something to clear. The
+  // hydrated id ref stays set on purpose so initialPatientId does not
+  // re-hydrate (and re-fire onSelect) after a manual clear.
+  const showClear = !readOnly && (query.length > 0 || selected !== null);
+
+  const clearSelection = () => {
+    setSelected(null);
+    setQuery("");
+    setOpen(false);
+    setActiveIndex(-1);
+    inputRef.current?.focus();
+    onClear?.();
+  };
+
   return (
     <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
       {label?.trim() ? (
@@ -161,6 +179,7 @@ export default function PatientPicker({
         </div>
         <Input
           id={inputId}
+          ref={inputRef}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={isListboxOpen}
@@ -226,11 +245,35 @@ export default function PatientPicker({
             }
           }}
           placeholder={placeholder}
-          className={`h-11 rounded-2xl border-border bg-background shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25 ${isEnglish ? "pl-10 text-left" : "pr-10 text-right"}`}
+          className={`h-11 rounded-2xl border-border bg-background shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25 ${
+            isEnglish
+              ? `pl-10 text-left${showClear ? " pr-10" : ""}`
+              : `pr-10 text-right${showClear ? " pl-10" : ""}`
+          }`}
           dir={isEnglish ? "ltr" : "rtl"}
           readOnly={readOnly}
           autoComplete="off"
         />
+        {showClear && (
+          <button
+            type="button"
+            aria-label={
+              selected
+                ? isEnglish
+                  ? "Clear selection"
+                  : "مسح الاختيار"
+                : isEnglish
+                  ? "Clear search"
+                  : "مسح البحث"
+            }
+            // Keep focus in the input; the click then runs clearSelection.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={clearSelection}
+            className={`absolute inset-y-0 my-auto flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${isEnglish ? "right-3" : "left-3"}`}
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        )}
       </div>
       {isPopupVisible && (
         <PatientPickerResults
@@ -251,7 +294,7 @@ export default function PatientPicker({
         />
       )}
       {selected && (
-        <div className="hidden rounded-2xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+        <div className="rounded-2xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
           {isEnglish ? "Selected patient:" : "المريض المحدد:"}{" "}
           <span dir="auto" className="font-medium">
             {selected.fullName}
