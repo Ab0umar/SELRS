@@ -1,8 +1,6 @@
-import { cn } from "@/lib/utils";
-import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Component, ReactNode } from "react";
+import { Component, ErrorInfo, ReactNode } from "react";
 import { requestAppReload } from "@/lib/appRuntime";
-import { Button } from "@/components/ui/button";
+import { ErrorFallback } from "@/components/ErrorFallback";
 
 interface Props {
   children: ReactNode;
@@ -23,37 +21,30 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[SELRS] Uncaught render error", error, info.componentStack);
+  }
+
+  // On web requestAppReload only dispatches "selrs-soft-reload", which does
+  // not reset this boundary, so clear the state here first.
+  handleReload = () => {
+    this.setState({ hasError: false, error: null });
+    requestAppReload("error-boundary");
+  };
+
+  // The fallback renders outside the Router, so navigate directly.
+  handleGoHome = () => {
+    window.location.assign("/");
+  };
+
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-screen p-8 bg-background">
-          <div className="flex flex-col items-center w-full max-w-2xl p-8">
-            <AlertTriangle
-              size={48}
-              className="text-destructive mb-6 flex-shrink-0"
-            />
-
-            <h2 className="text-xl mb-4">An Unexpected Error Occurred.</h2>
-
-            <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
-              <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
-              </pre>
-            </div>
-
-            <Button variant="bare"
-              onClick={() => requestAppReload("error-boundary")}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-primary text-primary-foreground",
-                "hover:opacity-90 cursor-pointer",
-              )}
-            >
-              <RotateCcw size={16} />
-              Reload Page
-            </Button>
-          </div>
-        </div>
+        <ErrorFallback
+          error={this.state.error}
+          onReload={this.handleReload}
+          onGoHome={this.handleGoHome}
+        />
       );
     }
 
