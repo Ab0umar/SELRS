@@ -7,6 +7,7 @@ import {
   Users,
   CircleDot,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +35,7 @@ import {
 } from "@/hooks/admin-patients/adminPatientsShared";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DateInput } from "@/components/ui/date-input";
-import { buildPrintUrl } from "@/lib/print";
+import { openPrintWindow } from "@/lib/print";
 
 type SheetFilter =
   | "all"
@@ -123,7 +124,18 @@ function printPatient(patient: PatientRow) {
     ) || "consultant",
   );
   const path = patientSheetPathByServiceType(serviceType, patient.id);
-  window.open(buildPrintUrl(path), "_blank");
+  const result = openPrintWindow(path);
+  if (!result.ok) {
+    toast.error("تعذر فتح نافذة الطباعة", {
+      description: "يرجى السماح بالنوافذ المنبثقة لهذا الموقع",
+      action: {
+        label: "فتح هنا",
+        onClick: () => window.open(result.url, "_self"),
+      },
+    });
+    return;
+  }
+  toast.success("تم فتح نافذة الطباعة");
 }
 
 /* ────────────────────── mobile card ─────────────────── */
@@ -367,7 +379,8 @@ export default function PatientsHubList() {
         <CardContent className="flex flex-wrap items-center gap-2 p-3">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input aria-label="بحث بالاسم أو الكود أو الهاتف…"
+            <Input
+              aria-label="بحث بالاسم أو الكود أو الهاتف…"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -580,7 +593,12 @@ export default function PatientsHubList() {
         </div>
       ) : (
         <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
-          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="w-full overflow-x-auto">
+          <div
+            role="region"
+            aria-label="جدول بيانات"
+            tabIndex={0}
+            className="w-full overflow-x-auto"
+          >
             <table
               className="min-w-[720px] w-full table-auto text-center text-xs sm:text-sm"
               dir="rtl"
