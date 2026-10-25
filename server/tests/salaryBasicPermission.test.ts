@@ -8,6 +8,7 @@ const update = vi.fn(() => ({ set: updateSet }));
 vi.mock("../db", () => ({
   getEffectiveUserPermissions: vi.fn().mockResolvedValue([]),
   getDb: vi.fn(),
+  logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 import * as db from "../db";
@@ -46,6 +47,13 @@ describe("salary basic write permissions", () => {
     ).resolves.toEqual({ success: true });
     expect(updateSet).toHaveBeenCalledWith({ insuranceDeduction: "125.5" });
     expect(updateWhere).toHaveBeenCalledTimes(1);
+    expect(db.logAuditEvent).toHaveBeenCalledWith(
+      expect.any(Number),
+      "SALARY_INSURANCE_DEDUCTION",
+      "salary_basics",
+      7,
+      { insuranceDeduction: 125.5 },
+    );
   });
 
   it("does not let a read-only penalties clerk change the insurance deduction", async () => {
