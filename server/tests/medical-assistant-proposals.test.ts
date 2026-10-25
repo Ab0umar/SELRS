@@ -52,6 +52,34 @@ beforeEach(() => {
 });
 afterEach(() => vi.clearAllMocks());
 describe("private medical Manus tasks", () => {
+  it("runs the explicitly enabled Gemini alternative through the existing validation and job owner checks", async () => {
+    vi.stubEnv("MEDICAL_GEMINI_CLINICAL_APPROVED", "true");
+    vi.stubEnv("GEMINI_API_KEY", "fictional-test-key");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify({
+        proposals: [{ field: "field", text: input.transcript, sources: [input.transcript], speaker: "patient" }], warnings: [],
+      }) }] } }],
+    }))));
+    try {
+      const { jobId } = await startMedicalProposals(owner, input, [], "gemini");
+      await vi.waitFor(async () => {
+        expect(await readMedicalProposals(owner, jobId)).toMatchObject({ status: "complete", result: { proposals: [{ text: input.transcript }] } });
+      });
+      expect(createManusTask).not.toHaveBeenCalled();
+      await expect(readMedicalProposals(owner + 5000, jobId)).rejects.toThrow("unavailable or expired");
+    } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs(); }
+  });
+  it("rejects the Gemini alternative without creating a Manus fallback task", async () => {
+    vi.stubEnv("MEDICAL_GEMINI_CLINICAL_APPROVED", "false");
+    try {
+      await expect(
+        startMedicalProposals(owner, input, [], "gemini"),
+      ).rejects.toThrow("disabled pending confirmation");
+      expect(createManusTask).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
   it("passes catalog vocabulary as reference only and retains source requirements", async () => {
     await startMedicalProposals(owner, input, [
       { kind: "medication", name: "TOBRIN", abbreviation: "" },

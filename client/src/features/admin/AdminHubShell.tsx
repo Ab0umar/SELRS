@@ -54,6 +54,7 @@ import OpHistory from "./OpHistory";
 import AdminWhatsAppInbox from "./AdminWhatsAppInbox";
 import AutoReply from "./AutoReply";
 const AiManagement = lazy(() => import("./AiManagement"));
+const MedicalAssistant = lazy(() => import("./MedicalAssistant"));
 import AdminPentacamLinking from "./AdminPentacamLinking";
 import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
 import PentacamPage from "../../pages/PentacamPage";
@@ -87,6 +88,7 @@ const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
 ];
 
 const ALL_MODULES: HubModuleCard[] = [
+  {href:"/admin-hub/medical-assistant",label:"المساعد الطبي",helper:"التسجيل ومراجعة النصوص والاقتراحات الطبية",icon:Stethoscope,tone:"bg-muted text-primary",category:"services"},
   { href: "/admin-hub/ai", label: "الذكاء الاصطناعي والتواصل", helper: "المزوّدون وتجارب النص والصورة وسجل الاستهلاك", icon: Database, tone: "bg-muted text-primary", category: "system" },
   { href: "/admin-hub/auto-reply", label: "الرد الآلي", helper: "محادثات واتساب وماسنجر وتعليقات الصفحة", icon: Bell, tone: "bg-muted text-primary", category: "portal" },
   { href: "/admin-hub/print-settings", label: "إعدادات الطباعة", helper: "مقاسات الورق والهوامش والترويسات", icon: PenSquare, tone: "bg-muted text-primary", category: "services" },
@@ -398,6 +400,7 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/whatsapp-inbox") return <AdminWhatsAppInbox />;
     if (loc === "/admin-hub/auto-reply") return <AutoReply />;
     if (loc === "/admin-hub/ai") return <AiManagement />;
+    if (loc === "/admin-hub/medical-assistant") return <MedicalAssistant />;
     if (loc === "/admin-hub/op-history")
       return <PatientsRecordsPage defaultTab="op" embeddedInHub />;
     if (loc === "/admin-hub/pentacam-duplicates")

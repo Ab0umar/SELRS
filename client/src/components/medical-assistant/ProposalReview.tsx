@@ -18,9 +18,11 @@ import {
 export default function ProposalReview({
   input,
   onApplyField,
+  reviewOnly = false,
 }: {
   input: MedicalTranscript;
   onApplyField?: (text: string | undefined) => void;
+  reviewOnly?: boolean;
 }) {
   const start = trpc.medicalAssistant.startProposals.useMutation({
     retry: false,
@@ -29,10 +31,15 @@ export default function ProposalReview({
     retry: false,
   });
   const [consent, setConsent] = useState(false);
+  const options = trpc.medicalAssistant.providerOptions.useQuery(undefined, {
+    retry: false,
+  });
+  const [engine, setEngine] = useState<"current" | "central">("current");
   const [jobId, setJobId] = useState<string>();
   const [paused, setPaused] = useState(false);
   const [result, setResult] = useState<MedicalProposals>();
   const [error, setError] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
   const form = useAssistantForm();
   const [applied, setApplied] = useState<Record<string, AppliedText>>({});
   const alive = useRef(true);
@@ -81,10 +88,36 @@ export default function ProposalReview({
         {input.kind === "field"
           ? `AI scope: ${input.label} only.`
           : "AI scope: full visit, all relevant clinical fields."}{" "}
-        Manus Lite · No automatic saving.
+        {engine === "central"
+          ? `Central Manus (${options.data?.central?.model ?? "lite"})`
+          : "Manus Lite"}{" "}
+        · No automatic saving.
       </p>
       {!jobId && (
         <>
+          {options.data?.central?.enabled && (
+            <label className="block space-y-2 text-sm">
+              {reviewOnly ? "محرك المعالجة" : "Processing engine"}
+              <select
+                className="block min-h-11 rounded-md border bg-background px-3"
+                value={engine}
+                disabled={start.isPending}
+                onChange={(event) => {
+                  setEngine(event.target.value as typeof engine);
+                  setConsent(false);
+                }}
+              >
+                <option value="current">
+                  {reviewOnly
+                    ? "المسار الحالي: Manus Lite"
+                    : "Current Manus Lite"}
+                </option>
+                <option value="central">
+                  Central Manus ({options.data.central.model}) · managed limits
+                </option>
+              </select>
+            </label>
+          )}
           <label className="flex items-start gap-2 text-sm">
             <input
               type="checkbox"
@@ -92,8 +125,9 @@ export default function ProposalReview({
               disabled={start.isPending}
               onChange={(event) => setConsent(event.target.checked)}
             />
-            Patient consent obtained. Send this reviewed transcript to Manus for
-            AI processing; provider credits may be consumed.
+            {reviewOnly
+              ? "حصلت على موافقة صاحب البيانات، وراجعت النص قبل إرساله إلى Manus. قد تستهلك المعالجة رصيد المزوّد."
+              : "Patient consent obtained. Send this reviewed transcript to Manus for AI processing; provider credits may be consumed."}
           </label>
           <Button
             type="button"
@@ -104,6 +138,7 @@ export default function ProposalReview({
                 const response = await start.mutateAsync({
                   recording: input,
                   consentConfirmed: true,
+                  engine,
                 });
                 if (alive.current) setJobId(response.jobId);
               } catch (cause) {
@@ -116,7 +151,13 @@ export default function ProposalReview({
               }
             }}
           >
-            {start.isPending ? "Starting Manus…" : "Generate proposals"}
+            {reviewOnly
+              ? start.isPending
+                ? "جارٍ بدء المعالجة…"
+                : "إنشاء اقتراحات للمراجعة"
+              : start.isPending
+                ? "Starting Manus…"
+                : "Generate proposals"}
           </Button>
         </>
       )}
@@ -128,6 +169,7 @@ export default function ProposalReview({
         </p>
       )}
       {error && <p role="alert">{error}</p>}
+      {copyMessage && <p role="status">{copyMessage}</p>}
       {jobId && paused && !result && (
         <Button
           type="button"
@@ -137,7 +179,7 @@ export default function ProposalReview({
             setPaused(false);
           }}
         >
-          Check same task again
+          {reviewOnly ? "متابعة نفس المهمة" : "Check same task again"}
         </Button>
       )}
       {result && (
@@ -162,9 +204,11 @@ export default function ProposalReview({
               </p>
               <Textarea
                 aria-label={`Proposal: ${proposal.field}`}
+                style={reviewOnly ? { maxWidth: "none" } : undefined}
                 dir="auto"
                 value={proposal.text}
                 onChange={(event) => {
+                  setCopyMessage("");
                   onApplyField?.(undefined);
                   const text = event.target.value;
                   setResult((previous) =>
@@ -182,14 +226,35 @@ export default function ProposalReview({
                 }}
               />
               <details>
-                <summary>Transcript evidence</summary>
+                <summary>
+                  {reviewOnly
+                    ? "الاقتباسات من النص الأصلي"
+                    : "Transcript evidence"}
+                </summary>
                 {proposal.sources.map((source, index) => (
                   <p key={index} dir="auto">
                     {source}
                   </p>
                 ))}
               </details>
-              {input.kind === "field" && onApplyField && (
+              {reviewOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!proposal.text.trim()}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(proposal.text);
+                      setCopyMessage("تم نسخ النص المُراجع");
+                    } catch {
+                      setError("تعذر النسخ؛ يمكنك تحديد النص ونسخه يدويًا.");
+                    }
+                  }}
+                >
+                  نسخ النص المُراجع
+                </Button>
+              )}
+              {!reviewOnly && input.kind === "field" && onApplyField && (
                 <Button
                   type="button"
                   disabled={!proposal.text.trim()}
@@ -198,11 +263,13 @@ export default function ProposalReview({
                   Approve proposal for this field
                 </Button>
               )}
-              {input.kind === "conversation" &&
+              {!reviewOnly &&
+                input.kind === "conversation" &&
                 proposal.field === "treatment" && (
                   <PrescriptionTemplateReview text={proposal.text} />
                 )}
-              {input.kind === "conversation" &&
+              {!reviewOnly &&
+                input.kind === "conversation" &&
                 proposal.field !== "treatment" && (
                   <Button
                     type="button"
@@ -248,7 +315,7 @@ export default function ProposalReview({
                 )}
             </div>
           ))}
-          {input.kind === "conversation" && (
+          {!reviewOnly && input.kind === "conversation" && (
             <p className="text-sm">
               Apply supports mapped text fields in the open section only.
               Existing text is preserved; use the form’s Save button after

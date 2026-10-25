@@ -4,6 +4,7 @@ import { initTRPC } from "@trpc/server";
 vi.mock("../_core/trpc", () => ({ router: initTRPC.create().router }));
 vi.mock("../_core/procedures", () => ({
   medicalStaffProcedure: initTRPC.create().procedure,
+  adminProcedure: initTRPC.create().procedure,
 }));
 import { medicalAssistantRouter } from "./medical-assistant";
 

@@ -47,6 +47,8 @@ export const medicalProposalRequestSchema = z
   .object({
     recording: medicalTranscriptSchema,
     consentConfirmed: z.literal(true),
+    provider: z.enum(["manus", "gemini"]).default("manus"),
+    engine: z.enum(["current", "central"]).default("current"),
   })
   .strict();
 export const medicalProposalSchema = z
