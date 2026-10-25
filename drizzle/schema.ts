@@ -3337,6 +3337,7 @@ export const kfLedger = mysqlTable("kf_ledger", {
 
 export type KfLedgerEntry = typeof kfLedger.$inferSelect;
 export type InsertKfLedgerEntry = typeof kfLedger.$inferInsert;
+export {whatsappConfirmationAttempts,whatsappConfirmationReceipts} from "./whatsappConfirmationSchema";
 export {
   aiCoreProfiles,
   aiCoreUsage,

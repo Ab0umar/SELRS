@@ -1,6 +1,6 @@
 import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import "./queue-patient-card.css";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -257,6 +257,7 @@ export function AppointmentsSection({
     trpc as any
   ).patientPortal.updateBooking.useMutation();
 
+  const confirmationRequests = useRef(new Map<number, string>());
   const handleBookingRegistrationSaved = async ({
     patientId,
   }: {
@@ -268,12 +269,17 @@ export function AppointmentsSection({
         requestId: registrationTarget.item.id,
       });
     } else {
+      const bookingId = registrationTarget.item.id;
+      if (!confirmationRequests.current.has(bookingId))
+        confirmationRequests.current.set(bookingId, crypto.randomUUID());
       await confirmRegisteredPortalBooking.mutateAsync({
+        confirmationRequestId: confirmationRequests.current.get(bookingId),
         id: registrationTarget.item.id,
         patientId,
         status: "confirmed",
         confirmedDate: selectedDate,
       });
+      confirmationRequests.current.delete(bookingId);
     }
     await Promise.all([
       utils.patient.getVisitScheduleRequests.invalidate(),

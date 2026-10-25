@@ -36,7 +36,10 @@ import {
 import { sendWebPushToSubscription } from "../_core/webPush";
 import { broadcastBookingUpdate } from "../_core/ws";
 import { sendBookingStatusEmail } from "../services/bookingEmail.service";
-import { sendBookingStatusWhatsApp } from "../services/bookingWhatsApp.service";
+import {
+  sendBookingStatusWhatsApp,
+  sendBookingReceiptWhatsApp,
+} from "../services/bookingWhatsApp.service";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -411,6 +414,21 @@ export const patientPortalRouter = router({
 
       const typeLabel =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
+      void (async () => {
+        const [receiptPatient] = await db
+          .select({ name: patients.fullName, phone: patients.phone })
+          .from(patients)
+          .where(eq(patients.id, ctx.patientSession.patientId))
+          .limit(1);
+        if (receiptPatient)
+          await sendBookingReceiptWhatsApp({
+            recipientPhone: receiptPatient.phone,
+            patientName: receiptPatient.name,
+            requestKey: `booking-received:${normalizePhone(receiptPatient.phone ?? "")}:${Math.floor(Date.now() / 300000)}`,
+          });
+      })().catch(() =>
+        console.error("[booking-whatsapp] Receipt could not be recorded"),
+      );
       getAppNotificationSettings()
         .catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS)
         .then((ns) => {
@@ -421,7 +439,9 @@ export const patientPortalRouter = router({
             title: "طلب حجز جديد",
             message: `${typeLabel} — ${input.requestedDate}`,
             kind: "info",
-            targetRoles: targetUserIds ? null : ["admin", "reception", "accountant"],
+            targetRoles: targetUserIds
+              ? null
+              : ["admin", "reception", "accountant"],
             targetUserIds,
             source: "booking",
             entityType: "booking",
@@ -477,6 +497,13 @@ export const patientPortalRouter = router({
 
       const typeLabel2 =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
+      void sendBookingReceiptWhatsApp({
+        recipientPhone: input.guestPhone,
+        patientName: input.guestName,
+        requestKey: `booking-received:${normalizePhone(input.guestPhone)}:${Math.floor(Date.now() / 300000)}`,
+      }).catch(() =>
+        console.error("[booking-whatsapp] Receipt could not be recorded"),
+      );
       getAppNotificationSettings()
         .catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS)
         .then((ns) => {
@@ -487,7 +514,9 @@ export const patientPortalRouter = router({
             title: "طلب حجز جديد (زائر)",
             message: `${input.guestName} — ${typeLabel2} — ${input.requestedDate}`,
             kind: "info",
-            targetRoles: targetUserIds ? null : ["admin", "reception", "accountant"],
+            targetRoles: targetUserIds
+              ? null
+              : ["admin", "reception", "accountant"],
             targetUserIds,
             source: "booking",
             entityType: "booking",
@@ -854,6 +883,7 @@ export const patientPortalRouter = router({
         patientId: z.number().int().positive().optional(),
         staffNotes: z.string().max(1000).optional(),
         confirmedDate: z.string().optional(),
+        confirmationRequestId: z.string().uuid().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -925,7 +955,10 @@ export const patientPortalRouter = router({
             error,
           ),
         );
+      }
+      if (input.status === "confirmed" || input.status === "cancelled") {
         void sendBookingStatusWhatsApp({
+          requestKey: `booking-status:${input.id}:${input.status}:${input.confirmationRequestId ?? Math.floor(Date.now() / 10000)}`,
           recipientPhone: booking.patientPhone ?? booking.guestPhone,
           patientName: booking.patientName ?? booking.guestName,
           bookingTypeLabel:
@@ -945,7 +978,7 @@ export const patientPortalRouter = router({
           ),
         );
 
-        if (booking.patientId) {
+        if (statusChanged && booking.patientId) {
           const sessions = await db
             .select({
               pushSubscription: patientPortalSessions.pushSubscription,
@@ -1047,7 +1080,13 @@ export const patientPortalRouter = router({
         startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         bookingType: z
-          .enum(["consultant", "specialist", "pentacam", "external", "followup"])
+          .enum([
+            "consultant",
+            "specialist",
+            "pentacam",
+            "external",
+            "followup",
+          ])
           .nullable()
           .optional(),
       }),

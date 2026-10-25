@@ -60,6 +60,7 @@ const envSchema = z.object({
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(""),
   WHATSAPP_API_VERSION: z.string().optional().default("v25.0"),
   WHATSAPP_CONFIRMATION_TEMPLATE: z.string().optional().default(""),
+  WHATSAPP_RECEIPT_TEMPLATE: z.string().optional().default("booking_request_received"),
   WHATSAPP_CANCELLATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_OPERATION_TEMPLATE: z.string().optional().default(""),
   WHATSAPP_OPERATION_CANCELLATION_TEMPLATE: z.string().optional().default(""),
@@ -136,6 +137,7 @@ export const ENV = {
   whatsappPhoneNumberId: parsed.WHATSAPP_PHONE_NUMBER_ID,
   whatsappApiVersion: parsed.WHATSAPP_API_VERSION,
   whatsappConfirmationTemplate: parsed.WHATSAPP_CONFIRMATION_TEMPLATE,
+  whatsappReceiptTemplate: parsed.WHATSAPP_RECEIPT_TEMPLATE,
   whatsappCancellationTemplate: parsed.WHATSAPP_CANCELLATION_TEMPLATE,
   whatsappOperationTemplate: parsed.WHATSAPP_OPERATION_TEMPLATE,
   whatsappOperationCancellationTemplate:

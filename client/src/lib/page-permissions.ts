@@ -800,6 +800,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/admin-hub/auto-reply", label: "الرد الآلي", group: "مركز الإدارة" },
   { id: "/admin-hub/ai", label: "الذكاء الاصطناعي والتواصل", group: "مركز الإدارة" },
   { id: "/admin-hub/medical-assistant", label: "المساعد الطبي", group: "مركز الإدارة" },
+  { id: "/admin-hub/whatsapp-confirmations", label: "سجل رسائل التأكيد", group: "مركز الإدارة" },
   {
     id: "/admin-hub/whatsapp-inbox",
     label: "رسائل واتساب الواردة",
