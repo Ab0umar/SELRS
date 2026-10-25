@@ -1,1 +1,0 @@
-Paths identify representative implementation locations.

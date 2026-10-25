@@ -1,1 +1,0 @@
-Backend integrations connect legacy data, files, attendance devices and messaging to SELRS.

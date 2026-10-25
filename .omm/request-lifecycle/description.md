@@ -1,1 +1,0 @@
-The main tRPC request path from the React application through Express, context creation, authorization and domain handlers.

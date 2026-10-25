@@ -1,1 +1,0 @@
-server/services/ contains domain services and background workers, including attendance, marketing and auto-reply processing.

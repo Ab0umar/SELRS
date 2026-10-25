@@ -1,9 +1,0 @@
-graph LR
-    entry["HTTP entry\nserver/_core/index.ts"]
-    routers["Domain routers\nserver/routers/"]
-    services["Services\nserver/services/"]
-    integrations["Integrations\nserver/integrations/"]
-    entry -->|"mounts tRPC"| routers
-    entry -->|"starts workers"| services
-    routers -->|"calls domain services"| services
-    services -->|"connects external systems"| integrations

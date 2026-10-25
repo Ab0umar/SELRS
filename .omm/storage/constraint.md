@@ -1,1 +1,0 @@
-Diagrams summarize implementation boundaries; consult source for exact behavior and configuration.

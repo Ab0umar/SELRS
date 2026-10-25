@@ -1,1 +1,0 @@
-MySQL, MSSQL synchronization, S3, device and messaging integration code under server/.

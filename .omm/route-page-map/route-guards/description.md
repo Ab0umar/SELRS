@@ -1,1 +1,0 @@
-client/src/routes/guards.tsx and client/src/components/ProtectedRoute.tsx guard navigation.

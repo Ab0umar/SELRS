@@ -1,1 +1,0 @@
-client/src/routes/medical-routes.tsx and clinical-suite-routes.tsx route clinical pages.

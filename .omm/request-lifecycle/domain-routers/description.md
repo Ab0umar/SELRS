@@ -1,1 +1,0 @@
-server/routers.ts composes domain routers from server/routers/.
