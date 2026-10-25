@@ -25,6 +25,11 @@ const FOLLOWUP_TITLES = [
 ];
 
 export default function ConsultantFollowupPage({ sheetType = "consultant" }: { sheetType?: "consultant" | "specialist" } = {}) {
+  const [, params] = useRoute("/sheets/:type/:id/followup");
+  return <ConsultantFollowupDocument key={`${sheetType}:${params?.id ?? "new"}`} sheetType={sheetType} />;
+}
+
+function ConsultantFollowupDocument({ sheetType }: { sheetType: "consultant" | "specialist" }) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/sheets/:type/:id/followup");
@@ -53,6 +58,7 @@ export default function ConsultantFollowupPage({ sheetType = "consultant" }: { s
     left: boolean,
   ) => ({
     id,
+    itemId: undefined as number | undefined,
     date: "",
     type,
     right,
@@ -203,6 +209,7 @@ export default function ConsultantFollowupPage({ sheetType = "consultant" }: { s
       const flapOS = parseFlap(item.flapOS);
       return {
         id: item.id,
+        itemId: Number(item.id),
         date: followupDate,
         type: followupName,
         right: Boolean(item.rightEye),
@@ -295,9 +302,11 @@ export default function ConsultantFollowupPage({ sheetType = "consultant" }: { s
 
   const saveFollowupSheetMutation =
     trpc.medical.saveFollowupSheet.useMutation();
+  const saveInProgressRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSaveFollowup = async () => {
-    if (!initialPatientId) return;
+    if (!initialPatientId || saveInProgressRef.current) return;
 
     // Collect filled followups in groups of 4
     const filledFollowups = followups.filter((f) => f.date);
@@ -308,6 +317,7 @@ export default function ConsultantFollowupPage({ sheetType = "consultant" }: { s
 
     // Convert to followup items format (only filled items)
     const followupItems = filledFollowups.map((f, index) => ({
+      itemId: f.itemId,
       tableIndex: index % 4,
       followupDate: f.date,
       followupName: f.type,
@@ -325,16 +335,22 @@ export default function ConsultantFollowupPage({ sheetType = "consultant" }: { s
       notes: f.notes,
     }));
 
+    saveInProgressRef.current = true;
+    setIsSaving(true);
     try {
       await saveFollowupSheetMutation.mutateAsync({
         patientId: initialPatientId,
         sheetType,
         followupItems,
       });
+      await followupSheetsQuery.refetch();
       toast.success("تم حفظ البيانات بنجاح");
     } catch (error) {
       toast.error("فشل حفظ البيانات");
       console.error(error);
+    } finally {
+      saveInProgressRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -393,9 +409,9 @@ export default function ConsultantFollowupPage({ sheetType = "consultant" }: { s
             type="button"
             className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
-            disabled={saveFollowupSheetMutation.isPending}
+            disabled={isSaving || followupSheetsQuery.isFetching || followupSheetsQuery.isError}
           >
-            {saveFollowupSheetMutation.isPending ? "جاري الحفظ…" : "حفظ"}
+            {isSaving ? "جاري الحفظ…" : "حفظ"}
           </Button>
           <Button
             type="button"

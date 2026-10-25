@@ -1,1 +1,0 @@
-server/_core/index.ts configures the Express server, tRPC middleware, webhooks, WebSocket server and background schedulers.

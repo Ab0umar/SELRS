@@ -1,4 +1,9 @@
 import { and, eq, inArray } from "drizzle-orm";
+import {
+  reserveTopicPublication,
+  confirmTopicPublication,
+  releaseTopicPublication,
+} from "./topicHistory";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { getDb } from "../../db";
 import { ENV } from "../../_core/env";
@@ -8,6 +13,7 @@ import {
   marketingPosts,
   marketingFacebookPages,
   marketingSettings,
+  aiMarketingJobs,
 } from "../../../drizzle/schema";
 import {
   FacebookPublishError,
@@ -55,7 +61,9 @@ export async function publishMarketingPost(
   if (!db) throw new Error("Database not available");
 
   const outcome: PublishOutcome = await db.transaction(
-    async (tx: Pick<MySql2Database, "select" | "insert" | "update">) => {
+    async (
+      tx: Pick<MySql2Database, "select" | "insert" | "update" | "delete">,
+    ) => {
       const [post] = await tx
         .select()
         .from(marketingPosts)
@@ -120,6 +128,20 @@ export async function publishMarketingPost(
         );
       }
 
+      const [centralImage] = await tx
+        .select({ id: aiMarketingJobs.id })
+        .from(aiMarketingJobs)
+        .where(
+          and(
+            eq(aiMarketingJobs.sourcePostId, post.id),
+            eq(aiMarketingJobs.state, "running"),
+          ),
+        )
+        .limit(1);
+      if (centralImage)
+        throw new Error("انتظر اكتمال توليد صورة Gemini قبل النشر");
+      const topicKey = await reserveTopicPublication(post);
+
       await tx
         .update(marketingPosts)
         .set({
@@ -151,6 +173,7 @@ export async function publishMarketingPost(
               eq(marketingPosts.status, "publishing"),
             ),
           );
+        await confirmTopicPublication(tx, topicKey, post.id);
         await tx.insert(marketingLogs).values({
           postId,
           action: "publish_post",
@@ -161,6 +184,7 @@ export async function publishMarketingPost(
       } catch (error) {
         const publishError = normalizeFacebookError(error);
         if (!publishError.uncertain) {
+          await releaseTopicPublication(tx, topicKey, post.id);
           await tx
             .update(marketingPosts)
             .set({ status: "draft" })

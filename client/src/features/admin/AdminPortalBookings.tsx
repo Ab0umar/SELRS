@@ -151,14 +151,20 @@ function BookingCard({
     formatDateKey(booking.confirmedDate),
   );
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const confirmationRequest = useRef<string | null>(null);
+  const saving = useRef(false);
 
   const updateBooking = trpc.patientPortal.updateBooking.useMutation({
     onSuccess: () => {
+      confirmationRequest.current = null;
       toast.success("تم تحديث الحجز");
       onUpdated();
       setExpanded(false);
     },
     onError: (error) => toast.error(error.message),
+    onSettled: () => {
+      saving.current = false;
+    },
   });
 
   const deleteBooking = trpc.patientPortal.deleteBooking.useMutation({
@@ -170,7 +176,11 @@ function BookingCard({
   });
 
   const save = () => {
+    if (saving.current) return;
+    saving.current = true;
+    confirmationRequest.current ??= crypto.randomUUID();
     updateBooking.mutate({
+      confirmationRequestId: confirmationRequest.current,
       id: booking.id,
       status,
       staffNotes: staffNotes || undefined,
@@ -187,7 +197,8 @@ function BookingCard({
 
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card">
-      <Button variant="bare"
+      <Button
+        variant="bare"
         type="button"
         className="flex w-full items-start gap-4 px-4 py-4 text-start transition-colors hover:bg-muted/20"
         onClick={() => setExpanded((value) => !value)}
@@ -257,7 +268,8 @@ function BookingCard({
                       (opt) => {
                         const active = status === opt.value;
                         return (
-                          <Button variant="bare"
+                          <Button
+                            variant="bare"
                             key={opt.value}
                             type="button"
                             onClick={() =>
@@ -481,7 +493,8 @@ function ScheduleRowCard({
     <article className="bg-card rounded-2xl border border-border p-4 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
-          <Button variant="bare"
+          <Button
+            variant="bare"
             type="button"
             onClick={toggleActive}
             className={cn(
@@ -551,7 +564,8 @@ function ScheduleRowCard({
             const bit = DAY_BITS[index];
             const active = (local.weekdayMask & bit) !== 0;
             return (
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 key={day}
                 type="button"
                 onClick={() => toggleDay(bit)}
@@ -671,7 +685,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           </label>
           {selectedPatient ? (
             <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 type="button"
                 onClick={() => {
                   setSelectedPatient(null);
@@ -695,7 +710,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
             <>
               <div className="relative">
                 <Search className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input aria-label="اسم المريض أو الكود أو الموبايل…"
+                <Input
+                  aria-label="اسم المريض أو الكود أو الموبايل…"
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -709,7 +725,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
               {showDropdown && searchResults && searchResults.length > 0 && (
                 <div className="absolute top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
                   {(searchResults as any[]).map((p) => (
-                    <Button variant="bare"
+                    <Button
+                      variant="bare"
                       key={p.id}
                       type="button"
                       className="flex w-full items-center justify-between px-3 py-2.5 text-start transition-colors hover:bg-muted/40"
@@ -749,7 +766,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
                 { value: "kfs", label: "كفرالشيخ" },
               ] as const
             ).map((b) => (
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 key={b.value}
                 type="button"
                 onClick={() => setBranch(b.value)}
@@ -773,7 +791,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           </label>
           <div className="grid grid-cols-2 gap-2">
             {STAFF_BOOKING_TYPES.map((t) => (
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 key={t.value}
                 type="button"
                 onClick={() => setBookingType(t.value)}
@@ -820,7 +839,8 @@ function AddStaffBookingForm({ onCreated }: { onCreated: () => void }) {
           <label className="text-xs font-medium text-muted-foreground">
             ملاحظات للمريض (اختياري)
           </label>
-          <textarea aria-label="تُعرض للمريض في البوابة…"
+          <textarea
+            aria-label="تُعرض للمريض في البوابة…"
             value={staffNotes}
             onChange={(e) => setStaffNotes(e.target.value)}
             rows={2}
@@ -928,7 +948,8 @@ function ClosuresPanel() {
             التواريخ المحددة هنا لن تظهر للمرضى كمواعيد متاحة.
           </p>
         </div>
-        <Button variant="bare"
+        <Button
+          variant="bare"
           type="button"
           onClick={() => setAdding((v) => !v)}
           className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
@@ -945,7 +966,9 @@ function ClosuresPanel() {
               <label className="text-xs font-medium text-muted-foreground">
                 الوصف (مثل: إجازة د. أحمد)
               </label>
-              <Input bare aria-label="وصف فترة الإغلاق…"
+              <Input
+                bare
+                aria-label="وصف فترة الإغلاق…"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="وصف فترة الإغلاق…"
@@ -958,7 +981,8 @@ function ClosuresPanel() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {CLOSURE_TYPES.map((t) => (
-                  <Button variant="bare"
+                  <Button
+                    variant="bare"
                     key={t.value}
                     type="button"
                     onClick={() => setBookingType(t.value as BookingType)}
@@ -1115,7 +1139,8 @@ function ClosuresPanel() {
                     الآن
                   </span>
                 )}
-                <Button variant="bare"
+                <Button
+                  variant="bare"
                   type="button"
                   aria-label={`حذف فترة الإغلاق ${c.label}`}
                   onClick={() => del.mutate({ id: c.id })}
@@ -1326,7 +1351,8 @@ export default function AdminPortalBookings() {
                 ].map(({ key, label, icon: Icon }) => {
                   const active = activeTab === key;
                   return (
-                    <Button variant="bare"
+                    <Button
+                      variant="bare"
                       key={key}
                       type="button"
                       onClick={() => setActiveTab(key as typeof activeTab)}
@@ -1352,7 +1378,8 @@ export default function AdminPortalBookings() {
                   { value: "tanta" as const, label: "طنطا" },
                   { value: "kfs" as const, label: "كفرالشيخ" },
                 ].map((b) => (
-                  <Button variant="bare"
+                  <Button
+                    variant="bare"
                     key={b.value}
                     type="button"
                     onClick={() => setBranchFilter(b.value)}
@@ -1372,7 +1399,8 @@ export default function AdminPortalBookings() {
                 {STATUS_OPTS.map((option) => {
                   const active = statusFilter === option.value;
                   return (
-                    <Button variant="bare"
+                    <Button
+                      variant="bare"
                       key={option.value}
                       type="button"
                       onClick={() =>
@@ -1541,7 +1569,8 @@ export default function AdminPortalBookings() {
                 {/* Branch selector */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SCHEDULE_BRANCHES.map((b) => (
-                    <Button variant="bare"
+                    <Button
+                      variant="bare"
                       key={b.value}
                       type="button"
                       onClick={() => {

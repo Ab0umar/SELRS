@@ -9,7 +9,7 @@ import {
   makePageWriteProcedure,
   protectedProcedure,
 } from "../_core/procedures";
-import { getDb } from "../db";
+import { getDb, logAuditEvent } from "../db";
 import {
   salaryBasics,
   salaryPenalties,
@@ -373,13 +373,20 @@ export const salaryRouter = router({
         insuranceDeduction: z.number().min(0),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       await db
         .update(salaryBasics)
         .set({ insuranceDeduction: String(input.insuranceDeduction) })
         .where(eq(salaryBasics.id, input.id));
+      await logAuditEvent(
+        ctx.user.id,
+        "SALARY_INSURANCE_DEDUCTION",
+        "salary_basics",
+        input.id,
+        { insuranceDeduction: input.insuranceDeduction },
+      );
       return { success: true };
     }),
 

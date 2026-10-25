@@ -11,6 +11,7 @@ import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { FKTcpClient } from "./fkTcpClient";
 
 const execFileAsync = promisify(execFile);
 
@@ -37,6 +38,10 @@ export interface FKDeviceConfig {
   protocol: number; // 0 or 1
 }
 
+// Native TCP client by default; FK_USE_LEGACY_PULLER=true falls back to FKOldLogPuller.exe.
+export const FK_USE_LEGACY = process.env.FK_USE_LEGACY_PULLER === "true";
+const USE_LEGACY = FK_USE_LEGACY;
+
 export class FKAttendLogPuller {
   private static readonly FK_PULLER_PATH =
     process.env.FK_PULLER_PATH ??
@@ -56,6 +61,15 @@ export class FKAttendLogPuller {
    */
   static async pullLogs(config?: Partial<FKDeviceConfig>): Promise<FKPunch[]> {
     const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
+
+    if (!USE_LEGACY) {
+      return new FKTcpClient({
+        ip: fullConfig.ip,
+        port: fullConfig.port,
+        password: fullConfig.password,
+        timeoutMs: fullConfig.timeout,
+      }).pullLogs();
+    }
 
     const tempDir = os.tmpdir();
     const tempFile = path.join(tempDir, `fk_logs_${Date.now()}.csv`);
@@ -97,6 +111,17 @@ export class FKAttendLogPuller {
         // Ignore cleanup errors
       }
     }
+  }
+
+  /** Enrolled user ids straight from the device (no exe). */
+  static async pullUserIds(config?: Partial<FKDeviceConfig>): Promise<number[]> {
+    const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
+    return new FKTcpClient({
+      ip: fullConfig.ip,
+      port: fullConfig.port,
+      password: fullConfig.password,
+      timeoutMs: fullConfig.timeout,
+    }).pullUserIds();
   }
 
   /**
@@ -173,6 +198,14 @@ export class FKAttendLogPuller {
   ): Promise<boolean> {
     try {
       const fullConfig = { ...this.DEFAULT_CONFIG, ...config };
+      if (!USE_LEGACY) {
+        return await new FKTcpClient({
+          ip: fullConfig.ip,
+          port: fullConfig.port,
+          password: fullConfig.password,
+          timeoutMs: fullConfig.timeout,
+        }).testConnection();
+      }
       const tempFile = path.join(os.tmpdir(), `fk_test_${Date.now()}.csv`);
 
       const { stdout } = await execFileAsync(
@@ -223,6 +256,7 @@ export class FKAttendLogPuller {
   }
 
   static isPullerAvailable(): boolean {
+    if (!USE_LEGACY) return true;
     return fs.existsSync(this.FK_PULLER_PATH);
   }
 

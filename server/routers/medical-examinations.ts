@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import {
   router,
   protectedProcedure,
+  clinicalStaffProcedure,
   doctorProcedure,
   nurseProcedure,
   technicianProcedure,
@@ -56,6 +57,7 @@ import {
 } from "../integrations/mssqlPatients";
 
 import { normalizeVisitType } from "./_medical/service-helpers";
+import { cairoDateIso } from "../../shared/visitSchedule";
 
 export const medicalExaminationsRoutes = {
   getAppointmentsByPatient: makePageProcedure("/patient-file")
@@ -64,11 +66,11 @@ export const medicalExaminationsRoutes = {
       return await db.getAppointmentsByPatient(input.patientId);
     }),
 
-  getMedicalTotals: protectedProcedure.query(async () => {
+  getMedicalTotals: clinicalStaffProcedure.query(async () => {
     return await db.getMedicalTotals();
   }),
 
-  getOperations: protectedProcedure
+  getOperations: clinicalStaffProcedure
     .input(
       z
         .object({ limit: z.number().int().min(1).max(1000).default(500) })
@@ -78,7 +80,7 @@ export const medicalExaminationsRoutes = {
       return await db.getAllAppointments(undefined, input?.limit ?? 500);
     }),
 
-  getAllOperations: protectedProcedure
+  getAllOperations: clinicalStaffProcedure
     .input(
       z
         .object({ limit: z.number().int().min(1).max(1000).default(500) })
@@ -88,7 +90,7 @@ export const medicalExaminationsRoutes = {
       return await db.getAllAppointments(undefined, input?.limit ?? 500);
     }),
 
-  getAppointments: protectedProcedure
+  getAppointments: clinicalStaffProcedure
     .input(
       z
         .object({ limit: z.number().int().min(1).max(1000).default(500) })
@@ -175,6 +177,7 @@ export const medicalExaminationsRoutes = {
 
         return { success: true };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to create examination: ${error}`);
       }
     }),
@@ -208,25 +211,37 @@ export const medicalExaminationsRoutes = {
       for (const field of DEDICATED_TABLE_ONLY_FIELDS) {
         delete examinationUpdates[field];
       }
+      // Identity/ownership columns must never be client-writable.
+      for (const field of [
+        "id",
+        "patientId",
+        "visitId",
+        "examinedBy",
+        "createdAt",
+        "updatedAt",
+      ]) {
+        delete examinationUpdates[field];
+      }
       if (Object.keys(examinationUpdates).length > 0) {
         await db.updateExamination(input.examinationId, examinationUpdates);
       }
 
       // Also persist to dedicated tables if autoref/glasses fields are in updates
       const u = input.updates;
-      const hasAutoref =
-        u.sphereOD ||
-        u.sphereOS ||
-        u.cylinderOD ||
-        u.cylinderOS ||
-        u.axisOD ||
-        u.axisOS ||
-        u.ucvaOD ||
-        u.ucvaOS ||
-        u.bcvaOD ||
-        u.bcvaOS ||
-        u.iopOD ||
-        u.iopOS;
+      const hasAutoref = [
+        "sphereOD",
+        "sphereOS",
+        "cylinderOD",
+        "cylinderOS",
+        "axisOD",
+        "axisOS",
+        "ucvaOD",
+        "ucvaOS",
+        "bcvaOD",
+        "bcvaOS",
+        "iopOD",
+        "iopOS",
+      ].some((key) => u[key] !== undefined);
       const hasGlasses = u.glassesData;
 
       if (hasAutoref || hasGlasses) {
@@ -251,11 +266,19 @@ export const medicalExaminationsRoutes = {
             });
           }
           if (hasGlasses) {
-            let gd: any = {};
+            let gd: any = null;
             try {
-              gd = JSON.parse(u.glassesData);
+              gd = typeof u.glassesData === "string"
+                ? JSON.parse(u.glassesData)
+                : u.glassesData;
             } catch {
-              /* ignore */
+              gd = null;
+            }
+            if (!gd || typeof gd !== "object") {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "glassesData must be valid JSON",
+              });
             }
             await db.saveGlassesRecord({
               examinationId: input.examinationId,
@@ -297,7 +320,7 @@ export const medicalExaminationsRoutes = {
       return await db.getAutorefractometryByPatient(input.patientId);
     }),
 
-  getAutorefractometryOverview: protectedProcedure
+  getAutorefractometryOverview: clinicalStaffProcedure
     .input(
       z
         .object({
@@ -395,11 +418,11 @@ export const medicalExaminationsRoutes = {
       return await db.getFollowupVisitsByPatient(patientId);
     }),
 
-  getVisits: protectedProcedure.query(async () => {
+  getVisits: clinicalStaffProcedure.query(async () => {
     return await db.getAllVisits();
   }),
 
-  getExaminations: protectedProcedure.query(async () => {
+  getExaminations: clinicalStaffProcedure.query(async () => {
     return await db.getAllExaminations();
   }),
 
@@ -407,7 +430,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         visitId: z.number(),
-        visitDate: z.string(),
+        visitDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       }),
     )
     .mutation(async ({ input }) => {
@@ -452,7 +475,7 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const allowedRoles = ["doctor", "nurse", "admin", "manager"];
+      const allowedRoles = ["doctor", "nurse", "technician", "admin", "manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -518,11 +541,11 @@ export const medicalExaminationsRoutes = {
           "surgery_center",
           "pentacam_center",
           "pentacam_external",
-          "clinical",
         ]),
         appendMode: z.boolean().optional(),
         followupItems: z.array(
           z.object({
+            itemId: z.number().int().positive().optional(),
             tableIndex: z.number(),
             followupDate: z.string().optional(),
             operationDate: z.string().optional(),
@@ -553,117 +576,27 @@ export const medicalExaminationsRoutes = {
         });
       }
 
-      // Get or create followup sheet
-      let sheet: any = await db.getLatestFollowupSheet(
-        input.patientId,
-        input.sheetType,
-      );
-      let nextVersion = 1;
-
-      let currentItems: any[] = [];
-      if (sheet) {
-        // Check if current version is full (4 items with dates)
-        currentItems = await db.getFollowupItemsBySheet(sheet.id);
-        const fullItems = currentItems.filter((i: any) => i.followupDate);
-        if (fullItems.length >= 4) {
-          nextVersion = sheet.version + 1;
-          sheet = null; // Create new sheet
-          currentItems = [];
-        }
-      }
-
-      if (!sheet) {
-        const result = await db.createFollowupSheet({
-          patientId: input.patientId,
-          sheetType: input.sheetType,
-          version: nextVersion,
-        });
-        sheet = {
-          id: (result as any)[0],
-          patientId: input.patientId,
-          sheetType: input.sheetType,
-          version: nextVersion,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }
-
-      // Save items
-      for (const item of input.followupItems) {
-        if (!item.followupDate) continue; // Skip empty items
-
-        const existingItems = await db.getFollowupItemsBySheet(sheet.id);
-        const usedIndexes = new Set(
-          existingItems
-            .filter((entry: any) => entry.followupDate)
-            .map((entry: any) => Number(entry.tableIndex)),
-        );
-        const targetTableIndex = input.appendMode
-          ? ([0, 1, 2, 3].find((index) => !usedIndexes.has(index)) ?? 0)
-          : item.tableIndex;
-        const existingIndex = existingItems.find(
-          (i: any) => i.tableIndex === targetTableIndex,
-        );
-
-        if (existingIndex) {
-          await db.updateFollowupItem(existingIndex.id, {
-            followupDate: item.followupDate
-              ? new Date(item.followupDate)
-              : null,
-            operationDate: item.operationDate
-              ? new Date(item.operationDate)
-              : null,
-            operationType: item.operationType,
-            followupName: item.followupName,
-            vaOD: item.vaOD,
-            vaOS: item.vaOS,
-            refracOD: item.refracOD ? JSON.stringify(item.refracOD) : null,
-            refracOS: item.refracOS ? JSON.stringify(item.refracOS) : null,
-            flapOD: item.flapOD ? JSON.stringify(item.flapOD) : null,
-            flapOS: item.flapOS ? JSON.stringify(item.flapOS) : null,
-            iopOD: item.iopOD,
-            iopOS: item.iopOS,
-            treatment: item.treatment,
-            notes: item.notes,
-            rightEye: item.rightEye ?? false,
-            leftEye: item.leftEye ?? false,
-          });
-        } else {
-          await db.createFollowupItem({
-            followupSheetId: sheet.id,
-            tableIndex: targetTableIndex,
-            followupDate: item.followupDate
-              ? new Date(item.followupDate)
-              : null,
-            operationDate: item.operationDate
-              ? new Date(item.operationDate)
-              : null,
-            operationType: item.operationType,
-            followupName: item.followupName,
-            vaOD: item.vaOD,
-            vaOS: item.vaOS,
-            refracOD: item.refracOD ? JSON.stringify(item.refracOD) : null,
-            refracOS: item.refracOS ? JSON.stringify(item.refracOS) : null,
-            flapOD: item.flapOD ? JSON.stringify(item.flapOD) : null,
-            flapOS: item.flapOS ? JSON.stringify(item.flapOS) : null,
-            iopOD: item.iopOD,
-            iopOS: item.iopOS,
-            treatment: item.treatment,
-            notes: item.notes,
-            rightEye: item.rightEye ?? false,
-            leftEye: item.leftEye ?? false,
-          });
-        }
-      }
-
+      const saved = await db.saveFollowupSheetItems({
+        patientId: input.patientId,
+        sheetType: input.sheetType,
+        followupItems: input.followupItems.map((item) => ({
+          ...item,
+          followupDate: item.followupDate ? new Date(item.followupDate) : null,
+          operationDate: item.operationDate ? new Date(item.operationDate) : null,
+          refracOD: item.refracOD ? JSON.stringify(item.refracOD) : null,
+          refracOS: item.refracOS ? JSON.stringify(item.refracOS) : null,
+          flapOD: item.flapOD ? JSON.stringify(item.flapOD) : null,
+          flapOS: item.flapOS ? JSON.stringify(item.flapOS) : null,
+        })),
+      });
       await db.logAuditEvent(
         ctx.user.id,
         "SAVE_FOLLOWUP_SHEET",
         "followup_sheets",
-        sheet.id,
-        { message: `Saved followup sheet version ${sheet.version}` },
+        saved.sheetId ?? input.patientId,
+        { message: `Saved followup sheet version ${saved.version}` },
       );
-      return { success: true, sheetId: sheet.id, version: sheet.version };
+      return saved;
     }),
 
   getFollowupSheets: makePageProcedure("/patient-file")
@@ -689,7 +622,7 @@ export const medicalExaminationsRoutes = {
       return sheetsWithItems;
     }),
 
-  getAllFollowupItems: protectedProcedure
+  getAllFollowupItems: clinicalStaffProcedure
     .input(
       z
         .object({ limit: z.number().int().min(1).max(1000).default(500) })
@@ -699,7 +632,7 @@ export const medicalExaminationsRoutes = {
       return await db.getAllFollowupItems(input?.limit ?? 500);
     }),
 
-  getAllExaminations: protectedProcedure
+  getAllExaminations: clinicalStaffProcedure
     .input(
       z
         .object({ limit: z.number().int().min(1).max(500).default(250) })
@@ -709,7 +642,7 @@ export const medicalExaminationsRoutes = {
       return await db.getAllExaminations(input?.limit ?? 250);
     }),
 
-  getRefractionsOverview: protectedProcedure
+  getRefractionsOverview: clinicalStaffProcedure
     .input(
       z
         .object({
@@ -780,7 +713,9 @@ export const medicalExaminationsRoutes = {
         db.getAutorefractometryByPatient(input.patientId),
         db.getAfterRefractionByPatient(input.patientId),
         db.getGlassesRecordsByPatient(input.patientId),
-        db.getPentacamResultsByPatient(input.patientId, 1),
+        input.visitId
+          ? db.getPentacamResultsByVisit(input.visitId).then((rows) => rows.filter((row: any) => Number(row.patientId) === input.patientId))
+          : db.getPentacamResultsByPatient(input.patientId, 1),
         db.getDoctorReportsByPatient(input.patientId),
         db.getSurgeriesByPatient(input.patientId),
       ]);
@@ -1129,9 +1064,16 @@ export const medicalExaminationsRoutes = {
         sheetType: z.enum(["consultant", "specialist", "lasik", "external"]),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const result = await db.deleteSheetEntryForVisit(input);
       broadcastSheetUpdate(input.patientId, input.sheetType);
+      await db.logAuditEvent(
+        ctx.user.id,
+        "DELETE_SHEET_ENTRY",
+        "sheetEntry",
+        input.patientId,
+        { visitId: input.visitId, sheetType: input.sheetType },
+      );
       return result;
     }),
 
@@ -1338,7 +1280,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        visitDate: z.string(),
+        visitDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         visitType: z.string(),
         appointmentId: z.number().optional(),
         data: z.record(z.string(), z.any()),
@@ -1373,7 +1315,10 @@ export const medicalExaminationsRoutes = {
           );
         return false;
       };
-      if (!_hasRealData(input.data)) {
+      const hasSelectionUpdate = Object.prototype.hasOwnProperty.call(input.data, "tests") ||
+        Array.isArray(input.data.treatment) ||
+        (typeof input.data.treatment === "string" && input.data.treatment.trim().startsWith("["));
+      if (!_hasRealData(input.data) && !hasSelectionUpdate) {
         return { success: true, examinationId: null, visitId: null };
       }
 
@@ -1402,6 +1347,7 @@ export const medicalExaminationsRoutes = {
 
       // If no visit exists for today, create one
       if (!visitId) {
+        if (!_hasRealData(input.data)) return { success: true, examinationId: null, visitId: null };
         const visit = await db.createVisit({
           patientId: input.patientId,
           visitDate: visitDate,
@@ -1664,9 +1610,10 @@ export const medicalExaminationsRoutes = {
         const odData = pentacamPayload.od || {};
         const osData = pentacamPayload.os || {};
 
-        await db.createPentacamResult({
+        const pentacamRecord = {
           visitId: visitId,
           patientId: input.patientId,
+          recordedBy: ctx.user.id,
           rtK1: odData.k1,
           rtK2: odData.k2,
           rtAX: odData.axis || odData.ax1,
@@ -1683,7 +1630,31 @@ export const medicalExaminationsRoutes = {
           ltResidual: osData.residual,
           ltTTT: osData.ttt,
           ltAblation: osData.ablation,
-        });
+        };
+        const existingPentacam = await db.getPentacamResultsByVisit(visitId);
+        if (existingPentacam.length > 0) {
+          await db.updatePentacamResult(existingPentacam[0].id, {
+            k1OD: pentacamRecord.rtK1,
+            k2OD: pentacamRecord.rtK2,
+            axisOD: pentacamRecord.rtAX,
+            thinnestPointOD: pentacamRecord.rtThinnestPoint,
+            apexOD: pentacamRecord.rtApex,
+            residualOD: pentacamRecord.rtResidual,
+            tttOD: pentacamRecord.rtTTT,
+            ablationOD: pentacamRecord.rtAblation,
+            k1OS: pentacamRecord.ltK1,
+            k2OS: pentacamRecord.ltK2,
+            axisOS: pentacamRecord.ltAX,
+            thinnestPointOS: pentacamRecord.ltThinnestPoint,
+            apexOS: pentacamRecord.ltApex,
+            residualOS: pentacamRecord.ltResidual,
+            tttOS: pentacamRecord.ltTTT,
+            ablationOS: pentacamRecord.ltAblation,
+            recordedBy: ctx.user.id,
+          });
+        } else {
+          await db.createPentacamResult(pentacamRecord);
+        }
       }
 
       const readString = (...keys: string[]) => {
@@ -1754,7 +1725,8 @@ export const medicalExaminationsRoutes = {
         diseasesArray.length > 0;
       if (_hasReportData) {
         if ((existingReports ?? []).length > 0) {
-          await db.updateDoctorReport(existingReports[0].id, doctorReportData);
+          const { doctorId: _keepDoctor, ...reportUpdates } = doctorReportData;
+          await db.updateDoctorReport(existingReports[0].id, reportUpdates);
         } else {
           await db.createDoctorReport(doctorReportData);
         }
@@ -1768,26 +1740,22 @@ export const medicalExaminationsRoutes = {
             .filter((id: number) => Number.isFinite(id) && id > 0),
         ),
       );
-      if ((existingRequests ?? []).length === 0) {
-        const createdRequest: any = await db.createTestRequest({
+      const existingTestIds = new Set<number>(
+        (existingRequests ?? []).flatMap((request: any) =>
+          (request.items ?? []).map((item: any) => Number(item.testId)),
+        ),
+      );
+      const testsChanged =
+        Object.prototype.hasOwnProperty.call(input.data, "tests") &&
+        (requestedTestIds.length !== existingTestIds.size ||
+          requestedTestIds.some((id) => !existingTestIds.has(id)));
+      if (testsChanged || ((existingRequests ?? []).length === 0 && requestedTestIds.length > 0)) {
+        await db.replaceTestRequest({
           patientId: input.patientId,
           visitId,
-          requestDate: new Date(),
-          status: "pending",
-          notes: "Created from examination form",
+          date: input.visitDate,
+          items: requestedTestIds.map((testId) => ({ testId })),
         });
-        const testRequestId = Number(
-          createdRequest?.insertId ?? createdRequest?.[0]?.insertId ?? 0,
-        );
-        if (testRequestId > 0 && requestedTestIds.length > 0) {
-          await db.createTestRequestItems(
-            requestedTestIds.map((testId) => ({
-              testRequestId,
-              testId,
-              result: null,
-            })),
-          );
-        }
       }
 
       // Upsert prescription from payload (expected medication IDs array).
@@ -1798,16 +1766,35 @@ export const medicalExaminationsRoutes = {
             .filter((id: number) => Number.isFinite(id) && id > 0),
         ),
       );
-      if ((existingPrescriptions ?? []).length === 0) {
-        if (requestedMedicationIds.length > 0) {
+      const rawTreatment = input.data["treatment"];
+      const treatmentIsList =
+        Array.isArray(rawTreatment) ||
+        (typeof rawTreatment === "string" &&
+          rawTreatment.trim().startsWith("["));
+      const existingMedicationIds = new Set<number>(
+        (existingPrescriptions ?? [])
+          .flatMap((prescription: any) =>
+            (prescription.items ?? []).map((item: any) =>
+              Number(item.medicationId),
+            ),
+          )
+          .filter((id: number) => Number.isFinite(id) && id > 0),
+      );
+      const medicationsChanged =
+        treatmentIsList &&
+        (requestedMedicationIds.length !== existingMedicationIds.size ||
+          requestedMedicationIds.some((id) => !existingMedicationIds.has(id)));
+      if (ctx.user.role !== "reception" &&
+          (medicationsChanged || ((existingPrescriptions ?? []).length === 0 && requestedMedicationIds.length > 0))) {
           const meds = await db.getAllMedications();
           const medById = new Map(
             (meds ?? []).map((m: any) => [Number(m.id), String(m.name ?? "")]),
           );
-          await db.createPrescriptionWithItems({
+          await db.replacePrescriptionWithItems({
             patientId: input.patientId,
             visitId,
             doctorId: ctx.user.id,
+            date: input.visitDate,
             notes: "Created from examination form",
             items: requestedMedicationIds.map((medicationId) => ({
               medicationId,
@@ -1816,15 +1803,6 @@ export const medicalExaminationsRoutes = {
               ),
             })),
           });
-        } else {
-          await db.createPrescription({
-            visitId,
-            patientId: input.patientId,
-            doctorId: ctx.user.id,
-            prescriptionDate: new Date(),
-            notes: "Created from examination form",
-          });
-        }
       }
 
       void db
@@ -1857,7 +1835,10 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        visitDate: z.string().optional(),
+        visitDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
         isFollowup: z.boolean().optional(),
         appointmentId: z.number().optional(),
         // Medical measurements
@@ -2137,10 +2118,21 @@ export const medicalExaminationsRoutes = {
         examinationData.radiologyLabsNotes = JSON.stringify(radiologyData);
       }
 
-      // Always create examination row
-      const examResult = await db.createExamination(examinationData);
-      const examinationId: number =
-        (examResult as any)?.insertId || (examResult as any)?.id;
+      if (input.symptoms) {
+        await db.updateVisit(visitId, { chiefComplaint: input.symptoms });
+      }
+
+      // One examination row per visit: reuse it on re-save.
+      const existingVisitExams = await db.getExaminationsByVisit(visitId);
+      let examinationId: number;
+      if (existingVisitExams.length > 0) {
+        examinationId = existingVisitExams[0].id;
+        await db.updateExamination(examinationId, examinationData);
+      } else {
+        const examResult = await db.createExamination(examinationData);
+        examinationId =
+          (examResult as any)?.insertId || (examResult as any)?.id;
+      }
 
       // Autoref and IOP share autorefractometryData. Create the dedicated row
       // even when this visit contains IOP only (without refraction values).
@@ -2186,9 +2178,10 @@ export const medicalExaminationsRoutes = {
       ].some((value) => String(value ?? "").trim().length > 0);
 
       if (hasPentacamValue) {
-        await db.createPentacamResult({
+        const pentacamRecord = {
           visitId: visitId,
           patientId: input.patientId,
+          recordedBy: ctx.user.id,
           rtK1: input.pentacam?.od?.k1,
           rtK2: input.pentacam?.od?.k2,
           rtAX: input.pentacam?.od?.axis || input.pentacam?.od?.ax1,
@@ -2206,7 +2199,32 @@ export const medicalExaminationsRoutes = {
           ltTTT: input.pentacam?.os?.ttt,
           ltAblation: input.pentacam?.os?.ablation,
           techniciansNotes: input.radiologyLabs,
-        });
+        };
+        const existingPentacam = await db.getPentacamResultsByVisit(visitId);
+        if (existingPentacam.length > 0) {
+          await db.updatePentacamResult(existingPentacam[0].id, {
+            k1OD: pentacamRecord.rtK1,
+            k2OD: pentacamRecord.rtK2,
+            axisOD: pentacamRecord.rtAX,
+            thinnestPointOD: pentacamRecord.rtThinnestPoint,
+            apexOD: pentacamRecord.rtApex,
+            residualOD: pentacamRecord.rtResidual,
+            tttOD: pentacamRecord.rtTTT,
+            ablationOD: pentacamRecord.rtAblation,
+            k1OS: pentacamRecord.ltK1,
+            k2OS: pentacamRecord.ltK2,
+            axisOS: pentacamRecord.ltAX,
+            thinnestPointOS: pentacamRecord.ltThinnestPoint,
+            apexOS: pentacamRecord.ltApex,
+            residualOS: pentacamRecord.ltResidual,
+            tttOS: pentacamRecord.ltTTT,
+            ablationOS: pentacamRecord.ltAblation,
+            techniciansNotes: pentacamRecord.techniciansNotes,
+            recordedBy: ctx.user.id,
+          });
+        } else {
+          await db.createPentacamResult(pentacamRecord);
+        }
       }
 
       // Save doctor report only when at least one clinical field has real data
@@ -2219,17 +2237,25 @@ export const medicalExaminationsRoutes = {
         _hasVal(input.diseases) ||
         _hasVal(input.radiologyLabs)
       ) {
-        await db.createDoctorReport({
-          visitId: visitId,
-          patientId: input.patientId,
-          doctorId: ctx.user.id,
+        const visitReportData = {
           diagnosis: input.diagnosis,
           treatment: input.treatment,
           recommendations: input.recommendations || input.report,
           diseases: input.diseases,
           additionalNotes: input.radiologyLabs,
           clinicalOpinion: input.symptoms,
-        });
+        };
+        const existingVisitReports = await db.getDoctorReportsByVisit(visitId);
+        if (existingVisitReports.length > 0) {
+          await db.updateDoctorReport(existingVisitReports[0].id, visitReportData);
+        } else {
+          await db.createDoctorReport({
+            visitId: visitId,
+            patientId: input.patientId,
+            doctorId: ctx.user.id,
+            ...visitReportData,
+          });
+        }
       }
 
       // Log audit event
@@ -2370,8 +2396,8 @@ export const medicalExaminationsRoutes = {
   addFollowupToQueue: receptionProcedure
     .input(
       z.object({
-        patientId: z.number(),
-        visitDate: z.string().optional(), // ISO yyyy-MM-dd, defaults to today
+        patientId: z.number().int().positive(),
+        visitDate: z.iso.date().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -2398,11 +2424,14 @@ export const medicalExaminationsRoutes = {
         const [year, month, day] = input.visitDate.split("-").map(Number);
         visitDate = new Date(year, month - 1, day, 12, 0, 0);
       } else {
-        visitDate = new Date();
+        visitDate = new Date(`${cairoDateIso()}T12:00:00+02:00`);
       }
 
       // Look up the patient's branch so the NOT NULL column is satisfied.
       const patient = await db.getPatientById(input.patientId);
+      if (!patient) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المريض غير موجود" });
+      }
       const branch =
         String((patient as any)?.branch ?? "").trim() || "examinations";
 
@@ -2428,6 +2457,13 @@ export const medicalExaminationsRoutes = {
         });
       }
 
+      await db.updateVisit(visitId, {
+        visitType: "followup",
+        queueStatus: clinicStatus,
+        movedToClinicAt: new Date(),
+        treatedAt: null,
+      });
+
       await db.logAuditEvent(
         ctx.user.id,
         "CREATE_FOLLOWUP_VISIT",
@@ -2439,7 +2475,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, visitId };
     }),
 
-  getTodayPatientsByQueueStatus: protectedProcedure
+  getTodayPatientsByQueueStatus: clinicalStaffProcedure
     .input(
       z.object({
         date: z.string().optional(),

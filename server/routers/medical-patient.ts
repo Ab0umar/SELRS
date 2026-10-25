@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { cairoDateIso } from "../../shared/visitSchedule";
 import { TRPCError } from "@trpc/server";
 import { eq, and, sql as drizzleSql } from "drizzle-orm";
 import {
   protectedProcedure,
+  clinicalStaffProcedure,
   adminProcedure,
   receptionProcedure,
   technicianProcedure,
@@ -795,14 +797,15 @@ export const medicalPatientRoutes = {
       );
     }),
 
-  createPatientFromExamination: protectedProcedure
+  createPatientFromExamination: clinicalStaffProcedure
     .input(
       z.object({
         // A patient code shown by the UI before save is only a suggestion.
         // Existing-patient updates must identify the record by its immutable id.
         patientId: z.number().int().positive().optional(),
+        isFollowup: z.boolean().optional().default(false),
         patientCode: z.string().optional(),
-        fullName: z.string(),
+        fullName: z.string().trim().min(1).max(255),
         dateOfBirth: z.string().optional(),
         age: z.number().optional(),
         phone: z.string().optional(),
@@ -830,7 +833,7 @@ export const medicalPatientRoutes = {
             }),
           )
           .optional(),
-        visitDate: z.string().optional(), // client local date yyyy-MM-dd
+        visitDate: z.iso.date().optional(),
         shiftNumber: z.union([z.literal(1), z.literal(2)]).optional(),
         medicalHistory: z
           .object({
@@ -1033,6 +1036,19 @@ export const medicalPatientRoutes = {
         );
         _mark("createOrSyncPatientFromMssql done");
 
+        if (input.isFollowup && patientId) {
+          const followupDate = input.visitDate || cairoDateIso();
+          const visit = await db.createVisit({
+            patientId,
+            visitDate: new Date(`${followupDate}T12:00:00+02:00`),
+            visitType: "followup",
+            branch: "examinations",
+          });
+          const visitId = Number(visit?.insertId);
+          if (!visitId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر تسجيل زيارة المتابعة" });
+          await db.updateVisit(visitId, { visitType: "followup", queueStatus: "checkedIn", checkedInAt: new Date(), treatedAt: null });
+        }
+
         // These fields have no MSSQL destination and remain application-only.
         if (patientId) {
           await db.updatePatient(patientId, {
@@ -1088,9 +1104,10 @@ export const medicalPatientRoutes = {
         };
       } catch (error: any) {
         console.error("[medical:createPatientFromExamination]", error);
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
-          code: error.code || "INTERNAL_SERVER_ERROR",
-          message: error.message || "Failed to create patient",
+          code: "INTERNAL_SERVER_ERROR",
+          message: error?.message || "Failed to create patient",
         });
       }
     }),
@@ -1250,7 +1267,7 @@ export const medicalPatientRoutes = {
       const role = String(ctx.user.role ?? "").toLowerCase();
       if (
         input.queueStatus === "treated" &&
-        !["reception", "accountant", "admin"].includes(role)
+        !["reception", "accountant", "admin", "manager"].includes(role)
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -1282,7 +1299,7 @@ export const medicalPatientRoutes = {
       return { success: true };
     }),
 
-  searchPatients: protectedProcedure
+  searchPatients: clinicalStaffProcedure
     .input(
       z.object({
         searchTerm: z.string(),
@@ -1300,7 +1317,7 @@ export const medicalPatientRoutes = {
       );
     }),
 
-  getAllPatients: protectedProcedure
+  getAllPatients: clinicalStaffProcedure
     .input(
       z.object({
         branch: z.enum(["examinations", "surgery"]).optional(),
@@ -1410,7 +1427,7 @@ export const medicalPatientRoutes = {
       };
     }),
 
-  getTodayPatientsBySheet: protectedProcedure
+  getTodayPatientsBySheet: clinicalStaffProcedure
     .input(z.object({ date: z.string().optional() }).optional())
     .query(async ({ input }) => {
       return await db.getTodayPatientsBySheet(input?.date);

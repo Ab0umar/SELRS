@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import type { InsertVisitScheduleRequest } from "../../drizzle/schema";
 import {
   router,
   protectedProcedure,
@@ -9,6 +8,8 @@ import {
 } from "../_core/procedures";
 import * as db from "../db";
 import { broadcastBookingUpdate } from "../_core/ws";
+import { visitScheduleSchema } from "../../shared/visitSchedule";
+import { saveVisitSchedule } from "../services/visitSchedule";
 
 /**
  * Patient Router - Patient-related queries and mutations
@@ -77,33 +78,14 @@ export const patientRouter = router({
    * حفظ طلب موعد/كشف (استقبال) في جدول `visit_schedule_requests`
    */
   createVisitScheduleRequest: protectedProcedure
-    .input(
-      z.object({
-        fullName: z.string().min(1).max(255),
-        age: z.number().int().min(0).max(130).optional().nullable(),
-        visitDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        phone: z.string().max(32).optional().nullable(),
-        service: z.string().min(1).max(128),
-        patientType: z.enum(["existing", "new", "guest"]).optional().default("existing"),
-      }),
-    )
+    .input(visitScheduleSchema)
     .mutation(async ({ input, ctx }) => {
+      const permissions = await db.getEffectiveUserPermissions(ctx.user.id, ctx.user.role);
+      if (!["admin", "manager", "reception", "accountant"].includes(ctx.user.role) && !permissions.includes("action/schedule-visit")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "غير مصرح لك بتحديد موعد" });
+      }
       try {
-        const payload: Omit<
-          InsertVisitScheduleRequest,
-          "id" | "createdAt" | "updatedAt"
-        > = {
-          fullName: input.fullName.trim(),
-          age: input.age ?? null,
-          // Drizzle mysql `date` accepts YYYY-MM-DD string at runtime
-          visitDate:
-            input.visitDate as unknown as InsertVisitScheduleRequest["visitDate"],
-          phone: input.phone?.trim() || null,
-          service: input.service.trim(),
-          patientType: input.patientType ?? "existing",
-          createdByUserId: ctx.user.id,
-        };
-        const { id } = await db.insertVisitScheduleRequest(payload);
+        const { id, cancelledRequestId } = await saveVisitSchedule(input, ctx.user.id);
 
         broadcastBookingUpdate();
 
@@ -115,11 +97,15 @@ export const patientRouter = router({
           {
             visitDate: input.visitDate,
             service: input.service,
+            patientId: input.patientId,
+            cancelledRequestId,
+            moveToCheckedIn: input.moveToCheckedIn,
           },
         );
 
         return { id };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         console.error("[createVisitScheduleRequest]", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

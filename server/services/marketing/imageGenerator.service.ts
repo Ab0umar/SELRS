@@ -13,6 +13,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import OpenAI from "openai";
+import { marketingImagePrompt } from "./imagePolicy";
 import { ENV } from "../../_core/env";
 import { generateImage as forgeGenerateImage } from "../../_core/imageGeneration";
 
@@ -229,6 +230,7 @@ export async function generateMarketingImage(
   postId: number,
   referenceImagePaths: string[] = [],
 ): Promise<string> {
+  imagePrompt = marketingImagePrompt(imagePrompt);
   const availableReferencePaths =
     await existingReferencePaths(referenceImagePaths);
 

@@ -32,11 +32,15 @@ export interface DeviceStatus {
   uptime: number; // seconds
 }
 
+const STABLE_CONNECTION_MS = 30_000;
+const MAX_RECONNECT_DELAY_MS = 120_000;
+
 export class DeviceAdapterService extends EventEmitter {
   private socket: net.Socket | null = null;
   private config: DeviceConfig;
   private isConnecting = false;
   private reconnectAttempts = 0;
+  private connectedAt = 0;
   private buffer = Buffer.alloc(0);
   private startTime = Date.now();
   private lastPunch?: Date;
@@ -84,9 +88,9 @@ export class DeviceAdapterService extends EventEmitter {
             return;
           }
           this.isConnecting = false;
-          this.reconnectAttempts = 0;
           this.connectionError = undefined;
           this.lastConnected = new Date();
+          this.connectedAt = Date.now();
           this.emit("connected");
           console.log(
             `[Device] Connected to ${this.config.ip}:${this.config.port}`,
@@ -289,6 +293,12 @@ export class DeviceAdapterService extends EventEmitter {
    * Handle device disconnect
    */
   private handleClose(): void {
+    // The EF10K drops a raw :5005 session that never speaks its protocol. Only a
+    // session that stayed up counts as healthy, otherwise retries back off and stop.
+    if (this.connectedAt && Date.now() - this.connectedAt >= STABLE_CONNECTION_MS) {
+      this.reconnectAttempts = 0;
+    }
+    this.connectedAt = 0;
     this.socket = null;
     this.isConnecting = false;
     this.emit("disconnected");
@@ -312,7 +322,7 @@ export class DeviceAdapterService extends EventEmitter {
       this.reconnectTimer = null;
       if (this.exclusiveUse) return;
       void this.connect();
-    }, this.config.reconnectInterval);
+    }, Math.min(this.config.reconnectInterval * 2 ** (this.reconnectAttempts - 1), MAX_RECONNECT_DELAY_MS));
   }
 
   /**

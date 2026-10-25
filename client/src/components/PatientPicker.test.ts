@@ -54,6 +54,17 @@ describe("patient picker combobox markup", () => {
     expect(html).not.toContain('role="listbox"');
     expect(input).not.toContain("aria-controls");
     expect(attrOf(input, "aria-expanded")).toBe("false");
+    expect(attrOf(input, "id")?.endsWith("-input")).toBe(true);
+  });
+
+  it("should_keep_the_accessible_label_linked_to_the_input", () => {
+    const html = renderPicker();
+    const labelFor = html.match(/<label\b[^>]*\bfor="([^"]+)"/)?.[1];
+    const labelTag = html.match(/<label\b[^>]*>/)?.[0] ?? "";
+    expect(labelFor).toBe(attrOf(inputTag(html), "id"));
+    expect(labelTag).toContain("sr-only");
+    expect(labelTag).not.toContain("hidden");
+    expect(html).toContain("اختر المريض");
   });
 
   it("should_fall_back_to_placeholder_aria_label_when_label_is_empty", () => {

@@ -25,6 +25,9 @@ import {
 } from "./operationsShared";
 
 export function useOperationsActions(operations: OperationsState) {
+  const manualConfirmation = useRef<{ snapshot: string; id: string } | null>(
+    null,
+  );
   const utils = trpc.useUtils();
   const saveListMutation = trpc.medical.saveOperationList.useMutation({
     onSuccess: async () => {
@@ -669,7 +672,14 @@ export function useOperationsActions(operations: OperationsState) {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     lastSavedRef.current = snapshot;
 
-    await saveListMutation.mutateAsync(payload);
+    if (manualConfirmation.current?.snapshot !== snapshot)
+      manualConfirmation.current = { snapshot, id: crypto.randomUUID() };
+    await saveListMutation.mutateAsync({
+      ...payload,
+      notifyAll: true,
+      confirmationRequestId: manualConfirmation.current.id,
+    });
+    manualConfirmation.current = null;
 
     const names = operations.currentList.map((row) => row.name).filter(Boolean);
     const key = `${operations.listDate}-${names.join("|")}`;

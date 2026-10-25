@@ -18,10 +18,12 @@ import { externalDoctorsRouter } from "./routers/externalDoctors";
 import { referralDoctorsRouter } from "./routers/referralDoctors";
 import { doctorPortalRouter } from "./routers/doctorPortal";
 import { marketingRouter } from "./routers/marketing";
+import { aiManagementRouter } from "./routers/aiManagement";
 import { kfRouter } from "./routers/kf";
 import { legacyPatientsRouter } from "./routers/legacyPatients";
 import { opHistoryRouter } from "./routers/opHistory";
 import { whatsappInboxRouter } from "./routers/whatsappInbox";
+import {whatsappConfirmationsRouter} from "./routers/whatsappConfirmations";
 import { autoReplyRouter } from "./routers/autoReply";
 import * as db from "./db";
 import {
@@ -212,10 +214,12 @@ export const appRouter = router({
   stockroom: stockroomRouter,
   salary: salaryRouter,
   marketing: marketingRouter,
+  aiManagement: aiManagementRouter,
   kf: kfRouter,
   legacyPatients: legacyPatientsRouter,
   opHistory: opHistoryRouter,
   whatsappInbox: whatsappInboxRouter,
+  whatsappConfirmations: whatsappConfirmationsRouter,
   autoReply: autoReplyRouter,
 });
 

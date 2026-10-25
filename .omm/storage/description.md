@@ -1,1 +1,0 @@
-Application data and imported files use distinct relational, object and local file storage paths.

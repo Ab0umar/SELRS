@@ -315,11 +315,19 @@ export async function sendCommentPrivateReply(
     throw new ProviderError("META_MISSING_MESSAGE_ID", false, true);
   return result.message_id;
 }
-const generatedSchema = z.object({
+export const generatedSchema = z.object({
   text: z.string().trim().max(2000),
   handoff: z.boolean(),
   sourceIds: z.array(z.number().int()).max(8),
 });
+export type ReplyGenerator = (request: {
+  instruction: string;
+  input: string;
+}) => Promise<{
+  reply: z.infer<typeof generatedSchema>;
+  usage: { inputTokens: number; outputTokens: number; model: string };
+  finishReason?: string;
+}>;
 function canonicalNumber(value: string) {
   const normalized = value
     .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x660))
@@ -333,15 +341,18 @@ function canonicalNumber(value: string) {
     .replace(/(\.\d*?)0+$/, "$1")
     .replace(/\.$/, "");
 }
-export async function proposeReply(args: {
-  channel: AutoReplyChannel;
-  accountId?: string;
-  text: string;
-  firstText?: string;
-  context: { direction: string; body: string }[];
-  knowledge: KnowledgeItem[];
-  settings: AutoReplySettings;
-}) {
+export async function proposeReply(
+  args: {
+    channel: AutoReplyChannel;
+    accountId?: string;
+    text: string;
+    firstText?: string;
+    context: { direction: string; body: string }[];
+    knowledge: KnowledgeItem[];
+    settings: AutoReplySettings;
+  },
+  generator?: ReplyGenerator,
+) {
   const publicComment = args.channel === "facebook_comment";
   const english = englishFirst(
     publicComment || args.settings.historyMessageLimit === 0
@@ -408,6 +419,7 @@ export async function proposeReply(args: {
       ),
       ...instructions,
     ],
+    generator ? 12000 : 64000,
   );
   if (!relevant.length && !socialMessage)
     return fallback("missing_information");
@@ -434,96 +446,115 @@ Additional administrator instructions (subordinate to all safety rules above): $
 Return JSON: text, handoff, sourceIds (ids of the approved facts or enabled administrator instructions that support EVERY factual claim; negative ids identify administrator instructions).
 For a pure greeting or thanks with no factual claims, sourceIds may be empty.
 If a claim is unsupported, use handoff=true. Approved facts: ${JSON.stringify(relevant)}`;
-  let response: Response;
-  try {
-    response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${args.settings.model}:generateContent`,
-      {
-        method: "POST",
-        signal: AbortSignal.timeout(25_000),
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.AUTO_REPLY_GEMINI_KEY,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: JSON.stringify({
-                    history: (args.settings.historyMessageLimit === 0
-                      ? []
-                      : context.slice(-args.settings.historyMessageLimit)
-                    ).map((c) => ({
-                      direction: c.direction,
-                      body: redactContacts(c.body),
-                    })),
-                    message: redactContacts(args.text),
-                  }),
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            ...(supportsGeminiSampling(args.settings.model)
-              ? {
-                  temperature: args.settings.temperature,
-                  topP: args.settings.topP,
-                  ...(args.settings.topK === null
-                    ? {}
-                    : { topK: args.settings.topK }),
-                }
-              : {}),
-            maxOutputTokens: args.settings.maxOutputTokens,
-            ...(args.settings.stopSequences.length
-              ? { stopSequences: args.settings.stopSequences }
-              : {}),
-            responseMimeType: "application/json",
-            responseJsonSchema: {
-              type: "object",
-              properties: {
-                text: { type: "string" },
-                handoff: { type: "boolean" },
-                sourceIds: { type: "array", items: { type: "integer" } },
-              },
-              required: ["text", "handoff", "sourceIds"],
-            },
+  let generation: Awaited<ReturnType<ReplyGenerator>>;
+  if (generator) {
+    generation = await generator({
+      instruction: systemInstruction,
+      input: JSON.stringify({
+        history: (args.settings.historyMessageLimit === 0
+          ? []
+          : context.slice(-args.settings.historyMessageLimit)
+        ).map((c) => ({
+          direction: c.direction,
+          body: redactContacts(c.body),
+        })),
+        message: redactContacts(args.text),
+      }),
+    });
+  } else {
+    let response: Response;
+    try {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${args.settings.model}:generateContent`,
+        {
+          method: "POST",
+          signal: AbortSignal.timeout(25_000),
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": process.env.AUTO_REPLY_GEMINI_KEY,
           },
-        }),
-      },
-    );
-  } catch {
-    throw new ProviderError("GEMINI_NETWORK", true);
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      history: (args.settings.historyMessageLimit === 0
+                        ? []
+                        : context.slice(-args.settings.historyMessageLimit)
+                      ).map((c) => ({
+                        direction: c.direction,
+                        body: redactContacts(c.body),
+                      })),
+                      message: redactContacts(args.text),
+                    }),
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              ...(supportsGeminiSampling(args.settings.model)
+                ? {
+                    temperature: args.settings.temperature,
+                    topP: args.settings.topP,
+                    ...(args.settings.topK === null
+                      ? {}
+                      : { topK: args.settings.topK }),
+                  }
+                : {}),
+              maxOutputTokens: args.settings.maxOutputTokens,
+              ...(args.settings.stopSequences.length
+                ? { stopSequences: args.settings.stopSequences }
+                : {}),
+              responseMimeType: "application/json",
+              responseJsonSchema: {
+                type: "object",
+                properties: {
+                  text: { type: "string" },
+                  handoff: { type: "boolean" },
+                  sourceIds: { type: "array", items: { type: "integer" } },
+                },
+                required: ["text", "handoff", "sourceIds"],
+              },
+            },
+          }),
+        },
+      );
+    } catch {
+      throw new ProviderError("GEMINI_NETWORK", true);
+    }
+    if (!response.ok)
+      throw new ProviderError(
+        `GEMINI_HTTP_${response.status}`,
+        response.status === 429 || response.status >= 500,
+      );
+    const data = await response.json().catch(() => null);
+    const usage = {
+      inputTokens: Number(data?.usageMetadata?.promptTokenCount) || 0,
+      outputTokens:
+        (Number(data?.usageMetadata?.candidatesTokenCount) || 0) +
+        (Number(data?.usageMetadata?.thoughtsTokenCount) || 0),
+      model: args.settings.model,
+    };
+    const output = data?.candidates?.[0];
+    const raw =
+      output?.content?.parts
+        ?.filter((p: { text?: string; thought?: boolean }) => !p.thought)
+        .map((p: { text?: string }) => p.text ?? "")
+        .join("") ?? "";
+    let parsed: z.infer<typeof generatedSchema>;
+    try {
+      parsed = generatedSchema.parse(JSON.parse(raw));
+    } catch {
+      throw new ProviderError("GEMINI_INVALID_OUTPUT", false, false, 0, usage);
+    }
+    generation = { reply: parsed, usage, finishReason: output?.finishReason };
   }
-  if (!response.ok)
-    throw new ProviderError(
-      `GEMINI_HTTP_${response.status}`,
-      response.status === 429 || response.status >= 500,
-    );
-  const data = await response.json().catch(() => null);
-  const usage = {
-    inputTokens: Number(data?.usageMetadata?.promptTokenCount) || 0,
-    outputTokens:
-      (Number(data?.usageMetadata?.candidatesTokenCount) || 0) +
-      (Number(data?.usageMetadata?.thoughtsTokenCount) || 0),
-    model: args.settings.model,
-  };
-  const output = data?.candidates?.[0];
-  const raw =
-    output?.content?.parts
-      ?.filter((p: { text?: string; thought?: boolean }) => !p.thought)
-      .map((p: { text?: string }) => p.text ?? "")
-      .join("") ?? "";
-  let parsed: z.infer<typeof generatedSchema>;
-  try {
-    parsed = generatedSchema.parse(JSON.parse(raw));
-  } catch {
-    throw new ProviderError("GEMINI_INVALID_OUTPUT", false, false, 0, usage);
-  }
+  const { reply: parsed, usage, finishReason } = generation;
   if (
-    output?.finishReason !== "STOP" ||
+    finishReason !== "STOP" ||
     parsed.handoff ||
     !parsed.text ||
     parsed.text.length > args.settings.maxReplyChars ||

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { assertMarketingTopicAvailable } from "./topicHistory";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
@@ -11,6 +12,7 @@ import {
   marketingSettings,
   marketingBrandProfile,
   marketingLogs,
+  aiMarketingJobs,
 } from "../../../drizzle/schema";
 import {
   createManusTask,
@@ -21,6 +23,7 @@ import {
 } from "./manusClient";
 import { publishMarketingPost } from "./publish.service";
 import { getTopicImageHint } from "./contentGenerator.service";
+import { MARKETING_IMAGE_PEOPLE_POLICY } from "./imagePolicy";
 import { getMarketingPageTarget, type MarketingPageRole } from "./page.service";
 import type { PostDay } from "./topicRotation";
 
@@ -46,6 +49,7 @@ export async function startManusGeneration(input: {
     .from(marketingGenerationJobs)
     .where(eq(marketingGenerationJobs.id, id));
   if (known) return { jobId: id, topic: known.topic };
+  if (!input.postId) await assertMarketingTopicAvailable(input.topic);
   const [settings] = await db
     .select({ clinicName: marketingSettings.clinicName })
     .from(marketingSettings)
@@ -113,18 +117,55 @@ export async function startManusGeneration(input: {
           },
     )}.`,
     "No follow-up questions. Do not publish, deploy, connect accounts or perform unrelated actions. Only deliver these files for local review.",
+    MARKETING_IMAGE_PEOPLE_POLICY,
   ].join("\n");
   try {
-    await db.insert(marketingGenerationJobs).values({
+    const jobValues = {
       id,
-      kind: post ? "image" : "post",
+      kind: post ? ("image" as const) : ("post" as const),
       topic: input.topic,
       postDay: input.postDay,
       pageRole,
       postId: input.postId ?? null,
       postVersion: post?.updatedAt ?? null,
       createdBy: input.createdBy,
-    });
+    };
+    if (post) {
+      await db.transaction(
+        async (tx: Pick<MySql2Database, "select" | "insert">) => {
+          const [current] = await tx
+            .select()
+            .from(marketingPosts)
+            .where(eq(marketingPosts.id, post!.id))
+            .for("update");
+          if (current?.status !== "draft")
+            throw new Error("المسودة لم تعد متاحة للتعديل");
+          const [centralPending] = await tx
+            .select()
+            .from(aiMarketingJobs)
+            .where(
+              and(
+                eq(aiMarketingJobs.sourcePostId, post!.id),
+                eq(aiMarketingJobs.state, "running"),
+              ),
+            )
+            .limit(1);
+          const [legacyPending] = await tx
+            .select()
+            .from(marketingGenerationJobs)
+            .where(
+              and(
+                eq(marketingGenerationJobs.postId, post!.id),
+                inArray(marketingGenerationJobs.state, [...pendingStates]),
+              ),
+            )
+            .limit(1);
+          if (centralPending || legacyPending)
+            throw new Error("يوجد توليد صورة جارٍ لهذه المسودة");
+          await tx.insert(marketingGenerationJobs).values(jobValues);
+        },
+      );
+    } else await db.insert(marketingGenerationJobs).values(jobValues);
   } catch (error) {
     const [duplicate] = await db
       .select()

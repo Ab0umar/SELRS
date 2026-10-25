@@ -1,1 +1,0 @@
-Client API calls and query state live under client/src/.

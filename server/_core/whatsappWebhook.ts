@@ -23,6 +23,7 @@ import { sql } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { ENV } from "./env";
 import { getDb } from "../db";
+import {ingestConfirmationReceipts} from "../services/whatsappConfirmations";
 import { whatsappInboundMessages } from "../../drizzle/schema";
 import { sendWhatsAppReply } from "../services/whatsappReply.service";
 import { buildWhatsAppInboundAutoReply } from "../services/whatsappInboundAutoReply.service";
@@ -140,6 +141,7 @@ export function registerWhatsAppWebhook(app: Express) {
 
       let newMessages: WhatsAppMessage[];
       try {
+        await ingestConfirmationReceipts(req.body);
         const messages = extractMessages(req.body);
         if (messages.length === 0) {
           res.sendStatus(200);

@@ -1,1 +1,0 @@
-Admin, marketing and miscellaneous route modules are in client/src/routes/.

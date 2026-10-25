@@ -1,4 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("../services/marketing/topicHistory", () => ({
+  reserveTopicPublication: vi.fn(async () => "topic-key"),
+  confirmTopicPublication: vi.fn(),
+  releaseTopicPublication: vi.fn(),
+}));
+import {
+  reserveTopicPublication,
+  confirmTopicPublication,
+  releaseTopicPublication,
+} from "../services/marketing/topicHistory";
 
 vi.mock("../db", () => ({ getDb: vi.fn() }));
 vi.mock("../_core/env", () => ({
@@ -94,6 +104,7 @@ function createDb(selectValues: unknown[]) {
 describe("marketing post publishing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(reserveTopicPublication).mockResolvedValue("topic-key");
   });
 
   it("publishes once and records the Facebook post ID", async () => {
@@ -119,6 +130,11 @@ describe("marketing post publishing", () => {
       { status: "publishing" },
       { status: "published", publishedAt: expect.any(Date), fbPostId: "fb-7" },
     ]);
+    expect(confirmTopicPublication).toHaveBeenCalledWith(
+      expect.anything(),
+      "topic-key",
+      7,
+    );
     expect(logEntries).toContainEqual(
       expect.objectContaining({ status: "success", action: "publish_post" }),
     );
@@ -134,6 +150,15 @@ describe("marketing post publishing", () => {
       fbPostId: "fb-old",
       alreadyPublished: true,
     });
+    expect(publishPostToFacebook).not.toHaveBeenCalled();
+  });
+  it("rejects a previously used topic before contacting Facebook", async () => {
+    const { db } = createDb([[post], [], [settings]]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+    vi.mocked(reserveTopicPublication).mockRejectedValue(
+      new Error("الموضوع سبق نشره"),
+    );
+    await expect(publishMarketingPost(7)).rejects.toThrow("سبق نشره");
     expect(publishPostToFacebook).not.toHaveBeenCalled();
   });
 
@@ -163,6 +188,19 @@ describe("marketing post publishing", () => {
     );
   });
 
+  it("does not contact Facebook while a central image is generating", async () => {
+    const { db, statusUpdates } = createDb([
+      [post],
+      [],
+      [settings],
+      [],
+      [{ id: "central-image" }],
+    ]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+    await expect(publishMarketingPost(7)).rejects.toThrow("Gemini");
+    expect(publishPostToFacebook).not.toHaveBeenCalled();
+    expect(statusUpdates).toEqual([]);
+  });
   it("keeps publishing state when Facebook result is uncertain", async () => {
     const { db, statusUpdates } = createDb([[post], [], [settings]]);
     vi.mocked(getDb).mockResolvedValue(db as never);
@@ -174,5 +212,6 @@ describe("marketing post publishing", () => {
       uncertain: true,
     });
     expect(statusUpdates).toEqual([{ status: "publishing" }]);
+    expect(releaseTopicPublication).not.toHaveBeenCalled();
   });
 });

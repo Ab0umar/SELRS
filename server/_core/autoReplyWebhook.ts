@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import {ingestConfirmationReceipts} from "../services/whatsappConfirmations";
 import { enqueueCoexistenceChanges } from "../services/auto-reply/coexistence-sync";
 import { rateLimit } from "express-rate-limit";
 import { z, ZodError } from "zod";
@@ -13,6 +14,7 @@ import {
 } from "../services/auto-reply/store";
 
 export async function ingestAutoReplyPayload(body: unknown) {
+  await ingestConfirmationReceipts(body);
   await enqueueCoexistenceChanges(body);
   const events = parseMetaEvents(body);
   const receipts = parseDeliveryReceipts(body);

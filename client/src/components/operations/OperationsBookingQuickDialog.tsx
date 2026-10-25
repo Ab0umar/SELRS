@@ -6,10 +6,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
-import { TAB_CONFIG } from "@/lib/operationsPricing";
 import { trpc } from "@/lib/trpc";
 import { OperationsBookingFormContent } from "./OperationsBookingFormContent";
 import { useIsMobile } from "@/hooks/useMobile";
+import { operationBookingSchema } from "../../../../shared/operationBooking";
+import { toast } from "sonner";
+import { getTrpcErrorMessage } from "@/lib/utils";
 
 export type OperationsBookingDraft = {
   bookingDate: string;
@@ -59,6 +61,7 @@ export function OperationsBookingQuickDialog({
   );
   const utils = trpc.useUtils();
   const createBooking = trpc.medical.createOperationBooking.useMutation({
+    onError: error => toast.error(getTrpcErrorMessage(error, "تعذر حفظ حجز العملية")),
     onSuccess: async () => {
       await utils.medical.getOperationBookings.invalidate();
       onSaved();
@@ -76,19 +79,19 @@ export function OperationsBookingQuickDialog({
   };
 
   const handleSubmit = () => {
-    const fallbackDoctor =
-      String(initialDoctorName ?? "").trim() ||
-      TAB_CONFIG[0]?.doctor ||
-      "طبيب غير محدد";
-    const doctorName = String(draft.doctorName ?? "").trim() || fallbackDoctor;
-    createBooking.mutate({
+    const parsed = operationBookingSchema.safeParse({
       bookingDate: draft.bookingDate,
       bookingTime: draft.bookingTime,
-      doctorName,
+      doctorName: draft.doctorName,
       operationType: draft.operationType,
-      casesCount: Math.max(1, Math.trunc(Number(draft.casesCount) || 1)),
+      casesCount: Number(draft.casesCount),
       weekdayLabel: draft.weekdayLabel?.trim() || undefined,
     });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "راجع بيانات العملية");
+      return;
+    }
+    createBooking.mutate(parsed.data);
   };
 
   const formContent = (

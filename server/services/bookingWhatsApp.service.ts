@@ -1,4 +1,5 @@
 import { ENV } from "../_core/env";
+import { sendWhatsAppConfirmation } from "./whatsappConfirmations";
 
 type BookingWhatsAppRequest = {
   recipientPhone: string | null | undefined;
@@ -10,6 +11,7 @@ type BookingWhatsAppRequest = {
   doctorName?: string | null;
   bookingType?: string | null;
   patientServiceType?: string | null;
+  requestKey?: string;
 };
 
 type WhatsAppTemplateParameter = {
@@ -18,17 +20,11 @@ type WhatsAppTemplateParameter = {
   text: string;
 };
 
-export const KFS_BOOKING_ADDRESS = "كفر الشيخ - ٣ عمارة الأوقاف، الدور الثالث، شارع الجيش، أمام البنك الأهلي";
+export const KFS_BOOKING_ADDRESS =
+  "كفر الشيخ - ٣ عمارة الأوقاف، الدور الثالث، شارع الجيش، أمام البنك الأهلي";
 export const KFS_BOOKING_MAP_FALLBACK = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
   KFS_BOOKING_ADDRESS,
 )}`;
-
-function internationalPhone(rawPhone: string): string | null {
-  const digits = rawPhone.replace(/\D/g, "");
-  if (/^01\d{9}$/.test(digits)) return `2${digits}`;
-  if (/^201\d{9}$/.test(digits)) return digits;
-  return null;
-}
 
 function formattedBookingDate(bookingDate: Date | string): string {
   const date = new Date(bookingDate);
@@ -226,71 +222,36 @@ function templatePayload(
   return template;
 }
 
-function whatsappConfiguration(request: BookingWhatsAppRequest) {
-  const templateName = bookingTemplateName(request.status);
-  if (!ENV.whatsappAccessToken || !ENV.whatsappPhoneNumberId || !templateName) {
-    console.warn(
-      "[booking-whatsapp] Cloud API is not configured; booking message was not sent",
-    );
-    return null;
-  }
-
-  const recipientPhone = request.recipientPhone
-    ? internationalPhone(request.recipientPhone)
-    : null;
-  if (!recipientPhone) {
-    console.warn(
-      "[booking-whatsapp] Booking has no valid Egyptian mobile number",
-    );
-    return null;
-  }
-
-  return { recipientPhone, templateName };
-}
-
-async function postWhatsAppTemplate(
-  request: BookingWhatsAppRequest,
-  recipientPhone: string,
-  templateName: string,
-): Promise<Response> {
-  return fetch(
-    `https://graph.facebook.com/${ENV.whatsappApiVersion}/${ENV.whatsappPhoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${ENV.whatsappAccessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: recipientPhone,
-        type: "template",
-        template: templatePayload(request, templateName),
-      }),
-    },
-  );
-}
-
 export async function sendBookingStatusWhatsApp(
   request: BookingWhatsAppRequest,
 ): Promise<void> {
-  const configuration = whatsappConfiguration(request);
-  if (!configuration) return;
-
-  const response = await postWhatsAppTemplate(
-    request,
-    configuration.recipientPhone,
-    configuration.templateName,
-  );
-
-  if (!response.ok) {
-    const responseBody = await response.text();
-    throw new Error(
-      `WhatsApp Cloud API returned ${response.status}: ${responseBody}`,
-    );
-  }
-
-  console.info(
-    `[booking-whatsapp] Meta accepted ${request.status} message for ${configuration.recipientPhone}`,
-  );
+  const templateName = bookingTemplateName(request.status);
+  await sendWhatsAppConfirmation({
+    kind:
+      request.status === "confirmed"
+        ? "booking_confirmed"
+        : "booking_cancelled",
+    recipientPhone: request.recipientPhone,
+    patientName: request.patientName,
+    templateName,
+    buildTemplate: () => templatePayload(request, templateName),
+    requestKey: request.requestKey,
+  });
+}
+export async function sendBookingReceiptWhatsApp(request: {
+  recipientPhone: string | null | undefined;
+  patientName: string | null | undefined;
+  requestKey: string;
+}): Promise<void> {
+  await sendWhatsAppConfirmation({
+    kind: "booking_received",
+    recipientPhone: request.recipientPhone,
+    patientName: request.patientName,
+    templateName: ENV.whatsappReceiptTemplate,
+    requestKey: request.requestKey,
+    buildTemplate: () => ({
+      name: ENV.whatsappReceiptTemplate,
+      language: { code: ENV.whatsappTemplateLanguage },
+    }),
+  });
 }

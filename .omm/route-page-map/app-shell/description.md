@@ -1,1 +1,0 @@
-client/src/App.tsx provides the application shell, Wouter routing and route composition.

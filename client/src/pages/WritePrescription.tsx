@@ -226,6 +226,10 @@ export default function WritePrescription({
     enabled: Boolean(patientId) && !isKfRoute,
     refetchOnWindowFocus: false,
   });
+  const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId && requestedVisitDate) && !isKfRoute, refetchOnWindowFocus: false },
+  );
   const kfPatientQuery = trpc.kf.getPatient.useQuery(
     { kfId: patientId ?? 0 },
     {
@@ -306,7 +310,7 @@ export default function WritePrescription({
     const data = (patientStateQuery.data as any)?.data;
     if (!data) return;
     if (hydratedPatientStateRef.current === patientId) return;
-    if (data.prescriptionDate) setPrescriptionDate(data.prescriptionDate);
+    if (!requestedVisitDate && data.prescriptionDate) setPrescriptionDate(data.prescriptionDate);
     if (data.generalNotes !== undefined)
       setGeneralNotes(data.generalNotes ?? "");
     if (data.medicationSearch !== undefined)
@@ -315,7 +319,7 @@ export default function WritePrescription({
     if (Array.isArray(data.prescriptionItems))
       setPrescriptionItems(data.prescriptionItems);
     hydratedPatientStateRef.current = patientId;
-  }, [patientStateQuery.data, editingForbidden, patientId]);
+  }, [patientStateQuery.data, editingForbidden, patientId, requestedVisitDate]);
 
   useEffect(() => {
     if (!patientId || editingForbidden) return;
@@ -560,8 +564,16 @@ export default function WritePrescription({
       toast.error("يرجى إضافة دواء واحد على الأقل.");
       return;
     }
+    if (requestedVisitDate && (visitsQuery.isLoading || visitsQuery.isError)) {
+      toast.error("تعذر تحميل الزيارة المحددة. يرجى إعادة المحاولة.");
+      return;
+    }
+    const selectedVisit = requestedVisitDate
+      ? visitsQuery.data?.find((visit: { id: number; visitDate: unknown }) => toDateInputValue(visit.visitDate) === prescriptionDate)
+      : undefined;
     await createPrescriptionMutation.mutateAsync({
       patientId,
+      visitId: selectedVisit?.id,
       date: prescriptionDate,
       notes: generalNotes,
       items: itemsToSave.map((item) => ({
@@ -1107,6 +1119,7 @@ export default function WritePrescription({
                         </Select>
                         <PatientPicker
                           initialPatientId={patientId ?? undefined}
+                          fireOnInitialPatientLoad={false}
                           onSelect={handleSelectPatient}
                           locationType={
                             locationTypeFilter === "all"

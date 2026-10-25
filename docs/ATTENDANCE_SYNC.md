@@ -423,27 +423,29 @@ come from step 2 (the persisted offset), not from a `deviceTz - serverOffset` fo
 
 ### Auto-detect guard rules
 
-`maybeDetectOffset` runs before correction on every ATTLOG batch, but only acts when
-`mayAutoDetectAdmsOffset` (`admsOffsetPolicy.ts`) says yes: true only when no manual env
-override is set AND no offset is known for the device. The guards:
+`maybeDetectOffset` runs before correction on every ATTLOG batch and calls
+`decideAdmsOffset` (`admsOffsetPolicy.ts`) when no manual env override is set. The guards:
 
-- Once per device. Because a detected value is persisted and re-hydrated on startup,
-  auto-detection effectively happens once in the device's life, not once per process.
+- The first valid observation calibrates an unknown device. A changed offset must be
+  observed twice consecutively before replacing the persisted value; a return to the
+  current offset clears the pending change. This accommodates DST and firmware changes
+  without accepting a single anomalous batch.
 - Only batches of 1 to 3 punches. Larger uploads are historical dumps, whose timestamps would
   poison the "fresh punch" estimate.
 - The newest punch's delta against the server clock is rounded to whole hours and rejected
   unless it lands in 0 to 12 hours (the device only ever runs ahead, never behind).
 - The raw delta must sit within 0.25 hours of that rounded value; sloppier deltas are ignored.
 
-To change a persisted offset you must clear it in the device settings row and let the next
-fresh batch re-detect, or set the env override. There is no API that re-tunes it automatically,
-by design: a forged or late batch must not be able to retune a value that payroll depends on.
+The selected offset is persisted and re-hydrated on startup. Set the env override to disable
+automatic calibration and tracking. `mayAutoDetectAdmsOffset` remains a legacy one-shot
+helper; the active ingestion path uses `decideAdmsOffset`.
 
 ### The handshake and the Date header
 
 The handshake options block sent on `GET /iclock/cdata` includes
-`TimeZone=<serverOffsetHours()>`, read live from the OS on every handshake. The code comment
-marks this as unverified: some ZKTeco push firmwares honor it on NTP sync, others ignore it.
+`TimeZone=<UTC offset in minutes>`, read live from the OS on every handshake (Cairo summer
+`180`, winter `120`). `ZK_ADMS_HANDSHAKE_TZ` overrides that value in minutes. The effect on
+the K40 clock still requires a fresh hardware handshake and punch verification.
 The HTTP `Date` response header is deliberately not touched (an earlier pre-compensation
 approach was removed; the comment records that testing showed the device ignores the header).
 Correctness does not depend on either: the ingestion offset in `parseAttlogBody` is the

@@ -1,9 +1,0 @@
-graph LR
-    client-app["client app\nclient/src/App.tsx"]
-    server-app["server app\nserver/."]
-    shared-contracts["shared contracts\nshared/"]
-    storage-and-integrations["storage and integrations\nserver/."]
-    client-app -->|"calls API"| server-app
-    client-app -->|"uses route constants"| shared-contracts
-    server-app -->|"uses shared types and schema"| shared-contracts
-    server-app -->|"reads and writes"| storage-and-integrations

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -985,6 +985,24 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
   return (
     <section className="ar-panel">
       <h2>الربط الرسمي بالقنوات</h2>
+      {data.centralAvailable && (
+        <Field label="محرك الردود الفعلية">
+          <select
+            className="min-h-11 w-full rounded-md border border-input bg-background px-3"
+            value={config.engine}
+            onChange={(event) =>
+              update("engine", event.target.value as "current" | "central")
+            }
+          >
+            <option value="current">المسار الحالي</option>
+            <option value="central">Gemini عبر الموديول المركزي</option>
+          </select>
+          <p>
+            المسار المركزي يستخدم موديله وحدوده من إدارة AI. جرّبه في الاختبار
+            الداخلي قبل حفظ اختياره للردود الفعلية.
+          </p>
+        </Field>
+      )}
       <p>
         أضف الأسرار في بيئة السيرفر. هذه الشاشة لا تستقبل المفاتيح ولا تعرض
         قيمها. نجاح فحص الوصول لا يثبت اكتمال مراجعة التطبيق أو صلاحية إرسال كل
@@ -1532,10 +1550,20 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
   );
 }
 function InternalTest({ pages }: { pages: FacebookPages }) {
+  const capabilities = trpc.aiManagement.status.useQuery(undefined, {
+    retry: false,
+  });
+  const centralReady =
+    capabilities.data?.enabled && capabilities.data.replyPreviewAvailable;
+  const [engine, setEngine] = useState<"current" | "central" | "central_live">(
+    "current",
+  );
+  const [requestId, setRequestId] = useState<string>();
+  const sending = useRef(false);
   const [accountId, setAccountId] = useState("");
   const [channel, setChannel] = useState<AutoReplyChannel>("whatsapp");
   const [text, setText] = useState("");
-  const test = trpc.autoReply.test.useMutation();
+  const test = trpc.autoReply.test.useMutation({ retry: false });
   return (
     <section className="ar-panel">
       <h2>اختبار داخلي دون إرسال للعملاء</h2>
@@ -1543,14 +1571,61 @@ function InternalTest({ pages }: { pages: FacebookPages }) {
         يستخدم المعرفة المعتمدة والموديل المحدد. لا ينشئ محادثة حقيقية أو مهمة
         إرسال. قد يستهلك رصيد Gemini.
       </p>
+      <Field label="محرك المعاينة">
+        <select
+          aria-label="محرك المعاينة"
+          value={engine}
+          disabled={test.isPending}
+          onChange={(event) => {
+            setEngine(event.target.value as typeof engine);
+            test.reset();
+          }}
+          className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-foreground"
+        >
+          <option value="current">المسار الحالي</option>
+          <option value="central" disabled={!centralReady}>
+            الموديول المركزي (Gemini، معاينة فقط)
+          </option>
+          <option
+            value="central_live"
+            disabled={!centralReady || !capabilities.data?.replyLiveAvailable}
+          >
+            معاينة إعدادات الرد الآلي المركزي
+          </option>
+        </select>
+      </Field>
+      {engine === "central" && (
+        <p>
+          يستخدم موديل وحدود مهمة «معاينة الرد الآلي» في إدارة AI، وقد تختلف
+          إعداداته عن المسار الحالي. لا يغيّر الردود الفعلية. استخدم رسالة
+          تجريبية دون بيانات مرضى.
+        </p>
+      )}
+      {engine === "central_live" && (
+        <p>هذه معاينة دون إرسال، بنفس موديل وحدود مهمة «الرد الآلي المركزي».</p>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          test.mutate({
-            channel,
-            text,
-            accountId: channel === "whatsapp" ? undefined : accountId,
-          });
+          if (sending.current) return;
+          if (engine !== "current" && !centralReady) return;
+          sending.current = true;
+          const id = engine !== "current" ? crypto.randomUUID() : undefined;
+          setRequestId(id);
+          test.mutate(
+            {
+              engine,
+              requestId: id,
+              channel,
+              text,
+              accountId: channel === "whatsapp" ? undefined : accountId,
+            },
+            {
+              onSettled: () => {
+                sending.current = false;
+              },
+            },
+          );
         }}
       >
         <ChannelSelect
@@ -1580,6 +1655,12 @@ function InternalTest({ pages }: { pages: FacebookPages }) {
         </Button>
       </form>
       {test.error && <ErrorState message={test.error.message} />}
+      {requestId && (
+        <p>
+          معرف طلب المعاينة: <bdi>{requestId}</bdi>. عند خطأ الاتصال راجع هذا
+          الطلب في سجل AI قبل بدء تجربة أخرى.
+        </p>
+      )}
       {test.data && (
         <div className="ar-notice" role="status">
           <h3>نتيجة اختبار، لم يُرسل رد</h3>

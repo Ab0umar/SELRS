@@ -11,6 +11,9 @@ vi.mock("../_core/env", () => ({
   },
 }));
 vi.mock("../db", () => ({ getDb: vi.fn() }));
+vi.mock("../services/whatsappConfirmations", () => ({
+  ingestConfirmationReceipts: vi.fn(),
+}));
 vi.mock("../services/whatsappReply.service", () => ({
   sendWhatsAppReply: vi.fn(),
 }));
@@ -22,6 +25,7 @@ import { ENV } from "../_core/env";
 import { getDb } from "../db";
 import { registerWhatsAppWebhook } from "../_core/whatsappWebhook";
 import { sendWhatsAppReply } from "../services/whatsappReply.service";
+import { ingestConfirmationReceipts } from "../services/whatsappConfirmations";
 
 describe("WhatsApp webhook authentication", () => {
   let server: Server;
@@ -62,6 +66,44 @@ describe("WhatsApp webhook authentication", () => {
       },
     });
     expect(response.status).toBe(200);
+  });
+  it("returns a retryable error when status-only receipt persistence fails instead of silently acknowledging it", async () => {
+    vi.mocked(ingestConfirmationReceipts).mockRejectedValueOnce(
+      new Error("synthetic database unavailable"),
+    );
+    const payload = JSON.stringify({
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          changes: [
+            {
+              field: "messages",
+              value: {
+                metadata: { phone_number_id: "confirmation-phone" },
+                statuses: [
+                  {
+                    id: "synthetic-message",
+                    status: "failed",
+                    timestamp: "1792890000",
+                    errors: [{ code: 131026 }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const response = await fetch(url, {
+      method: "POST",
+      body: payload,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Hub-Signature-256": signature(payload),
+      },
+    });
+    expect(response.status).toBe(503);
+    expect(sendWhatsAppReply).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { managedReplyPreview } from "../services/ai/replyPreview";
+import {
+  AiManagementError,
+  AiManagementStore,
+} from "../services/ai/managementStore";
 import {
   beginOnboarding,
   cancelOnboarding,
@@ -48,7 +53,7 @@ import {
   connectionTargets,
 } from "../services/auto-reply/providers";
 import { inWorkingHours } from "../services/auto-reply/policy";
-import { logAuditEvent } from "../db";
+import { logAuditEvent, getDbConnection } from "../db";
 import {
   availableGeminiModels,
   previewWebsite,
@@ -254,6 +259,7 @@ export const autoReplyRouter = router({
       config: await readSettings(),
       workerEnabled: process.env.AUTO_REPLY_WORKER_ENABLED === "true",
       geminiConfigured: Boolean(process.env.AUTO_REPLY_GEMINI_KEY),
+      centralAvailable: process.env.AI_CORE_MANAGEMENT_ENABLED === "true",
       pages: facebookPages().map(({ accountId, label }) => ({
         accountId,
         label,
@@ -287,6 +293,19 @@ export const autoReplyRouter = router({
   saveSettings: autoReplyAdminProcedure
     .input(autoReplySettingsSchema)
     .mutation(async ({ input, ctx }) => {
+      if (input.engine === "central") {
+        const profile =
+          process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
+            ? (
+                await new AiManagementStore(getDbConnection).listProfiles()
+              ).find((profile) => profile.workload === "reply.live")
+            : undefined;
+        if (!profile?.enabled || profile.provider !== "gemini")
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "فعّل مهمة الرد الآلي المركزي واختبرها في المعاينة أولًا",
+          });
+      }
       if (input.topK !== null && supportsGeminiSampling(input.model)) {
         const model = (await availableGeminiModels()).find(
           (model) => model.name === `models/${input.model}`,
@@ -605,6 +624,10 @@ export const autoReplyRouter = router({
           .optional(),
         text: z.string().trim().min(1).max(3000),
         conversationId: recordId.optional(),
+        engine: z
+          .enum(["current", "central", "central_live"])
+          .default("current"),
+        requestId: z.string().uuid().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -636,15 +659,31 @@ export const autoReplyRouter = router({
         accountId = c.accountId;
       }
       try {
-        const proposal = await proposeReply({
-          channel: input.channel,
-          accountId,
-          text: input.text,
-          firstText: context.firstText,
-          context: context.rows,
-          settings: config,
-          knowledge: approved,
-        });
+        if (input.engine !== "current" && !input.requestId)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "معرف طلب المعاينة مطلوب",
+          });
+        const proposal = await proposeReply(
+          {
+            channel: input.channel,
+            accountId,
+            text: input.text,
+            firstText: context.firstText,
+            context: context.rows,
+            settings: config,
+            knowledge: approved,
+          },
+          input.engine !== "current"
+            ? managedReplyPreview(
+                input.requestId!,
+                undefined,
+                input.engine === "central_live"
+                  ? "reply.live"
+                  : "reply.preview",
+              )
+            : undefined,
+        );
         await logAuditEvent(
           ctx.user.id,
           "AUTO_REPLY_INTERNAL_TEST",
@@ -655,18 +694,25 @@ export const autoReplyRouter = router({
             inputTokens: proposal.inputTokens,
             outputTokens: proposal.outputTokens,
             handoff: proposal.handoff,
+            engine: input.engine,
           },
         );
         return {
           ...proposal,
           testOnly: true as const,
+          engine: input.engine,
+          requestId: input.engine !== "current" ? input.requestId : undefined,
           inWorkingHours: inWorkingHours(config),
         };
       } catch (error) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
           message:
-            error instanceof ProviderError ? error.code : "فشل اختبار Gemini",
+            error instanceof ProviderError
+              ? error.code
+              : error instanceof AiManagementError
+                ? `المعاينة المركزية غير متاحة (${error.code}). راجع إعدادات مهمة معاينة الرد الآلي وسجل الاستهلاك.`
+                : "فشل الاختبار. راجع سجل الاستهلاك قبل إعادة المحاولة.",
         });
       }
     }),

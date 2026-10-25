@@ -159,3 +159,21 @@ winter when Egypt → UTC+2). `DEVICE_TZ` configurable via `ZK_ADMS_DEVICE_TZ_OF
 - `ZK_ADMS_DEVICE_TZ_OFFSET` (default `9`) — device's internal timezone offset in hours.
 - `ZK_ADMS_PUNCH_OFFSET_HOURS` — manual override of the ingestion correction (hours
   the device is ahead; subtracted from each punch).
+
+## Update: likely root cause (units of `TimeZone`)
+
+The "Date header" conclusion above was later disproved (the device ignores it).
+The handshake `TimeZone` option is read by ZK ADMS firmware in **minutes from
+UTC** (Cairo summer = `180`, winter = `120`), not hours. The server used to send
+`TimeZone=3`, i.e. UTC+00:03, so the device never learned the real zone.
+Source: community reports of the same symptom, e.g.
+https://github.com/saifulcoder/adms-server-ZKTeco/issues/14 (`TimeZone=330` for IST).
+
+Now: `handshakeTimeZone()` sends minutes (override: `ZK_ADMS_HANDSHAKE_TZ`, minutes),
+and the ingestion offset is tracked continuously (`decideAdmsOffset`: first reading
+calibrates, a change needs two consecutive matching readings). Leave
+`ZK_ADMS_PUNCH_OFFSET_HOURS` unset so tracking follows DST.
+
+Not yet verified on hardware. Check: restart the device, punch once, compare the
+device clock and the `[ADMS]` log line. If the clock is correct the detected offset
+should settle at 0.

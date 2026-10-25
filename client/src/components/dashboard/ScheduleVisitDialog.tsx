@@ -24,13 +24,11 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
+import PatientPicker from "@/components/PatientPicker";
+import { cairoDateIso, visitScheduleSchema } from "../../../../shared/visitSchedule";
 
 function localDateIso() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return cairoDateIso();
 }
 
 const SERVICE_KEYS = [
@@ -39,6 +37,7 @@ const SERVICE_KEYS = [
   "lasik",
   "surgery",
   "external",
+  "followup",
 ] as const;
 
 export function ScheduleVisitDialog({
@@ -52,6 +51,8 @@ export function ScheduleVisitDialog({
   prefilledPatientId?: number;
 }) {
   const [fullName, setFullName] = useState("");
+  const [patientId, setPatientId] = useState<number | null>(null);
+  const [patientCode, setPatientCode] = useState("");
   const [age, setAge] = useState<string>("");
   const [visitDate, setVisitDate] = useState(() => localDateIso());
   const [phone, setPhone] = useState("");
@@ -60,6 +61,20 @@ export function ScheduleVisitDialog({
   const [moveToCheckedIn, setMoveToCheckedIn] = useState(false);
   const [cancelPreviousAppointment, setCancelPreviousAppointment] =
     useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setPatientId(prefilledPatientId ?? null);
+    setPatientCode("");
+    setFullName("");
+    setAge("");
+    setPhone("");
+    setMoveToCheckedIn(false);
+    setCancelPreviousAppointment(false);
+    setVisitDate(localDateIso());
+    setService("consultant");
+    setPatientType("existing");
+  }, [open, prefilledPatientId]);
 
   const patientQuery = trpc.patient.getPatient.useQuery(
     prefilledPatientId ?? 0,
@@ -70,30 +85,25 @@ export function ScheduleVisitDialog({
   );
 
   useEffect(() => {
-    if (!open) return;
-    if (!prefilledPatientId || prefilledPatientId <= 0) {
-      setFullName("");
-      setAge("");
-      setPhone("");
-      setVisitDate(localDateIso());
-      setService("consultant");
-      setPatientType("existing");
-      return;
-    }
+    if (!open || !prefilledPatientId || patientId !== prefilledPatientId || patientType !== "existing") return;
     const p = patientQuery.data;
     if (!p) return;
     setFullName(p.fullName ?? "");
+    setPatientCode(p.patientCode ?? "");
     setPhone(p.phone ?? "");
     if (p.age != null && Number.isFinite(p.age)) setAge(String(p.age));
     else setAge("");
     const st = String(p.serviceType ?? "");
     if ((SERVICE_KEYS as readonly string[]).includes(st)) setService(st);
-  }, [open, prefilledPatientId, patientQuery.data]);
+  }, [open, prefilledPatientId, patientQuery.data, patientId, patientType]);
 
   const utils = trpc.useUtils();
   const createMutation = trpc.patient.createVisitScheduleRequest.useMutation({
     onSuccess: async () => {
-      await utils.patient.getVisitScheduleRequests.invalidate();
+      await Promise.all([
+        utils.patient.getVisitScheduleRequests.invalidate(),
+        utils.medical.getTodayPatientsByQueueStatus.invalidate(),
+      ]);
       toast.success("تم حفظ الموعد");
       onOpenChange(false);
     },
@@ -106,25 +116,34 @@ export function ScheduleVisitDialog({
       toast.error("أدخل الاسم");
       return;
     }
-    const ageNum = age.trim() === "" ? null : parseInt(age, 10);
+    const ageNum = age.trim() === "" ? null : Number(age);
     if (
       age.trim() !== "" &&
       (ageNum === null ||
         !Number.isFinite(ageNum) ||
+        !Number.isInteger(ageNum) ||
         ageNum < 0 ||
         ageNum > 130)
     ) {
       toast.error("السن غير صالح");
       return;
     }
-    createMutation.mutate({
+    const parsed = visitScheduleSchema.safeParse({
       fullName: name,
       age: ageNum,
       visitDate,
       phone: phone.trim() || null,
       service,
       patientType,
+      patientId,
+      moveToCheckedIn,
+      cancelPreviousAppointment,
     });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "راجع بيانات الموعد");
+      return;
+    }
+    createMutation.mutate(parsed.data);
   };
 
   return (
@@ -168,7 +187,16 @@ export function ScheduleVisitDialog({
                     <Button variant="bare"
                       key={opt.value}
                       type="button"
-                      onClick={() => setPatientType(opt.value)}
+                      onClick={() => {
+                        setPatientType(opt.value);
+                        setPatientId(null);
+                        setPatientCode("");
+                        setFullName("");
+                        setAge("");
+                        setPhone("");
+                        setMoveToCheckedIn(false);
+                        setCancelPreviousAppointment(false);
+                      }}
                       className={[
                         "h-8 px-3.5 rounded-lg text-xs font-bold border transition-all cursor-pointer",
                         patientType === opt.value
@@ -183,11 +211,36 @@ export function ScheduleVisitDialog({
               </div>
 
               <div className="space-y-3">
+                {patientType === "existing" && (
+                  <PatientPicker
+                    initialPatientId={patientId ?? undefined}
+                    readOnly={Boolean(patientId)}
+                    onSelect={(patient) => {
+                      setPatientId(patient.id);
+                      setPatientCode(patient.patientCode ?? "");
+                      setFullName(patient.fullName);
+                      setPhone(patient.phone ?? "");
+                      setAge(patient.age == null ? "" : String(patient.age));
+                    }}
+                  />
+                )}
+                {patientType === "existing" && patientId && (
+                  <Button type="button" variant="outline" onClick={() => {
+                    setPatientId(null);
+                    setPatientCode("");
+                    setFullName("");
+                    setAge("");
+                    setPhone("");
+                    setMoveToCheckedIn(false);
+                    setCancelPreviousAppointment(false);
+                  }}>تغيير المريض</Button>
+                )}
                 <div>
                   <Label className="font-semibold text-[13px] mb-1 block text-muted-foreground">
                     الاسم بالكامل
                   </Label>
                   <Input aria-label="اسم المريض الرباعي…"
+                    readOnly={patientType === "existing"}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="h-9 text-sm font-medium"
@@ -199,6 +252,7 @@ export function ScheduleVisitDialog({
                     رقم الموبايل
                   </Label>
                   <Input aria-label="01xxxxxxxxx"
+                    readOnly={patientType === "existing"}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="h-9 text-sm font-medium"
@@ -213,6 +267,7 @@ export function ScheduleVisitDialog({
                     </Label>
                     <Input
                       type="number"
+                      readOnly={patientType === "existing"}
                       min={0}
                       max={130}
                       value={age}
@@ -225,7 +280,7 @@ export function ScheduleVisitDialog({
                       الكود
                     </Label>
                     <Input
-                      value={patientQuery.data?.code || "—"}
+                      value={patientCode || "—"}
                       readOnly
                       className="h-9 text-sm bg-muted/50 text-center font-mono"
                     />
@@ -260,7 +315,10 @@ export function ScheduleVisitDialog({
                 </Label>
                 <DateInput
                   value={visitDate}
-                  onChange={(e) => setVisitDate(e.target.value)}
+                  onChange={(e) => {
+                    setVisitDate(e.target.value);
+                    setMoveToCheckedIn(false);
+                  }}
                   className="h-9 text-sm font-mono border-primary/20 bg-background"
                 />
               </div>
@@ -270,6 +328,7 @@ export function ScheduleVisitDialog({
                   <Checkbox
                     id="move-to-checkin"
                     checked={moveToCheckedIn}
+                    disabled={!patientId || visitDate !== localDateIso()}
                     onCheckedChange={(checked) =>
                       setMoveToCheckedIn(Boolean(checked))
                     }
@@ -286,6 +345,7 @@ export function ScheduleVisitDialog({
                   <Checkbox
                     id="cancel-previous"
                     checked={cancelPreviousAppointment}
+                    disabled={!patientId}
                     onCheckedChange={(checked) =>
                       setCancelPreviousAppointment(Boolean(checked))
                     }
@@ -295,14 +355,14 @@ export function ScheduleVisitDialog({
                     htmlFor="cancel-previous"
                     className="text-[13px] font-medium cursor-pointer text-primary"
                   >
-                    إلغاء الموعد السابق
+                    إلغاء آخر موعد قادم غير منفذ من جدول المواعيد
                   </Label>
                 </div>
               </div>
 
               <div className="pt-2">
                 <p className="text-[13px] text-muted-foreground leading-relaxed">
-                  * سيتم إضافة المريض إلى قائمة الانتظار في التاريخ المحدد.
+                  يُحفظ الموعد في جدول المواعيد. النقل للتسجيل متاح لمريض مسجل وموعد اليوم؛ المريض الجديد يحتاج التسجيل أولاً.
                 </p>
               </div>
             </div>

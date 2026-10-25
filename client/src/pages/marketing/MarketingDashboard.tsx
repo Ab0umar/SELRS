@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
+import CentralMarketingDraft from "./CentralMarketingDraft";
 import {
   CalendarDays,
   CheckCircle2,
@@ -221,7 +222,8 @@ export default function MarketingDashboard() {
         <div className="flex flex-wrap gap-3">
           {/* Generate Post */}
           <div className="flex items-center gap-2">
-            <select aria-label="يوم توليد المنشور"
+            <select
+              aria-label="يوم توليد المنشور"
               value={generateDay}
               onChange={(e) =>
                 setGenerateDay(e.target.value as typeof generateDay)
@@ -303,6 +305,7 @@ export default function MarketingDashboard() {
       </div>
 
       {/* Generated Content Preview */}
+      <CentralMarketingDraft />
       <ManusGenerationJobs
         onCompleted={(postId) => {
           void utils.marketing.getPost
@@ -337,7 +340,8 @@ export default function MarketingDashboard() {
                   فتح المسودات
                 </Button>
               </Link>
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 onClick={() => setPreview(null)}
                 aria-label="إغلاق المعاينة"
                 className="text-xs text-muted-foreground hover:text-foreground"
@@ -456,7 +460,12 @@ export default function MarketingDashboard() {
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {post.postDay && (
-                        <span>{marketingSlotLabel(post.postDay, post.pageRole ?? "center")}</span>
+                        <span>
+                          {marketingSlotLabel(
+                            post.postDay,
+                            post.pageRole ?? "center",
+                          )}
+                        </span>
                       )}
                       {post.topic && (
                         <>

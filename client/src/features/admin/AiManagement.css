@@ -1,0 +1,189 @@
+.ai-management {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  color: var(--foreground);
+}
+.ai-management h1 {
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  font-weight: 700;
+}
+.ai-management h2 {
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+.ai-management p {
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.ai-heading,
+.ai-record-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.ai-panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.ai-panel h2 {
+  margin-bottom: 0.5rem;
+}
+.ai-links,
+.ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+.ai-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+  color: var(--primary);
+}
+.ai-management button,
+.ai-management select,
+.ai-management input:not([type="checkbox"]) {
+  min-height: 44px;
+}
+.ai-management :is(button, select, input, a):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.ai-management :is(input:not([type="checkbox"]), select) {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--muted-foreground);
+  border-radius: 0.5rem;
+  background: var(--field-surface, var(--background));
+  color: var(--foreground);
+  padding: 0.5rem 0.75rem;
+}
+.ai-management :is(button, input, select):disabled {
+  opacity: 1;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  cursor: not-allowed;
+}
+.ai-notice {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--muted);
+}
+.ai-help {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.ai-profile {
+  display: grid;
+  gap: 1rem;
+}
+.ai-fields,
+.ai-credentials,
+.ai-usage-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+}
+.ai-fields label,
+.ai-task-label {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  font-size: 0.95rem;
+}
+.ai-task-label {
+  max-width: 32rem;
+}
+.ai-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+.ai-check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--primary);
+}
+.ai-credentials {
+  margin-block: 0.75rem;
+}
+.ai-management dt {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.ai-management dd {
+  margin: 0.2rem 0 0;
+}
+.ai-usage-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+.ai-usage-list li {
+  padding-block: 1rem;
+  border-top: 1px solid var(--border);
+  min-width: 0;
+}
+.ai-usage-details {
+  margin-block: 0.5rem;
+}
+.ai-management bdi {
+  overflow-wrap: anywhere;
+}
+.ai-feedback {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+.ai-image {
+  max-width: 32rem;
+  margin-inline: auto;
+}
+.ai-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}
+.ai-image figcaption {
+  margin-top: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+@media (min-width: 640px) {
+  .ai-fields,
+  .ai-credentials,
+  .ai-usage-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .ai-credentials,
+  .ai-usage-details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ai-panel {
+    padding: 1.25rem;
+  }
+}
+.ai-management-dialog button {
+  min-height: 44px;
+}
+.ai-management-dialog .ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

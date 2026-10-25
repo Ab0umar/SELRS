@@ -1,1 +1,0 @@
-server/_core/index.ts mounts the tRPC middleware at /api/trpc and registers other HTTP endpoints.

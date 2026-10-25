@@ -1,1 +1,0 @@
-Attendance, salary, accounting and KF route modules are in client/src/routes/.

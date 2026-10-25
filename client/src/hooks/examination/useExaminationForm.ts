@@ -115,7 +115,12 @@ export function useExaminationForm(
   const [, routeParams] = useRoute("/examination/:id");
   const formRef = useRef<HTMLFormElement | null>(null);
   const [loading, setLoading] = useState(false);
-  const [visitDate, setVisitDate] = useState(() => localISODate());
+  const requestedVisitDate = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("visitDate") ?? ""
+    : "";
+  const [visitDate, setVisitDate] = useState(() =>
+    /^\d{4}-\d{2}-\d{2}$/.test(requestedVisitDate) ? requestedVisitDate : localISODate(),
+  );
   const [receptionSignature, setReceptionSignature] = useState("");
   const [nurseSignature, setNurseSignature] = useState("");
   const [technicianSignature, setTechnicianSignature] = useState("");
@@ -128,6 +133,11 @@ export function useExaminationForm(
     name: "",
     code: "",
   });
+  const manuallySelectedVisitPatientRef = useRef<number | null>(null);
+  const selectVisitDate = (nextDate: string) => {
+    manuallySelectedVisitPatientRef.current = patientInfo.id;
+    setVisitDate(nextDate);
+  };
   const [patientDetails, setPatientDetails] = useState({
     dateOfBirth: "",
     age: "",
@@ -223,7 +233,7 @@ export function useExaminationForm(
       visits
         .map((visit) => formatDateForInput(visit.visitDate))
         .filter(Boolean)
-        .sort()[0] ?? ""
+        .sort().reverse()[0] ?? ""
     );
   }, [visitsQuery.data, embedded]);
   const latestExaminationId = useMemo(() => {
@@ -851,9 +861,10 @@ export function useExaminationForm(
   useEffect(() => {
     if (!patientInfo.id || !registrationVisitDate) return;
     if (initializedVisitDatePatientRef.current === patientInfo.id) return;
-    setVisitDate(registrationVisitDate);
+    if (manuallySelectedVisitPatientRef.current !== patientInfo.id &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(requestedVisitDate)) setVisitDate(registrationVisitDate);
     initializedVisitDatePatientRef.current = patientInfo.id;
-  }, [registrationVisitDate, patientInfo.id]);
+  }, [registrationVisitDate, patientInfo.id, requestedVisitDate]);
 
   // DOB -> age sync
   useEffect(() => {
@@ -1361,7 +1372,6 @@ export function useExaminationForm(
     setLoading(true);
     try {
       let effectivePatientId = patientInfo.id;
-      const editingExistingPatient = Boolean(effectivePatientId);
       const doctorCode = selectedDoctorEntry
         ? String((selectedDoctorEntry as any)?.code ?? "").trim()
         : "";
@@ -1388,6 +1398,7 @@ export function useExaminationForm(
         );
 
         const created = await createPatientFromExamMutation.mutateAsync({
+          isFollowup,
           // Do not send the prefilled code for a new patient. It may have
           // been displayed to another receptionist too; the server allocates
           // the final code while holding the MSSQL allocation lock.
@@ -1435,6 +1446,7 @@ export function useExaminationForm(
       } else {
         // Existing patient: preserve the visit date of the examination being edited.
         const updated = await createPatientFromExamMutation.mutateAsync({
+          isFollowup,
           patientId: patientInfo.id || undefined,
           patientCode: patientInfo.id
             ? patientInfo.code || undefined
@@ -1451,7 +1463,7 @@ export function useExaminationForm(
             "male" | "female" | undefined,
           serviceType: (sheetSelection as any) || "consultant",
           locationType,
-          visitDate: registrationVisitDate || visitDate || localISODate(),
+          visitDate: visitDate || registrationVisitDate || localISODate(),
           ...(doctorCode ? { doctorCode } : {}),
           ...(validServices.length > 0 ? { services: validServices } : {}),
           ...(shiftNumber ? { shiftNumber } : {}),
@@ -1546,9 +1558,7 @@ export function useExaminationForm(
 
       const savedExam = await saveExamMutation.mutateAsync({
         patientId: effectivePatientId,
-        visitDate: editingExistingPatient
-          ? registrationVisitDate || visitDate || localISODate()
-          : visitDate || localISODate(),
+        visitDate: visitDate || registrationVisitDate || localISODate(),
         visitType: isFollowup ? "followup" : "examination",
         data: payload,
       });
@@ -1654,7 +1664,7 @@ export function useExaminationForm(
     formRef,
     loading,
     visitDate,
-    setVisitDate,
+    setVisitDate: selectVisitDate,
     receptionSignature,
     setReceptionSignature,
     nurseSignature,

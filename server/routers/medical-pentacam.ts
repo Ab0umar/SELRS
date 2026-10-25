@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import {
   router,
   protectedProcedure,
+  clinicalStaffProcedure,
   doctorProcedure,
   nurseProcedure,
   technicianProcedure,
@@ -163,14 +164,14 @@ export const medicalPentacamRoutes = {
       }
     }),
 
-  getPentacamResultsByVisit: protectedProcedure
+  getPentacamResultsByVisit: clinicalStaffProcedure
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
       return await db.getPentacamResultsByVisit(input.visitId);
     }),
 
-  listPentacamDashboard: protectedProcedure
+  listPentacamDashboard: clinicalStaffProcedure
     .input(
       z.object({
         resultId: z.number().int().positive().optional(),
@@ -211,7 +212,7 @@ export const medicalPentacamRoutes = {
       return { rows: expanded };
     }),
 
-  getPentacamDashboardStats: protectedProcedure
+  getPentacamDashboardStats: clinicalStaffProcedure
     .input(
       z
         .object({ locationType: z.enum(["center", "external"]).optional() })
@@ -236,7 +237,7 @@ export const medicalPentacamRoutes = {
       };
     }),
 
-  getPentacamFilesByPatient: protectedProcedure
+  getPentacamFilesByPatient: clinicalStaffProcedure
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
@@ -329,7 +330,7 @@ export const medicalPentacamRoutes = {
       return combined.slice(0, safeLimit);
     }),
 
-  getSrv100DiagnosticImagesByPatient: protectedProcedure
+  getSrv100DiagnosticImagesByPatient: clinicalStaffProcedure
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);
@@ -354,7 +355,7 @@ export const medicalPentacamRoutes = {
         }));
     }),
 
-  getPentacamMeasurementsByPatient: protectedProcedure
+  getPentacamMeasurementsByPatient: clinicalStaffProcedure
     .input(z.object({ patientId: z.number(), limit: z.number().optional() }))
     .query(async ({ input, ctx }) => {
       await assertPentacamViewPermission(ctx.user);

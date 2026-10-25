@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CentralSchedulerSettings from "./CentralSchedulerSettings";
 import { useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -291,7 +292,8 @@ export default function MarketingSettings() {
           <div className="text-xs text-muted-foreground">{description}</div>
         )}
       </div>
-      <Button variant="bare"
+      <Button
+        variant="bare"
         type="button"
         onClick={() => onChange(!value)}
         role="switch"
@@ -312,6 +314,7 @@ export default function MarketingSettings() {
 
   return (
     <div className="space-y-6">
+      <CentralSchedulerSettings />
       <h1 className="text-2xl font-bold text-foreground">إعدادات التسويق</h1>
 
       <div className="inline-flex rounded-lg border border-border bg-muted/20 p-1">
@@ -321,7 +324,8 @@ export default function MarketingSettings() {
             ["doctor", "صفحة الدكتور"],
           ] as const
         ).map(([role, label]) => (
-          <Button variant="bare"
+          <Button
+            variant="bare"
             key={role}
             type="button"
             className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${pageRole === role ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
@@ -497,7 +501,8 @@ export default function MarketingSettings() {
         <p className="mb-3 text-xs text-muted-foreground">
           الاسم ده خاص بالمحتوى المُولَّد للصفحة الحالية فقط
         </p>
-        <Input bare
+        <Input
+          bare
           type="text"
           value={form.contentName}
           onChange={(e) =>
@@ -561,7 +566,8 @@ export default function MarketingSettings() {
                   صفحة المركز تبدأ من أول القائمة، وصفحة الدكتور من آخرها
                 </div>
               </div>
-              <select aria-label="اتجاه الموضوعات"
+              <select
+                aria-label="اتجاه الموضوعات"
                 value={form.topicDirection}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -587,7 +593,8 @@ export default function MarketingSettings() {
                   </div>
                 </div>
               </div>
-              <select aria-label="ساعة النشر"
+              <select
+                aria-label="ساعة النشر"
                 value={form.publishHour}
                 onChange={(e) =>
                   setForm((f) => ({

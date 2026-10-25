@@ -1,4 +1,5 @@
 import { ENV } from "../_core/env";
+import { sendWhatsAppConfirmation } from "./whatsappConfirmations";
 import { operationTypeLabelAr } from "../../shared/opTypes";
 
 export type OperationWhatsAppRequest = {
@@ -10,6 +11,7 @@ export type OperationWhatsAppRequest = {
   doctorName: string | null | undefined;
   hospitalName: string | null | undefined;
   status?: "confirmed" | "cancelled";
+  requestKey?: string;
 };
 
 type WhatsAppTemplateParameter = {
@@ -17,13 +19,6 @@ type WhatsAppTemplateParameter = {
   parameter_name: string;
   text: string;
 };
-
-function internationalEgyptianPhone(rawPhone: string): string | null {
-  const digits = rawPhone.replace(/\D/g, "");
-  if (/^01\d{9}$/.test(digits)) return `2${digits}`;
-  if (/^201\d{9}$/.test(digits)) return digits;
-  return null;
-}
 
 function operationDate(
   request: OperationWhatsAppRequest,
@@ -214,57 +209,24 @@ export async function sendOperationListWhatsApp(
     request.status === "cancelled"
       ? ENV.whatsappOperationCancellationTemplate
       : ENV.whatsappOperationTemplate;
-  if (!ENV.whatsappAccessToken || !ENV.whatsappPhoneNumberId || !templateName) {
-    console.warn(
-      "[operation-whatsapp] Cloud API is not configured; operation message was not sent",
-    );
-    return;
-  }
-
-  const recipientPhone = request.recipientPhone
-    ? internationalEgyptianPhone(request.recipientPhone)
-    : null;
-  if (!recipientPhone) {
-    console.warn(
-      `[operation-whatsapp] Patient ${request.patientName || "unknown"} has no valid Egyptian mobile number`,
-    );
-    return;
-  }
-
-  const response = await fetch(
-    `https://graph.facebook.com/${ENV.whatsappApiVersion}/${ENV.whatsappPhoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${ENV.whatsappAccessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: recipientPhone,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: ENV.whatsappTemplateLanguage },
-          components: [
-            {
-              type: "body",
-              parameters: templateParameters(request, templateName),
-            },
-          ],
+  await sendWhatsAppConfirmation({
+    kind:
+      request.status === "cancelled"
+        ? "operation_cancelled"
+        : "operation_confirmed",
+    recipientPhone: request.recipientPhone,
+    patientName: request.patientName,
+    templateName,
+    requestKey: request.requestKey,
+    buildTemplate: () => ({
+      name: templateName,
+      language: { code: ENV.whatsappTemplateLanguage },
+      components: [
+        {
+          type: "body",
+          parameters: templateParameters(request, templateName),
         },
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    const responseBody = await response.text();
-    throw new Error(
-      `WhatsApp Cloud API template "${templateName}" returned ${response.status}: ${responseBody}`,
-    );
-  }
-
-  console.info(
-    `[operation-whatsapp] Meta accepted operation message for ${recipientPhone}`,
-  );
+      ],
+    }),
+  });
 }

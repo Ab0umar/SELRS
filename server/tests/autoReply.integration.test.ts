@@ -33,9 +33,10 @@ import {
 
 vi.mock("../db", () => ({
   getDb: vi.fn(),
+  getDbConnection: vi.fn(),
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
-import { getDb } from "../db";
+import { getDb, getDbConnection } from "../db";
 import {
   autoReplyConversations as conversations,
   autoReplyJobs as jobs,
@@ -75,6 +76,8 @@ describe.skipIf(!testUrl)(
     let db: MySql2Database;
     let vaultDirectory: string;
     const tableNames = [
+      "ai_core_usage",
+      "ai_core_profiles",
       "auto_reply_sync_events",
       "auto_reply_contacts",
       "auto_reply_onboarding",
@@ -107,6 +110,13 @@ describe.skipIf(!testUrl)(
       });
       db = drizzle(pool);
       vi.mocked(getDb).mockResolvedValue(db);
+      vi.mocked(getDbConnection).mockImplementation(() => pool.getConnection());
+      const core = await readFile(
+        new URL("../../drizzle/ai_core_management.sql", import.meta.url),
+        "utf8",
+      );
+      for (const statement of core.split(";").filter((s) => s.trim()))
+        await pool.query(statement);
       for (const file of [
         "0104_auto_reply.sql",
         "0105_auto_reply_facebook_pages.sql",
@@ -812,6 +822,63 @@ describe.skipIf(!testUrl)(
       expect(
         network.mock.calls.filter(([url]) => url.includes("graph.facebook")),
       ).toHaveLength(1);
+    });
+    it("runs the optional central engine through durable worker guards and existing delivery", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, engine: "central" }, 1);
+      vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "true");
+      await pool.query(
+        "INSERT INTO ai_core_profiles (workload,provider,model,enabled) VALUES ('reply.live','gemini','gemini-3.8-flash',1)",
+      );
+      await ingestEvents([event()]);
+      mockNetwork();
+      await Promise.all([runAutoReplyTick(), runAutoReplyTick()]);
+      expect((await db.select().from(jobs))[0]).toMatchObject({
+        state: "sent",
+        inputTokens: 10,
+        outputTokens: 5,
+      });
+      const [usage] = await pool.query<mysql.RowDataPacket[]>(
+        "SELECT state,workload FROM ai_core_usage",
+      );
+      expect(usage).toMatchObject([
+        { state: "completed", workload: "reply.live" },
+      ]);
+      expect(
+        (await db.select().from(messages)).filter(
+          (row) => row.direction === "bot",
+        ),
+      ).toHaveLength(1);
+    });
+    it("never rebills central generation after an ambiguous provider outcome even if a job is requeued", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, engine: "central" }, 1);
+      vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "true");
+      await pool.query(
+        "INSERT INTO ai_core_profiles (workload,provider,model,enabled) VALUES ('reply.live','gemini','gemini-3.8-flash',1)",
+      );
+      await ingestEvents([event()]);
+      const network = vi.fn(async () => {
+        throw new Error("synthetic network timeout");
+      });
+      vi.stubGlobal("fetch", network);
+      await runAutoReplyTick();
+      expect((await db.select().from(jobs))[0].state).toBe("unknown");
+      const [usage] = await pool.query<mysql.RowDataPacket[]>(
+        "SELECT state,reserved_tokens FROM ai_core_usage",
+      );
+      expect(usage[0].state).toBe("uncertain");
+      expect(usage[0].reserved_tokens).toBeGreaterThan(0);
+      await db.update(jobs).set({ state: "retry", availableAt: new Date(0) });
+      await db.update(conversations).set({ status: "open" });
+      await runAutoReplyTick();
+      expect((await db.select().from(jobs))[0].state).toBe("unknown");
+      expect(network).toHaveBeenCalledTimes(1);
+      expect(
+        (await db.select().from(messages)).filter(
+          (row) => row.direction === "bot",
+        ),
+      ).toHaveLength(0);
     });
     it("persists a human request even while sending is stopped", async () => {
       await ingestEvents([event("human", "عايز موظف")]);

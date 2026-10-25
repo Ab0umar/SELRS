@@ -39,7 +39,6 @@ import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
 import { initMarketingScheduler } from "../services/marketing/scheduler.service";
 import { initManusGenerationWorker } from "../services/marketing/manusGeneration.service";
 import { startOpReminderScheduler } from "./opReminderScheduler";
-import { startAccSyncScheduler } from "./accSyncScheduler";
 import { startPunchReception } from "../services/attendance/punchReception.service";
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
 import { autoLinkUnlinkedPentacamFiles } from "../routers/medical-pentacam";
@@ -1908,10 +1907,16 @@ async function startServer() {
       res.setHeader("Content-Type", mimeType);
       res.setHeader("Content-Length", String(fileBuffer.length));
       res.setHeader("Cache-Control", "private, max-age=3600");
+      // Header values must be latin1: use an ASCII fallback plus RFC 5987
+      // filename* so Arabic names don't make setHeader throw.
+      const asciiFileName =
+        fileName.replace(/[^\x20-\x7e]+/g, "_").replace(/["\\]/g, "") ||
+        "document";
       res.setHeader(
         "Content-Disposition",
-        `${download ? "attachment" : "inline"}; filename="${fileName.replace(/"/g, "")}"`,
+        `${download ? "attachment" : "inline"}; filename="${asciiFileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       );
+      res.setHeader("X-Content-Type-Options", "nosniff");
       res.status(200).send(fileBuffer);
     } catch (error: any) {
       res.status(500).json({
@@ -2612,7 +2617,6 @@ async function startServer() {
   // Pentacam/Srv100 import+OCR loops now run as a standalone service
   // (server/services/pentacam.ts, `pnpm pentacam:service`), not in the web server.
   startOpReminderScheduler();
-  startAccSyncScheduler();
 }
 
 if (!process.env.SELRS_PENTACAM_SERVICE) {
