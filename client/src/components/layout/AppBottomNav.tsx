@@ -475,14 +475,14 @@ export function AppBottomNav({
                   className="size-6 shrink-0"
                   strokeWidth={active ? 2.2 : 1.8}
                 />
-                {tab.key !== "dashboard" && <span
+                <span
                   className={cn(
                     "max-w-full whitespace-normal text-center text-xs leading-tight",
                     active ? "font-semibold" : "font-medium",
                   )}
                 >
                   {tab.label}
-                </span>}
+                </span>
               </Button>
             );
           })}
