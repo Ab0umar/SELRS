@@ -19,6 +19,8 @@ import {
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { deduplicateOperationHistory } from "./lib/operationHistory";
+import { savePrescription, replaceVisitPrescription, replaceVisitTestRequests, type PrescriptionInput } from "./services/prescription-persistence";
+import { savePatientFollowups, type FollowupSaveInput } from "./services/followup-persistence";
 import mysql from "mysql2/promise";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -3530,6 +3532,12 @@ export async function createFollowupSheet(data: any) {
   return result;
 }
 
+export async function saveFollowupSheetItems(input: FollowupSaveInput) {
+  const connection = await getDb();
+  if (!connection) throw new Error("Database not available");
+  return savePatientFollowups(connection, input);
+}
+
 export async function getFollowupSheetsByPatient(
   patientId: number,
   sheetType?: string,
@@ -4096,23 +4104,23 @@ export async function createPentacamResult(pentacamData: any) {
     pachymetryOD: pentacamData.pachymetryOD,
     pachymetryOS: pentacamData.pachymetryOS,
     // Right eye (OD) data
-    k1OD: pentacamData.rtK1, // rtK1 = right K1 = OD K1
-    k2OD: pentacamData.rtK2, // rtK2 = right K2 = OD K2
-    axisOD: pentacamData.rtAX,
-    thinnestPointOD: pentacamData.rtThinnestPoint,
-    apexOD: pentacamData.rtApex,
-    residualOD: pentacamData.rtResidual,
-    tttOD: pentacamData.rtTTT,
-    ablationOD: pentacamData.rtAblation,
+    k1OD: pentacamData.rtK1 ?? pentacamData.k1OD, // rtK1 = right K1 = OD K1
+    k2OD: pentacamData.rtK2 ?? pentacamData.k2OD, // rtK2 = right K2 = OD K2
+    axisOD: pentacamData.rtAX ?? pentacamData.axisOD,
+    thinnestPointOD: pentacamData.rtThinnestPoint ?? pentacamData.thinnestPointOD,
+    apexOD: pentacamData.rtApex ?? pentacamData.apexOD,
+    residualOD: pentacamData.rtResidual ?? pentacamData.residualOD,
+    tttOD: pentacamData.rtTTT ?? pentacamData.tttOD,
+    ablationOD: pentacamData.rtAblation ?? pentacamData.ablationOD,
     // Left eye (OS) data
-    k1OS: pentacamData.ltK1, // ltK1 = left K1 = OS K1
-    k2OS: pentacamData.ltK2,
-    axisOS: pentacamData.ltAX,
-    thinnestPointOS: pentacamData.ltThinnestPoint,
-    apexOS: pentacamData.ltApex,
-    residualOS: pentacamData.ltResidual,
-    tttOS: pentacamData.ltTTT,
-    ablationOS: pentacamData.ltAblation,
+    k1OS: pentacamData.ltK1 ?? pentacamData.k1OS, // ltK1 = left K1 = OS K1
+    k2OS: pentacamData.ltK2 ?? pentacamData.k2OS,
+    axisOS: pentacamData.ltAX ?? pentacamData.axisOS,
+    thinnestPointOS: pentacamData.ltThinnestPoint ?? pentacamData.thinnestPointOS,
+    apexOS: pentacamData.ltApex ?? pentacamData.apexOS,
+    residualOS: pentacamData.ltResidual ?? pentacamData.residualOS,
+    tttOS: pentacamData.ltTTT ?? pentacamData.tttOS,
+    ablationOS: pentacamData.ltAblation ?? pentacamData.ablationOS,
     notes: pentacamData.techniciansNotes,
   };
 
@@ -4130,36 +4138,36 @@ export async function updatePentacamResult(
   // Map input parameters to database columns
   const dbRecord: any = {};
 
-  if (pentacamData.pachymetryOD)
+  if (pentacamData.pachymetryOD !== undefined && pentacamData.pachymetryOD !== null)
     dbRecord.pachymetryOD = pentacamData.pachymetryOD;
-  if (pentacamData.pachymetryOS)
+  if (pentacamData.pachymetryOS !== undefined && pentacamData.pachymetryOS !== null)
     dbRecord.pachymetryOS = pentacamData.pachymetryOS;
 
   // Right eye (OD) data
-  if (pentacamData.k1OD) dbRecord.k1OD = pentacamData.k1OD;
-  if (pentacamData.k2OD) dbRecord.k2OD = pentacamData.k2OD;
-  if (pentacamData.axisOD) dbRecord.axisOD = pentacamData.axisOD;
-  if (pentacamData.thinnestPointOD)
+  if (pentacamData.k1OD !== undefined && pentacamData.k1OD !== null) dbRecord.k1OD = pentacamData.k1OD;
+  if (pentacamData.k2OD !== undefined && pentacamData.k2OD !== null) dbRecord.k2OD = pentacamData.k2OD;
+  if (pentacamData.axisOD !== undefined && pentacamData.axisOD !== null) dbRecord.axisOD = pentacamData.axisOD;
+  if (pentacamData.thinnestPointOD !== undefined && pentacamData.thinnestPointOD !== null)
     dbRecord.thinnestPointOD = pentacamData.thinnestPointOD;
-  if (pentacamData.apexOD) dbRecord.apexOD = pentacamData.apexOD;
-  if (pentacamData.residualOD) dbRecord.residualOD = pentacamData.residualOD;
-  if (pentacamData.tttOD) dbRecord.tttOD = pentacamData.tttOD;
-  if (pentacamData.ablationOD) dbRecord.ablationOD = pentacamData.ablationOD;
+  if (pentacamData.apexOD !== undefined && pentacamData.apexOD !== null) dbRecord.apexOD = pentacamData.apexOD;
+  if (pentacamData.residualOD !== undefined && pentacamData.residualOD !== null) dbRecord.residualOD = pentacamData.residualOD;
+  if (pentacamData.tttOD !== undefined && pentacamData.tttOD !== null) dbRecord.tttOD = pentacamData.tttOD;
+  if (pentacamData.ablationOD !== undefined && pentacamData.ablationOD !== null) dbRecord.ablationOD = pentacamData.ablationOD;
 
   // Left eye (OS) data
-  if (pentacamData.k1OS) dbRecord.k1OS = pentacamData.k1OS;
-  if (pentacamData.k2OS) dbRecord.k2OS = pentacamData.k2OS;
-  if (pentacamData.axisOS) dbRecord.axisOS = pentacamData.axisOS;
-  if (pentacamData.thinnestPointOS)
+  if (pentacamData.k1OS !== undefined && pentacamData.k1OS !== null) dbRecord.k1OS = pentacamData.k1OS;
+  if (pentacamData.k2OS !== undefined && pentacamData.k2OS !== null) dbRecord.k2OS = pentacamData.k2OS;
+  if (pentacamData.axisOS !== undefined && pentacamData.axisOS !== null) dbRecord.axisOS = pentacamData.axisOS;
+  if (pentacamData.thinnestPointOS !== undefined && pentacamData.thinnestPointOS !== null)
     dbRecord.thinnestPointOS = pentacamData.thinnestPointOS;
-  if (pentacamData.apexOS) dbRecord.apexOS = pentacamData.apexOS;
-  if (pentacamData.residualOS) dbRecord.residualOS = pentacamData.residualOS;
-  if (pentacamData.tttOS) dbRecord.tttOS = pentacamData.tttOS;
-  if (pentacamData.ablationOS) dbRecord.ablationOS = pentacamData.ablationOS;
+  if (pentacamData.apexOS !== undefined && pentacamData.apexOS !== null) dbRecord.apexOS = pentacamData.apexOS;
+  if (pentacamData.residualOS !== undefined && pentacamData.residualOS !== null) dbRecord.residualOS = pentacamData.residualOS;
+  if (pentacamData.tttOS !== undefined && pentacamData.tttOS !== null) dbRecord.tttOS = pentacamData.tttOS;
+  if (pentacamData.ablationOS !== undefined && pentacamData.ablationOS !== null) dbRecord.ablationOS = pentacamData.ablationOS;
 
-  if (pentacamData.techniciansNotes)
+  if (pentacamData.techniciansNotes !== undefined && pentacamData.techniciansNotes !== null)
     dbRecord.notes = pentacamData.techniciansNotes;
-  if (pentacamData.recordedBy) dbRecord.recordedBy = pentacamData.recordedBy;
+  if (pentacamData.recordedBy !== undefined && pentacamData.recordedBy !== null) dbRecord.recordedBy = pentacamData.recordedBy;
 
   await db
     .update(pentacamResults)
@@ -4181,6 +4189,9 @@ export async function getPentacamResultsByVisit(visitId: number) {
  * Create or update autorefraction data
  * Accepts either flattened object (from ExaminationForm) or nested object (from MedicalFilePanel)
  */
+const pickDefined = (...values: unknown[]) =>
+  values.find((v) => v !== undefined);
+
 export async function saveAutorefractometryData(dataInput: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -4207,48 +4218,40 @@ export async function saveAutorefractometryData(dataInput: any) {
   };
 
   // Handle both flattened format (from ExaminationForm) and nested format (from MedicalFilePanel)
-  if (dataInput.sphereOD) dbRecord.sphereOD = dataInput.sphereOD;
-  else if (dataInput.od?.s) dbRecord.sphereOD = dataInput.od.s;
+  { const v = pickDefined(dataInput.sphereOD, dataInput.od?.s); if (v !== undefined) dbRecord.sphereOD = v; }
 
-  if (dataInput.cylinderOD) dbRecord.cylinderOD = dataInput.cylinderOD;
-  else if (dataInput.od?.c) dbRecord.cylinderOD = dataInput.od.c;
+  { const v = pickDefined(dataInput.cylinderOD, dataInput.od?.c); if (v !== undefined) dbRecord.cylinderOD = v; }
 
-  if (dataInput.axisOD) dbRecord.axisOD = dataInput.axisOD;
-  else if (dataInput.od?.axis) dbRecord.axisOD = dataInput.od.axis;
+  { const v = pickDefined(dataInput.axisOD, dataInput.od?.axis); if (v !== undefined) dbRecord.axisOD = v; }
 
-  if (dataInput.ucvaOD) dbRecord.ucvaOD = dataInput.ucvaOD;
-  else if (dataInput.od?.ucva) dbRecord.ucvaOD = dataInput.od.ucva;
+  { const v = pickDefined(dataInput.ucvaOD, dataInput.od?.ucva); if (v !== undefined) dbRecord.ucvaOD = v; }
 
-  if (dataInput.bcvaOD) dbRecord.bcvaOD = dataInput.bcvaOD;
-  else if (dataInput.od?.bcva) dbRecord.bcvaOD = dataInput.od.bcva;
+  { const v = pickDefined(dataInput.bcvaOD, dataInput.od?.bcva); if (v !== undefined) dbRecord.bcvaOD = v; }
 
-  if (dataInput.sphereOS) dbRecord.sphereOS = dataInput.sphereOS;
-  else if (dataInput.os?.s) dbRecord.sphereOS = dataInput.os.s;
+  { const v = pickDefined(dataInput.sphereOS, dataInput.os?.s); if (v !== undefined) dbRecord.sphereOS = v; }
 
-  if (dataInput.cylinderOS) dbRecord.cylinderOS = dataInput.cylinderOS;
-  else if (dataInput.os?.c) dbRecord.cylinderOS = dataInput.os.c;
+  { const v = pickDefined(dataInput.cylinderOS, dataInput.os?.c); if (v !== undefined) dbRecord.cylinderOS = v; }
 
-  if (dataInput.axisOS) dbRecord.axisOS = dataInput.axisOS;
-  else if (dataInput.os?.axis) dbRecord.axisOS = dataInput.os.axis;
+  { const v = pickDefined(dataInput.axisOS, dataInput.os?.axis); if (v !== undefined) dbRecord.axisOS = v; }
 
-  if (dataInput.ucvaOS) dbRecord.ucvaOS = dataInput.ucvaOS;
-  else if (dataInput.os?.ucva) dbRecord.ucvaOS = dataInput.os.ucva;
+  { const v = pickDefined(dataInput.ucvaOS, dataInput.os?.ucva); if (v !== undefined) dbRecord.ucvaOS = v; }
 
-  if (dataInput.bcvaOS) dbRecord.bcvaOS = dataInput.bcvaOS;
-  else if (dataInput.os?.bcva) dbRecord.bcvaOS = dataInput.os.bcva;
+  { const v = pickDefined(dataInput.bcvaOS, dataInput.os?.bcva); if (v !== undefined) dbRecord.bcvaOS = v; }
 
   // IOP
-  if (dataInput.iopOD) dbRecord.iopOD = dataInput.iopOD;
-  else if (dataInput.iop?.od) dbRecord.iopOD = dataInput.iop.od;
-  else if (dataInput.od?.airPuff1) dbRecord.iopOD = dataInput.od.airPuff1;
-  else if (dataInput.od?.airPuff2) dbRecord.iopOD = dataInput.od.airPuff2;
-  else if (dataInput.od?.airPuff3) dbRecord.iopOD = dataInput.od.airPuff3;
+  {
+    const v =
+      pickDefined(dataInput.iopOD, dataInput.iop?.od,
+        dataInput.od?.airPuff1, dataInput.od?.airPuff2, dataInput.od?.airPuff3);
+    if (v !== undefined) dbRecord.iopOD = v;
+  }
 
-  if (dataInput.iopOS) dbRecord.iopOS = dataInput.iopOS;
-  else if (dataInput.iop?.os) dbRecord.iopOS = dataInput.iop.os;
-  else if (dataInput.os?.airPuff1) dbRecord.iopOS = dataInput.os.airPuff1;
-  else if (dataInput.os?.airPuff2) dbRecord.iopOS = dataInput.os.airPuff2;
-  else if (dataInput.os?.airPuff3) dbRecord.iopOS = dataInput.os.airPuff3;
+  {
+    const v =
+      pickDefined(dataInput.iopOS, dataInput.iop?.os,
+        dataInput.os?.airPuff1, dataInput.os?.airPuff2, dataInput.os?.airPuff3);
+    if (v !== undefined) dbRecord.iopOS = v;
+  }
 
   const hasClinicalValues = Object.keys(dbRecord).some(
     (key) => key !== "examinationId" && key !== "patientId",
@@ -4297,41 +4300,29 @@ export async function saveGlassesRecord(dataInput: any) {
   };
 
   // Handle both flattened format (from ExaminationForm) and nested format (from MedicalFilePanel)
-  if (dataInput.sOD) dbRecord.sOD = dataInput.sOD;
-  else if (dataInput.od?.s) dbRecord.sOD = dataInput.od.s;
+  { const v = pickDefined(dataInput.sOD, dataInput.od?.s); if (v !== undefined) dbRecord.sOD = v; }
 
-  if (dataInput.cOD) dbRecord.cOD = dataInput.cOD;
-  else if (dataInput.od?.c) dbRecord.cOD = dataInput.od.c;
+  { const v = pickDefined(dataInput.cOD, dataInput.od?.c); if (v !== undefined) dbRecord.cOD = v; }
 
-  if (dataInput.axisOD) dbRecord.axisOD = dataInput.axisOD;
-  else if (dataInput.od?.axis) dbRecord.axisOD = dataInput.od.axis;
+  { const v = pickDefined(dataInput.axisOD, dataInput.od?.axis); if (v !== undefined) dbRecord.axisOD = v; }
 
-  if (dataInput.pdOD) dbRecord.pdOD = dataInput.pdOD;
-  else if (dataInput.od?.pd) dbRecord.pdOD = dataInput.od.pd;
+  { const v = pickDefined(dataInput.pdOD, dataInput.od?.pd); if (v !== undefined) dbRecord.pdOD = v; }
 
-  if (dataInput.addOD) dbRecord.addOD = dataInput.addOD;
-  else if (dataInput.od?.add) dbRecord.addOD = dataInput.od.add;
+  { const v = pickDefined(dataInput.addOD, dataInput.od?.add); if (v !== undefined) dbRecord.addOD = v; }
 
-  if (dataInput.bcvaOD) dbRecord.bcvaOD = dataInput.bcvaOD;
-  else if (dataInput.od?.bcva) dbRecord.bcvaOD = dataInput.od.bcva;
+  { const v = pickDefined(dataInput.bcvaOD, dataInput.od?.bcva); if (v !== undefined) dbRecord.bcvaOD = v; }
 
-  if (dataInput.sOS) dbRecord.sOS = dataInput.sOS;
-  else if (dataInput.os?.s) dbRecord.sOS = dataInput.os.s;
+  { const v = pickDefined(dataInput.sOS, dataInput.os?.s); if (v !== undefined) dbRecord.sOS = v; }
 
-  if (dataInput.cOS) dbRecord.cOS = dataInput.cOS;
-  else if (dataInput.os?.c) dbRecord.cOS = dataInput.os.c;
+  { const v = pickDefined(dataInput.cOS, dataInput.os?.c); if (v !== undefined) dbRecord.cOS = v; }
 
-  if (dataInput.axisOS) dbRecord.axisOS = dataInput.axisOS;
-  else if (dataInput.os?.axis) dbRecord.axisOS = dataInput.os.axis;
+  { const v = pickDefined(dataInput.axisOS, dataInput.os?.axis); if (v !== undefined) dbRecord.axisOS = v; }
 
-  if (dataInput.pdOS) dbRecord.pdOS = dataInput.pdOS;
-  else if (dataInput.os?.pd) dbRecord.pdOS = dataInput.os.pd;
+  { const v = pickDefined(dataInput.pdOS, dataInput.os?.pd); if (v !== undefined) dbRecord.pdOS = v; }
 
-  if (dataInput.addOS) dbRecord.addOS = dataInput.addOS;
-  else if (dataInput.os?.add) dbRecord.addOS = dataInput.os.add;
+  { const v = pickDefined(dataInput.addOS, dataInput.os?.add); if (v !== undefined) dbRecord.addOS = v; }
 
-  if (dataInput.bcvaOS) dbRecord.bcvaOS = dataInput.bcvaOS;
-  else if (dataInput.os?.bcva) dbRecord.bcvaOS = dataInput.os.bcva;
+  { const v = pickDefined(dataInput.bcvaOS, dataInput.os?.bcva); if (v !== undefined) dbRecord.bcvaOS = v; }
 
   if (existing.length > 0) {
     await db
@@ -5235,40 +5226,20 @@ export async function createPrescription(prescriptionData: any) {
 
   const { medicationName, dosage, frequency, duration, instructions, ...base } =
     prescriptionData ?? {};
-
-  const result = await db.insert(prescriptions).values({
+  if (medicationName) {
+    return createPrescriptionWithItems({
+      patientId: base.patientId,
+      visitId: base.visitId,
+      doctorId: base.doctorId,
+      notes: base.notes,
+      date: base.prescriptionDate ? new Date(base.prescriptionDate).toISOString().slice(0, 10) : undefined,
+      items: [{ medicationName, dosage, frequency, duration, instructions }],
+    });
+  }
+  return db.insert(prescriptions).values({
     ...base,
     prescriptionDate: base.prescriptionDate ?? new Date(),
   });
-
-  if (medicationName) {
-    const existing = await db
-      .select()
-      .from(medications)
-      .where(eq(medications.name, medicationName))
-      .limit(1);
-    let medicationId: number | undefined;
-    if (existing.length > 0) {
-      medicationId = existing[0].id;
-    } else {
-      const inserted = await db.insert(medications).values({
-        name: medicationName,
-        type: "other",
-      });
-      medicationId = (inserted as any).insertId as number;
-    }
-
-    await db.insert(prescriptionItems).values({
-      prescriptionId: (result as any).insertId,
-      medicationId,
-      dosage: dosage ?? null,
-      frequency: frequency ?? null,
-      duration: duration ?? null,
-      instructions: instructions ?? null,
-    });
-  }
-
-  return result;
 }
 
 export async function getPrescriptionsByVisit(visitId: number) {
@@ -5515,92 +5486,22 @@ export async function getPrescriptionsOverviewRows(input: {
   };
 }
 
-export async function createPrescriptionWithItems(data: {
-  patientId: number;
-  visitId?: number;
-  doctorId?: number;
-  date?: string;
-  notes?: string;
-  items: Array<{
-    medicationId?: number;
-    medicationName: string;
-    dosage?: string;
-    frequency?: string;
-    duration?: string;
-    instructions?: string;
-  }>;
-}) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+export async function createPrescriptionWithItems(input: PrescriptionInput) {
+  const connection = await getDb();
+  if (!connection) throw new Error("Database not available");
+  return savePrescription(connection, input);
+}
 
-  const validItems = data.items.filter((item) => {
-    const hasId =
-      typeof item.medicationId === "number" && item.medicationId > 0;
-    const hasName = Boolean(item.medicationName && item.medicationName.trim());
-    return hasId || hasName;
-  });
-  console.log("[createPrescriptionWithItems] validItems", {
-    total: data.items.length,
-    valid: validItems.length,
-    first: validItems[0],
-  });
-  if (validItems.length === 0) {
-    throw new Error("Cannot create prescription without items");
-  }
+export async function replacePrescriptionWithItems(input: PrescriptionInput & { visitId: number }) {
+  const connection = await getDb();
+  if (!connection) throw new Error("Database not available");
+  return replaceVisitPrescription(connection, input);
+}
 
-  const prescription = await db.insert(prescriptions).values({
-    patientId: data.patientId,
-    visitId: data.visitId ?? null,
-    doctorId: data.doctorId ?? null,
-    notes: data.notes ?? null,
-    prescriptionDate: data.date ? new Date(data.date) : new Date(),
-  });
-
-  let prescriptionId = (prescription as any).insertId as number | undefined;
-  if (!prescriptionId) {
-    const lastIdResult = await db.execute(sql`select last_insert_id() as id`);
-    const rows =
-      (lastIdResult as any)?.[0] ?? (lastIdResult as any)?.rows ?? lastIdResult;
-    const resolvedId = Array.isArray(rows) ? rows[0]?.id : rows?.id;
-    prescriptionId = resolvedId ? Number(resolvedId) : undefined;
-  }
-  if (!prescriptionId) return prescription;
-
-  for (const item of validItems) {
-    const providedId =
-      typeof item.medicationId === "number" && item.medicationId > 0
-        ? item.medicationId
-        : undefined;
-    let medicationId: number | undefined = providedId;
-    if (!medicationId) {
-      const name = item.medicationName?.trim();
-      if (!name) continue;
-      const existing = await db
-        .select()
-        .from(medications)
-        .where(eq(medications.name, name))
-        .limit(1);
-      if (existing.length > 0) {
-        medicationId = existing[0].id;
-      } else {
-        const inserted = await db
-          .insert(medications)
-          .values({ name, type: "other" });
-        medicationId = (inserted as any).insertId as number;
-      }
-    }
-
-    await db.insert(prescriptionItems).values({
-      prescriptionId,
-      medicationId,
-      dosage: item.dosage ?? null,
-      frequency: item.frequency ?? null,
-      duration: item.duration ?? null,
-      instructions: item.instructions ?? null,
-    });
-  }
-
-  return prescription;
+export async function replaceTestRequest(input: Parameters<typeof replaceVisitTestRequests>[1]) {
+  const connection = await getDb();
+  if (!connection) throw new Error("Database not available");
+  return replaceVisitTestRequests(connection, input);
 }
 
 export async function deletePrescription(prescriptionId: number) {
@@ -6017,6 +5918,16 @@ export async function getTestRequestsByVisit(visitId: number) {
     }),
   );
   return withItems;
+}
+
+export async function deleteTestRequestsByIds(ids: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (ids.length === 0) return;
+  await db
+    .delete(testRequestItems)
+    .where(inArray(testRequestItems.testRequestId, ids));
+  await db.delete(testRequests).where(inArray(testRequests.id, ids));
 }
 
 export async function deleteTestRequestsByVisit(visitId: number) {
@@ -7330,14 +7241,21 @@ export async function disablePushDeviceToken(token: string) {
     .where(eq(pushDeviceRegistrations.token, normalized));
 }
 
-export async function deletePushDeviceToken(token: string) {
+export async function deletePushDeviceToken(token: string, userId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const normalized = String(token ?? "").trim();
   if (!normalized) return;
   await db
     .delete(pushDeviceRegistrations)
-    .where(eq(pushDeviceRegistrations.token, normalized));
+    .where(
+      userId
+        ? and(
+            eq(pushDeviceRegistrations.token, normalized),
+            eq(pushDeviceRegistrations.userId, userId),
+          )
+        : eq(pushDeviceRegistrations.token, normalized),
+    );
 }
 
 export async function getActivePushDeviceRegistrations() {
@@ -8925,7 +8843,10 @@ export async function getVisitScheduleRequestsByDate(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const conditions = [eq(visitScheduleRequests.visitDate, dateIso as any)];
+  const conditions = [
+    eq(visitScheduleRequests.visitDate, dateIso as any),
+    eq(visitScheduleRequests.status, "scheduled"),
+  ];
   if (branch) conditions.push(eq(visitScheduleRequests.branch, branch));
 
   return await db

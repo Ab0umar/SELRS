@@ -19,6 +19,28 @@ const ALLOWED_MIME_TYPES = [
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB
 
+function matchesImageSignature(buffer: Buffer, mimeType: string): boolean {
+  const startsWith = (...bytes: number[]) =>
+    bytes.every((byte, index) => buffer[index] === byte);
+  switch (mimeType) {
+    case "image/jpeg":
+      return startsWith(0xff, 0xd8, 0xff);
+    case "image/png":
+      return startsWith(0x89, 0x50, 0x4e, 0x47);
+    case "image/gif":
+      return startsWith(0x47, 0x49, 0x46, 0x38);
+    case "image/bmp":
+      return startsWith(0x42, 0x4d);
+    case "image/webp":
+      return (
+        buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+        buffer.subarray(8, 12).toString("ascii") === "WEBP"
+      );
+    default:
+      return false;
+  }
+}
+
 function normalizeRows(rows: unknown): any[] {
   if (!Array.isArray(rows)) return [];
   if (Array.isArray(rows[0])) return rows[0] as any[];
@@ -70,6 +92,13 @@ export const medicalUploadsRoutes = {
     .mutation(async ({ input }) => {
       const fileBuffer = Buffer.from(input.fileDataBase64, "base64");
 
+      if (fileBuffer.byteLength === 0 || !matchesImageSignature(fileBuffer, input.mimeType)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "الملف تالف أو لا يطابق نوع الصورة المحدد.",
+        });
+      }
+
       if (fileBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -84,7 +113,9 @@ export const medicalUploadsRoutes = {
           message: "DB unavailable",
         });
 
-      const safeFileName = input.fileName.slice(0, 255);
+      const safeFileName = input.fileName
+        .replace(/[\\/\u0000-\u001f]+/g, "_")
+        .slice(0, 255);
       const ts = Date.now();
       const documentId = `diagnosis-${input.patientId}-${ts}`;
       const s3Key = `diagnosis/${input.patientId}/${ts}_${safeFileName}`;
@@ -93,8 +124,9 @@ export const medicalUploadsRoutes = {
       try {
         await uploadToS3(s3Key, fileBuffer, input.mimeType);
         uploadedS3Key = s3Key;
-      } catch {
+      } catch (error) {
         // S3 not configured or failed — fall back to storing blob in DB
+        console.warn("[medical.uploadDiagnosisImage] S3 upload failed, storing in DB", error);
       }
 
       const result = (await db.execute(

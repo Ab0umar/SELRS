@@ -1443,6 +1443,8 @@ export const visitScheduleRequests = mysqlTable(
   "visit_schedule_requests",
   {
     id: int("id").autoincrement().primaryKey(),
+    patientId: int("patientId"),
+    status: mysqlEnum("status", ["scheduled", "registered", "cancelled"]).default("scheduled").notNull(),
     fullName: varchar("fullName", { length: 255 }).notNull(),
     age: int("age"),
     visitDate: date("visitDate").notNull(),
@@ -1458,6 +1460,7 @@ export const visitScheduleRequests = mysqlTable(
     visitDateIdx: index("idx_visit_schedule_requests_visitDate").on(
       table.visitDate,
     ),
+    patientStatusIdx: index("idx_visit_schedule_patient_status").on(table.patientId, table.status),
   }),
 );
 

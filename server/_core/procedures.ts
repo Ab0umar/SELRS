@@ -981,3 +981,50 @@ export const attendanceAdminProcedure = t.procedure.use(
     });
   }),
 );
+
+// Clinical read/write access for any role that works with patient data
+// (includes accountant for billing screens). Other roles (worker, supervisor)
+// need an explicit patient-related page permission.
+const CLINICAL_STAFF_ROLES = [
+  "doctor",
+  "nurse",
+  "technician",
+  "reception",
+  "accountant",
+  "manager",
+  "admin",
+];
+export const clinicalStaffProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+    if (!ctx.user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
+    }
+    const role = String(ctx.user.role ?? "").toLowerCase();
+    if (!CLINICAL_STAFF_ROLES.includes(role)) {
+      const permissions = await db.getEffectiveUserPermissions(
+        ctx.user.id,
+        ctx.user.role ?? undefined,
+      );
+      const allowed = permissions.some((permission) => {
+        const clean = String(permission ?? "")
+          .replace(/:r[w]?$/, "")
+          .trim();
+        return (
+          permMatchesPath(clean, "/patients") ||
+          permMatchesPath(clean, "/patient-file")
+        );
+      });
+      if (!allowed) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Clinical staff access required",
+        });
+      }
+    }
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }),
+);

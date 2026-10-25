@@ -147,7 +147,15 @@ export function AppointmentsSection({
   const { user } = useAuth();
   const userRole = String((user as any)?.role ?? "").toLowerCase();
   const canDeletePatient = userRole === "admin";
-  const canManageTreated = ["doctor", "nurse", "technician", "reception", "accountant", "manager", "admin"].includes(userRole);
+  const canManageTreated = [
+    "doctor",
+    "nurse",
+    "technician",
+    "reception",
+    "accountant",
+    "manager",
+    "admin",
+  ].includes(userRole);
   const [deleteTarget, setDeleteTarget] = useState<TodayQueuePatient | null>(
     null,
   );
@@ -183,7 +191,9 @@ export function AppointmentsSection({
   const [registrationTarget, setRegistrationTarget] =
     useState<BookingRegistrationTarget | null>(null);
 
-  const queue = useTodayQueuePatientsMerged(selectedDate, { includeExternal: showExternal });
+  const queue = useTodayQueuePatientsMerged(selectedDate, {
+    includeExternal: showExternal,
+  });
   const { merged, isLoading, byStatus } = queue;
   const todayPatientIds = useMemo(
     () => merged.map((patient) => patient.id).filter(Boolean),
@@ -501,7 +511,8 @@ export function AppointmentsSection({
           const Icon = tab.icon;
           const selected = activeSection === tab.id;
           return (
-            <Button variant="bare"
+            <Button
+              variant="bare"
               key={tab.id}
               type="button"
               role="tab"
@@ -566,7 +577,8 @@ export function AppointmentsSection({
                       : ((counts as Record<string, number>)[value] ?? 0);
                   const active = queueFilter === value;
                   return (
-                    <Button variant="bare"
+                    <Button
+                      variant="bare"
                       key={value}
                       type="button"
                       onClick={() => setQueueFilter(value)}
@@ -607,7 +619,9 @@ export function AppointmentsSection({
               </p>
             ) : filteredPatients.length === 0 ? (
               <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-12 text-center text-sm text-muted-foreground">
-                {queue.isError && !queue.hasData ? "بيانات المرضى غير متاحة حالياً" : "لا يوجد مرضى في هذه الفئة"}
+                {queue.isError && !queue.hasData
+                  ? "بيانات المرضى غير متاحة حالياً"
+                  : "لا يوجد مرضى في هذه الفئة"}
               </div>
             ) : (
               <div className="queue-workspace-list grid grid-cols-1 gap-2 min-[520px]:grid-cols-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
@@ -769,10 +783,7 @@ export function AppointmentsSection({
         initialData={
           registrationTarget
             ? {
-                patientId:
-                  registrationTarget.source === "portal"
-                    ? registrationTarget.item.patientId
-                    : null,
+                patientId: registrationTarget.item.patientId ?? null,
                 patientCode:
                   registrationTarget.source === "portal"
                     ? registrationTarget.item.patientCode
@@ -856,7 +867,8 @@ function ScheduleRequestCard({
           <UserPlus className="h-3.5 w-3.5" aria-hidden />
           تأكيد وتسجيل
         </Button>
-        <Button variant="bare"
+        <Button
+          variant="bare"
           type="button"
           disabled={remove.isPending}
           onClick={() => remove.mutate({ requestId: r.id })}
@@ -934,7 +946,8 @@ function BookingCard({
           </span>
           {booking.patientId ? (
             <>
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 type="button"
                 title="طباعة روشتة"
                 onClick={() =>
@@ -951,7 +964,8 @@ function BookingCard({
               >
                 <Pill className="h-3.5 w-3.5" aria-hidden />
               </Button>
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 type="button"
                 title="طباعة طلب تحاليل"
                 onClick={() =>
@@ -968,7 +982,8 @@ function BookingCard({
               >
                 <FlaskConical className="h-3.5 w-3.5" aria-hidden />
               </Button>
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 type="button"
                 title="طباعة مقاس النظارة"
                 onClick={() =>
@@ -987,7 +1002,8 @@ function BookingCard({
               </Button>
             </>
           ) : null}
-          <Button variant="bare"
+          <Button
+            variant="bare"
             type="button"
             disabled={del.isPending}
             onClick={() => del.mutate({ id: booking.id })}
@@ -1037,7 +1053,14 @@ function QueuePatientCard({
     serviceTypeLabels[patient.serviceType ?? ""] ?? patient.serviceType ?? "—";
   const doctorText = String(patient.doctorName ?? "").trim() || "—";
   const timeText = String(patient.checkedInTime ?? "").trim() || "—";
-  const clinicText = st === "clinic1" ? "عيادة ١" : st === "clinic2" ? "عيادة ٢" : st === "pentacam" ? "بنتاكام" : "";
+  const clinicText =
+    st === "clinic1"
+      ? "عيادة ١"
+      : st === "clinic2"
+        ? "عيادة ٢"
+        : st === "pentacam"
+          ? "بنتاكام"
+          : "";
   const withVisitDate = (path: string) => {
     const url = new URL(path, window.location.origin);
     url.searchParams.set("visitDate", visitDate);
@@ -1045,28 +1068,43 @@ function QueuePatientCard({
   };
   const secondaryCommands = [
     { label: "طباعة روشتة", icon: Pill, path: `/prescription/${patient.id}` },
-    { label: "طباعة طلب تحاليل", icon: FlaskConical, path: `/request-tests/${patient.id}` },
-    { label: "طباعة مقاس النظارة", icon: Glasses, path: `/refraction/${patient.id}` },
+    {
+      label: "طباعة طلب تحاليل",
+      icon: FlaskConical,
+      path: `/request-tests/${patient.id}`,
+    },
+    {
+      label: "طباعة مقاس النظارة",
+      icon: Glasses,
+      path: `/refraction/${patient.id}`,
+    },
   ];
-  const openSecondaryPrint = (path: string) => window.open(
-    buildPrintUrl(withVisitDate(path), { autoPrint: false }), "_blank",
-  );
-  const visitLink = visitId != null ? (
-    <Button variant="bare"
-      type="button"
-      title="فتح مسار الزيارة"
-      aria-label="فتح مسار الزيارة"
-      className="queue-patient-visit-link flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        const query = new URLSearchParams({ visitId: String(visitId), visitDate });
-        window.location.assign(`/workflow-prototype?${query.toString()}`);
-      }}
-    >
-      <GitBranch className="h-5 w-5" aria-hidden />
-    </Button>
-  ) : null;
+  const openSecondaryPrint = (path: string) =>
+    window.open(
+      buildPrintUrl(withVisitDate(path), { autoPrint: false }),
+      "_blank",
+    );
+  const visitLink =
+    visitId != null ? (
+      <Button
+        variant="bare"
+        type="button"
+        title="فتح مسار الزيارة"
+        aria-label="فتح مسار الزيارة"
+        className="queue-patient-visit-link flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const query = new URLSearchParams({
+            visitId: String(visitId),
+            visitDate,
+          });
+          window.location.assign(`/workflow-prototype?${query.toString()}`);
+        }}
+      >
+        <GitBranch className="h-5 w-5" aria-hidden />
+      </Button>
+    ) : null;
 
   return (
     <div
@@ -1094,7 +1132,10 @@ function QueuePatientCard({
     >
       <PatientMedicalStatusStrip status={medicalStatus} />
       <div className="queue-patient-service-rail">
-        <span><b>{serviceTypeText}</b>{clinicText ? <small>{clinicText}</small> : null}</span>
+        <span>
+          <b>{serviceTypeText}</b>
+          {clinicText ? <small>{clinicText}</small> : null}
+        </span>
       </div>
       <div className="queue-patient-content p-2">
         <div className="queue-patient-heading flex min-w-0 items-start justify-between gap-2">
@@ -1111,12 +1152,18 @@ function QueuePatientCard({
             </div>
             <div className="queue-patient-meta mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
               <Badge
-                className={cn("queue-patient-state h-5 px-1.5 text-[13px]", queueStatusStyles[st])}
+                className={cn(
+                  "queue-patient-state h-5 px-1.5 text-[13px]",
+                  queueStatusStyles[st],
+                )}
               >
                 {queueStatusLabelsAr[st] ?? st}
               </Badge>
               {["clinic1", "clinic2", "pentacam"].includes(st) ? (
-                <Badge variant="outline" className="queue-patient-clinic h-5 px-1.5 text-[13px]">
+                <Badge
+                  variant="outline"
+                  className="queue-patient-clinic h-5 px-1.5 text-[13px]"
+                >
                   {st === "clinic1"
                     ? "عيادة 1"
                     : st === "clinic2"
@@ -1176,7 +1223,8 @@ function QueuePatientCard({
           <span className="queue-patient-mobile-visit">{visitLink}</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 type="button"
                 title="طباعة الشيتات والتقارير"
                 aria-label="طباعة الشيتات والتقارير"
@@ -1274,38 +1322,73 @@ function QueuePatientCard({
             </DropdownMenuContent>
           </DropdownMenu>
           {secondaryCommands.map(({ label, icon: Icon, path }) => (
-            <Button key={path} variant="bare" type="button" title={label} aria-label={label}
+            <Button
+              key={path}
+              variant="bare"
+              type="button"
+              title={label}
+              aria-label={label}
               className="queue-patient-desktop-command flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={(e) => { e.stopPropagation(); openSecondaryPrint(path); }}
-            ><Icon className="h-4 w-4" aria-hidden /></Button>
+              onClick={(e) => {
+                e.stopPropagation();
+                openSecondaryPrint(path);
+              }}
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+            </Button>
           ))}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="bare" type="button" title="المزيد من إجراءات المريض" aria-label="المزيد من إجراءات المريض"
+              <Button
+                variant="bare"
+                type="button"
+                title="المزيد من إجراءات المريض"
+                aria-label="المزيد من إجراءات المريض"
                 className="queue-patient-more h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
                 onClick={(e) => e.stopPropagation()}
-              ><Ellipsis className="h-5 w-5" aria-hidden /></Button>
+              >
+                <Ellipsis className="h-5 w-5" aria-hidden />
+              </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" style={{ direction: "rtl" }} onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent
+              align="end"
+              style={{ direction: "rtl" }}
+              onClick={(e) => e.stopPropagation()}
+            >
               {secondaryCommands.map(({ label, icon: Icon, path }) => (
-                <DropdownMenuItem key={path} onSelect={() => openSecondaryPrint(path)}>
-                  <Icon className="h-4 w-4" aria-hidden />{label}
+                <DropdownMenuItem
+                  key={path}
+                  onSelect={() => openSecondaryPrint(path)}
+                >
+                  <Icon className="h-4 w-4" aria-hidden />
+                  {label}
                 </DropdownMenuItem>
               ))}
               {canMarkTreated ? (
-                <DropdownMenuItem disabled={markingThis} onSelect={() => { if (visitId != null) onMarkVisitTreated(visitId); }}>
-                  <Check className="h-4 w-4" aria-hidden />تحديد كمعالج
+                <DropdownMenuItem
+                  disabled={markingThis}
+                  onSelect={() => {
+                    if (visitId != null) onMarkVisitTreated(visitId);
+                  }}
+                >
+                  <Check className="h-4 w-4" aria-hidden />
+                  تحديد كمعالج
                 </DropdownMenuItem>
               ) : null}
               {canDelete ? (
-                <DropdownMenuItem className="text-destructive" onSelect={() => onRequestDelete?.()}>
-                  <Trash2 className="h-4 w-4" aria-hidden />حذف المريض
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onSelect={() => onRequestDelete?.()}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  حذف المريض
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
           {canDelete ? (
-            <Button variant="bare"
+            <Button
+              variant="bare"
               type="button"
               title="حذف المريض"
               aria-label={`حذف ${patient.fullName ?? "المريض"}`}

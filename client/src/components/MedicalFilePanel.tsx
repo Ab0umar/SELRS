@@ -1507,7 +1507,8 @@ export default function MedicalFilePanel({
                 visitId: visitId,
                 patientId: patientId,
                 diagnosis: formData.diagnosis || "No diagnosis entered",
-                clinicalOpinion: formData.recommendations || "",
+                clinicalOpinion: formData.medicalHistory || "",
+                recommendations: formData.recommendations || "",
                 additionalNotes: formData.diseases
                   ? JSON.stringify(formData.diseases)
                   : "",

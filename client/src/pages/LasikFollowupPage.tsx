@@ -24,6 +24,11 @@ const FOLLOWUP_TITLES = [
 ];
 
 export default function LasikFollowupPage() {
+  const [, params] = useRoute("/sheets/lasik/:id/followup");
+  return <LasikFollowupDocument key={params?.id ?? "new"} />;
+}
+
+function LasikFollowupDocument() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/sheets/lasik/:id/followup");
@@ -47,6 +52,7 @@ export default function LasikFollowupPage() {
   const [signatures, setSignatures] = useState({ doctor: "" });
   const emptyFollowupRow = (id: number | string, type: string) => ({
     id,
+    itemId: undefined as number | undefined,
     date: "",
     type,
     odVa: "",
@@ -195,6 +201,7 @@ export default function LasikFollowupPage() {
       const flapOS = parseFlap(item.flapOS);
       return {
         id: item.id,
+        itemId: Number(item.id),
         date: followupDate,
         type: followupName,
         odVa: item.vaOD ?? "",
@@ -275,9 +282,11 @@ export default function LasikFollowupPage() {
 
   const saveFollowupSheetMutation =
     trpc.medical.saveFollowupSheet.useMutation();
+  const saveInProgressRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSaveFollowup = async () => {
-    if (!initialPatientId) return;
+    if (!initialPatientId || saveInProgressRef.current) return;
 
     // Collect filled followups in groups of 4
     const filledFollowups = followups.filter((f) => f.date);
@@ -288,6 +297,7 @@ export default function LasikFollowupPage() {
 
     // Convert to followup items format (only filled items)
     const followupItems = filledFollowups.map((f, index) => ({
+      itemId: f.itemId,
       tableIndex: index % 4,
       followupDate: f.date,
       followupName: f.type,
@@ -303,16 +313,22 @@ export default function LasikFollowupPage() {
       notes: f.notes,
     }));
 
+    saveInProgressRef.current = true;
+    setIsSaving(true);
     try {
       await saveFollowupSheetMutation.mutateAsync({
         patientId: initialPatientId,
         sheetType: "lasik",
         followupItems,
       });
+      await followupSheetsQuery.refetch();
       toast.success("تم حفظ البيانات بنجاح");
     } catch (error) {
       toast.error("فشل حفظ البيانات");
       console.error(error);
+    } finally {
+      saveInProgressRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -377,9 +393,9 @@ export default function LasikFollowupPage() {
             type="button"
             className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded uppercase hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
-            disabled={saveFollowupSheetMutation.isPending}
+            disabled={isSaving || followupSheetsQuery.isFetching || followupSheetsQuery.isError}
           >
-            {saveFollowupSheetMutation.isPending ? "جاري الحفظ…" : "حفظ"}
+            {isSaving ? "جاري الحفظ…" : "حفظ"}
           </Button>
           <Button
             type="button"

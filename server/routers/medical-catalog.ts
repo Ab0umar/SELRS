@@ -10,6 +10,7 @@ import { TRPCError } from "@trpc/server";
 import {
   router,
   protectedProcedure,
+  clinicalStaffProcedure,
   doctorProcedure,
   nurseProcedure,
   technicianProcedure,
@@ -43,6 +44,7 @@ import {
   testRequests,
   prescriptions,
   patientServiceEntries,
+  surgeries,
   type Medication,
 } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
@@ -781,26 +783,7 @@ export const medicalCatalogRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await db.deleteTestRequestsByVisit(input.visitId);
-      if (input.items.length > 0) {
-        const result = await db.createTestRequest({
-          patientId: input.patientId,
-          visitId: input.visitId,
-          requestDate: input.date
-            ? new Date(`${input.date}T12:00:00`)
-            : new Date(),
-          status: "pending",
-          notes: input.notes,
-        });
-        const testRequestId = result[0].insertId;
-        await db.createTestRequestItems(
-          input.items.map((item) => ({
-            testRequestId,
-            testId: item.testId,
-            result: item.notes,
-          })),
-        );
-      }
+      await db.replaceTestRequest(input);
       await db.logAuditEvent(
         ctx.user.id,
         "REPLACE_TEST_REQUEST",
@@ -851,7 +834,7 @@ export const medicalCatalogRoutes = {
       return await db.upsertMedicalHistory(input);
     }),
 
-  getTestRequestsByVisit: protectedProcedure
+  getTestRequestsByVisit: clinicalStaffProcedure
     .input(z.object({ visitId: z.number() }))
     .query(async ({ input }) => {
       return await db.getTestRequestsByVisit(input.visitId);
@@ -871,6 +854,9 @@ export const medicalCatalogRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role === "reception") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Reception cannot create prescriptions." });
+      }
       try {
         await db.createPrescription({
           ...input,
@@ -917,11 +903,9 @@ export const medicalCatalogRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      console.log("[createPrescriptionWithItems] input", {
-        patientId: input.patientId,
-        itemsCount: input.items.length,
-        firstItem: input.items[0],
-      });
+      if (ctx.user.role === "reception") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Reception cannot create prescriptions." });
+      }
       await db.createPrescriptionWithItems({
         patientId: input.patientId,
         visitId: input.visitId,
@@ -960,20 +944,13 @@ export const medicalCatalogRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const existing = await db.getPrescriptionsWithItemsByVisit(input.visitId);
-      for (const prescription of existing ?? []) {
-        if (prescription?.id) await db.deletePrescription(prescription.id);
-      }
-      if (input.items.length > 0) {
-        await db.createPrescriptionWithItems({
-          patientId: input.patientId,
-          visitId: input.visitId,
-          doctorId: ctx.user.id,
-          date: input.date,
-          notes: input.notes,
-          items: input.items,
+      if (String(ctx.user.role ?? "").toLowerCase() === "reception") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Reception cannot replace prescriptions.",
         });
       }
+      await db.replacePrescriptionWithItems({ ...input, doctorId: ctx.user.id });
       await db.logAuditEvent(
         ctx.user.id,
         "REPLACE_PRESCRIPTION",
@@ -996,7 +973,7 @@ export const medicalCatalogRoutes = {
       return await db.getPrescriptionsWithItemsByPatient(input.patientId);
     }),
 
-  getPrescriptionsOverview: protectedProcedure
+  getPrescriptionsOverview: clinicalStaffProcedure
     .input(
       z
         .object({
@@ -1070,11 +1047,33 @@ export const medicalCatalogRoutes = {
           surgeryNotes,
           ...rest
         } = input;
+        const surgeryDate = new Date(input.surgeryDate);
+        if (Number.isNaN(surgeryDate.getTime())) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid surgery date",
+          });
+        }
+        // The surgeries table has no pre-op columns; keep the values in notes
+        // instead of silently dropping them.
+        const preOpLines = [
+          preOpUCVA_OD && `UCVA OD: ${preOpUCVA_OD}`,
+          preOpUCVA_OS && `UCVA OS: ${preOpUCVA_OS}`,
+          preOpBCVA_OD && `BCVA OD: ${preOpBCVA_OD}`,
+          preOpBCVA_OS && `BCVA OS: ${preOpBCVA_OS}`,
+        ].filter(Boolean);
+        const baseNotes = input.notes ?? surgeryNotes ?? "";
+        const combinedNotes = [
+          baseNotes,
+          preOpLines.length ? `Pre-op: ${preOpLines.join(" | ")}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
         await db.createSurgery({
           ...rest,
-          notes: input.notes ?? surgeryNotes,
+          notes: combinedNotes || null,
           doctorId: ctx.user.id,
-          surgeryDate: new Date(input.surgeryDate),
+          surgeryDate,
           status: "scheduled",
         });
 
@@ -1084,6 +1083,7 @@ export const medicalCatalogRoutes = {
 
         return { success: true };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to create surgery: ${error}`);
       }
     }),
@@ -1134,6 +1134,12 @@ export const medicalCatalogRoutes = {
   deleteSurgery: medicalStaffProcedure
     .input(z.object({ surgeryId: z.number() }))
     .mutation(async ({ input, ctx }) => {
+      if (String(ctx.user.role ?? "").toLowerCase() === "reception") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Reception cannot delete surgeries.",
+        });
+      }
       await db.deleteSurgery(input.surgeryId);
       await db.logAuditEvent(
         ctx.user.id,
@@ -1157,9 +1163,27 @@ export const medicalCatalogRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      let followupPatientId = input.patientId ?? 0;
+      if (!followupPatientId) {
+        const conn = await db.getDb();
+        const [surgeryRow] = conn
+          ? await conn
+              .select({ patientId: surgeries.patientId })
+              .from(surgeries)
+              .where(eq(surgeries.id, input.surgeryId))
+              .limit(1)
+          : [];
+        followupPatientId = Number(surgeryRow?.patientId ?? 0);
+      }
+      if (!followupPatientId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Surgery not found",
+        });
+      }
       await db.createPostOpFollowup({
         surgeryId: input.surgeryId,
-        patientId: input.patientId ?? 0,
+        patientId: followupPatientId,
         followupDate: input.followupDate
           ? new Date(input.followupDate)
           : input.date

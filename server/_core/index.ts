@@ -1907,10 +1907,16 @@ async function startServer() {
       res.setHeader("Content-Type", mimeType);
       res.setHeader("Content-Length", String(fileBuffer.length));
       res.setHeader("Cache-Control", "private, max-age=3600");
+      // Header values must be latin1: use an ASCII fallback plus RFC 5987
+      // filename* so Arabic names don't make setHeader throw.
+      const asciiFileName =
+        fileName.replace(/[^\x20-\x7e]+/g, "_").replace(/["\\]/g, "") ||
+        "document";
       res.setHeader(
         "Content-Disposition",
-        `${download ? "attachment" : "inline"}; filename="${fileName.replace(/"/g, "")}"`,
+        `${download ? "attachment" : "inline"}; filename="${asciiFileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       );
+      res.setHeader("X-Content-Type-Options", "nosniff");
       res.status(200).send(fileBuffer);
     } catch (error: any) {
       res.status(500).json({

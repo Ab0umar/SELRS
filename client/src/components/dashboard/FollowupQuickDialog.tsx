@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { useIsMobile } from "@/hooks/useMobile";
+import { cairoDateIso } from "../../../../shared/visitSchedule";
 
 export function FollowupQuickDialog({
   open,
@@ -31,18 +32,20 @@ export function FollowupQuickDialog({
     fullName?: string;
   } | null>(null);
   const [visitDate, setVisitDate] = useState(
-    new Date().toISOString().slice(0, 10),
+    cairoDateIso(),
   );
 
   useEffect(() => {
     if (open) {
       setPatient(null);
-      setVisitDate(new Date().toISOString().slice(0, 10));
+      setVisitDate(cairoDateIso());
     }
   }, [open]);
 
+  const utils = trpc.useUtils();
   const addMutation = trpc.medical.addFollowupToQueue.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.medical.getTodayPatientsByQueueStatus.invalidate();
       toast.success("تمت إضافة المريض للطابور كمتابعة");
       onOpenChange(false);
     },

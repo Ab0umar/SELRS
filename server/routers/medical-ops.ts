@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { PRINT_SETTINGS_KEY, printSettingsSchema } from "../../shared/printSettings";
+import { operationBookingSchema } from "../../shared/operationBooking";
+import {
+  PRINT_SETTINGS_KEY,
+  printSettingsSchema,
+} from "../../shared/printSettings";
 import { access, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import * as XLSX from "xlsx";
@@ -7,6 +11,7 @@ import { TRPCError } from "@trpc/server";
 import {
   router,
   protectedProcedure,
+  clinicalStaffProcedure,
   doctorProcedure,
   nurseProcedure,
   technicianProcedure,
@@ -404,22 +409,27 @@ export const medicalOpsRoutes = {
       try {
         const patient = await db.getPatientById(input.patientId);
         if (!patient) {
-          throw new Error(`Patient ${input.patientId} not found`);
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Patient ${input.patientId} not found`,
+          });
         }
         const patientCode = String((patient as any)?.patientCode ?? "").trim();
-        await db.deletePatient(input.patientId);
 
+        // Delete from MSSQL first: if it fails the local row stays, otherwise
+        // the next sync would resurrect the patient.
         let mssql: { deleted: boolean; note?: string } | undefined;
         if (patientCode) {
           try {
             mssql = await deletePatientFromMssqlByCode(patientCode);
           } catch (mssqlError) {
-            mssql = {
-              deleted: false,
-              note: `MSSQL delete failed: ${mssqlError}`,
-            };
+            throw new TRPCError({
+              code: "BAD_GATEWAY",
+              message: `MSSQL delete failed: ${mssqlError}`,
+            });
           }
         }
+        await db.deletePatient(input.patientId);
 
         await db.logAuditEvent(
           ctx.user.id,
@@ -433,6 +443,7 @@ export const medicalOpsRoutes = {
         );
         return { success: true, patientId: input.patientId, mssql };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to delete patient: ${error}`);
       }
     }),
@@ -513,11 +524,16 @@ export const medicalOpsRoutes = {
         });
       }
 
+      // Rename in MSSQL first: a local-only rename would be re-imported by the
+      // next sync as a duplicate patient under the old code.
       let mssql: { updated: boolean; note?: string } | undefined;
       try {
         mssql = await renamePatientCodeInMssql(oldPatientCode, newPatientCode);
       } catch (mssqlError) {
-        mssql = { updated: false, note: `MSSQL rename failed: ${mssqlError}` };
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `MSSQL rename failed: ${mssqlError}`,
+        });
       }
 
       await db.updatePatient(input.patientId, {
@@ -823,7 +839,7 @@ export const medicalOpsRoutes = {
     };
   }),
 
-  getPatientMedicalStatusBatch: protectedProcedure
+  getPatientMedicalStatusBatch: clinicalStaffProcedure
     .input(
       z.object({ patientIds: z.array(z.number().int().positive()).max(500) }),
     )
@@ -1005,9 +1021,9 @@ export const medicalOpsRoutes = {
         const { reportId, diseases, followUpDate, ...updates } = input;
         const updateData: Record<string, any> = { ...updates };
 
-        // Convert diseases array to JSON string if provided
+        // Diseases live in their own column; never clobber additionalNotes.
         if (diseases) {
-          updateData.additionalNotes = JSON.stringify(diseases);
+          updateData.diseases = JSON.stringify(diseases);
         }
         if (followUpDate) {
           updateData.followUpDate = new Date(followUpDate);
@@ -1017,7 +1033,7 @@ export const medicalOpsRoutes = {
         if (updates.surgeryScheduledDate) {
           updateData.surgeryScheduledDate = new Date(
             updates.surgeryScheduledDate,
-          ).toISOString();
+          );
         }
 
         await db.updateDoctorReport(reportId, updateData);
@@ -1091,6 +1107,13 @@ export const medicalOpsRoutes = {
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
       if (id) {
+        const owned = await db.getReferralLettersByPatient(input.patientId);
+        if (!owned.some((letter: any) => Number(letter.id) === id)) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Referral letter not found for this patient",
+          });
+        }
         await db.updateReferralLetter(id, data);
         return { id, updated: true };
       }
@@ -1195,7 +1218,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  getMedicalReportsOverview: protectedProcedure
+  getMedicalReportsOverview: clinicalStaffProcedure
     .input(
       z.object({ limit: z.number().min(1).max(500).optional() }).optional(),
     )
@@ -1203,8 +1226,12 @@ export const medicalOpsRoutes = {
       return await db.getMedicalReportsOverviewRows(input?.limit ?? 250);
     }),
 
-  getDoctorReports: protectedProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(500).default(250) }).optional())
+  getDoctorReports: clinicalStaffProcedure
+    .input(
+      z
+        .object({ limit: z.number().int().min(1).max(500).default(250) })
+        .optional(),
+    )
     .query(async ({ input }) => {
       return await db.getAllDoctorReports(input?.limit ?? 250);
     }),
@@ -1250,7 +1277,6 @@ export const medicalOpsRoutes = {
         operationType: input.operationType || input.surgeryType || null,
         clinicalOpinion: input.clinicalOpinion || null,
         additionalNotes: input.additionalNotes || null,
-        followUpDate: new Date(),
       });
       await db.logAuditEvent(
         ctx.user.id,
@@ -1277,28 +1303,30 @@ export const medicalOpsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await db.updateDoctorReport(input.reportId, {
-        visitDate: input.visitDate
-          ? (() => {
-              const [year, month, day] = input.visitDate.split("-");
-              return new Date(
-                parseInt(year),
-                parseInt(month) - 1,
-                parseInt(day),
-                12,
-                0,
-                0,
-              );
-            })()
-          : null,
-        diagnosis: input.diagnosis ?? null,
-        diseases: input.diseases ? JSON.stringify(input.diseases) : null,
-        treatment: input.prescription ?? null,
-        recommendations: input.recommendations ?? null,
-        clinicalOpinion: input.clinicalOpinion ?? null,
-        operationType: input.operationType ?? null,
-        additionalNotes: input.additionalNotes ?? null,
-      });
+      // Only touch the fields the caller actually sent.
+      const reportUpdates: Record<string, any> = {};
+      if (input.visitDate !== undefined) {
+        const [year, month, day] = input.visitDate.split("-");
+        reportUpdates.visitDate = input.visitDate
+          ? new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)
+          : null;
+      }
+      if (input.diagnosis !== undefined) reportUpdates.diagnosis = input.diagnosis;
+      if (input.diseases !== undefined)
+        reportUpdates.diseases = JSON.stringify(input.diseases);
+      if (input.prescription !== undefined)
+        reportUpdates.treatment = input.prescription;
+      if (input.recommendations !== undefined)
+        reportUpdates.recommendations = input.recommendations;
+      if (input.clinicalOpinion !== undefined)
+        reportUpdates.clinicalOpinion = input.clinicalOpinion;
+      if (input.operationType !== undefined)
+        reportUpdates.operationType = input.operationType;
+      if (input.additionalNotes !== undefined)
+        reportUpdates.additionalNotes = input.additionalNotes;
+      if (Object.keys(reportUpdates).length > 0) {
+        await db.updateDoctorReport(input.reportId, reportUpdates);
+      }
       await db.logAuditEvent(
         ctx.user.id,
         "UPDATE_MEDICAL_REPORT",
@@ -1334,7 +1362,7 @@ export const medicalOpsRoutes = {
       return await db.getAuditLogs(input.limit);
     }),
 
-  getOperationList: protectedProcedure
+  getOperationList: clinicalStaffProcedure
     .input(
       z.object({
         doctorTab: z.string(),
@@ -1353,7 +1381,7 @@ export const medicalOpsRoutes = {
       );
     }),
 
-  getOperationListById: protectedProcedure
+  getOperationListById: clinicalStaffProcedure
     .input(z.object({ listId: z.number() }))
     .query(async ({ input }) => {
       return await db.getOperationListById(input.listId);
@@ -1363,6 +1391,8 @@ export const medicalOpsRoutes = {
     .input(
       z.object({
         listId: z.number().optional().nullable(),
+        notifyAll: z.boolean().default(false),
+        confirmationRequestId: z.string().uuid().optional(),
         doctorTab: z.string(),
         listDate: z.string(),
         operationType: z.string().optional().nullable(),
@@ -1415,6 +1445,7 @@ export const medicalOpsRoutes = {
       const newSaadanyItems =
         input.doctorTab === "saadany"
           ? input.items.filter((item) => {
+              if (input.notifyAll) return true;
               const code = String(item.code ?? "")
                 .trim()
                 .toLowerCase();
@@ -1504,6 +1535,7 @@ export const medicalOpsRoutes = {
         void Promise.allSettled(
           newSaadanyItems.map((item) =>
             sendOperationListWhatsApp({
+              requestKey: `operation-status:${savedList.id}:${item.code || item.phone || item.name}:${input.confirmationRequestId ?? Math.floor(Date.now() / 10000)}`,
               recipientPhone: item.phone,
               patientName: item.name,
               operationName:
@@ -1519,7 +1551,7 @@ export const medicalOpsRoutes = {
           operationMessages.forEach((result, index) => {
             if (result.status === "rejected") {
               console.error(
-                `[operation-whatsapp] Failed to send operation confirmation for list ${savedList.id}, patient ${newSaadanyItems[index]?.name}`,
+                `[operation-whatsapp] Failed to record operation confirmation for list ${savedList.id}`,
                 result.reason,
               );
             }
@@ -1664,7 +1696,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  getOperationBookings: protectedProcedure
+  getOperationBookings: clinicalStaffProcedure
     .input(
       z.object({
         fromDate: z.string().optional(),
@@ -1687,16 +1719,7 @@ export const medicalOpsRoutes = {
     }),
 
   createOperationBooking: receptionProcedure
-    .input(
-      z.object({
-        bookingDate: z.string(),
-        bookingTime: z.string(),
-        doctorName: z.string(),
-        operationType: z.string(),
-        casesCount: z.number().int().min(1),
-        weekdayLabel: z.string().optional(),
-      }),
-    )
+    .input(operationBookingSchema)
     .mutation(async ({ input, ctx }) => {
       const booking = await db.createOperationBooking(input as any);
       await db.logAuditEvent(
@@ -1823,8 +1846,14 @@ export const medicalOpsRoutes = {
     }),
 
   saveUserPageState: protectedProcedure
-    .input(z.object({ page: z.string(), data: z.any() }))
+    .input(z.object({ page: z.string().max(191), data: z.any() }))
     .mutation(async ({ input, ctx }) => {
+      if (JSON.stringify(input.data ?? null).length > 1_000_000) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Page state is too large.",
+        });
+      }
       await db.upsertUserPageState(ctx.user.id, input.page, input.data);
       return { success: true };
     }),
@@ -1863,7 +1892,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  getExaminationChecklist: protectedProcedure
+  getExaminationChecklist: clinicalStaffProcedure
     .input(
       z.object({
         examinationId: z.number().int().positive(),
@@ -1875,7 +1904,7 @@ export const medicalOpsRoutes = {
       );
     }),
 
-  getExaminationChecklistsByPatient: protectedProcedure
+  getExaminationChecklistsByPatient: clinicalStaffProcedure
     .input(z.object({ patientId: z.number().int().positive() }))
     .query(async ({ input }) => {
       return await db.getExaminationChecklistsByPatient(input.patientId);
@@ -2205,6 +2234,19 @@ export const medicalOpsRoutes = {
   getSystemSetting: protectedProcedure
     .input(z.object({ key: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
+      const requestedKey = input.key.trim().toLowerCase();
+      if (
+        String(ctx.user.role ?? "").toLowerCase() !== "admin" &&
+        (requestedKey === "team_permissions_v1" ||
+          requestedKey.startsWith("mssql_") ||
+          requestedKey.startsWith("attendance_") ||
+          requestedKey.startsWith("op_reminder_"))
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "No permission to read this setting.",
+        });
+      }
       if (
         input.key === "appointments_pricing_v1" &&
         String(ctx.user.role ?? "").toLowerCase() !== "admin"
@@ -2289,8 +2331,8 @@ export const medicalOpsRoutes = {
         token: z.string().min(20),
       }),
     )
-    .mutation(async ({ input }) => {
-      await db.deletePushDeviceToken(input.token);
+    .mutation(async ({ input, ctx }) => {
+      await db.deletePushDeviceToken(input.token, ctx.user.id);
       return { success: true };
     }),
 
@@ -2299,7 +2341,12 @@ export const medicalOpsRoutes = {
     .mutation(async ({ input, ctx }) => {
       if (input.key === PRINT_SETTINGS_KEY) {
         const parsed = printSettingsSchema.safeParse(input.value);
-        if (!parsed.success) throw new TRPCError({ code: "BAD_REQUEST", message: parsed.error.issues[0]?.message ?? "Invalid print settings" });
+        if (!parsed.success)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              parsed.error.issues[0]?.message ?? "Invalid print settings",
+          });
         input.value = parsed.data;
       }
       await db.updateSystemSettings(input.key, input.value);

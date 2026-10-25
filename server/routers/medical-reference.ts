@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { and, eq, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
-import { protectedProcedure } from "../_core/procedures";
+import { clinicalStaffProcedure, protectedProcedure } from "../_core/procedures";
 import * as db from "../db";
 import {
   doctorReports,
@@ -46,8 +46,11 @@ const criterionSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+// Non-numeric text (e.g. "plano") must not become 0 and match a range.
 const numericValue = (column: unknown) =>
-  sql`CAST(NULLIF(REPLACE(REPLACE(TRIM(${column as any}), '+', ''), ',', '.'), '') AS DECIMAL(12,3))`;
+  sql`CAST(CASE WHEN REPLACE(REPLACE(TRIM(${column as any}), '+', ''), ',', '.') REGEXP '^-?[0-9]+([.][0-9]+)?$' THEN REPLACE(REPLACE(TRIM(${column as any}), '+', ''), ',', '.') ELSE NULL END AS DECIMAL(12,3))`;
+
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
 function rangeCondition(column: unknown, range: { min?: number; max?: number }) {
   const value = numericValue(column);
@@ -98,7 +101,7 @@ function buildCriterion(criterion: z.infer<typeof criterionSchema>): SQL {
   }
 
   if (criterion.kind === "diagnosis") {
-    const pattern = `%${criterion.text}%`;
+    const pattern = `%${escapeLike(criterion.text)}%`;
     const fields: SQL[] = [];
     if (criterion.field === "diagnosis" || criterion.field === "any") fields.push(sql`${doctorReports.diagnosis} LIKE ${pattern}`);
     if (criterion.field === "diseases" || criterion.field === "any") fields.push(sql`${doctorReports.diseases} LIKE ${pattern}`);
@@ -106,7 +109,7 @@ function buildCriterion(criterion: z.infer<typeof criterionSchema>): SQL {
     return sql`EXISTS (SELECT 1 FROM ${doctorReports} WHERE ${doctorReports.patientId} = patients.id AND ${or(...fields)})`;
   }
 
-  const pattern = `%${criterion.text}%`;
+  const pattern = `%${escapeLike(criterion.text)}%`;
   return sql`(
     EXISTS (SELECT 1 FROM ${doctorReports} WHERE ${doctorReports.patientId} = patients.id AND ${doctorReports.operationType} LIKE ${pattern})
     OR EXISTS (
@@ -119,7 +122,7 @@ function buildCriterion(criterion: z.infer<typeof criterionSchema>): SQL {
 }
 
 export const medicalReferenceRoutes = {
-  searchMedicalReference: protectedProcedure
+  searchMedicalReference: clinicalStaffProcedure
     .input(
       z.object({
         mode: z.enum(["and", "or"]).default("and"),
@@ -143,7 +146,7 @@ export const medicalReferenceRoutes = {
         )!,
       ];
       if (input.search) {
-        const pattern = `%${input.search}%`;
+        const pattern = `%${escapeLike(input.search)}%`;
         conditions.push(or(sql`${patients.fullName} LIKE ${pattern}`, sql`${patients.patientCode} LIKE ${pattern}`)!);
       }
       const criterionConditions = input.criteria.map(buildCriterion);
