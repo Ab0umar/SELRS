@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { managedReplyLive } from "../ai/replyPreview";
 import { and, eq, inArray, lt, lte, sql } from "drizzle-orm";
 import {
   autoReplySettingsSchema,
@@ -242,15 +243,20 @@ export async function runAutoReplyTick() {
             ),
           )
           .limit(2000);
-        const proposal = await proposeReply({
-          channel: c.channel,
-          accountId: c.accountId,
-          text: inbound.body,
-          firstText: context.firstText,
-          context: context.rows,
-          settings: config,
-          knowledge: approved,
-        });
+        const proposal = await proposeReply(
+          {
+            channel: c.channel,
+            accountId: c.accountId,
+            text: inbound.body,
+            firstText: context.firstText,
+            context: context.rows,
+            settings: config,
+            knowledge: approved,
+          },
+          config.engine === "central"
+            ? managedReplyLive(job.requestKey)
+            : undefined,
+        );
         body = proposal.text;
         handoff = proposal.handoff;
         reason = proposal.reason;

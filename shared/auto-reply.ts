@@ -22,6 +22,7 @@ export const replyTargetSchema = z
   ])
   .default("all");
 export const autoReplySettingsSchema = z.object({
+  engine: z.enum(["current", "central"]).default("current"),
   knowledgeMode: z.enum(["legacy", "teach_ai"]).default("legacy"),
   historyMessageLimit: z.number().int().min(0).max(50).default(12),
   temperature: z.number().min(0).max(2).default(0.2),

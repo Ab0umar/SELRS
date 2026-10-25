@@ -167,6 +167,7 @@ export function retrieveKnowledge(query: string, entries: KnowledgeItem[]) {
 export function selectKnowledgeContext(
   query: string,
   entries: KnowledgeItem[],
+  maxCharacters = 64000,
 ) {
   const candidates = [...retrieveKnowledge(query, entries), ...entries];
   const selected: KnowledgeItem[] = [];
@@ -176,7 +177,7 @@ export function selectKnowledgeContext(
     if (seen.has(entry.id)) continue;
     seen.add(entry.id);
     const size = JSON.stringify(entry).length;
-    if (characters + size > 64_000) continue;
+    if (characters + size > maxCharacters) continue;
     selected.push(entry);
     characters += size;
   }
