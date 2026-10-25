@@ -11,6 +11,10 @@ interface FormFieldProps {
   helperText?: string;
   /** Control id for the label's htmlFor; a child's own id still takes precedence. */
   id?: string;
+  /** Language of the sr-only required text. Defaults to "ar". */
+  locale?: "ar" | "en";
+  /** Overrides the sr-only required text regardless of locale. */
+  requiredLabel?: string;
 }
 
 type ControlProps = Pick<
@@ -36,6 +40,8 @@ export function FormField({
   children,
   helperText,
   id,
+  locale = "ar",
+  requiredLabel,
 }: FormFieldProps) {
   const generatedId = React.useId();
   // Only a single element child is wired. A Radix <Select> root renders no DOM node,
@@ -77,12 +83,16 @@ export function FormField({
           </span>
         )}
         {/* Wired children get aria-required; without one, speak the state here. */}
-        {required && !control && <span className="sr-only">(مطلوب)</span>}
+        {required && !control && (
+          <span className="sr-only">
+            {requiredLabel ?? (locale === "en" ? "(required)" : "(مطلوب)")}
+          </span>
+        )}
       </label>
       <div
         className={cn(
-          "rounded-2xl transition-colors",
-          error ? "ring-1 ring-destructive/30" : "",
+          "rounded-2xl border border-transparent transition-colors",
+          error ? "border-destructive ring-2 ring-destructive/60" : "",
         )}
       >
         {content}
