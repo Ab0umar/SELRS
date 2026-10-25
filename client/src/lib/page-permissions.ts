@@ -798,6 +798,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   },
   { id: "/admin-hub/op-history", label: "سجل العمليات", group: "مركز الإدارة" },
   { id: "/admin-hub/auto-reply", label: "الرد الآلي", group: "مركز الإدارة" },
+  { id: "/admin-hub/ai", label: "الذكاء الاصطناعي والتواصل", group: "مركز الإدارة" },
   {
     id: "/admin-hub/whatsapp-inbox",
     label: "رسائل واتساب الواردة",

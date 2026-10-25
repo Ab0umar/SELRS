@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "../../_core/env";
+import { marketingImagePrompt } from "./imagePolicy";
 import type { PostDay } from "./topicRotation";
 import { DAY_CATEGORY_LABELS } from "./topicRotation";
 import {
@@ -134,7 +135,9 @@ function buildImagePrompt(
     ? `Brand colors: ${brandProfile.dominantColors ?? "professional blues and whites"}. Style: ${brandProfile.brandingStyle ?? "clean medical"}. Layout: ${brandProfile.imageComposition ?? "centered"}.`
     : "Color palette: deep blue, white, clean medical tones.";
 
-  return `Professional medical marketing photograph for an Arabic ophthalmology center. Visual: ${hint}. ${brandPart} Ultra-high quality, no text, no Arabic writing, no words, no numbers on the image. Photorealistic, cinematic lighting. Medical center branding aesthetic.`;
+  return marketingImagePrompt(
+    `Professional medical marketing photograph for an Arabic ophthalmology center. Visual: ${hint}. ${brandPart} Ultra-high quality, no text, no Arabic writing, no words, no numbers on the image. Photorealistic, cinematic lighting. Medical center branding aesthetic.`,
+  );
 }
 
 // ─── Final image prompt builder (brand DNA + topic hint) ─────────────────────
@@ -144,10 +147,12 @@ function buildFinalImagePrompt(
   brandProfile: PartialBrandProfile | null,
 ): string {
   const topicHint = getTopicImageHint(topic);
-  return `${buildBrandAwareImagePrompt(topic, brandProfile)}
+  return marketingImagePrompt(
+    `${buildBrandAwareImagePrompt(topic, brandProfile)}
 
 Visual subject: ${topicHint}
-Photorealistic medical marketing image, with no text, Arabic writing, logo, watermark, or overlaid words.`.trim();
+Photorealistic medical marketing image, with no text, Arabic writing, logo, watermark, or overlaid words.`.trim(),
+  );
 }
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────

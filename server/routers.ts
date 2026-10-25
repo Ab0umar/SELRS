@@ -18,6 +18,7 @@ import { externalDoctorsRouter } from "./routers/externalDoctors";
 import { referralDoctorsRouter } from "./routers/referralDoctors";
 import { doctorPortalRouter } from "./routers/doctorPortal";
 import { marketingRouter } from "./routers/marketing";
+import { aiManagementRouter } from "./routers/aiManagement";
 import { kfRouter } from "./routers/kf";
 import { legacyPatientsRouter } from "./routers/legacyPatients";
 import { opHistoryRouter } from "./routers/opHistory";
@@ -212,6 +213,7 @@ export const appRouter = router({
   stockroom: stockroomRouter,
   salary: salaryRouter,
   marketing: marketingRouter,
+  aiManagement: aiManagementRouter,
   kf: kfRouter,
   legacyPatients: legacyPatientsRouter,
   opHistory: opHistoryRouter,

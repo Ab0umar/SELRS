@@ -11,7 +11,16 @@
  */
 
 import cron from "node-cron";
-import { MARKETING_SCHEDULE, marketingSlotForWeekday } from "../../../shared/marketingSchedule";
+import {
+  claimMarketingSchedule,
+  marketingSchedulerProviders,
+} from "../ai/marketingScheduler";
+import { generateCentralMarketingDraft } from "../ai/marketingDraft";
+import { publishMarketingPost } from "./publish.service";
+import {
+  MARKETING_SCHEDULE,
+  marketingSlotForWeekday,
+} from "../../../shared/marketingSchedule";
 import { eq, and, gte } from "drizzle-orm";
 import { count as drizzleCount } from "drizzle-orm";
 import { getDb } from "../../db";
@@ -20,12 +29,12 @@ import {
   marketingSettings,
   marketingLogs,
 } from "../../../drizzle/schema";
-import { pickTopic, type PostDay } from "./topicRotation";
+import { pickUnpublishedTopic, type PostDay } from "./topicRotation";
+import { publishedMarketingTopics } from "./topicHistory";
 import { startManusGeneration } from "./manusGeneration.service";
 import { getMarketingPageTarget, type MarketingPageRole } from "./page.service";
 
 // ─── Day mapping ──────────────────────────────────────────────────────────────
-
 
 const CAIRO_TIME_ZONE = "Africa/Cairo";
 const CAIRO_WEEKDAY_TO_JS_DAY: Record<string, number> = {
@@ -99,9 +108,18 @@ export function getNextScheduledTime(settings: {
   pageRole?: MarketingPageRole;
 }): { day: PostDay; date: Date } | null {
   const candidates: Array<{ jsDay: number; day: PostDay }> = [
-    { jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].saturday.jsDay, day: "saturday" },
-    { jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].tuesday.jsDay, day: "tuesday" },
-    { jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].thursday.jsDay, day: "thursday" },
+    {
+      jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].saturday.jsDay,
+      day: "saturday",
+    },
+    {
+      jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].tuesday.jsDay,
+      day: "tuesday",
+    },
+    {
+      jsDay: MARKETING_SCHEDULE[settings.pageRole ?? "center"].thursday.jsDay,
+      day: "thursday",
+    },
   ];
   const enabled = candidates.filter(({ day }) =>
     day === "saturday"
@@ -219,11 +237,64 @@ export async function runScheduledPost(
           eq(marketingPosts.pageRole, pageRole),
         ),
       );
-    const result = await startManusGeneration({
+    const topic = pickUnpublishedTopic(
+      day,
+      countRow?.total ?? 0,
+      await publishedMarketingTopics(),
+      pageTarget.topicDirection,
+    );
+    if (!topic) {
+      await setSchedulerStatus("idle");
+      return {
+        ok: true,
+        skipped: "كل موضوعات هذه الفئة سبق نشرها؛ أضف موضوعات جديدة",
+      };
+    }
+    const claim = await claimMarketingSchedule(id, pageRole);
+    if (!claim.claimed) {
+      await setSchedulerStatus("idle");
+      return {
+        ok: true,
+        skipped:
+          "This page/day generation is already reserved; inspect its existing job",
+        jobId: id,
+      };
+    }
+    const generationInput = {
       requestId: id,
-      topic: pickTopic(day, countRow?.total ?? 0, pageTarget.topicDirection),
+      topic,
       postDay: day,
       pageRole,
+    };
+    if (claim.provider === "central") {
+      const result = await generateCentralMarketingDraft(generationInput, null);
+      if (result.state !== "completed" || !result.postId)
+        throw new Error(
+          "توليد الجدولة غير محسوم؛ راجع المهمة قبل المحاولة مرة أخرى",
+        );
+      const currentTarget = await getMarketingPageTarget(pageRole);
+      const currentProvider = (await marketingSchedulerProviders()).find(
+        (setting) => setting.pageRole === pageRole,
+      )?.provider;
+      let published = false;
+      if (
+        currentTarget?.autoPublish &&
+        currentTarget.pageId === pageTarget.pageId &&
+        currentProvider === "central"
+      ) {
+        await publishMarketingPost(result.postId, pageRole);
+        published = true;
+      }
+      await setSchedulerStatus("idle");
+      return {
+        ok: true,
+        jobId: result.jobId,
+        postId: result.postId,
+        published,
+      };
+    }
+    const result = await startManusGeneration({
+      ...generationInput,
       createdBy: null,
     });
     await setSchedulerStatus("idle");

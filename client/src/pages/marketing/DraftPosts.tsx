@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
+import CentralDraftImage from "./CentralDraftImage";
 import {
   Dialog,
   DialogContent,
@@ -208,7 +209,10 @@ export default function DraftPosts() {
                           <>
                             <span>·</span>
                             <span>
-                              {marketingSlotLabel(post.postDay, post.pageRole ?? "center")}
+                              {marketingSlotLabel(
+                                post.postDay,
+                                post.pageRole ?? "center",
+                              )}
                             </span>
                           </>
                         )}
@@ -281,6 +285,7 @@ export default function DraftPosts() {
                       اختر من المكتبة
                     </Button>
 
+                    <CentralDraftImage postId={post.id} />
                     {post.imagePrompt && (
                       <Button
                         size="sm"
@@ -403,7 +408,8 @@ export default function DraftPosts() {
             >
               <label className="block text-sm">
                 العنوان
-                <Input bare
+                <Input
+                  bare
                   required
                   maxLength={255}
                   className="mt-1 w-full rounded-md border border-input bg-background p-2"
@@ -480,7 +486,8 @@ export default function DraftPosts() {
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {designs.map((d: any) => (
-                <Button variant="bare"
+                <Button
+                  variant="bare"
                   key={d.id}
                   type="button"
                   className="group relative overflow-hidden rounded-lg border-2 border-transparent hover:border-primary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"

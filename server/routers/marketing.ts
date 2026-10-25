@@ -1,4 +1,20 @@
 import { z } from "zod";
+import { generateWhatsAppCopy, readWhatsAppCopy, whatsappCopyInput } from "../services/ai/whatsappCopy";
+import {
+  marketingRecoveryPlan,
+  recoverCentralMarketing,
+  recoveryInput,
+} from "../services/ai/marketingRecovery";
+import {
+  marketingSchedulerProviders,
+  saveMarketingSchedulerProvider,
+} from "../services/ai/marketingScheduler";
+import { regenerateCentralMarketingImage } from "../services/ai/marketingDraft";
+import {
+  centralMarketingInput,
+  centralMarketingJobs,
+  generateCentralMarketingDraft,
+} from "../services/ai/marketingDraft";
 import { marketingSlotForWeekday } from "../../shared/marketingSchedule";
 import { desc, eq, count as drizzleCount, and, inArray } from "drizzle-orm";
 import path from "node:path";
@@ -21,7 +37,15 @@ import {
   startManusGeneration,
   listManusGenerationJobs,
 } from "../services/marketing/manusGeneration.service";
-import { pickTopic, type PostDay } from "../services/marketing/topicRotation";
+import {
+  pickUnpublishedTopic,
+  type PostDay,
+} from "../services/marketing/topicRotation";
+import {
+  publishedMarketingTopics,
+  PublishedMarketingTopicError,
+} from "../services/marketing/topicHistory";
+import { TRPCError } from "@trpc/server";
 import { publishMarketingPost } from "../services/marketing/publish.service";
 import {
   getMarketingPageTarget,
@@ -373,11 +397,14 @@ export const marketingRouter = router({
           );
         const topicIndex = countRow?.total ?? 0;
         const pageTarget = await getMarketingPageTarget(input.pageRole);
-        selectedTopic = pickTopic(
+        selectedTopic = pickUnpublishedTopic(
           day,
           topicIndex,
+          await publishedMarketingTopics(),
           pageTarget?.topicDirection ?? "forward",
         );
+        if (!selectedTopic)
+          throw new Error("كل موضوعات هذه الفئة سبق نشرها؛ أضف موضوعًا جديدًا");
       }
 
       return startManusGeneration({
@@ -390,6 +417,60 @@ export const marketingRouter = router({
     }),
 
   generationJobs: adminProcedure.query(() => listManusGenerationJobs()),
+  centralGenerationJobs: adminProcedure.query(() => centralMarketingJobs()),
+  generateWhatsAppCopy: adminProcedure.input(whatsappCopyInput).mutation(({input,ctx}) => generateWhatsAppCopy(input,ctx.user.id)),
+  readWhatsAppCopy: adminProcedure.input(z.object({requestId:z.string().uuid()}).strict()).query(({input,ctx}) => readWhatsAppCopy(input.requestId,ctx.user.id)),
+  centralRecoveryPlan: adminProcedure
+    .input(z.object({ jobId: z.string().uuid() }).strict())
+    .query(({ input }) => marketingRecoveryPlan(input.jobId)),
+  recoverCentralJob: adminProcedure
+    .input(recoveryInput)
+    .mutation(({ input, ctx }) => recoverCentralMarketing(input, ctx.user.id)),
+  centralSchedulerProviders: adminProcedure.query(() =>
+    marketingSchedulerProviders(),
+  ),
+  setCentralSchedulerProvider: adminProcedure
+    .input(
+      z
+        .object({
+          pageRole: z.enum(["center", "doctor"]),
+          provider: z.enum(["manus", "central"]),
+        })
+        .strict(),
+    )
+    .mutation(({ input }) => saveMarketingSchedulerProvider(input)),
+  regenerateCentralImage: adminProcedure
+    .input(
+      z
+        .object({
+          requestId: z.string().uuid(),
+          postId: z.number().int().positive(),
+        })
+        .strict(),
+    )
+    .mutation(({ input, ctx }) =>
+      regenerateCentralMarketingImage(input, ctx.user.id),
+    ),
+  centralGenerationJob: adminProcedure
+    .input(z.object({ requestId: z.string().uuid() }).strict())
+    .query(
+      async ({ input }) =>
+        (await centralMarketingJobs(input.requestId))[0] ?? null,
+    ),
+  generateCentralPost: adminProcedure
+    .input(centralMarketingInput)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await generateCentralMarketingDraft(input, ctx.user.id);
+      } catch (error) {
+        if (error instanceof PublishedMarketingTopicError)
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: error.message,
+          });
+        throw error;
+      }
+    }),
 
   // ─── Image Generation ─────────────────────────────────────
 
@@ -1223,8 +1304,13 @@ export const marketingRouter = router({
       // Determine which day to run
       let day = input.day as "saturday" | "tuesday" | "thursday" | undefined;
       if (!day) {
-        const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Cairo", weekday: "short" }).format(new Date());
-        const jsDay = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
+        const weekday = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Africa/Cairo",
+          weekday: "short",
+        }).format(new Date());
+        const jsDay = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
+          weekday,
+        );
         day = marketingSlotForWeekday("center", jsDay);
         if (!day) {
           // Today is not a scheduled day — default to saturday for manual testing

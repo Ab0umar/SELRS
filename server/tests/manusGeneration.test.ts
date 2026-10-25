@@ -26,6 +26,7 @@ import {
   processManusGenerationJobs,
   startManusGeneration,
 } from "../services/marketing/manusGeneration.service";
+import { MARKETING_IMAGE_PEOPLE_POLICY } from "../services/marketing/imagePolicy";
 
 function chain<T>(value: T) {
   const result = {
@@ -95,6 +96,8 @@ describe("durable Manus generation", () => {
   it("uses the doctor page content name independently", async () => {
     db.select
       .mockReturnValueOnce(chain([]))
+      .mockReturnValueOnce(chain([]))
+      .mockReturnValueOnce(chain([]))
       .mockReturnValueOnce(chain([{ clinicName: "مركز عيون الشروق" }]))
       .mockReturnValueOnce(chain([{ contentName: "د. أحمد علي" }]))
       .mockReturnValueOnce(chain([]));
@@ -113,6 +116,9 @@ describe("durable Manus generation", () => {
     );
     expect(createManusTask).toHaveBeenCalledWith(
       expect.not.stringContaining("مركز عيون الشروق"),
+    );
+    expect(createManusTask).toHaveBeenCalledWith(
+      expect.stringContaining(MARKETING_IMAGE_PEOPLE_POLICY),
     );
   });
   it.each([true, undefined])(

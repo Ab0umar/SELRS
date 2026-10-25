@@ -1,4 +1,5 @@
 import { useState } from "react";
+import WhatsAppCopy from "./WhatsAppCopy";
 import {
   MessageCircle,
   Send,
@@ -104,6 +105,8 @@ export default function WhatsAppCampaigns() {
           tone="text-destructive"
         />
       </section>
+
+      <WhatsAppCopy />
 
       <section className="rounded-xl border bg-muted/25 p-5">
         <label className="text-sm font-semibold" htmlFor="whatsapp-batch-size">

@@ -3,6 +3,7 @@
  * Each day has a fixed list; we pick by round-robin based on total post count for that day.
  */
 
+import { marketingTopicIdentity } from "./topicIdentity";
 export const TOPICS_BY_DAY = {
   saturday: [
     "LASIK",
@@ -59,3 +60,18 @@ export const DAY_CATEGORY_LABELS: Record<PostDay, string> = {
   tuesday: "المياه البيضاء والقرنية",
   thursday: "صحة العيون العامة",
 };
+
+export function pickUnpublishedTopic(
+  day: PostDay,
+  usedCount: number,
+  publishedTopics: readonly string[],
+  direction: TopicDirection = "forward",
+): string | undefined {
+  const published = new Set(publishedTopics.map(marketingTopicIdentity));
+  const topics = TOPICS_BY_DAY[day];
+  for (let offset = 0; offset < topics.length; offset++) {
+    const candidate = pickTopic(day, usedCount + offset, direction);
+    if (!published.has(marketingTopicIdentity(candidate))) return candidate;
+  }
+  return undefined;
+}
