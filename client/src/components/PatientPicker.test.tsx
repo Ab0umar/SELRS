@@ -5,15 +5,23 @@ import PatientPicker from "./PatientPicker";
 import PatientPickerResults, {
   type PatientOption,
 } from "./PatientPickerResults";
-import { getNextActiveIndex, getPatientOptionId } from "./patient-picker-utils";
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     patient: {
-      getPatient: { useQuery: () => ({ data: undefined }) },
+      getPatient: {
+        useQuery: () => ({ data: undefined, isError: false, refetch: vi.fn() }),
+      },
     },
     medical: {
-      searchPatients: { useQuery: () => ({ data: [], isLoading: false }) },
+      searchPatients: {
+        useQuery: () => ({
+          data: [],
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+        }),
+      },
     },
   },
 }));
@@ -63,43 +71,6 @@ function openTag(html: string, tag: string): string {
 function attr(tag: string, name: string): string {
   return new RegExp(`${name}="([^"]*)"`).exec(tag)?.[1] ?? "";
 }
-
-describe("getNextActiveIndex", () => {
-  it("should_return_minus_one_when_no_results", () => {
-    expect(getNextActiveIndex(-1, "ArrowDown", 0)).toBe(-1);
-    expect(getNextActiveIndex(2, "ArrowUp", 0)).toBe(-1);
-  });
-
-  it("should_move_down_from_unset_to_first", () => {
-    expect(getNextActiveIndex(-1, "ArrowDown", 3)).toBe(0);
-    expect(getNextActiveIndex(1, "ArrowDown", 3)).toBe(2);
-  });
-
-  it("should_wrap_down_from_last_to_first", () => {
-    expect(getNextActiveIndex(2, "ArrowDown", 3)).toBe(0);
-  });
-
-  it("should_wrap_up_from_first_to_last", () => {
-    expect(getNextActiveIndex(0, "ArrowUp", 3)).toBe(2);
-  });
-
-  it("should_move_up_from_unset_to_last", () => {
-    expect(getNextActiveIndex(-1, "ArrowUp", 3)).toBe(2);
-  });
-
-  it("should_clamp_out_of_range_index", () => {
-    // e.g. the result list shrank while an option was highlighted
-    expect(getNextActiveIndex(5, "ArrowUp", 3)).toBe(1);
-    expect(getNextActiveIndex(4, "ArrowDown", 3)).toBe(0);
-    expect(getNextActiveIndex(-7, "ArrowDown", 3)).toBe(0);
-  });
-});
-
-describe("getPatientOptionId", () => {
-  it("should_combine_listbox_id_and_patient_id", () => {
-    expect(getPatientOptionId("lb-1", 42)).toBe("lb-1-option-42");
-  });
-});
 
 describe("PatientPicker closed markup", () => {
   it("should_link_visually_hidden_label_to_input", () => {
@@ -177,5 +148,129 @@ describe("PatientPickerResults", () => {
     const empty = renderResults({ patients: [], isEnglish: true });
     expect(empty).toContain('role="status"');
     expect(empty).toContain("No results found");
+  });
+
+  it("should_render_hint_row_when_query_below_min_length", () => {
+    const en = renderResults({ patients: [], showHint: true, isEnglish: true });
+    expect(en).toContain('role="status"');
+    expect(en).toContain('aria-live="polite"');
+    expect(en).toContain("Type at least 2 characters to search");
+    expect(en).not.toContain('role="listbox"');
+
+    const ar = renderResults({ patients: [], showHint: true });
+    expect(ar).toContain('role="status"');
+    expect(ar).toContain("اكتب حرفين على الأقل للبحث");
+    expect(ar).not.toContain('role="listbox"');
+
+    // Digits keep the Arabic hint correct for any non-default minimum.
+    const arThree = renderResults({
+      patients: [],
+      showHint: true,
+      minLength: 3,
+    });
+    expect(arThree).toContain("اكتب 3 من الأحرف على الأقل للبحث");
+    expect(arThree).not.toContain("اكتب حرفين على الأقل للبحث");
+
+    const enThree = renderResults({
+      patients: [],
+      showHint: true,
+      isEnglish: true,
+      minLength: 3,
+    });
+    expect(enThree).toContain("Type at least 3 characters to search");
+  });
+
+  it("should_render_error_alert_with_retry_button_when_search_failed", () => {
+    const en = renderResults({
+      patients: [],
+      isError: true,
+      onRetry: noop,
+      isEnglish: true,
+    });
+    expect(en).toContain('role="alert"');
+    expect(en).toContain("Could not search patients. Please try again.");
+    const button = openTag(en, "button");
+    expect(button).toContain('type="button"');
+    expect(button).toContain("focus-visible");
+    expect(en).toContain(">Retry</button>");
+
+    const ar = renderResults({
+      patients: [],
+      isError: true,
+      onRetry: noop,
+      isEnglish: false,
+    });
+    expect(ar).toContain('role="alert"');
+    expect(ar).toContain("تعذر البحث عن المرضى. حاول مرة أخرى.");
+    expect(ar).toContain(">إعادة المحاولة</button>");
+  });
+
+  it("should_omit_retry_button_when_no_retry_handler", () => {
+    const html = renderResults({
+      patients: [],
+      isError: true,
+      isEnglish: true,
+    });
+
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("Could not search patients. Please try again.");
+    expect(html).not.toContain("<button");
+  });
+
+  it("should_keep_results_visible_when_error_with_stale_data", () => {
+    const html = renderResults({ isError: true, onRetry: noop });
+
+    expect(html).not.toContain('role="alert"');
+    expect(html).not.toContain("<button");
+    expect(openTag(html, "ul")).toContain('role="listbox"');
+    expect(html.match(/role="option"/g)).toHaveLength(3);
+  });
+
+  it("should_prefer_error_over_empty_state", () => {
+    const html = renderResults({
+      patients: [],
+      isError: true,
+      isEnglish: true,
+    });
+
+    expect(html).toContain('role="alert"');
+    expect(html).not.toContain("No results found");
+    expect(html).not.toContain("لا توجد نتائج");
+  });
+
+  it("should_prefer_error_over_loading_state", () => {
+    const html = renderResults({
+      patients: [],
+      isError: true,
+      isLoading: true,
+      isEnglish: true,
+    });
+
+    expect(html).toContain('role="alert"');
+    expect(html).not.toContain("Searching...");
+  });
+
+  it("should_not_render_listbox_element_when_no_patients", () => {
+    const empty = renderResults({ patients: [] });
+    expect(empty).not.toContain('role="listbox"');
+    expect(empty).not.toContain("<ul");
+
+    const loading = renderResults({ patients: [], isLoading: true });
+    expect(loading).not.toContain('role="listbox"');
+
+    const error = renderResults({ patients: [], isError: true, onRetry: noop });
+    expect(error).not.toContain('role="listbox"');
+
+    const hint = renderResults({ patients: [], showHint: true });
+    expect(hint).not.toContain('role="listbox"');
+  });
+
+  it("should_use_aria_label_when_label_id_missing", () => {
+    const html = renderResults({ ariaLabel: "Patient search results" });
+    const listbox = openTag(html, "ul");
+
+    expect(listbox).toContain('role="listbox"');
+    expect(listbox).toContain('aria-label="Patient search results"');
+    expect(listbox).not.toContain("aria-labelledby");
   });
 });

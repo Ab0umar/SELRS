@@ -1,6 +1,8 @@
 import { UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatPatientPhone, getPatientOptionId } from "./patient-picker-utils";
+import { getPatientOptionId } from "./patientPickerCombobox";
+import { formatPatientPhone } from "./patient-picker-utils";
+import { PATIENT_SEARCH_MIN_LENGTH } from "@/lib/patientSearchGate";
 
 export type PatientOption = {
   id: number;
@@ -22,6 +24,14 @@ type PatientPickerResultsProps = {
   isEnglish: boolean;
   onSelectPatient: (patient: PatientOption) => void;
   onActiveIndexChange: (index: number) => void;
+  /** The search request failed. Stale results stay listed; the alert only replaces an empty list. */
+  isError?: boolean;
+  /** Query is below the minimum length: hint instead of a premature "no results". */
+  showHint?: boolean;
+  onRetry?: () => void;
+  minLength?: number;
+  /** Accessible name for the listbox when there is no visible label to link to. */
+  ariaLabel?: string;
 };
 
 export default function PatientPickerResults({
@@ -33,7 +43,13 @@ export default function PatientPickerResults({
   isEnglish,
   onSelectPatient,
   onActiveIndexChange,
+  isError = false,
+  showHint = false,
+  onRetry,
+  minLength = PATIENT_SEARCH_MIN_LENGTH,
+  ariaLabel,
 }: PatientPickerResultsProps) {
+  const showError = isError && patients.length === 0;
   return (
     // preventDefault keeps focus on the combobox input, even when clicking the
     // scrollbar or an option, so the popup never closes mid-interaction.
@@ -41,7 +57,43 @@ export default function PatientPickerResults({
       className="max-h-64 overflow-y-auto rounded-2xl border border-border bg-popover shadow-lg"
       onMouseDown={(e) => e.preventDefault()}
     >
-      {isLoading && (
+      {showHint && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-3 py-2 text-sm text-muted-foreground"
+        >
+          {isEnglish
+            ? `Type at least ${minLength} characters to search`
+            : minLength === PATIENT_SEARCH_MIN_LENGTH
+              ? "اكتب حرفين على الأقل للبحث"
+              : `اكتب ${minLength} من الأحرف على الأقل للبحث`}
+        </div>
+      )}
+      {!showHint && showError && (
+        <div role="alert" className="px-3 py-2 text-sm text-destructive">
+          <p>
+            {isEnglish
+              ? "Could not search patients. Please try again."
+              : "تعذر البحث عن المرضى. حاول مرة أخرى."}
+          </p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className={cn(
+                "mt-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground",
+                "transition-colors hover:bg-accent/50",
+                "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                isEnglish ? "ml-auto block" : "mr-auto block",
+              )}
+            >
+              {isEnglish ? "Retry" : "إعادة المحاولة"}
+            </button>
+          )}
+        </div>
+      )}
+      {!showHint && !showError && isLoading && (
         <div
           role="status"
           aria-live="polite"
@@ -50,7 +102,7 @@ export default function PatientPickerResults({
           {isEnglish ? "Searching..." : "جاري البحث..."}
         </div>
       )}
-      {!isLoading && patients.length === 0 && (
+      {!showHint && !showError && !isLoading && patients.length === 0 && (
         <div
           role="status"
           aria-live="polite"
@@ -59,48 +111,55 @@ export default function PatientPickerResults({
           {isEnglish ? "No results found" : "لا توجد نتائج"}
         </div>
       )}
-      <ul id={listboxId} role="listbox" aria-labelledby={labelId}>
-        {patients.map((patient, index) => {
-          const active = index === activeIndex;
-          return (
-            <li
-              key={patient.id}
-              id={getPatientOptionId(listboxId, patient.id)}
-              role="option"
-              aria-selected={active}
-              data-active={active || undefined}
-              className={cn(
-                "w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent",
-                active && "bg-accent",
-                isEnglish ? "text-left" : "text-right",
-              )}
-              onClick={() => onSelectPatient(patient)}
-              onMouseMove={() => {
-                if (index !== activeIndex) onActiveIndexChange(index);
-              }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
-                    <UserRound className="h-3.5 w-3.5" />
-                  </span>
-                  <span dir="auto" className="font-medium">
-                    {patient.fullName}
+      {patients.length > 0 && !showHint && (
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabel ? undefined : labelId}
+        >
+          {patients.map((patient, index) => {
+            const active = index === activeIndex;
+            return (
+              <li
+                key={patient.id}
+                id={getPatientOptionId(listboxId, patient.id)}
+                role="option"
+                aria-selected={active}
+                data-active={active || undefined}
+                className={cn(
+                  "w-full cursor-pointer px-3 py-3 transition-colors hover:bg-accent",
+                  active && "bg-accent",
+                  isEnglish ? "text-left" : "text-right",
+                )}
+                onClick={() => onSelectPatient(patient)}
+                onMouseMove={() => {
+                  if (index !== activeIndex) onActiveIndexChange(index);
+                }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-border bg-muted p-1.5 text-muted-foreground">
+                      <UserRound className="h-3.5 w-3.5" />
+                    </span>
+                    <span dir="auto" className="font-medium">
+                      {patient.fullName}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground" dir="ltr">
+                    {patient.patientCode ?? "—"}
                   </span>
                 </div>
-                <span className="text-xs text-muted-foreground" dir="ltr">
-                  {patient.patientCode ?? "—"}
-                </span>
-              </div>
-              {patient.phone && (
-                <div className="text-xs text-muted-foreground" dir="ltr">
-                  {formatPatientPhone(patient.phone)}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                {patient.phone && (
+                  <div className="text-xs text-muted-foreground" dir="ltr">
+                    {formatPatientPhone(patient.phone)}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
