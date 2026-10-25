@@ -55,13 +55,12 @@ describe("patient picker combobox markup", () => {
     expect(html).toContain("اختر المريض");
   });
 
-  it("should_point_aria_controls_at_listbox_id_derived_from_same_base", () => {
-    const input = inputTag(renderPicker());
-    const inputId = attrOf(input, "id");
-    const controls = attrOf(input, "aria-controls");
-    expect(controls?.endsWith("-listbox")).toBe(true);
-    expect(inputId?.endsWith("-input")).toBe(true);
-    expect(controls).toBe(`${inputId?.slice(0, -"-input".length)}-listbox`);
+  it("should_not_reference_a_listbox_that_is_not_rendered_when_closed", () => {
+    const html = renderPicker();
+    const input = inputTag(html);
+    expect(attrOf(input, "id")?.endsWith("-input")).toBe(true);
+    expect(attrOf(input, "aria-controls")).toBeUndefined();
+    expect(html).not.toContain('role="listbox"');
   });
 
   it("should_fall_back_to_placeholder_aria_label_when_label_is_empty", () => {

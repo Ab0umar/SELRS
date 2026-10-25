@@ -56,6 +56,7 @@ export default function PatientPicker({
   const inputId = `${baseId}-input`;
   const labelId = `${baseId}-label`;
   const listboxId = `${baseId}-listbox`;
+  const isEnglish = locale === "en";
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -114,9 +115,6 @@ export default function PatientPicker({
   const results = (searchQuery.data ?? []) as PatientOption[];
   const filteredResults = allowPatient ? results.filter(allowPatient) : results;
 
-  const baseId = useId();
-  const inputId = `${baseId}-input`;
-  const listboxId = `${baseId}-listbox`;
   const isPopupVisible = !readOnly && open && normalizedQuery.length >= 1;
   const isListboxOpen = isPopupVisible && filteredResults.length > 0;
   const activePatient =
@@ -159,50 +157,10 @@ export default function PatientPicker({
     setActiveIndex(-1);
   }, [normalizedQuery, searchQuery.data]);
 
-  // Keep the highlighted option visible while arrowing through long lists.
-  useEffect(() => {
-    if (!listVisible) return;
-    const patient = filteredResults[activeIndex];
-    if (!patient) return;
-    document
-      .getElementById(getPatientOptionId(listboxId, patient.id))
-      ?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, listVisible]);
-
-  // Input's useComposition wrapper already swallows Enter during IME
-  // composition, so it is not re-checked here.
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (readOnly) return;
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (!listVisible && normalizedQuery.length >= 1) setOpen(true);
-      if (filteredResults.length > 0) {
-        setActiveIndex(
-          getNextActiveIndex(activeIndex, e.key, filteredResults.length),
-        );
-      }
-      return;
-    }
-    // Without a highlighted option the default stays, so pages wrapping the
-    // picker in a <form> keep their Enter behaviour.
-    if (e.key === "Enter") {
-      if (listVisible && filteredResults[activeIndex]) {
-        e.preventDefault();
-        selectPatient(filteredResults[activeIndex]);
-      }
-      return;
-    }
-    if (e.key === "Escape" && listVisible) {
-      e.preventDefault();
-      setOpen(false);
-      setActiveIndex(-1);
-    }
-  };
-
   return (
     <div dir={isEnglish ? "ltr" : "rtl"} className="space-y-2">
       {label?.trim() ? (
-        <label htmlFor={inputId} className="sr-only">
+        <label id={labelId} htmlFor={inputId} className="sr-only">
           {label}
         </label>
       ) : null}
@@ -218,7 +176,7 @@ export default function PatientPicker({
           id={inputId}
           role="combobox"
           aria-autocomplete="list"
-          aria-controls={listboxId}
+          aria-controls={isListboxOpen ? listboxId : undefined}
           aria-expanded={isListboxOpen}
           aria-activedescendant={activeOptionId}
           aria-label={label?.trim() ? undefined : placeholder}
@@ -278,20 +236,10 @@ export default function PatientPicker({
                 break;
             }
           }}
-          onKeyDown={handleInputKeyDown}
           placeholder={placeholder}
           className={`h-11 rounded-2xl border-border bg-background shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/25 ${isEnglish ? "pl-10 text-left" : "pr-10 text-right"}`}
           dir={isEnglish ? "ltr" : "rtl"}
           readOnly={readOnly}
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={listVisible}
-          aria-controls={listVisible ? listboxId : undefined}
-          aria-activedescendant={
-            listVisible && filteredResults[activeIndex]
-              ? getPatientOptionId(listboxId, filteredResults[activeIndex].id)
-              : undefined
-          }
           autoComplete="off"
         />
       </div>
