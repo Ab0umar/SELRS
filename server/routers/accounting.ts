@@ -4,7 +4,7 @@ import { z } from "zod";
 import { execFile as execFileCb } from "child_process";
 import { promisify } from "node:util";
 import path from "path";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, type SQL } from "drizzle-orm";
 import { accAdvances as accAdvancesTable } from "../../drizzle/schema";
 import { getDb, upsertPatientServiceEntry } from "../db";
 import {
@@ -60,6 +60,16 @@ import {
   getReceiptsInquiry,
 } from "../services/accounting/receiptsInquiry.service";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
+import {
+  ISO_DATE_RE,
+  dateRangeConditions,
+  intLiteral,
+  likeContains,
+  sortKeyword,
+  whereClause,
+} from "../services/accounting/ledgerSql";
+
+const isoDateInput = z.string().regex(ISO_DATE_RE, "تاريخ غير صالح");
 
 const execFile = promisify(execFileCb);
 
@@ -203,11 +213,8 @@ export const accountingRouter = router({
       if (!code) return null;
       const db = await getDb();
       if (!db) return null;
-      const sq = (v: string) => `'${v.replace(/'/g, "''")}'`;
       const [rows] = (await db.execute(
-        sql.raw(
-          `SELECT fullName FROM patients WHERE patientCode=${sq(code)} LIMIT 1`,
-        ),
+        sql`SELECT fullName FROM patients WHERE patientCode=${code} LIMIT 1`,
       )) as any;
       const patient = (rows as any[])[0];
       return patient ? { patientName: String(patient.fullName) } : null;
@@ -305,10 +312,6 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const patientCode = input.patientCode.trim();
       const mssqlPatientRows = await mssqlQuery<{
         PAT_CD: string;
@@ -327,9 +330,7 @@ export const accountingRouter = router({
       }
 
       const [patientRes] = (await db.execute(
-        sql.raw(
-          `SELECT id, fullName FROM patients WHERE patientCode=${sq(patientCode)} LIMIT 1`,
-        ),
+        sql`SELECT id, fullName FROM patients WHERE patientCode=${patientCode} LIMIT 1`,
       )) as any;
       const patient = (patientRes as any[])[0];
       if (!patient?.id) {
@@ -395,9 +396,7 @@ export const accountingRouter = router({
 
       for (const [serviceCode, line] of serviceTotals) {
         const [serviceRes] = (await db.execute(
-          sql.raw(
-            `SELECT name FROM services WHERE code=${sq(serviceCode)} LIMIT 1`,
-          ),
+          sql`SELECT name FROM services WHERE code=${serviceCode} LIMIT 1`,
         )) as any;
         const serviceName = String(
           (serviceRes as any[])[0]?.name ?? line.serviceName ?? "",
@@ -535,8 +534,8 @@ export const accountingRouter = router({
   accLedgerSummary: makeAccProcedure("/accounting/ledger")
     .input(
       z.object({
-        dateFrom: z.string().optional(),
-        dateTo: z.string().optional(),
+        dateFrom: isoDateInput.optional(),
+        dateTo: isoDateInput.optional(),
       }),
     )
     .query(async ({ input }) => {
@@ -546,21 +545,17 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const where = buildDateWhere(input.dateFrom, input.dateTo);
+      const where = whereClause(
+        dateRangeConditions("txDate", input.dateFrom, input.dateTo),
+      );
       // Vault/general balance = net of all movements through end of period (or now)
-      const asOf = input.dateTo
-        ? ` WHERE txDate <= '${input.dateTo.replace(/'/g, "")}'`
-        : "";
+      const asOf = whereClause(dateRangeConditions("txDate", undefined, input.dateTo));
       const [periodRes, balRes] = await Promise.all([
         db.execute(
-          sql.raw(
-            `SELECT COALESCE(SUM(income),0) AS totalIncome, COALESCE(SUM(expense),0) AS totalExpense, COUNT(*) AS txCount FROM accLedger${where}`,
-          ),
+          sql`SELECT COALESCE(SUM(income),0) AS totalIncome, COALESCE(SUM(expense),0) AS totalExpense, COUNT(*) AS txCount FROM accLedger${where}`,
         ),
         db.execute(
-          sql.raw(
-            `SELECT COALESCE(SUM(COALESCE(income,0) - COALESCE(expense,0)), 0) AS currentBalance FROM accLedger${asOf}`,
-          ),
+          sql`SELECT COALESCE(SUM(COALESCE(income,0) - COALESCE(expense,0)), 0) AS currentBalance FROM accLedger${asOf}`,
         ),
       ]);
       const p = (periodRes as any)[0]?.[0] ?? {};
@@ -576,8 +571,8 @@ export const accountingRouter = router({
   accLedger: makeAccProcedure("/accounting/ledger")
     .input(
       z.object({
-        dateFrom: z.string().optional(),
-        dateTo: z.string().optional(),
+        dateFrom: isoDateInput.optional(),
+        dateTo: isoDateInput.optional(),
         type: z.enum(["all", "income", "expense"]).default("all"),
         notes: z.string().optional(),
         page: z.number().int().min(1).default(1),
@@ -592,38 +587,23 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      let where = buildDateWhere(input.dateFrom, input.dateTo);
-      if (input.type === "income")
-        where += (where ? " AND " : " WHERE ") + "income > 0";
-      if (input.type === "expense")
-        where += (where ? " AND " : " WHERE ") + "expense > 0";
-      if (input.notes?.trim()) {
-        const q = input.notes.trim().replace(/'/g, "");
-        where += (where ? " AND " : " WHERE ") + `notes LIKE '%${q}%'`;
-      }
-      const dir = input.sortDir.toUpperCase();
+      const conds = dateRangeConditions("txDate", input.dateFrom, input.dateTo);
+      if (input.type === "income") conds.push(sql`income > 0`);
+      if (input.type === "expense") conds.push(sql`expense > 0`);
+      const notesTerm = input.notes?.trim();
+      if (notesTerm) conds.push(sql`notes LIKE ${likeContains(notesTerm)}`);
+      const where = whereClause(conds);
+      const dir = sortKeyword(input.sortDir);
       const offset = (input.page - 1) * input.pageSize;
       // Running total over FULL ledger (same order as recalcLedgerTotals), then filter/paginate.
-      let outerParts: string[] = [];
-      if (input.dateFrom)
-        outerParts.push(
-          `t.txDate >= '${input.dateFrom.replace(/'/g, "")}'`,
-        );
-      if (input.dateTo)
-        outerParts.push(`t.txDate <= '${input.dateTo.replace(/'/g, "")}'`);
-      if (input.type === "income") outerParts.push("t.income > 0");
-      if (input.type === "expense") outerParts.push("t.expense > 0");
-      if (input.notes?.trim()) {
-        const q = input.notes.trim().replace(/'/g, "");
-        outerParts.push(`t.notes LIKE '%${q}%'`);
-      }
-      const outerWhereSql = outerParts.length
-        ? ` WHERE ${outerParts.join(" AND ")}`
-        : "";
+      const outerConds = dateRangeConditions("t.txDate", input.dateFrom, input.dateTo);
+      if (input.type === "income") outerConds.push(sql`t.income > 0`);
+      if (input.type === "expense") outerConds.push(sql`t.expense > 0`);
+      if (notesTerm) outerConds.push(sql`t.notes LIKE ${likeContains(notesTerm)}`);
+      const outerWhereSql = whereClause(outerConds);
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
-          sql.raw(
-            `SELECT t.id, t.accessId, t.txDate, t.income, t.expense, t.notes, t.remarks, t.balance, t.total
+            sql`SELECT t.id, t.accessId, t.txDate, t.income, t.expense, t.notes, t.remarks, t.balance, t.total
              FROM (
                SELECT id, accessId, txDate, income, expense, notes, remarks,
                  COALESCE(income, 0) - COALESCE(expense, 0) AS balance,
@@ -634,10 +614,9 @@ export const accountingRouter = router({
                FROM accLedger
              ) t${outerWhereSql}
              ORDER BY t.txDate ${dir}, COALESCE(t.accessId, 999999999) ${dir}, t.id ${dir}
-             LIMIT ${input.pageSize} OFFSET ${offset}`,
-          ),
+             LIMIT ${intLiteral(input.pageSize)} OFFSET ${intLiteral(offset)}`,
         ),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accLedger${where}`)),
+        db.execute(sql`SELECT COUNT(*) AS n FROM accLedger${where}`),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
         id: Number(r.id),
@@ -670,14 +649,16 @@ export const accountingRouter = router({
   }),
 
   accExpenses: makeAccProcedure("/accounting/expenses")
-    .input(z.object({ dateFrom: z.string().optional(), dateTo: z.string().optional(), category: z.enum(["all", "instapay", "home", "abu-omar", "dr-saadany", "rent", "salaries", "supplies", "device-maintenance", "advances", "insurance", "taxes"]).default("all"), page: z.number().int().min(1).default(1), pageSize: z.number().int().min(1).max(200).default(50) }))
+    .input(z.object({ dateFrom: isoDateInput.optional(), dateTo: isoDateInput.optional(), category: z.enum(["all", "instapay", "home", "abu-omar", "dr-saadany", "rent", "salaries", "supplies", "device-maintenance", "advances", "insurance", "taxes"]).default("all"), page: z.number().int().min(1).default(1), pageSize: z.number().int().min(1).max(200).default(50) }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
-      const base = buildDateWhere(input.dateFrom, input.dateTo);
-      const where = base ? `${base} AND COALESCE(expense, 0) > 0` : " WHERE COALESCE(expense, 0) > 0";
+      const where = whereClause([
+        ...dateRangeConditions("txDate", input.dateFrom, input.dateTo),
+        sql`COALESCE(expense, 0) > 0`,
+      ]);
       const [ledger, employees, attendance] = await Promise.all([
-        db.execute(sql.raw(`SELECT id, accessId, txDate, expense, notes FROM accLedger${where} ORDER BY txDate DESC, id DESC`)),
+        db.execute(sql`SELECT id, accessId, txDate, expense, notes FROM accLedger${where} ORDER BY txDate DESC, id DESC`),
         db.execute(sql.raw("SELECT name FROM accEmployees WHERE name IS NOT NULL AND TRIM(name) <> ''")),
         db.execute(sql.raw("SELECT full_name AS name FROM attendance_employees WHERE full_name IS NOT NULL AND TRIM(full_name) <> ''")),
       ]);
@@ -747,29 +728,24 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      let searchCond = "";
-      if (input.search?.trim()) {
-        const q = input.search.trim().replace(/'/g, "");
-        searchCond = ` AND employee LIKE '%${q}%'`;
-      }
+      const searchTerm = input.search?.trim();
+      const searchCond = searchTerm
+        ? sql` AND employee LIKE ${likeContains(searchTerm)}`
+        : sql``;
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
-          sql.raw(
-            `SELECT id, accessId, txDate, advance, repayment, notes, employee, emp_cd,
+          sql`SELECT id, accessId, txDate, advance, repayment, notes, employee, emp_cd,
              SUM(COALESCE(advance,0) - COALESCE(repayment,0)) OVER (
                PARTITION BY employee
                ORDER BY txDate ASC, id ASC
              ) AS runningTotal
            FROM accAdvances
            WHERE 1=1${searchCond}
-           ORDER BY txDate ${input.sortDir.toUpperCase()}, id ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`,
-          ),
+           ORDER BY txDate ${sortKeyword(input.sortDir)}, id ${sortKeyword(input.sortDir)} LIMIT ${intLiteral(input.pageSize)} OFFSET ${intLiteral(offset)}`,
         ),
         db.execute(
-          sql.raw(
-            `SELECT COUNT(*) AS n FROM accAdvances WHERE 1=1${searchCond}`,
-          ),
+          sql`SELECT COUNT(*) AS n FROM accAdvances WHERE 1=1${searchCond}`,
         ),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
@@ -846,21 +822,18 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      let where = "";
-      if (input.search?.trim()) {
-        const q = input.search.trim().replace(/'/g, "");
-        where = ` WHERE name LIKE '%${q}%' OR notes LIKE '%${q}%'`;
-      }
+      const searchTerm = input.search?.trim();
+      const where = searchTerm
+        ? sql` WHERE name LIKE ${likeContains(searchTerm)} OR notes LIKE ${likeContains(searchTerm)}`
+        : sql``;
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
-          sql.raw(
-            `SELECT id, accessId, txDate, name, amount, repayment, remaining, notes,
+          sql`SELECT id, accessId, txDate, name, amount, repayment, remaining, notes,
            SUM(COALESCE(amount,0) - COALESCE(repayment,0)) OVER (ORDER BY txDate ASC, id ASC) AS total
-           FROM accLoans${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, id ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`,
-          ),
+           FROM accLoans${where} ORDER BY txDate ${sortKeyword(input.sortDir)}, id ${sortKeyword(input.sortDir)} LIMIT ${intLiteral(input.pageSize)} OFFSET ${intLiteral(offset)}`,
         ),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accLoans${where}`)),
+        db.execute(sql`SELECT COUNT(*) AS n FROM accLoans${where}`),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
         id: Number(r.id),
@@ -914,22 +887,19 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      let where = "";
-      if (input.search?.trim()) {
-        const q = input.search.trim().replace(/'/g, "");
-        where = ` WHERE notes LIKE '%${q}%'`;
-      }
+      const searchTerm = input.search?.trim();
+      const where = searchTerm
+        ? sql` WHERE notes LIKE ${likeContains(searchTerm)}`
+        : sql``;
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
-          sql.raw(
-            `SELECT id, accessId, txDate, inAmount, outAmount, notes,
+          sql`SELECT id, accessId, txDate, inAmount, outAmount, notes,
             COALESCE(inAmount, 0) - COALESCE(outAmount, 0) AS balance,
             SUM(COALESCE(inAmount, 0) - COALESCE(outAmount, 0)) OVER (ORDER BY txDate ASC, accessId ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total
-           FROM accHome${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, accessId ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`,
-          ),
+           FROM accHome${where} ORDER BY txDate ${sortKeyword(input.sortDir)}, accessId ${sortKeyword(input.sortDir)} LIMIT ${intLiteral(input.pageSize)} OFFSET ${intLiteral(offset)}`,
         ),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accHome${where}`)),
+        db.execute(sql`SELECT COUNT(*) AS n FROM accHome${where}`),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
         id: Number(r.id),
@@ -984,22 +954,19 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      let where = "";
-      if (input.search?.trim()) {
-        const q = input.search.trim().replace(/'/g, "");
-        where = ` WHERE notes LIKE '%${q}%'`;
-      }
+      const searchTerm = input.search?.trim();
+      const where = searchTerm
+        ? sql` WHERE notes LIKE ${likeContains(searchTerm)}`
+        : sql``;
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
-          sql.raw(
-            `SELECT id, accessId, txDate, inAmount, outAmount, notes,
+          sql`SELECT id, accessId, txDate, inAmount, outAmount, notes,
             COALESCE(inAmount, 0) - COALESCE(outAmount, 0) AS balance,
             SUM(COALESCE(inAmount, 0) - COALESCE(outAmount, 0)) OVER (ORDER BY txDate ASC, accessId ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total
-           FROM accInstapay${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, accessId ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`,
-          ),
+           FROM accInstapay${where} ORDER BY txDate ${sortKeyword(input.sortDir)}, accessId ${sortKeyword(input.sortDir)} LIMIT ${intLiteral(input.pageSize)} OFFSET ${intLiteral(offset)}`,
         ),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accInstapay${where}`)),
+        db.execute(sql`SELECT COUNT(*) AS n FROM accInstapay${where}`),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
         id: Number(r.id),
@@ -1031,21 +998,18 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      let where = "";
-      if (input.search?.trim()) {
-        const q = input.search.trim().replace(/'/g, "");
-        where = ` WHERE notes LIKE '%${q}%'`;
-      }
+      const searchTerm = input.search?.trim();
+      const where = searchTerm
+        ? sql` WHERE notes LIKE ${likeContains(searchTerm)}`
+        : sql``;
       const offset = (input.page - 1) * input.pageSize;
       const [rowsRes, countRes] = await Promise.all([
         db.execute(
-          sql.raw(
-            `SELECT id, accessId, txDate, ABS(withdrawals) AS withdrawals, repayment, notes,
+          sql`SELECT id, accessId, txDate, ABS(withdrawals) AS withdrawals, repayment, notes,
            SUM(ABS(IFNULL(withdrawals,0)) - IFNULL(repayment,0)) OVER (ORDER BY txDate ASC, id ASC) AS runningTotal
-           FROM accSaadany${where} ORDER BY txDate ${input.sortDir.toUpperCase()}, id ${input.sortDir.toUpperCase()} LIMIT ${input.pageSize} OFFSET ${offset}`,
-          ),
+           FROM accSaadany${where} ORDER BY txDate ${sortKeyword(input.sortDir)}, id ${sortKeyword(input.sortDir)} LIMIT ${intLiteral(input.pageSize)} OFFSET ${intLiteral(offset)}`,
         ),
-        db.execute(sql.raw(`SELECT COUNT(*) AS n FROM accSaadany${where}`)),
+        db.execute(sql`SELECT COUNT(*) AS n FROM accSaadany${where}`),
       ]);
       const rows = ((rowsRes as any)[0] as any[]).map((r: any) => ({
         id: Number(r.id),
@@ -1231,11 +1195,11 @@ export const accountingRouter = router({
       const isOut = Number(row.expense ?? 0) > 0;
       const table = ENTITY_TABLE[entity];
       const existingId = await findEquivalentMirror(db, table, String(row.txDate).slice(0, 10), String(row.notes ?? ""), amount, isOut);
-      if (existingId) { await db.execute(sql.raw(`UPDATE accLedger SET linkedTable='${table}', linkedId=${existingId} WHERE id=${Number(row.id)}`)); linked++; continue; }
+      if (existingId) { await db.execute(sql`UPDATE accLedger SET linkedTable=${table}, linkedId=${existingId} WHERE id=${Number(row.id)}`); linked++; continue; }
       const mirror = await resolveMirror(db, String(row.notes ?? ""), Number(row.income ?? 0), Number(row.expense ?? 0), String(row.txDate).slice(0, 10), entity);
       if (!mirror) { skipped++; continue; }
-      const [result] = (await db.execute(sql.raw(mirror.insertSql))) as any;
-      await db.execute(sql.raw(`UPDATE accLedger SET linkedTable='${mirror.table}', linkedId=${Number(result.insertId)} WHERE id=${Number(row.id)}`));
+      const [result] = (await db.execute(mirror.insertSql)) as any;
+      await db.execute(sql`UPDATE accLedger SET linkedTable=${mirror.table}, linkedId=${Number(result.insertId)} WHERE id=${Number(row.id)}`);
       inserted++;
     }
     return { inserted, linked, skipped };
@@ -1244,7 +1208,7 @@ export const accountingRouter = router({
   addAccEntry: makeAccWriteProcedure("/accounting/cashbook")
     .input(
       z.object({
-        txDate: z.string(),
+        txDate: isoDateInput,
         income: z.number().finite().default(0),
         expense: z.number().finite().default(0),
         notes: z.string().max(500).default(""),
@@ -1259,15 +1223,9 @@ export const accountingRouter = router({
           message: "DB unavailable",
         });
       const balance = input.income - input.expense;
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
 
       const [res] = (await db.execute(
-        sql.raw(
-          `INSERT INTO accLedger (txDate, income, expense, balance, notes, remarks) VALUES (${sq(input.txDate)}, ${sq(input.income)}, ${sq(input.expense)}, ${sq(balance)}, ${sq(input.notes || null)}, ${sq(input.remarks || null)})`,
-        ),
+        sql`INSERT INTO accLedger (txDate, income, expense, balance, notes, remarks) VALUES (${input.txDate}, ${input.income}, ${input.expense}, ${balance}, ${input.notes || null}, ${input.remarks || null})`,
       )) as any;
       const ledgerId: number = res.insertId;
 
@@ -1280,11 +1238,9 @@ export const accountingRouter = router({
         input.txDate,
       );
       if (mirror) {
-        const [mRes] = (await db.execute(sql.raw(mirror.insertSql))) as any;
+        const [mRes] = (await db.execute(mirror.insertSql)) as any;
         await db.execute(
-          sql.raw(
-            `UPDATE accLedger SET linkedTable=${sq(mirror.table)}, linkedId=${sq(mRes.insertId)} WHERE id=${ledgerId}`,
-          ),
+          sql`UPDATE accLedger SET linkedTable=${mirror.table}, linkedId=${mRes.insertId} WHERE id=${ledgerId}`,
         );
       }
       await recalcLedgerTotals(db);
@@ -1295,7 +1251,7 @@ export const accountingRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        txDate: z.string(),
+        txDate: isoDateInput,
         income: z.number().finite().default(0),
         expense: z.number().finite().default(0),
         notes: z.string().max(500).default(""),
@@ -1309,24 +1265,16 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const balance = input.income - input.expense;
 
       // Fetch existing row to get current mirror info
       const [existing] = (await db.execute(
-        sql.raw(
-          `SELECT linkedTable, linkedId FROM accLedger WHERE id=${input.id}`,
-        ),
+        sql`SELECT linkedTable, linkedId FROM accLedger WHERE id=${input.id}`,
       )) as any;
       const cur = (existing as any[])[0];
 
       await db.execute(
-        sql.raw(
-          `UPDATE accLedger SET txDate=${sq(input.txDate)}, income=${sq(input.income)}, expense=${sq(input.expense)}, balance=${sq(balance)}, notes=${sq(input.notes || null)}, remarks=${sq(input.remarks || null)} WHERE id=${input.id}`,
-        ),
+        sql`UPDATE accLedger SET txDate=${input.txDate}, income=${input.income}, expense=${input.expense}, balance=${balance}, notes=${input.notes || null}, remarks=${input.remarks || null} WHERE id=${input.id}`,
       );
 
       // Update or replace mirror
@@ -1341,17 +1289,13 @@ export const accountingRouter = router({
         input.txDate,
       );
       if (mirror) {
-        const [mRes] = (await db.execute(sql.raw(mirror.insertSql))) as any;
+        const [mRes] = (await db.execute(mirror.insertSql)) as any;
         await db.execute(
-          sql.raw(
-            `UPDATE accLedger SET linkedTable=${sq(mirror.table)}, linkedId=${sq(mRes.insertId)} WHERE id=${input.id}`,
-          ),
+          sql`UPDATE accLedger SET linkedTable=${mirror.table}, linkedId=${mRes.insertId} WHERE id=${input.id}`,
         );
       } else {
         await db.execute(
-          sql.raw(
-            `UPDATE accLedger SET linkedTable=NULL, linkedId=NULL WHERE id=${input.id}`,
-          ),
+          sql`UPDATE accLedger SET linkedTable=NULL, linkedId=NULL WHERE id=${input.id}`,
         );
       }
       await recalcLedgerTotals(db);
@@ -1368,15 +1312,13 @@ export const accountingRouter = router({
           message: "DB unavailable",
         });
       const [existing] = (await db.execute(
-        sql.raw(
-          `SELECT linkedTable, linkedId FROM accLedger WHERE id=${input.id}`,
-        ),
+        sql`SELECT linkedTable, linkedId FROM accLedger WHERE id=${input.id}`,
       )) as any;
       const cur = (existing as any[])[0];
       if (cur?.linkedTable && cur?.linkedId) {
         await deleteMirrorRow(db, cur.linkedTable, cur.linkedId);
       }
-      await db.execute(sql.raw(`DELETE FROM accLedger WHERE id=${input.id}`));
+      await db.execute(sql`DELETE FROM accLedger WHERE id=${input.id}`);
       await recalcLedgerTotals(db);
       return { ok: true };
     }),
@@ -1386,7 +1328,7 @@ export const accountingRouter = router({
   addAccAdvance: makeAccWriteProcedure("/accounting/advances")
     .input(
       z.object({
-        txDate: z.string(),
+        txDate: isoDateInput,
         employee: z.string().max(200),
         empCd: z.string().max(32).nullable().optional(),
         advance: z.number().min(0).default(0),
@@ -1401,14 +1343,8 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const [res] = (await db.execute(
-        sql.raw(
-          `INSERT INTO accAdvances (txDate, employee, advance, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.employee)}, ${sq(input.advance || null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`,
-        ),
+        sql`INSERT INTO accAdvances (txDate, employee, advance, repayment, notes) VALUES (${input.txDate}, ${input.employee}, ${input.advance || null}, ${input.repayment || null}, ${input.notes || null})`,
       )) as any;
       const newId: number =
         (res as any)?.[0]?.insertId ?? (res as any)?.insertId ?? res.insertId;
@@ -1425,7 +1361,7 @@ export const accountingRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        txDate: z.string(),
+        txDate: isoDateInput,
         employee: z.string().max(200),
         empCd: z.string().max(32).nullable().optional(),
         advance: z.number().min(0).default(0),
@@ -1440,14 +1376,8 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       await db.execute(
-        sql.raw(
-          `UPDATE accAdvances SET txDate=${sq(input.txDate)}, employee=${sq(input.employee)}, advance=${sq(input.advance || null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
-        ),
+        sql`UPDATE accAdvances SET txDate=${input.txDate}, employee=${input.employee}, advance=${input.advance || null}, repayment=${input.repayment || null}, notes=${input.notes || null} WHERE id=${input.id}`,
       );
       await db
         .update(accAdvancesTable)
@@ -1459,7 +1389,7 @@ export const accountingRouter = router({
   addAccHome: makeAccWriteProcedure("/accounting/home-fund")
     .input(
       z.object({
-        txDate: z.string(),
+        txDate: isoDateInput,
         inAmount: z.number().min(0).default(0),
         outAmount: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1472,10 +1402,6 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const balance = input.inAmount - input.outAmount;
       const [lastHomeRes] = (await db.execute(
         sql.raw(
@@ -1484,9 +1410,7 @@ export const accountingRouter = router({
       )) as any;
       const homeTotal = Number((lastHomeRes as any[])[0]?.t ?? 0) + balance;
       const [res] = (await db.execute(
-        sql.raw(
-          `INSERT INTO accHome (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.inAmount || null)}, ${sq(input.outAmount || null)}, ${sq(balance)}, ${sq(homeTotal)}, ${sq(input.notes || null)})`,
-        ),
+        sql`INSERT INTO accHome (txDate, inAmount, outAmount, balance, total, notes) VALUES (${input.txDate}, ${input.inAmount || null}, ${input.outAmount || null}, ${balance}, ${homeTotal}, ${input.notes || null})`,
       )) as any;
       return { id: res.insertId };
     }),
@@ -1494,7 +1418,7 @@ export const accountingRouter = router({
   addAccInstapay: makeAccWriteProcedure("/accounting/instapay")
     .input(
       z.object({
-        txDate: z.string(),
+        txDate: isoDateInput,
         inAmount: z.number().min(0).default(0),
         outAmount: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1507,10 +1431,6 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const balance = input.inAmount - input.outAmount;
       const [lastInstaRes] = (await db.execute(
         sql.raw(
@@ -1519,9 +1439,7 @@ export const accountingRouter = router({
       )) as any;
       const instaTotal = Number((lastInstaRes as any[])[0]?.t ?? 0) + balance;
       const [res] = (await db.execute(
-        sql.raw(
-          `INSERT INTO accInstapay (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.inAmount || null)}, ${sq(input.outAmount || null)}, ${sq(balance)}, ${sq(instaTotal)}, ${sq(input.notes || null)})`,
-        ),
+        sql`INSERT INTO accInstapay (txDate, inAmount, outAmount, balance, total, notes) VALUES (${input.txDate}, ${input.inAmount || null}, ${input.outAmount || null}, ${balance}, ${instaTotal}, ${input.notes || null})`,
       )) as any;
       return { id: res.insertId };
     }),
@@ -1557,7 +1475,7 @@ export const accountingRouter = router({
   addAccLoan: makeAccWriteProcedure("/accounting/loans")
     .input(
       z.object({
-        txDate: z.string(),
+        txDate: isoDateInput,
         name: z.string().max(200),
         amount: z.number().min(0).default(0),
         repayment: z.number().min(0).default(0),
@@ -1571,10 +1489,6 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const remaining = input.amount - input.repayment;
       const [lastLoanRes] = (await db.execute(
         sql.raw(
@@ -1583,9 +1497,7 @@ export const accountingRouter = router({
       )) as any;
       const loanTotal = Number((lastLoanRes as any[])[0]?.t ?? 0) + remaining;
       const [res] = (await db.execute(
-        sql.raw(
-          `INSERT INTO accLoans (txDate, name, amount, repayment, remaining, total, notes) VALUES (${sq(input.txDate)}, ${sq(input.name)}, ${sq(input.amount || null)}, ${sq(input.repayment || null)}, ${sq(remaining)}, ${sq(loanTotal)}, ${sq(input.notes || null)})`,
-        ),
+        sql`INSERT INTO accLoans (txDate, name, amount, repayment, remaining, total, notes) VALUES (${input.txDate}, ${input.name}, ${input.amount || null}, ${input.repayment || null}, ${remaining}, ${loanTotal}, ${input.notes || null})`,
       )) as any;
       return { id: res.insertId };
     }),
@@ -1594,7 +1506,7 @@ export const accountingRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        txDate: z.string(),
+        txDate: isoDateInput,
         name: z.string().max(200),
         amount: z.number().min(0).default(0),
         repayment: z.number().min(0).default(0),
@@ -1608,15 +1520,9 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const remaining = input.amount - input.repayment;
       await db.execute(
-        sql.raw(
-          `UPDATE accLoans SET txDate=${sq(input.txDate)}, name=${sq(input.name)}, amount=${sq(input.amount || null)}, repayment=${sq(input.repayment || null)}, remaining=${sq(remaining)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
-        ),
+        sql`UPDATE accLoans SET txDate=${input.txDate}, name=${input.name}, amount=${input.amount || null}, repayment=${input.repayment || null}, remaining=${remaining}, notes=${input.notes || null} WHERE id=${input.id}`,
       );
       return { id: input.id };
     }),
@@ -1630,7 +1536,7 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      await db.execute(sql.raw(`DELETE FROM accLoans WHERE id=${input.id}`));
+      await db.execute(sql`DELETE FROM accLoans WHERE id=${input.id}`);
       return { ok: true };
     }),
 
@@ -1643,7 +1549,7 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      await db.execute(sql.raw(`DELETE FROM accAdvances WHERE id=${input.id}`));
+      await db.execute(sql`DELETE FROM accAdvances WHERE id=${input.id}`);
       return { ok: true };
     }),
 
@@ -1656,7 +1562,7 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      await db.execute(sql.raw(`DELETE FROM accHome WHERE id=${input.id}`));
+      await db.execute(sql`DELETE FROM accHome WHERE id=${input.id}`);
       return { ok: true };
     }),
 
@@ -1669,7 +1575,7 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      await db.execute(sql.raw(`DELETE FROM accInstapay WHERE id=${input.id}`));
+      await db.execute(sql`DELETE FROM accInstapay WHERE id=${input.id}`);
       return { ok: true };
     }),
 
@@ -1682,7 +1588,7 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      await db.execute(sql.raw(`DELETE FROM accSaadany WHERE id=${input.id}`));
+      await db.execute(sql`DELETE FROM accSaadany WHERE id=${input.id}`);
       return { ok: true };
     }),
 
@@ -1690,7 +1596,7 @@ export const accountingRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        txDate: z.string(),
+        txDate: isoDateInput,
         inAmount: z.number().min(0).default(0),
         outAmount: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1703,15 +1609,9 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const balance = input.inAmount - input.outAmount;
       await db.execute(
-        sql.raw(
-          `UPDATE accHome SET txDate=${sq(input.txDate)}, inAmount=${sq(input.inAmount || null)}, outAmount=${sq(input.outAmount || null)}, balance=${sq(balance)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
-        ),
+        sql`UPDATE accHome SET txDate=${input.txDate}, inAmount=${input.inAmount || null}, outAmount=${input.outAmount || null}, balance=${balance}, notes=${input.notes || null} WHERE id=${input.id}`,
       );
       return { id: input.id };
     }),
@@ -1720,7 +1620,7 @@ export const accountingRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        txDate: z.string(),
+        txDate: isoDateInput,
         inAmount: z.number().min(0).default(0),
         outAmount: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1733,15 +1633,9 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const balance = input.inAmount - input.outAmount;
       await db.execute(
-        sql.raw(
-          `UPDATE accInstapay SET txDate=${sq(input.txDate)}, inAmount=${sq(input.inAmount || null)}, outAmount=${sq(input.outAmount || null)}, balance=${sq(balance)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
-        ),
+        sql`UPDATE accInstapay SET txDate=${input.txDate}, inAmount=${input.inAmount || null}, outAmount=${input.outAmount || null}, balance=${balance}, notes=${input.notes || null} WHERE id=${input.id}`,
       );
       return { id: input.id };
     }),
@@ -1749,7 +1643,7 @@ export const accountingRouter = router({
   addAccSaadany: makeAccWriteProcedure("/accounting/dr-saadany")
     .input(
       z.object({
-        txDate: z.string(),
+        txDate: isoDateInput,
         withdrawals: z.number().min(0).default(0),
         repayment: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1762,14 +1656,8 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       const [res] = (await db.execute(
-        sql.raw(
-          `INSERT INTO accSaadany (txDate, withdrawals, repayment, notes) VALUES (${sq(input.txDate)}, ${sq(input.withdrawals ? -input.withdrawals : null)}, ${sq(input.repayment || null)}, ${sq(input.notes || null)})`,
-        ),
+        sql`INSERT INTO accSaadany (txDate, withdrawals, repayment, notes) VALUES (${input.txDate}, ${input.withdrawals ? -input.withdrawals : null}, ${input.repayment || null}, ${input.notes || null})`,
       )) as any;
       return { id: res.insertId };
     }),
@@ -1778,7 +1666,7 @@ export const accountingRouter = router({
     .input(
       z.object({
         id: z.number().int(),
-        txDate: z.string(),
+        txDate: isoDateInput,
         withdrawals: z.number().min(0).default(0),
         repayment: z.number().min(0).default(0),
         notes: z.string().max(500).default(""),
@@ -1791,14 +1679,8 @@ export const accountingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
-      const sq = (v: string | number | null) =>
-        v === null || v === undefined
-          ? "NULL"
-          : `'${String(v).replace(/'/g, "''")}'`;
       await db.execute(
-        sql.raw(
-          `UPDATE accSaadany SET txDate=${sq(input.txDate)}, withdrawals=${sq(input.withdrawals ? -input.withdrawals : null)}, repayment=${sq(input.repayment || null)}, notes=${sq(input.notes || null)} WHERE id=${input.id}`,
-        ),
+        sql`UPDATE accSaadany SET txDate=${input.txDate}, withdrawals=${input.withdrawals ? -input.withdrawals : null}, repayment=${input.repayment || null}, notes=${input.notes || null} WHERE id=${input.id}`,
       );
       return { id: input.id };
     }),
@@ -1874,6 +1756,13 @@ const ENTITY_TABLE: Record<string, string> = {
   غرابه: "accSaadany",
 };
 
+function assertMirrorTable(table: string): string {
+  if (!Object.values(ENTITY_TABLE).includes(table)) {
+    throw new Error("Invalid mirror table");
+  }
+  return table;
+}
+
 async function resolveMirror(
   db: any,
   notes: string,
@@ -1881,10 +1770,8 @@ async function resolveMirror(
   expense: number,
   txDate: string,
   resolvedEntity?: keyof typeof ENTITY_TABLE | null,
-): Promise<{ table: string; insertSql: string } | null> {
+): Promise<{ table: string; insertSql: SQL } | null> {
   if (!notes?.trim()) return null;
-  const sq = (v: string | number | null) =>
-    v === null ? "NULL" : `'${String(v).replace(/'/g, "''")}'`;
 
   const matchedEntity = resolvedEntity ?? await resolveMirrorEntity(db, notes);
   if (!matchedEntity || !ENTITY_TABLE[matchedEntity]) return null;
@@ -1895,17 +1782,18 @@ async function resolveMirror(
     income > 0 && expense > 0 ? expense : income > 0 ? income : expense;
   const isOut = (income > 0 && expense > 0) || expense > 0;
 
-  let insertSql = "";
-  const notesVal = sq(notes || null);
+  let insertSql: SQL | null = null;
+  const notesVal = notes || null;
   const date = txDate;
+  const tableSql = sql.raw(assertMirrorTable(table));
 
   if (table === "accAdvances") {
     const [employeeRows] = (await db.execute(sql.raw(
       "SELECT name, NULL AS empCd FROM accEmployees WHERE name IS NOT NULL UNION ALL SELECT full_name AS name, emp_cd AS empCd FROM attendance_employees WHERE full_name IS NOT NULL",
     ))) as [Array<{ name: string; empCd: string | null }>];
     const employee = matchAdvanceEmployee(notes, employeeRows);
-    const advance = isOut ? sq(mirrorAmount) : sq(null); // expense = سلفة خارجة
-    const repayment = isOut ? sq(null) : sq(mirrorAmount); // income  = سداد داخل
+    const advance = isOut ? mirrorAmount : null; // expense = سلفة خارجة
+    const repayment = isOut ? null : mirrorAmount; // income  = سداد داخل
     const [lastRes] = (await db.execute(
       sql.raw(
         `SELECT COALESCE(total, 0) AS t FROM accAdvances WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`,
@@ -1915,18 +1803,16 @@ async function resolveMirror(
       Number((lastRes as any[])[0]?.t ?? 0) +
       (isOut ? mirrorAmount : 0) -
       (isOut ? 0 : mirrorAmount);
-    insertSql = `INSERT INTO accAdvances (txDate, advance, repayment, notes, total, employee, emp_cd) VALUES (${sq(date)}, ${advance}, ${repayment}, ${notesVal}, ${sq(runningTotal)}, ${sq(employee?.name ?? null)}, ${sq(employee?.empCd ?? null)})`;
+    insertSql = sql`INSERT INTO accAdvances (txDate, advance, repayment, notes, total, employee, emp_cd) VALUES (${date}, ${advance}, ${repayment}, ${notesVal}, ${runningTotal}, ${employee?.name ?? null}, ${employee?.empCd ?? null})`;
   } else if (table === "accHome" || table === "accInstapay") {
     const inAmt = isOut ? 0 : mirrorAmount;
     const outAmt = isOut ? mirrorAmount : 0;
     const bal = inAmt - outAmt;
     const [lastT] = (await db.execute(
-      sql.raw(
-        `SELECT COALESCE(total, 0) AS t FROM ${table} WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`,
-      ),
+      sql`SELECT COALESCE(total, 0) AS t FROM ${tableSql} WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`,
     )) as any;
     const runningT = Number((lastT as any[])[0]?.t ?? 0) + bal;
-    insertSql = `INSERT INTO ${table} (txDate, inAmount, outAmount, balance, total, notes) VALUES (${sq(date)}, ${sq(inAmt || null)}, ${sq(outAmt || null)}, ${sq(bal)}, ${sq(runningT)}, ${notesVal})`;
+    insertSql = sql`INSERT INTO ${tableSql} (txDate, inAmount, outAmount, balance, total, notes) VALUES (${date}, ${inAmt || null}, ${outAmt || null}, ${bal}, ${runningT}, ${notesVal})`;
   } else if (table === "accSaadany") {
     const withdrawals = isOut ? mirrorAmount : 0;
     const repayment = isOut ? 0 : mirrorAmount;
@@ -1937,7 +1823,7 @@ async function resolveMirror(
     )) as any;
     const saadTotal =
       Number((lastSaad as any[])[0]?.t ?? 0) + withdrawals - repayment;
-    insertSql = `INSERT INTO accSaadany (txDate, withdrawals, repayment, total, notes) VALUES (${sq(date)}, ${sq(withdrawals ? -withdrawals : null)}, ${sq(repayment || null)}, ${sq(saadTotal)}, ${notesVal})`;
+    insertSql = sql`INSERT INTO accSaadany (txDate, withdrawals, repayment, total, notes) VALUES (${date}, ${withdrawals ? -withdrawals : null}, ${repayment || null}, ${saadTotal}, ${notesVal})`;
   }
   return insertSql ? { table, insertSql } : null;
 }
@@ -1946,7 +1832,7 @@ async function deleteMirrorRow(db: any, table: string, id: number) {
   const allowed = Object.values(ENTITY_TABLE);
   if (!allowed.includes(table)) return;
   await db
-    .execute(sql.raw(`DELETE FROM ${table} WHERE id=${id}`))
+    .execute(sql`DELETE FROM ${sql.raw(table)} WHERE id=${id}`)
     .catch(() => {});
 }
 
@@ -1959,13 +1845,9 @@ async function bulkImportAccEntity(
   table: "accHome" | "accInstapay",
   rows: { txDate: string; inAmount: number; outAmount: number; notes: string }[],
 ): Promise<{ inserted: number; skipped: number }> {
-  const sq = (v: string | number | null) =>
-    v === null || v === undefined
-      ? "NULL"
-      : `'${String(v).replace(/'/g, "''")}'`;
 
   const [existingRows] = (await db.execute(
-    sql.raw(`SELECT txDate, inAmount, outAmount, notes FROM ${table}`),
+    sql`SELECT txDate, inAmount, outAmount, notes FROM ${sql.raw(table)}`,
   )) as any;
 
   const existingRefs = new Set<string>();
@@ -2018,9 +1900,7 @@ async function bulkImportAccEntity(
   clean.sort((a, b) => (a.txDate < b.txDate ? -1 : a.txDate > b.txDate ? 1 : 0));
 
   const [lastRes] = (await db.execute(
-    sql.raw(
-      `SELECT COALESCE(total, 0) AS t FROM ${table} WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`,
-    ),
+    sql`SELECT COALESCE(total, 0) AS t FROM ${sql.raw(table)} WHERE total IS NOT NULL ORDER BY id DESC LIMIT 1`,
   )) as any;
   let running = Number((lastRes as any[])?.[0]?.t ?? 0);
 
@@ -2031,12 +1911,10 @@ async function bulkImportAccEntity(
       const balance = Math.round((r.inAmount - r.outAmount) * 100) / 100;
       running = Math.round((running + balance) * 100) / 100;
       inserted++;
-      return `(${sq(r.txDate)}, ${sq(r.inAmount || null)}, ${sq(r.outAmount || null)}, ${sq(balance)}, ${sq(running)}, ${sq(r.notes || null)})`;
+      return sql`(${r.txDate}, ${r.inAmount || null}, ${r.outAmount || null}, ${balance}, ${running}, ${r.notes || null})`;
     });
     await db.execute(
-      sql.raw(
-        `INSERT INTO ${table} (txDate, inAmount, outAmount, balance, total, notes) VALUES ${values.join(", ")}`,
-      ),
+      sql`INSERT INTO ${sql.raw(table)} (txDate, inAmount, outAmount, balance, total, notes) VALUES ${sql.join(values, sql`, `)}`,
     );
   }
   return { inserted, skipped };
@@ -2084,9 +1962,14 @@ async function resolveMirrorEntity(db: any, notes: string): Promise<keyof typeof
 }
 
 async function findEquivalentMirror(db: any, table: string, txDate: string, notes: string, amount: number, isOut: boolean): Promise<number | null> {
-  const safeNotes = notes.replace(/'/g, "''"), safeDate = txDate.replace(/'/g, "''"), safeAmount = Number(amount);
-  const amountWhere = table === "accAdvances" ? (isOut ? `advance=${safeAmount}` : `repayment=${safeAmount}`) : table === "accSaadany" ? (isOut ? `withdrawals=-${safeAmount}` : `repayment=${safeAmount}`) : (isOut ? `outAmount=${safeAmount}` : `inAmount=${safeAmount}`);
-  const [rows] = (await db.execute(sql.raw(`SELECT id FROM ${table} WHERE DATE(txDate)='${safeDate}' AND COALESCE(notes,'')='${safeNotes}' AND ${amountWhere} ORDER BY id LIMIT 1`))) as any;
+  const safeAmount = Number(amount);
+  if (!Number.isFinite(safeAmount)) return null;
+  const amountWhere = table === "accAdvances"
+    ? (isOut ? sql`advance = ${safeAmount}` : sql`repayment = ${safeAmount}`)
+    : table === "accSaadany"
+      ? (isOut ? sql`withdrawals = ${-safeAmount}` : sql`repayment = ${safeAmount}`)
+      : (isOut ? sql`outAmount = ${safeAmount}` : sql`inAmount = ${safeAmount}`);
+  const [rows] = (await db.execute(sql`SELECT id FROM ${sql.raw(assertMirrorTable(table))} WHERE DATE(txDate) = ${txDate} AND COALESCE(notes, '') = ${notes} AND ${amountWhere} ORDER BY id LIMIT 1`)) as any;
   return (rows as any[])[0]?.id ? Number((rows as any[])[0].id) : null;
 }
 
@@ -2114,11 +1997,4 @@ function classifyExpense(notes: string, employeeNames: string[]): ExpenseCategor
   if (["مستلزم", "جاون", "جوان", "جوانتي", "جونتي", "اوفر", "شاش", "سرنج", "محلول", "قطر", "عدس", "تعقيم", "رول", "كارتل", "كانيولا", "مشرط", "ليد", "عمليات"].some(has)) return "supplies";
   return "other";
 }
-function buildDateWhere(dateFrom?: string, dateTo?: string): string {
-  const parts: string[] = [];
-  if (dateFrom) parts.push(`txDate >= '${dateFrom.replace(/'/g, "")}'`);
-  if (dateTo) parts.push(`txDate <= '${dateTo.replace(/'/g, "")}'`);
-  return parts.length ? ` WHERE ${parts.join(" AND ")}` : "";
-}
-
 export type AccountingRouter = typeof accountingRouter;
