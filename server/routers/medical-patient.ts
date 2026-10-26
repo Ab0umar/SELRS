@@ -37,8 +37,9 @@ import {
   resolvePatientNotifTitle,
   resolveNotificationTargetRolesByUserRole,
   findExistingPatientByNameAgeAndPhone,
-  findExistingPatientByNameOrPhone,
+  findExistingPatientByNameAndPhone,
   findExistingPatientByPhoneAndDob,
+  findPossibleDuplicatePatients,
   resolveServiceCodeForType,
   pushNewPatientToMssql,
   registrationPricingPayload,
@@ -169,6 +170,7 @@ export const medicalPatientRoutes = {
         const duplicateByPhoneDob = await findExistingPatientByPhoneAndDob(
           patientInput.phone,
           patientInput.dateOfBirth,
+          patientInput.fullName,
         );
         _mark("duplicate phone/dob lookup done");
         if (
@@ -188,7 +190,7 @@ export const medicalPatientRoutes = {
               String(patientInput.patientCode ?? "").trim(),
             )
           : (duplicateByPhoneDob ??
-            (await findExistingPatientByNameOrPhone(
+            (await findExistingPatientByNameAndPhone(
               patientInput.fullName,
               patientInput.phone,
             )));
@@ -456,6 +458,14 @@ export const medicalPatientRoutes = {
             message: "Patient code already exists",
           });
         }
+        // Same phone or same name alone is NOT the same person (families share a
+        // phone, names repeat): a new record is created and the caller is told.
+        const possibleDuplicates = hasExplicitPatientCode
+          ? []
+          : await findPossibleDuplicatePatients(
+              patientInput.fullName,
+              patientInput.phone,
+            ).catch(() => []);
         console.log(
           `[createPatient] Saving patient with doctorId=${patientInput.doctorId}`,
         );
@@ -661,6 +671,7 @@ export const medicalPatientRoutes = {
           receiptNo: null,
           mssqlLinked: false,
           mssqlPending: true,
+          possibleDuplicates,
         };
       } catch (error) {
         if (error instanceof TRPCError) throw error;

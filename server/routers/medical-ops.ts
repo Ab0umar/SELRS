@@ -67,7 +67,6 @@ import {
 
 import {
   canPushToMssql,
-  findExistingPatientByNameOrPhone,
   normalizePhoneKey,
   pushNewPatientToMssql,
   readDoctorNameFromStateData,
