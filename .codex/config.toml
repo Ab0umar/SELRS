@@ -64,10 +64,6 @@ enabled = true
 [features]
 memories = true
 
-[[skills.config]]
-path = 'E:\selrs.cc\.agents\skills\speckit-taskstoissues\SKILL.md'
-enabled = false
-
 [mcp_servers.socraticode]
 command = "npx"
 args = [

@@ -1,8 +1,8 @@
 # SRV100 Project Principles
 
-Companion to the Constitution (`docs/CONSTITUTION.md`). The Constitution is
-the _what_ (non-negotiable rules). This document is the _how_: the working rules that
-keep changes consistent with it. Day-to-day coding rules live in `CLAUDE.md` and
+Companion to the Critical Rules in `docs/AI_CONTEXT.md` (Principles I–VII, the
+non-negotiable _what_). This document is the _how_: the working rules that keep
+changes consistent with them. Day-to-day coding rules live in `CLAUDE.md` and
 `.claude/rules/`.
 
 ---
@@ -31,7 +31,7 @@ keep changes consistent with it. Day-to-day coding rules live in `CLAUDE.md` and
 
 ## 3. Scope Control
 
-- Out-of-scope items are listed in the Constitution (System Boundaries).
+- Out-of-scope items are listed in `docs/AI_CONTEXT.md` (Prohibited Expansion).
 - If a change uncovers an out-of-scope need, stop and raise it; never silently expand
   the scope.
 
@@ -40,7 +40,7 @@ keep changes consistent with it. Day-to-day coding rules live in `CLAUDE.md` and
 ## 4. Review Checklist
 
 1. The requested behavior works.
-2. Constitution principles are respected.
+2. The Critical Rules in `docs/AI_CONTEXT.md` are respected.
 3. No out-of-scope edits (`git diff --stat`).
 4. Verification evidence is present.
 5. Legacy parity holds, if the change touches a report.
@@ -48,4 +48,4 @@ keep changes consistent with it. Day-to-day coding rules live in `CLAUDE.md` and
 ---
 
 **Version:** 2.0.0 — spec-driven workflow, task schema, and model routing removed
-(2026-10-26). Aligned with Constitution v2.0.0.
+(2026-10-26).

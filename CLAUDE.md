@@ -6,7 +6,7 @@ Read first:
 
 - docs/AI_CONTEXT.md
 
-Then follow the project Constitution (`docs/CONSTITUTION.md`) and `docs/PROJECT_PRINCIPLES.md` strictly.
+Then follow `docs/PROJECT_PRINCIPLES.md` and the Critical Rules in `docs/AI_CONTEXT.md` strictly.
 
 ## Goal
 

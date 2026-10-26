@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — aligned with Constitution v2.0.0 (`docs/CONSTITUTION.md`) and `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed.
 
 ---
 
@@ -280,7 +280,7 @@ The clinics area in `adminNavGroups` / `staffNavGroups` is split into five `NavG
 ## What Is Forbidden
 
 - Accounting services importing from `server/db.ts` for their own query logic
-- Any schema change to existing tables without constitutional amendment
+- Any schema change to existing tables without explicit owner approval
 - Removing encoding/decoding helpers for legacy text data
 - Dropping or renaming columns
 
@@ -373,7 +373,7 @@ LEFT JOIN PAPATMF p ON h.PAT_CD = p.PAT_CD
 - `sqlBuilders.ts` produces parameterized queries — no string concatenation of user input
 - Production MSSQL mutations are limited to `addPatientServices`, `deleteReceipt`, `updateReceipt`, and `editReceiptServiceLine` and their established integration helpers.
 - Keep existing role/path guards, validated schemas, parameterized SQL, and transaction/consistency behavior.
-- No other MSSQL accounting write, stored-procedure call, or dynamic SQL assembly is authorized without a separate constitutional amendment.
+- No other MSSQL accounting write, stored-procedure call, or dynamic SQL assembly is authorized without a separate explicit owner approvalal amendment.
 
 ---
 
@@ -564,7 +564,7 @@ server/services/accounting/
 
 # Critical Rules
 
-(From Constitution v2.0.0 — all NON-NEGOTIABLE)
+(All NON-NEGOTIABLE)
 
 ## Principle I: Strict Module Separation with Named Production Bridges
 
@@ -583,7 +583,7 @@ server/services/accounting/
 - Existing MSSQL writes: `addPatientServices`, `deleteReceipt`, `updateReceipt`, `editReceiptServiceLine`
 - Existing MySQL writes: guarded ledger/cashbook, advances, home-fund, InstaPay, loans, and Dr. Saadany procedures/imports
 - Existing Access cashbook sync/push: administrator-only `triggerAccSync` / `triggerAccPush`
-- Preserve existing permission/helper boundaries; new write paths or broadened targets require a constitutional amendment
+- Preserve existing permission/helper boundaries; new write paths or broadened targets require explicit owner approval
 
 ## Principle IV: Use Existing Databases As-Is
 
@@ -705,7 +705,7 @@ Every completed change reports:
 
 1. **Cross-importing between Medical and Accounting modules** — violates Principle I
 2. **Deriving revenue from patient/doctor/visit counts** — violates Principle II
-3. **Adding or broadening an Accounting write path beyond the established production procedures** — requires a constitutional amendment
+3. **Adding or broadening an Accounting write path beyond the established production procedures** — requires explicit owner approval
 4. **Creating new MSSQL tables or renaming columns** — violates Principle IV
 5. **Shipping reports without legacy parity artifacts** — violates Principle V
 6. **Breaking Medical module behavior** — violates Principle VII
@@ -734,7 +734,7 @@ Before editing any code, verify:
 
 - [ ] Files to edit are identified before changing code
 - [ ] No file in the Protected Files list is being modified (unless explicitly authorized)
-- [ ] Constitution Check passes for all 7 principles
+- [ ] Critical Rules (Principles I–VII) respected
 - [ ] SQL is parameterized (no string concatenation of user input)
 - [ ] No cross-module imports introduced
 - [ ] Revenue logic traces to `PAPAT_SRV`/`PAJRNRCVH` service rows
@@ -751,11 +751,11 @@ After editing:
 
 - [ ] Run smallest relevant check (`pnpm check` / `pnpm test` / `pnpm build`)
 - [ ] Verify zero changes to protected files (`git diff --stat`)
-- [ ] Verify Accounting writes stay within established guarded procedures and targets; audit any new write path against Constitution Principle III
+- [ ] Verify Accounting writes stay within established guarded procedures and targets; audit any new write path against Principle III
 - [ ] Report: changed files, what changed, checks run, checks skipped
 
 ---
 
 **Document version:** 2.3.0 — updated 2026-10-26
-**Aligned with:** Constitution v2.0.0, Project Principles v1.1.0
+**Aligned with:** Project Principles v2.0.0
 **Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), Doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)
