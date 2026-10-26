@@ -43,14 +43,13 @@ A unified web and Android app for LASIK/corneal surgery center staff to manage p
 2. **Efficiency first** — Staff are busy; minimize clicks, maximize information density where needed
 3. **Mobile parity** — Capacitor app matches web feature-for-feature, not secondary
 4. **Trust through design** — Medical data requires restraint, consistency, professional presentation
-5. **Light theme always** — Clinic brightness, no dark mode
+5. **Light first** — Light is the default for clinic brightness; dark mode is supported and must also work (see `DESIGN.md`). Clinical print output stays light.
 
 ## Current State
 
-- Web app functional, multiple pages built
-- Android via Capacitor (same codebase)
-- Design debt: inconsistent buttons, poor spacing rhythm, weak hierarchy, ad-hoc color usage
-- No unified design system
+- Web app with the Medical, Accounting, KF, Attendance, Salary, Stockroom, Marketing, patient and doctor portal modules
+- Android via Capacitor (same codebase) and a desktop shell
+- Shared design system documented in `DESIGN.md` and `docs/design-guides.md`
 
 ## Success Criteria
 

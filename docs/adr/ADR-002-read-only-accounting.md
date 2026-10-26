@@ -1,7 +1,7 @@
 # ADR-002: Read-Only Accounting Module
 
 > Historical Phase 1 decision. This read-only scope is superseded for current
-> production by ADR-004 and Constitution v2.0.0. The record below documents the
+> production by ADR-004. The record below documents the
 > original Phase 1 choice and is retained as history, not current implementation policy.
 
 **Date:** 2026-05-07
@@ -9,7 +9,7 @@
 
 ## Context
 
-The initial phase of the Accounting module (Phase 1) is focused on surfacing existing financial data from a legacy MSSQL database (`op2026`). The primary goal is to provide reporting and inquiry capabilities that match the output of the legacy system. There is no immediate requirement to create, update, or delete accounting records from the SRV100 web application. This decision is codified in the project's Constitution, Principle III.
+The initial phase of the Accounting module (Phase 1) is focused on surfacing existing financial data from a legacy MSSQL database (`op2026`). The primary goal is to provide reporting and inquiry capabilities that match the output of the legacy system. There is no immediate requirement to create, update, or delete accounting records from the SRV100 web application. This decision is codified in the project rules (`docs/AI_CONTEXT.md`), Principle III.
 
 ## Decision
 
@@ -30,7 +30,7 @@ The Accounting module, for Phase 1, **MUST** be strictly read-only. This means:
 **Negative:**
 
 - **Limited Functionality:** Users cannot make corrections or create new entries directly through the web interface. All accounting data entry must continue through the legacy system. This is an accepted limitation for Phase 1.
-- **Future Work Required:** If write capabilities are needed in the future, a significant development effort and a formal amendment to the project Constitution will be required.
+- **Future Work Required:** If write capabilities are needed in the future, a significant development effort and explicit owner approval will be required.
 
 ## Alternatives Rejected
 

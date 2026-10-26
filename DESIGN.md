@@ -132,10 +132,7 @@ avoids clipped fields or split patient context.
 
 ## Related Documents
 
-- `PAGES_DESIGN.md`: task-based screen patterns.
-- `REDESIGN_GUIDE.md`: applying the direction to existing screens.
-- `REDESIGN_SUMMARY.md`: document index and verification status.
-- `SHEETS_REDESIGN_SUMMARY.md`: clinical-sheet and A4 requirements.
+- `docs/design-guides.md`: screen patterns, responsive and RTL rules, clinical sheets and print, verification.
 - `.superdesign/design-system.md`: report-workspace specialization.
 
 ## Delivery Gate

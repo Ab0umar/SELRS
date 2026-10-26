@@ -1,8 +1,7 @@
 # ADR-001: Strict Module Separation
 
 > Historical decision. Its prohibition on all shared mutation paths is superseded
-> only for the established production integrations named in ADR-004 and Constitution
-> v2.0.0. Database ownership remains distinct, but Medical patient sync and the
+> only for the established production integrations named in ADR-004. Database ownership remains distinct, but Medical patient sync and the
 > Accounting service-link workflow cross that ownership boundary through named
 > integration helpers. The prohibition on arbitrary cross-imports remains.
 
@@ -11,7 +10,7 @@
 
 ## Context
 
-The SRV100 project is expanding to include an Accounting module alongside the existing Medical module. The Medical module is a mature, stable system with its own database (MySQL) and business logic. The Accounting module needs to access a separate, legacy database (MSSQL). To prevent unintended side effects, maintain stability, and ensure clarity of purpose, a clear boundary must be established between these two modules. This decision is codified in the project's Constitution, Principle I.
+The SRV100 project is expanding to include an Accounting module alongside the existing Medical module. The Medical module is a mature, stable system with its own database (MySQL) and business logic. The Accounting module needs to access a separate, legacy database (MSSQL). To prevent unintended side effects, maintain stability, and ensure clarity of purpose, a clear boundary must be established between these two modules. This decision is codified in the project rules (`docs/AI_CONTEXT.md`), Principle I.
 
 ## Decision
 

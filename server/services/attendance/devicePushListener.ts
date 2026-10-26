@@ -4,7 +4,7 @@
  * scripts/test-device-push.ts uses it, to capture real packets.
  *
  * Status: the wire format is UNKNOWN. Three parse attempts run in turn and
- * all are guesses (see DEVICE_PUSH_PROTOCOL_ANALYSIS.md): 24-byte
+ * all are guesses (see docs/attendance-device.md): 24-byte
  * little-endian fixed records ([empNo:4][ts:4][dir:1] + padding),
  * newline-delimited JSON, and CSV with Unix seconds. Do not trust the
  * output against real hardware.

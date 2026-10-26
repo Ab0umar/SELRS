@@ -6,8 +6,6 @@
  * Usage: pnpm exec tsx scripts/accounting/parity-check.ts
  *    (or: node --import tsx scripts/accounting/parity-check.ts)
  *
- * Follow the project Constitution and Project Principles strictly.
- *
  * ---------------------------------------------------------------------------
  * DOCUMENTED PARITY EXCEPTIONS (fixtures + script only; API/SQL unchanged)
  * ---------------------------------------------------------------------------

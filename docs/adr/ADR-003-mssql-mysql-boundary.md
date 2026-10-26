@@ -2,14 +2,14 @@
 
 > Historical boundary decision. Its absolute ban on cross-database writes is
 > superseded only for established production integrations named in ADR-004 and
-> Constitution v2.0.0; database ownership and all other boundary constraints remain.
+> the current project rules; database ownership and all other boundary constraints remain.
 
 **Date:** 2026-05-07
 **Status:** Adopted
 
 ## Context
 
-The SRV100 application interacts with two distinct databases: a MySQL database (`selrs26`) that serves as the source of truth for the Medical module, and a legacy MSSQL database (`op2026`) that is the source of truth for the Accounting module. A clear and unambiguous rule is needed for how data from these two systems can be related without violating their boundaries or creating a "split-brain" scenario. This decision is codified in the project's Constitution, Principle IV.
+The SRV100 application interacts with two distinct databases: a MySQL database (`selrs26`) that serves as the source of truth for the Medical module, and a legacy MSSQL database (`op2026`) that is the source of truth for the Accounting module. A clear and unambiguous rule is needed for how data from these two systems can be related without violating their boundaries or creating a "split-brain" scenario. This decision is codified in the project rules (`docs/AI_CONTEXT.md`), Principle IV.
 
 ## Decision
 

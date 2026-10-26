@@ -258,7 +258,7 @@ or a code path. The pool in `server/db.ts` has a connection limit of 10 and hand
 different connection for every query. Acquiring the lock through the ordinary pooled `db`
 handle would put the lock on an arbitrary connection, and the later `RELEASE_LOCK` would run on
 a different one and silently do nothing: two concurrent runs could each believe they hold "the"
-lock. `ATTENDANCE_CODE_REVIEW.md` documents this exact defect as finding A3 from the September
+lock. `attendance-code-review.md` documents this exact defect as finding A3 from the September
 2026 review, before the fix landed.
 
 Both lock sites now do the same thing structurally: check out one dedicated connection with
@@ -660,11 +660,10 @@ lock (section 6).
 - `server/services/attendance/ADMS_TIME_ISSUE.md`: the original investigation of the K40 Pro
   6-hour offset, including the decisive fresh-punch measurement. Its Date-header and
   fixed-default conclusions are outdated (see section 7); the measurement method still stands.
-- `DEVICE_PUSH_PROTOCOL_ANALYSIS.md`: exploratory analysis of the device's TCP 7005 push
-  behavior, from May 2026. The ADMS HTTP push is what actually runs in production.
-- `FK_DLL_DISCOVERY.md`: how the 32-bit `FK623Attend.dll` and `FKOldLogPuller.exe` were
-  located and identified. Still the reference for the FK pull chain.
-- `ATTENDANCE_CODE_REVIEW.md`: the September 2026 module review (findings A1 to A6, B, C, D).
+- `attendance-device.md`: device facts, the FK DLL chain, the native TCP client, connectivity
+  tests, and the exploratory TCP 7005 push analysis (never used; the ADMS HTTP push is what
+  runs in production).
+- `attendance-code-review.md`: the September 2026 module review (findings A1 to A6, B, C, D).
   Several findings are fixed since (A3 lock, A6 tomorrow-absent, C1/C2 recompute window);
   verify a finding against current code before acting on it.
 - `ATTENDANCE_FUTURE_ROADMAP.md`: phase plan for the attendance module; its timeline entries

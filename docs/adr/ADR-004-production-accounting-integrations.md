@@ -5,7 +5,7 @@
 
 ## Context
 
-ADR-001 through ADR-003 and the original Constitution described the Accounting
+ADR-001 through ADR-003 and the original project rules described the Accounting
 module as read-only and prohibited cross-database writes. Those decisions captured
 Phase 1 development scope. The current application is live in production and already
 supports Accounting writes across MSSQL, MySQL, and the Access cashbook, plus Medical
@@ -29,7 +29,7 @@ would misstate the production system and create false review failures.
 6. Preserve current authorization guards, validated inputs, database-specific
    helpers, and transaction/consistency behavior. New procedures, broader target
    tables, or new cross-module/database write paths require a separately documented
-   constitutional amendment before implementation.
+   owner approval before implementation.
 7. Report and inquiry procedures remain read-only. Revenue derivation remains based
    on MSSQL accounting service/receipt rows, not medical-side counts.
 

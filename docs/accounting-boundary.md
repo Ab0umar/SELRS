@@ -238,5 +238,5 @@ These legacy behaviors are preserved to maintain parity:
 ---
 
 **Last Updated:** 2026-09-25
-**Policy Status:** Production scope aligned with Constitution v2.0.0
+**Policy Status:** Production scope aligned with `docs/AI_CONTEXT.md`
 **Owner:** Finance & Architecture teams

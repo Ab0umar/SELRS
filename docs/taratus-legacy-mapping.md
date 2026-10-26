@@ -184,4 +184,4 @@ Final Reports (LateMins - PermissionMins, etc)
 
 ## Export Available
 
-All 45 view definitions saved in: `TARATUS_ORIGINAL_VIEWS.md`
+The full SQL of the 45 views is not kept in this repository. It was extracted from `Lasik26.accdb` and remains in the previous repository's history.

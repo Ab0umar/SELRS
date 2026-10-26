@@ -31,7 +31,7 @@ export interface DeviceSettings {
   admsDetectedOffsetsByDevice?: Record<string, number>; // serial -> auto-detected clock drift
 }
 
-// Verified working LAN address for the EF10K device (FK_DLL_DISCOVERY.md) — used
+// Verified working LAN address for the EF10K device (docs/attendance-device.md) — used
 // as the fallback when ATTENDANCE_DEVICE_IP isn't set.
 const EF10K_DEFAULT_IP = "41.199.252.107";
 

@@ -92,7 +92,7 @@ scripts/                     — Maintenance, database sync checks, migrations, 
 ### I. Strict Module Separation (Principle I)
 * **No Cross-Imports**: Medical code and Accounting code must NEVER import from each other. They must remain completely isolated.
 * **Bridge Key**: The existing `patients.patientCode` / `PAT_CD` key is used by established patient synchronization, accounting service linking, and read-time display lookup.
-* **Bounded Integrations**: Preserve existing Medical-to-MSSQL patient sync, Accounting `addPatientServices`, and their integration helpers. Do not create new cross-module/database write paths without an approved constitutional amendment.
+* **Bounded Integrations**: Preserve existing Medical-to-MSSQL patient sync, Accounting `addPatientServices`, and their integration helpers. Do not create new cross-module/database write paths without explicit owner approval.
 
 ### II. Service-Based Accounting Only (Principle II)
 * **Revenue Derivation**: All financial revenue metrics MUST be computed directly from `PAPAT_SRV` (line items) joined with `PAJRNRCVH` (invoice headers).

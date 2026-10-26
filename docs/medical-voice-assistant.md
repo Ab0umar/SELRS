@@ -148,6 +148,6 @@ The core flow, responsibilities, context contracts, proposed retention, target m
 5. Implement one field's recording -> transcript review -> Apply/Undo -> existing save/reload path, then extend structured encounter extraction and additive templates.
 6. Verify desktop/mobile recording, permissions, patient switching/late responses, transcript revisions, repeated Apply, conflicts, existing draft behavior, save failures and reload persistence before rollout.
 
-## 12. Constitution check
+## 12. Project rules check
 
-Medical ownership remains separate from Accounting (I/III). No accounting computations or write integrations are introduced (II/III/V). Existing schemas and save paths are preserved (IV). This architecture precedes model evaluation and reviewed specification/plan/tasks (VI). Permissions, forms, Arabic terminology, and audit behavior remain governed by the existing workflow (VII). This stage creates documentation only and does not claim runtime verification.
+Medical ownership remains separate from Accounting (I/III). No accounting computations or write integrations are introduced (II/III/V). Existing schemas and save paths are preserved (IV). This architecture precedes model evaluation (VI). Permissions, forms, Arabic terminology, and audit behavior remain governed by the existing workflow (VII). This stage creates documentation only and does not claim runtime verification.

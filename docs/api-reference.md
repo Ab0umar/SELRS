@@ -1,5 +1,7 @@
 # SELRS tRPC API Reference
 
+> **May be outdated.** Written in mid-2026 and partly maintained since; it does not cover every router (for example `accounting`, `marketing`, `autoReply`, `whatsapp*`). `server/routers/index.ts` and the router files are the source of truth, and the admin API tools page lists current procedures.
+
 ## API Structure
 
 All APIs use **tRPC** over HTTP with Express.js middleware. Base URL: `http://localhost:4000/trpc/`
