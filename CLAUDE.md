@@ -6,7 +6,7 @@ Read first:
 
 - docs/AI_CONTEXT.md
 
-Then follow the project Constitution (`.specify/memory/constitution.md`) and `docs/PROJECT_PRINCIPLES.md` strictly.
+Then follow the project Constitution (`docs/CONSTITUTION.md`) and `docs/PROJECT_PRINCIPLES.md` strictly.
 
 ## Goal
 

@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — aligned with Constitution v2.0.0 (`.specify/memory/constitution.md`) and `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed.
+> Version: 2.3.0 — aligned with Constitution v2.0.0 (`docs/CONSTITUTION.md`) and `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed.
 
 ---
 

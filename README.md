@@ -9,7 +9,7 @@ Read first:
 - `.claude/rules/` — module-specific rules (frontend.md, backend.md, permissions.md, database.md, verification.md)
 - `docs/ATTENDANCE_SYNC.md`: how attendance punches become daily records (device sources, locking, clock offsets, rules engine, troubleshooting)
 
-Then follow the project Constitution (`.specify/memory/constitution.md`) and `docs/PROJECT_PRINCIPLES.md` strictly.
+Then follow the project Constitution (`docs/CONSTITUTION.md`) and `docs/PROJECT_PRINCIPLES.md` strictly.
 
 ## Structure
 

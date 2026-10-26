@@ -1,22 +1,3 @@
-<!--
-SYNC IMPACT REPORT
-==================
-Version change: 1.0.0 → 2.0.0 (production integrations and write workflows replace Phase 1 read-only boundary)
-Modified principles: I (module separation with established integrations), III (production Accounting writes by data store)
-Added sections: scoped production integration/write policy
-Removed sections: blanket prohibition on accounting mutations and cross-database integration
-Templates requiring updates:
-  - .specify/templates/plan-template.md       ✅ verified; generic Constitution Check
-  - .specify/templates/spec-template.md       ✅ verified; no accounting write policy
-  - .specify/templates/tasks-template.md      ✅ verified; no accounting write policy
-  - specs/PROJECT_PRINCIPLES.md               ✅ alignment metadata updated
-  - specs/CONSTITUTION.md                     ✅ mirrored
-  - ACCOUNTING_BOUNDARY.md, MEDICAL_DATA_OWNERSHIP.md, AI_CONTEXT.md, specs/AI_CONTEXT.md, GEMINI.md ✅ aligned
-  - specs/claude_review_prompt.md, specs/cursor_commands.md, specs/adr/README.md, ADR-001, ADR-002, ADR-003, ADR-004 ✅ aligned
-  - Phase 1 artifacts: specs/specify.md, plan.md, tasks.md, scope-lock.md, phase1-signoff.md, deploy-notes.md, legacy-reports.md, PHASE_3_IMPLEMENTATION_REPORT.md ✅ labeled historical
-Follow-up TODOs: None
--->
-
 # SRV100 Constitution
 
 ## Core Principles
@@ -83,17 +64,14 @@ changes invalidate years of legacy data and reports.
 Every Accounting report MUST be validated against the corresponding output of the
 legacy accounting system before it is considered complete. Acceptance requires a
 documented row-level or total-level comparison on a representative date range.
-Discrepancies MUST be reconciled or explicitly justified in the spec.
+Discrepancies MUST be reconciled or explicitly justified in the change description.
 **Rationale:** Users will reject any report whose numbers do not tie out to the legacy
 system, regardless of internal correctness.
 
-### VI. Spec-Driven, Minimal-Diff Execution
+### VI. Minimal-Diff Execution
 
-No implementation work begins before `/specify`, `/plan`, and `/tasks` are produced
-and reviewed. Each task MUST carry: Owner Model, Backup Model, Tool, Role, Input,
-Output, Prompt, and Acceptance Criteria. Implementations MUST produce the smallest
-correct diff; refactors outside the task scope are FORBIDDEN unless required to
-satisfy acceptance criteria.
+Implementations MUST produce the smallest correct diff; refactors outside the scope
+of the change are FORBIDDEN unless required to make the change work.
 **Rationale:** Scope creep and unbounded refactors are the primary risk to the live
 Medical module.
 
@@ -129,13 +107,6 @@ later patch cycle.
 
 ## Development Workflow & Quality Gates
 
-- **Planning:** Claude produces Constitution, Principles, `/specify`, `/plan`,
-  `/tasks`, prompts, and reviews. Claude does NOT implement.
-- **Execution:** Cursor / Codex implement code per assigned task. GPT-5 may assist
-  with SQL and report logic. Cheap models (GPT-5 mini, GLM, Kimi) handle bulk text
-  extraction. Gemini handles UI alternatives.
-- **Per-task contract:** Every task MUST include the prompt line:
-  _"Follow the project Constitution and Project Principles strictly."_
 - **Verification gates:**
   - `pnpm check` is REQUIRED for any change touching auth, routing, permissions,
     patient flows, shared types, or tRPC contracts.
@@ -143,7 +114,7 @@ later patch cycle.
   - `pnpm build` is REQUIRED when changing shipped frontend/server behavior.
   - `pnpm smoke` is REQUIRED for workflow-sensitive changes.
   - Reports MUST include a legacy-output comparison artifact (Principle V).
-- **Reporting:** Each completed task MUST report: changed files, what changed,
+- **Reporting:** Each completed change MUST report: changed files, what changed,
   checks run, checks skipped (with reason).
 
 ## Governance
@@ -152,16 +123,15 @@ later patch cycle.
   shortcuts. When CLAUDE.md, a skill, or a model suggestion conflicts with the
   Constitution, the Constitution wins.
 - **Amendments** require: (a) a written justification referencing the affected
-  principle(s), (b) a version bump per the policy below, (c) a Sync Impact Report
-  identifying templates/docs to update, and (d) explicit user approval.
+  principle(s), (b) a version bump per the policy below, (c) a list of
+  docs to update, and (d) explicit user approval.
 - **Versioning policy (semantic):**
   - MAJOR — backward-incompatible removal or redefinition of a principle.
   - MINOR — new principle or materially expanded section.
   - PATCH — clarifications, wording, typo fixes.
-- **Compliance review:** Every `/plan` MUST include a Constitution Check section
-  citing each principle and how the plan conforms. Every PR description MUST list
+- **Compliance review:** Every PR description MUST list
   affected principles and verification commands run.
 - **Runtime guidance:** `CLAUDE.md` and `.claude/rules/*.md` provide operational
   guidance and remain subordinate to this Constitution.
 
-**Version**: 2.0.0 | **Ratified**: 2026-05-03 | **Last Amended**: 2026-09-25
+**Version**: 2.0.0 | **Ratified**: 2026-05-03 | **Last Amended**: 2026-10-26 (workflow sections only: spec-driven process, task schema, and model routing removed)

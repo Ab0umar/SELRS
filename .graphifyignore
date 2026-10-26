@@ -6,7 +6,6 @@ ds-bundle/
 .claude/settings.json.graphify-bak
 .codex/hooks.json.graphify-bak
 .agents/
-.specify/
 .scratch/
 artifacts/
 android/

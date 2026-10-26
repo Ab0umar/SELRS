@@ -1,6 +1,6 @@
 # SRV100 Project Principles
 
-Companion to the Constitution (`.specify/memory/constitution.md`). The Constitution is
+Companion to the Constitution (`docs/CONSTITUTION.md`). The Constitution is
 the _what_ (non-negotiable rules). This document is the _how_: the working rules that
 keep changes consistent with it. Day-to-day coding rules live in `CLAUDE.md` and
 `.claude/rules/`.
