@@ -1050,6 +1050,44 @@ describe.skipIf(!testUrl)(
         (await db.select().from(jobs)).filter((j) => j.kind === "manual"),
       ).toHaveLength(1);
     });
+    it.each(["echo", "manual"])(
+      "resumes automation on the next customer message after %s staff reply",
+      async (mode) => {
+        await enable();
+        await ingestEvents([event()]);
+        const [c] = await db.select().from(conversations);
+        if (mode === "echo")
+          await ingestEvents([{ ...event("staff"), humanEcho: true }]);
+        else await queueManualReply(c.id, "رد موظف", "resume-request");
+        await ingestEvents([event("next-customer")]);
+        expect((await db.select().from(conversations))[0]).toMatchObject({
+          status: "open",
+          humanReason: null,
+        });
+        expect(
+          (await db.select().from(jobs)).filter(
+            (job) => job.kind === "auto" && job.state === "pending",
+          ),
+        ).toHaveLength(1);
+      },
+    );
+    it("preserves explicit takeover after a staff echo and a customer message", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      await setConversationStatus(c.id, "human");
+      await ingestEvents([{ ...event("staff"), humanEcho: true }]);
+      await ingestEvents([event("next-customer")]);
+      expect((await db.select().from(conversations))[0]).toMatchObject({
+        status: "human",
+        humanReason: "staff_takeover",
+      });
+      expect(
+        (await db.select().from(jobs)).filter(
+          (job) => job.kind === "auto" && job.state === "pending",
+        ),
+      ).toHaveLength(0);
+    });
     it("does not reopen or extend a reply window on a staff echo", async () => {
       await enable();
       const inbound = event();

@@ -200,6 +200,11 @@ export async function ingestEvents(batch: InboundEvent[]) {
         : safetyDecision(event.text);
       const pause =
         event.humanEcho || event.unsupported || Boolean(requestedReason);
+      const staffReplyPause =
+        current.status === "human" &&
+        (current.humanReason === "external_staff_reply" ||
+          current.humanReason === "staff_reply");
+      const resumeAutomation = !pause && staffReplyPause && !stale;
       if (stale && !pause) continue;
       const nextRevision = current.revision + 1;
       await tx
@@ -208,11 +213,14 @@ export async function ingestEvents(batch: InboundEvent[]) {
           lastActivityAt: new Date(),
           ...(!event.humanEcho && !stale ? { lastInboundAt: event.at } : {}),
           revision: nextRevision,
+          ...(resumeAutomation ? { status: "open", humanReason: null } : {}),
           ...(pause
             ? {
                 status: "human",
                 humanReason: event.humanEcho
-                  ? "external_staff_reply"
+                  ? current.status === "human" && !staffReplyPause
+                    ? current.humanReason
+                    : "external_staff_reply"
                   : (requestedReason ?? "unsupported_message"),
               }
             : {}),
@@ -230,8 +238,9 @@ export async function ingestEvents(batch: InboundEvent[]) {
         );
       if (
         !stale &&
+        !event.humanEcho &&
         (!pause || Boolean(requestedReason)) &&
-        current.status === "open" &&
+        (current.status === "open" || resumeAutomation) &&
         config.sendingEnabled &&
         isAutoReplyEnabled(config, event.channel, event.accountId)
       ) {
@@ -443,7 +452,7 @@ export async function queueManualReply(
       .update(conversations)
       .set({
         status: "human",
-        humanReason: "staff_reply",
+        humanReason: c.status === "human" ? c.humanReason : "staff_reply",
         revision: c.revision + 1,
       })
       .where(eq(conversations.id, c.id));
