@@ -21,7 +21,7 @@ async function openPage(width, theme, role = 'admin', failPermissions = false) {
     await route.fulfill({ json: url.searchParams.has('batch') ? responses : responses[0] ?? {} });
   });
   await page.goto(`${process.env.DESIGN_PREVIEW_URL || 'http://127.0.0.1:5186'}/home`);
-  if (failPermissions) await page.getByText('Unable to verify page permissions', { exact: true }).waitFor();
+  if (failPermissions) await page.getByText('تعذر التحقق من صلاحيات الصفحة', { exact: true }).waitFor();
   else await page.locator('.main-home-library').waitFor();
   return { page, errors };
 }
@@ -29,22 +29,22 @@ try {
   for (const width of [320, 390, 768, 1440, 1920]) for (const theme of ['light', 'dark']) {
     const { page, errors } = await openPage(width, theme);
     const tiles = page.locator('.home-app');
-    const blocks = page.locator('.home-bento-hero, .home-bento-block');
     const contentWidth = await page.locator('.home-library-content').evaluate(node => ({ content: node.getBoundingClientRect().width, parent: node.parentElement.getBoundingClientRect().width }));
     assert(Math.abs(contentWidth.content - contentWidth.parent) <= 1, 'Home content fills the available page width');
     await page.getByRole('link', { name: 'الاستقبال', exact: true }).waitFor();
-    assert((await tiles.count()) + (await blocks.count()) >= 15, 'Existing sections retained');
+    assert(await tiles.count() >= 15, 'Existing sections retained');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
     const columns = await page.locator('.home-library-grid').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
     if (width <= 900) assert.equal(columns, width < 360 ? 3 : 4);
-    else assert.equal(columns, 7, 'Wide layouts use the 7-column bento grid');
-    assert.equal(await blocks.count(), 4, 'Hero plus three featured blocks');
+    else assert(columns >= 5, 'Wide layouts add columns instead of stretching tiles');
+    const iconColors = await page.locator('.home-app-icon').evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
+    assert(iconColors.length >= 4, 'Category icons must retain their distinct colors');
     for (const tile of await tiles.all()) {
       const box = await tile.boundingBox();
       assert(box.width >= 44 && box.height >= 44);
       assert(box.width <= 180, 'Home tiles stay compact on wide screens');
       const icon = await tile.locator('svg').first().boundingBox();
-      assert(icon.width >= 24, 'Home icons stay prominent');
+      assert(icon.width >= 39, 'Home icons stay prominent');
       assert(await tile.locator('h3').evaluate(node => node.scrollWidth <= node.clientWidth + 1));
     }
     await page.evaluate(() => document.fonts.ready);
@@ -52,12 +52,16 @@ try {
     assert.deepEqual(layout.collisions, [], `${theme} ${width}: text overlaps`);
     assert.deepEqual(layout.clippedButtons, [], `${theme} ${width}: clipped controls`);
     await page.screenshot({ path: `outputs/main-home-library/${theme}-${width}.png`, fullPage: true });
+    await page.getByRole('button', { name: 'الإدارة', exact: true }).click();
+    assert.equal(await page.getByRole('link', { name: 'المخزن', exact: true }).count(), 1);
+    assert.equal(await page.getByRole('link', { name: 'الاستقبال', exact: true }).count(), 0);
     await page.getByRole('button', { name: 'الموظفين', exact: true }).click();
     await page.getByRole('menuitem', { name: 'الحضور', exact: true }).waitFor();
     await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'الكل', exact: true }).click();
     await page.getByRole('searchbox').fill('الحسابات');
-    assert.equal(await tiles.count(), 0);
-    assert.equal(await page.locator('.home-bento-block').first().getAttribute('href'), '/accounting');
+    assert.equal(await tiles.count(), 1);
+    assert.equal(await tiles.first().getAttribute('href'), '/accounting');
     await page.getByRole('searchbox').fill('zzzzzz');
     await page.getByText('لا توجد أقسام مطابقة.', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'عرض كل الأقسام', exact: true }).click();
@@ -67,14 +71,16 @@ try {
   }
   const restricted = await openPage(390, 'light', 'doctor');
   await restricted.page.getByRole('link', { name: 'مركز المريض', exact: true }).waitFor();
-  assert.deepEqual(await restricted.page.locator('a.home-app, a.home-bento-block').evaluateAll(links => links.map(link => link.getAttribute('href')).sort()), ['/account', '/patient-hub']);
-  assert.equal(await restricted.page.locator('.home-bento-hero').count(), 0);
+  assert.deepEqual(await restricted.page.locator('a.home-app').evaluateAll(links => links.map(link => link.getAttribute('href'))), ['/patient-hub', '/account']);
+  assert.equal(await restricted.page.locator('.home-library-quickline').count(), 0);
+  await restricted.page.getByRole('button', { name: 'الإدارة', exact: true }).click();
+  assert.equal(await restricted.page.locator('.home-app').count(), 1);
   assert.equal(await restricted.page.getByRole('link', { name: 'الحساب', exact: true }).getAttribute('href'), '/account');
   assert.deepEqual(restricted.errors, []);
   await restricted.page.close();
   const failed = await openPage(390, 'light', 'doctor', true);
   assert.equal(await failed.page.locator('.home-app').count(), 0);
-  assert.equal(await failed.page.getByRole('button', { name: 'Retry', exact: true }).count(), 1);
+  assert.equal(await failed.page.getByRole('button', { name: 'إعادة المحاولة', exact: true }).count(), 1);
   await failed.page.close();
-  console.log('Home library passed 10 full-width light/dark responsive cases, navigation/search/employee menu, restricted permissions, and error state. No real writes.');
+  console.log('Home library passed 10 full-width light/dark responsive cases, navigation/search/categories/employee menu, restricted permissions, and error state. No real writes.');
 } finally { await browser.close(); }
