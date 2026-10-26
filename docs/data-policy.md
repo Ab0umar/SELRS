@@ -6,7 +6,7 @@ Accounting-specific rules are in `accounting-boundary.md`.
 ## Ownership
 
 - **MySQL (`selrs26`)** is the source of truth for medical records.
-- **MSSQL (`op2026`)** is the source of truth for accounting receipts and service lines.
+- **MSSQL (`opYYYY`, السنة تُختار عند الدخول)** is the source of truth for accounting receipts and service lines.
 - Patient/service fields are refreshed from MSSQL into MySQL by the sync, and
   registration/patient-update workflows push their designated fields to MSSQL through the
   established helper (`pushNewPatientToMssql()`). Do not create ad hoc direct MSSQL

@@ -19,6 +19,7 @@ import os from "node:os";
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { mssqlYearContext } from "./mssqlYearContext";
 import { authService, registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
 import { registerWhatsAppWebhook } from "./whatsappWebhook";
@@ -2215,6 +2216,7 @@ async function startServer() {
     });
   });
   // Local auth routes
+  app.use("/api/auth", mssqlYearContext);
   registerAuthRoutes(app);
 
   async function readPentacamObjectBuffer(
@@ -2539,6 +2541,8 @@ async function startServer() {
     "/api/trpc/patientPortal.login",
     createApiRateLimiter(20, 15 * 60_000),
   );
+  // Every API call works on the MSSQL year chosen at login (see mssqlYear.ts).
+  app.use("/api/trpc", mssqlYearContext);
   app.use(
     "/api/trpc",
     createExpressMiddleware({

@@ -60,20 +60,12 @@ import {
   getReceiptsInquiry,
 } from "../services/accounting/receiptsInquiry.service";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
+import { assertMssqlWritable, mssqlDbName, mssqlTable } from "../integrations/mssqlYear";
 
 const execFile = promisify(execFileCb);
 
 function getMssqlPatientsTable(): string {
-  const configured = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
-  if (!/^op\d{4}\.dbo\.PAJRNRCVH$/i.test(configured)) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Invalid MSSQL patient table configuration",
-    });
-  }
-  return configured;
+  return mssqlTable("PAJRNRCVH");
 }
 
 async function accountingQuery<T>(
@@ -434,6 +426,7 @@ export const accountingRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
+      assertMssqlWritable();
       const targetTable = getMssqlPatientsTable();
       const pool = await createMssqlPool();
       try {
@@ -458,7 +451,7 @@ export const accountingRouter = router({
           delSrvReq.input("PAT_CD", input.patientCode);
           delSrvReq.input("VST_NO", vstNo);
           await delSrvReq.query(
-            `DELETE FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), VST_NO), '0') AS INT) = CAST(ISNULL(CONVERT(varchar(20), @VST_NO), '0') AS INT)`,
+            `DELETE FROM ${mssqlDbName()}.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), VST_NO), '0') AS INT) = CAST(ISNULL(CONVERT(varchar(20), @VST_NO), '0') AS INT)`,
           );
         }
         return { deleted: true };
@@ -477,6 +470,7 @@ export const accountingRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
+      assertMssqlWritable();
       const targetTable = getMssqlPatientsTable();
       const parts: string[] = [];
       if (input.paidAmount != null) parts.push("PA_VL = @PA_VL");
