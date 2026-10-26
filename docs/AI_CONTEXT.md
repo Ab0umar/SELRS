@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.2.0 — aligned with Constitution v2.0.0. Updated 2026-09-25: documents the current production accounting write scope.
+> Version: 2.3.0 — aligned with Constitution v2.0.0 (`.specify/memory/constitution.md`) and `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed.
 
 ---
 
@@ -9,20 +9,16 @@
 
 ## What the Project Is
 
-SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monolithic full-stack TypeScript web application (React + Express + tRPC) with 8 distinct modules:
+SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monolithic web application serving four distinct domains:
 
-1. **Medical** — patient registration, examination, operations scheduling, doctor workflows, Pentacam integration, OCR, FCM notifications
-2. **Accounting** — financial reporting from legacy MSSQL accounting database, service-based revenue analysis, receipt inquiry, print-preview reports, MySQL cashbook
-3. **KF (Clinical — كفرالشيخ)** — isolated MySQL-only clinical sub-module: patients, visits, examinations, operations, follow-ups, accounting ledger. Patient codes follow KF-0001 format.
-4. **Attendance** — fingerprint-based staff attendance, live board, monthly reports, ZKTeco device sync, shift management
-5. **Salary** — payroll module: salary basics, penalties, commission pools, payroll reports, shift-based staff schedules
-6. **Stockroom** — inventory management: stock items per category, stock transactions (receive/dispense), low-stock reports
-7. **Patient Portal** — patient self-service: login via phone OTP, view file/refractions/prescriptions/scans, book appointments
-8. **Marketing** — social media post management, brand library, draft/post history (admin-only)
+1. **Medical Module** — patient registration, examination, operations scheduling, doctor workflows, Pentacam integration, OCR, FCM notifications
+2. **Accounting Module** — financial reporting from legacy MSSQL accounting database, service-based revenue analysis, receipt inquiry, print-preview reports
+3. **Attendance Module** — fingerprint device sync, shift/leave/holiday management, daily materialization, reports (plan 001 complete)
+4. **KF (Clinical) Module** — isolated MySQL-only clinical module, KF-0001 codes, accountant+admin bypass
 
 ## Main Goals
 
-- Replace legacy desktop OP (accounting) application with web-based reports and production receipt/service workflows matching legacy behavior
+- Replace legacy desktop OP (accounting) application with web-based reports matching row-by-row output
 - Modernize the medical workflow (registration, exam, operations) into a responsive web app
 - Strict separation between Medical and Accounting: no cross-module imports; only explicitly named production bridge `addPatientServices`
 - Service-based accounting only: all revenue derived from `PAPAT_SRV` service rows, never from patient/doctor/visit counts
@@ -74,166 +70,114 @@ MySQL (selrs26)                    MSSQL (op2026)
 ├── operations                     ├── PAJRNRCVH (receipt headers)
 ├── audit_logs                     ├── PAPAT_SRV (service lines)
 ├── branches                       ├── DEPT (departments)
-└── ... (medical schema)           └── APPCODES, CMPMF (lookups)
+├── attendance_employees           └── APPCODES, CMPMF (lookups)
+├── attendance_punches
+├── attendance_sync_runs
+├── attendance_shifts
+├── attendance_shift_assignments
+├── attendance_leaves
+├── attendance_holidays
+├── attendance_daily
+├── kf_patients + 4 more kf_* tables
+├── external_doctors           → Doctor portal accounts (username, passwordHash, doctorCode, isActive)
+├── external_doctor_referrals  → Links external doctor ↔ patient (auto-created on patient registration)
+├── external_doctor_access_logs → Audit trail for doctor portal access
+├── srv100_uploads           → Pentacam scan images (linked to patients.id)
+└── ... (medical schema)
 ```
 
 **Connection:** MySQL via Drizzle in `server/db.ts`. MSSQL via `createMssqlPool()` in `server/integrations/mssqlPatients.ts`, wrapped by `mssqlQuery()` helper in `server/services/accounting/mssqlAccounting.ts`.
 
 ## Routing Architecture
 
-- `client/src/App.tsx` — lazy routes with `ProtectedRoute` wrappers
-- Medical routes: `/dashboard`, `/patients/*`, `/operations`, `/today`, etc.
-- Accounting routes: `/accounting/*` — gated by path-based permission
-- KF (clinical) routes: `/kf/*`, `/KFsheets/*` — gated by `makeKfProcedure` / `makeKfWriteProcedure` (admin + accountant bypass)
-- Attendance routes: `/attendance/*` — gated by `makeAttProcedure` / `makeAttWriteProcedure` (admin + manager bypass)
-- Salary routes: `/salary/*` — gated by `makeSalaryProcedure` / `makeSalaryWriteProcedure` (admin + manager bypass)
-- Stockroom routes: `/stockroom`, `/stockroom/*` — gated by `makeStockroomProcedure` / `makeStockroomWriteProcedure` (admin bypass)
-- Patient portal routes: `/my/*` — separate `patientPortalProcedure` (patient session, not staff session)
-- Doctor portal routes: `/doctor-portal/*` — separate `doctorPortalProcedure` (external doctor session)
-- Marketing routes: `/marketing/*` — `requiredRoles={["admin"]}` in ProtectedRoute
-- Admin hub: `/admin-hub`, `/admin/*` — `requiredRoles={["admin"]}`
-- **Route groups are JSX constants, NOT function calls.** Route files (`attendance-routes.tsx`, `salary-routes.tsx`, etc.) export `export const AttendanceRoutes = (<>...</>)`. In `App.tsx` use `{AttendanceRoutes}` not `{AttendanceRoutes()}`.
-- Backend: `server/routers/index.ts` composes `appRouter = { patientPortal, accounting, attendance, kf, medical, patient, stockroom, salary, marketing, doctorPortal }`
+- `client/src/App.tsx` — lazy routes with `ProtectedRoute` wrappers; all permission-gated paths use `ROUTES.*` constants from `shared/routes.ts`
+- **Route groups are JSX constants, NOT function calls.** Route files (`attendance-routes.tsx`, `salary-routes.tsx`, `kf-routes.tsx`, etc.) export `export const AttendanceRoutes = (<>...</>)`. In `App.tsx` use `{AttendanceRoutes}` not `{AttendanceRoutes()}`. Do not revert to function calls.
+- Medical routes: `/dashboard`, `/patients/*`, `/operations`, etc.
+- Accounting routes: `/accounting/*` — all gated by `allowedRoles` or path-based permission
+- Attendance routes: `/attendance/*` — gated by attendance permission
+- KF routes: `/kf/*` — gated by KF permission
+- Key renames done: `/txhub` → `/treatment`, `/today` → `/bookings`, `/admin-hub` → `/booking-triage` (redirects in place)
+- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, doctorPortal, ... }`
 
 ## tRPC Structure
 
 ```
 server/routers/
-├── index.ts          → appRouter composition (ONLY allowed shared edit point)
-├── medical.ts        → Medical CRUD (UNTOUCHABLE)
-├── patient.ts        → Patient queries (UNTOUCHABLE)
-├── accounting.ts     → Accounting reports + guarded MSSQL/MySQL production mutations
-├── kf.ts             → KF clinical module (isolated MySQL-only)
-├── attendance.ts     → Attendance + fingerprint module + shift management
-├── salary.ts         → Salary + payroll module
-├── stockroom.ts      → Stockroom inventory module
-├── patientPortal.ts  → Patient portal (self-service, OTP-auth)
-├── marketing.ts      → Marketing / social media posts (admin-only)
-├── doctorPortal.ts   → External doctor portal (login, getMyPatients, getPatientImages)
-└── medical-pentacam.ts → Pentacam procedures; exports autoLinkUnlinkedPentacamFiles()
+├── index.ts                  → appRouter composition (ONLY allowed shared edit point)
+├── medical.ts                → Medical router composition (~74 lines; spreads sub-routers)
+├── medical-catalog.ts        → Catalog procedures (medications, diseases, tests, prescriptions, surgeries)
+├── medical-examinations.ts   → Examinations/visits procedures
+├── medical-mssql.ts          → MSSQL sync procedures
+├── medical-ops.ts            → Ops/admin/reports procedures
+├── medical-patient.ts        → Patient-core procedures; calls autoLinkAndNotifyDoctors() on new patient
+├── medical-pentacam.ts       → Pentacam procedures; exports autoLinkUnlinkedPentacamFiles()
+├── _medical/                 → Shared helpers (pentacam-helpers, patient-helpers, service-helpers)
+├── patient.ts                → Patient queries (UNTOUCHABLE)
+├── accounting.ts             → Accounting reports plus guarded production mutations
+├── attendance.ts             → Attendance module (~3500 lines; shifts/leaves/holidays/sync/reports)
+├── doctorPortal.ts           → External doctor portal (login, getMyPatients, getPatientImages)
+└── kf.ts                     → KF clinical module
 
 server/_core/
-├── procedures.ts     → Role-based procedure builders + per-page factory functions; includes doctorPortalProcedure
+├── procedures.ts     → Role-based procedure builders; includes doctorPortalProcedure
 ├── trpc.ts           → tRPC init
-├── context.ts        → Auth context (staff session, patient session, doctor session)
+├── context.ts        → Auth context
 ├── index.ts          → Express server bootstrap; runs startPentacamAutoLinker() on startup
-├── ws.ts             → WebSocket server; staff (cookie) + doctor portal (?doctorToken= JWT)
+├── ws.ts             → WebSocket server; staff (cookie auth) + doctor portal (?doctorToken= JWT)
 └── env.ts            → Environment config
 ```
 
 **Procedure hierarchy:**
 
-Base procedures (role-based, defined in `server/_core/procedures.ts`):
-
-| Procedure | Auth required | Allowed roles |
-|---|---|---|
-| `publicProcedure` | None | Any |
-| `protectedProcedure` | Staff session | Any authenticated user |
-| `doctorProcedure` | Staff session | doctor, admin, manager |
-| `nurseProcedure` | Staff session | nurse, admin, manager |
-| `technicianProcedure` | Staff session | technician, admin, manager |
-| `receptionProcedure` | Staff session | reception, admin, manager |
-| `managerProcedure` | Staff session | manager, admin, accountant |
-| `accountingProcedure` | Staff session | admin bypass OR `/accounting` path permission |
-| `accountingWriteProcedure` | Staff session | admin bypass OR `/accounting:rw` path permission |
-| `kfProcedure` | Staff session | admin + accountant bypass OR `/kf` path permission |
-| `kfWriteProcedure` | Staff session | admin + accountant bypass OR `/kf:rw` permission |
-| `attendanceViewerProcedure` | Staff session | admin + manager bypass OR `/attendance` permission |
-| `attendanceManagerProcedure` | Staff session | admin + manager bypass OR `/attendance:rw` permission |
-| `attendanceAdminProcedure` | Staff session | admin only |
-| `adminProcedure` | Staff session | admin only |
-| `medicalStaffProcedure` | Staff session | doctor, nurse, technician, reception, manager, admin |
-| `patientPortalProcedure` | Patient session | authenticated patient (OTP) |
-| `doctorPortalProcedure` | Doctor session | authenticated external doctor |
-
-**Per-page factory functions** (used inside specific routers to gate per-page access):
-
-Each module exposes a read factory and a write factory, each keyed to a `pagePath` string. The factory checks the user's stored permissions match that path (or a parent).
-
-| Factory pair | Module | Bypass roles |
-|---|---|---|
-| `makeKfProcedure(pagePath)` / `makeKfWriteProcedure(pagePath)` | KF clinical | admin + accountant |
-| `makeAccProcedure(pagePath)` / `makeAccWriteProcedure(pagePath)` | Accounting | admin only |
-| `makeAttProcedure(pagePath)` / `makeAttWriteProcedure(pagePath)` | Attendance | admin + manager |
-| `makeSalaryProcedure(pagePath)` / `makeSalaryWriteProcedure(pagePath)` | Salary | admin + manager |
-| `makeStockroomProcedure(pagePath)` / `makeStockroomWriteProcedure(pagePath)` | Stockroom | admin only |
-
-**Per-page permission semantics:**
-
-Permissions are stored as path strings in the `user_permissions` table. The `permMatchesPath` helper follows this hierarchy:
-- `bare path` (e.g. `/salary`) — full access (read + write). Backward-compatible: AdminUsers saves bare paths.
-- `path:r` (e.g. `/salary:r`) — read-only access.
-- `path:rw` (e.g. `/salary:rw`) — read + write access.
-- A parent path covers children: `/salary:rw` grants access to `/salary/payroll`.
-- No matching permission → FORBIDDEN.
-
-Write check logic: `if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false` — bare paths AND `:rw` both allow writes. `:r` alone is read-only.
-
-**Permission source by tool:**
-- **AdminUsers** (per-user page) saves bare paths → full access by design.
-- **AdminPermissions** (team/role page) saves with `:r` or `:rw` suffix.
+- `publicProcedure` — no auth
+- `protectedProcedure` — any authenticated user
+- `doctorPortalProcedure` — external doctor portal JWT auth (verifies `type: "externalDoctor"` JWT)
+- `doctorProcedure` — doctor, admin, manager
+- `nurseProcedure` — nurse, admin, manager
+- `technicianProcedure` — technician, admin, manager
+- `receptionProcedure` — reception, admin, manager
+- `managerProcedure` — manager, admin, accountant
+- `accountingProcedure` — admin bypass OR path-based `/accounting` permission check
+- `adminProcedure` — admin only
+- `medicalStaffProcedure` — all medical roles + admin + manager
+- `makeAttProcedure(path)` — attendance read; admin bypass OR path-based permission check
+- `makeAttWriteProcedure(path)` — attendance write; admin bypass OR path-based `:rw` permission check
+- `kfProcedure` — KF read; accountant+admin bypass OR `/kf` permission
+- `kfWriteProcedure` — KF write; accountant+admin bypass OR `/kf:rw` permission
 
 ## React Structure
 
 ```
 client/src/
-├── App.tsx                    → Route definitions (lazy + ProtectedRoute)
-├── pages/
-│   ├── accounting/            → /accounting/* pages (AccountingHome, DailyRevenue,
-│   │                             LasikRevenue, ReceiptsInquiry, ReceiptDetail,
-│   │                             LasikServices, PatientAccount, DoctorAccount,
-│   │                             AccountingCashbook, AccountingLedger, AccountingAdvances,
-│   │                             AccountingLoans, AccountingHomeFund, AccountingInstapay,
-│   │                             AccountingDrSaadany, PrintPreview, AccountingPatientsInquiry)
-│   ├── kf/                    → /kf/* pages (KfShell, KfHome, KfPatients, KfPatientForm,
-│   │                             KfPatientDetail, KfVisitForm, KfExaminationForm,
-│   │                             KfOperationForm, KfFollowupForm, KfOperations,
-│   │                             KfFollowups, KfConsultantSheet, KfConsultantFollowupSheet,
-│   │                             KfAccounting, KfDailyRevenue, KfServiceRevenue,
-│   │                             KfReceipts, KfLedger)
-│   ├── attendance/            → /attendance/* pages (AttendanceLayout, AttendanceHome,
-│   │                             LiveBoard, MyAttendanceProfile, EmployeeDetail,
-│   │                             EmployeesHub, ReportsHub, SettingsHub,
-│   │                             admin/DeviceSettings, admin/SyncStatus)
-│   ├── salary/                → /salary/* pages (SalaryLayout, SalaryBasics, SalaryPenalties,
-│   │                             CommissionPools, PayrollReport, SalarySettings,
-│   │                             ShiftStaff, ShiftSchedule, ShiftPayroll, AbsentReport,
-│   │                             CurrentSalaryData)
-│   ├── marketing/             → /marketing/* pages (MarketingLayout, MarketingDashboard,
-│   │                             PostHistory, DraftPosts, BrandLibrary, MarketingSettings)
-│   ├── patient-portal/        → /my/* pages (PatientLogin, PatientGuestBook, PatientFile,
-│   │                             PatientRefraction, PatientPrescription, PatientScans,
-│   │                             PatientBook, PatientBookings)
-│   ├── doctor-portal/         → /doctor-portal/* pages (DoctorLogin, DoctorDashboard,
-│   │                             DoctorPatientImages)
-│   ├── dev/                   → Dev-only pages (Styleguide, ComponentsGallery, Prototypes,
-│   │                             Documentation)
-│   ├── Dashboard.tsx           → Medical dashboard (admin only)
-│   ├── Operations.tsx          → Operations scheduling
-│   ├── Patients.tsx            → Patient list
-│   ├── TodayPatients.tsx       → Today's patient queue
-│   ├── PatientDetails.tsx      → Medical file (also at /medicalfile, /patient-file)
-│   ├── StockroomShell.tsx      → Stockroom SPA shell
-│   └── ...                    → Other medical pages (sheets, examination, followups, etc.)
+├── App.tsx                    → Route definitions (lazy + ProtectedRoute); uses ROUTES.* constants
+│                                 Route groups are JSX constants {AttendanceRoutes}, NOT function calls
+├── pages/                     → Shared/medical pages (Dashboard, Operations, Patients, Login, etc.)
+│   └── dashboard/appointments-activity.tsx → Today queue; حجز filter chip shows portal bookings + queue
+├── features/                  → Domain feature folders (plan 005 complete)
+│   ├── kf/                    → KF clinical pages + KF-specific components
+│   ├── attendance/            → Attendance pages + attendance-specific components
+│   ├── salary/                → Salary pages
+│   ├── accounting/            → Accounting pages (AccountingHome, DailyRevenue, LasikRevenue, etc.)
+│   ├── stockroom/             → Stockroom pages
+│   ├── admin/                 → Admin pages
+│   ├── doctor-portal/         → Doctor portal pages; DoctorDashboard opens WS for real-time notifications
+│   └── patient-portal/        → Patient portal pages
 ├── components/
-│   ├── ProtectedRoute.tsx      → Frontend auth gate (UNTOUCHABLE)
-│   ├── PatientPortalRoute.tsx  → Patient session gate
-│   ├── DoctorPortalRoute.tsx   → External doctor session gate
-│   ├── layout/
-│   │   ├── AppNav.tsx          → Sidebar nav groups (attendanceNavGroup, salaryNavGroup,
-│   │   │                         accountingNavGroup, adminNavGroups, staffNavGroups)
-│   │   ├── AppTopNav.tsx       → Top navigation bar (desktop tabs + "more" popover)
-│   │   ├── AppBottomNav.tsx    → Mobile bottom nav (staff vs admin tab sets)
-│   │   └── AppSidebar.tsx      → Sidebar shell (desktop)
-│   ├── ui/                     → shadcn/ui primitives
+│   ├── ProtectedRoute.tsx     → Frontend auth gate; uses ROUTES.* constants (UNTOUCHABLE)
+│   ├── ui/                    → shadcn/ui primitives
 │   └── ...
-├── hooks/                      → Auth hooks, data hooks
+├── hooks/                     → Auth hooks, data hooks
 └── lib/
-    ├── trpc.ts                 → tRPC client setup
-    ├── page-permissions.ts     → PAGE_PERMISSION_DEFINITIONS (all permission page IDs)
-    ├── nav-permission-utils.ts → permissionsToAllowedRoots, pathGrantedByRoots
-    └── utils.ts                → cn() helper
+    ├── trpc.ts                → tRPC client setup
+    └── utils.ts               → cn() helper
 ```
+
+## Route Constants
+
+- `shared/routes.ts` exports `ROUTES` object (`as const`) and `RoutePath` type
+- All permission-gated path strings in `ProtectedRoute.tsx` and `App.tsx` use `ROUTES.*`
+- A typo in any reference is a compile error (TypeScript literal type enforcement)
+- Key constants: `ROUTES.txhub` = `"/treatment"`, `ROUTES.today` = `"/bookings"`, `ROUTES.adminHub` = `"/booking-triage"`
 
 ## Navigation Structure
 
@@ -269,10 +213,10 @@ The clinics area in `adminNavGroups` / `staffNavGroups` is split into five `NavG
 - **Medical owner:** Medical patient, examination, and workflow data (read/write).
 - **Accounting owner:** Existing cashbook and subledgers (`accLedger`, advances,
   home fund, InstaPay, loans, Dr. Saadany) through guarded Accounting procedures.
-- **Patient link:** Accounting may use `patients.patientCode` for the established
+- **Patient link:** Accounting may use `patients.patientCode` for established
   service-entry linking/display paths; do not use `patients.id` as an accounting key.
 - Schema changes remain governed by Principle IV; current writes do not authorize
-  schema redesign or arbitrary Medical-table mutations.
+  arbitrary Medical-table changes or schema redesign.
 - **Tables:** `patients`, `users`, `operations`, `audit_logs`, `branches`, `patient_service_entries`, `permissions`, etc.
 
 ## MSSQL (op2026) — Accounting Source of Truth + Medical Patient Sync
@@ -281,7 +225,7 @@ The clinics area in `adminNavGroups` / `staffNavGroups` is split into five `NavG
 - **Accounting writes:** receipt/service mutations are limited to
   `addPatientServices`, `deleteReceipt`, `updateReceipt`, and
   `editReceiptServiceLine` through established helpers.
-- **Medical sync:** Existing Medical patient synchronization writes the designated
+- **Medical sync:** Existing Medical patient synchronization writes designated
   patient data to MSSQL through its integration flow.
 - **No DDL/schema redesign:** Principle IV still forbids unapproved schema changes.
 - **Connection:** established helpers/pools in `server/integrations/`.
@@ -314,95 +258,18 @@ The clinics area in `adminNavGroups` / `staffNavGroups` is split into five `NavG
 
 ## Main Tables
 
-| Table                              | Purpose                                                          |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| `users`                            | Staff accounts, roles, branch, shift                             |
-| `user_permissions`                 | Path-based per-user permission assignments                       |
-| `patients`                         | Patient records, demographics, `patientCode`, `id`               |
-| `patient_import_staging`           | Staging rows for bulk patient import                             |
-| `patient_service_entries`          | Service entries synced from MSSQL                                |
-| `visits`                           | Patient visit records                                            |
-| `examinations`                     | Examination data (refraction, diagnosis, etc.)                   |
-| `autorefractometryData`            | Autoref/keratometry measurements                                 |
-| `afterRefractionData`              | Post-refraction measurements                                     |
-| `glassesRecords`                   | Glasses prescription records                                     |
-| `pentacamResults`                  | Pentacam corneal scan results                                    |
-| `doctorReports`                    | Medical reports authored by doctors                              |
-| `prescriptions` / `prescriptionItems` | Drug prescriptions + line items                               |
-| `diseases`                         | Disease catalog                                                  |
-| `medications` / `tests`            | Medication and test catalogs                                     |
-| `testRequests` / `testRequestItems`| Lab/radiology test requests                                      |
-| `surgeries` / `postOpFollowups`    | Surgery records + post-op follow-ups                             |
-| `operationLists` / `operationListItems` / `operationBookings` | Operation scheduling tables |
-| `appointments`                     | Appointment calendar                                             |
-| `followupSheets` / `followupItems` | Follow-up sheet entries                                          |
-| `visitScheduleRequests`            | Visit scheduling requests                                        |
-| `services`                         | Medical service catalog                                          |
-| `sheet_entries`                    | Medical sheet data (generic key-value store)                     |
-| `consentForms`                     | Patient consent form data                                        |
-| `medicalHistoryChecklist` / `examinationChecklistItems` | Checklist templates |
-| `auditLog`                         | Action audit trail                                               |
-| `userPageStates`                   | Per-user page state JSON (exam page state, etc.)                 |
-| `patientPageStates`                | Per-patient page state JSON                                      |
-| `pushDeviceRegistrations`          | FCM device tokens for push notifications                         |
-| `systemSettings`                   | Key-value system settings store                                  |
-| `doctors` (doctorsLookup)          | Local doctor directory                                           |
-| `external_doctors`                 | External doctor portal registry                                  |
-| `external_doctor_referrals`        | Referral records from external doctors                           |
-| `external_doctor_access_logs`      | External doctor portal access log                                |
-| `accLedger`                        | Cashbook ledger (income/expense/balance)                         |
-| `accAdvances`                      | Employee advances tracking                                       |
-| `accLoans`                         | Loan records                                                     |
-| `accHome`                          | Home fund records                                                |
-| `accInstapay`                      | Instapay transaction records                                     |
-| `accEmployees`                     | Accounting employee references                                   |
-| `accCategories`                    | Cashbook categories                                              |
-| `accSaadany`                       | Dr. Saadany special account entries                              |
-| `stock_items`                      | Inventory item catalog                                           |
-| `stock_transactions`               | Stock movement (add/dispense)                                    |
-| `attendance_shifts`                | Shift definitions (start/end times, grace periods)               |
-| `employee_attendance_mapping`      | Maps users to fingerprint machine user IDs                       |
-| `attendance_logs`                  | Raw fingerprint logs                                             |
-| `attendanceEmployees`              | Employee attendance profiles                                     |
-| `attendancePunches`                | Processed punch records                                          |
-| `attendanceDaily`                  | Daily materialized attendance summary                            |
-| `attendanceMonthlyReport`          | Monthly attendance roll-up per employee                          |
-| `attendanceShiftAssignments`       | Per-employee shift assignments                                   |
-| `attendanceShiftCycles` / `attendanceShiftCycleSlots` / `attendanceShiftCycleAssignments` | Rotating shift cycles |
-| `attendanceLeaves`                 | Leave requests                                                   |
-| `attendanceHolidays`               | Public holiday calendar                                          |
-| `attendanceLeaveBalances`          | Accrued leave balance per employee                               |
-| `attendancePermissions`            | Permission/early-exit records                                    |
-| `attendanceSyncRuns`               | Fingerprint device sync run log                                  |
-| `attendanceDeviceSettings`         | ZKTeco device connection settings                                |
-| `attendanceShiftChangeRequests`    | Shift swap/change requests                                       |
-| `salaryBasics`                     | Basic salary components per employee                             |
-| `salaryPenalties`                  | Penalty records                                                  |
-| `salaryCommissionPools`            | Commission pool configurations                                   |
-| `salaryPayroll`                    | Computed payroll entries                                         |
-| `salaryAdvances`                   | Salary advance records                                           |
-| `salaryHolidays`                   | Salary-module holiday calendar                                   |
-| `salaryRaiseHistory`               | Raise history per employee                                       |
-| `salaryConfig`                     | Module-level salary configuration                                |
-| `shiftStaff`                       | Shift staff assignment (for surgical/daily shift schedules)      |
-| `shiftAttendance`                  | Shift-level attendance tracking                                  |
-| `shiftStaffCycle`                  | Cyclic shift assignments                                         |
-| `patient_portal_otps`              | OTP codes for patient portal login                               |
-| `patient_portal_sessions`          | Authenticated patient portal sessions                            |
-| `booking_schedule_config`          | Appointment booking schedule configuration                       |
-| `booking_closures`                 | Booking closure (holiday/blocked) dates                          |
-| `patient_portal_bookings`          | Bookings made through patient portal                             |
-| `marketing_posts`                  | Social media post records                                        |
-| `marketing_settings`               | Marketing module settings                                        |
-| `marketing_logs`                   | AI/post generation logs                                          |
-| `marketing_reference_designs`      | Reference design assets                                          |
-| `marketing_brand_profile`          | Brand identity profile                                           |
-| `kf_patients`                      | KF clinical patients (kfCode: KF-0001 format)                    |
-| `kf_visits`                        | KF patient visits                                                |
-| `kf_examinations`                  | KF examination records                                           |
-| `kf_operations`                    | KF operation/surgery records                                     |
-| `kf_followups`                     | KF post-op follow-up records                                     |
-| `kf_ledger`                        | KF accounting ledger (income/expense entries)                    |
+| Table                     | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `patients`                | Patient records, demographics, `patientCode`, `id`               |
+| `users`                   | Staff accounts, roles, permissions                               |
+| `operations`              | Scheduled surgeries/procedures                                   |
+| `patient_service_entries` | Service entries synced from MSSQL                                |
+| `audit_logs`              | Action audit trail                                               |
+| `permissions`             | Path-based permission assignments                                |
+| `branches`                | Clinic branch data                                               |
+| `card_visibility`         | Dashboard card configuration per user                            |
+| `accLedger`               | Cashbook ledger (income/expense/balance) — MySQL-side accounting |
+| `accCategories`           | Cashbook categories                                              |
 
 ## What Is Allowed
 
@@ -504,8 +371,8 @@ LEFT JOIN PAPATMF p ON h.PAT_CD = p.PAT_CD
 
 - Reporting `mssqlQuery()` in `server/services/accounting/mssqlAccounting.ts` is SELECT-only
 - `sqlBuilders.ts` produces parameterized queries — no string concatenation of user input
-- Production MSSQL mutations are limited to `addPatientServices`, `deleteReceipt`, `updateReceipt`, and `editReceiptServiceLine` in `accountingRouter` and their established integration helpers.
-- Keep these routes behind their existing role/path permission guards and validated schemas; retain parameterized SQL and existing transaction/consistency behavior.
+- Production MSSQL mutations are limited to `addPatientServices`, `deleteReceipt`, `updateReceipt`, and `editReceiptServiceLine` and their established integration helpers.
+- Keep existing role/path guards, validated schemas, parameterized SQL, and transaction/consistency behavior.
 - No other MSSQL accounting write, stored-procedure call, or dynamic SQL assembly is authorized without a separate constitutional amendment.
 
 ---
@@ -625,7 +492,7 @@ server/services/accounting/
 - Tolerance: ±0.01 currency unit for totals
 - Receipt counts must match exactly
 - Reference test month: **2026-04** on `op2026`
-- Parity artifacts stored under `specs/parity/`
+- Parity artifacts stored under `docs/parity/`
 - Parity script: `scripts/accounting/parity-check.ts`
 
 ---
@@ -663,25 +530,25 @@ server/services/accounting/
 ## Notifications Flow
 
 - FCM (Firebase Cloud Messaging) for push notifications to mobile
-- WebSocket for real-time in-app updates (staff) and doctor portal browser notifications
+- WebSocket for real-time in-app updates (staff) and doctor portal notifications
 - Notification triggers: patient arrival, operation status change, new patient for doctor
-- Doctor portal real-time: on new patient registration with matching `doctorCode`, `autoLinkAndNotifyDoctors()` fires → `INSERT IGNORE INTO external_doctor_referrals` + WS `{ type: "new-patient" }` → `DoctorDashboard` shows browser `Notification`
+- Doctor portal real-time: when a new patient is registered with a matching `doctorCode`, `autoLinkAndNotifyDoctors()` fires → inserts `external_doctor_referrals` (INSERT IGNORE) + broadcasts `{ type: "new-patient" }` via WS → DoctorDashboard shows browser Notification
 
 ## Pentacam Auto-Linker
 
-- `startPentacamAutoLinker()` runs in `server/_core/index.ts` on server startup, then every 5 minutes
-- Calls `autoLinkUnlinkedPentacamFiles()` from `server/routers/medical-pentacam.ts`
-- Queries `srv100_uploads` where `patient_id IS NULL`, matches by patient code in file name
-- Guarded by `busy` flag; logs only when `imported > 0`
+- `startPentacamAutoLinker()` runs in `server/_core/index.ts` on server startup
+- Calls `autoLinkUnlinkedPentacamFiles()` from `server/routers/medical-pentacam.ts` immediately, then every 5 minutes
+- Queries `srv100_uploads` where `patient_id IS NULL`, matches by patient code in file name, updates `patient_id`
+- Guarded by `busy` flag to prevent concurrent runs; logs only when `imported > 0`
 - **Do not add manual triggers or UI buttons** for Pentacam linking — the scheduler handles it
 
 ## Doctor Portal
 
-- External doctors access at `/doctor-portal/*` with JWT auth (`doctorPortalProcedure`)
+- External doctors access via `/doctor-portal` route with their own JWT-based auth (`doctorPortalProcedure`)
 - JWT signed with same `JWT_SECRET`; `type: "externalDoctor"` claim distinguishes from staff tokens
-- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `srv100_uploads` record**
+- `getMyPatients`: returns patients linked via `external_doctor_referrals` OR auto-matched by `doctorCode`, **only those with at least one `srv100_uploads` record** (Pentacam images)
 - Auto-referral: on any new patient registration, `autoLinkAndNotifyDoctors()` checks for active external doctors with matching `doctorCode` and inserts referrals idempotently
-- Real-time: doctor WS connection uses `?doctorToken=<jwt>`; receives `new-patient` events instantly
+- Real-time: doctor portal WS connection authenticates via `?doctorToken=<jwt>`; receives `new-patient` events instantly
 
 ## What Must NEVER Break
 
@@ -730,11 +597,10 @@ server/services/accounting/
 - Row-level or total-level comparison on representative date range required
 - Parity artifact must exist before task is accepted
 
-## Principle VI: Spec-Driven, Minimal-Diff Execution
+## Principle VI: Minimal-Diff Execution
 
-- No implementation before `/specify`, `/plan`, `/tasks` exist
-- Each task carries: Owner Model, Backup Model, Tool, Role, Input, Output, Prompt, Acceptance Criteria
 - Smallest correct diff wins — out-of-scope refactors are FORBIDDEN
+- Identify the files to change before editing; report changed files, what changed, and checks run
 
 ## Principle VII: Do Not Break Medical
 
@@ -759,38 +625,34 @@ server/services/accounting/
 
 These files should almost NEVER be modified:
 
-| File                                           | Reason                                          |
-| ---------------------------------------------- | ----------------------------------------------- |
-| `server/routers/medical.ts`                    | Core medical business logic (UNTOUCHABLE)       |
-| `server/routers/patient.ts`                    | Patient CRUD API (UNTOUCHABLE)                  |
-| `server/db.ts`                                 | Database + legacy text handling (UNTOUCHABLE)   |
-| `server/integrations/mssqlPatients.ts`         | MSSQL pool + sync logic                         |
-| `client/src/components/ProtectedRoute.tsx`     | Frontend auth gate for all staff pages          |
-| `client/src/components/PatientPortalRoute.tsx` | Patient session gate                            |
-| `client/src/components/DoctorPortalRoute.tsx`  | External doctor session gate                    |
-| `server/_core/procedures.ts`                   | Role-based procedure definitions + factories    |
-| `server/_core/context.ts`                      | Auth context (staff + patient + doctor)         |
-| `server/_core/trpc.ts`                         | tRPC initialization                             |
-| `server/_core/env.ts`                          | Environment configuration                       |
-| `ecosystem.config.js`                          | PM2 process config                              |
-| `shared/types.ts`                              | Shared types (re-exports drizzle schema types)  |
-| `shared/const.ts`                              | Shared constants                                |
-| `drizzle/schema.ts`                            | MySQL schema definition                         |
-| `client/src/lib/page-permissions.ts`           | All permission page IDs (source of truth)       |
+| File                                       | Reason                           |
+| ------------------------------------------ | -------------------------------- |
+| `server/routers/medical.ts`                | Medical router composition — edit sub-routers instead |
+| `server/routers/medical-*.ts`              | Medical sub-routers — preserve procedure names        |
+| `server/routers/patient.ts`               | Patient CRUD API                 |
+| `server/db.ts`                             | Database + legacy text handling  |
+| `server/integrations/mssqlPatients.ts`     | MSSQL pool + sync logic          |
+| `client/src/components/ProtectedRoute.tsx` | Auth gate for all pages          |
+| `server/_core/procedures.ts`               | Role-based procedure definitions |
+| `server/_core/context.ts`                  | Auth context                     |
+| `server/_core/trpc.ts`                     | tRPC initialization              |
+| `server/_core/env.ts`                      | Environment configuration        |
+| `ecosystem.config.js`                      | PM2 process config               |
+| `shared/types.ts`                          | Medical shared types             |
+| `shared/const.ts`                          | Shared constants                 |
+| `drizzle/schema.ts`                        | MySQL schema definition          |
 
 ---
 
 # Allowed Shared Edit Points
 
-Only these shared files may be edited when adding new module features:
+Only these shared files may be edited when adding features:
 
-1. **`server/routers/index.ts`** — to register new routers (2-line edit max)
-2. **`client/src/App.tsx`** — to add lazy routes with ProtectedRoute wrappers
-3. **`shared/accounting/contracts.ts`** — accounting-specific zod schemas and types
-4. **`shared/kf/contracts.ts`** — KF-specific zod schemas and types
-5. **`client/src/lib/page-permissions.ts`** — to register new permission page IDs
-6. **`server/_core/procedures.ts`** — only if a new procedure type is genuinely needed (requires review)
-7. **`client/src/components/layout/AppNav.tsx`** — to add new nav group entries
+1. **`server/routers/index.ts`** — to register new routers (2-line edit)
+2. **`client/src/App.tsx`** — to add lazy routes with ProtectedRoute wrappers; use `ROUTES.*` constants
+3. **`shared/routes.ts`** — to add new route path constants; use `as const`
+4. **`shared/accounting/contracts.ts`** — accounting-specific zod schemas and types
+5. **`server/_core/procedures.ts`** — only if a new procedure type is genuinely needed (requires review)
 
 ---
 
@@ -821,56 +683,21 @@ Only these shared files may be edited when adding new module features:
 
 # Development Workflow
 
-## Spec-Driven Pipeline
-
-```
-Constitution → Principles → /specify → /clarify → /plan → /tasks → Execute → Review
-```
-
-1. **Constitution** — established once; amendments require justification + user approval
-2. **Project Principles** — operating model (how to produce Constitution-consistent work)
-3. **`/specify`** — feature spec: problem, scope, in/out, success criteria
-4. **`/clarify`** — targeted questions if scope is ambiguous
-5. **`/plan`** — architecture, data flow, contracts, Constitution Check
-6. **`/tasks`** — dependency-ordered, model-routed task list
-7. **Execution** — implement per task (Cursor/Codex/etc.)
-8. **Review** — Claude reviews each task against acceptance criteria
-
 ## Validation Discipline
 
-- Per task: `pnpm check` → `pnpm test` → `pnpm smoke` → `pnpm build` (smallest relevant first)
+- Per change: `pnpm check` → `pnpm test` → `pnpm smoke` → `pnpm build` (smallest relevant first)
 - Auth/routing/permissions/shared types touched: `pnpm check` mandatory
 - Shipped behavior changed: `pnpm build` mandatory
 - Reports: legacy-output parity check mandatory
 
 ## Task Reporting Format
 
-Every completed task reports:
+Every completed change reports:
 
 - Changed files
 - What changed
 - Checks run
 - Checks skipped (with reason)
-
----
-
-# Model Routing
-
-| Task Type                                   | Best Model              | Backup     | Notes                        |
-| ------------------------------------------- | ----------------------- | ---------- | ---------------------------- |
-| Specs, plan, tasks, review                  | Claude                  | —          | Leader/planner/reviewer only |
-| Multi-file edits inside repo                | Cursor                  | Codex      | Default execution surface    |
-| Implementation / refactor / bugfix          | Codex                   | Cursor     | Backend + frontend wiring    |
-| SQL design, report logic, complex reasoning | GPT-5                   | Claude     | Query parity, aggregation    |
-| Bulk extraction, legacy summaries           | GPT-5 mini / GLM / Kimi | OpenRouter | Cheap long-form work         |
-| UI layout / visual variants                 | Gemini                  | Cursor     | Design alternatives          |
-| Local lightweight edits                     | Ollama / Continue       | Cursor     | Offline mode                 |
-
-**Key rules:**
-
-- Never use Claude for heavy implementation
-- Never use cheap models for legacy parity checks without Claude review
-- Every task prompt ends with: "Follow the project Constitution and Project Principles strictly."
 
 ---
 
@@ -881,21 +708,23 @@ Every completed task reports:
 3. **Adding or broadening an Accounting write path beyond the established production procedures** — requires a constitutional amendment
 4. **Creating new MSSQL tables or renaming columns** — violates Principle IV
 5. **Shipping reports without legacy parity artifacts** — violates Principle V
-6. **Implementing before spec/plan/tasks exist** — violates Principle VI
-7. **Breaking Medical module behavior** — violates Principle VII
-8. **Using `DRS_CD` from `PAJRNRCVH` instead of `SRV_BY1` from `PAPAT_SRV`** — creates doctor/service mismatches
-9. **Coercing `PAT_CD` to number** — must stay string (zero-padded codes like "0013")
-10. **Removing encoding/decoding helpers** — breaks legacy Arabic text display
-11. **Widening access by renaming routes** — must preserve permission enforcement
-12. **Using raw `fetch()` instead of tRPC hooks** — all data through `trpc.*.useQuery()`
-13. **Skipping `pnpm check` after shared file edits** — mandatory for auth/routing/types
-14. **Logging full row payloads** — PII risk; only log timing at debug level
-15. **Crashing on MSSQL-only patient codes (0013, 0699)** — must show graceful placeholder
-16. **Using raw path strings in ProtectedRoute or App.tsx** — all permission paths use `ROUTES.*`
-17. **Reverting route files to function calls** — `export const AttendanceRoutes = (<>...</>)` not `export function AttendanceRoutes() { return (<>...</>) }`; function calls bypass React component semantics
-18. **Calling `{AttendanceRoutes()}`** in App.tsx — use `{AttendanceRoutes}` (JSX constant reference)
-19. **Adding Pentacam link UI buttons** — the 5-minute server scheduler in `server/_core/index.ts` handles all linking automatically
-20. **Removing `EXISTS srv100_uploads` from doctor portal `getMyPatients`** — doctors must only see patients with Pentacam images; auto-referral and notifications still fire for all new patients regardless
+6. **Breaking Medical module behavior** — violates Principle VII
+7. **Using `DRS_CD` from `PAJRNRCVH` instead of `SRV_BY1` from `PAPAT_SRV`** — creates doctor/service mismatches
+8. **Coercing `PAT_CD` to number** — must stay string (zero-padded codes like "0013")
+9. **Removing encoding/decoding helpers** — breaks legacy Arabic text display
+10. **Widening access by renaming routes** — must preserve permission enforcement
+11. **Using raw `fetch()` instead of tRPC hooks** — all data through `trpc.*.useQuery()`
+12. **Skipping `pnpm check` after shared file edits** — mandatory for auth/routing/types
+13. **Logging full row payloads** — PII risk; only log timing at debug level
+14. **Crashing on MSSQL-only patient codes (0013, 0699)** — must show graceful placeholder
+15. **Using raw path strings in ProtectedRoute or App.tsx** — all permission paths use `ROUTES.*`
+16. **Adding pages directly to `client/src/pages/`** — domain pages go in `client/src/features/<domain>/`
+17. **Editing `medical.ts` for procedure logic** — edit the relevant `medical-*.ts` sub-router instead
+18. **Hardcoding attendance paths without `makeAttProcedure`** — use the attendance procedure builders
+19. **Reverting route files to function calls** — `export const AttendanceRoutes = (<>...</>)` not `export function AttendanceRoutes() { return (<>...</>) }`; function calls bypass React component semantics
+20. **Calling `{AttendanceRoutes()}`** in App.tsx — use `{AttendanceRoutes}` (JSX constant reference)
+21. **Adding Pentacam link UI buttons** — the 5-minute server scheduler handles all linking automatically
+22. **Picking `doctorToken` for doctor portal WS without `?doctorToken=` query param** — that is the agreed auth path for doctor WS connections; do not change to header-based auth
 
 ---
 
@@ -903,9 +732,7 @@ Every completed task reports:
 
 Before editing any code, verify:
 
-- [ ] Task exists in `specs/tasks.md` with full schema
-- [ ] Dependencies are completed and reviewed
-- [ ] Files to edit are listed in task Output
+- [ ] Files to edit are identified before changing code
 - [ ] No file in the Protected Files list is being modified (unless explicitly authorized)
 - [ ] Constitution Check passes for all 7 principles
 - [ ] SQL is parameterized (no string concatenation of user input)
@@ -919,7 +746,6 @@ Before editing any code, verify:
 - [ ] Loading/error/empty states implemented
 - [ ] `pnpm check` will be run if shared infrastructure touched
 - [ ] No PII in logs (timing only at debug level)
-- [ ] Task prompt ends with: "Follow the project Constitution and Project Principles strictly."
 
 After editing:
 
@@ -930,7 +756,6 @@ After editing:
 
 ---
 
-**Document version:** 2.2.0 — updated 2026-09-25
-**Aligned with:** Constitution v2.0.0, Project Principles v1.1.0, Spec v1.0.0, Plan v1.0.0, Tasks v1.0.0
-**Plans complete:** 001–005 + 010 (app router split — JSX constants, dead import cleanup, Vite strip-impeccable-live plugin)
-**Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)
+**Document version:** 2.3.0 — updated 2026-10-26
+**Aligned with:** Constitution v2.0.0, Project Principles v1.1.0
+**Recent features (no plan):** Pentacam 5-min auto-linker (server startup scheduler), Doctor portal real-time WS notifications + auto-referral on patient registration, حجز filter in today queue (appointments-activity.tsx)

@@ -158,4 +158,4 @@ After deploy, sign in with a user who has Medical access and (for Accounting) **
 
 ## Files changed (Task 19)
 
-- `specs/deploy-notes.md` — this document only.
+- `docs/deploy-notes.md` — this document only.

@@ -14,7 +14,7 @@ import {
   buildServiceRevenueSql,
 } from "../../server/services/accounting/sqlBuilders";
 
-const FIXTURES_DIR = path.resolve("specs/parity/fixtures");
+const FIXTURES_DIR = path.resolve("docs/parity/fixtures");
 
 function escCell(v: unknown): string {
   const s = v == null ? "" : String(v);

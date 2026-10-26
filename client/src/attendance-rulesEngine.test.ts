@@ -1,6 +1,5 @@
 /**
  * T039 — Rules Engine unit tests (pure functions, no DB)
- * Contract: specs/001-attendance-fingerprint/contracts/rules-engine.md
  * 28 cases: resolveShift (8) + pairPunches (6) + computeDay (14)
  */
 

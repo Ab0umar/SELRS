@@ -4,7 +4,7 @@ This document provides a final checklist and a summary of risks for the SRV100 p
 
 ## Final Checklist
 
-This checklist combines and consolidates items from `RESPONSIVE_GUIDELINES.md` and `specs/deploy-notes.md`.
+This checklist combines and consolidates items from `RESPONSIVE_GUIDELINES.md` and `docs/deploy-notes.md`.
 
 ### Pre-Deployment
 
@@ -75,10 +75,10 @@ This checklist combines and consolidates items from `RESPONSIVE_GUIDELINES.md` a
 ### Medium
 
 - **Documentation Inconsistency:** The codebase contains a large number of markdown files. While many seem to be generated as part of a structured workflow, the sheer volume and presence of files like `PROJECT_OVERVIEW.md` and `README.md` alongside more specific documents like `RESPONSIVE_GUIDELINES.md` increases the risk of documentation becoming outdated or contradictory. This can lead to confusion for developers and operational staff.
-- **Manual Testing Gaps:** The project relies heavily on manual testing checklists within documentation (`RESPONSIVE_GUIDELINES.md`, `specs/deploy-notes.md`). While these checklists are comprehensive, their manual nature makes them prone to human error or being skipped under pressure. There is a risk that regressions are missed, especially in non-critical paths.
+- **Manual Testing Gaps:** The project relies heavily on manual testing checklists within documentation (`RESPONSIVE_GUIDELINES.md`, `docs/deploy-notes.md`). While these checklists are comprehensive, their manual nature makes them prone to human error or being skipped under pressure. There is a risk that regressions are missed, especially in non-critical paths.
 
 ### Low
 
 - **Complex Cache Policy:** The `patientPageStates` cache has a very specific and strict policy. While well-documented, its complexity (multiple cleanup triggers, non-blocking failures) could be a source of subtle bugs or misunderstandings for new developers working on the project.
-- **Environment-Specific Deployment Issues:** The `specs/deploy-notes.md` mentions that the `pnpm start` command failed due to a port conflict. While this is an operational issue, it highlights the need for robust environment configuration and pre-deployment checks to avoid similar issues in production.
-- **Missing Centralized Deployment Checklist:** The deployment steps are scattered across `specs/deploy-notes.md` and `RESPONSIVE_GUIDELINES.md`. A single, canonical deployment checklist would reduce the risk of missing a step during deployment.
+- **Environment-Specific Deployment Issues:** The `docs/deploy-notes.md` mentions that the `pnpm start` command failed due to a port conflict. While this is an operational issue, it highlights the need for robust environment configuration and pre-deployment checks to avoid similar issues in production.
+- **Missing Centralized Deployment Checklist:** The deployment steps are scattered across `docs/deploy-notes.md` and `RESPONSIVE_GUIDELINES.md`. A single, canonical deployment checklist would reduce the risk of missing a step during deployment.

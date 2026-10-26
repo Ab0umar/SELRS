@@ -1,6 +1,5 @@
 /**
  * T040 — Sync engine service-layer tests
- * Contract: specs/001-attendance-fingerprint/contracts/attendance-source.md + research.md §R3/R13
  * Uses FakeAttendanceSource (in-test) + vi.mock for DB/service dependencies
  */
 

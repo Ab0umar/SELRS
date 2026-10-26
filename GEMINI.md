@@ -59,7 +59,7 @@ drizzle/
   schema.ts                  — Complete MySQL database schema definition (~90 tables).
   migrations/                — Directory containing SQL migration files.
 desktop/                     — .NET 8 WinForms + WebView2 desktop container (detects as `SELRSDesktop/1`).
-specs/                       — AI context, specifications, active plans, tasks, and historical checklists.
+docs/                        — AI context, principles, ADRs, parity artifacts, and operational notes.
 scripts/                     — Maintenance, database sync checks, migrations, backups, and user utilities.
 ```
 
@@ -186,13 +186,12 @@ These files comprise the core system framework and must **NEVER** be modified un
 3. **Adding mutations** to reporting structures (e.g. running `INSERT`, `UPDATE`, `DELETE` via MSSQL).
 4. **Altering core schemas** or changing existing MySQL table columns without generating proper migration steps.
 5. **Shipping reporting screens** without confirming April 2026 output parity.
-6. **Executing changes** without drafting `/specify`, `/plan`, and `/tasks` first.
-7. **Bypassing the type system** or using direct strings for route links inside `App.tsx` instead of `ROUTES.*` constants.
-8. **Disrupting the Pentacam Scheduler**: The auto-linker matches files asynchronously every 5 minutes on server boot. Never add synchronous manual buttons.
-9. **Coercing `PAT_CD` codes** to numbers. They are padded strings (e.g., `"0013"`, `"0699"`) and must remain strings.
-10. **Placing page views directly** in `client/src/pages/` for modular services; they belong inside dedicated directories under `client/src/features/<domain>/`.
-11. **Reverting route files to functional definitions** (always use JSX constants: `export const XRoutes = (<>...</>)`).
-12. **Using the `doctorPortalWS` context** without specifying the JWT query parameter `?doctorToken=<jwt>`.
+6. **Bypassing the type system** or using direct strings for route links inside `App.tsx` instead of `ROUTES.*` constants.
+7. **Disrupting the Pentacam Scheduler**: The auto-linker matches files asynchronously every 5 minutes on server boot. Never add synchronous manual buttons.
+8. **Coercing `PAT_CD` codes** to numbers. They are padded strings (e.g., `"0013"`, `"0699"`) and must remain strings.
+9. **Placing page views directly** in `client/src/pages/` for modular services; they belong inside dedicated directories under `client/src/features/<domain>/`.
+10. **Reverting route files to functional definitions** (always use JSX constants: `export const XRoutes = (<>...</>)`).
+11. **Using the `doctorPortalWS` context** without specifying the JWT query parameter `?doctorToken=<jwt>`.
 
 ---
 
@@ -200,7 +199,6 @@ These files comprise the core system framework and must **NEVER** be modified un
 
 Before modifying any code in this project, execute this checklist:
 
-- [ ] A feature specification exists in `specs/` (use `specify` and `plan` workflows).
 - [ ] No protected system files are listed for modification (unless explicitly agreed).
 - [ ] Direct database edits are avoided; MySQL modifications are wrapped in Drizzle migration scripts.
 - [ ] All inputs to MSSQL queries are fully parameterized (no string concatenation).

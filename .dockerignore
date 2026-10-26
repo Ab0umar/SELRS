@@ -28,7 +28,6 @@ README.md
 *.md
 .githooks/
 scripts/
-specs/
 docs/
 assets/
 Sheets/

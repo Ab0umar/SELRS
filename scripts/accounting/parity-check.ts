@@ -147,8 +147,8 @@ function fmt(n: number): string {
 // Legacy fixture loaders
 // ---------------------------------------------------------------------------
 
-const FIXTURES_DIR = path.resolve("specs/parity/fixtures");
-const OUTPUT_DIR = path.resolve("specs/parity");
+const FIXTURES_DIR = path.resolve("docs/parity/fixtures");
+const OUTPUT_DIR = path.resolve("docs/parity");
 
 interface DailyRevenueLegacyRow {
   date: string;
@@ -1184,12 +1184,12 @@ async function main() {
       "",
       ...pending.map(
         (r) =>
-          `- **${r.name}**: fixture CSV not found under specs/parity/fixtures/`,
+          `- **${r.name}**: fixture CSV not found under docs/parity/fixtures/`,
       ),
       "",
       "## Required Action",
       "",
-      "Export the legacy OP report data as CSV and place in `specs/parity/fixtures/`.",
+      "Export the legacy OP report data as CSV and place in `docs/parity/fixtures/`.",
       "",
     ];
     fs.writeFileSync(pendingPath, pendingContent.join("\n"), "utf-8");

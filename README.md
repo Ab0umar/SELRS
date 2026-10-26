@@ -4,12 +4,12 @@ SELRS (Shorouk-Eyes For Lasik & Refractive Surgery) is a full-stack TypeScript m
 
 Read first:
 
-- `specs/AI_CONTEXT.md` — full architectural context for AI agents
+- `docs/AI_CONTEXT.md` — full architectural context for AI agents
 - `CLAUDE.md` — coding rules for Claude Code
 - `.claude/rules/` — module-specific rules (frontend.md, backend.md, permissions.md, database.md, verification.md)
 - `docs/ATTENDANCE_SYNC.md`: how attendance punches become daily records (device sources, locking, clock offsets, rules engine, troubleshooting)
 
-Then follow the project Constitution and Project Principles strictly.
+Then follow the project Constitution (`.specify/memory/constitution.md`) and `docs/PROJECT_PRINCIPLES.md` strictly.
 
 ## Structure
 
@@ -67,7 +67,7 @@ drizzle/
   migrations/            — migration SQL files
 desktop/                 — .NET 8 Windows Forms + WebView2 desktop shell (SELRSDesktop)
 scripts/                 — maintenance, sync, parity scripts
-specs/                   — AI context, feature specs, plans, tasks
+docs/                    — AI context, principles, ADRs, operational notes
 ```
 
 ## Run
@@ -126,6 +126,6 @@ A .NET 8 Windows Forms + WebView2 shell lives in `desktop/`. It embeds the web a
 ## Key Config Files
 
 - `CLAUDE.md` — Claude Code instructions (codebase rules)
-- `specs/AI_CONTEXT.md` — full AI context document
+- `docs/AI_CONTEXT.md` — full AI context document
 - `.claude/rules/` — per-domain rules for frontend, backend, permissions, database, verification
 - `ecosystem.config.js` — PM2 process config

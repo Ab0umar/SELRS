@@ -4,9 +4,9 @@ For code tasks in this repo only.
 
 Read first:
 
-- specs/AI_CONTEXT.md
+- docs/AI_CONTEXT.md
 
-Then follow the project Constitution and Project Principles strictly.
+Then follow the project Constitution (`.specify/memory/constitution.md`) and `docs/PROJECT_PRINCIPLES.md` strictly.
 
 ## Goal
 
@@ -132,19 +132,6 @@ The migration runner requires `--> statement-breakpoint` (not semicolons) betwee
 - Use `.claude/rules/permissions.md` for auth and access-control changes.
 - Use `.claude/rules/database.md` for DB/schema/data issues.
 - Use `.claude/rules/verification.md` when choosing checks.
-
-<!-- SPECKIT START -->
-
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, see active plans:
-- `specs/009-routes-full-coverage/plan.md` — extend ROUTES.* to all remaining App.tsx domains (next up)
-- `specs/010-app-router-split/plan.md` — split App.tsx into domain route files
-- `specs/010b-app-cleanup/plan.md` — extract non-route logic from App.tsx (next up after 010)
-- `specs/011-backend-tests/plan.md` — backend integration tests for tRPC procedures
-- `specs/012-queue-visit-hardening/plan.md` — dedup guard + O(1) helper + queue regression test
-- `specs/013-mssql-push-tests/plan.md` — MSSQL push wiring tests for all 3 push procedures (10 tests)
-
-<!-- SPECKIT END -->
 
 ## graphify
 
