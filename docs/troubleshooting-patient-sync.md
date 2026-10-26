@@ -21,7 +21,7 @@ serviceType: (() => {
 ## 2. MSSQL sync "changes nothing"
 
 - **Symptom:** Sync runs successfully, but doctor/service on a patient does not change.
-- **Cause A – stale exam state:** The exam page-state JSON (`patientPageStates`) persists and overrides fresh sync data. For patients that are **not manually locked**, resolution chains must not use `latestExamDoctorByPatient`, `latestExamServiceCodeByPatient` or similar exam-state fields. Use only synced DB fields plus the official `patientServiceEntries` table. (`patientPageStates` is UI cache only; see `patientPageStates-cache-only.md`.)
+- **Cause A – stale exam state:** The exam page-state JSON (`patientPageStates`) persists and overrides fresh sync data. For patients that are **not manually locked**, resolution chains must not use `latestExamDoctorByPatient`, `latestExamServiceCodeByPatient` or similar exam-state fields. Use only synced DB fields plus the official `patientServiceEntries` table. (`patientPageStates` is UI cache only; see `data-policy.md`.)
 - **Cause B – doctor/service mismatch:** `doctorCode` and `serviceCode` must come from the **same `PAPAT_SRV` row**. Do not take `doctorCode` independently from `PAJRNRCVH.DRS_CD`. Priority: `SRV_BY1` from the service row first, `DRS_CD` only as fallback.
 - **Fix:** Remove exam-state fields from the resolution chain for non-locked patients; derive both codes from one `PAPAT_SRV` row.
 

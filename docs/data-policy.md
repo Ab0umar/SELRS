@@ -68,6 +68,10 @@ notification doctor name is read fresh from the patient row
 | Logout | `clearAllPatientCaches()` in `useAuth.ts` |
 | Admin "Reset MSSQL Sync" | `resetMssqlSyncCodes()` clears sync codes and all caches, then a full sync repopulates |
 
+Clinical checklist source of truth is `examination_checklist_items` and demographics
+are `patients`. `scripts/backfill-examination-checklist.ts` backfills the checklist table
+from old JSON; run and verify it before ever deleting `patientPageStates` rows.
+
 Helpers live in `client/src/lib/patientCacheCleanup.ts` and `server/db.ts`. Invalidation
 failures are logged and never block a sync or an exam save; the next sync or an admin
 reset recovers. Users can recover by reopening the page, switching patients, or logging
