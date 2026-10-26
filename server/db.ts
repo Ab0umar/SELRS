@@ -1,3 +1,4 @@
+import { buildConsumeRateLimitSql, normalizeRateLimitKey } from "./_core/rateLimitSql";
 import {
   eq,
   and,
@@ -5141,28 +5142,26 @@ export async function consumeLoginRateLimit(
 ) {
   const database = await getDb();
   if (!database) return null;
-  const [existing] = await database
-    .select()
-    .from(loginRateLimits)
-    .where(eq(loginRateLimits.key, key))
-    .limit(1);
-  const resetAt =
-    existing && existing.resetAt > now
-      ? existing.resetAt
-      : new Date(now.getTime() + windowMs);
-  const attempts =
-    existing && existing.resetAt > now ? existing.attempts + 1 : 1;
-  await database
-    .insert(loginRateLimits)
-    .values({ key, attempts, resetAt })
-    .onDuplicateKeyUpdate({ set: { attempts, resetAt } });
-  return attempts;
+  const normalizedKey = normalizeRateLimitKey(key);
+  // Upsert and read-back share one connection so the count returned is the one
+  // this call produced (or a later one), never a stale pre-increment value.
+  return await database.transaction(async (tx: any) => {
+    await tx.execute(buildConsumeRateLimitSql(normalizedKey, now, windowMs));
+    const [row] = await tx
+      .select({ attempts: loginRateLimits.attempts })
+      .from(loginRateLimits)
+      .where(eq(loginRateLimits.key, normalizedKey))
+      .limit(1);
+    return Number(row?.attempts ?? 1);
+  });
 }
 
 export async function clearLoginRateLimit(key: string) {
   const database = await getDb();
   if (!database) return;
-  await database.delete(loginRateLimits).where(eq(loginRateLimits.key, key));
+  await database
+    .delete(loginRateLimits)
+    .where(eq(loginRateLimits.key, normalizeRateLimitKey(key)));
 }
 
 /** Joined rows for التقارير الطبية hub (جدول + إحصائيات). */
