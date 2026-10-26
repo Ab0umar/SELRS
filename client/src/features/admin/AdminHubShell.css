@@ -52,11 +52,11 @@
   .exact-admin-hub .admin-tool-icon svg { width: 44px; height: 44px; stroke-width: 1.8; }
   .exact-admin-hub .admin-tool-link[data-category="staff"] .admin-tool-icon { color: #ad742b; }
   .dark .exact-admin-hub .admin-tool-link[data-category="staff"] .admin-tool-icon { color: #ffc46b; }
-  .exact-admin-hub .admin-tool-link[data-category="portal"] .admin-tool-icon { color: #488262; }
-  .exact-admin-hub .admin-tool-link[data-category="system"] .admin-tool-icon { color: #737783; }
+  .exact-admin-hub .admin-tool-link[data-category="comms"] .admin-tool-icon { color: #488262; }
+  .exact-admin-hub .admin-tool-link[data-category="advanced"] .admin-tool-icon { color: #737783; }
   .dark .exact-admin-hub .admin-tool-icon { color: #91b9dc; }
-  .dark .exact-admin-hub .admin-tool-link[data-category="portal"] .admin-tool-icon { color: #68c9ae; }
-  .dark .exact-admin-hub .admin-tool-link[data-category="system"] .admin-tool-icon { color: #b4bac7; }
+  .dark .exact-admin-hub .admin-tool-link[data-category="comms"] .admin-tool-icon { color: #68c9ae; }
+  .dark .exact-admin-hub .admin-tool-link[data-category="advanced"] .admin-tool-icon { color: #b4bac7; }
   .exact-admin-hub .admin-tool-copy { width: 100%; min-width: 0; }
   .exact-admin-hub .admin-tool-copy h3 { font-size: 13px; line-height: 1.7; margin: 0; overflow-wrap: anywhere; text-align: center !important; }
   .exact-admin-hub .admin-tool-copy p { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

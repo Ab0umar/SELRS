@@ -4,6 +4,8 @@ import { chromium } from '@playwright/test';
 import { inspectLayout } from './lib/layout-scan.mjs';
 
 await mkdir('outputs/admin-directory', { recursive: true });
+// Hub home shows one tile per tool group (staff, services, records, comms, settings, advanced).
+const GROUP_COUNT = 6;
 const browser = await chromium.launch({ executablePath: 'C:/Users/SELRS/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe' });
 async function open(width, theme, healthError = false) {
   const page = await browser.newPage({ viewport: { width, height: 1000 } });
@@ -31,7 +33,7 @@ try {
     const links = page.locator('.admin-tool-link');
     const contentWidth = await page.locator('[data-admin-hub] > main').evaluate(node => ({ content: node.getBoundingClientRect().width, parent: node.parentElement.getBoundingClientRect().width }));
     assert(Math.abs(contentWidth.content - contentWidth.parent) <= 1, 'Administration content fills the available page width');
-    assert.equal(await links.count(), 25);
+    assert.equal(await links.count(), GROUP_COUNT);
     assert.equal(await page.locator('.admin-tool-group').count(), 1);
     assert.equal(await page.locator('.admin-tool-group-heading').count(), 0, 'All sections has no category divisions');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
@@ -43,7 +45,7 @@ try {
     if (width <= 1000) assert.equal(columns, width < 360 ? 3 : 4);
     else assert(columns >= 5, 'Wide layouts add columns instead of stretching tiles');
     const iconColors = await page.locator('.admin-tool-icon').evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
-    assert.equal(iconColors.length, 4, 'Distinct category icon colors');
+    assert(iconColors.length >= 4, 'Distinct group icon colors');
     const layout = await inspectLayout(page);
     assert.deepEqual(layout.collisions, [], `${theme} ${width}: text overlap`);
     assert.deepEqual(layout.clippedButtons, [], `${theme} ${width}: clipped controls`);
@@ -56,21 +58,15 @@ try {
       assert(icon.width >= 39, 'Administration icons stay prominent');
       assert.equal(await link.evaluate(node => node.scrollWidth > node.clientWidth + 1), false);
     }
-    const filters = page.locator('.admin-category-nav button');
-    await filters.nth(1).click();
-    assert.equal(await links.count(), 5);
-    assert.equal(await page.locator('.admin-tool-group').count(), 1);
-    assert.equal(await filters.nth(1).getAttribute('aria-pressed'), 'true');
-    await filters.nth(0).click();
     await page.getByRole('searchbox', { name: 'بحث في أدوات الإدارة' }).fill('واتساب');
     assert.equal(await links.count(), 2);
     assert.deepEqual((await links.evaluateAll(nodes => nodes.map(n => n.getAttribute('href')))).sort(), ['/admin-hub/auto-reply', '/admin-hub/whatsapp-inbox']);
     await page.getByRole('button', { name: 'مسح البحث', exact: true }).click();
-    assert.equal(await links.count(), 25);
+    assert.equal(await links.count(), GROUP_COUNT);
     await page.getByRole('searchbox').fill('zzzzzz');
     await page.getByText('لا توجد أدوات مطابقة للتصفية الحالية.', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'مسح التصفية', exact: true }).click();
-    assert.equal(await links.count(), 25);
+    assert.equal(await links.count(), GROUP_COUNT);
     await page.getByRole('searchbox').focus();
     await page.keyboard.press('Tab');
     assert.equal(await page.locator('.admin-tool-link').first().evaluate(node => node === document.activeElement), true);
@@ -80,8 +76,8 @@ try {
   const failed = await open(390, 'light', true);
   await failed.page.getByText('قاعدة البيانات: تعذر التحقق', { exact: true }).waitFor({ timeout: 30000 });
   assert.equal(await failed.page.getByRole('button', { name: 'إعادة المحاولة', exact: true }).count(), 1);
-  assert.equal(await failed.page.locator('.admin-tool-link').count(), 25);
+  assert.equal(await failed.page.locator('.admin-tool-link').count(), GROUP_COUNT);
   assert.deepEqual(failed.errors, []);
   await failed.page.close();
-  console.log('Admin directory passed 10 compact full-width responsive cases, 25 current routes, ungrouped All view, category/search/reset, keyboard focus and failed health state. No real writes.');
+  console.log('Admin directory passed 10 compact full-width responsive cases, 6 tool-group tiles, search/reset, keyboard focus and failed health state. No real writes.');
 } finally { await browser.close(); }

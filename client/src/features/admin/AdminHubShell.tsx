@@ -69,8 +69,6 @@ import "./AdminHubShell.css";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-type HubCategory = "all" | "staff" | "services" | "portal" | "system";
-
 type HubModuleCard = {
   href: string;
   label: string;
@@ -80,12 +78,93 @@ type HubModuleCard = {
   category: "staff" | "services" | "portal" | "system";
 };
 
-const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
-  { id: "all", label: "جميع الأقسام", icon: LayoutGrid },
-  { id: "staff", label: "الكادر والصلاحيات", icon: Users },
-  { id: "services", label: "الفحوصات والملفات", icon: Layers },
-  { id: "portal", label: "المرضى والبوابة", icon: HeartPulse },
-  { id: "system", label: "النظام والصيانة", icon: Terminal },
+type HubGroup = {
+  id: string;
+  label: string;
+  helper: string;
+  icon: LucideIcon;
+  hrefs: string[];
+};
+
+// The hub home shows one card per group; every tool keeps its own route and
+// permission path, and sibling tools are reachable as tabs inside each tool.
+const GROUPS: HubGroup[] = [
+  {
+    id: "staff",
+    label: "الكادر والصلاحيات",
+    helper: "الحسابات والأطباء والصلاحيات والإحالات",
+    icon: Users,
+    hrefs: [
+      "/admin-hub/users",
+      "/admin-hub/doctors",
+      "/admin-hub/permissions",
+      "/admin-hub/external-doctors",
+      "/admin-hub/external-referrals",
+    ],
+  },
+  {
+    id: "services",
+    label: "الخدمات والنماذج",
+    helper: "الفحوصات والخدمات والنماذج والطباعة",
+    icon: Layers,
+    hrefs: [
+      "/admin-hub/services",
+      "/admin-hub/tests",
+      "/admin-hub/sheets",
+      "/admin-hub/sheet-designer",
+      "/admin-hub/print-settings",
+      "/admin-hub/medical-assistant",
+    ],
+  },
+  {
+    id: "records",
+    label: "السجلات والبنتاكام",
+    helper: "سجل المرضى والأرشيف وسجل العمليات والبنتاكام",
+    icon: HeartPulse,
+    hrefs: [
+      "/admin-hub/patients",
+      "/admin-hub/legacy-patients",
+      "/admin-hub/op-history",
+      "/admin-hub/pentacam-linking",
+    ],
+  },
+  {
+    id: "comms",
+    label: "التواصل",
+    helper: "واتساب والرد الآلي وحجوزات البوابة والذكاء الاصطناعي",
+    icon: Bell,
+    hrefs: [
+      "/admin-hub/portal-bookings",
+      "/admin-hub/whatsapp-inbox",
+      "/admin-hub/whatsapp-confirmations",
+      "/admin-hub/auto-reply",
+      "/admin-hub/ai",
+    ],
+  },
+  {
+    id: "settings",
+    label: "الإعدادات",
+    helper: "التسعير وبطاقات اللوحة والإشعارات",
+    icon: LayoutGrid,
+    hrefs: [
+      "/admin-hub/settings/pricing-rules",
+      "/admin-hub/card-visibility",
+      "/admin-hub/notifications",
+    ],
+  },
+  {
+    id: "advanced",
+    label: "متقدّم",
+    helper: "أدوات المطوّرين والصيانة",
+    icon: Terminal,
+    hrefs: [
+      "/admin-hub/status",
+      "/admin-hub/migrations",
+      "/admin-hub/audit",
+      "/admin-hub/diagnostics",
+      "/admin-hub/api",
+    ],
+  },
 ];
 
 const ALL_MODULES: HubModuleCard[] = [
@@ -308,7 +387,6 @@ export default function AdminHubShell({
   basePath = "/admin-hub",
 }: AdminHubShellProps) {
   const [location, setLocation] = useLocation();
-  const [activeCategory, setActiveCategory] = useState<HubCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const {
     canAccess,
@@ -346,17 +424,26 @@ export default function AdminHubShell({
     [canAccess, permissionsLoaded],
   );
 
+  const searchTerm = searchQuery.toLowerCase().trim();
   const filteredModules = useMemo(() => {
-    return accessibleModules.filter((card) => {
-      const matchCat =
-        activeCategory === "all" || card.category === activeCategory;
-      const matchQuery =
-        !searchQuery.trim() ||
-        card.label.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
-        card.helper.toLowerCase().includes(searchQuery.toLowerCase().trim());
-      return matchCat && matchQuery;
-    });
-  }, [accessibleModules, activeCategory, searchQuery]);
+    if (!searchTerm) return accessibleModules;
+    return accessibleModules.filter(
+      (card) =>
+        card.label.toLowerCase().includes(searchTerm) ||
+        card.helper.toLowerCase().includes(searchTerm),
+    );
+  }, [accessibleModules, searchTerm]);
+
+  const accessibleGroups = useMemo(
+    () =>
+      GROUPS.map((group) => ({
+        ...group,
+        modules: group.hrefs
+          .map((href) => accessibleModules.find((m) => m.href === href))
+          .filter((m): m is HubModuleCard => Boolean(m)),
+      })).filter((group) => group.modules.length > 0),
+    [accessibleModules],
+  );
 
   const currentModule = useMemo(() => {
     return ALL_MODULES.find(
@@ -366,14 +453,13 @@ export default function AdminHubShell({
     );
   }, [normalizedHubLocation]);
 
-  const moduleGroups = activeCategory === "all"
-    ? [{ id: "all", label: "جميع الأقسام", modules: filteredModules }]
-    : CATEGORIES.filter(category => category.id !== "all")
-    .map(category => ({
-      ...category,
-      modules: filteredModules.filter(module => module.category === category.id),
-    }))
-    .filter(category => category.modules.length > 0);
+  const currentGroup = useMemo(
+    () =>
+      accessibleGroups.find((group) =>
+        group.modules.some((m) => m.href === currentModule?.href),
+      ),
+    [accessibleGroups, currentModule],
+  );
 
   const renderComponent = () => {
     const loc = normalizedHubLocation;
@@ -433,8 +519,7 @@ export default function AdminHubShell({
 
   const cardClassName =
     "admin-tool-link group";
-  const hasHomeFilters =
-    activeCategory !== "all" || Boolean(searchQuery.trim());
+  const hasHomeFilters = Boolean(searchQuery.trim());
 
   return (
     <div
@@ -528,49 +613,6 @@ export default function AdminHubShell({
             </div>
 
             <div className="admin-directory-controls">
-              <div
-                className="admin-category-nav"
-                role="group"
-                aria-label="تصفية أقسام الإدارة"
-              >
-                {CATEGORIES.map((cat) => {
-                  const CatIcon = cat.icon;
-                  const active = activeCategory === cat.id;
-                  const count =
-                    cat.id === "all"
-                      ? accessibleModules.length
-                      : accessibleModules.filter((m) => m.category === cat.id)
-                          .length;
-                  return (
-                    <Button variant="bare"
-                      key={cat.id}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setActiveCategory(cat.id)}
-                      className={cn(
-                        "min-h-11 px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                    >
-                      <CatIcon className="size-3.5" />
-                      <span>{cat.label}</span>
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-[13px] font-bold",
-                          active
-                            ? "bg-primary-foreground/10 text-primary-foreground"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {count}
-                      </span>
-                    </Button>
-                  );
-                })}
-              </div>
-
               <div className="admin-directory-search relative">
                 <Search
                   aria-hidden="true"
@@ -632,10 +674,7 @@ export default function AdminHubShell({
                 {hasHomeFilters && (
                   <Button variant="bare"
                     type="button"
-                    onClick={() => {
-                      setActiveCategory("all");
-                      setSearchQuery("");
-                    }}
+                    onClick={() => setSearchQuery("")}
                     className="min-h-11 rounded-md border border-border px-3 py-2 font-medium text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     مسح التصفية
@@ -644,46 +683,68 @@ export default function AdminHubShell({
               </div>
             ) : (
               <div className="admin-directory-results">
-                {moduleGroups.map(category => (
-                  <section key={category.id} className="admin-tool-group" aria-label={activeCategory === "all" ? "أدوات الإدارة" : undefined} aria-labelledby={activeCategory === "all" ? undefined : `admin-group-${category.id}`}>
-                    {activeCategory !== "all" && <header className="admin-tool-group-heading">
-                      <h2 id={`admin-group-${category.id}`}>{category.label}</h2>
-                      <span>{category.modules.length}</span>
-                    </header>}
-                    <div className="admin-tool-list">
-                    {category.modules.map(card => {
+                <section className="admin-tool-group" aria-label="أدوات الإدارة">
+                {hasHomeFilters ? (
+                  <div className="admin-tool-list">
+                    {filteredModules.map((card) => {
                       const Icon = card.icon;
                       return (
-                    <Link
-                      key={card.href}
-                      href={card.href}
-                      className={cardClassName}
-                      data-category={card.category}
-                      title={card.helper}
-                    >
-                      <div className="shrink-0">
-                        <span className="admin-tool-icon">
-                          <Icon
-                            className="size-4.5 sm:size-5"
-                            strokeWidth={2}
-                          />
-                        </span>
-                      </div>
-                      <div className="admin-tool-copy min-w-0">
-                        <h3 className="text-sm font-semibold leading-normal text-foreground">
-                          {card.label}
-                        </h3>
-                        <p className="mt-1 text-sm leading-normal text-muted-foreground">
-                          {card.helper}
-                        </p>
-                      </div>
-                      <ChevronRight aria-hidden="true" className="admin-tool-arrow" />
-                    </Link>
+                        <Link
+                          key={card.href}
+                          href={card.href}
+                          className={cardClassName}
+                          title={card.helper}
+                        >
+                          <div className="shrink-0">
+                            <span className="admin-tool-icon">
+                              <Icon className="size-4.5 sm:size-5" strokeWidth={2} />
+                            </span>
+                          </div>
+                          <div className="admin-tool-copy min-w-0">
+                            <h3 className="text-sm font-semibold leading-normal text-foreground">
+                              {card.label}
+                            </h3>
+                            <p className="mt-1 text-sm leading-normal text-muted-foreground">
+                              {card.helper}
+                            </p>
+                          </div>
+                          <ChevronRight aria-hidden="true" className="admin-tool-arrow" />
+                        </Link>
                       );
                     })}
-                    </div>
-                  </section>
-                ))}
+                  </div>
+                ) : (
+                  <div className="admin-tool-list">
+                    {accessibleGroups.map((group) => {
+                      const Icon = group.icon;
+                      return (
+                        <Link
+                          key={group.id}
+                          href={group.modules[0].href}
+                          className={cardClassName}
+                          data-category={group.id}
+                          title={group.helper}
+                        >
+                          <div className="shrink-0">
+                            <span className="admin-tool-icon">
+                              <Icon className="size-4.5 sm:size-5" strokeWidth={2} />
+                            </span>
+                          </div>
+                          <div className="admin-tool-copy min-w-0">
+                            <h3 className="text-sm font-semibold leading-normal text-foreground">
+                              {group.label}
+                            </h3>
+                            <p className="mt-1 text-sm leading-normal text-muted-foreground">
+                              {group.modules.map((m) => m.label).join(" · ")}
+                            </p>
+                          </div>
+                          <ChevronRight aria-hidden="true" className="admin-tool-arrow" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+                </section>
               </div>
             )}
           </section>
@@ -700,26 +761,39 @@ export default function AdminHubShell({
                 </Link>
                 <div className="h-4 w-px bg-border" />
                 <span className="truncate text-xs font-bold text-muted-foreground">
-                  {currentModule?.label || "صفحة الإدارة"}
+                  {currentGroup
+                    ? `${currentGroup.label} / ${currentModule?.label ?? ""}`
+                    : currentModule?.label || "صفحة الإدارة"}
                 </span>
               </div>
 
-              <select
-                className="min-h-11 w-full min-w-0 cursor-pointer rounded-xl border border-border/60 bg-card px-4 py-2 text-xs font-bold text-foreground outline-none transition hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-auto"
-                value={currentModule?.href ?? ""}
-                onChange={(e) => {
-                  if (e.target.value) setLocation(e.target.value);
-                }}
-                aria-label="الانتقال السريع لصفحة أخرى"
-              >
-                <option value="">الانتقال السريع لصفحة أخرى…</option>
-                {accessibleModules.map((item) => (
-                  <option key={item.href} value={item.href}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
             </div>
+
+            {currentGroup && currentGroup.modules.length > 1 && (
+              <nav
+                aria-label={currentGroup.label}
+                className="flex gap-1 overflow-x-auto border-b border-border/60 pb-2"
+              >
+                {currentGroup.modules.map((module) => {
+                  const active = module.href === currentModule?.href;
+                  return (
+                    <Link
+                      key={module.href}
+                      href={module.href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "min-h-11 shrink-0 rounded-md border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      {module.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            )}
 
             <div className="min-w-0 py-2">
               {permissionsLoading ? (

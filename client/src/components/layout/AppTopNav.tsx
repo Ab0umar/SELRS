@@ -336,10 +336,14 @@ export function AppTopNav({
         path: "/patient-hub",
       },
       {
-        type: "link" as const,
+        type: "menu" as const,
+        key: "finance-stock",
         icon: Banknote,
-        label: "الحسابات",
-        path: "/accounting",
+        label: "الحسابات والمخزن",
+        items: [
+          { icon: Banknote, label: "الحسابات", path: "/accounting" },
+          { icon: Archive, label: "المخزن", path: "/stockroom" },
+        ],
       },
       {
         type: "menu" as const,
@@ -360,12 +364,6 @@ export function AppTopNav({
       {
         type: "link" as const,
         icon: Archive,
-        label: "المخزن",
-        path: "/stockroom",
-      },
-      {
-        type: "link" as const,
-        icon: Archive,
         label: "أرشيف",
         path: "/archive",
         paths: [
@@ -377,19 +375,13 @@ export function AppTopNav({
           "/medical-reference",
         ],
       },
-      {
-        type: "link" as const,
-        icon: MessageCircle,
-        label: "رسائل واتساب",
-        path: "/admin-hub/whatsapp-inbox",
-      },
+      // WhatsApp inbox and auto-reply live inside the admin hub (التواصل tab).
       {
         type: "link" as const,
         icon: Settings,
         label: "مركز الإدارة",
         path: "/admin-hub",
       },
-      { type: "link" as const, icon: MessageCircle, label: "الرد الآلي", path: "/admin-hub/auto-reply" },
     ],
     [],
   );
