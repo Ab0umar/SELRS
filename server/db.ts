@@ -23,6 +23,7 @@ import { deduplicateOperationHistory } from "./lib/operationHistory";
 import { savePrescription, replaceVisitPrescription, replaceVisitTestRequests, type PrescriptionInput } from "./services/prescription-persistence";
 import { savePatientFollowups, type FollowupSaveInput } from "./services/followup-persistence";
 import mysql from "mysql2/promise";
+import { getDbPoolOptions } from "./_core/dbPoolOptions";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -487,8 +488,7 @@ export async function getDb() {
     try {
       _pool = mysql.createPool({
         uri: process.env.DATABASE_URL,
-        connectionLimit: 10,
-        waitForConnections: true,
+        ...getDbPoolOptions(),
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
         connectTimeout: 30000,
