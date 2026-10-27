@@ -230,6 +230,8 @@ export async function generateMarketingImage(
   postId: number,
   referenceImagePaths: string[] = [],
 ): Promise<string> {
+  if (process.env.AI_CORE_MANAGEMENT_ENABLED === "true")
+    throw new Error("Use the configured central marketing image workflow");
   imagePrompt = marketingImagePrompt(imagePrompt);
   const availableReferencePaths =
     await existingReferencePaths(referenceImagePaths);

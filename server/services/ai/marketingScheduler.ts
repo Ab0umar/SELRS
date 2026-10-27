@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import type { MySql2Database } from "drizzle-orm/mysql2";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
@@ -59,9 +60,9 @@ export async function claimMarketingSchedule(
   const db = await getDb();
   if (!db) throw new AiManagementError("unavailable");
   const settings = await marketingSchedulerProviders();
-  const provider =
-    settings.find((setting) => setting.pageRole === pageRole)?.provider ??
-    "manus";
+  const selected = settings.find((setting) => setting.pageRole === pageRole);
+  if (!selected) throw new AiManagementError("unavailable");
+  const provider = selected.provider;
   const [legacy] = await db
     .select({ id: marketingGenerationJobs.id })
     .from(marketingGenerationJobs)
@@ -87,4 +88,42 @@ export async function claimMarketingSchedule(
     };
   }
   return { provider, claimed: true };
+}
+
+export async function releaseUnusedMarketingSchedule(
+  requestId: string,
+  provider: "manus" | "central",
+) {
+  const db = await getDb();
+  if (!db) throw new AiManagementError("unavailable");
+  return db.transaction(
+    async (tx: Pick<MySql2Database, "select" | "delete">) => {
+      const [claim] = await tx
+        .select()
+        .from(aiMarketingScheduleClaims)
+        .where(eq(aiMarketingScheduleClaims.id, requestId))
+        .for("update");
+      if (!claim || claim.provider !== provider) return false;
+      const [legacy] = await tx
+        .select({ id: marketingGenerationJobs.id })
+        .from(marketingGenerationJobs)
+        .where(eq(marketingGenerationJobs.id, requestId))
+        .for("update");
+      const [central] = await tx
+        .select({ id: aiMarketingJobs.id })
+        .from(aiMarketingJobs)
+        .where(eq(aiMarketingJobs.id, requestId))
+        .for("update");
+      if (legacy || central) return false;
+      await tx
+        .delete(aiMarketingScheduleClaims)
+        .where(
+          and(
+            eq(aiMarketingScheduleClaims.id, requestId),
+            eq(aiMarketingScheduleClaims.provider, provider),
+          ),
+        );
+      return true;
+    },
+  );
 }

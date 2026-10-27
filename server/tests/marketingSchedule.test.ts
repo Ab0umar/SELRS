@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   marketingSlotForWeekday,
   marketingSlotLabel,
+  marketingSlotDescription,
 } from "../../shared/marketingSchedule";
 
 describe("per-page marketing calendar", () => {
@@ -25,5 +26,16 @@ describe("per-page marketing calendar", () => {
     expect(marketingSlotLabel("saturday", "center")).toBe("الأحد");
     expect(marketingSlotLabel("tuesday", "doctor")).toBe("الاثنين");
     expect(marketingSlotLabel("thursday", "doctor")).toBe("الأربعاء");
+  });
+  it("keeps content categories consistent while changing the calendar by page", () => {
+    expect(marketingSlotDescription("tuesday", "center")).toBe(
+      "الثلاثاء — المياه البيضاء والقرنية",
+    );
+    expect(marketingSlotDescription("tuesday", "doctor")).toBe(
+      "الاثنين — المياه البيضاء والقرنية",
+    );
+    expect(marketingSlotDescription("thursday", "doctor")).toBe(
+      "الأربعاء — صحة العيون العامة",
+    );
   });
 });

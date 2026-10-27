@@ -1,5 +1,20 @@
 import { z } from "zod";
-import { generateWhatsAppCopy, readWhatsAppCopy, whatsappCopyInput } from "../services/ai/whatsappCopy";
+import type { RowDataPacket } from "mysql2/promise";
+import { configuredMarketingAssistant } from "../../shared/marketing-assistant";
+import {
+  AiManagementStore,
+  AiManagementError,
+} from "../services/ai/managementStore";
+import { getDbConnection } from "../db";
+import { marketingGenerationInput } from "../../shared/ai-request-context";
+import { trackedAiOperation } from "../services/ai/operations";
+import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
+import { readMarketingSchedulerStatus } from "../services/marketing/schedulerStatus";
+import {
+  generateWhatsAppCopy,
+  readWhatsAppCopy,
+  whatsappCopyInput,
+} from "../services/ai/whatsappCopy";
 import {
   marketingRecoveryPlan,
   recoverCentralMarketing,
@@ -20,7 +35,7 @@ import { desc, eq, count as drizzleCount, and, inArray } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { nanoid } from "nanoid";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { router, adminProcedure } from "../_core/procedures";
 import { getDb } from "../db";
 import {
@@ -369,57 +384,103 @@ export const marketingRouter = router({
     }),
 
   generatePost: adminProcedure
-    .input(
-      z.object({
-        postDay: z.enum(["saturday", "tuesday", "thursday"]),
-        topic: z.string().trim().min(1).max(255).optional(),
-        requestId: z.string().uuid(),
-        pageRole: z.enum(["center", "doctor"]).default("center"),
-      }),
-    )
+    .input(marketingGenerationInput)
     .mutation(async ({ input, ctx }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
+      return trackedAiOperation(
+        {
+          requestId: input.requestId,
+          scope: "marketing",
+          owner: ctx.user.id,
+          context: input,
+        },
+        async (accept) => {
+          const db = await getDb();
+          if (!db) throw new Error("Database not available");
 
-      const day = input.postDay as PostDay;
+          const day = input.postDay as PostDay;
 
-      // Determine topic: explicit override or round-robin from list
-      let selectedTopic = input.topic;
-      if (!selectedTopic) {
-        const [countRow] = await db
-          .select({ total: drizzleCount() })
-          .from(marketingPosts)
-          .where(
-            and(
-              eq(marketingPosts.postDay, day),
-              eq(marketingPosts.pageRole, input.pageRole),
-            ),
-          );
-        const topicIndex = countRow?.total ?? 0;
-        const pageTarget = await getMarketingPageTarget(input.pageRole);
-        selectedTopic = pickUnpublishedTopic(
-          day,
-          topicIndex,
-          await publishedMarketingTopics(),
-          pageTarget?.topicDirection ?? "forward",
-        );
-        if (!selectedTopic)
-          throw new Error("كل موضوعات هذه الفئة سبق نشرها؛ أضف موضوعًا جديدًا");
-      }
+          // Determine topic: explicit override or round-robin from list
+          let selectedTopic = input.topic;
+          if (!selectedTopic) {
+            const [countRow] = await db
+              .select({ total: drizzleCount() })
+              .from(marketingPosts)
+              .where(
+                and(
+                  eq(marketingPosts.postDay, day),
+                  eq(marketingPosts.pageRole, input.pageRole),
+                ),
+              );
+            const topicIndex = countRow?.total ?? 0;
+            const pageTarget = await getMarketingPageTarget(input.pageRole);
+            selectedTopic = pickUnpublishedTopic(
+              day,
+              topicIndex,
+              await publishedMarketingTopics(),
+              pageTarget?.topicDirection ?? "forward",
+            );
+            if (!selectedTopic)
+              throw new Error(
+                "كل موضوعات هذه الفئة سبق نشرها؛ أضف موضوعًا جديدًا",
+              );
+          }
 
-      return startManusGeneration({
-        requestId: input.requestId,
-        topic: selectedTopic,
-        postDay: day,
-        pageRole: input.pageRole,
-        createdBy: ctx.user.id,
-      });
+          const assistant =
+            input.assistant ??
+            (process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
+              ? configuredMarketingAssistant(
+                  await new AiManagementStore(getDbConnection).listProfiles(),
+                )
+              : undefined);
+          if (
+            !input.assistant &&
+            process.env.AI_CORE_MANAGEMENT_ENABLED === "true" &&
+            !assistant
+          )
+            throw new AiManagementError("unavailable");
+          if (assistant?.provider === "gemini") {
+            const result = await generateCentralMarketingDraft(
+              {
+                requestId: input.requestId,
+                topic: selectedTopic,
+                postDay: day,
+                pageRole: input.pageRole,
+                textModel: assistant.model,
+                imageModel: assistant.imageModel,
+              },
+              ctx.user.id,
+              accept,
+            );
+            return { jobId: result.jobId, topic: selectedTopic };
+          }
+          return startManusGeneration({
+            requestId: input.requestId,
+            topic: selectedTopic,
+            postDay: day,
+            pageRole: input.pageRole,
+            createdBy: ctx.user.id,
+            model:
+              assistant?.provider === "manus" ? assistant.model : undefined,
+            onAccepted: accept,
+          });
+        },
+      );
     }),
+
+  generationRequest: adminProcedure
+    .input(z.object({ requestId: z.string().uuid() }).strict())
+    .query(({ input, ctx }) =>
+      readMarketingGenerationRequest(input.requestId, ctx.user.id),
+    ),
 
   generationJobs: adminProcedure.query(() => listManusGenerationJobs()),
   centralGenerationJobs: adminProcedure.query(() => centralMarketingJobs()),
-  generateWhatsAppCopy: adminProcedure.input(whatsappCopyInput).mutation(({input,ctx}) => generateWhatsAppCopy(input,ctx.user.id)),
-  readWhatsAppCopy: adminProcedure.input(z.object({requestId:z.string().uuid()}).strict()).query(({input,ctx}) => readWhatsAppCopy(input.requestId,ctx.user.id)),
+  generateWhatsAppCopy: adminProcedure
+    .input(whatsappCopyInput)
+    .mutation(({ input, ctx }) => generateWhatsAppCopy(input, ctx.user.id)),
+  readWhatsAppCopy: adminProcedure
+    .input(z.object({ requestId: z.string().uuid() }).strict())
+    .query(({ input, ctx }) => readWhatsAppCopy(input.requestId, ctx.user.id)),
   centralRecoveryPlan: adminProcedure
     .input(z.object({ jobId: z.string().uuid() }).strict())
     .query(({ input }) => marketingRecoveryPlan(input.jobId)),
@@ -475,7 +536,12 @@ export const marketingRouter = router({
   // ─── Image Generation ─────────────────────────────────────
 
   generateImageForPost: adminProcedure
-    .input(z.object({ postId: z.number().int().positive() }))
+    .input(
+      z.object({
+        postId: z.number().int().positive(),
+        requestId: z.string().uuid().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -496,7 +562,46 @@ export const marketingRouter = router({
 
       if (!post) throw new Error("Post not found");
 
+      const requestId = input.requestId ?? randomUUID();
+      if (input.requestId) {
+        const connection = await getDbConnection();
+        try {
+          const [known] = await connection.execute<RowDataPacket[]>(
+            "SELECT created_by,kind,post_id AS source_post_id FROM marketing_generation_jobs WHERE id=? UNION ALL SELECT created_by,kind,source_post_id FROM ai_marketing_jobs WHERE id=?",
+            [requestId, requestId],
+          );
+          if (known.length) {
+            if (
+              known.length !== 1 ||
+              known[0].created_by !== ctx.user.id ||
+              known[0].kind !== "image" ||
+              known[0].source_post_id !== post.id
+            )
+              throw new AiManagementError("duplicate");
+            return { jobId: requestId };
+          }
+        } finally {
+          connection.release();
+        }
+      }
+      let model: "standard" | "lite" | "max" | undefined;
+      if (process.env.AI_CORE_MANAGEMENT_ENABLED === "true") {
+        const profile = (
+          await new AiManagementStore(getDbConnection).listProfiles()
+        ).find((p) => p.workload === "marketing.image");
+        if (!profile?.enabled) throw new AiManagementError("unavailable");
+        if (profile.provider === "gemini")
+          return regenerateCentralMarketingImage(
+            { postId: post.id, requestId },
+            ctx.user.id,
+            requestId,
+            profile.model,
+          );
+        model = z.enum(["standard", "lite", "max"]).parse(profile.model);
+      }
       return startManusGeneration({
+        requestId,
+        model,
         postId: post.id,
         topic: post.topic || post.title,
         postDay: post.postDay ?? "thursday",
@@ -577,30 +682,34 @@ export const marketingRouter = router({
 
   // ─── Dashboard summary ─────────────────────────────────────
 
-  dashboardSummary: adminProcedure.query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    const all = await db
-      .select({ status: marketingPosts.status })
-      .from(marketingPosts);
-    const counts = {
-      draft: 0,
-      publishing: 0,
-      published: 0,
-      failed: 0,
-      scheduled: 0,
-      total: all.length,
-    };
-    for (const row of all) {
-      if (row.status in counts) counts[row.status as keyof typeof counts]++;
-    }
-    const recentPosts = await db
-      .select()
-      .from(marketingPosts)
-      .orderBy(desc(marketingPosts.createdAt))
-      .limit(5);
-    return { counts, recentPosts };
-  }),
+  dashboardSummary: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }).optional())
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const all = await db
+        .select({ status: marketingPosts.status })
+        .from(marketingPosts)
+        .where(input ? eq(marketingPosts.pageRole, input.pageRole) : undefined);
+      const counts = {
+        draft: 0,
+        publishing: 0,
+        published: 0,
+        failed: 0,
+        scheduled: 0,
+        total: all.length,
+      };
+      for (const row of all) {
+        if (row.status in counts) counts[row.status as keyof typeof counts]++;
+      }
+      const recentPosts = await db
+        .select()
+        .from(marketingPosts)
+        .where(input ? eq(marketingPosts.pageRole, input.pageRole) : undefined)
+        .orderBy(desc(marketingPosts.createdAt))
+        .limit(5);
+      return { counts, recentPosts };
+    }),
 
   // ─── Brand Library ────────────────────────────────────────────────────────
 
@@ -1247,54 +1356,84 @@ export const marketingRouter = router({
 
   // ─── Scheduler ───────────────────────────────────────────────────────────────
 
-  getSchedulerStatus: adminProcedure.query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
+  setPageAutoPublish: adminProcedure
+    .input(
+      z.object({
+        pageRole: z.enum(["center", "doctor"]),
+        autoPublish: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const target = await getMarketingPageTarget(input.pageRole);
+      if (input.autoPublish && !target?.connected)
+        throw new Error("اربط الصفحة أولاً قبل تفعيل جدولها");
+      const [page] = await db
+        .select({ id: marketingFacebookPages.id })
+        .from(marketingFacebookPages)
+        .where(eq(marketingFacebookPages.pageRole, input.pageRole))
+        .limit(1);
+      if (page) {
+        await db
+          .update(marketingFacebookPages)
+          .set({ autoPublish: input.autoPublish })
+          .where(eq(marketingFacebookPages.id, page.id));
+      } else {
+        if (input.pageRole !== "center")
+          throw new Error("اربط صفحة العيادة أولاً قبل حفظ جدولها");
+        await db
+          .update(marketingSettings)
+          .set({ autoPublish: input.autoPublish })
+          .where(eq(marketingSettings.id, 1));
+      }
+      return { ok: true };
+    }),
 
-    const [settings] = await db
-      .select({
-        autoPublish: marketingSettings.autoPublish,
-        saturdayEnabled: marketingSettings.saturdayEnabled,
-        tuesdayEnabled: marketingSettings.tuesdayEnabled,
-        thursdayEnabled: marketingSettings.thursdayEnabled,
-        publishHour: marketingSettings.publishHour,
-        fbConnected: marketingSettings.fbConnected,
-        lastSchedulerRun: marketingSettings.lastSchedulerRun,
-        schedulerStatus: marketingSettings.schedulerStatus,
-      })
-      .from(marketingSettings)
-      .limit(1);
+  getSchedulerStatus: adminProcedure
+    .input(
+      z
+        .object({ pageRole: z.enum(["center", "doctor"]).default("center") })
+        .optional(),
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
 
-    const { getNextScheduledTime } =
-      await import("../services/marketing/scheduler.service");
-    const nextRun = settings
-      ? getNextScheduledTime({
-          saturdayEnabled: settings.saturdayEnabled,
-          tuesdayEnabled: settings.tuesdayEnabled,
-          thursdayEnabled: settings.thursdayEnabled,
-          publishHour: settings.publishHour,
-        })
-      : null;
+      const { getNextScheduledTime } =
+        await import("../services/marketing/scheduler.service");
+      const pageRole = input?.pageRole ?? "center";
+      const target = await getMarketingPageTarget(pageRole);
+      const runStatus = await readMarketingSchedulerStatus(pageRole);
+      const nextRun = target
+        ? getNextScheduledTime({
+            pageRole,
+            saturdayEnabled: target.saturdayEnabled,
+            tuesdayEnabled: target.tuesdayEnabled,
+            thursdayEnabled: target.thursdayEnabled,
+            publishHour: target.publishHour,
+          })
+        : null;
 
-    return {
-      autoPublish: settings?.autoPublish ?? false,
-      fbConnected: settings?.fbConnected ?? false,
-      saturdayEnabled: settings?.saturdayEnabled ?? true,
-      tuesdayEnabled: settings?.tuesdayEnabled ?? true,
-      thursdayEnabled: settings?.thursdayEnabled ?? true,
-      publishHour: settings?.publishHour ?? 9,
-      lastSchedulerRun: settings?.lastSchedulerRun ?? null,
-      schedulerStatus: settings?.schedulerStatus ?? "idle",
-      nextRun: nextRun
-        ? { day: nextRun.day, date: nextRun.date.toISOString() }
-        : null,
-    };
-  }),
+      return {
+        autoPublish: target?.autoPublish ?? false,
+        fbConnected: target?.connected ?? false,
+        saturdayEnabled: target?.saturdayEnabled ?? false,
+        tuesdayEnabled: target?.tuesdayEnabled ?? false,
+        thursdayEnabled: target?.thursdayEnabled ?? false,
+        publishHour: target?.publishHour ?? 9,
+        ...runStatus,
+        nextRun: nextRun
+          ? { day: nextRun.day, date: nextRun.date.toISOString() }
+          : null,
+      };
+    }),
 
   runSchedulerNow: adminProcedure
     .input(
       z.object({
         day: z.enum(["saturday", "tuesday", "thursday"]).optional(),
+        pageRole: z.enum(["center", "doctor"]).default("center"),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -1311,7 +1450,7 @@ export const marketingRouter = router({
         const jsDay = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
           weekday,
         );
-        day = marketingSlotForWeekday("center", jsDay);
+        day = marketingSlotForWeekday(input.pageRole, jsDay);
         if (!day) {
           // Today is not a scheduled day — default to saturday for manual testing
           day = "saturday";
@@ -1324,7 +1463,7 @@ export const marketingRouter = router({
         "info",
         `Manual run triggered by user ${ctx.user.id} for day: ${day}`,
       );
-      const result = await runScheduledPost(day);
+      const result = await runScheduledPost(day, input.pageRole);
       return result;
     }),
 });

@@ -2,7 +2,17 @@ import { randomUUID } from "node:crypto";
 import { assertMarketingTopicAvailable } from "./topicHistory";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  or,
+  ne,
+  gte,
+} from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { getDb } from "../../db";
 import { ENV } from "../../_core/env";
@@ -13,6 +23,7 @@ import {
   marketingBrandProfile,
   marketingLogs,
   aiMarketingJobs,
+  aiMarketingJobContext,
 } from "../../../drizzle/schema";
 import {
   createManusTask,
@@ -23,12 +34,20 @@ import {
 } from "./manusClient";
 import { publishMarketingPost } from "./publish.service";
 import { getTopicImageHint } from "./contentGenerator.service";
-import { MARKETING_IMAGE_PEOPLE_POLICY } from "./imagePolicy";
+import {
+  marketingEditorialBrief,
+  marketingVisualBrief,
+  marketingPublicationBrief,
+} from "./prompts";
 import { getMarketingPageTarget, type MarketingPageRole } from "./page.service";
 import type { PostDay } from "./topicRotation";
+import { readMarketingJobContext } from "./jobContext";
+import type { AcceptAiOperation } from "../ai/operations";
+import { marketingSchedulerProviders } from "../ai/marketingScheduler";
+import { assertDraftImageAvailable } from "./draftImageClaim";
 
 type Job = typeof marketingGenerationJobs.$inferSelect;
-const pendingStates = ["starting", "running"] as const;
+const pendingStates = ["starting", "running", "uncertain"] as const;
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 export async function startManusGeneration(input: {
@@ -38,6 +57,8 @@ export async function startManusGeneration(input: {
   createdBy: number | null;
   postId?: number;
   pageRole?: MarketingPageRole;
+  model?: "standard" | "lite" | "max";
+  onAccepted?: AcceptAiOperation;
 }): Promise<{ jobId: string; topic: string }> {
   if (!ENV.manusApiKey) throw new Error("أضف MANUS_API_KEY في إعدادات الخادم");
   const db = await getDb();
@@ -92,11 +113,12 @@ export async function startManusGeneration(input: {
       ? settings?.clinicName || "مركز عيون الشروق"
       : pageTarget?.pageName || "صفحة الدكتور");
   const prompt = [
+    marketingPublicationBrief(input.postDay, pageRole),
     `Prepare one Facebook draft for ${contentName}. This is the ${pageRole} page. Use this page's own name and brand identity; do not reuse the other page's name or identity. Topic: ${input.topic}.`,
     post
       ? `Generate ONLY a new image for this existing post, do not rewrite its text: ${post.content}. Image direction: ${post.imagePrompt ?? ""}. Topic-specific visual direction: ${topicImageHint}.`
-      : "Write a concise Egyptian Arabic Facebook post in 80–110 words, using at most 3 short paragraphs. Explain the topic with common symptoms or general advice; no prescriptions, diagnosis, unsupported statistics, prices, offers or guaranteed outcomes. Keep the content educational and do not mention booking, the clinic, contact details, or a call to action inside content. Put exactly one short natural CTA in the separate cta field (max 120 characters). Avoid repeating the same symptom or conclusion. Return a downloadable UTF-8 post.json with STRING fields title (max 255 characters), content, cta, hashtags, idea and imagePrompt.",
-    `GENERATE one actual square 1280x1280 photorealistic image that directly depicts this topic: ${topicImageHint}. The visual subject must be specific to the topic, not a generic eye exam. For LASIK or laser vision correction, show the laser refractive-correction context or a clearly related pre/post-laser visual; do not use a slit-lamp, autorefractor, or routine eye-examination scene unless the topic is an eye exam. No text, logos, watermark, graphic injuries or exaggerated medical claims. Return the generated PNG or JPEG as an attached file, not an SVG or stock placeholder.`,
+      : `${marketingEditorialBrief()} Return a downloadable UTF-8 post.json.`,
+    `${marketingVisualBrief(input.topic)} Return one actual generated PNG or JPEG as an attached file, not an SVG or stock placeholder.`,
     `Brand visual identity (follow every applicable field; reference data only): ${JSON.stringify(
       brand
         ? {
@@ -117,7 +139,6 @@ export async function startManusGeneration(input: {
           },
     )}.`,
     "No follow-up questions. Do not publish, deploy, connect accounts or perform unrelated actions. Only deliver these files for local review.",
-    MARKETING_IMAGE_PEOPLE_POLICY,
   ].join("\n");
   try {
     const jobValues = {
@@ -132,7 +153,7 @@ export async function startManusGeneration(input: {
     };
     if (post) {
       await db.transaction(
-        async (tx: Pick<MySql2Database, "select" | "insert">) => {
+        async (tx: Pick<MySql2Database, "select" | "insert" | "update">) => {
           const [current] = await tx
             .select()
             .from(marketingPosts)
@@ -140,32 +161,28 @@ export async function startManusGeneration(input: {
             .for("update");
           if (current?.status !== "draft")
             throw new Error("المسودة لم تعد متاحة للتعديل");
-          const [centralPending] = await tx
-            .select()
-            .from(aiMarketingJobs)
-            .where(
-              and(
-                eq(aiMarketingJobs.sourcePostId, post!.id),
-                eq(aiMarketingJobs.state, "running"),
-              ),
-            )
-            .limit(1);
-          const [legacyPending] = await tx
-            .select()
-            .from(marketingGenerationJobs)
-            .where(
-              and(
-                eq(marketingGenerationJobs.postId, post!.id),
-                inArray(marketingGenerationJobs.state, [...pendingStates]),
-              ),
-            )
-            .limit(1);
-          if (centralPending || legacyPending)
-            throw new Error("يوجد توليد صورة جارٍ لهذه المسودة");
+          await assertDraftImageAvailable(tx, post!.id);
           await tx.insert(marketingGenerationJobs).values(jobValues);
+          await tx.insert(aiMarketingJobContext).values({
+            jobId: id,
+            provider: "manus",
+            targetPageId: pageTarget?.pageId ?? null,
+          });
+          await input.onAccepted?.(tx);
         },
       );
-    } else await db.insert(marketingGenerationJobs).values(jobValues);
+    } else
+      await db.transaction(
+        async (tx: Pick<MySql2Database, "insert" | "update">) => {
+          await tx.insert(marketingGenerationJobs).values(jobValues);
+          await tx.insert(aiMarketingJobContext).values({
+            jobId: id,
+            provider: "manus",
+            targetPageId: pageTarget?.pageId ?? null,
+          });
+          await input.onAccepted?.(tx);
+        },
+      );
   } catch (error) {
     const [duplicate] = await db
       .select()
@@ -174,8 +191,12 @@ export async function startManusGeneration(input: {
     if (duplicate) return { jobId: id, topic: duplicate.topic };
     throw error;
   }
+  let taskId: string | undefined;
   try {
-    const task = await createManusTask(prompt);
+    const task = input.model
+      ? await createManusTask(prompt, { agentProfile: input.model })
+      : await createManusTask(prompt);
+    taskId = task.task_id;
     await db
       .update(marketingGenerationJobs)
       .set({ taskId: task.task_id, state: "running" })
@@ -184,13 +205,24 @@ export async function startManusGeneration(input: {
     await db
       .update(marketingGenerationJobs)
       .set({
-        state: "failed",
+        state:
+          taskId ||
+          !(error instanceof ManusRequestError) ||
+          error.outcomeUncertain
+            ? "uncertain"
+            : "failed",
+        ...(taskId ? { taskId } : {}),
         error:
           error instanceof ManusRequestError
             ? error.message
             : "تعذر بدء مهمة Manus",
       })
-      .where(eq(marketingGenerationJobs.id, id));
+      .where(
+        and(
+          eq(marketingGenerationJobs.id, id),
+          inArray(marketingGenerationJobs.state, ["starting", "running"]),
+        ),
+      );
     throw error;
   }
   return { jobId: id, topic: input.topic };
@@ -270,7 +302,7 @@ async function finishJob(job: Job): Promise<number | null> {
         .from(marketingGenerationJobs)
         .where(eq(marketingGenerationJobs.id, job.id))
         .for("update");
-      if (!current || current.state !== "running") return;
+      if (!current || !["running", "uncertain"].includes(current.state)) return;
       let postId = current.postId;
       if (job.kind === "post" && generated) {
         const [result] = await tx.insert(marketingPosts).values({
@@ -324,16 +356,40 @@ export async function processManusGenerationJobs() {
     const jobs = await db
       .select()
       .from(marketingGenerationJobs)
-      .where(inArray(marketingGenerationJobs.state, [...pendingStates]))
+      .where(
+        and(
+          inArray(marketingGenerationJobs.state, [...pendingStates]),
+          isNotNull(marketingGenerationJobs.taskId),
+          or(
+            ne(marketingGenerationJobs.state, "uncertain"),
+            gte(
+              marketingGenerationJobs.createdAt,
+              new Date(Date.now() - MAX_AGE_MS),
+            ),
+          ),
+        ),
+      )
       .orderBy(asc(marketingGenerationJobs.createdAt))
       .limit(5);
     for (const job of jobs) {
       let completedPostId: number | null = null;
       try {
-        if (Date.now() - job.createdAt.getTime() > MAX_AGE_MS)
-          throw new Error(
-            "انتهت مهلة التوليد؛ راجع المهمة في Manus قبل إعادة المحاولة",
-          );
+        if (Date.now() - job.createdAt.getTime() > MAX_AGE_MS) {
+          await db
+            .update(marketingGenerationJobs)
+            .set({
+              state: "uncertain",
+              error:
+                "انتهت مهلة التوليد؛ راجع المهمة في Manus قبل إعادة المحاولة",
+            })
+            .where(
+              and(
+                eq(marketingGenerationJobs.id, job.id),
+                inArray(marketingGenerationJobs.state, [...pendingStates]),
+              ),
+            );
+          continue;
+        }
         completedPostId = await finishJob(job);
       } catch (error) {
         if (error instanceof ManusRequestError && error.retryable) continue;
@@ -357,9 +413,22 @@ export async function processManusGenerationJobs() {
         job.createdBy === null
       ) {
         const pageTarget = await getMarketingPageTarget(job.pageRole);
-        if (pageTarget?.autoPublish) {
+        const context = await readMarketingJobContext(job.id, "manus");
+        const provider =
+          (await marketingSchedulerProviders()).find(
+            (setting) => setting.pageRole === job.pageRole,
+          )?.provider ?? "manus";
+        if (
+          pageTarget?.autoPublish &&
+          provider === "manus" &&
+          context?.targetPageId === pageTarget.pageId
+        ) {
           try {
-            await publishMarketingPost(completedPostId);
+            await publishMarketingPost(completedPostId, job.pageRole, {
+              pageId: context.targetPageId,
+              requireAutoPublish: true,
+              schedulerProvider: "manus",
+            });
           } catch {
             // The publish service records the failure and preserves uncertain states.
           }

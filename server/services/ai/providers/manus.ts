@@ -36,6 +36,7 @@ export class ManusRequestError extends Error {
   constructor(
     message: string,
     readonly retryable = false,
+    readonly outcomeUncertain = false,
   ) {
     super(message);
   }
@@ -59,6 +60,7 @@ async function request(endpoint: string, body?: unknown): Promise<unknown> {
     throw new ManusRequestError(
       "تعذر الاتصال بـ Manus؛ ستتم إعادة متابعة المهمة",
       true,
+      Boolean(body),
     );
   }
   const result = await response.json().catch(() => null);
@@ -72,6 +74,10 @@ async function request(endpoint: string, body?: unknown): Promise<unknown> {
     throw new ManusRequestError(
       `Manus: ${response.status} (${envelope.success ? (envelope.data.error?.code ?? "request_failed") : "invalid_response"})`,
       response.status === 429 || response.status >= 500,
+      Boolean(body) &&
+        (response.status === 408 ||
+          response.status >= 500 ||
+          !envelope.success),
     );
   }
   return result;

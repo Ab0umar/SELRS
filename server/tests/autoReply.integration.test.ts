@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,7 +18,7 @@ import {
   enqueueCoexistenceChanges,
   processCoexistenceQueue,
 } from "../services/auto-reply/coexistence-sync";
-import mysql, { type Pool } from "mysql2/promise";
+import mysql, { type Pool, type Connection } from "mysql2/promise";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import { eq, sql } from "drizzle-orm";
 import {
@@ -73,6 +74,9 @@ describe.skipIf(!testUrl)(
   "auto-reply durable processing (isolated MySQL)",
   () => {
     let pool: Pool;
+    let admin: Connection | undefined;
+    const database = `selrs_test_reply_${randomUUID().replaceAll("-", "")}`;
+    let created = false;
     let db: MySql2Database;
     let vaultDirectory: string;
     const tableNames = [
@@ -103,8 +107,12 @@ describe.skipIf(!testUrl)(
       }
       if (!/test/i.test(target.pathname))
         throw new Error("Use an explicitly named test database");
+      admin = await mysql.createConnection(testUrl!);
+      await admin.query(`CREATE DATABASE \`${database}\``);
+      created = true;
+      target.pathname = `/${database}`;
       pool = mysql.createPool({
-        uri: testUrl!,
+        uri: target.href,
         connectionLimit: 5,
         timezone: "local",
       });
@@ -179,12 +187,16 @@ describe.skipIf(!testUrl)(
       vi.stubEnv("AUTO_REPLY_PAGE_2_TOKEN", "second-page-token");
     });
     afterEach(() => {
-      rmSync(vaultDirectory, { recursive: true, force: true });
+      if (vaultDirectory)
+        rmSync(vaultDirectory, { recursive: true, force: true });
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();
     });
     afterAll(async () => {
       await pool?.end();
+      if (created && /^selrs_test_reply_[a-f0-9]{32}$/.test(database))
+        await admin?.query(`DROP DATABASE \`${database}\``);
+      await admin?.end();
     });
     function event(id = "m1", text = "عنوان الفرع"): InboundEvent {
       return {
@@ -822,6 +834,28 @@ describe.skipIf(!testUrl)(
       expect(
         network.mock.calls.filter(([url]) => url.includes("graph.facebook")),
       ).toHaveLength(1);
+    });
+    it("accepts either enabled central provider when saving without enabling delivery", async () => {
+      vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "true");
+      vi.stubEnv("AUTO_REPLY_GEMINI_KEY", "");
+      await pool.query(
+        "INSERT INTO ai_core_profiles (workload,provider,model,enabled) VALUES ('reply.live','manus','lite',1)",
+      );
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      const input = autoReplySettingsSchema.parse({
+        engine: "central",
+        sendingEnabled: false,
+        topK: null,
+      });
+      await expect(caller.saveSettings(input)).resolves.toEqual({ ok: true });
+      await pool.query(
+        "UPDATE ai_core_profiles SET provider='gemini',model='gemini-selected' WHERE workload='reply.live'",
+      );
+      await expect(
+        caller.saveSettings({ ...input, model: "gemini-selected" }),
+      ).resolves.toEqual({ ok: true });
+      expect((await readSettings()).engine).toBe("central");
+      expect(await db.select().from(jobs)).toHaveLength(0);
     });
     it("runs the optional central engine through durable worker guards and existing delivery", async () => {
       const config = await enable();

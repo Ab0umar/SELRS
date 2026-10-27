@@ -423,7 +423,7 @@ export async function proposeReply(
   );
   if (!relevant.length && !socialMessage)
     return fallback("missing_information");
-  if (!process.env.AUTO_REPLY_GEMINI_KEY)
+  if (!generator && !process.env.AUTO_REPLY_GEMINI_KEY)
     throw new ProviderError("GEMINI_NOT_CONFIGURED");
   const representedPage =
     args.channel === "whatsapp"
@@ -471,7 +471,7 @@ If a claim is unsupported, use handoff=true. Approved facts: ${JSON.stringify(re
           signal: AbortSignal.timeout(25_000),
           headers: {
             "Content-Type": "application/json",
-            "x-goog-api-key": process.env.AUTO_REPLY_GEMINI_KEY,
+            "x-goog-api-key": process.env.AUTO_REPLY_GEMINI_KEY ?? "",
           },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemInstruction }] },

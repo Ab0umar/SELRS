@@ -41,6 +41,7 @@ export async function publishPostToFacebook(
       res = await fetch(`${GRAPH_API}/${pageId}/photos`, {
         method: "POST",
         body: params,
+        signal: AbortSignal.timeout(20000),
       });
     } catch {
       throw new FacebookPublishError(
@@ -56,9 +57,16 @@ export async function publishPostToFacebook(
     if (!res.ok || data.error) {
       throw new FacebookPublishError(
         data.error?.message ?? "Facebook photo post failed",
+        res.status >= 500 || res.status === 408,
       );
     }
-    return { fbPostId: data.post_id ?? data.id ?? "unknown" };
+    const id = data.post_id ?? data.id;
+    if (typeof id !== "string" || !id.trim())
+      throw new FacebookPublishError(
+        "تعذر تأكيد معرف المنشور؛ راجع نتيجة النشر على Facebook",
+        true,
+      );
+    return { fbPostId: id };
   }
 
   // Text-only fallback
@@ -68,6 +76,7 @@ export async function publishPostToFacebook(
     res = await fetch(`${GRAPH_API}/${pageId}/feed`, {
       method: "POST",
       body: params,
+      signal: AbortSignal.timeout(20000),
     });
   } catch {
     throw new FacebookPublishError(
@@ -82,7 +91,13 @@ export async function publishPostToFacebook(
   if (!res.ok || data.error) {
     throw new FacebookPublishError(
       data.error?.message ?? "Facebook feed post failed",
+      res.status >= 500 || res.status === 408,
     );
   }
-  return { fbPostId: data.id ?? "unknown" };
+  if (typeof data.id !== "string" || !data.id.trim())
+    throw new FacebookPublishError(
+      "تعذر تأكيد معرف المنشور؛ راجع نتيجة النشر على Facebook",
+      true,
+    );
+  return { fbPostId: data.id };
 }

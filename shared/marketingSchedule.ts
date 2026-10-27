@@ -14,6 +14,22 @@ export const MARKETING_SCHEDULE = {
 
 export type MarketingScheduleSlot = keyof typeof MARKETING_SCHEDULE.center;
 
+export const MARKETING_CONTENT_CATEGORIES: Record<
+  MarketingScheduleSlot,
+  string
+> = {
+  saturday: "تصحيح الإبصار والبنتاكام",
+  tuesday: "المياه البيضاء والقرنية",
+  thursday: "صحة العيون العامة",
+};
+
+export function marketingSlotDescription(
+  slot: MarketingScheduleSlot,
+  pageRole: "center" | "doctor",
+) {
+  return `${marketingSlotLabel(slot, pageRole)} — ${MARKETING_CONTENT_CATEGORIES[slot]}`;
+}
+
 export function marketingSlotLabel(
   slot: string,
   pageRole: "center" | "doctor" = "center",

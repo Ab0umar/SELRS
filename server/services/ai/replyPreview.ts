@@ -8,6 +8,14 @@ import {
 } from "../auto-reply/providers";
 import { AiGateway, type AiUsage } from "./gateway";
 import { AiManagementStore, AiManagementError } from "./managementStore";
+import { isKnownAiRejection, settleAiFailure } from "./failure";
+import {
+  AiTaskPending,
+  AiTaskExpired,
+  AiTaskFailed,
+  readManusJson,
+  startManusJson,
+} from "./manusJson";
 
 const replyJsonSchema = {
   type: "object",
@@ -30,6 +38,21 @@ export function managedReplyPreview(
       throw new AiManagementError("disabled");
     if (request.instruction.length > 32000 || request.input.length > 32000)
       throw new AiManagementError("unavailable");
+    const task = { ...request, workload, schema: generatedSchema };
+    const existing = await store.findRequest(requestId);
+    if (existing?.state === "failed") throw new AiTaskFailed();
+    if (existing?.provider === "manus") {
+      const result = await readManusJson(requestId, task, store);
+      return {
+        reply: result.value,
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          model: `manus:${result.model}`,
+        },
+        finishReason: "STOP",
+      };
+    }
     // UTF-8 bytes conservatively bound input tokens; the margin covers output and framing.
     const reservedTokens = Math.max(
       16384,
@@ -38,11 +61,13 @@ export function managedReplyPreview(
     const profile = await store.reserve(
       requestId,
       workload,
-      "gemini",
+      undefined,
       reservedTokens,
     );
     let usage: AiUsage | undefined;
     try {
+      if (profile.provider === "manus")
+        return await startManusJson(requestId, profile.model, task, store);
       const gateway = new AiGateway((event) => {
         usage = event;
       });
@@ -65,12 +90,8 @@ export function managedReplyPreview(
         finishReason: "STOP",
       };
     } catch (error) {
-      if (
-        usage?.status === "failed" &&
-        (usage.inputTokens > 0 || usage.outputTokens > 0)
-      )
-        await store.complete(requestId, usage);
-      else await store.markUncertain(requestId);
+      if (error instanceof AiTaskPending) throw error;
+      await settleAiFailure(store, requestId, error, usage);
       throw error;
     }
   };
@@ -86,6 +107,14 @@ export function managedReplyLive(requestKey: string): ReplyGenerator {
     try {
       return await generate(request);
     } catch (error) {
+      if (error instanceof AiTaskPending)
+        throw new ProviderError("CENTRAL_AI_PENDING", true, false, 15);
+      if (error instanceof AiTaskExpired)
+        throw new ProviderError("CENTRAL_AI_PENDING_EXPIRED", false, true);
+      if (error instanceof AiTaskFailed)
+        throw new ProviderError("CENTRAL_AI_FAILED", false, false);
+      if (isKnownAiRejection(error))
+        throw new ProviderError("CENTRAL_AI_REJECTED", false, false);
       throw new ProviderError(
         error instanceof AiManagementError
           ? `CENTRAL_AI_${error.code.toUpperCase()}`

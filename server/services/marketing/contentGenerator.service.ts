@@ -247,6 +247,8 @@ export async function generateMarketingContent(
   clinicName: string = "مركزك لطب العيون",
   postIndex: number = Math.floor(Math.random() * 1000),
 ): Promise<GeneratedContent> {
+  if (process.env.AI_CORE_MANAGEMENT_ENABLED === "true")
+    throw new Error("Use the configured central marketing content workflow");
   const apiKey = ENV.geminiApiKey;
 
   if (!apiKey) {

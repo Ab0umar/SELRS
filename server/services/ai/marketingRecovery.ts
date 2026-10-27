@@ -17,10 +17,12 @@ import {
   PublishedMarketingTopicError,
 } from "../marketing/topicHistory";
 import { AiManagementError, AiManagementStore } from "./managementStore";
+import { readMarketingJobContext } from "../marketing/jobContext";
+import { assertDraftImageAvailable } from "../marketing/draftImageClaim";
 import {
   centralMarketingJobs,
   finishCentralMarketingDraft,
-  marketingPostSnapshot,
+  matchesMarketingPostSnapshot,
   marketingUsageId,
   regenerateCentralMarketingImage,
 } from "./marketingDraft";
@@ -31,6 +33,7 @@ type Plan = {
   reason: string;
   artifact?: string;
   usageReview?: boolean;
+  imageModel?: string;
 };
 export const recoveryInput = z
   .object({
@@ -107,7 +110,11 @@ async function artifact(job: Job) {
 }
 async function inspect(job: Job, ownExecution?: string): Promise<Plan> {
   if (job.state === "completed")
-    return { action: "done", reason: "already_completed", usageReview:job.errorCode==="recovered_usage_requires_review" };
+    return {
+      action: "done",
+      reason: "already_completed",
+      usageReview: job.errorCode === "recovered_usage_requires_review",
+    };
   if (job.state === "running" && job.executionId !== ownExecution)
     return { action: "wait", reason: "still_running" };
   if (job.kind === "post") {
@@ -129,7 +136,7 @@ async function inspect(job: Job, ownExecution?: string): Promise<Plan> {
     if (
       !post ||
       post.status !== "draft" ||
-      marketingPostSnapshot(post) !== job.postSnapshot
+      !matchesMarketingPostSnapshot(post, job.postSnapshot, job.topic)
     )
       return { action: "blocked", reason: "draft_changed" };
   }
@@ -153,19 +160,23 @@ async function inspect(job: Job, ownExecution?: string): Promise<Plan> {
           : "provider_uncertain",
     };
   const profiles = await new AiManagementStore(getDbConnection).listProfiles();
+  const context = await readMarketingJobContext(job.id, "gemini");
+  const imageModel =
+    context?.imageModel ??
+    (usage?.provider === "gemini" ? usage.model : undefined);
+  if (!imageModel || !/^gemini-[a-z0-9.-]+$/.test(imageModel))
+    return { action: "blocked", reason: "original_model_missing" };
   if (
     !process.env.GEMINI_API_KEY ||
     !profiles.some(
-      (profile) =>
-        profile.workload === "marketing.image" &&
-        profile.enabled &&
-        profile.provider === "gemini",
+      (profile) => profile.workload === "marketing.image" && profile.enabled,
     )
   )
     return { action: "blocked", reason: "image_configuration" };
   return {
     action: "image_retry",
     reason: usage ? "image_failed" : "image_not_requested",
+    imageModel,
   };
 }
 export async function marketingRecoveryPlan(jobId: string) {
@@ -182,6 +193,7 @@ export async function marketingRecoveryPlan(jobId: string) {
     action: plan.action,
     reason: plan.reason,
     usageReview: Boolean(plan.usageReview),
+    imageModel: plan.imageModel,
     imageUsageId:
       job.imageUsageId || marketingUsageId(job.id, "marketing.image"),
   };
@@ -209,9 +221,10 @@ async function attach(job: Job, requestId: string, plan: Plan) {
         if (
           !source ||
           source.status !== "draft" ||
-          marketingPostSnapshot(source) !== job.postSnapshot
+          !matchesMarketingPostSnapshot(source, job.postSnapshot, job.topic)
         )
           throw new AiManagementError("unavailable");
+        await assertDraftImageAvailable(tx, source.id, job.id);
         await tx
           .update(marketingPosts)
           .set({ imageUrl: plan.artifact! })
@@ -328,6 +341,7 @@ export async function recoverCentralMarketing(
               topic: claim.job.topic,
               pageRole: claim.job.pageRole,
               postDay: claim.job.postDay,
+              imageModel: plan.imageModel,
             },
             claim.job.createdBy,
             savedText(claim.job)!,
@@ -338,6 +352,7 @@ export async function recoverCentralMarketing(
             { requestId: claim.job.id, postId: claim.job.sourcePostId! },
             createdBy,
             input.requestId,
+            plan.imageModel,
           );
       } else throw new AiManagementError("unavailable");
     } catch {

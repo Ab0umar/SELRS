@@ -4,25 +4,11 @@ import { z } from "zod";
 import { getDbConnection } from "../../db";
 import { AiGateway, type AiUsage } from "./gateway";
 import { AiManagementError, AiManagementStore } from "./managementStore";
+import { AiTaskPending, readManusJson, startManusJson } from "./manusJson";
+import { AiRequestNotSubmitted, settleAiFailure } from "./failure";
+import { whatsappRequestContext } from "../../../shared/ai-request-context";
 
-export const whatsappCopyInput = z
-  .object({
-    requestId: z.string().uuid(),
-    kind: z.enum(["reminder", "lasik", "cataract", "exam"]),
-    days: z
-      .array(z.enum(["الأحد", "الثلاثاء", "الخميس"]))
-      .min(1)
-      .max(3)
-      .optional(),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    if ((value.kind === "exam") !== Boolean(value.days?.length))
-      ctx.addIssue({
-        code: "custom",
-        message: "Examination days are required only for examination offers",
-      });
-  });
+export const whatsappCopyInput = whatsappRequestContext;
 type Input = z.infer<typeof whatsappCopyInput>;
 const openings = z
   .object({
@@ -42,6 +28,24 @@ const openings = z
   })
   .strict();
 const variants = z.array(z.string().min(1).max(1024)).length(3);
+const pendingCopy = z.object({ pending: whatsappCopyInput });
+function copyTask(input: Input) {
+  return {
+    workload: "whatsapp.marketing" as const,
+    instruction:
+      "Write three distinct short Egyptian Arabic greetings for a promotional WhatsApp draft from مركز عيون الشروق. Only welcoming openings, no claims, offers, numbers, links, medical advice, diagnoses, treatment recommendations, urgency or guarantees. Do not address any named person. The supplied topic is public campaign metadata. Return JSON openings array of exactly three strings.",
+    input: JSON.stringify({ campaign: input.kind, days: input.days ?? [] }),
+    schema: openings,
+  };
+}
+function copyVariants(result: z.infer<typeof openings>, input: Input) {
+  return variants.parse(
+    result.openings.map(
+      (opening) =>
+        `${opening}\n${whatsappOfferFacts(input)}\nتحت إشراف أ.د محمد السعدني غرابه\nللتفاصيل: https://wa.me/201285800309\nللحجز: https://selrs.cc/my/book-guest`,
+    ),
+  );
+}
 export function whatsappOfferFacts(input: Input) {
   switch (input.kind) {
     case "lasik":
@@ -58,26 +62,54 @@ export async function readWhatsAppCopy(requestId: string, owner: number) {
   if (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true")
     throw new AiManagementError("disabled");
   const connection = await getDbConnection();
+  let row: RowDataPacket | undefined;
   try {
     const [rows] = await connection.execute<RowDataPacket[]>(
       "SELECT d.variants_json,u.state FROM ai_whatsapp_drafts d LEFT JOIN ai_core_usage u ON u.request_id=d.request_id WHERE d.request_id=? AND d.created_by=?",
       [requestId, owner],
     );
-    return rows[0]
-      ? {
-          requestId,
-          state: z
-            .enum(["reserved", "running", "completed", "failed", "uncertain"])
-            .nullable()
-            .parse(rows[0].state),
-          variants: rows[0].variants_json
-            ? variants.parse(JSON.parse(rows[0].variants_json))
-            : null,
-        }
-      : null;
+    row = rows[0];
   } finally {
     connection.release();
   }
+  if (!row) return null;
+  const state = z
+    .enum(["reserved", "running", "completed", "failed", "uncertain"])
+    .nullable()
+    .parse(row.state);
+  const payload = row.variants_json ? JSON.parse(row.variants_json) : null;
+  if (payload && !Array.isArray(payload)) {
+    if (state === "failed") return { requestId, state, variants: null };
+    const input = pendingCopy.parse(payload).pending;
+    if (input.requestId !== requestId) throw new AiManagementError("duplicate");
+    try {
+      const result = await readManusJson(
+        requestId,
+        copyTask(input),
+        new AiManagementStore(getDbConnection),
+      );
+      const texts = copyVariants(result.value, input);
+      const saved = await getDbConnection();
+      try {
+        await saved.execute(
+          "UPDATE ai_whatsapp_drafts SET variants_json=? WHERE request_id=? AND created_by=? AND variants_json=?",
+          [JSON.stringify(texts), requestId, owner, row.variants_json],
+        );
+      } finally {
+        saved.release();
+      }
+      return { requestId, state: "completed" as const, variants: texts };
+    } catch (error) {
+      if (error instanceof AiTaskPending)
+        return { requestId, state, variants: null };
+      throw error;
+    }
+  }
+  return {
+    requestId,
+    state,
+    variants: payload ? variants.parse(payload) : null,
+  };
 }
 export async function generateWhatsAppCopy(raw: unknown, owner: number) {
   if (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true")
@@ -103,31 +135,48 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
     );
     if (rows[0].input_hash !== hash || rows[0].created_by !== owner)
       throw new AiManagementError("duplicate");
-    if (rows[0].variants_json)
+    if (rows[0].variants_json) {
+      const payload = JSON.parse(rows[0].variants_json);
       return {
         requestId: input.requestId,
-        variants: variants.parse(JSON.parse(rows[0].variants_json)),
+        variants: Array.isArray(payload) ? variants.parse(payload) : null,
       };
+    }
   } finally {
     connection.release();
   }
   const store = new AiManagementStore(getDbConnection);
-  const profile = await store.reserve(
-    input.requestId,
-    "whatsapp.marketing",
-    "gemini",
-  );
+  const profile = await store.reserve(input.requestId, "whatsapp.marketing");
   let usage: AiUsage | undefined;
+  let manusPrepared = false;
   try {
+    if (profile.provider === "manus") {
+      const saved = await getDbConnection();
+      try {
+        const [written] = await saved.execute<
+          import("mysql2/promise").ResultSetHeader
+        >(
+          "UPDATE ai_whatsapp_drafts SET variants_json=? WHERE request_id=? AND created_by=? AND variants_json IS NULL",
+          [JSON.stringify({ pending: input }), input.requestId, owner],
+        );
+        if (written.affectedRows !== 1)
+          throw new Error("WhatsApp request context was not saved");
+      } finally {
+        saved.release();
+      }
+      manusPrepared = true;
+      await startManusJson(
+        input.requestId,
+        profile.model,
+        copyTask(input),
+        store,
+      );
+    }
     const result = await new AiGateway((event) => {
       usage = event;
     }).generateJson({
-      workload: "whatsapp.marketing",
       model: profile.model,
-      instruction:
-        "Write three distinct short Egyptian Arabic greetings for a promotional WhatsApp draft from مركز عيون الشروق. Only welcoming openings, no claims, offers, numbers, links, medical advice, diagnoses, treatment recommendations, urgency or guarantees. Do not address any named person. The supplied topic is public campaign metadata. Return JSON openings array of exactly three strings.",
-      input: JSON.stringify({ campaign: input.kind }),
-      schema: openings,
+      ...copyTask(input),
       jsonSchema: {
         type: "object",
         additionalProperties: false,
@@ -142,12 +191,7 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
         required: ["openings"],
       },
     });
-    const texts = variants.parse(
-      result.openings.map(
-        (opening) =>
-          `${opening}\n${whatsappOfferFacts(input)}\nتحت إشراف أ.د محمد السعدني غرابه\nللتفاصيل: https://wa.me/201285800309\nللحجز: https://selrs.cc/my/book-guest`,
-      ),
-    );
+    const texts = copyVariants(result, input);
     const saved = await getDbConnection();
     try {
       await saved.execute(
@@ -161,9 +205,13 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
     await store.complete(input.requestId, usage);
     return { requestId: input.requestId, variants: texts };
   } catch (error) {
-    if (usage && (usage.inputTokens || usage.outputTokens))
-      await store.complete(input.requestId, { ...usage, status: "failed" });
-    else await store.markUncertain(input.requestId);
-    throw error;
+    if (error instanceof AiTaskPending)
+      return { requestId: input.requestId, variants: null };
+    const failure =
+      profile.provider === "manus" && !manusPrepared
+        ? new AiRequestNotSubmitted(error)
+        : error;
+    await settleAiFailure(store, input.requestId, failure, usage);
+    throw failure;
   }
 }

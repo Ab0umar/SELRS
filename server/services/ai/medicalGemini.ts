@@ -26,6 +26,13 @@ export function assertMedicalGeminiAvailable() {
 }
 
 const responseSchema = z.object({
+  usageMetadata: z
+    .object({
+      promptTokenCount: z.number().optional(),
+      candidatesTokenCount: z.number().optional(),
+      thoughtsTokenCount: z.number().optional(),
+    })
+    .optional(),
   candidates: z
     .array(
       z.object({
@@ -43,8 +50,14 @@ const responseSchema = z.object({
     .min(1),
 });
 
-export async function extractGeminiProposals(prompt: string): Promise<unknown> {
-  const { model, configured } = medicalGeminiOptions();
+export async function extractGeminiProposals(
+  prompt: string,
+  selectedModel?: string,
+  onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void,
+): Promise<unknown> {
+  const options = medicalGeminiOptions();
+  const { configured } = options;
+  const model = selectedModel ?? options.model;
   if (!configured || !/^gemini-[a-z0-9.-]+$/.test(model))
     throw new Error("Gemini documentation configuration is invalid");
   const response = await fetch(
@@ -94,6 +107,23 @@ export async function extractGeminiProposals(prompt: string): Promise<unknown> {
   if (!response.ok)
     throw new Error(`Gemini documentation HTTP ${response.status}`);
   const payload = responseSchema.parse(await response.json());
+  if (
+    payload.usageMetadata &&
+    [
+      payload.usageMetadata.promptTokenCount,
+      payload.usageMetadata.candidatesTokenCount,
+      payload.usageMetadata.thoughtsTokenCount ?? 0,
+    ].every(
+      (count) =>
+        typeof count === "number" && Number.isSafeInteger(count) && count >= 0,
+    )
+  )
+    onUsage?.({
+      inputTokens: payload.usageMetadata.promptTokenCount ?? 0,
+      outputTokens:
+        (payload.usageMetadata.candidatesTokenCount ?? 0) +
+        (payload.usageMetadata.thoughtsTokenCount ?? 0),
+    });
   const candidate = payload.candidates[0];
   if (candidate.finishReason !== "STOP")
     throw new Error("Gemini documentation output is incomplete or blocked");

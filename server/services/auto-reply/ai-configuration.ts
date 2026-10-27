@@ -14,14 +14,17 @@ const modelSchema = z.object({
 let modelCache:
   | { key: string; expires: number; rows: z.infer<typeof modelSchema>[] }
   | undefined;
-export async function availableGeminiModels() {
-  const key = process.env.AUTO_REPLY_GEMINI_KEY;
+export async function availableGeminiModels(
+  key = process.env.AUTO_REPLY_GEMINI_KEY,
+  includeImages = false,
+) {
   if (!key)
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message: "مفتاح Gemini غير مضبوط على السيرفر",
     });
-  if (modelCache?.key === key && modelCache.expires > Date.now())
+  const cacheKey = `${includeImages ? "all" : "text"}:${key}`;
+  if (modelCache?.key === cacheKey && modelCache.expires > Date.now())
     return modelCache.rows;
   const response = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
@@ -44,9 +47,10 @@ export async function availableGeminiModels() {
     (model) =>
       /^models\/gemini-[\w.-]+$/.test(model.name) &&
       model.supportedGenerationMethods.includes("generateContent") &&
-      !/image|tts|audio|live|robotics|computer-use/i.test(model.name),
+      !/tts|audio|live|robotics|computer-use/i.test(model.name) &&
+      (includeImages || !/image|nano-banana/i.test(model.name)),
   );
-  modelCache = { key, expires: Date.now() + 300000, rows };
+  modelCache = { key: cacheKey, expires: Date.now() + 300000, rows };
   return rows;
 }
 const blocked = new BlockList();
