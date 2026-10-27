@@ -156,41 +156,26 @@
     background-color: var(--canvas);
   }
   html:not(.dark) [data-app-top-nav] {
-    background: var(--card) !important;
+    background: var(--card);
     color: var(--foreground);
     border-color: var(--border);
-    border-bottom-width: 0;
   }
-  html:not(.dark) [data-app-top-nav] :is(button, [role="button"]) {
-    background: var(--card) !important;
-    color: var(--foreground) !important;
-    border-color: var(--border) !important;
+  /* Refined, modern navigation tab styling (Direction 1: Sleek Minimal Navbar) */
+  html:not(.dark) [data-app-top-nav] nav :is(button, a)[data-nav-active="true"] {
+    background: #eff6ff !important;
+    color: #1e40af !important;
+    border-color: #bfdbfe !important;
   }
-  html:not(.dark) [data-app-top-nav] [class*="bg-card"] {
-    background: var(--card) !important;
-    border-color: var(--border) !important;
+  html:not(.dark) [data-app-top-nav] nav :is(button, a)[data-nav-active="true"] * {
+    color: #1e40af !important;
   }
-  html:not(.dark) [data-app-top-nav] :is(button, [role="button"]):hover {
-    background: var(--muted) !important;
+  .dark [data-app-top-nav] nav :is(button, a)[data-nav-active="true"] {
+    background: rgba(59, 130, 246, 0.16) !important;
+    color: #93c5fd !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
   }
-  html:not(.dark)
-    [data-app-top-nav]
-    :is([class*="text-muted-foreground"], [class*="text-foreground"]) {
-    color: var(--foreground) !important;
-  }
-  /* Solid app bar: DESIGN.md keeps decorative gradients out of navigation. */
-  @media (min-width: 768px) {
-    html:not(.dark) [data-app-top-nav] {
-      background: var(--card) !important;
-    }
-  }
-  html:not(.dark) [data-app-top-nav] nav button.bg-secondary {
-    background: #ff9500 !important;
-    color: #20252b !important;
-    border-color: #ff9500 !important;
-  }
-  html:not(.dark) [data-app-top-nav] nav button.bg-secondary * {
-    color: #20252b !important;
+  .dark [data-app-top-nav] nav :is(button, a)[data-nav-active="true"] * {
+    color: #93c5fd !important;
   }
   :where(button, input, textarea, select, a, [role="tab"]) {
     letter-spacing: 0;

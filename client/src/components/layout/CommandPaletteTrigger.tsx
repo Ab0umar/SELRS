@@ -40,14 +40,14 @@ export function CommandPaletteTrigger({
       aria-keyshortcuts="Control+K Meta+K"
       title={`بحث (${shortcutLabel})`}
       className={cn(
-        "size-11 shrink-0 rounded-lg border-border bg-background/70 md:rounded-2xl",
-        "xl:w-auto xl:gap-2 xl:px-3",
+        "h-9 shrink-0 rounded-lg border-border/70 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-semibold",
+        "w-9 p-0 xl:w-auto xl:gap-2 xl:px-3",
         className,
       )}
     >
-      <Search className="h-4 w-4" aria-hidden="true" />
-      <span className="hidden xl:inline">بحث</span>
-      <Kbd dir="ltr" className="hidden xl:inline-flex">
+      <Search className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span className="hidden xl:inline text-xs font-medium">بحث سريع</span>
+      <Kbd dir="ltr" className="hidden xl:inline-flex text-[10px] font-mono py-0 px-1.5 h-4.5 bg-background border-border/80 text-muted-foreground">
         {shortcutLabel}
       </Kbd>
     </Button>

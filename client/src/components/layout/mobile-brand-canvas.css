@@ -149,22 +149,10 @@
     background: transparent !important;
   }
   html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] {
-    background: var(--card) !important;
+    background: var(--card);
     color: var(--foreground);
-    border-color: transparent;
+    border-color: var(--border);
     box-shadow: none;
-  }
-  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] :is(button, [role="button"]) {
-    background: var(--card) !important;
-    color: var(--foreground) !important;
-    border-color: var(--border) !important;
-  }
-  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] [class*="bg-card"] {
-    background: transparent !important;
-    border-color: transparent !important;
-  }
-  html:not(.dark) .selrs-mobile-brand-canvas [data-app-top-nav] :is([class*="text-muted-foreground"], [class*="text-foreground"]) {
-    color: var(--foreground) !important;
   }
   html:not(.dark) .selrs-mobile-brand-canvas [data-operational-module] #module-content {
     background: var(--mobile-content-surface) !important;
