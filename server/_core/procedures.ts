@@ -251,6 +251,15 @@ function normalizePermissionPath(path: string): string {
   return normalized || "/";
 }
 
+/**
+ * Write access needs an explicit `:rw` token. A bare path (`/salary`) or `:r` is
+ * read-only, which is how the permissions screen reads and writes them.
+ */
+export function writePermissionPath(permission: unknown): string | null {
+  const raw = String(permission ?? "").trim();
+  return raw.endsWith(":rw") ? raw.slice(0, -3).trim() : null;
+}
+
 export function permMatchesPath(clean: string, pagePath: string): boolean {
   const normalizedClean = normalizePermissionPath(clean);
   const normalizedPagePath = normalizePermissionPath(pagePath);
@@ -368,10 +377,8 @@ export function makeKfWriteProcedure(pagePath: string) {
         ctx.user.role ?? undefined,
       );
       const ok = permissions.some((p) => {
-        const raw = String(p ?? "").trim();
-        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
-        const clean = raw.replace(/:rw$/, "").trim();
-        return permMatchesPath(clean, pagePath);
+        const clean = writePermissionPath(p);
+        return clean !== null && permMatchesPath(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
@@ -435,10 +442,8 @@ export function makeAccWriteProcedure(pagePath: string) {
         ctx.user.role ?? undefined,
       );
       const ok = permissions.some((p) => {
-        const raw = String(p ?? "").trim();
-        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
-        const clean = raw.replace(/:rw$/, "").trim();
-        return permMatchesPath(clean, pagePath);
+        const clean = writePermissionPath(p);
+        return clean !== null && permMatchesPath(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
@@ -499,10 +504,8 @@ export function makeAttWriteProcedure(pagePath: string | string[]) {
         ctx.user.role ?? undefined,
       );
       const ok = permissions.some((p) => {
-        const raw = String(p ?? "").trim();
-        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
-        const clean = raw.replace(/:rw$/, "").trim();
-        return salaryPathMatches(clean, pagePath);
+        const clean = writePermissionPath(p);
+        return clean !== null && salaryPathMatches(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
@@ -563,10 +566,8 @@ export function makeStockroomWriteProcedure(pagePath: string) {
         ctx.user.role ?? undefined,
       );
       const ok = permissions.some((p) => {
-        const raw = String(p ?? "").trim();
-        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
-        const clean = raw.replace(/:rw$/, "").trim();
-        return permMatchesPath(clean, pagePath);
+        const clean = writePermissionPath(p);
+        return clean !== null && permMatchesPath(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
@@ -633,10 +634,8 @@ export function makeSalaryWriteProcedure(pagePath: string | string[]) {
         ctx.user.role ?? undefined,
       );
       const ok = permissions.some((p) => {
-        const raw = String(p ?? "").trim();
-        if (raw.endsWith(":r") && !raw.endsWith(":rw")) return false;
-        const clean = raw.replace(/:rw$/, "").trim();
-        return salaryPathMatches(clean, pagePath);
+        const clean = writePermissionPath(p);
+        return clean !== null && salaryPathMatches(clean, pagePath);
       });
       if (!ok)
         throw new TRPCError({
