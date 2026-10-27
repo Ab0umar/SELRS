@@ -21,6 +21,8 @@ import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { updatesGuard } from "./updatesGuard";
+import { KF_EXAM_SOURCE, notKfUploadSql } from "../lib/srv100Uploads";
+import { permMatchesPath } from "./procedures";
 import { authService, registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
 import { registerWhatsAppWebhook } from "./whatsappWebhook";
@@ -1001,7 +1003,11 @@ async function withDb<T>(run: (conn: mysql.Connection) => Promise<T>) {
 async function canReadSrv100Upload(
   req: express.Request,
   patientId: number | null,
+  sourcePrinter?: string | null,
 ): Promise<boolean> {
+  // KF exam images belong to a different patient id space than patients.id: only
+  // KF staff may open them, never a patient or external doctor whose id merely matches.
+  if (sourcePrinter === KF_EXAM_SOURCE) return canReadKfUpload(req);
   if (await authService.authenticateRequest(req)) return true;
   if (!patientId) return false;
 
@@ -1061,6 +1067,24 @@ async function canReadSrv100Upload(
   } catch {
     return false;
   }
+}
+
+async function canReadKfUpload(req: express.Request): Promise<boolean> {
+  const user = await authService.authenticateRequest(req);
+  if (!user) return false;
+  if (user.role === "admin" || user.role === "accountant") return true;
+  const permissions = await db.getEffectiveUserPermissions(
+    user.id,
+    user.role ?? undefined,
+  );
+  return permissions.some((permission) =>
+    permMatchesPath(
+      String(permission ?? "")
+        .replace(/:r[w]?$/, "")
+        .trim(),
+      "/kf/patients",
+    ),
+  );
 }
 
 async function startSrv100FolderImporter() {
@@ -1737,7 +1761,7 @@ async function startServer() {
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
              FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
-             WHERE b.patient_id = ?
+             WHERE b.patient_id = ? AND ${notKfUploadSql("b")}
              ORDER BY b.id DESC
              LIMIT ?`,
               [patientId, limit],
@@ -1752,9 +1776,10 @@ async function startServer() {
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
              FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
-             WHERE b.document_id LIKE ? OR b.file_name LIKE ? OR p.fullName LIKE ? OR p.patientCode LIKE ?
+             WHERE (b.document_id LIKE ? OR b.file_name LIKE ? OR p.fullName LIKE ? OR p.patientCode LIKE ?
                    OR b.ocr_text LIKE ? OR b.plain_text LIKE ?
-             ${isNumericSearch ? "OR b.id = ? OR b.patient_id = ?" : ""}
+             ${isNumericSearch ? "OR b.id = ? OR b.patient_id = ?" : ""})
+                   AND ${notKfUploadSql("b")}
              ORDER BY b.id DESC
              LIMIT ?`,
               isNumericSearch
@@ -1787,6 +1812,7 @@ async function startServer() {
                   b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
            FROM srv100_uploads b
            LEFT JOIN patients p ON p.id = b.patient_id
+           WHERE ${notKfUploadSql("b")}
            ORDER BY b.id DESC
            LIMIT ?`,
             [limit],
@@ -1839,7 +1865,7 @@ async function startServer() {
       // First query: metadata only — no file_data BLOB (can be multi-MB, wasteful if s3_key exists)
       const row = await withDb(async (conn) => {
         const [result] = await conn.query(
-          `SELECT id, document_id, file_name, mime_type, s3_key, patient_id, created_at
+          `SELECT id, document_id, file_name, mime_type, s3_key, patient_id, source_printer, created_at
            FROM srv100_uploads
            WHERE id = ?
            LIMIT 1`,
@@ -1853,6 +1879,7 @@ async function startServer() {
               mime_type: string | null;
               s3_key: string | null;
               patient_id: number | null;
+              source_printer: string | null;
               created_at: Date | string;
             }
           | undefined;
@@ -1863,7 +1890,7 @@ async function startServer() {
         return;
       }
 
-      if (!(await canReadSrv100Upload(req, row.patient_id))) {
+      if (!(await canReadSrv100Upload(req, row.patient_id, row.source_printer))) {
         res.status(403).json({ ok: false, error: "Upload access denied" });
         return;
       }
@@ -2218,7 +2245,8 @@ async function startServer() {
             `UPDATE srv100_uploads u1
          INNER JOIN srv100_uploads u2 ON u1.file_name = u2.file_name
          SET u1.patient_id = u2.patient_id
-         WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL`,
+         WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL
+           AND ${notKfUploadSql("u2")}`,
           ),
         );
         res.status(200).json({

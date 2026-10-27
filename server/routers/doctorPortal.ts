@@ -20,6 +20,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { notKfUploadSql } from "../lib/srv100Uploads";
 import bcryptjs from "bcryptjs";
 import { ENV } from "../_core/env";
 import { listObjectsInS3 } from "../_core/s3";
@@ -181,7 +182,7 @@ export const doctorPortalRouter = router({
         .where(
           and(
             eq(patients.doctorCode, doctor.doctorCode),
-            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} AND ${sql.raw(notKfUploadSql())} LIMIT 1)`,
           ),
         )
         .orderBy(desc(patients.lastVisit));
@@ -214,7 +215,7 @@ export const doctorPortalRouter = router({
         .where(
           and(
             sql`${patients.patientCode} IN ${codes}`,
-            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} AND ${sql.raw(notKfUploadSql())} LIMIT 1)`,
           ),
         );
 
@@ -344,6 +345,7 @@ export const doctorPortalRouter = router({
         sql`SELECT id, file_name, mime_type, created_at
             FROM srv100_uploads
             WHERE patient_id = ${patient.id}
+              AND ${sql.raw(notKfUploadSql())}
             ORDER BY id DESC
             LIMIT 200`,
       )) as any;

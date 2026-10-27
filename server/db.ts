@@ -1,4 +1,5 @@
 import { buildConsumeRateLimitSql, normalizeRateLimitKey } from "./_core/rateLimitSql";
+import { notKfUploadSql } from "./lib/srv100Uploads";
 import {
   eq,
   and,
@@ -4670,6 +4671,7 @@ export async function getLinkedSrv100UploadsWithPatient(limit = 80000) {
         FROM srv100_uploads bu
         JOIN patients p ON bu.patient_id = p.id
         WHERE bu.patient_id IS NOT NULL AND bu.file_name IS NOT NULL
+          AND ${sql.raw(notKfUploadSql("bu"))}
         LIMIT ${safeLimit}`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
@@ -4716,6 +4718,7 @@ export async function getSrv100UploadsByPatient(
     sql`SELECT id, file_name, mime_type, s3_key, created_at
         FROM srv100_uploads
         WHERE patient_id = ${patientId}
+          AND ${sql.raw(notKfUploadSql())}
         ORDER BY created_at DESC
         LIMIT ${safeLimit}`,
   );
@@ -4838,6 +4841,7 @@ export async function getAllSrv100Uploads(limit = 100000) {
     sql`SELECT id, file_name, created_at, patient_id
         FROM srv100_uploads
         WHERE file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
+          AND ${sql.raw(notKfUploadSql())}
         ORDER BY created_at DESC
         LIMIT ${safeLimit}`,
   );

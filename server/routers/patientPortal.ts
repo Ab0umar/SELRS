@@ -29,6 +29,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { notKfUploadSql } from "../lib/srv100Uploads";
 import { ENV } from "../_core/env";
 import {
   pushAppNotification,
@@ -246,6 +247,7 @@ export const patientPortalRouter = router({
       sql`SELECT id, file_name, mime_type, created_at
           FROM srv100_uploads
           WHERE patient_id = ${ctx.patientSession.patientId}
+            AND ${sql.raw(notKfUploadSql())}
           ORDER BY id DESC
           LIMIT 100`,
     )) as any;
