@@ -132,7 +132,6 @@ export const ROUTES = {
   whatsappInbox: "/admin/whatsapp-inbox",
   autoReply: "/admin-hub/auto-reply",
   adminApiTools: "/admin/api-tools",
-  adminCardVisibility: "/admin/card-visibility",
   adminDataSourceAudit: "/admin/data-source-audit",
   adminDoctors: "/admin/doctors",
   adminForms: "/admin/forms",

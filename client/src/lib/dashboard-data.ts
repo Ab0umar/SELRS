@@ -168,12 +168,6 @@ export const dataServicesNavItems = [
     badge: undefined,
   },
   {
-    key: "sheet-designer" as const,
-    label: "مصمم النماذج",
-    icon: "layout-grid",
-    badge: undefined,
-  },
-  {
     key: "pentacam" as const,
     label: "بنتاكام",
     icon: "circle-dot",
@@ -388,7 +382,6 @@ export type PageKey =
   | "doctor-patient-view"
   | "notification-settings"
   | "pentacam-failed"
-  | "card-visibility"
   | "admin-diagnostics"
   | "referral-letter"
   | "clinical-report"
@@ -458,7 +451,6 @@ export const routeMap: Record<PageKey, string> = {
   "doctor-patient-view": "/doctor/patient/0",
   "notification-settings": "/notification-settings",
   "pentacam-failed": "/pentacam-failed",
-  "card-visibility": "/card-visibility",
   "admin-diagnostics": "/admin-diagnostics",
   "referral-letter": "/sheets/referral",
   "clinical-report": "/clinical-report",

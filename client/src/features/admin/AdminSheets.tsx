@@ -198,10 +198,10 @@ export default function AdminSheets() {
             type="button"
             size="sm"
             className="h-9 gap-2"
-            onClick={() => setLocation("/admin-hub/sheet-designer")}
+            onClick={() => setLocation("/admin-hub/print-settings")}
           >
             <Plus className="size-4" />
-            نموذج جديد
+            إعدادات الطباعة
           </Button>
         }
       />

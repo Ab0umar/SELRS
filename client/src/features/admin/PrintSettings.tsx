@@ -30,6 +30,7 @@ import {
 import { exportElementToPdf } from "@/lib/nativePdf";
 import "./print-settings.css";
 import ActualPrintPreview, { printPreviewRoutes } from "./ActualPrintPreview";
+import SheetPrintLayoutSettings from "./SheetPrintLayoutSettings";
 
 type DimensionKey =
   "widthMm" | "heightMm" | "topMm" | "bottomMm" | "leftMm" | "rightMm";
@@ -332,6 +333,7 @@ export default function PrintSettings() {
               onChange={(event) => change({ footer: event.target.value })}
             />
           </label>
+          <SheetPrintLayoutSettings />
           {!validation.success ? (
             <p role="alert" className="text-destructive">
               {validation.error.issues[0]?.message}

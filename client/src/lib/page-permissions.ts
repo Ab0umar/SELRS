@@ -816,19 +816,19 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   },
   {
     id: "/admin-hub/settings/pricing-rules",
-    label: "قواعد تسعير المواعيد (صفحة)",
+    label: "قواعد تسعير العمليات (صفحة)",
     group: "مركز الإدارة",
   },
   {
     id: "appointments_pricing_v1",
-    label: "قواعد تسعير المواعيد (مفتاح)",
+    label: "قواعد تسعير العمليات (مفتاح)",
     group: "مركز الإدارة",
   },
   { id: "/admin-hub/sheets", label: "الشيتات الطبية", group: "مركز الإدارة" },
   { id: "/admin-hub/print-settings", label: "إعدادات الطباعة", group: "مركز الإدارة" },
   {
     id: "/admin-hub/sheet-designer",
-    label: "مصمم الشيتات",
+    label: "إعدادات الطباعة (رابط قديم)",
     group: "مركز الإدارة",
   },
   {
@@ -840,18 +840,13 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   { id: "/admin-hub/status", label: "حالة النظام", group: "مركز الإدارة" },
   { id: "/admin-hub/api", label: "أدوات API", group: "مركز الإدارة" },
   {
-    id: "/admin-hub/card-visibility",
-    label: "ظهور البطاقات",
-    group: "مركز الإدارة",
-  },
-  {
     id: "/admin-hub/tests",
-    label: "إدارة الاختبارات (/admin/tests)",
+    label: "كتالوج الفحوصات (رابط قديم)",
     group: "مركز الإدارة",
   },
   {
     id: "/admin-hub/audit",
-    label: "مصدر البيانات — تدقيق",
+    label: "تدقيق مصادر البيانات",
     group: "مركز الإدارة",
   },
   {

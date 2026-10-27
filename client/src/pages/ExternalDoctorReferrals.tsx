@@ -170,7 +170,7 @@ function CreateReferralForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-export default function ExternalDoctorReferrals() {
+export default function ExternalDoctorReferrals({ hideSectionLink = false }: { hideSectionLink?: boolean } = {}) {
   const [creating, setCreating] = useState(false);
   const referralsQuery = trpc.externalDoctors.listReferrals.useQuery();
 
@@ -201,9 +201,9 @@ export default function ExternalDoctorReferrals() {
           </p>
         </div>
         <nav aria-label="إدارة الإحالات" className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
+          {!hideSectionLink && <Button asChild variant="outline" size="sm">
             <Link href="/admin-hub/external-doctors">الأطباء</Link>
-          </Button>
+          </Button>}
           <Button
             type="button"
             size="sm"

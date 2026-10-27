@@ -404,7 +404,7 @@ function EditDoctorCodeForm({
   );
 }
 
-export default function ExternalDoctors() {
+export default function ExternalDoctors({ hideSectionLink = false }: { hideSectionLink?: boolean } = {}) {
   const [creating, setCreating] = useState(false);
   const [resetingId, setResetingId] = useState<number | null>(null);
   const [editingCodeId, setEditingCodeId] = useState<number | null>(null);
@@ -433,9 +433,9 @@ export default function ExternalDoctors() {
           aria-label="إدارة الأطباء الخارجيين"
           className="flex flex-wrap gap-2"
         >
-          <Button asChild variant="outline" size="sm">
+          {!hideSectionLink && <Button asChild variant="outline" size="sm">
             <Link href="/admin-hub/external-doctors/referrals">الإحالات</Link>
-          </Button>
+          </Button>}
           <Button
             type="button"
             size="sm"
