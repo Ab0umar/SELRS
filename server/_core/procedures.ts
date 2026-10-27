@@ -182,6 +182,31 @@ export const managerProcedure = t.procedure.use(
   }),
 );
 
+// Medical manager procedure - مدير/أدمن فقط. managerProcedure above also admits
+// accountant (service prices, appointments); clinical catalog edits, report and
+// prescription deletes and audit logs must not reach accounting accounts.
+export const medicalManagerProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
+    }
+
+    if (!["manager", "admin"].includes(ctx.user.role)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only managers can access this resource",
+      });
+    }
+
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }),
+);
+
 // Accounting procedure - gate by effective /accounting permissions
 export const accountingProcedure = t.procedure.use(
   t.middleware(async (opts) => {
