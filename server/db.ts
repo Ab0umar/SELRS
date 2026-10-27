@@ -9212,6 +9212,39 @@ export async function deleteStockTransaction(id: number) {
   });
 }
 
+/**
+ * Most recent non-null unit price per stock item (latest transaction id wins),
+ * without scanning the whole transaction history in the application.
+ */
+export async function getLatestStockUnitPrices(): Promise<Map<number, string>> {
+  const db = await getDb();
+  const prices = new Map<number, string>();
+  if (!db) return prices;
+
+  const latest = db
+    .select({
+      itemId: stockTransactions.itemId,
+      maxId: sql<number>`MAX(${stockTransactions.id})`.as("max_id"),
+    })
+    .from(stockTransactions)
+    .where(isNotNull(stockTransactions.unitPrice))
+    .groupBy(stockTransactions.itemId)
+    .as("latest_price");
+
+  const rows = await db
+    .select({
+      itemId: stockTransactions.itemId,
+      unitPrice: stockTransactions.unitPrice,
+    })
+    .from(stockTransactions)
+    .innerJoin(latest, eq(stockTransactions.id, latest.maxId));
+
+  for (const row of rows) {
+    if (row.unitPrice != null) prices.set(row.itemId, row.unitPrice);
+  }
+  return prices;
+}
+
 export async function getStockTransactions(limit = 500) {
   const db = await getDb();
   if (!db) return [];
