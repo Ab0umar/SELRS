@@ -956,7 +956,13 @@ export const patientPortalRouter = router({
           ),
         );
       }
-      if (input.status === "confirmed" || input.status === "cancelled") {
+      // A resend for an unchanged status needs an explicit request id from the
+      // UI; a plain edit (notes, patient link) must not message the patient again.
+      const shouldSendWhatsApp = statusChanged || Boolean(input.confirmationRequestId);
+      if (
+        shouldSendWhatsApp &&
+        (input.status === "confirmed" || input.status === "cancelled")
+      ) {
         void sendBookingStatusWhatsApp({
           requestKey: `booking-status:${input.id}:${input.status}:${input.confirmationRequestId ?? Math.floor(Date.now() / 10000)}`,
           recipientPhone: booking.patientPhone ?? booking.guestPhone,
