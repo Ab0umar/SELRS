@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseWebPushSubscription } from "../_core/webPushSubscription";
 import { operationBookingSchema } from "../../shared/operationBooking";
 import {
   PRINT_SETTINGS_KEY,
@@ -2305,7 +2306,7 @@ export const medicalOpsRoutes = {
   registerPushDeviceToken: protectedProcedure
     .input(
       z.object({
-        token: z.string().min(20),
+        token: z.string().min(20).max(4096),
         platform: z.enum(["android", "ios", "web"]),
         deviceId: z.string().min(1).max(191),
         appVersion: z.string().max(64).optional(),
@@ -2313,6 +2314,12 @@ export const medicalOpsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (input.platform === "web" && !parseWebPushSubscription(input.token)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid push subscription",
+        });
+      }
       const registrationId = await db.upsertPushDeviceRegistration({
         userId: ctx.user.id,
         provider: "fcm",
