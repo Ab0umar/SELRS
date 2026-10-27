@@ -46,24 +46,14 @@ export const stockroomRouter = router({
   matchEyeDropsWithEgyptianReference: makeStockroomProcedure(
     "/stockroom",
   ).query(async () => {
-    const [items, transactions] = await Promise.all([
+    const [items, latestPriceByItem] = await Promise.all([
       db.getStockItems("قطرات العين"),
-      db.getStockTransactions(10_000),
+      db.getLatestStockUnitPrices(),
     ]);
     const matches = await matchEgyptianDrugReference(
       items.map((item: StockItem) => item.name),
       ["drops", "ointment"],
     );
-    const latestPriceByItem = new Map<number, string>();
-    for (const transaction of transactions) {
-      if (
-        transaction.unitPrice != null &&
-        !latestPriceByItem.has(transaction.itemId)
-      ) {
-        latestPriceByItem.set(transaction.itemId, transaction.unitPrice);
-      }
-    }
-
     const matchedItems = items.flatMap((item: StockItem, index: number) => {
       const result = matches[index];
       if (!result?.match) return [];
@@ -134,19 +124,10 @@ export const stockroomRouter = router({
   getItems: makeStockroomProcedure("/stockroom")
     .input(z.object({ category: z.string().optional() }))
     .query(async ({ input }) => {
-      const [items, transactions] = await Promise.all([
+      const [items, latestPriceByItem] = await Promise.all([
         db.getStockItems(input.category),
-        db.getStockTransactions(10_000),
+        db.getLatestStockUnitPrices(),
       ]);
-      const latestPriceByItem = new Map<number, string>();
-      for (const transaction of transactions) {
-        if (
-          transaction.unitPrice != null &&
-          !latestPriceByItem.has(transaction.itemId)
-        ) {
-          latestPriceByItem.set(transaction.itemId, transaction.unitPrice);
-        }
-      }
 
       return items.map((item: StockItem) => ({
         ...item,
