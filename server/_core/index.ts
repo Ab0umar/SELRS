@@ -53,6 +53,7 @@ import {
   getPresignedUrlFromS3,
 } from "./s3";
 import * as db from "../db";
+import { walkByKeyset } from "../lib/keysetBatches";
 const execFile = promisify(execFileCb);
 
 type Srv100UploadRow = {
@@ -2066,6 +2067,66 @@ async function startServer() {
             linked += 1;
           }
         });
+        res.status(200).json({ ok: true, processed, linked });
+      } catch (error: any) {
+        res
+          .status(500)
+          .json({ ok: false, error: String(error?.message ?? error) });
+      } finally {
+        srv100DbCycleBusy = false;
+      }
+    },
+  );
+
+  // Bulk link srv100_uploads to patients by filename/document_id code extraction (no OCR).
+  app.post(
+    "/api/srv100/uploads/link-by-filename",
+    srv100LinkByFilenameRateLimiter,
+    async (req, res) => {
+      try {
+        if (!(await requireAdminApiAccess(req, res))) return;
+        let linked = 0;
+        let processed = 0;
+        const BATCH = 2000;
+        await walkByKeyset(
+          (afterId, limit) =>
+            withDb(async (conn) => {
+              const [result] = await conn.query(
+                `SELECT id, document_id, file_name
+             FROM srv100_uploads
+             WHERE patient_id IS NULL AND id > ?
+             ORDER BY id ASC
+             LIMIT ?`,
+                [afterId, limit],
+              );
+              return result as Array<{
+                id: number;
+                document_id: string;
+                file_name: string | null;
+              }>;
+            }),
+          BATCH,
+          (rows) =>
+            withDb(async (conn) => {
+              for (const row of rows) {
+                processed += 1;
+                const candidates = Array.from(
+                  new Set([
+                    ...extractIdCandidatesFromText(row.document_id),
+                    ...extractIdCandidatesFromText(row.file_name ?? ""),
+                  ]),
+                );
+                if (candidates.length === 0) continue;
+                const patientId = await resolvePatientByIds(conn, candidates);
+                if (!patientId) continue;
+                await conn.query(
+                  "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+                  [patientId, row.id],
+                );
+                linked += 1;
+              }
+            }),
+        );
         res.status(200).json({ ok: true, processed, linked });
       } catch (error: any) {
         res
