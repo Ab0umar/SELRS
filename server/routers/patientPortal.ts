@@ -36,6 +36,7 @@ import {
   DEFAULT_APP_NOTIFICATION_SETTINGS,
 } from "../_core/appNotifications";
 import { sendWebPushToSubscription } from "../_core/webPush";
+import { parseWebPushSubscription } from "../_core/webPushSubscription";
 import { broadcastBookingUpdate } from "../_core/ws";
 import { sendBookingStatusEmail } from "../services/bookingEmail.service";
 import {
@@ -870,8 +871,14 @@ export const patientPortalRouter = router({
     }),
 
   registerPatientPushToken: patientPortalProcedure
-    .input(z.object({ subscription: z.string().min(10) }))
+    .input(z.object({ subscription: z.string().min(10).max(4096) }))
     .mutation(async ({ ctx, input }) => {
+      if (!parseWebPushSubscription(input.subscription)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid push subscription",
+        });
+      }
       const db = await getDb();
       if (!db)
         throw new TRPCError({

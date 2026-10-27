@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import * as db from "../db";
 import { ENV } from "./env";
+import { parseWebPushSubscription } from "./webPushSubscription";
 
 export type WebPushPayload = {
   notificationId: string;
@@ -28,9 +29,9 @@ export async function sendWebPushToSubscription(
 ): Promise<"sent" | "expired" | "failed"> {
   if (!configureWebPush()) return "failed";
   try {
-    const subscription = JSON.parse(
-      subscriptionJson,
-    ) as webpush.PushSubscription;
+    const subscription = parseWebPushSubscription(subscriptionJson);
+    // A stored value that no push service issued is dropped, never contacted.
+    if (!subscription) return "expired";
     const message = JSON.stringify({
       notification: { title: payload.title, body: payload.body },
       data: {
