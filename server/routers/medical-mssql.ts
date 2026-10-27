@@ -55,7 +55,7 @@ import {
   upsertPatientToMssql,
 } from "../integrations/mssqlPatients";
 
-import { canPushToMssql, findExistingPatientByNameOrPhone, normalizePhoneKey, pushNewPatientToMssql, readDoctorNameFromStateData, readFreshDoctorNameForPatient, readRoleSignatureFromStateData, registrationPricingPayload, resolveDoctorCodeById, resolveDoctorCodeByName, resolveNotificationTargetRolesByUserRole, resolvePatientNotifTitle, resolveServiceCodeForType } from "./_medical/patient-helpers";
+import { canPushToMssql, normalizePhoneKey, pushNewPatientToMssql, readDoctorNameFromStateData, readFreshDoctorNameForPatient, readRoleSignatureFromStateData, registrationPricingPayload, resolveDoctorCodeById, resolveDoctorCodeByName, resolveNotificationTargetRolesByUserRole, resolvePatientNotifTitle, resolveServiceCodeForType } from "./_medical/patient-helpers";
 import { DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG, inferSrvTyp, normalizeServiceCodeKey, normalizeServiceDefaultSheet, normalizeVisitType, serviceTypeFromSheetOrType } from "./_medical/service-helpers";
 
 export const medicalMssqlRoutes = {
