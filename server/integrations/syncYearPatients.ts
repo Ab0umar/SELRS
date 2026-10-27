@@ -11,6 +11,7 @@
  *
  * Run with:  pnpm tsx server/integrations/syncYearPatients.ts 2024
  *            pnpm tsx server/integrations/syncYearPatients.ts 2025
+ * Any year from 2013 to 2025; the target database (selrsYY) must already exist.
  */
 import "dotenv/config";
 import mysql from "mysql2/promise";
@@ -167,7 +168,7 @@ export interface YearSyncResult {
 }
 
 export async function syncYearPatients(
-  year: 2023 | 2024 | 2025,
+  year: number,
   options: { limit?: number; dryRun?: boolean } = {},
 ): Promise<YearSyncResult> {
   const mssqlDatabase = `op${year}`;
@@ -367,12 +368,13 @@ export async function syncYearPatients(
 
 async function main() {
   const arg = String(process.argv[2] ?? "").trim();
-  if (arg !== "2023" && arg !== "2024" && arg !== "2025") {
-    console.error("Usage: tsx server/integrations/syncYearPatients.ts <2023|2024|2025> [--dry-run]");
+  const requested = Number(arg);
+  if (!Number.isInteger(requested) || requested < 2013 || requested > 2025) {
+    console.error("Usage: tsx server/integrations/syncYearPatients.ts <2013..2025> [--dry-run]");
     process.exit(1);
   }
   const dryRun = process.argv.includes("--dry-run");
-  const result = await syncYearPatients(Number(arg) as 2023 | 2024 | 2025, { dryRun });
+  const result = await syncYearPatients(requested, { dryRun });
   console.log(JSON.stringify(result, null, 2));
 }
 

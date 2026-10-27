@@ -7,7 +7,7 @@ import { TRPCError } from "@trpc/server";
  * outside a request (schedulers, startup) uses the current year automatically.
  */
 
-export const MIN_MSSQL_YEAR = 2020;
+export const MIN_MSSQL_YEAR = 2013;
 export const MAX_MSSQL_YEAR = 2100;
 
 type RequestYearContext = {
