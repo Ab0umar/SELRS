@@ -3,6 +3,7 @@ import {
   NATIVE_USER_SNAPSHOT_KEY,
   removeDurableValue,
 } from "@/lib/nativeStorage";
+import { clearOfflineQueryCache } from "@/lib/appRuntime";
 import { clearAllPatientCaches } from "@/lib/patientCacheCleanup";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
@@ -35,6 +36,7 @@ export function useAuth(options?: UseAuthOptions) {
     window.localStorage.removeItem("token");
     window.sessionStorage.removeItem("user");
     window.sessionStorage.removeItem("token");
+    clearOfflineQueryCache();
     await removeDurableValue(NATIVE_USER_SNAPSHOT_KEY, "user");
   }, []);
   const meQuery = trpc.auth.me.useQuery(undefined, {

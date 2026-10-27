@@ -11,6 +11,7 @@ const App = lazy(() => import("./App"));
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import { getApiUrl, getLoginUrl } from "./const";
 import {
+  clearOfflineQueryCache,
   dispatchApiIssue,
   hydrateOfflineQueryCache,
   installBeforeUnloadGuard,
@@ -269,6 +270,7 @@ const clearStoredSession = () => {
   window.localStorage.removeItem("token");
   window.sessionStorage.removeItem("user");
   window.sessionStorage.removeItem("token");
+  clearOfflineQueryCache();
 };
 
 const spaNavigate = (path: string) => {
