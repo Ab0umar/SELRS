@@ -1,5 +1,6 @@
 import { closureApplies } from "../lib/bookingClosureMatch";
 import { z } from "zod";
+import { checkGuestBookingLimits } from "../lib/guestBookingLimits";
 import { TRPCError } from "@trpc/server";
 import {
   router,
@@ -470,7 +471,18 @@ export const patientPortalRouter = router({
         notes: z.string().max(500).optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const limit = await checkGuestBookingLimits(
+        ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown",
+        normalizePhone(input.guestPhone),
+      );
+      if (!limit.allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "عدد الطلبات كبير، حاول مرة أخرى لاحقاً",
+        });
+      }
+
       const db = await getDb();
       if (!db)
         throw new TRPCError({
@@ -493,13 +505,15 @@ export const patientPortalRouter = router({
 
       const typeLabel2 =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      void sendBookingReceiptWhatsApp({
-        recipientPhone: input.guestPhone,
-        patientName: input.guestName,
-        requestKey: `booking-received:${normalizePhone(input.guestPhone)}:${Math.floor(Date.now() / 300000)}`,
-      }).catch(() =>
-        console.error("[booking-whatsapp] Receipt could not be recorded"),
-      );
+      if (limit.firstForPhone) {
+        void sendBookingReceiptWhatsApp({
+          recipientPhone: input.guestPhone,
+          patientName: input.guestName,
+          requestKey: `booking-received:${normalizePhone(input.guestPhone)}:${Math.floor(Date.now() / 300000)}`,
+        }).catch(() =>
+          console.error("[booking-whatsapp] Receipt could not be recorded"),
+        );
+      }
       getAppNotificationSettings()
         .catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS)
         .then((ns) => {
