@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { patientUpdatesSchema } from "./_medical/patient-update-fields";
 import { cairoDateIso } from "../../shared/visitSchedule";
 import { TRPCError } from "@trpc/server";
 import { eq, and, sql as drizzleSql } from "drizzle-orm";
@@ -1448,7 +1449,7 @@ export const medicalPatientRoutes = {
     .input(
       z.object({
         patientId: z.number(),
-        updates: z.record(z.string(), z.any()),
+        updates: patientUpdatesSchema,
       }),
     )
     .mutation(async ({ input, ctx }) => {
