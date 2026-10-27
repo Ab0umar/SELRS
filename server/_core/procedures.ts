@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import * as db from "../db";
+import { auditEntityId, summarizeAuditInput } from "./auditSummary";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -10,6 +11,34 @@ const t = initTRPC.context<TrpcContext>().create({
 
 export const router = t.router;
 export const publicProcedure = t.procedure;
+
+
+/**
+ * Records every successful mutation made through a write-guarded procedure
+ * (who, which procedure, a secret-free copy of the input) so changes to money,
+ * salaries, stock and similar data leave a trail. A failing audit write never
+ * fails the operation that already succeeded.
+ */
+function auditWrites(area: string) {
+  return t.middleware(async (opts) => {
+    const result = await opts.next();
+    if (result.ok && opts.type === "mutation" && opts.ctx.user) {
+      try {
+        const input = await opts.getRawInput();
+        await db.logAuditEvent(
+          opts.ctx.user.id,
+          `WRITE:${area}:${opts.path}`,
+          "procedure",
+          auditEntityId(input),
+          { input: summarizeAuditInput(input) },
+        );
+      } catch (error) {
+        console.warn("[audit] Could not record write", opts.path, error);
+      }
+    }
+    return result;
+  });
+}
 
 // ============ ROLE-BASED PROCEDURES ============
 
@@ -202,7 +231,7 @@ export const accountingProcedure = t.procedure.use(
 );
 
 // Accounting write procedure — requires :rw level (mutations: add/update/delete)
-export const accountingWriteProcedure = t.procedure.use(
+const accountingWriteProcedureBase = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
 
@@ -300,7 +329,7 @@ export function makePageProcedure(pagePath: string) {
   );
 }
 
-export function makePageWriteProcedure(pagePath: string) {
+function makePageWriteProcedureBase(pagePath: string) {
   return t.procedure.use(
     t.middleware(async ({ ctx, next }) => {
       if (!ctx.user)
@@ -352,7 +381,7 @@ export function makeKfProcedure(pagePath: string) {
   );
 }
 
-export function makeKfWriteProcedure(pagePath: string) {
+function makeKfWriteProcedureBase(pagePath: string) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -419,7 +448,7 @@ export function makeAccProcedure(pagePath: string | string[]) {
   );
 }
 
-export function makeAccWriteProcedure(pagePath: string) {
+function makeAccWriteProcedureBase(pagePath: string) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -483,7 +512,7 @@ export function makeAttProcedure(pagePath: string | string[]) {
   );
 }
 
-export function makeAttWriteProcedure(pagePath: string | string[]) {
+function makeAttWriteProcedureBase(pagePath: string | string[]) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -547,7 +576,7 @@ export function makeStockroomProcedure(pagePath: string) {
   );
 }
 
-export function makeStockroomWriteProcedure(pagePath: string) {
+function makeStockroomWriteProcedureBase(pagePath: string) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -617,7 +646,7 @@ export function makeSalaryProcedure(pagePath: string | string[]) {
   );
 }
 
-export function makeSalaryWriteProcedure(pagePath: string | string[]) {
+function makeSalaryWriteProcedureBase(pagePath: string | string[]) {
   return t.procedure.use(
     t.middleware(async (opts) => {
       const { ctx, next } = opts;
@@ -697,7 +726,7 @@ export const kfProcedure = t.procedure.use(
 );
 
 // KF write procedure — requires :rw level (mutations: create/update/delete)
-export const kfWriteProcedure = t.procedure.use(
+const kfWriteProcedureBase = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
 
@@ -869,7 +898,7 @@ export const attendanceViewerProcedure = t.procedure.use(
 );
 
 // Attendance manager procedure - requires :rw on /attendance (admin/manager bypass)
-export const attendanceManagerProcedure = t.procedure.use(
+const attendanceManagerProcedureBase = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
 
@@ -1028,3 +1057,33 @@ export const clinicalStaffProcedure = t.procedure.use(
     return next({ ctx: { ...ctx, user: ctx.user } });
   }),
 );
+
+export function makePageWriteProcedure(pagePath: string) {
+  return makePageWriteProcedureBase(pagePath).use(auditWrites("page"));
+}
+
+export function makeKfWriteProcedure(pagePath: string) {
+  return makeKfWriteProcedureBase(pagePath).use(auditWrites("kf"));
+}
+
+export function makeAccWriteProcedure(pagePath: string) {
+  return makeAccWriteProcedureBase(pagePath).use(auditWrites("accounting"));
+}
+
+export function makeAttWriteProcedure(pagePath: string | string[]) {
+  return makeAttWriteProcedureBase(pagePath).use(auditWrites("attendance"));
+}
+
+export function makeStockroomWriteProcedure(pagePath: string) {
+  return makeStockroomWriteProcedureBase(pagePath).use(auditWrites("stockroom"));
+}
+
+export function makeSalaryWriteProcedure(pagePath: string | string[]) {
+  return makeSalaryWriteProcedureBase(pagePath).use(auditWrites("salary"));
+}
+
+export const accountingWriteProcedure = accountingWriteProcedureBase.use(auditWrites("accounting"));
+
+export const kfWriteProcedure = kfWriteProcedureBase.use(auditWrites("kf"));
+
+export const attendanceManagerProcedure = attendanceManagerProcedureBase.use(auditWrites("attendance"));
