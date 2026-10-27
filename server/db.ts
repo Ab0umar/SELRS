@@ -1,3 +1,4 @@
+import { likeContains } from "./lib/likeEscape";
 import {
   eq,
   and,
@@ -1438,22 +1439,34 @@ export async function getPatientByCode(patientCode: string) {
   return result.length > 0 ? decodePatientRow(result[0] as any) : null;
 }
 
+export const SEARCH_PATIENTS_MIN_TERM = 2;
+export const SEARCH_PATIENTS_DEFAULT_LIMIT = 200;
+export const SEARCH_PATIENTS_MAX_LIMIT = 500;
+
 export async function searchPatients(
   searchTerm: string,
   sheetType?: "consultant" | "specialist" | "lasik" | "external" | "pentacam",
   locationType?: "center" | "external",
+  limit: number = SEARCH_PATIENTS_DEFAULT_LIMIT,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const normalized = String(searchTerm ?? "").trim();
+  // A term shorter than this would match most of the table (an empty or "%" term
+  // used to return every patient with name and phone in a single call).
+  if (normalized.length < SEARCH_PATIENTS_MIN_TERM) return [];
+  const rowLimit = Math.min(
+    Math.max(1, Math.trunc(Number(limit) || SEARCH_PATIENTS_DEFAULT_LIMIT)),
+    SEARCH_PATIENTS_MAX_LIMIT,
+  );
   const tokens = normalized.split(/\s+/).filter(Boolean);
   const legacy = encodeForLegacySearch(normalized);
-  const term = `%${normalized}%`;
-  const legacyTerm = `%${legacy}%`;
+  const term = likeContains(normalized);
+  const legacyTerm = likeContains(legacy);
   const buildTokenClause = (token: string) => {
-    const t = `%${token}%`;
-    const lt = `%${encodeForLegacySearch(token)}%`;
+    const t = likeContains(token);
+    const lt = likeContains(encodeForLegacySearch(token));
     return or(
       like(patients.fullName, t),
       like(patients.fullName, lt),
@@ -1482,16 +1495,11 @@ export async function searchPatients(
     if (sheetType === "pentacam") {
       whereClause = and(textMatch, pentacamEligibilityExpr() as any);
     } else {
-      const rows = await db
-        .select({ patientId: sheetEntries.patientId })
-        .from(sheetEntries)
-        .where(eq(sheetEntries.sheetType, sheetType as any))
-        .groupBy(sheetEntries.patientId);
-      const patientIds = rows
-        .map((row: any) => Number(row.patientId))
-        .filter((id: any) => Number.isFinite(id));
-      if (patientIds.length === 0) return [];
-      whereClause = and(textMatch, inArray(patients.id, patientIds));
+      // EXISTS instead of loading every matching patient id into an IN (...) list.
+      whereClause = and(
+        textMatch,
+        sql`EXISTS (SELECT 1 FROM ${sheetEntries} se WHERE se.patientId = ${patients.id} AND se.sheetType = ${sheetType})` as any,
+      );
     }
   }
 
@@ -1508,9 +1516,14 @@ export async function searchPatients(
     );
   }
 
-  // This powers patient pickers and global search. Do not silently discard
-  // matches: callers render the complete matching set in a scrollable list.
-  const result = await db.select().from(patients).where(whereClause);
+  // Pickers and global search show a bounded, most-recent-first list; the user
+  // narrows the term instead of scrolling the whole table.
+  const result = await db
+    .select()
+    .from(patients)
+    .where(whereClause)
+    .orderBy(desc(patients.id))
+    .limit(rowLimit);
   const enriched = await attachTreatingDoctor(result);
   return enriched.map((row) => decodePatientRow(row as any));
 }
