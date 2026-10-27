@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { parseWebPushSubscription } from "../_core/webPushSubscription";
+import {
+  canonicalSettingKey,
+  isStaffReadableSetting,
+} from "./_medical/systemSettingAccess";
 import { operationBookingSchema } from "../../shared/operationBooking";
 import {
   PRINT_SETTINGS_KEY,
@@ -2235,13 +2239,10 @@ export const medicalOpsRoutes = {
   getSystemSetting: protectedProcedure
     .input(z.object({ key: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
-      const requestedKey = input.key.trim().toLowerCase();
+      const requestedKey = canonicalSettingKey(input.key);
       if (
         String(ctx.user.role ?? "").toLowerCase() !== "admin" &&
-        (requestedKey === "team_permissions_v1" ||
-          requestedKey.startsWith("mssql_") ||
-          requestedKey.startsWith("attendance_") ||
-          requestedKey.startsWith("op_reminder_"))
+        !isStaffReadableSetting(requestedKey)
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -2249,7 +2250,7 @@ export const medicalOpsRoutes = {
         });
       }
       if (
-        input.key === "appointments_pricing_v1" &&
+        requestedKey === "appointments_pricing_v1" &&
         String(ctx.user.role ?? "").toLowerCase() !== "admin"
       ) {
         const role = String(ctx.user.role ?? "").toLowerCase();
