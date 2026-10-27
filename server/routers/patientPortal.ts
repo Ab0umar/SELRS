@@ -1,3 +1,4 @@
+import { closureApplies } from "../lib/bookingClosureMatch";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
@@ -348,6 +349,7 @@ export const patientPortalRouter = router({
           startDate: bookingClosures.startDate,
           endDate: bookingClosures.endDate,
           bookingType: bookingClosures.bookingType,
+          branch: bookingClosures.branch,
         })
         .from(bookingClosures)
         .where(
@@ -358,11 +360,7 @@ export const patientPortalRouter = router({
         );
       // Only closures that apply to this booking type AND branch (null = all)
       const closures = closureRows
-        .filter(
-          (r: any) =>
-            (r.bookingType == null || r.bookingType === input.bookingType) &&
-            (r.branch == null || r.branch === "" || r.branch === input.branch),
-        )
+        .filter((r: any) => closureApplies(r, input.bookingType, input.branch))
         .map((r: any) => ({
           startDate:
             typeof r.startDate === "string"
