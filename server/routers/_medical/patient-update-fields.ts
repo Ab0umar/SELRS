@@ -2,10 +2,10 @@ import { z } from "zod";
 
 /**
  * Columns a reception-level `updatePatient` call may write. Everything else
- * (`id`, `createdAt`, `updatedAt`, and `patientCode`, which has its own
- * procedure) is dropped before the update reaches the database.
+ * (`id`, `createdAt`, `updatedAt`) is dropped before the update reaches the database.
  */
 export const PATIENT_UPDATABLE_FIELDS = [
+  "patientCode",
   "fullName",
   "dateOfBirth",
   "age",
