@@ -17,6 +17,7 @@ import {
   technicianProcedure,
   receptionProcedure,
   managerProcedure,
+  medicalManagerProcedure,
   adminProcedure,
   medicalStaffProcedure,
   makePageProcedure,
@@ -1196,7 +1197,7 @@ export const medicalOpsRoutes = {
     return await db.getMedicalConditionReportTemplates();
   }),
 
-  saveMedicalConditionReportTemplate: managerProcedure
+  saveMedicalConditionReportTemplate: medicalManagerProcedure
     .input(
       z.object({
         id: z.number().optional(),
@@ -1211,7 +1212,7 @@ export const medicalOpsRoutes = {
       return await db.upsertMedicalConditionReportTemplate(input);
     }),
 
-  deleteMedicalConditionReportTemplate: managerProcedure
+  deleteMedicalConditionReportTemplate: medicalManagerProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await db.deleteMedicalConditionReportTemplate(input.id);
@@ -1337,7 +1338,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  deleteMedicalReport: managerProcedure
+  deleteMedicalReport: medicalManagerProcedure
     .input(z.object({ reportId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteDoctorReport(input.reportId);
@@ -1351,7 +1352,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  getAuditLogs: managerProcedure
+  getAuditLogs: medicalManagerProcedure
     .input(
       z.object({
         limit: z.number().default(100),
