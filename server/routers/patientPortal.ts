@@ -123,6 +123,10 @@ export const patientPortalRouter = router({
           message: "DB unavailable",
         });
 
+      // Match phone and code together: several family members can share a phone,
+      // and one message for both failures keeps the endpoint from revealing which
+      // phone numbers belong to patients.
+      const inputCode = input.patientCode.trim().toLowerCase();
       const [patient] = await db
         .select({
           id: patients.id,
@@ -130,21 +134,15 @@ export const patientPortalRouter = router({
           patientCode: patients.patientCode,
         })
         .from(patients)
-        .where(eq(patients.phone, phone))
+        .where(
+          and(
+            eq(patients.phone, phone),
+            sql`LOWER(TRIM(${patients.patientCode})) = ${inputCode}`,
+          ),
+        )
         .limit(1);
 
-      if (!patient) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "البيانات غير مسجلة — تواصل مع الاستقبال",
-        });
-      }
-
-      const storedCode = String(patient.patientCode ?? "")
-        .trim()
-        .toLowerCase();
-      const inputCode = input.patientCode.trim().toLowerCase();
-      if (!storedCode || storedCode !== inputCode) {
+      if (!patient || !inputCode) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "البيانات غير صحيحة — تواصل مع الاستقبال",
