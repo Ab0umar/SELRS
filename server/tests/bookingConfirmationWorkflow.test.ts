@@ -158,4 +158,32 @@ describe("booking WhatsApp workflow", () => {
     );
     expect(mocks.email).not.toHaveBeenCalled();
   });
+  const stubBooking = (status: string) =>
+    mocks.select.mockReturnValue({
+      from: () => ({
+        leftJoin: () => ({
+          where: () => ({
+            limit: async () => [
+              {
+                status,
+                patientId: null,
+                bookingType: "specialist",
+                requestedDate: new Date(),
+                guestPhone: "01000000000",
+              },
+            ],
+          }),
+        }),
+      }),
+    });
+  it("does not message again when only notes change on an unchanged status", async () => {
+    stubBooking("confirmed");
+    await caller().updateBooking({ id: 1, status: "confirmed", staffNotes: "x" });
+    expect(mocks.status).not.toHaveBeenCalled();
+  });
+  it("messages when the status actually changes", async () => {
+    stubBooking("pending");
+    await caller().updateBooking({ id: 1, status: "confirmed" });
+    expect(mocks.status).toHaveBeenCalledTimes(1);
+  });
 });
