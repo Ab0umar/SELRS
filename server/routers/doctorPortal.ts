@@ -312,17 +312,16 @@ export const doctorPortalRouter = router({
         }
       }
 
-      // Look up patient DB id and profile details
+      // Look up patient DB id and profile details. Contact details (phone,
+      // address) stay out: the referring doctor reads results, not contacts.
       const [patient] = await db
         .select({
           id: patients.id,
           fullName: patients.fullName,
           patientCode: patients.patientCode,
-          phone: patients.phone,
           dateOfBirth: patients.dateOfBirth,
           age: patients.age,
           gender: patients.gender,
-          address: patients.address,
           medicalHistory: patients.medicalHistory,
           allergies: patients.allergies,
           serviceType: patients.serviceType,

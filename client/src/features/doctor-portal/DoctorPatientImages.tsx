@@ -11,8 +11,6 @@ import {
   Glasses,
   Pill,
   Calendar,
-  Phone,
-  MapPin,
   BadgeInfo,
   Stethoscope,
   Printer,
@@ -517,7 +515,7 @@ export default function DoctorPatientImages() {
                   <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-xs space-y-4">
                     <div className="border-b border-border/40 pb-2">
                       <h4 className="text-sm font-bold text-foreground">
-                        البيانات الشخصية والاتصال
+                        البيانات الشخصية
                       </h4>
                       <p className="text-[13px] text-muted-foreground">
                         المسجلة في استقبال المركز
@@ -528,16 +526,6 @@ export default function DoctorPatientImages() {
                         label="تاريخ الميلاد"
                         value={formatArabicDate(data.patient.dateOfBirth)}
                         icon={Calendar}
-                      />
-                      <DetailItem
-                        label="رقم الموبايل"
-                        value={data.patient.phone}
-                        icon={Phone}
-                      />
-                      <DetailItem
-                        label="العنوان"
-                        value={data.patient.address}
-                        icon={MapPin}
                       />
                       <DetailItem
                         label="فئة الخدمة"
