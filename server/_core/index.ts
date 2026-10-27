@@ -1,3 +1,4 @@
+import { createTrpcCredentialGuard } from "./trpcCredentialGuard";
 import "dotenv/config";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
@@ -2529,16 +2530,10 @@ async function startServer() {
     }
   });
   // tRPC API
-  // doctorPortal.login is a public password endpoint; constrain its requests
-  // before tRPC parses and dispatches the procedure.
-  app.use(
-    "/api/trpc/doctorPortal.login",
-    createApiRateLimiter(20, 15 * 60_000),
-  );
-  app.use(
-    "/api/trpc/patientPortal.login",
-    createApiRateLimiter(20, 15 * 60_000),
-  );
+  // doctorPortal.login / patientPortal.login are public credential endpoints.
+  // The guard decodes the path the way tRPC does, refuses to batch them, and
+  // rate-limits each one before tRPC dispatches the procedure.
+  app.use("/api/trpc", createTrpcCredentialGuard(20, 15 * 60_000));
   app.use(
     "/api/trpc",
     createExpressMiddleware({
