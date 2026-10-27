@@ -15,7 +15,6 @@ describe("patientUpdatesSchema", () => {
       fullName: "Ali",
       phone: "010",
       id: 999,
-      patientCode: "X1",
       createdAt: "2001-01-01",
       updatedAt: "2001-01-01",
       isManuallyLocked: true,
@@ -24,9 +23,13 @@ describe("patientUpdatesSchema", () => {
   });
 
   it("does not list identity or audit columns as editable", () => {
-    for (const field of ["id", "patientCode", "createdAt", "updatedAt"]) {
+    for (const field of ["id", "createdAt", "updatedAt"]) {
       expect(PATIENT_UPDATABLE_FIELDS).not.toContain(field);
     }
+  });
+
+  it("keeps patientCode, which the patients form sends", () => {
+    expect(patientUpdatesSchema.parse({ patientCode: "P-9", id: 1 })).toEqual({ patientCode: "P-9" });
   });
 
   it("accepts the shapes the screens send", () => {
