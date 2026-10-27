@@ -375,7 +375,12 @@ export function AppTopNav({
           "/medical-reference",
         ],
       },
-      // WhatsApp inbox and auto-reply live inside the admin hub (التواصل tab).
+      {
+        type: "link" as const,
+        icon: LayoutDashboard,
+        label: "الذكاء الاصطناعي",
+        path: "/ai",
+      },
       {
         type: "link" as const,
         icon: Settings,

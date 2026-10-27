@@ -139,6 +139,10 @@ function MedicalAssistantDialog({
               className="flex flex-wrap items-center gap-2"
               aria-label="Recording controls"
             >
+              <p className="text-sm text-muted-foreground">
+                مزوّد الصوت يُحدّد من الإعداد المركزي بواسطة الأدمن. احصل على
+                موافقة المريض قبل التسجيل والإرسال إلى المزوّد.
+              </p>
               <Button
                 type="button"
                 disabled={disabled || recording}
@@ -182,7 +186,7 @@ function MedicalAssistantDialog({
               <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
                 <ClipboardList className="mb-2 h-5 w-5" aria-hidden="true" />
                 {result
-                  ? "Full-visit transcript captured. Review it before sending it to Manus."
+                  ? "Full-visit transcript captured. Review it before sending it to the configured AI assistant."
                   : "Record the full visit to prepare complaints, history, diagnosis, treatment, tests, and the final decision for review."}
               </div>
               {result && result.transcript.trim() && (

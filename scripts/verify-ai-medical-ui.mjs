@@ -130,9 +130,9 @@ try {
           document.documentElement.classList.toggle("dark", theme === "dark"),
         theme,
       );
-      const panel = page.getByRole("region", { name: "Manus proposal review" });
-      const selector = panel.getByLabel("Processing engine");
-      await expect(selector).toHaveValue("current");
+      const panel = page.getByRole("region", { name: "AI proposal review" });
+      const selector = panel.getByLabel("المساعد والموديل");
+      await expect(selector).toHaveValue("manus:lite");
       const consent = panel.getByRole("checkbox");
       const generate = panel.getByRole("button", {
         name: "Generate proposals",
@@ -140,7 +140,7 @@ try {
       });
       await expect(generate).toBeDisabled();
       await consent.check();
-      await selector.selectOption("central");
+      await selector.selectOption("manus:max");
       await expect(consent).not.toBeChecked();
       await consent.check();
       await generate.click();

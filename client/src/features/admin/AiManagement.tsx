@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../../server/routers";
-import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,7 @@ const labels: Record<Workload, string> = {
   "marketing.image": "صور التسويق",
   "medical.synthetic": "اختبار طبي اصطناعي فقط",
   "whatsapp.marketing": "صياغة رسائل واتساب",
-  "medical.documentation": "توثيق المساعد الطبي عبر Manus",
+  "medical.documentation": "توثيق المساعد الطبي",
 };
 const states = {
   reserved: "محجوز",
@@ -32,6 +31,7 @@ const states = {
   completed: "مكتمل",
   failed: "فشل",
   uncertain: "النتيجة غير محسومة",
+  rejected: "رُفض الطلب قبل بدء التوليد",
 };
 const storageKey = "selrs.ai.pending-probe.v1";
 function restoredRequest(): string | undefined {
@@ -57,11 +57,9 @@ function errorText(message: string) {
 function ProfileEditor({
   profile,
   pending,
-  onProbe,
 }: {
   profile: Profile;
   pending: boolean;
-  onProbe: (profile: Profile) => void;
 }) {
   const [draft, setDraft] = useState(profile);
   const [message, setMessage] = useState("");
@@ -107,23 +105,8 @@ function ProfileEditor({
               }));
             }}
           >
-            <option
-              value="gemini"
-              disabled={profile.workload === "medical.documentation"}
-            >
-              Gemini
-            </option>
-            <option
-              value="manus"
-              disabled={[
-                "medical.synthetic",
-                "whatsapp.marketing",
-                "reply.live",
-                "medical.documentation",
-              ].includes(profile.workload)}
-            >
-              Manus
-            </option>
+            <option value="gemini">Gemini</option>
+            <option value="manus">Manus</option>
           </select>
         </label>
         <label>
@@ -213,20 +196,7 @@ function ProfileEditor({
         <Button type="submit" disabled={!dirty || save.isPending || pending}>
           {save.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات التجربة"}
         </Button>
-        {profile.workload !== "medical.documentation" && (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={dirty || !profile.enabled || pending || save.isPending}
-            onClick={() => onProbe(profile)}
-          >
-            {profile.workload === "marketing.image"
-              ? "تجربة توليد صورة"
-              : "تجربة توليد نص"}
-          </Button>
-        )}
       </div>
-      {dirty && <p className="ai-help">احفظ التعديلات قبل تشغيل التجربة.</p>}
       {message && (
         <p role="status" aria-live="polite">
           {message}
@@ -236,19 +206,24 @@ function ProfileEditor({
   );
 }
 
-export default function AiManagement() {
+export default function AiManagement({
+  view = "overview",
+}: {
+  view?: "overview" | "settings" | "experiments" | "usage";
+}) {
+  const showProfiles = view === "settings" || view === "experiments";
   const status = trpc.aiManagement.status.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
   });
   const enabled = status.data?.enabled === true;
   const profiles = trpc.aiManagement.profiles.useQuery(undefined, {
-    enabled,
+    enabled: enabled && showProfiles,
     retry: false,
     refetchOnWindowFocus: false,
   });
   const usage = trpc.aiManagement.usage.useQuery(undefined, {
-    enabled,
+    enabled: enabled && view === "usage",
     retry: false,
     refetchInterval: 10000,
   });
@@ -284,17 +259,28 @@ export default function AiManagement() {
   }
   useEffect(() => {
     const state = tracking.data?.state;
+    const usageMissing =
+      tracking.data &&
+      "error_code" in tracking.data &&
+      tracking.data.error_code === "usage_metadata_missing";
     if (
       probe.isPending ||
       !requestId ||
-      (state !== "completed" && state !== "failed")
+      (state !== "completed" &&
+        state !== "failed" &&
+        state !== "rejected" &&
+        !usageMissing)
     )
       return;
     clearPending();
     setMessage(
-      state === "completed"
-        ? "اكتملت مهمة المزوّد. راجع سجل الاستهلاك؛ اكتمال المهمة لا يثبت جودة ملف التسويق."
-        : "فشلت التجربة. لم نرسل طلبًا بديلًا تلقائيًا.",
+      usageMissing
+        ? "انتهى التوليد، لكن بيانات الاستهلاك غير متاحة. حجز التوكنات محفوظ للمراجعة."
+        : state === "completed"
+          ? "اكتملت مهمة المزوّد. راجع سجل الاستهلاك؛ اكتمال المهمة لا يثبت جودة ملف التسويق."
+          : state === "rejected"
+            ? "لم يبدأ التوليد. راجع الإعدادات ثم ابدأ تجربة جديدة."
+            : "فشلت التجربة. لم نرسل طلبًا بديلًا تلقائيًا.",
     );
     void utils.aiManagement.usage.invalidate();
   }, [tracking.data?.state, requestId, probe.isPending, utils]);
@@ -352,17 +338,36 @@ export default function AiManagement() {
     >
       <header className="ai-heading">
         <div>
-          <h1>الذكاء الاصطناعي والتواصل</h1>
+          <h1>
+            {
+              {
+                overview: "نظرة عامة",
+                settings: "المزوّدون والحدود",
+                experiments: "تجارب الاتصال",
+                usage: "سجل الاستخدام",
+              }[view]
+            }
+          </h1>
           <p>
-            إعداد المزوّدين ومتابعة التجارب. الخدمات الحالية باقية على مساراتها.
+            {
+              {
+                overview: "أدوات الذكاء الاصطناعي وإعداداتها في مكان واحد.",
+                settings: "إعداد المزوّد والموديل وحدود الاستخدام لكل مهمة.",
+                experiments:
+                  "اختبار اتصال المزوّدين ببيانات اصطناعية قبل الاستخدام.",
+                usage: "متابعة حالة الطلبات واستهلاك كل مزوّد.",
+              }[view]
+            }
           </p>
         </div>
         <Button
           variant="outline"
           onClick={() => {
             void status.refetch();
-            if (enabled) {
+            if (enabled && showProfiles) {
               void profiles.refetch();
+            }
+            if (enabled && view === "usage") {
               void usage.refetch();
             }
           }}
@@ -371,15 +376,6 @@ export default function AiManagement() {
           تحديث الحالة
         </Button>
       </header>
-      <nav aria-label="أقسام التواصل الحالية" className="ai-links">
-        <Link href="/marketing">التسويق</Link>
-        <Link href="/marketing/whatsapp">حملات واتساب</Link>
-        <Link href="/admin-hub/auto-reply">الرد الآلي</Link>
-      </nav>
-      <p className="ai-notice">
-        المساعد الطبي داخل الملف الطبي كما هو. تجارب هذه الصفحة ثابتة ولا تستقبل
-        نصًا أو بيانات مرضى.
-      </p>
       {status.isLoading && <p role="status">جارٍ قراءة حالة الموديول...</p>}
       {status.isError && (
         <p role="alert">
@@ -387,7 +383,7 @@ export default function AiManagement() {
           الحالة».
         </p>
       )}
-      {status.data && (
+      {status.data && (view === "overview" || !enabled) && (
         <section className="ai-panel" aria-label="حالة التشغيل">
           <h2>
             {enabled
@@ -432,20 +428,20 @@ export default function AiManagement() {
       )}
       {enabled && (
         <>
-          {profiles.isLoading && (
+          {showProfiles && profiles.isLoading && (
             <p role="status">جارٍ تحميل إعدادات المهام...</p>
           )}
-          {profiles.isError && (
+          {showProfiles && profiles.isError && (
             <p role="alert">
               تعذر تحميل الإعدادات. تحقق من جداول الموديول ثم حدّث الحالة.
             </p>
           )}
-          {profiles.data?.length === 0 && (
+          {showProfiles && profiles.data?.length === 0 && (
             <p role="status">
               لا توجد إعدادات مهام. يلزم تطبيق بيانات التهيئة على الخادم.
             </p>
           )}
-          {profiles.data && profiles.data.length > 0 && (
+          {showProfiles && profiles.data && profiles.data.length > 0 && (
             <label className="ai-task-label" htmlFor="ai-workload">
               المهمة
               <select
@@ -464,13 +460,39 @@ export default function AiManagement() {
               </select>
             </label>
           )}
-          {active && (
+          {showProfiles && active && view === "settings" && (
             <ProfileEditor
               key={`${active.workload}:${JSON.stringify(active)}`}
               profile={active}
               pending={Boolean(requestId)}
-              onProbe={setConfirm}
             />
+          )}
+          {view === "experiments" && active && (
+            <section className="ai-panel space-y-3" aria-label="تجربة المهمة">
+              <h2>{labels[active.workload]}</h2>
+              <p>
+                <bdi>
+                  {active.provider} / {active.model}
+                </bdi>
+              </p>
+              <p>
+                تستخدم التجربة بيانات ثابتة، وقد تستهلك رصيدًا عند تأكيد
+                التشغيل.
+              </p>
+              {active.workload === "medical.documentation" ? (
+                <p>راجع الاقتراحات الطبية من قسم المساعد الطبي.</p>
+              ) : (
+                <Button
+                  disabled={!active.enabled || Boolean(requestId)}
+                  onClick={() => setConfirm(active)}
+                >
+                  تشغيل تجربة اتصال
+                </Button>
+              )}
+              {!active.enabled && (
+                <p>فعّل المهمة من قسم المزوّدين والحدود لتجربتها.</p>
+              )}
+            </section>
           )}
           {requestId && (
             <section className="ai-notice" aria-label="الطلب الجاري">
@@ -510,63 +532,73 @@ export default function AiManagement() {
               <figcaption>صورة تجربة اصطناعية، غير منشورة.</figcaption>
             </figure>
           )}
-          <section className="ai-panel" aria-label="سجل الاستهلاك">
-            <h2>آخر الطلبات</h2>
-            <p className="ai-help">
-              حتى 100 طلب. لا تُعرض نصوص المرضى أو مفاتيح الاتصال.
-            </p>
-            {usage.isLoading ? (
-              <p role="status">جارٍ تحميل سجل الاستهلاك...</p>
-            ) : usage.isError ? (
-              <p role="alert">
-                تعذر تحميل السجل. حدّث الحالة قبل إعادة تجربة غير محسومة.
+          {view === "usage" && (
+            <section className="ai-panel" aria-label="سجل الاستهلاك">
+              <h2>آخر الطلبات</h2>
+              <p className="ai-help">
+                حتى 100 طلب. لا تُعرض نصوص المرضى أو مفاتيح الاتصال.
               </p>
-            ) : !usage.data?.length ? (
-              <p>لا توجد طلبات مسجلة. تظهر التجارب هنا بعد تشغيلها.</p>
-            ) : (
-              <ul className="ai-usage-list">
-                {usage.data.map((row) => (
-                  <li key={row.request_id}>
-                    <div className="ai-record-heading">
-                      <strong>{labels[row.workload]}</strong>
-                      <span>{states[row.state]}</span>
-                    </div>
-                    <p>
-                      <bdi>
-                        {row.provider} / {row.model}
-                      </bdi>
-                    </p>
-                    <dl className="ai-usage-details">
-                      <div>
-                        <dt>توكنات الإدخال</dt>
-                        <dd>{row.input_tokens}</dd>
+              {usage.isLoading ? (
+                <p role="status">جارٍ تحميل سجل الاستهلاك...</p>
+              ) : usage.isError ? (
+                <p role="alert">
+                  تعذر تحميل السجل. حدّث الحالة قبل إعادة تجربة غير محسومة.
+                </p>
+              ) : !usage.data?.length ? (
+                <p>لا توجد طلبات مسجلة. تظهر التجارب هنا بعد تشغيلها.</p>
+              ) : (
+                <ul className="ai-usage-list">
+                  {usage.data.map((row) => (
+                    <li key={row.request_id}>
+                      <div className="ai-record-heading">
+                        <strong>{labels[row.workload]}</strong>
+                        <span>{states[row.state]}</span>
                       </div>
-                      <div>
-                        <dt>توكنات الإخراج</dt>
-                        <dd>{row.output_tokens}</dd>
-                      </div>
-                      <div>
-                        <dt>رصيد Manus المستهلك</dt>
-                        <dd>{row.credits ?? "غير متاح"}</dd>
-                      </div>
-                    </dl>
-                    <p className="ai-help">
-                      معرف الطلب: <bdi>{row.request_id}</bdi>
-                    </p>
-                    <p className="ai-help">
-                      {new Date(row.created_ms).toLocaleString("ar-EG", {
-                        timeZone: "Africa/Cairo",
-                      })}{" "}
-                      بتوقيت القاهرة
-                    </p>
-                    {row.error_code && (
-                      <p>تحتاج النتيجة مراجعة قبل إعادة الإرسال.</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                      <p>
+                        <bdi>
+                          {row.provider} / {row.model}
+                        </bdi>
+                      </p>
+                      <dl className="ai-usage-details">
+                        <div>
+                          <dt>توكنات الإدخال</dt>
+                          <dd>
+                            {row.error_code === "usage_metadata_missing"
+                              ? "غير متاح"
+                              : row.input_tokens}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>توكنات الإخراج</dt>
+                          <dd>
+                            {row.error_code === "usage_metadata_missing"
+                              ? "غير متاح"
+                              : row.output_tokens}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>رصيد Manus المستهلك</dt>
+                          <dd>{row.credits ?? "غير متاح"}</dd>
+                        </div>
+                      </dl>
+                      <p className="ai-help">
+                        معرف الطلب: <bdi>{row.request_id}</bdi>
+                      </p>
+                      <p className="ai-help">
+                        {new Date(row.created_ms).toLocaleString("ar-EG", {
+                          timeZone: "Africa/Cairo",
+                        })}{" "}
+                        بتوقيت القاهرة
+                      </p>
+                      {row.error_code && (
+                        <p>تحتاج النتيجة مراجعة قبل إعادة الإرسال.</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </>
       )}
       <Dialog

@@ -1,0 +1,120 @@
+.ai-workspace {
+  min-width: 0;
+  padding: 1rem;
+  color: var(--foreground);
+  background: var(--background);
+}
+.ai-workspace-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 1rem;
+}
+.ai-module-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.ai-workspace-heading a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.ai-workspace-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-block-end: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+}
+.ai-workspace-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+}
+.ai-workspace-nav a:hover {
+  background: var(--background);
+}
+.ai-workspace-nav a[aria-current="page"] {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-weight: 700;
+}
+.ai-workspace :is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.ai-workspace-content {
+  min-width: 0;
+}
+.ai-workspace-content > section {
+  max-width: 100%;
+}
+.ai-workspace-intro {
+  margin-block-end: 1.5rem;
+}
+.ai-workspace-intro h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-block-end: 0.5rem;
+}
+.ai-workspace-intro p {
+  max-width: 70ch;
+  line-height: 1.8;
+}
+.ai-tool-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ai-tool-list li {
+  border-block-start: 1px solid var(--border);
+}
+.ai-tool-list a {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 0.5rem;
+  min-height: 44px;
+}
+.ai-tool-list a:hover {
+  background: var(--muted);
+}
+.ai-tool-list strong {
+  color: var(--primary);
+}
+.ai-tool-list span {
+  overflow-wrap: anywhere;
+}
+.ai-skip {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 1rem;
+  transform: translateY(-120%);
+  padding: 0.75rem;
+  background: var(--background);
+  z-index: 50;
+}
+.ai-skip:focus {
+  transform: none;
+}
+@media (min-width: 768px) {
+  .ai-workspace {
+    padding: 1.5rem;
+  }
+  .ai-tool-list a {
+    grid-template-columns: 14rem minmax(0, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .ai-workspace {
+    padding: 0.75rem;
+  }
+  .ai-workspace-nav a {
+    flex: 1 1 42%;
+  }
+}

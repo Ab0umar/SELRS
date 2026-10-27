@@ -23,9 +23,9 @@ import { SalaryRoutes } from "./routes/salary-routes";
 import { KfRoutes } from "./routes/kf-routes";
 import { AccountingRoutes } from "./routes/accounting-routes";
 import { AdminRoutes } from "./routes/admin-routes";
+import { AiRoutes } from "./routes/ai-routes";
 import { MedicalRoutes } from "./routes/medical-routes";
 import { ClinicalSuiteRoutes } from "./routes/clinical-suite-routes";
-import { MarketingRoutes } from "./routes/marketing-routes";
 import { MiscRoutes } from "./routes/misc-routes";
 import {
   DashboardRouteGate,
@@ -172,8 +172,8 @@ const Router = memo(function Router() {
       {AccountingRoutes}
       {MedicalRoutes}
       {ClinicalSuiteRoutes}
+      {AiRoutes}
       {AdminRoutes}
-      {MarketingRoutes}
       {MiscRoutes}
     </Switch>
   );

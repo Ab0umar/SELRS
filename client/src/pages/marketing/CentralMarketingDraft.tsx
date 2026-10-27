@@ -74,7 +74,7 @@ export default function CentralMarketingDraft() {
         نص وصورة محفوظان للمراجعة فقط، بدون نشر تلقائي. قد يستهلك التوليد رصيدًا
         مدفوعًا. Manus والجدولة الحالية كما هما. يلزم تفعيل مهمتي نصوص وصور
         التسويق بمزوّد Gemini في{" "}
-        <Link href="/admin-hub/ai" className="underline">
+        <Link href="/ai/settings" className="underline">
           إدارة AI
         </Link>
         .

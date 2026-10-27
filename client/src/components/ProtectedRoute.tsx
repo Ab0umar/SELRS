@@ -11,6 +11,7 @@ import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import type { User } from "@shared/types";
 import { ROUTES } from "../../../shared/routes";
 import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
+import { aiPermissionPath } from "@/features/ai/navigation";
 
 // Paths that have their own explicit permission entry — parent permission does NOT cover these.
 const DEFINED_PERMISSION_PATHS = new Set(
@@ -205,7 +206,7 @@ export default function ProtectedRoute({
         ? cachedPermissions.permissions
         : ((permissionsQuery.data ?? []) as string[]);
     const normalized = raw
-      .map((entry) => normalizePath(entry.replace(/:r[w]?$/, "")))
+      .map((entry) => aiPermissionPath(normalizePath(entry.replace(/:r[w]?$/, ""))))
       .filter((entry) => entry.length > 0);
     return Array.from(new Set(normalized));
   }, [cachedPermissions, permissionsQuery.data, permissionsQuery.isError]);
@@ -215,7 +216,7 @@ export default function ProtectedRoute({
     (permissionsQuery.isError && cachedPermissions !== null);
 
   const cleanPath = useMemo(() => {
-    return normalizePath(location || ROUTES.home);
+    return aiPermissionPath(normalizePath(location || ROUTES.home));
   }, [location]);
 
   const isPathAllowed = useMemo(() => {

@@ -11,7 +11,9 @@ import {
 
 const reasons: Record<string, string> = {
   image_configuration:
-    "فعّل مهمة صور التسويق بمزوّد Gemini وتحقق من المفتاح في إدارة AI، ثم حدّث الفحص.",
+    "فعّل مهمة صور التسويق وتحقق من مفتاح Gemini في إدارة AI، ثم حدّث الفحص.",
+  original_model_missing:
+    "موديل الصورة الأصلي غير محفوظ؛ راجع المهمة قبل اختيار توليد بديل.",
   saved_text_missing:
     "النص المولد غير محفوظ؛ يلزم مراجعة المهمة قبل إعادة توليده.",
   topic_retired: "الموضوع سبق نشره؛ لن نستكمل توليده مرة أخرى.",
@@ -87,6 +89,12 @@ export default function MarketingJobRecovery({ jobId }: { jobId: string }) {
           <p>
             يمكن إعادة محاولة الصورة فقط. النص المحفوظ سيُستخدم كما هو، وقد
             يستهلك طلب الصورة رصيدًا.
+            {plan.data.imageModel && (
+              <>
+                {" "}
+                الموديل: <bdi>{plan.data.imageModel}</bdi>.
+              </>
+            )}
           </p>
           <Button
             className="min-h-11 h-auto whitespace-normal"
