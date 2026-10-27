@@ -1718,8 +1718,10 @@ export async function updatePatient(patientId: number, updates: any) {
 export async function deletePatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await deletePatientWithAllData(patientId);
-  await db.delete(patients).where(eq(patients.id, patientId));
+  await db.transaction(async (tx: any) => {
+    await deletePatientRows(tx, patientId);
+    await tx.delete(patients).where(eq(patients.id, patientId));
+  });
 }
 
 /**
@@ -1775,7 +1777,13 @@ export async function deleteAllPatientsData() {
 export async function deletePatientWithAllData(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx: any) => {
+    await deletePatientRows(tx, patientId);
+  });
+}
 
+// Runs inside a transaction so a failure part-way leaves the patient intact.
+async function deletePatientRows(db: any, patientId: number) {
   // Get all visits for this patient to delete related data
   const patientVisits = await db
     .select({ id: visits.id })
