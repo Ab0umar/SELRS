@@ -71,6 +71,7 @@ import {
 
 const isoDateInput = z.string().regex(ISO_DATE_RE, "تاريخ غير صالح");
 import { assertMssqlWritable, mssqlDbName, mssqlTable } from "../integrations/mssqlYear";
+import { clampToSessionYear } from "../lib/sessionYearRange";
 
 const execFile = promisify(execFileCb);
 
@@ -532,13 +533,14 @@ export const accountingRouter = router({
         dateTo: isoDateInput.optional(),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input: rawInput }) => {
       const db = await getDb();
       if (!db)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
+      const input = { ...rawInput, ...clampToSessionYear(rawInput.dateFrom, rawInput.dateTo) };
       const where = whereClause(
         dateRangeConditions("txDate", input.dateFrom, input.dateTo),
       );
@@ -574,13 +576,14 @@ export const accountingRouter = router({
         sortDir: z.enum(["asc", "desc"]).default("desc"),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input: rawInput }) => {
       const db = await getDb();
       if (!db)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "DB unavailable",
         });
+      const input = { ...rawInput, ...clampToSessionYear(rawInput.dateFrom, rawInput.dateTo) };
       const conds = dateRangeConditions("txDate", input.dateFrom, input.dateTo);
       if (input.type === "income") conds.push(sql`income > 0`);
       if (input.type === "expense") conds.push(sql`expense > 0`);
@@ -631,10 +634,12 @@ export const accountingRouter = router({
   accLedgerNavigator: makeAccProcedure("/accounting/ledger").query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
-    const [result] = (await db.execute(sql.raw(
-      `SELECT id, txDate, income, expense, notes, remarks, balance, total
-       FROM accLedger ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC`,
-    ))) as any;
+    const range = clampToSessionYear();
+    const where = whereClause(dateRangeConditions("txDate", range.dateFrom, range.dateTo));
+    const [result] = (await db.execute(
+      sql`SELECT id, txDate, income, expense, notes, remarks, balance, total
+       FROM accLedger${where} ORDER BY txDate ASC, COALESCE(accessId, 999999999) ASC, id ASC`,
+    )) as any;
     return (result as any[]).map((row) => ({
       id: Number(row.id), txDate: String(row.txDate ?? "").slice(0, 10),
       income: Number(row.income ?? 0), expense: Number(row.expense ?? 0),
@@ -644,9 +649,10 @@ export const accountingRouter = router({
 
   accExpenses: makeAccProcedure("/accounting/expenses")
     .input(z.object({ dateFrom: isoDateInput.optional(), dateTo: isoDateInput.optional(), category: z.enum(["all", "instapay", "home", "abu-omar", "dr-saadany", "rent", "salaries", "supplies", "device-maintenance", "advances", "insurance", "taxes"]).default("all"), page: z.number().int().min(1).default(1), pageSize: z.number().int().min(1).max(200).default(50) }))
-    .query(async ({ input }) => {
+    .query(async ({ input: rawInput }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const input = { ...rawInput, ...clampToSessionYear(rawInput.dateFrom, rawInput.dateTo) };
       const where = whereClause([
         ...dateRangeConditions("txDate", input.dateFrom, input.dateTo),
         sql`COALESCE(expense, 0) > 0`,
