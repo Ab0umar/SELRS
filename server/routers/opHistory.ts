@@ -12,6 +12,7 @@ import { TRPCError } from "@trpc/server";
 import {
   router,
   adminProcedure,
+  clinicalStaffProcedure,
   protectedProcedure,
 } from "../_core/procedures";
 import * as db from "../db";
@@ -44,17 +45,17 @@ export const opHistoryRouter = router({
     return await db.syncPatientOperationsFromSources();
   }),
 
-  getTypeCounts: protectedProcedure.query(async () => {
+  getTypeCounts: clinicalStaffProcedure.query(async () => {
     return await db.getPatientOperationTypeCounts();
   }),
 
-  getLinkedOperationTypes: protectedProcedure
+  getLinkedOperationTypes: clinicalStaffProcedure
     .input(z.object({ patientId: z.number().int().positive() }))
     .query(async ({ input }) =>
       db.getLinkedOperationTypesForPatient(input.patientId),
     ),
 
-  listByType: protectedProcedure
+  listByType: clinicalStaffProcedure
     .input(
       z.object({
         operationType: z.string().trim().min(1),
@@ -83,13 +84,13 @@ export const opHistoryRouter = router({
   // and followup pages — resolved from the patient's current requested
   // service code via serviceCodeOpTypeMap. Null when there's nothing to
   // suggest; the field stays exactly as manual entry would leave it.
-  getSuggestedOperationType: protectedProcedure
+  getSuggestedOperationType: clinicalStaffProcedure
     .input(z.object({ patientId: z.number().int().positive() }))
     .query(async ({ input }) => {
       return await db.getSuggestedOperationTypeForPatient(input.patientId);
     }),
 
-  getServiceCodeMappings: protectedProcedure.query(async () => {
+  getServiceCodeMappings: clinicalStaffProcedure.query(async () => {
     return await db.getServiceCodeOpTypeMappings();
   }),
 
@@ -98,7 +99,7 @@ export const opHistoryRouter = router({
   // (SRVCMF) so the mapping UI shows what the code actually is. A code the
   // MSSQL lookup fails/can't find just comes back with an empty name; the
   // mapping flow still works from the code alone.
-  listUnmappedServiceCodes: protectedProcedure.query(async () => {
+  listUnmappedServiceCodes: clinicalStaffProcedure.query(async () => {
     const codes = await db.getUnmappedServiceCodes();
     let names = new Map<string, string>();
     try {
