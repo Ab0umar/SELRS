@@ -9075,22 +9075,26 @@ export async function deleteStockItem(id: number) {
   await db.delete(stockItems).where(eq(stockItems.id, id));
 }
 
+function assertStockQuantity(quantity: number) {
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    throw new Error("Stock quantity must be a positive integer");
+  }
+}
+
 export async function insertStockTransaction(data: InsertStockTransaction) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  assertStockQuantity(data.quantity);
 
   // Start a transaction to update quantity and log movement
   return await db.transaction(async (tx: any) => {
-    // 1. Insert transaction log
-    const result: any = await tx.insert(stockTransactions).values(data);
-    const txId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
-
-    // 2. Get current item
+    // 1. Lock the item row so concurrent movements serialize on it
     const [item] = await tx
       .select()
       .from(stockItems)
       .where(eq(stockItems.id, data.itemId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!item) throw new Error("Item not found");
 
     // 3. Calculate new quantity
@@ -9102,6 +9106,9 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
     }
 
     if (newQuantity < 0) throw new Error("Insufficient stock quantity");
+
+    const result: any = await tx.insert(stockTransactions).values(data);
+    const txId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
 
     await tx
       .update(stockItems)
@@ -9137,6 +9144,7 @@ export async function updateStockTransaction(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  if (updates.quantity !== undefined) assertStockQuantity(updates.quantity);
   return await db.transaction(async (tx: any) => {
     const [txRow] = await tx
       .select()
@@ -9149,7 +9157,8 @@ export async function updateStockTransaction(
       .select()
       .from(stockItems)
       .where(eq(stockItems.id, txRow.itemId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!item) throw new Error("Item not found");
 
     // Reverse the transaction's original effect, then reapply with the new quantity.
@@ -9194,7 +9203,8 @@ export async function deleteStockTransaction(id: number) {
       .select()
       .from(stockItems)
       .where(eq(stockItems.id, txRow.itemId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!item) throw new Error("Item not found");
 
     // Reverse this transaction's effect on the item quantity before deleting it.
