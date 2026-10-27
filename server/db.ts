@@ -1,3 +1,6 @@
+import { buildConsumeRateLimitSql, normalizeRateLimitKey } from "./_core/rateLimitSql";
+import { notKfUploadSql } from "./lib/srv100Uploads";
+import { likeContains } from "./lib/likeEscape";
 import {
   eq,
   and,
@@ -22,6 +25,7 @@ import { deduplicateOperationHistory } from "./lib/operationHistory";
 import { savePrescription, replaceVisitPrescription, replaceVisitTestRequests, type PrescriptionInput } from "./services/prescription-persistence";
 import { savePatientFollowups, type FollowupSaveInput } from "./services/followup-persistence";
 import mysql from "mysql2/promise";
+import { getDbPoolOptions } from "./_core/dbPoolOptions";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -486,8 +490,7 @@ export async function getDb() {
     try {
       _pool = mysql.createPool({
         uri: process.env.DATABASE_URL,
-        connectionLimit: 10,
-        waitForConnections: true,
+        ...getDbPoolOptions(),
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
         connectTimeout: 30000,
@@ -1415,6 +1418,11 @@ export async function getNextPatientCode() {
 }
 
 export async function getPatientById(patientId: number) {
+  if (patientId < 0) {
+    // Negative ids belong to the legacy year databases (see server/lib/legacyYearPatients.ts).
+    const { legacyGetPatientById } = await import("./lib/legacyYearPatients");
+    return await legacyGetPatientById(patientId);
+  }
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1438,22 +1446,45 @@ export async function getPatientByCode(patientCode: string) {
   return result.length > 0 ? decodePatientRow(result[0] as any) : null;
 }
 
+export const SEARCH_PATIENTS_MIN_TERM = 2;
+export const SEARCH_PATIENTS_DEFAULT_LIMIT = 200;
+export const SEARCH_PATIENTS_MAX_LIMIT = 500;
+
 export async function searchPatients(
   searchTerm: string,
   sheetType?: "consultant" | "specialist" | "lasik" | "external" | "pentacam",
   locationType?: "center" | "external",
+  limit: number = SEARCH_PATIENTS_DEFAULT_LIMIT,
 ) {
+  const yearPatients = await import("./lib/legacyYearPatients");
+  const legacyYear = yearPatients.legacyYearForSession();
+  if (legacyYear !== null) {
+    const term = String(searchTerm ?? "").trim();
+    if (term.length < SEARCH_PATIENTS_MIN_TERM) return [];
+    return await yearPatients.legacySearchPatients(
+      legacyYear,
+      term,
+      Math.min(Math.max(1, Math.trunc(Number(limit) || SEARCH_PATIENTS_DEFAULT_LIMIT)), SEARCH_PATIENTS_MAX_LIMIT),
+    );
+  }
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const normalized = String(searchTerm ?? "").trim();
+  // A term shorter than this would match most of the table (an empty or "%" term
+  // used to return every patient with name and phone in a single call).
+  if (normalized.length < SEARCH_PATIENTS_MIN_TERM) return [];
+  const rowLimit = Math.min(
+    Math.max(1, Math.trunc(Number(limit) || SEARCH_PATIENTS_DEFAULT_LIMIT)),
+    SEARCH_PATIENTS_MAX_LIMIT,
+  );
   const tokens = normalized.split(/\s+/).filter(Boolean);
   const legacy = encodeForLegacySearch(normalized);
-  const term = `%${normalized}%`;
-  const legacyTerm = `%${legacy}%`;
+  const term = likeContains(normalized);
+  const legacyTerm = likeContains(legacy);
   const buildTokenClause = (token: string) => {
-    const t = `%${token}%`;
-    const lt = `%${encodeForLegacySearch(token)}%`;
+    const t = likeContains(token);
+    const lt = likeContains(encodeForLegacySearch(token));
     return or(
       like(patients.fullName, t),
       like(patients.fullName, lt),
@@ -1482,16 +1513,11 @@ export async function searchPatients(
     if (sheetType === "pentacam") {
       whereClause = and(textMatch, pentacamEligibilityExpr() as any);
     } else {
-      const rows = await db
-        .select({ patientId: sheetEntries.patientId })
-        .from(sheetEntries)
-        .where(eq(sheetEntries.sheetType, sheetType as any))
-        .groupBy(sheetEntries.patientId);
-      const patientIds = rows
-        .map((row: any) => Number(row.patientId))
-        .filter((id: any) => Number.isFinite(id));
-      if (patientIds.length === 0) return [];
-      whereClause = and(textMatch, inArray(patients.id, patientIds));
+      // EXISTS instead of loading every matching patient id into an IN (...) list.
+      whereClause = and(
+        textMatch,
+        sql`EXISTS (SELECT 1 FROM ${sheetEntries} se WHERE se.patientId = ${patients.id} AND se.sheetType = ${sheetType})` as any,
+      );
     }
   }
 
@@ -1508,9 +1534,14 @@ export async function searchPatients(
     );
   }
 
-  // This powers patient pickers and global search. Do not silently discard
-  // matches: callers render the complete matching set in a scrollable list.
-  const result = await db.select().from(patients).where(whereClause);
+  // Pickers and global search show a bounded, most-recent-first list; the user
+  // narrows the term instead of scrolling the whole table.
+  const result = await db
+    .select()
+    .from(patients)
+    .where(whereClause)
+    .orderBy(desc(patients.id))
+    .limit(rowLimit);
   const enriched = await attachTreatingDoctor(result);
   return enriched.map((row) => decodePatientRow(row as any));
 }
@@ -1718,8 +1749,10 @@ export async function updatePatient(patientId: number, updates: any) {
 export async function deletePatient(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await deletePatientWithAllData(patientId);
-  await db.delete(patients).where(eq(patients.id, patientId));
+  await db.transaction(async (tx: any) => {
+    await deletePatientRows(tx, patientId);
+    await tx.delete(patients).where(eq(patients.id, patientId));
+  });
 }
 
 /**
@@ -1775,7 +1808,13 @@ export async function deleteAllPatientsData() {
 export async function deletePatientWithAllData(patientId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  await db.transaction(async (tx: any) => {
+    await deletePatientRows(tx, patientId);
+  });
+}
 
+// Runs inside a transaction so a failure part-way leaves the patient intact.
+async function deletePatientRows(db: any, patientId: number) {
   // Get all visits for this patient to delete related data
   const patientVisits = await db
     .select({ id: visits.id })
@@ -2539,6 +2578,9 @@ export async function getAllPatients(options?: {
     id: number;
   };
 }) {
+  const legacy = await import("./lib/legacyYearPatients");
+  const legacyYear = legacy.legacyYearForSession();
+  if (legacyYear !== null) return await legacy.legacyGetAllPatients(legacyYear, options);
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -4661,6 +4703,7 @@ export async function getLinkedSrv100UploadsWithPatient(limit = 80000) {
         FROM srv100_uploads bu
         JOIN patients p ON bu.patient_id = p.id
         WHERE bu.patient_id IS NOT NULL AND bu.file_name IS NOT NULL
+          AND ${sql.raw(notKfUploadSql("bu"))}
         LIMIT ${safeLimit}`,
   );
   const rows = Array.isArray(result) ? result[0] : result;
@@ -4707,6 +4750,7 @@ export async function getSrv100UploadsByPatient(
     sql`SELECT id, file_name, mime_type, s3_key, created_at
         FROM srv100_uploads
         WHERE patient_id = ${patientId}
+          AND ${sql.raw(notKfUploadSql())}
         ORDER BY created_at DESC
         LIMIT ${safeLimit}`,
   );
@@ -4829,6 +4873,7 @@ export async function getAllSrv100Uploads(limit = 100000) {
     sql`SELECT id, file_name, created_at, patient_id
         FROM srv100_uploads
         WHERE file_name REGEXP '\\.(jpg|jpeg|png|webp)$'
+          AND ${sql.raw(notKfUploadSql())}
         ORDER BY created_at DESC
         LIMIT ${safeLimit}`,
   );
@@ -5141,28 +5186,26 @@ export async function consumeLoginRateLimit(
 ) {
   const database = await getDb();
   if (!database) return null;
-  const [existing] = await database
-    .select()
-    .from(loginRateLimits)
-    .where(eq(loginRateLimits.key, key))
-    .limit(1);
-  const resetAt =
-    existing && existing.resetAt > now
-      ? existing.resetAt
-      : new Date(now.getTime() + windowMs);
-  const attempts =
-    existing && existing.resetAt > now ? existing.attempts + 1 : 1;
-  await database
-    .insert(loginRateLimits)
-    .values({ key, attempts, resetAt })
-    .onDuplicateKeyUpdate({ set: { attempts, resetAt } });
-  return attempts;
+  const normalizedKey = normalizeRateLimitKey(key);
+  // Upsert and read-back share one connection so the count returned is the one
+  // this call produced (or a later one), never a stale pre-increment value.
+  return await database.transaction(async (tx: any) => {
+    await tx.execute(buildConsumeRateLimitSql(normalizedKey, now, windowMs));
+    const [row] = await tx
+      .select({ attempts: loginRateLimits.attempts })
+      .from(loginRateLimits)
+      .where(eq(loginRateLimits.key, normalizedKey))
+      .limit(1);
+    return Number(row?.attempts ?? 1);
+  });
 }
 
 export async function clearLoginRateLimit(key: string) {
   const database = await getDb();
   if (!database) return;
-  await database.delete(loginRateLimits).where(eq(loginRateLimits.key, key));
+  await database
+    .delete(loginRateLimits)
+    .where(eq(loginRateLimits.key, normalizeRateLimitKey(key)));
 }
 
 /** Joined rows for التقارير الطبية hub (جدول + إحصائيات). */
@@ -9068,22 +9111,26 @@ export async function deleteStockItem(id: number) {
   await db.delete(stockItems).where(eq(stockItems.id, id));
 }
 
+function assertStockQuantity(quantity: number) {
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    throw new Error("Stock quantity must be a positive integer");
+  }
+}
+
 export async function insertStockTransaction(data: InsertStockTransaction) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  assertStockQuantity(data.quantity);
 
   // Start a transaction to update quantity and log movement
   return await db.transaction(async (tx: any) => {
-    // 1. Insert transaction log
-    const result: any = await tx.insert(stockTransactions).values(data);
-    const txId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
-
-    // 2. Get current item
+    // 1. Lock the item row so concurrent movements serialize on it
     const [item] = await tx
       .select()
       .from(stockItems)
       .where(eq(stockItems.id, data.itemId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!item) throw new Error("Item not found");
 
     // 3. Calculate new quantity
@@ -9095,6 +9142,9 @@ export async function insertStockTransaction(data: InsertStockTransaction) {
     }
 
     if (newQuantity < 0) throw new Error("Insufficient stock quantity");
+
+    const result: any = await tx.insert(stockTransactions).values(data);
+    const txId = Number(result?.[0]?.insertId ?? result?.insertId ?? 0);
 
     await tx
       .update(stockItems)
@@ -9130,6 +9180,7 @@ export async function updateStockTransaction(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  if (updates.quantity !== undefined) assertStockQuantity(updates.quantity);
   return await db.transaction(async (tx: any) => {
     const [txRow] = await tx
       .select()
@@ -9142,7 +9193,8 @@ export async function updateStockTransaction(
       .select()
       .from(stockItems)
       .where(eq(stockItems.id, txRow.itemId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!item) throw new Error("Item not found");
 
     // Reverse the transaction's original effect, then reapply with the new quantity.
@@ -9187,7 +9239,8 @@ export async function deleteStockTransaction(id: number) {
       .select()
       .from(stockItems)
       .where(eq(stockItems.id, txRow.itemId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!item) throw new Error("Item not found");
 
     // Reverse this transaction's effect on the item quantity before deleting it.
@@ -9210,6 +9263,39 @@ export async function deleteStockTransaction(id: number) {
 
     return { success: true };
   });
+}
+
+/**
+ * Most recent non-null unit price per stock item (latest transaction id wins),
+ * without scanning the whole transaction history in the application.
+ */
+export async function getLatestStockUnitPrices(): Promise<Map<number, string>> {
+  const db = await getDb();
+  const prices = new Map<number, string>();
+  if (!db) return prices;
+
+  const latest = db
+    .select({
+      itemId: stockTransactions.itemId,
+      maxId: sql<number>`MAX(${stockTransactions.id})`.as("max_id"),
+    })
+    .from(stockTransactions)
+    .where(isNotNull(stockTransactions.unitPrice))
+    .groupBy(stockTransactions.itemId)
+    .as("latest_price");
+
+  const rows = await db
+    .select({
+      itemId: stockTransactions.itemId,
+      unitPrice: stockTransactions.unitPrice,
+    })
+    .from(stockTransactions)
+    .innerJoin(latest, eq(stockTransactions.id, latest.maxId));
+
+  for (const row of rows) {
+    if (row.unitPrice != null) prices.set(row.itemId, row.unitPrice);
+  }
+  return prices;
 }
 
 export async function getStockTransactions(limit = 500) {

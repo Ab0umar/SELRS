@@ -1,4 +1,6 @@
+import { closureApplies } from "../lib/bookingClosureMatch";
 import { z } from "zod";
+import { checkGuestBookingLimits } from "../lib/guestBookingLimits";
 import { TRPCError } from "@trpc/server";
 import {
   router,
@@ -27,6 +29,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { notKfUploadSql } from "../lib/srv100Uploads";
 import { ENV } from "../_core/env";
 import {
   pushAppNotification,
@@ -34,6 +37,7 @@ import {
   DEFAULT_APP_NOTIFICATION_SETTINGS,
 } from "../_core/appNotifications";
 import { sendWebPushToSubscription } from "../_core/webPush";
+import { parseWebPushSubscription } from "../_core/webPushSubscription";
 import { broadcastBookingUpdate } from "../_core/ws";
 import { sendBookingStatusEmail } from "../services/bookingEmail.service";
 import {
@@ -122,6 +126,10 @@ export const patientPortalRouter = router({
           message: "DB unavailable",
         });
 
+      // Match phone and code together: several family members can share a phone,
+      // and one message for both failures keeps the endpoint from revealing which
+      // phone numbers belong to patients.
+      const inputCode = input.patientCode.trim().toLowerCase();
       const [patient] = await db
         .select({
           id: patients.id,
@@ -129,21 +137,15 @@ export const patientPortalRouter = router({
           patientCode: patients.patientCode,
         })
         .from(patients)
-        .where(eq(patients.phone, phone))
+        .where(
+          and(
+            eq(patients.phone, phone),
+            sql`LOWER(TRIM(${patients.patientCode})) = ${inputCode}`,
+          ),
+        )
         .limit(1);
 
-      if (!patient) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "البيانات غير مسجلة — تواصل مع الاستقبال",
-        });
-      }
-
-      const storedCode = String(patient.patientCode ?? "")
-        .trim()
-        .toLowerCase();
-      const inputCode = input.patientCode.trim().toLowerCase();
-      if (!storedCode || storedCode !== inputCode) {
+      if (!patient || !inputCode) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "البيانات غير صحيحة — تواصل مع الاستقبال",
@@ -245,6 +247,7 @@ export const patientPortalRouter = router({
       sql`SELECT id, file_name, mime_type, created_at
           FROM srv100_uploads
           WHERE patient_id = ${ctx.patientSession.patientId}
+            AND ${sql.raw(notKfUploadSql())}
           ORDER BY id DESC
           LIMIT 100`,
     )) as any;
@@ -348,6 +351,7 @@ export const patientPortalRouter = router({
           startDate: bookingClosures.startDate,
           endDate: bookingClosures.endDate,
           bookingType: bookingClosures.bookingType,
+          branch: bookingClosures.branch,
         })
         .from(bookingClosures)
         .where(
@@ -358,11 +362,7 @@ export const patientPortalRouter = router({
         );
       // Only closures that apply to this booking type AND branch (null = all)
       const closures = closureRows
-        .filter(
-          (r: any) =>
-            (r.bookingType == null || r.bookingType === input.bookingType) &&
-            (r.branch == null || r.branch === "" || r.branch === input.branch),
-        )
+        .filter((r: any) => closureApplies(r, input.bookingType, input.branch))
         .map((r: any) => ({
           startDate:
             typeof r.startDate === "string"
@@ -474,7 +474,18 @@ export const patientPortalRouter = router({
         notes: z.string().max(500).optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const limit = await checkGuestBookingLimits(
+        ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown",
+        normalizePhone(input.guestPhone),
+      );
+      if (!limit.allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "عدد الطلبات كبير، حاول مرة أخرى لاحقاً",
+        });
+      }
+
       const db = await getDb();
       if (!db)
         throw new TRPCError({
@@ -497,13 +508,15 @@ export const patientPortalRouter = router({
 
       const typeLabel2 =
         BOOKING_TYPE_LABELS[input.bookingType] ?? input.bookingType;
-      void sendBookingReceiptWhatsApp({
-        recipientPhone: input.guestPhone,
-        patientName: input.guestName,
-        requestKey: `booking-received:${normalizePhone(input.guestPhone)}:${Math.floor(Date.now() / 300000)}`,
-      }).catch(() =>
-        console.error("[booking-whatsapp] Receipt could not be recorded"),
-      );
+      if (limit.firstForPhone) {
+        void sendBookingReceiptWhatsApp({
+          recipientPhone: input.guestPhone,
+          patientName: input.guestName,
+          requestKey: `booking-received:${normalizePhone(input.guestPhone)}:${Math.floor(Date.now() / 300000)}`,
+        }).catch(() =>
+          console.error("[booking-whatsapp] Receipt could not be recorded"),
+        );
+      }
       getAppNotificationSettings()
         .catch(() => DEFAULT_APP_NOTIFICATION_SETTINGS)
         .then((ns) => {
@@ -860,8 +873,14 @@ export const patientPortalRouter = router({
     }),
 
   registerPatientPushToken: patientPortalProcedure
-    .input(z.object({ subscription: z.string().min(10) }))
+    .input(z.object({ subscription: z.string().min(10).max(4096) }))
     .mutation(async ({ ctx, input }) => {
+      if (!parseWebPushSubscription(input.subscription)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid push subscription",
+        });
+      }
       const db = await getDb();
       if (!db)
         throw new TRPCError({
@@ -956,7 +975,13 @@ export const patientPortalRouter = router({
           ),
         );
       }
-      if (input.status === "confirmed" || input.status === "cancelled") {
+      // A resend for an unchanged status needs an explicit request id from the
+      // UI; a plain edit (notes, patient link) must not message the patient again.
+      const shouldSendWhatsApp = statusChanged || Boolean(input.confirmationRequestId);
+      if (
+        shouldSendWhatsApp &&
+        (input.status === "confirmed" || input.status === "cancelled")
+      ) {
         void sendBookingStatusWhatsApp({
           requestKey: `booking-status:${input.id}:${input.status}:${input.confirmationRequestId ?? Math.floor(Date.now() / 10000)}`,
           recipientPhone: booking.patientPhone ?? booking.guestPhone,

@@ -8,6 +8,11 @@ import type { User } from "../../drizzle/schema";
 import { COOKIE_NAME } from "@shared/const";
 import { ENV } from "./env";
 import { randomUUID } from "node:crypto";
+import {
+  currentMssqlYear,
+  getMssqlYear,
+  isMssqlYearAuto,
+} from "../integrations/mssqlYear";
 
 export const AUTH_COOKIE_NAME = COOKIE_NAME;
 export const LEGACY_AUTH_COOKIE_NAME = "authToken";
@@ -87,6 +92,8 @@ export type SessionPayload = {
   branch: string;
   authVersion?: number;
   jti?: string;
+  /** MSSQL database year picked at login; null/absent = automatic (follows the calendar). */
+  mssqlYear?: number | null;
 };
 
 class LocalAuthService {
@@ -139,7 +146,11 @@ class LocalAuthService {
     username: string,
     role: string,
     branch: string,
-    options: { expiresInMs?: number; authVersion?: number } = {},
+    options: {
+      expiresInMs?: number;
+      authVersion?: number;
+      mssqlYear?: number | null;
+    } = {},
   ): Promise<string> {
     const expiresIn = options.expiresInMs
       ? Math.floor(options.expiresInMs / 1000)
@@ -152,6 +163,7 @@ class LocalAuthService {
         role,
         branch,
         authVersion: options.authVersion ?? 1,
+        mssqlYear: options.mssqlYear ?? null,
         jti,
       },
       ENV.JWT_SECRET,
@@ -264,7 +276,7 @@ export function registerAuthRoutes(app: Express) {
     trackLoginAttempt,
     async (req: Request, res: Response) => {
       try {
-        const { username, password, rememberMe } = req.body;
+        const { username, password, rememberMe, year } = req.body;
 
         if (!username || !password) {
           res.status(400).json({ error: "Username and password are required" });
@@ -302,6 +314,17 @@ export function registerAuthRoutes(app: Express) {
         loginRateLimit.delete(rateLimitKey);
         await db.clearLoginRateLimit(rateLimitKey);
 
+        // The year chosen on the login screen; checked only after the password so
+        // an anonymous caller cannot probe which databases exist.
+        const { resolveLoginYear } = await import(
+          "../integrations/mssqlYears"
+        );
+        const loginYear = await resolveLoginYear(year);
+        if (!loginYear.ok) {
+          res.status(400).json({ error: "السنة المختارة غير متاحة" });
+          return;
+        }
+
         // Create session token
         const sessionToken = await authService.createSessionToken(
           user.id,
@@ -311,6 +334,7 @@ export function registerAuthRoutes(app: Express) {
           {
             expiresInMs: rememberMe !== false ? ONE_YEAR_MS : 86400000,
             authVersion: user.authVersion,
+            mssqlYear: loginYear.year,
           },
         );
 
@@ -354,10 +378,31 @@ export function registerAuthRoutes(app: Express) {
             branch: user.branch,
             mustChangePassword,
           },
+          mssqlYear: loginYear.year ?? currentMssqlYear(),
+          mssqlYearAuto: loginYear.year === null,
         });
       } catch (error) {
         console.error("[Auth] Login failed", error);
         res.status(500).json({ error: "Login failed" });
+      }
+    },
+  );
+
+  // Years selectable on the login screen (public: only year numbers, no names or data).
+  app.get(
+    "/api/auth/mssql-years",
+    authStatusRateLimiter,
+    async (_req: Request, res: Response) => {
+      try {
+        const { listAvailableMssqlYears } = await import(
+          "../integrations/mssqlYears"
+        );
+        res.json({
+          current: currentMssqlYear(),
+          years: await listAvailableMssqlYears(),
+        });
+      } catch {
+        res.json({ current: currentMssqlYear(), years: [currentMssqlYear()] });
       }
     },
   );
@@ -427,6 +472,8 @@ export function registerAuthRoutes(app: Express) {
             branch: user.branch,
             mustChangePassword: await db.isPasswordChangeRequired(user.id),
           },
+          mssqlYear: getMssqlYear(),
+          mssqlYearAuto: isMssqlYearAuto(),
         });
       } catch (error) {
         res.status(401).json({ error: "Not authenticated" });

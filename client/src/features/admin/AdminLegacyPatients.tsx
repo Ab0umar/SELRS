@@ -36,12 +36,22 @@ const YEAR_OPTIONS = [
   { value: "2025", label: "2025" },
   { value: "2024", label: "2024" },
   { value: "2023", label: "2023" },
+  { value: "2022", label: "2022" },
+  { value: "2021", label: "2021" },
+  { value: "2020", label: "2020" },
+  { value: "2019", label: "2019" },
+  { value: "2018", label: "2018" },
+  { value: "2017", label: "2017" },
+  { value: "2016", label: "2016" },
+  { value: "2015", label: "2015" },
+  { value: "2014", label: "2014" },
+  { value: "2013", label: "2013" },
 ] as const;
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
 
 export default function AdminLegacyPatients() {
-  const [year, setYear] = useState<"2023" | "2024" | "2025" | "2026">("2026");
+  const [year, setYear] = useState<(typeof YEAR_OPTIONS)[number]["value"]>("2026");
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -65,7 +75,7 @@ export default function AdminLegacyPatients() {
   };
 
   const handleYearChange = (value: string) => {
-    setYear(value as "2023" | "2024" | "2025" | "2026");
+    setYear(value as (typeof YEAR_OPTIONS)[number]["value"]);
     setPage(1);
   };
 

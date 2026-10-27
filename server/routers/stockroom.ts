@@ -13,6 +13,8 @@ import {
   pushAppNotification,
 } from "../_core/appNotifications";
 
+const stockQuantity = z.number().int().positive().max(100000);
+
 async function notifyStockShortage(itemId: number) {
   try {
     const [settings, item] = await Promise.all([
@@ -46,24 +48,14 @@ export const stockroomRouter = router({
   matchEyeDropsWithEgyptianReference: makeStockroomProcedure(
     "/stockroom",
   ).query(async () => {
-    const [items, transactions] = await Promise.all([
+    const [items, latestPriceByItem] = await Promise.all([
       db.getStockItems("قطرات العين"),
-      db.getStockTransactions(10_000),
+      db.getLatestStockUnitPrices(),
     ]);
     const matches = await matchEgyptianDrugReference(
       items.map((item: StockItem) => item.name),
       ["drops", "ointment"],
     );
-    const latestPriceByItem = new Map<number, string>();
-    for (const transaction of transactions) {
-      if (
-        transaction.unitPrice != null &&
-        !latestPriceByItem.has(transaction.itemId)
-      ) {
-        latestPriceByItem.set(transaction.itemId, transaction.unitPrice);
-      }
-    }
-
     const matchedItems = items.flatMap((item: StockItem, index: number) => {
       const result = matches[index];
       if (!result?.match) return [];
@@ -134,19 +126,10 @@ export const stockroomRouter = router({
   getItems: makeStockroomProcedure("/stockroom")
     .input(z.object({ category: z.string().optional() }))
     .query(async ({ input }) => {
-      const [items, transactions] = await Promise.all([
+      const [items, latestPriceByItem] = await Promise.all([
         db.getStockItems(input.category),
-        db.getStockTransactions(10_000),
+        db.getLatestStockUnitPrices(),
       ]);
-      const latestPriceByItem = new Map<number, string>();
-      for (const transaction of transactions) {
-        if (
-          transaction.unitPrice != null &&
-          !latestPriceByItem.has(transaction.itemId)
-        ) {
-          latestPriceByItem.set(transaction.itemId, transaction.unitPrice);
-        }
-      }
 
       return items.map((item: StockItem) => ({
         ...item,
@@ -201,9 +184,9 @@ export const stockroomRouter = router({
             expiryDate: z.string().optional(),
           })
           .optional(),
-        quantity: z.number(),
-        unitPrice: z.number().optional(),
-        totalValue: z.number().optional(),
+        quantity: stockQuantity,
+        unitPrice: z.number().min(0).optional(),
+        totalValue: z.number().min(0).optional(),
         transactionDate: z.string().optional(),
       }),
     )
@@ -251,7 +234,7 @@ export const stockroomRouter = router({
     .input(
       z.object({
         itemId: z.number(),
-        quantity: z.number(),
+        quantity: stockQuantity,
         employeeName: z.string().optional(),
         destination: z.enum(["بيع", "عمليات", "عيادات"]),
         transactionDate: z.string().optional(),
@@ -330,9 +313,9 @@ export const stockroomRouter = router({
     .input(
       z.object({
         id: z.number(),
-        quantity: z.number().optional(),
-        unitPrice: z.number().optional(),
-        totalValue: z.number().optional(),
+        quantity: stockQuantity.optional(),
+        unitPrice: z.number().min(0).optional(),
+        totalValue: z.number().min(0).optional(),
         employeeName: z.string().optional(),
         destination: z.string().optional(),
       }),

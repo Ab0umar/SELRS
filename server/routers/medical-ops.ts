@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { parseWebPushSubscription } from "../_core/webPushSubscription";
+import {
+  canonicalSettingKey,
+  isStaffReadableSetting,
+} from "./_medical/systemSettingAccess";
 import { operationBookingSchema } from "../../shared/operationBooking";
 import {
   PRINT_SETTINGS_KEY,
@@ -17,6 +22,7 @@ import {
   technicianProcedure,
   receptionProcedure,
   managerProcedure,
+  medicalManagerProcedure,
   adminProcedure,
   medicalStaffProcedure,
   makePageProcedure,
@@ -67,7 +73,6 @@ import {
 
 import {
   canPushToMssql,
-  findExistingPatientByNameOrPhone,
   normalizePhoneKey,
   pushNewPatientToMssql,
   readDoctorNameFromStateData,
@@ -1196,7 +1201,7 @@ export const medicalOpsRoutes = {
     return await db.getMedicalConditionReportTemplates();
   }),
 
-  saveMedicalConditionReportTemplate: managerProcedure
+  saveMedicalConditionReportTemplate: medicalManagerProcedure
     .input(
       z.object({
         id: z.number().optional(),
@@ -1211,7 +1216,7 @@ export const medicalOpsRoutes = {
       return await db.upsertMedicalConditionReportTemplate(input);
     }),
 
-  deleteMedicalConditionReportTemplate: managerProcedure
+  deleteMedicalConditionReportTemplate: medicalManagerProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await db.deleteMedicalConditionReportTemplate(input.id);
@@ -1337,7 +1342,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  deleteMedicalReport: managerProcedure
+  deleteMedicalReport: medicalManagerProcedure
     .input(z.object({ reportId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteDoctorReport(input.reportId);
@@ -1351,7 +1356,7 @@ export const medicalOpsRoutes = {
       return { success: true };
     }),
 
-  getAuditLogs: managerProcedure
+  getAuditLogs: medicalManagerProcedure
     .input(
       z.object({
         limit: z.number().default(100),
@@ -2234,13 +2239,10 @@ export const medicalOpsRoutes = {
   getSystemSetting: protectedProcedure
     .input(z.object({ key: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
-      const requestedKey = input.key.trim().toLowerCase();
+      const requestedKey = canonicalSettingKey(input.key);
       if (
         String(ctx.user.role ?? "").toLowerCase() !== "admin" &&
-        (requestedKey === "team_permissions_v1" ||
-          requestedKey.startsWith("mssql_") ||
-          requestedKey.startsWith("attendance_") ||
-          requestedKey.startsWith("op_reminder_"))
+        !isStaffReadableSetting(requestedKey)
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -2248,7 +2250,7 @@ export const medicalOpsRoutes = {
         });
       }
       if (
-        input.key === "appointments_pricing_v1" &&
+        requestedKey === "appointments_pricing_v1" &&
         String(ctx.user.role ?? "").toLowerCase() !== "admin"
       ) {
         const role = String(ctx.user.role ?? "").toLowerCase();
@@ -2305,7 +2307,7 @@ export const medicalOpsRoutes = {
   registerPushDeviceToken: protectedProcedure
     .input(
       z.object({
-        token: z.string().min(20),
+        token: z.string().min(20).max(4096),
         platform: z.enum(["android", "ios", "web"]),
         deviceId: z.string().min(1).max(191),
         appVersion: z.string().max(64).optional(),
@@ -2313,6 +2315,12 @@ export const medicalOpsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (input.platform === "web" && !parseWebPushSubscription(input.token)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid push subscription",
+        });
+      }
       const registrationId = await db.upsertPushDeviceRegistration({
         userId: ctx.user.id,
         provider: "fcm",

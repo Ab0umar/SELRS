@@ -36,6 +36,12 @@ export default function Home() {
   );
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // Accounting database year; "auto" follows the calendar year (switches by itself on 1 January).
+  const [mssqlYear, setMssqlYear] = useState("auto");
+  const [yearOptions, setYearOptions] = useState<{
+    current: number;
+    years: number[];
+  } | null>(null);
   const [rememberMe, setRememberMe] = useState(() =>
     typeof window !== "undefined"
       ? window.localStorage.getItem("remember_me") !== "0"
@@ -61,6 +67,22 @@ export default function Home() {
   useEffect(() => subscribeNetworkStatus((s) => setIsOnline(s.connected)), []);
 
   useEffect(() => {
+    let cancelled = false;
+    void fetch(getApiUrl("/api/auth/mssql-years"))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data || !Array.isArray(data.years)) return;
+        setYearOptions({ current: Number(data.current), years: data.years.map(Number) });
+      })
+      .catch(() => {
+        // Offline or MSSQL unreachable: keep the automatic year only.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     void hydrateDurableValue(NATIVE_LAST_USERNAME_KEY, "last_username").then(
       (stored) => {
         if (stored) setUsername(stored);
@@ -76,7 +98,7 @@ export default function Home() {
       const res = await fetch(getApiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, rememberMe }),
+        body: JSON.stringify({ username, password, rememberMe, year: mssqlYear }),
         credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
@@ -207,6 +229,27 @@ export default function Home() {
               </Button>
             </div>
           </div>
+          {yearOptions && yearOptions.years.length > 1 ? (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" htmlFor="mssql-year">السنة</label>
+              <select
+                id="mssql-year"
+                value={mssqlYear}
+                onChange={(e) => setMssqlYear(e.target.value)}
+                className="h-12 w-full rounded-md border border-input bg-card px-3 text-sm"
+                disabled={submitting}
+              >
+                <option value="auto">تلقائي (سنة {yearOptions.current})</option>
+                {yearOptions.years
+                  .filter((year) => year !== yearOptions.current)
+                  .map((year) => (
+                    <option key={year} value={String(year)}>
+                      {year} (قراءة فقط لغير الأدمن)
+                    </option>
+                  ))}
+              </select>
+            </div>
+          ) : null}
           <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
             <input
               type="checkbox"

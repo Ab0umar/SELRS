@@ -42,30 +42,22 @@ const SILENT_API_PATH_FRAGMENTS = [
   "app_notification_settings_v1",
   "app_notifications_feed_v1",
 ];
+// Only shared reference data. Patient state, user lists and permissions are PHI/PII
+// or per-user, and this cache is not tied to a user.
 const SAFE_QUERY_FRAGMENTS = [
   "medical.getDoctorDirectory",
   "medical.getServiceDirectory",
   "medical.getSystemSetting",
   "medical.getUserPageState",
-  "medical.getPatientPageState",
   "medical.getAllTests",
   "medical.getAllMedications",
-  "medical.getAllUsers",
-  "medical.getTeamPermissions",
-  "medical.getUserPermissionState",
-  "medical.getPatientStats",
   // trpc queryKey serialization often splits segments; keep a permissive fallback
   "getDoctorDirectory",
   "getServiceDirectory",
   "getSystemSetting",
   "getUserPageState",
-  "getPatientPageState",
   "getAllTests",
   "getAllMedications",
-  "getAllUsers",
-  "getTeamPermissions",
-  "getUserPermissionState",
-  "getPatientStats",
 ];
 
 type PersistedQueryEntry = {
@@ -341,6 +333,15 @@ const savePersistedQueryEntries = (entries: PersistedQueryEntry[]) => {
     );
   } catch {
     // Ignore storage quota/serialization failures.
+  }
+};
+
+export const clearOfflineQueryCache = () => {
+  if (!canUseBrowserStorage()) return;
+  try {
+    window.localStorage.removeItem(QUERY_CACHE_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures.
   }
 };
 

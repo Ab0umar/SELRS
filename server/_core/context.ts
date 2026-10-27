@@ -3,6 +3,7 @@ import type { User } from "../../drizzle/schema";
 import { authService } from "./auth";
 import jwt from "jsonwebtoken";
 import { ENV } from "./env";
+import { setMssqlRequestUser } from "../integrations/mssqlYear";
 import { getDb } from "../db";
 import { externalDoctors, patientPortalSessions } from "../../drizzle/schema";
 import { and, eq, gt } from "drizzle-orm";
@@ -36,6 +37,9 @@ export async function createContext(
   } catch {
     user = null;
   }
+
+  // Lets the MSSQL layer decide (from the DB role, not the token) who may write an older year.
+  setMssqlRequestUser(user);
 
   let patientSession: PatientSession | null = null;
   try {

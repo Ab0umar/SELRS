@@ -26,6 +26,7 @@ import { whatsappInboxRouter } from "./routers/whatsappInbox";
 import {whatsappConfirmationsRouter} from "./routers/whatsappConfirmations";
 import { autoReplyRouter } from "./routers/autoReply";
 import * as db from "./db";
+import { getMssqlYear, isMssqlYearAuto } from "./integrations/mssqlYear";
 import {
   authService,
   AUTH_COOKIE_NAME,
@@ -48,6 +49,8 @@ export const appRouter = router({
       return {
         ...userWithoutPassword,
         mustChangePassword,
+        mssqlYear: getMssqlYear(),
+        mssqlYearAuto: isMssqlYearAuto(),
       };
     }),
     updateProfile: protectedProcedure

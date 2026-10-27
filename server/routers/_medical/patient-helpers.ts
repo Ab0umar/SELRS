@@ -91,45 +91,108 @@ export function normalizePhoneKey(value: unknown): string {
   return digits || raw.toLowerCase();
 }
 
-export async function findExistingPatientByNameOrPhone(
+// Arabic diacritics (U+064B-U+065F, U+0670) and tatweel (U+0640).
+const DIACRITICS_AND_TATWEEL = new RegExp(
+  `[${String.fromCharCode(0x064b)}-${String.fromCharCode(0x065f)}${String.fromCharCode(0x0670)}${String.fromCharCode(0x0640)}]`,
+  "g",
+);
+
+/** Name as written by reception: spacing, diacritics and the usual alef/ya/ta-marbuta variants ignored. */
+export function canonicalPatientName(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(DIACRITICS_AND_TATWEEL, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Egyptian numbers compared as 01XXXXXXXXX whether typed with +20, 0020 or the leading zero. */
+export function canonicalPatientPhone(value: unknown): string {
+  const digits = normalizePhoneKey(value);
+  if (/^0020\d{10}$/.test(digits)) return `0${digits.slice(4)}`;
+  if (/^20\d{10}$/.test(digits)) return `0${digits.slice(2)}`;
+  return digits;
+}
+
+/** Substring that finds the number however it was stored (01..., +201..., spaces): its last 10 digits. */
+function phoneSearchKey(value: unknown): string {
+  const phone = canonicalPatientPhone(value);
+  return phone.length >= 10 ? phone.slice(-10) : phone;
+}
+
+function phonesOf(patient: any): string[] {
+  return [patient?.phone, patient?.alternatePhone]
+    .map(canonicalPatientPhone)
+    .filter(Boolean);
+}
+
+/**
+ * The same person is only assumed when BOTH the name and a phone number match.
+ * One phone number usually belongs to a whole family and common names repeat,
+ * so either one alone must never merge two records (use
+ * findPossibleDuplicatePatients to warn about those instead).
+ */
+export async function findExistingPatientByNameAndPhone(
   fullNameRaw?: string | null,
   phoneRaw?: string | null,
 ) {
-  const fullName = String(fullNameRaw ?? "").trim();
-  const phone = String(phoneRaw ?? "").trim();
-  if (!fullName && !phone) return null;
+  const name = canonicalPatientName(fullNameRaw);
+  const phone = canonicalPatientPhone(phoneRaw);
+  if (!name || !phone) return null;
 
-  const byId = new Map<number, any>();
-  const collect = (rows: any[]) => {
-    for (const row of rows ?? []) {
-      const id = Number((row as any)?.id ?? 0);
-      if (!Number.isFinite(id) || id <= 0) continue;
-      if (!byId.has(id)) byId.set(id, row);
-    }
+  const candidates = await db.searchPatients(phoneSearchKey(phoneRaw));
+  return (
+    (candidates ?? []).find(
+      (candidate: any) =>
+        canonicalPatientName(candidate?.fullName) === name &&
+        phonesOf(candidate).includes(phone),
+    ) ?? null
+  );
+}
+
+export type PossibleDuplicatePatient = {
+  id: number;
+  patientCode: string;
+  fullName: string;
+  phone: string | null;
+  matchedOn: "name" | "phone";
+};
+
+/** Records sharing only the name or only a phone number with a new patient: shown to the user, never merged. */
+export async function findPossibleDuplicatePatients(
+  fullNameRaw?: string | null,
+  phoneRaw?: string | null,
+  limit = 5,
+): Promise<PossibleDuplicatePatient[]> {
+  const name = canonicalPatientName(fullNameRaw);
+  const phone = canonicalPatientPhone(phoneRaw);
+  const byId = new Map<number, PossibleDuplicatePatient>();
+  const add = (candidate: any, matchedOn: "name" | "phone") => {
+    const id = Number(candidate?.id ?? 0);
+    if (!Number.isFinite(id) || id <= 0 || byId.has(id)) return;
+    byId.set(id, {
+      id,
+      patientCode: String(candidate?.patientCode ?? ""),
+      fullName: String(candidate?.fullName ?? ""),
+      phone: candidate?.phone ? String(candidate.phone) : null,
+      matchedOn,
+    });
   };
-
-  if (fullName) collect(await db.searchPatients(fullName));
-  if (phone && phone !== fullName) collect(await db.searchPatients(phone));
-  if (byId.size === 0) return null;
-
-  const targetName = fullName.toLowerCase();
-  const targetPhone = normalizePhoneKey(phone);
-  const candidates = Array.from(byId.values());
-  for (const candidate of candidates) {
-    const candidateName = String((candidate as any)?.fullName ?? "")
-      .trim()
-      .toLowerCase();
-    const candidatePhone = normalizePhoneKey((candidate as any)?.phone ?? "");
-    const candidateAltPhone = normalizePhoneKey(
-      (candidate as any)?.alternatePhone ?? "",
-    );
-    const nameMatch = Boolean(targetName) && candidateName === targetName;
-    const phoneMatch =
-      Boolean(targetPhone) &&
-      (candidatePhone === targetPhone || candidateAltPhone === targetPhone);
-    if (nameMatch || phoneMatch) return candidate;
+  if (phone) {
+    for (const candidate of (await db.searchPatients(phoneSearchKey(phoneRaw))) ?? []) {
+      if (phonesOf(candidate).includes(phone)) add(candidate, "phone");
+    }
   }
-  return null;
+  if (name) {
+    for (const candidate of (await db.searchPatients(String(fullNameRaw ?? "").trim())) ?? []) {
+      if (canonicalPatientName((candidate as any)?.fullName) === name) add(candidate, "name");
+    }
+  }
+  return Array.from(byId.values()).slice(0, limit);
 }
 
 export async function findExistingPatientByNameAgeAndPhone(
@@ -167,28 +230,33 @@ export async function findExistingPatientByNameAgeAndPhone(
 export async function findExistingPatientByPhoneAndDob(
   phoneRaw?: string | null,
   dateOfBirthRaw?: string | null,
+  fullNameRaw?: string | null,
 ) {
   const phone = String(phoneRaw ?? "").trim();
   const dob = String(dateOfBirthRaw ?? "").trim();
   if (!phone || !dob) return null;
 
-  const targetPhone = normalizePhoneKey(phone);
+  const targetPhone = canonicalPatientPhone(phone);
   const targetDob = dob.slice(0, 10);
+  const targetName = canonicalPatientName(fullNameRaw);
   if (!targetPhone) return null;
 
-  const rows = await db.searchPatients(phone);
+  const rows = await db.searchPatients(phoneSearchKey(phone));
   for (const candidate of rows ?? []) {
-    const candidatePhone = normalizePhoneKey((candidate as any)?.phone ?? "");
-    const candidateAltPhone = normalizePhoneKey(
-      (candidate as any)?.alternatePhone ?? "",
-    );
     const candidateDob = String((candidate as any)?.dateOfBirth ?? "").slice(
       0,
       10,
     );
-    const phoneMatch =
-      candidatePhone === targetPhone || candidateAltPhone === targetPhone;
-    if (phoneMatch && candidateDob === targetDob) return candidate;
+    // Siblings (twins) share a phone and a birth date, so the name has to agree too.
+    if (
+      targetName &&
+      canonicalPatientName((candidate as any)?.fullName) !== targetName
+    ) {
+      continue;
+    }
+    if (phonesOf(candidate).includes(targetPhone) && candidateDob === targetDob) {
+      return candidate;
+    }
   }
   return null;
 }

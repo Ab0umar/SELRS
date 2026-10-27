@@ -20,6 +20,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
+import { notKfUploadSql } from "../lib/srv100Uploads";
 import bcryptjs from "bcryptjs";
 import { ENV } from "../_core/env";
 import { listObjectsInS3 } from "../_core/s3";
@@ -181,7 +182,7 @@ export const doctorPortalRouter = router({
         .where(
           and(
             eq(patients.doctorCode, doctor.doctorCode),
-            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} AND ${sql.raw(notKfUploadSql())} LIMIT 1)`,
           ),
         )
         .orderBy(desc(patients.lastVisit));
@@ -214,7 +215,7 @@ export const doctorPortalRouter = router({
         .where(
           and(
             sql`${patients.patientCode} IN ${codes}`,
-            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} LIMIT 1)`,
+            sql`EXISTS (SELECT 1 FROM srv100_uploads WHERE patient_id = ${patients.id} AND ${sql.raw(notKfUploadSql())} LIMIT 1)`,
           ),
         );
 
@@ -312,17 +313,16 @@ export const doctorPortalRouter = router({
         }
       }
 
-      // Look up patient DB id and profile details
+      // Look up patient DB id and profile details. Contact details (phone,
+      // address) stay out: the referring doctor reads results, not contacts.
       const [patient] = await db
         .select({
           id: patients.id,
           fullName: patients.fullName,
           patientCode: patients.patientCode,
-          phone: patients.phone,
           dateOfBirth: patients.dateOfBirth,
           age: patients.age,
           gender: patients.gender,
-          address: patients.address,
           medicalHistory: patients.medicalHistory,
           allergies: patients.allergies,
           serviceType: patients.serviceType,
@@ -345,6 +345,7 @@ export const doctorPortalRouter = router({
         sql`SELECT id, file_name, mime_type, created_at
             FROM srv100_uploads
             WHERE patient_id = ${patient.id}
+              AND ${sql.raw(notKfUploadSql())}
             ORDER BY id DESC
             LIMIT 200`,
       )) as any;

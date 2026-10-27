@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { patientUpdatesSchema } from "./_medical/patient-update-fields";
 import { TRPCError } from "@trpc/server";
 import {
   router,
@@ -49,7 +50,7 @@ export const patientRouter = router({
     .input(
       z.object({
         patientId: z.number(),
-        updates: z.record(z.string(), z.any()),
+        updates: patientUpdatesSchema,
       }),
     )
     .mutation(async ({ input, ctx }) => {

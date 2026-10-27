@@ -1,3 +1,4 @@
+import { createTrpcCredentialGuard } from "./trpcCredentialGuard";
 import "dotenv/config";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
@@ -19,6 +20,10 @@ import os from "node:os";
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { updatesGuard } from "./updatesGuard";
+import { KF_EXAM_SOURCE, notKfUploadSql } from "../lib/srv100Uploads";
+import { permMatchesPath } from "./procedures";
+import { mssqlYearContext } from "./mssqlYearContext";
 import { authService, registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
 import { registerWhatsAppWebhook } from "./whatsappWebhook";
@@ -53,6 +58,9 @@ import {
   getPresignedUrlFromS3,
 } from "./s3";
 import * as db from "../db";
+import { walkByKeyset } from "../lib/keysetBatches";
+import { startExpiredRowsPurge } from "../lib/purgeExpiredRows";
+import { parseTrustProxy } from "./trustProxy";
 const execFile = promisify(execFileCb);
 
 type Srv100UploadRow = {
@@ -998,7 +1006,11 @@ async function withDb<T>(run: (conn: mysql.Connection) => Promise<T>) {
 async function canReadSrv100Upload(
   req: express.Request,
   patientId: number | null,
+  sourcePrinter?: string | null,
 ): Promise<boolean> {
+  // KF exam images belong to a different patient id space than patients.id: only
+  // KF staff may open them, never a patient or external doctor whose id merely matches.
+  if (sourcePrinter === KF_EXAM_SOURCE) return canReadKfUpload(req);
   if (await authService.authenticateRequest(req)) return true;
   if (!patientId) return false;
 
@@ -1058,6 +1070,24 @@ async function canReadSrv100Upload(
   } catch {
     return false;
   }
+}
+
+async function canReadKfUpload(req: express.Request): Promise<boolean> {
+  const user = await authService.authenticateRequest(req);
+  if (!user) return false;
+  if (user.role === "admin" || user.role === "accountant") return true;
+  const permissions = await db.getEffectiveUserPermissions(
+    user.id,
+    user.role ?? undefined,
+  );
+  return permissions.some((permission) =>
+    permMatchesPath(
+      String(permission ?? "")
+        .replace(/:r[w]?$/, "")
+        .trim(),
+      "/kf/patients",
+    ),
+  );
 }
 
 async function startSrv100FolderImporter() {
@@ -1547,6 +1577,7 @@ export async function startPentacamServices(): Promise<void> {
 
 async function startServer() {
   const app = express();
+  app.set("trust proxy", parseTrustProxy(process.env.TRUST_PROXY, process.env.NODE_ENV));
   const server = createServer(app);
   // Increase timeout for long-running operations like patient sync (10 minutes)
   server.setTimeout(600_000);
@@ -1734,7 +1765,7 @@ async function startServer() {
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
              FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
-             WHERE b.patient_id = ?
+             WHERE b.patient_id = ? AND ${notKfUploadSql("b")}
              ORDER BY b.id DESC
              LIMIT ?`,
               [patientId, limit],
@@ -1749,9 +1780,10 @@ async function startServer() {
                     b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
              FROM srv100_uploads b
              LEFT JOIN patients p ON p.id = b.patient_id
-             WHERE b.document_id LIKE ? OR b.file_name LIKE ? OR p.fullName LIKE ? OR p.patientCode LIKE ?
+             WHERE (b.document_id LIKE ? OR b.file_name LIKE ? OR p.fullName LIKE ? OR p.patientCode LIKE ?
                    OR b.ocr_text LIKE ? OR b.plain_text LIKE ?
-             ${isNumericSearch ? "OR b.id = ? OR b.patient_id = ?" : ""}
+             ${isNumericSearch ? "OR b.id = ? OR b.patient_id = ?" : ""})
+                   AND ${notKfUploadSql("b")}
              ORDER BY b.id DESC
              LIMIT ?`,
               isNumericSearch
@@ -1784,6 +1816,7 @@ async function startServer() {
                   b.patient_id, p.fullName AS patient_name, p.patientCode AS patient_code, b.created_at
            FROM srv100_uploads b
            LEFT JOIN patients p ON p.id = b.patient_id
+           WHERE ${notKfUploadSql("b")}
            ORDER BY b.id DESC
            LIMIT ?`,
             [limit],
@@ -1836,7 +1869,7 @@ async function startServer() {
       // First query: metadata only — no file_data BLOB (can be multi-MB, wasteful if s3_key exists)
       const row = await withDb(async (conn) => {
         const [result] = await conn.query(
-          `SELECT id, document_id, file_name, mime_type, s3_key, patient_id, created_at
+          `SELECT id, document_id, file_name, mime_type, s3_key, patient_id, source_printer, created_at
            FROM srv100_uploads
            WHERE id = ?
            LIMIT 1`,
@@ -1850,6 +1883,7 @@ async function startServer() {
               mime_type: string | null;
               s3_key: string | null;
               patient_id: number | null;
+              source_printer: string | null;
               created_at: Date | string;
             }
           | undefined;
@@ -1860,7 +1894,7 @@ async function startServer() {
         return;
       }
 
-      if (!(await canReadSrv100Upload(req, row.patient_id))) {
+      if (!(await canReadSrv100Upload(req, row.patient_id, row.source_printer))) {
         res.status(403).json({ ok: false, error: "Upload access denied" });
         return;
       }
@@ -2087,6 +2121,66 @@ async function startServer() {
         let linked = 0;
         let processed = 0;
         const BATCH = 2000;
+        await walkByKeyset(
+          (afterId, limit) =>
+            withDb(async (conn) => {
+              const [result] = await conn.query(
+                `SELECT id, document_id, file_name
+             FROM srv100_uploads
+             WHERE patient_id IS NULL AND id > ?
+             ORDER BY id ASC
+             LIMIT ?`,
+                [afterId, limit],
+              );
+              return result as Array<{
+                id: number;
+                document_id: string;
+                file_name: string | null;
+              }>;
+            }),
+          BATCH,
+          (rows) =>
+            withDb(async (conn) => {
+              for (const row of rows) {
+                processed += 1;
+                const candidates = Array.from(
+                  new Set([
+                    ...extractIdCandidatesFromText(row.document_id),
+                    ...extractIdCandidatesFromText(row.file_name ?? ""),
+                  ]),
+                );
+                if (candidates.length === 0) continue;
+                const patientId = await resolvePatientByIds(conn, candidates);
+                if (!patientId) continue;
+                await conn.query(
+                  "UPDATE srv100_uploads SET patient_id = ? WHERE id = ? AND patient_id IS NULL",
+                  [patientId, row.id],
+                );
+                linked += 1;
+              }
+            }),
+        );
+        res.status(200).json({ ok: true, processed, linked });
+      } catch (error: any) {
+        res
+          .status(500)
+          .json({ ok: false, error: String(error?.message ?? error) });
+      } finally {
+        srv100DbCycleBusy = false;
+      }
+    },
+  );
+
+  // Bulk link srv100_uploads to patients by filename/document_id code extraction (no OCR).
+  app.post(
+    "/api/srv100/uploads/link-by-filename",
+    srv100LinkByFilenameRateLimiter,
+    async (req, res) => {
+      try {
+        if (!(await requireAdminApiAccess(req, res))) return;
+        let linked = 0;
+        let processed = 0;
+        const BATCH = 2000;
         let offset = 0;
         while (true) {
           const rows = await withDb(async (conn) => {
@@ -2155,7 +2249,8 @@ async function startServer() {
             `UPDATE srv100_uploads u1
          INNER JOIN srv100_uploads u2 ON u1.file_name = u2.file_name
          SET u1.patient_id = u2.patient_id
-         WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL`,
+         WHERE u1.patient_id IS NULL AND u2.patient_id IS NOT NULL
+           AND ${notKfUploadSql("u2")}`,
           ),
         );
         res.status(200).json({
@@ -2215,6 +2310,7 @@ async function startServer() {
     });
   });
   // Local auth routes
+  app.use("/api/auth", mssqlYearContext);
   registerAuthRoutes(app);
 
   async function readPentacamObjectBuffer(
@@ -2407,15 +2503,25 @@ async function startServer() {
   // staff member, patient, or assigned external doctor for each upload.
   // Electron auto-updater: serve installer files from desktop-electron/
   const electronUpdatesDir = path.resolve(process.cwd(), "desktop-electron");
+  // Only updater artifacts are public (see updatesGuard): this folder also holds
+  // build scripts, node_modules and config dumps.
+  const updatesStaticOptions = {
+    maxAge: "5m",
+    fallthrough: true,
+    dotfiles: "deny",
+    index: false,
+  } as const;
   app.use(
     "/updates",
-    express.static(electronUpdatesDir, { maxAge: "5m", fallthrough: true }),
+    updatesGuard("electron"),
+    express.static(electronUpdatesDir, updatesStaticOptions),
   );
   // WebView2 auto-updater: serve installer files from desktop/installer/
   const webviewUpdatesDir = path.resolve(process.cwd(), "desktop", "installer");
   app.use(
     "/updates/webview",
-    express.static(webviewUpdatesDir, { maxAge: "5m", fallthrough: true }),
+    updatesGuard("webview"),
+    express.static(webviewUpdatesDir, updatesStaticOptions),
   );
   // Android auto-updater: serve release APKs from ANDROID_APK_DIR (defaults to android/releases/)
   const androidUpdatesDir = path.resolve(
@@ -2424,7 +2530,8 @@ async function startServer() {
   );
   app.use(
     "/updates/android",
-    express.static(androidUpdatesDir, { maxAge: "5m", fallthrough: true }),
+    updatesGuard("android"),
+    express.static(androidUpdatesDir, updatesStaticOptions),
   );
 
   // Facebook OAuth callback — security: state is verified, token never logged or returned to client
@@ -2529,16 +2636,12 @@ async function startServer() {
     }
   });
   // tRPC API
-  // doctorPortal.login is a public password endpoint; constrain its requests
-  // before tRPC parses and dispatches the procedure.
-  app.use(
-    "/api/trpc/doctorPortal.login",
-    createApiRateLimiter(20, 15 * 60_000),
-  );
-  app.use(
-    "/api/trpc/patientPortal.login",
-    createApiRateLimiter(20, 15 * 60_000),
-  );
+  // doctorPortal.login / patientPortal.login are public credential endpoints.
+  // The guard decodes the path the way tRPC does, refuses to batch them, and
+  // rate-limits each one before tRPC dispatches the procedure.
+  app.use("/api/trpc", createTrpcCredentialGuard(20, 15 * 60_000));
+  // Every API call works on the MSSQL year chosen at login (see mssqlYear.ts).
+  app.use("/api/trpc", mssqlYearContext);
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -2583,6 +2686,7 @@ async function startServer() {
     console.log(`[${branchName}] Server running on http://${host}:${port}/`);
   });
   await DeviceSettingsService.initializeSettings();
+  startExpiredRowsPurge();
 
   // Sync K40 Pro device clock via zkemkeeper SDK — TCP mode only.
   // In ADMS mode the device is typically remote/behind NAT and unreachable over

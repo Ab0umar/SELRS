@@ -1,3 +1,8 @@
+import {
+  assertMssqlWritable,
+  mssqlDbName,
+  pinCurrentMssqlYear,
+} from "../integrations/mssqlYear";
 import { z } from "zod";
 import { access, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
@@ -55,7 +60,7 @@ import {
   upsertPatientToMssql,
 } from "../integrations/mssqlPatients";
 
-import { canPushToMssql, findExistingPatientByNameOrPhone, normalizePhoneKey, pushNewPatientToMssql, readDoctorNameFromStateData, readFreshDoctorNameForPatient, readRoleSignatureFromStateData, registrationPricingPayload, resolveDoctorCodeById, resolveDoctorCodeByName, resolveNotificationTargetRolesByUserRole, resolvePatientNotifTitle, resolveServiceCodeForType } from "./_medical/patient-helpers";
+import { canPushToMssql, normalizePhoneKey, pushNewPatientToMssql, readDoctorNameFromStateData, readFreshDoctorNameForPatient, readRoleSignatureFromStateData, registrationPricingPayload, resolveDoctorCodeById, resolveDoctorCodeByName, resolveNotificationTargetRolesByUserRole, resolvePatientNotifTitle, resolveServiceCodeForType } from "./_medical/patient-helpers";
 import { DEFAULT_MSSQL_SYNC_RUNTIME_CONFIG, inferSrvTyp, normalizeServiceCodeKey, normalizeServiceDefaultSheet, normalizeVisitType, serviceTypeFromSheetOrType } from "./_medical/service-helpers";
 
 export const medicalMssqlRoutes = {
@@ -754,6 +759,8 @@ export const medicalMssqlRoutes = {
 
   syncRegistrationCatalogFromMssql: managerProcedure.mutation(
     async ({ ctx }) => {
+      // The service catalog lands in the current-year MySQL database.
+      pinCurrentMssqlYear();
       const stageStats: Record<string, unknown> = {};
       try {
         // Discover column names via INFORMATION_SCHEMA
@@ -766,7 +773,7 @@ export const medicalMssqlRoutes = {
           {},
         );
         const lstdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
-          `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`,
+          `SELECT COLUMN_NAME FROM ${mssqlDbName()}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`,
           {},
         );
         const srvCols = new Set(
@@ -854,7 +861,7 @@ export const medicalMssqlRoutes = {
           l.${lstdCodeCol} AS code,
           MAX(s.${srvNameCol}) AS name,
           CAST(ISNULL(TRY_CAST(MAX(l.${lstdPriceCol}) AS DECIMAL(10,2)), 0) AS DECIMAL(10,2)) AS price
-        FROM op2026.dbo.SRVLSTD l
+        FROM ${mssqlDbName()}.dbo.SRVLSTD l
         JOIN SRVCMF s ON s.${srvCodeCol} = l.${lstdCodeCol}
         WHERE l.${lstdCodeCol} IS NOT NULL AND l.${lstdCodeCol} <> ''
           AND s.DPT_NO = 15
@@ -943,8 +950,9 @@ export const medicalMssqlRoutes = {
   updateServicePriceInMssql: managerProcedure
     .input(z.object({ code: z.string().min(1), price: z.number().min(0) }))
     .mutation(async ({ input }) => {
+      assertMssqlWritable();
       const lstdColsRaw = await mssqlQuery<{ COLUMN_NAME: string }>(
-        `SELECT COLUMN_NAME FROM op2026.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`,
+        `SELECT COLUMN_NAME FROM ${mssqlDbName()}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'SRVLSTD'`,
         {},
       );
       const lstdCols = new Set(
@@ -978,7 +986,7 @@ export const medicalMssqlRoutes = {
         });
       }
       await mssqlQuery(
-        `UPDATE op2026.dbo.SRVLSTD SET ${lstdPriceCol} = @price WHERE ${lstdCodeCol} = @code AND CA_CD = '000000'`,
+        `UPDATE ${mssqlDbName()}.dbo.SRVLSTD SET ${lstdPriceCol} = @price WHERE ${lstdCodeCol} = @code AND CA_CD = '000000'`,
         { price: input.price, code: input.code },
       );
       return { success: true };

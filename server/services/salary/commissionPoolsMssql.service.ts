@@ -1,3 +1,4 @@
+import { mssqlDbName } from "../../integrations/mssqlYear";
 import { eq, or } from "drizzle-orm";
 import { getDb } from "../../db";
 import { salaryConfig } from "../../../drizzle/schema";
@@ -313,8 +314,8 @@ export async function computeMarkazAutoPools(
         THEN ISNULL(s.QTY,0) * ISNULL(s.PRC,0) - ISNULL(s.DISC_VL,0) ELSE 0 END) AS xray1502Revenue,
       SUM(CASE WHEN s.SRV_CD IN (${inList(XRAY_REMAINING_CODES)})
         THEN ISNULL(s.QTY,0) * ISNULL(s.PRC,0) - ISNULL(s.DISC_VL,0) ELSE 0 END) AS xrayRemainingRevenue
-    FROM op2026.dbo.PAJRNRCVH h
-    JOIN op2026.dbo.PAPAT_SRV s
+    FROM ${mssqlDbName()}.dbo.PAJRNRCVH h
+    JOIN ${mssqlDbName()}.dbo.PAPAT_SRV s
       ON h.SEC_CD = s.SEC_CD AND h.TR_TY = s.TR_TY AND h.TR_NO = s.TR_NO
     WHERE h.TR_DT >= @fromDate AND h.TR_DT < DATEADD(day, 1, @toDate)
       AND ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')
@@ -334,10 +335,10 @@ export async function computeMarkazAutoPools(
       MAX(NULLIF(LTRIM(RTRIM(c.SRV_NM_AR)), '')) AS serviceName,
       SUM(ISNULL(s.QTY, 0)) AS quantity,
       SUM(ISNULL(s.QTY,0) * ISNULL(s.PRC,0) - ISNULL(s.DISC_VL,0)) AS revenue
-    FROM op2026.dbo.PAJRNRCVH h
-    JOIN op2026.dbo.PAPAT_SRV s
+    FROM ${mssqlDbName()}.dbo.PAJRNRCVH h
+    JOIN ${mssqlDbName()}.dbo.PAPAT_SRV s
       ON h.SEC_CD = s.SEC_CD AND h.TR_TY = s.TR_TY AND h.TR_NO = s.TR_NO
-    LEFT JOIN op2026.dbo.SRVCMF c
+    LEFT JOIN ${mssqlDbName()}.dbo.SRVCMF c
       ON c.SRV_CD = s.SRV_CD
     WHERE h.TR_DT >= @fromDate AND h.TR_DT < DATEADD(day, 1, @toDate)
       AND ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')

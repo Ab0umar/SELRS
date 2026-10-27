@@ -15,7 +15,7 @@ import {
   nurseProcedure,
   technicianProcedure,
   receptionProcedure,
-  managerProcedure,
+  medicalManagerProcedure,
   adminProcedure,
   medicalStaffProcedure,
   makePageProcedure,
@@ -317,7 +317,7 @@ export const medicalCatalogRoutes = {
     return await db.getAllMedications();
   }),
 
-  createMedication: managerProcedure
+  createMedication: medicalManagerProcedure
     .input(
       z.object({
         name: z.string(),
@@ -362,7 +362,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  updateMedication: managerProcedure
+  updateMedication: medicalManagerProcedure
     .input(
       z.object({
         medicationId: z.number(),
@@ -403,7 +403,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  deleteMedication: managerProcedure
+  deleteMedication: medicalManagerProcedure
     .input(z.object({ medicationId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteMedication(input.medicationId);
@@ -421,7 +421,7 @@ export const medicalCatalogRoutes = {
     return await db.getAllDiseases();
   }),
 
-  createDisease: managerProcedure
+  createDisease: medicalManagerProcedure
     .input(
       z.object({
         name: z.string(),
@@ -441,7 +441,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  updateDisease: managerProcedure
+  updateDisease: medicalManagerProcedure
     .input(
       z.object({
         diseaseId: z.number(),
@@ -467,7 +467,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  deleteDisease: managerProcedure
+  deleteDisease: medicalManagerProcedure
     .input(z.object({ diseaseId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteDisease(input.diseaseId);
@@ -496,7 +496,7 @@ export const medicalCatalogRoutes = {
     }
   }),
 
-  createSymptom: managerProcedure
+  createSymptom: medicalManagerProcedure
     .input(z.object({ name: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const row = await db.getSystemSetting("symptoms_directory");
@@ -539,7 +539,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  updateSymptom: managerProcedure
+  updateSymptom: medicalManagerProcedure
     .input(z.object({ symptomId: z.string().min(1), name: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const row = await db.getSystemSetting("symptoms_directory");
@@ -571,7 +571,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  deleteSymptom: managerProcedure
+  deleteSymptom: medicalManagerProcedure
     .input(z.object({ symptomId: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const row = await db.getSystemSetting("symptoms_directory");
@@ -607,7 +607,7 @@ export const medicalCatalogRoutes = {
     return await db.getAllTests();
   }),
 
-  createTest: managerProcedure
+  createTest: medicalManagerProcedure
     .input(
       z.object({
         name: z.string(),
@@ -650,7 +650,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  updateTest: managerProcedure
+  updateTest: medicalManagerProcedure
     .input(
       z.object({
         testId: z.number(),
@@ -694,7 +694,7 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  deleteTest: managerProcedure
+  deleteTest: medicalManagerProcedure
     .input(z.object({ testId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deleteTest(input.testId);
@@ -1003,7 +1003,7 @@ export const medicalCatalogRoutes = {
       return await db.getPrescriptionsWithItemsByVisit(input.visitId);
     }),
 
-  deletePrescription: managerProcedure
+  deletePrescription: medicalManagerProcedure
     .input(z.object({ prescriptionId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await db.deletePrescription(input.prescriptionId);

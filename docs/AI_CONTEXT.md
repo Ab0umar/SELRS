@@ -27,7 +27,7 @@ SELRS (Saadany Eye Laser & Refractive Surgery) Medical Center Platform. A monoli
 
 | Aspect          | Medical                                                  | Accounting                                                  |
 | --------------- | -------------------------------------------------------- | ----------------------------------------------------------- |
-| Database        | MySQL (`selrs26`)                                        | MSSQL (`op2026`)                                            |
+| Database        | MySQL (`selrs26`)                                        | MSSQL (`opYYYY`, السنة تُختار عند الدخول)                                            |
 | Data direction  | Read + Write                                             | Read reports + scoped production receipt/service writes     |
 | Primary key     | `patients.id` (auto-increment)                           | `PAT_CD` (string, zero-padded)                              |
 | Access pattern  | Full CRUD                                                | Read queries + four guarded receipt/service mutations       |
@@ -248,7 +248,7 @@ The clinics area in `adminNavGroups` / `staffNavGroups` is split into five `NavG
 
 1. Legacy accounting data has its own schema, encoding, and semantics that must not be altered
 2. Medical workflows are critical patient-care operations that must never be disrupted by accounting changes
-3. The MSSQL database (`op2026`) is a production mirror of a legacy desktop application; any write could corrupt financial records
+3. The MSSQL database (`opYYYY`, per year) is a production mirror of a legacy desktop application; any write could corrupt financial records
 4. Different access patterns: Medical is real-time CRUD; Accounting is batch reporting
 5. Different permission models: Medical roles vs. path-based accounting permissions
 

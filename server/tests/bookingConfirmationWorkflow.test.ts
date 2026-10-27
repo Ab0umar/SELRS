@@ -6,11 +6,15 @@ const mocks = vi.hoisted(() => ({
   select: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
+  rateLimit: vi.fn(),
 }));
 vi.mock("../_core/procedures", async () => {
   const { initTRPC } = await import("@trpc/server");
   const t = initTRPC
-    .context<{ patientSession: { patientId: number } }>()
+    .context<{
+      patientSession: { patientId: number };
+      req: { ip: string; socket: { remoteAddress: string } };
+    }>()
     .create();
   return {
     router: t.router,
@@ -30,7 +34,7 @@ vi.mock("../db", () => ({
   getGlassesRecordsByPatient: vi.fn(),
   getMedicalHistoryByPatient: vi.fn(),
   getPrescriptionsWithItemsByPatient: vi.fn(),
-  consumeLoginRateLimit: vi.fn(),
+  consumeLoginRateLimit: mocks.rateLimit,
   clearLoginRateLimit: vi.fn(),
 }));
 vi.mock("../services/bookingWhatsApp.service", () => ({
@@ -51,9 +55,13 @@ vi.mock("../_core/appNotifications", () => ({
 vi.mock("../_core/webPush", () => ({ sendWebPushToSubscription: vi.fn() }));
 import { patientPortalRouter } from "../routers/patientPortal";
 const caller = () =>
-  patientPortalRouter.createCaller({ patientSession: { patientId: 7 } });
+  patientPortalRouter.createCaller({
+    patientSession: { patientId: 7 },
+    req: { ip: "203.0.113.9", socket: { remoteAddress: "203.0.113.9" } },
+  });
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.rateLimit.mockResolvedValue(1);
   mocks.insert.mockReturnValue({
     values: vi.fn().mockResolvedValue([{ insertId: 1 }]),
   });
@@ -78,6 +86,29 @@ describe("booking WhatsApp workflow", () => {
       expect.objectContaining({ recipientPhone: "01000000000" }),
     );
     expect(mocks.status).not.toHaveBeenCalled();
+  });
+  it("rejects a guest request once a limit is exceeded without storing or messaging", async () => {
+    mocks.rateLimit.mockResolvedValue(6);
+    await expect(
+      caller().createGuestBooking({
+        guestName: "Synthetic guest",
+        guestPhone: "01000000000",
+        bookingType: "specialist",
+        requestedDate: "2026-10-29",
+      }),
+    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.receipt).not.toHaveBeenCalled();
+  });
+  it("sends the guest receipt only for the first request per phone", async () => {
+    mocks.rateLimit.mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+    await caller().createGuestBooking({
+      guestName: "Synthetic guest",
+      guestPhone: "01000000000",
+      bookingType: "specialist",
+      requestedDate: "2026-10-29",
+    });
+    expect(mocks.receipt).not.toHaveBeenCalled();
   });
   it("acknowledges an authenticated patient's request", async () => {
     mocks.select.mockReturnValue({
@@ -126,5 +157,33 @@ describe("booking WhatsApp workflow", () => {
       }),
     );
     expect(mocks.email).not.toHaveBeenCalled();
+  });
+  const stubBooking = (status: string) =>
+    mocks.select.mockReturnValue({
+      from: () => ({
+        leftJoin: () => ({
+          where: () => ({
+            limit: async () => [
+              {
+                status,
+                patientId: null,
+                bookingType: "specialist",
+                requestedDate: new Date(),
+                guestPhone: "01000000000",
+              },
+            ],
+          }),
+        }),
+      }),
+    });
+  it("does not message again when only notes change on an unchanged status", async () => {
+    stubBooking("confirmed");
+    await caller().updateBooking({ id: 1, status: "confirmed", staffNotes: "x" });
+    expect(mocks.status).not.toHaveBeenCalled();
+  });
+  it("messages when the status actually changes", async () => {
+    stubBooking("pending");
+    await caller().updateBooking({ id: 1, status: "confirmed" });
+    expect(mocks.status).toHaveBeenCalledTimes(1);
   });
 });

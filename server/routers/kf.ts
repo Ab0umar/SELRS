@@ -956,6 +956,8 @@ export const kfRouter = router({
       const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
       const ts = Date.now();
       const s3Key = `kf-exam/${input.kfPatientId}/${ts}_${safeFileName}`;
+      // document_id is NOT NULL in srv100_uploads; same convention as diagnosis uploads.
+      const documentId = `kf-exam-${input.kfPatientId}-${ts}`;
       let uploadedS3Key: string | null = null;
       try {
         await uploadToS3(s3Key, fileBuffer, input.mimeType);
@@ -968,7 +970,7 @@ export const kfRouter = router({
             (patient_id, document_id, file_name, mime_type, file_data, s3_key, source_printer)
             VALUES (
               ${input.kfPatientId},
-              NULL,
+              ${documentId},
               ${safeFileName},
               ${input.mimeType},
               ${uploadedS3Key ? null : fileBuffer},
