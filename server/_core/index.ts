@@ -53,6 +53,7 @@ import {
   getPresignedUrlFromS3,
 } from "./s3";
 import * as db from "../db";
+import { parseTrustProxy } from "./trustProxy";
 const execFile = promisify(execFileCb);
 
 type Srv100UploadRow = {
@@ -1547,6 +1548,7 @@ export async function startPentacamServices(): Promise<void> {
 
 async function startServer() {
   const app = express();
+  app.set("trust proxy", parseTrustProxy(process.env.TRUST_PROXY, process.env.NODE_ENV));
   const server = createServer(app);
   // Increase timeout for long-running operations like patient sync (10 minutes)
   server.setTimeout(600_000);
