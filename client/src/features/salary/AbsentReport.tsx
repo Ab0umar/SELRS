@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 const now = new Date();
 function isoMonth(d: Date) {
@@ -94,7 +95,7 @@ export default function AbsentReport({
           .map(
             (d, i) => `
         <tr>
-          ${i === 0 ? `<td class="emp-col" rowspan="${days.length}">${name}</td>` : ""}
+          ${i === 0 ? `<td class="emp-col" rowspan="${days.length}">${escapeHtml(name)}</td>` : ""}
           <td>${fmtAr(d)}</td>
         </tr>`,
           )
@@ -105,7 +106,7 @@ export default function AbsentReport({
     const totalsRows = empEntries
       .map(
         ([, { name, days }]) =>
-          `<tr><td class="emp-col">${name}</td><td>${days.length} يوم</td></tr>`,
+          `<tr><td class="emp-col">${escapeHtml(name)}</td><td>${days.length} يوم</td></tr>`,
       )
       .join("");
 
