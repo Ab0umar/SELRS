@@ -23,6 +23,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { updatesGuard } from "./updatesGuard";
 import { KF_EXAM_SOURCE, notKfUploadSql } from "../lib/srv100Uploads";
 import { permMatchesPath } from "./procedures";
+import { mssqlYearContext } from "./mssqlYearContext";
 import { authService, registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
 import { registerWhatsAppWebhook } from "./whatsappWebhook";
@@ -2306,6 +2307,7 @@ async function startServer() {
     });
   });
   // Local auth routes
+  app.use("/api/auth", mssqlYearContext);
   registerAuthRoutes(app);
 
   async function readPentacamObjectBuffer(
@@ -2635,6 +2637,8 @@ async function startServer() {
   // The guard decodes the path the way tRPC does, refuses to batch them, and
   // rate-limits each one before tRPC dispatches the procedure.
   app.use("/api/trpc", createTrpcCredentialGuard(20, 15 * 60_000));
+  // Every API call works on the MSSQL year chosen at login (see mssqlYear.ts).
+  app.use("/api/trpc", mssqlYearContext);
   app.use(
     "/api/trpc",
     createExpressMiddleware({

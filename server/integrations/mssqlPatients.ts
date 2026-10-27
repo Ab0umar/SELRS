@@ -9,17 +9,17 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { users, doctorsLookup, services } from "../../drizzle/schema";
 import { eq, ilike } from "drizzle-orm";
-
-const ALLOWED_MSSQL_PATIENT_TABLES = new Set(["op2026.dbo.PAJRNRCVH"]);
+import {
+  assertMssqlWritable,
+  getMssqlYear,
+  mssqlDbName,
+  mssqlTable,
+  withCurrentMssqlYear,
+} from "./mssqlYear";
 
 function getAllowedMssqlPatientTable() {
-  const table = String(
-    process.env.MSSQL_PUSH_PATIENTS_TABLE ?? "op2026.dbo.PAJRNRCVH",
-  ).trim();
-  if (!ALLOWED_MSSQL_PATIENT_TABLES.has(table)) {
-    throw new Error("MSSQL_PUSH_PATIENTS_TABLE is not an allowed table");
-  }
-  return table;
+  // The header table always follows the year this request is working on.
+  return mssqlTable("PAJRNRCVH");
 }
 
 type SyncOptions = {
@@ -486,9 +486,22 @@ function resolveShiftNumber(now: Date = new Date()): number {
 // Reused across calls so every patient insert/lookup doesn't pay a fresh
 // TCP+auth handshake to MSSQL. Each callsite still calls pool.connect(),
 // which the mssql driver treats as a no-op once already connected.
-let cachedMssqlPool: any = null;
+// One pool per database year (op2026, op2027, ...): a request works on the year
+// chosen at login, jobs on the current year.
+const cachedMssqlPools = new Map<number, any>();
+
+/** MSSQL_DATABASE names the year database (op2026) when it follows the opNNNN pattern; swap in the active year. */
+function databaseForYear(configured: string, year: number): string {
+  return /^op\d{4}$/i.test(configured) ? mssqlDbName(year) : configured;
+}
+
+function connectionStringForYear(connectionString: string, year: number): string {
+  return connectionString.replace(/(Database|Initial Catalog)\s*=\s*op\d{4}/i, `$1=${mssqlDbName(year)}`);
+}
 
 export async function createMssqlPool(): Promise<any> {
+  const year = getMssqlYear();
+  let cachedMssqlPool: any = cachedMssqlPools.get(year) ?? null;
   if (cachedMssqlPool && cachedMssqlPool.connected) {
     // .connected can stay true even after the underlying connection dies
     // (remote idle timeout, dropped socket) — cheap health check catches
@@ -497,10 +510,10 @@ export async function createMssqlPool(): Promise<any> {
       await cachedMssqlPool.request().query("SELECT 1");
       return cachedMssqlPool;
     } catch {
-      cachedMssqlPool = null;
+      cachedMssqlPools.delete(year);
     }
   }
-  cachedMssqlPool = null;
+  cachedMssqlPools.delete(year);
   const explicitAuthMode = String(process.env.MSSQL_AUTH_MODE ?? "")
     .trim()
     .toLowerCase();
@@ -513,7 +526,10 @@ export async function createMssqlPool(): Promise<any> {
   const authMode =
     explicitAuthMode || (inferredWindowsMode ? "windows" : "sql");
   const server = String(process.env.MSSQL_SERVER ?? "").trim();
-  const database = String(process.env.MSSQL_DATABASE ?? "").trim();
+  const database = databaseForYear(
+    String(process.env.MSSQL_DATABASE ?? "").trim(),
+    year,
+  );
   const port = Number(process.env.MSSQL_PORT ?? 1433);
   const connectionTimeout = Number(
     process.env.MSSQL_CONNECTION_TIMEOUT_MS ?? 5000,
@@ -522,7 +538,7 @@ export async function createMssqlPool(): Promise<any> {
 
   if (authMode === "windows") {
     const mssqlV8 = await loadMssqlMsNodeSqlV8Module();
-    const cs = connectionStringRaw;
+    const cs = connectionStringForYear(connectionStringRaw, year);
     const connectionString =
       cs ||
       `Driver={ODBC Driver 17 for SQL Server};Server=${server},${Number.isFinite(port) ? port : 1433};Database=${database};Trusted_Connection=Yes;TrustServerCertificate=Yes;`;
@@ -546,9 +562,9 @@ export async function createMssqlPool(): Promise<any> {
       },
     });
     pool.on("error", () => {
-      if (cachedMssqlPool === pool) cachedMssqlPool = null;
+      if (cachedMssqlPools.get(year) === pool) cachedMssqlPools.delete(year);
     });
-    cachedMssqlPool = pool;
+    cachedMssqlPools.set(year, pool);
     return pool;
   }
 
@@ -580,9 +596,9 @@ export async function createMssqlPool(): Promise<any> {
     },
   });
   pool.on("error", () => {
-    if (cachedMssqlPool === pool) cachedMssqlPool = null;
+    if (cachedMssqlPools.get(year) === pool) cachedMssqlPools.delete(year);
   });
-  cachedMssqlPool = pool;
+  cachedMssqlPools.set(year, pool);
   return pool;
 }
 
@@ -620,7 +636,7 @@ async function applyPapatSrvDefaults(
   },
 ): Promise<void> {
   const qty = Math.max(1, Math.trunc(desiredQty || 1));
-  const cols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+  const cols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
   const srvTrNoCol = cols.has("TR_NO")
     ? "TR_NO"
     : cols.has("TR_NONEW")
@@ -656,7 +672,7 @@ async function applyPapatSrvDefaults(
       .join(",\n          ");
   let basePrice: number | null = null;
   try {
-    const srvlstdCols = await getTableColumns(pool, "op2026.dbo.SRVLSTD");
+    const srvlstdCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.SRVLSTD`);
     const srvlstdCodeCol =
       ["SRV_CD", "SERVICE_CODE", "CODE", "SRVNO", "SRV_NO"].find((c) =>
         srvlstdCols.has(c),
@@ -680,7 +696,7 @@ async function applyPapatSrvDefaults(
         SELECT TOP 1 COALESCE(
           ${priceCandidateExpr(srvlstdPriceCols)}
         ) AS PRC
-        FROM op2026.dbo.SRVLSTD
+        FROM ${mssqlDbName()}.dbo.SRVLSTD
         WHERE ${srvlstdCodeCol} = @SRV_CD
       `);
       const masterRow =
@@ -695,7 +711,7 @@ async function applyPapatSrvDefaults(
   }
   try {
     if (basePrice == null) {
-      const srvcmfCols = await getTableColumns(pool, "op2026.dbo.SRVCMF");
+      const srvcmfCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.SRVCMF`);
       const srvcmfPriceCols = [
         "PRC",
         "PRC1",
@@ -715,7 +731,7 @@ async function applyPapatSrvDefaults(
           SELECT TOP 1 COALESCE(
             ${priceCandidateExpr(srvcmfPriceCols)}
           ) AS PRC
-          FROM op2026.dbo.SRVCMF
+          FROM ${mssqlDbName()}.dbo.SRVCMF
           WHERE SRV_CD = @SRV_CD
         `);
         const masterRow =
@@ -746,7 +762,7 @@ async function applyPapatSrvDefaults(
     const row = await rowReq.query(`
       SELECT TOP 1
         CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${priceCol})) = 1 THEN CAST(CONVERT(varchar(50), ${priceCol}) AS decimal(18,2)) ELSE NULL END AS P
-      FROM op2026.dbo.PAPAT_SRV
+      FROM ${mssqlDbName()}.dbo.PAPAT_SRV
       WHERE ${whereSrv}
     `);
     const r =
@@ -775,7 +791,7 @@ async function applyPapatSrvDefaults(
     const recent = await recentReq.query(`
       SELECT TOP 1
         CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${priceCol})) = 1 THEN CAST(CONVERT(varchar(50), ${priceCol}) AS decimal(18,2)) ELSE NULL END AS P
-      FROM op2026.dbo.PAPAT_SRV
+      FROM ${mssqlDbName()}.dbo.PAPAT_SRV
       WHERE SRV_CD = @SRV_CD
         AND ISNUMERIC(CONVERT(varchar(50), ${priceCol})) = 1
         AND CAST(CONVERT(varchar(50), ${priceCol}) AS decimal(18,2)) > 0
@@ -802,7 +818,7 @@ async function applyPapatSrvDefaults(
       const nameRs = await nameReq.query(`
         SELECT TOP 1
           NULLIF(CONVERT(nvarchar(255), NAM), '') AS NAM
-        FROM op2026.dbo.PAJRNRCVH
+        FROM ${mssqlDbName()}.dbo.PAJRNRCVH
         WHERE PAT_CD = @PAT_CD
         ORDER BY
           CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -945,7 +961,7 @@ async function applyPapatSrvDefaults(
   }
   if (setClauses.length > 0) {
     await req.query(
-      `UPDATE op2026.dbo.PAPAT_SRV SET ${setClauses.join(", ")} WHERE ${whereSrv}`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_SRV SET ${setClauses.join(", ")} WHERE ${whereSrv}`,
     );
   }
 
@@ -970,7 +986,7 @@ async function applyPapatSrvDefaults(
           ELSE NULL
         END AS VST_NO,
         CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) ELSE NULL END AS VISIT_DT
-      FROM op2026.dbo.PAPAT_SRV
+      FROM ${mssqlDbName()}.dbo.PAPAT_SRV
       WHERE ${whereSrv}
       ORDER BY
         CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -986,51 +1002,51 @@ async function applyPapatSrvDefaults(
     const visitDt = vstRow?.VISIT_DT ? new Date(vstRow.VISIT_DT) : null;
     ensureVisitDt = visitDt;
     if (Number.isFinite(vstNo)) {
-      const ioCols = await getTableColumns(pool, "op2026.dbo.PAPAT_IO");
+      const ioCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_IO`);
       const ioUpdates: string[] = [];
       if (ioCols.has("TR_NO")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET TR_NO = ISNULL(TR_NO, @TR_NO) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET TR_NO = ISNULL(TR_NO, @TR_NO) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("SRV_DT")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET SRV_DT = ISNULL(SRV_DT, @VISIT_DT) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET SRV_DT = ISNULL(SRV_DT, @VISIT_DT) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("MF_DT")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET MF_DT = ISNULL(MF_DT, @VISIT_DT) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET MF_DT = ISNULL(MF_DT, @VISIT_DT) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("CA_CD")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET CA_CD = ISNULL(NULLIF(CA_CD, ''), '00000') WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET CA_CD = ISNULL(NULLIF(CA_CD, ''), '00000') WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("PAT_EK")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET PAT_EK = NULL WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PAT_EK = NULL WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("RLTN")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET RLTN = ISNULL(RLTN, 1) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET RLTN = ISNULL(RLTN, 1) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("PRC_DGR")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET PRC_DGR = ISNULL(PRC_DGR, 1) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PRC_DGR = ISNULL(PRC_DGR, 1) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("PAT_TYP")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET PAT_TYP = ISNULL(PAT_TYP, 2) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PAT_TYP = ISNULL(PAT_TYP, 2) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("LN_SRC")) {
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET LN_SRC = ISNULL(NULLIF(LN_SRC, ''), 'PAJRNRCV') WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET LN_SRC = ISNULL(NULLIF(LN_SRC, ''), 'PAJRNRCV') WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       const srvNetAmt = (() => {
@@ -1050,24 +1066,24 @@ async function applyPapatSrvDefaults(
       if (ioCols.has("BAL") && srvNetAmt > 0) {
         ioReq.input("IO_SRV_BAL", srvNetAmt);
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET BAL = ISNULL(NULLIF(BAL, 0), @IO_SRV_BAL) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET BAL = ISNULL(NULLIF(BAL, 0), @IO_SRV_BAL) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       if (ioCols.has("PAY") && srvNetAmt > 0) {
         ioReq.input("IO_SRV_PAY", srvNetAmt);
         ioUpdates.push(
-          `UPDATE op2026.dbo.PAPAT_IO SET PAY = ISNULL(NULLIF(PAY, 0), @IO_SRV_PAY) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PAY = ISNULL(NULLIF(PAY, 0), @IO_SRV_PAY) WHERE PAT_CD = @PAT_CD AND VST_NO = @VST_NO;`,
         );
       }
       await ioReq.query(`
         IF NOT EXISTS (
           SELECT 1
-          FROM op2026.dbo.PAPAT_IO
+          FROM ${mssqlDbName()}.dbo.PAPAT_IO
           WHERE PAT_CD = @PAT_CD
             AND VST_NO = @VST_NO
         )
         BEGIN
-          INSERT INTO op2026.dbo.PAPAT_IO (PAT_CD, VST_NO, PAT_EK)
+          INSERT INTO ${mssqlDbName()}.dbo.PAPAT_IO (PAT_CD, VST_NO, PAT_EK)
           VALUES (@PAT_CD, @VST_NO, NULL)
         END
 
@@ -1193,9 +1209,9 @@ async function ensurePapatMfDefaults(
   patientNameAr?: string | null,
   enteredBy?: string | null,
 ): Promise<void> {
-  const cols = await getTableColumns(pool, "op2026.dbo.PAPATMF");
+  const cols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPATMF`);
   if (!cols.has("PAT_CD")) return;
-  const headerCols = await getTableColumns(pool, "op2026.dbo.PAJRNRCVH");
+  const headerCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAJRNRCVH`);
   const headerTrNoCol = headerCols.has("TR_NO")
     ? "TR_NO"
     : headerCols.has("TR_NONEW")
@@ -1216,7 +1232,7 @@ async function ensurePapatMfDefaults(
       CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) ELSE NULL END AS DT,
       CASE WHEN ISDATE(BDT) = 1 THEN CONVERT(datetime, BDT) ELSE NULL END AS BDT,
       CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) ELSE NULL END AS ENTRYDATE
-    FROM op2026.dbo.PAJRNRCVH
+    FROM ${mssqlDbName()}.dbo.PAJRNRCVH
     WHERE PAT_CD = @PAT_CD
     ORDER BY
       CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -1232,7 +1248,7 @@ async function ensurePapatMfDefaults(
   existsReq.input("PAT_CD", patientCode);
   const existsRs = await existsReq.query(`
     SELECT TOP 1 1 AS ok
-    FROM op2026.dbo.PAPATMF
+    FROM ${mssqlDbName()}.dbo.PAPATMF
     WHERE PAT_CD = @PAT_CD
   `);
   const exists =
@@ -1341,7 +1357,7 @@ async function ensurePapatMfDefaults(
 
     try {
       await insReq.query(`
-        INSERT INTO op2026.dbo.PAPATMF (${insertCols.join(", ")})
+        INSERT INTO ${mssqlDbName()}.dbo.PAPATMF (${insertCols.join(", ")})
         VALUES (${insertVals.join(", ")})
       `);
     } catch {
@@ -1351,7 +1367,7 @@ async function ensurePapatMfDefaults(
         const metaRs = await metaReq.query(`
           SELECT name, is_identity, is_computed
           FROM sys.columns
-          WHERE object_id = OBJECT_ID('op2026.dbo.PAPATMF')
+          WHERE object_id = OBJECT_ID('${mssqlDbName()}.dbo.PAPATMF')
           ORDER BY column_id
         `);
         const colsMeta = Array.isArray(metaRs?.recordset)
@@ -1404,11 +1420,11 @@ async function ensurePapatMfDefaults(
           fallbackReq.input("PAT_NM_AR", nameAr || null);
           fallbackReq.input("DT", visitDt);
           await fallbackReq.query(`
-            INSERT INTO op2026.dbo.PAPATMF (${insertableCols.map(q).join(", ")})
+            INSERT INTO ${mssqlDbName()}.dbo.PAPATMF (${insertableCols.map(q).join(", ")})
             SELECT ${mappedSelect.join(", ")}
             FROM (
               SELECT TOP 1 *
-              FROM op2026.dbo.PAPATMF
+              FROM ${mssqlDbName()}.dbo.PAPATMF
               ORDER BY
                 CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
                 CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC
@@ -1422,7 +1438,7 @@ async function ensurePapatMfDefaults(
                 CASE WHEN ISNUMERIC(CONVERT(varchar(50), GNDR)) = 1 THEN CAST(CONVERT(varchar(50), GNDR) AS INT) ELSE NULL END AS GNDR,
                 CASE WHEN ISNUMERIC(CONVERT(varchar(50), IDNO)) = 1 THEN CAST(CONVERT(varchar(50), IDNO) AS INT) ELSE NULL END AS IDNO,
                 CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) ELSE NULL END AS DT
-              FROM op2026.dbo.PAJRNRCVH
+              FROM ${mssqlDbName()}.dbo.PAJRNRCVH
               WHERE PAT_CD = @PAT_CD
               ORDER BY
                 CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -1442,7 +1458,7 @@ async function ensurePapatMfDefaults(
     updReq.input("PAT_CD", patientCode);
     updReq.input("DT", visitDt);
     await updReq.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET DT = ISNULL(DT, @DT)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1452,7 +1468,7 @@ async function ensurePapatMfDefaults(
     nameReq.input("PAT_CD", patientCode);
     nameReq.input("PAT_NM_AR", String(patientNameAr ?? "").trim() || null);
     await nameReq.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET PAT_NM_AR = ISNULL(NULLIF(PAT_NM_AR, ''), @PAT_NM_AR)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1461,7 +1477,7 @@ async function ensurePapatMfDefaults(
     const req = pool.request();
     req.input("PAT_CD", patientCode);
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET RLTN = ISNULL(RLTN, 1)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1470,7 +1486,7 @@ async function ensurePapatMfDefaults(
     const req = pool.request();
     req.input("PAT_CD", patientCode);
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET CA_CD = ISNULL(NULLIF(CA_CD, ''), '00000')
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1479,7 +1495,7 @@ async function ensurePapatMfDefaults(
     const req = pool.request();
     req.input("PAT_CD", patientCode);
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET PRC_DGR = ISNULL(PRC_DGR, 1)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1492,7 +1508,7 @@ async function ensurePapatMfDefaults(
       Number.isFinite(Number(h?.DRS_CD)) ? Math.trunc(Number(h?.DRS_CD)) : null,
     );
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET DRS_CD = ISNULL(DRS_CD, @DRS_CD)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1504,7 +1520,7 @@ async function ensurePapatMfDefaults(
     req.input("PAT_CD", patientCode);
     req.input("ENTRYDATE", effectiveEntryDate);
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET ENTRYDATE = ISNULL(ENTRYDATE, @ENTRYDATE)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1514,7 +1530,7 @@ async function ensurePapatMfDefaults(
     req.input("PAT_CD", patientCode);
     req.input("FILE_PLC_DT", effectiveDt);
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET FILE_PLC_DT = ISNULL(FILE_PLC_DT, @FILE_PLC_DT)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1524,7 +1540,7 @@ async function ensurePapatMfDefaults(
     req.input("PAT_CD", patientCode);
     req.input("FILE_PLC_TIM", effectiveEntryDate);
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET FILE_PLC_TIM = ISNULL(FILE_PLC_TIM, @FILE_PLC_TIM)
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1534,7 +1550,7 @@ async function ensurePapatMfDefaults(
     req.input("PAT_CD", patientCode);
     req.input("UPDATEDBY", enteredBy);
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET UPDATEDBY = @UPDATEDBY
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1544,7 +1560,7 @@ async function ensurePapatMfDefaults(
     req.input("PAT_CD", patientCode);
     req.input("UPDATEDATE", new Date());
     await req.query(`
-      UPDATE op2026.dbo.PAPATMF
+      UPDATE ${mssqlDbName()}.dbo.PAPATMF
       SET UPDATEDATE = @UPDATEDATE
       WHERE PAT_CD = @PAT_CD
     `);
@@ -1565,7 +1581,7 @@ async function ensurePapatIoDefaults(
   ageDaysIn?: number | null,
 ): Promise<void> {
   if (!Number.isFinite(Number(vstNo))) return;
-  const cols = await getTableColumns(pool, "op2026.dbo.PAPAT_IO");
+  const cols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_IO`);
   if (!cols.has("PAT_CD") || !cols.has("VST_NO")) return;
 
   const vstNoInt = Math.trunc(Number(vstNo));
@@ -1702,11 +1718,11 @@ async function ensurePapatIoDefaults(
 
   await insReq.query(`
     IF NOT EXISTS (
-      SELECT 1 FROM op2026.dbo.PAPAT_IO
+      SELECT 1 FROM ${mssqlDbName()}.dbo.PAPAT_IO
       WHERE PAT_CD = @IO_PAT_CD AND VST_NO = @IO_VST_NO
     )
     BEGIN
-      INSERT INTO op2026.dbo.PAPAT_IO (${insertCols.join(", ")})
+      INSERT INTO ${mssqlDbName()}.dbo.PAPAT_IO (${insertCols.join(", ")})
       VALUES (${insertVals.join(", ")})
     END
   `);
@@ -1721,119 +1737,119 @@ async function ensurePapatIoDefaults(
   if (cols.has("TR_NO") && Number.isFinite(Number(trNo))) {
     updReq.input("IO_TR_NO2", Math.trunc(Number(trNo)));
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET TR_NO = ISNULL(TR_NO, @IO_TR_NO2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET TR_NO = ISNULL(TR_NO, @IO_TR_NO2) ${W};`,
     );
   }
   if (cols.has("VST_DT")) {
     updReq.input("IO_VST_DT2", visitDt);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET VST_DT = ISNULL(VST_DT, @IO_VST_DT2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET VST_DT = ISNULL(VST_DT, @IO_VST_DT2) ${W};`,
     );
   }
   if (cols.has("SRV_DT")) {
     updReq.input("IO_SRV_DT", visitDt);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET SRV_DT = ISNULL(SRV_DT, @IO_SRV_DT) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET SRV_DT = ISNULL(SRV_DT, @IO_SRV_DT) ${W};`,
     );
   }
   if (cols.has("MF_DT")) {
     updReq.input("IO_MF_DT", visitDt);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET MF_DT = ISNULL(MF_DT, @IO_MF_DT) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET MF_DT = ISNULL(MF_DT, @IO_MF_DT) ${W};`,
     );
   }
   if (cols.has("CA_CD"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET CA_CD = ISNULL(NULLIF(CA_CD, ''), '00000') ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET CA_CD = ISNULL(NULLIF(CA_CD, ''), '00000') ${W};`,
     );
   if (cols.has("RLTN"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET RLTN = ISNULL(RLTN, 1) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET RLTN = ISNULL(RLTN, 1) ${W};`,
     );
   if (cols.has("PRC_DGR"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET PRC_DGR = ISNULL(PRC_DGR, 1) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PRC_DGR = ISNULL(PRC_DGR, 1) ${W};`,
     );
   if (cols.has("PAT_EK"))
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET PAT_EK = NULL ${W};`);
+    ioUpdates.push(`UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PAT_EK = NULL ${W};`);
   if (cols.has("PAT_TYP"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET PAT_TYP = ISNULL(PAT_TYP, 2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PAT_TYP = ISNULL(PAT_TYP, 2) ${W};`,
     );
   if (cols.has("LN_SRC"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET LN_SRC = ISNULL(NULLIF(LN_SRC, ''), 'PAJRNRCV') ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET LN_SRC = ISNULL(NULLIF(LN_SRC, ''), 'PAJRNRCV') ${W};`,
     );
   if (cols.has("BAL") && netAmt > 0) {
     updReq.input("IO_BAL2", netAmt);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET BAL = ISNULL(NULLIF(BAL, 0), @IO_BAL2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET BAL = ISNULL(NULLIF(BAL, 0), @IO_BAL2) ${W};`,
     );
   }
   if (cols.has("PAY") && netAmt > 0) {
     updReq.input("IO_PAY2", netAmt);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET PAY = ISNULL(NULLIF(PAY, 0), @IO_PAY2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PAY = ISNULL(NULLIF(PAY, 0), @IO_PAY2) ${W};`,
     );
   }
   if (cols.has("CA_BAL"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET CA_BAL = ISNULL(CA_BAL, 0) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET CA_BAL = ISNULL(CA_BAL, 0) ${W};`,
     );
   if (cols.has("DISC"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET DISC = ISNULL(DISC, 0) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET DISC = ISNULL(DISC, 0) ${W};`,
     );
   if (cols.has("MNGEXP"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET MNGEXP = ISNULL(MNGEXP, 0) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET MNGEXP = ISNULL(MNGEXP, 0) ${W};`,
     );
   if (cols.has("PMNGEXP"))
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET PMNGEXP = ISNULL(PMNGEXP, 0) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PMNGEXP = ISNULL(PMNGEXP, 0) ${W};`,
     );
   for (let i = 1; i <= 4; i++) {
     if (cols.has(`TAX${i}`))
       ioUpdates.push(
-        `UPDATE op2026.dbo.PAPAT_IO SET TAX${i} = ISNULL(TAX${i}, 0) ${W};`,
+        `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET TAX${i} = ISNULL(TAX${i}, 0) ${W};`,
       );
     if (cols.has(`PTAX${i}`))
       ioUpdates.push(
-        `UPDATE op2026.dbo.PAPAT_IO SET PTAX${i} = ISNULL(PTAX${i}, 0) ${W};`,
+        `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET PTAX${i} = ISNULL(PTAX${i}, 0) ${W};`,
       );
   }
   if (cols.has("DRS_CD") && doctorCode) {
     updReq.input("IO_DRS_CD2", doctorCode);
-    ioUpdates.push(`UPDATE op2026.dbo.PAPAT_IO SET DRS_CD = @IO_DRS_CD2 ${W};`);
+    ioUpdates.push(`UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET DRS_CD = @IO_DRS_CD2 ${W};`);
   }
   if (cols.has("NAM") && fullName) {
     updReq.input("IO_NAM2", String(fullName).trim());
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET NAM = ISNULL(NULLIF(NAM, ''), @IO_NAM2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET NAM = ISNULL(NULLIF(NAM, ''), @IO_NAM2) ${W};`,
     );
   }
   if (cols.has("ENTEREDBY") && enteredBy) {
     updReq.input("IO_ENTEREDBY2", enteredBy);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET ENTEREDBY = ISNULL(NULLIF(ENTEREDBY, ''), @IO_ENTEREDBY2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET ENTEREDBY = ISNULL(NULLIF(ENTEREDBY, ''), @IO_ENTEREDBY2) ${W};`,
     );
   }
   if (cols.has("UPDATEDBY") && enteredBy) {
     updReq.input("IO_UPDATEDBY2", enteredBy);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET UPDATEDBY = @IO_UPDATEDBY2 ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET UPDATEDBY = @IO_UPDATEDBY2 ${W};`,
     );
   }
   if (cols.has("ENTRYDATE")) {
     updReq.input("IO_ENTRYDATE2", now);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET ENTRYDATE = ISNULL(ENTRYDATE, @IO_ENTRYDATE2) ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET ENTRYDATE = ISNULL(ENTRYDATE, @IO_ENTRYDATE2) ${W};`,
     );
   }
   if (cols.has("UPDATEDATE")) {
     updReq.input("IO_UPDATEDATE2", now);
     ioUpdates.push(
-      `UPDATE op2026.dbo.PAPAT_IO SET UPDATEDATE = @IO_UPDATEDATE2 ${W};`,
+      `UPDATE ${mssqlDbName()}.dbo.PAPAT_IO SET UPDATEDATE = @IO_UPDATEDATE2 ${W};`,
     );
   }
 
@@ -1879,7 +1895,7 @@ async function applyPajrnrHeaderTotals(
              ELSE 0 END
       ) AS totalGross,
       SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc
-    FROM op2026.dbo.PAPAT_SRV
+    FROM ${mssqlDbName()}.dbo.PAPAT_SRV
     WHERE ${whereClause}
   `);
   const row =
@@ -2123,7 +2139,7 @@ async function getDesiredServiceQty(serviceCodeRaw: string): Promise<number> {
   return doubleEyeCodes.has(code) ? 2 : 1;
 }
 
-export async function syncSinglePatientFromMssql(
+async function syncSinglePatientFromMssqlImpl(
   patientCodeRaw: string,
 ): Promise<{ synced: boolean; message?: string }> {
   const patientCode = String(patientCodeRaw ?? "").trim();
@@ -2151,7 +2167,7 @@ export async function syncSinglePatientFromMssql(
         ) AS lastVisit,
         COALESCE(ENTEREDBY, '') AS receptionSignature,
         CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END AS changedAt
-      FROM op2026.dbo.PAJRNRCVH
+      FROM ${mssqlDbName()}.dbo.PAJRNRCVH
       WHERE PAT_CD = @PAT_CD
       ORDER BY
         CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -2232,7 +2248,7 @@ export async function syncSinglePatientFromMssql(
  * the MySQL record, then stamp a checkedIn visit for today's queue.
  * This is the single function that makes "insert to MSSQL only" work.
  */
-export async function createOrSyncPatientFromMssql(
+async function createOrSyncPatientFromMssqlImpl(
   patientCodeRaw: string,
   serviceType?: string,
   visitDateIso?: string, // client local date yyyy-MM-dd; avoids UTC/local mismatch
@@ -2257,7 +2273,7 @@ export async function createOrSyncPatientFromMssql(
       IDNO   AS idno,
       BRNCH  AS branch,
       COALESCE(ENTEREDBY,'') AS receptionSignature
-    FROM op2026.dbo.PAJRNRCVH
+    FROM ${mssqlDbName()}.dbo.PAJRNRCVH
     WHERE PAT_CD = @PAT_CD
     ORDER BY
       CASE WHEN ISDATE(UPDATEDATE)=1 THEN CONVERT(datetime,UPDATEDATE) END DESC,
@@ -2471,7 +2487,7 @@ async function overwriteMssqlPatientDemographics(
 
   // Service rows also carry a denormalized patient name. Keep them aligned so
   // MSSQL reports and the periodic MySQL sync cannot resurrect an old name.
-  const serviceTable = "op2026.dbo.PAPAT_SRV";
+  const serviceTable = `${mssqlDbName()}.dbo.PAPAT_SRV`;
   const serviceCols = await getTableColumns(pool, serviceTable).catch(
     () => new Set<string>(),
   );
@@ -2501,6 +2517,7 @@ export async function insertPatientToMssql(
    * failed — patient/receipt exists in MSSQL but with no service row. */
   serviceInsertWarning?: string;
 }> {
+  assertMssqlWritable();
   console.log(`[MSSQL Insert] Starting for patient: ${input.patientCode}`);
   let patientCode = String(input.patientCode ?? "").trim();
   const fullName = String(input.fullName ?? "").trim();
@@ -2976,7 +2993,7 @@ export async function insertPatientToMssql(
         `[MSSQL Insert] Creating service row for ${patientCode} with code ${serviceCode}`,
       );
       try {
-        const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+        const srvCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
         _mark("getTableColumns(PAPAT_SRV) done");
         const srvTrNoCol = srvCols.has("TR_NO")
           ? "TR_NO"
@@ -3008,7 +3025,7 @@ export async function insertPatientToMssql(
                       WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT)
                       ELSE NULL
                     END
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3020,7 +3037,7 @@ export async function insertPatientToMssql(
                 (
                   SELECT TOP 1
                     CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3032,7 +3049,7 @@ export async function insertPatientToMssql(
                 (
                   SELECT TOP 1
                     NULLIF(CONVERT(varchar(50), TR_TIM), '')
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3051,7 +3068,7 @@ export async function insertPatientToMssql(
                           ELSE NULL
                         END
                       ), 0) + 1
-                      FROM op2026.dbo.PAPAT_SRV
+                      FROM ${mssqlDbName()}.dbo.PAPAT_SRV
                     )
                   )`,
               ]
@@ -3063,7 +3080,7 @@ export async function insertPatientToMssql(
                       WHEN ISNUMERIC(CONVERT(varchar(50), TR_TY)) = 1 THEN CAST(CONVERT(varchar(50), TR_TY) AS INT)
                       ELSE NULL
                     END
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3100,10 +3117,10 @@ export async function insertPatientToMssql(
           return `(${exact}) OR (${recent})`;
         })();
         const serviceSql = `
-            INSERT INTO op2026.dbo.PAPAT_SRV (${serviceInsertCols.join(", ")})
+            INSERT INTO ${mssqlDbName()}.dbo.PAPAT_SRV (${serviceInsertCols.join(", ")})
             SELECT ${serviceInsertVals.join(", ")}
             WHERE NOT EXISTS (
-              SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${serviceExistsFilter}
+              SELECT 1 FROM ${mssqlDbName()}.dbo.PAPAT_SRV WHERE ${serviceExistsFilter}
             )
         `;
         await withMssqlServiceInsertLock(
@@ -3205,6 +3222,7 @@ export async function insertPatientToMssql(
 export async function upsertPatientToMssql(
   input: MssqlPatientInsertInput,
 ): Promise<{ upserted: boolean; note?: string }> {
+  assertMssqlWritable();
   const patientCode = String(input.patientCode ?? "").trim();
   const fullName = String(input.fullName ?? "").trim();
   if (!patientCode || !fullName) {
@@ -3537,7 +3555,7 @@ export async function upsertPatientToMssql(
 
     if (serviceCode) {
       try {
-        const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+        const srvCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
         const srvTrNoCol = srvCols.has("TR_NO")
           ? "TR_NO"
           : srvCols.has("TR_NONEW")
@@ -3568,7 +3586,7 @@ export async function upsertPatientToMssql(
                       WHEN ISNUMERIC(CONVERT(varchar(50), VST_NO)) = 1 THEN CAST(CONVERT(varchar(50), VST_NO) AS INT)
                       ELSE NULL
                     END
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3580,7 +3598,7 @@ export async function upsertPatientToMssql(
                 (
                   SELECT TOP 1
                     CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3592,7 +3610,7 @@ export async function upsertPatientToMssql(
                 (
                   SELECT TOP 1
                     NULLIF(CONVERT(varchar(50), TR_TIM), '')
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3609,7 +3627,7 @@ export async function upsertPatientToMssql(
                         WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrSelectExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrSelectExpr}) AS INT)
                         ELSE NULL
                       END
-                    FROM op2026.dbo.PAJRNRCVH
+                    FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                     WHERE PAT_CD = @PAT_CD
                     ORDER BY
                       CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3622,7 +3640,7 @@ export async function upsertPatientToMssql(
                         ELSE NULL
                       END
                     ), 0) + 1
-                    FROM op2026.dbo.PAPAT_SRV
+                    FROM ${mssqlDbName()}.dbo.PAPAT_SRV
                   )
                 )`,
               ]
@@ -3634,7 +3652,7 @@ export async function upsertPatientToMssql(
                       WHEN ISNUMERIC(CONVERT(varchar(50), TR_TY)) = 1 THEN CAST(CONVERT(varchar(50), TR_TY) AS INT)
                       ELSE NULL
                     END
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3656,7 +3674,7 @@ export async function upsertPatientToMssql(
                       WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrSelectExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrSelectExpr}) AS INT)
                       ELSE NULL
                     END
-                  FROM op2026.dbo.PAJRNRCVH
+                  FROM ${mssqlDbName()}.dbo.PAJRNRCVH
                   WHERE PAT_CD = @PAT_CD
                   ORDER BY
                     CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC,
@@ -3669,16 +3687,16 @@ export async function upsertPatientToMssql(
                       ELSE NULL
                     END
                   ), 0)
-                  FROM op2026.dbo.PAPAT_SRV
+                  FROM ${mssqlDbName()}.dbo.PAPAT_SRV
                 )
               )
             )`
           : `PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD`;
         const serviceSql = `
-            INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
+            INSERT INTO ${mssqlDbName()}.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
             SELECT ${srvInsertVals.join(", ")}
             WHERE NOT EXISTS (
-              SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${upsertSrvExistsFilter}
+              SELECT 1 FROM ${mssqlDbName()}.dbo.PAPAT_SRV WHERE ${upsertSrvExistsFilter}
             )
         `;
         await withMssqlServiceInsertLock(
@@ -3744,6 +3762,7 @@ export async function ensurePatientServiceInMssql(
   discountValueRaw?: number | null,
   servicePriceRaw?: number | null,
 ): Promise<{ linked: boolean; note?: string }> {
+  assertMssqlWritable();
   const patientCode = String(patientCodeRaw ?? "").trim();
   const serviceCode = String(serviceCodeRaw ?? "").trim();
   const doctorCode = String(doctorCodeRaw ?? "").trim();
@@ -3771,7 +3790,7 @@ export async function ensurePatientServiceInMssql(
       : headerCols.has("TR_NONEW")
         ? "tr_noNew"
         : "";
-    const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    const srvCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
     const srvTrNoCol = srvCols.has("TR_NO")
       ? "TR_NO"
       : srvCols.has("TR_NONEW")
@@ -3856,7 +3875,7 @@ export async function ensurePatientServiceInMssql(
                     ELSE NULL
                   END
                 ), 0) + 1
-                FROM op2026.dbo.PAPAT_SRV
+                FROM ${mssqlDbName()}.dbo.PAPAT_SRV
               )
             )`,
           ]
@@ -3903,7 +3922,7 @@ export async function ensurePatientServiceInMssql(
                   ELSE NULL
                 END
               ), 0)
-              FROM op2026.dbo.PAPAT_SRV
+              FROM ${mssqlDbName()}.dbo.PAPAT_SRV
             )
           )
         )`
@@ -3915,11 +3934,11 @@ export async function ensurePatientServiceInMssql(
     // variable instead and select back out of that.
     const serviceSql = `
         ${srvTrNoCol ? "DECLARE @InsertedSrv TABLE (TR_NO INT);" : ""}
-        INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
+        INSERT INTO ${mssqlDbName()}.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
         ${srvTrNoCol ? `OUTPUT INSERTED.${srvTrNoCol} INTO @InsertedSrv (TR_NO)` : ""}
         SELECT ${srvInsertVals.join(", ")}
         WHERE NOT EXISTS (
-          SELECT 1 FROM op2026.dbo.PAPAT_SRV WHERE ${ensureSrvExistsFilter}
+          SELECT 1 FROM ${mssqlDbName()}.dbo.PAPAT_SRV WHERE ${ensureSrvExistsFilter}
         );
         ${srvTrNoCol ? "SELECT TR_NO FROM @InsertedSrv;" : ""}
     `;
@@ -3975,7 +3994,7 @@ export async function ensurePatientServiceInMssql(
       const trNoLookupRs = await trNoLookupReq.query(`
         SELECT TOP 1
           CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrNoCol})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrNoCol}) AS INT) ELSE NULL END AS TR_NO
-        FROM op2026.dbo.PAPAT_SRV
+        FROM ${mssqlDbName()}.dbo.PAPAT_SRV
         WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD
         ORDER BY ${srvTrNoCol} DESC
       `);
@@ -3997,7 +4016,7 @@ export async function ensurePatientServiceInMssql(
       const papatSrvColsResult = await pool.request().query(`
         SELECT name
         FROM sys.columns
-        WHERE object_id = OBJECT_ID('op2026.dbo.PAPAT_SRV')
+        WHERE object_id = OBJECT_ID('${mssqlDbName()}.dbo.PAPAT_SRV')
       `);
       const papatSrvCols = new Set<string>(
         (Array.isArray(papatSrvColsResult?.recordset)
@@ -4013,7 +4032,7 @@ export async function ensurePatientServiceInMssql(
         req.input("SRV_CD", serviceCode);
         req.input("VAL", value);
         await req.query(
-          `UPDATE op2026.dbo.PAPAT_SRV SET ${column} = @VAL WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${srvTrNoFilter}`,
+          `UPDATE ${mssqlDbName()}.dbo.PAPAT_SRV SET ${column} = @VAL WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${srvTrNoFilter}`,
         );
       };
       if (doctorBy) {
@@ -4093,7 +4112,7 @@ export async function ensurePatientServiceInMssql(
         const existingQtyRs = await existingQtyReq.query(`
           SELECT TOP 1
             CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${qtyColName})) = 1 THEN CAST(CONVERT(varchar(50), ${qtyColName}) AS INT) ELSE NULL END AS QTY
-          FROM op2026.dbo.PAPAT_SRV
+          FROM ${mssqlDbName()}.dbo.PAPAT_SRV
           WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${srvTrNoFilter}
         `);
         const existingQty = Number(existingQtyRs?.recordset?.[0]?.QTY);
@@ -4189,6 +4208,7 @@ export async function editReceiptServiceLine(input: {
   price: number;
   discount: number;
 }): Promise<{ updated: boolean; note?: string }> {
+  assertMssqlWritable();
   const patientCode = String(input.patientCode ?? "").trim();
   const serviceCode = String(input.serviceCode ?? "").trim();
   const lineNo = Math.trunc(Number(input.lineNo));
@@ -4225,7 +4245,7 @@ export async function editReceiptServiceLine(input: {
     await tx.begin();
     const pool = tx;
 
-    const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    const srvCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
     if (!srvCols.has("LN_NO") || !srvCols.has("CNCL")) {
       await tx.rollback().catch(() => {});
       return { updated: false, note: "العمود LN_NO أو CNCL غير موجود" };
@@ -4239,7 +4259,7 @@ export async function editReceiptServiceLine(input: {
     oldReq.input("TR_NO", input.trNo);
     const oldRs = await oldReq.query(`
       SELECT TOP 1 *
-      FROM op2026.dbo.PAPAT_SRV
+      FROM ${mssqlDbName()}.dbo.PAPAT_SRV
       WHERE PAT_CD = @PAT_CD AND LN_NO = @LN_NO AND SEC_CD = @SEC_CD
         AND TR_TY = @TR_TY AND TR_NO = @TR_NO
         AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')
@@ -4256,7 +4276,7 @@ export async function editReceiptServiceLine(input: {
     const svcReq = pool.request();
     svcReq.input("SRV_CD", serviceCode);
     const svcRs = await svcReq.query(
-      `SELECT TOP 1 SRV_CD FROM op2026.dbo.SRVCMF WHERE SRV_CD = @SRV_CD`,
+      `SELECT TOP 1 SRV_CD FROM ${mssqlDbName()}.dbo.SRVCMF WHERE SRV_CD = @SRV_CD`,
     );
     if (!svcRs.recordset?.length) {
       await tx.rollback().catch(() => {});
@@ -4267,7 +4287,7 @@ export async function editReceiptServiceLine(input: {
     voidReq.input("PAT_CD", patientCode);
     voidReq.input("LN_NO", lineNo);
     await voidReq.query(`
-      UPDATE op2026.dbo.PAPAT_SRV
+      UPDATE ${mssqlDbName()}.dbo.PAPAT_SRV
       SET CNCL = '*', UPDATEDATE = GETDATE()
       WHERE PAT_CD = @PAT_CD AND LN_NO = @LN_NO
     `);
@@ -4322,7 +4342,7 @@ export async function editReceiptServiceLine(input: {
       ...copyCols.map((c) => `@COPY_${c}`),
     ];
     await insReq.query(
-      `INSERT INTO op2026.dbo.PAPAT_SRV (${insertCols.join(", ")}) VALUES (${insertVals.join(", ")})`,
+      `INSERT INTO ${mssqlDbName()}.dbo.PAPAT_SRV (${insertCols.join(", ")}) VALUES (${insertVals.join(", ")})`,
     );
 
     const targetTable = getAllowedMssqlPatientTable();
@@ -4354,6 +4374,7 @@ export async function addServiceReceiptInMssql(
   servicePriceOverride?: number | null,
   shiftNumberRaw?: 1 | 2 | null,
 ): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
+  assertMssqlWritable();
   const patientCode = String(patientCodeRaw ?? "").trim();
   const serviceCode = String(serviceCodeRaw ?? "").trim();
   if (!patientCode || !serviceCode)
@@ -4469,7 +4490,7 @@ export async function addServiceReceiptInMssql(
         : null;
     if (basePrice == null)
       try {
-        const srvlstdCols = await getTableColumns(pool, "op2026.dbo.SRVLSTD");
+        const srvlstdCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.SRVLSTD`);
         const srvlstdCodeCol =
           ["SRV_CD", "SERVICE_CODE", "CODE", "SRVNO", "SRV_NO"].find((c) =>
             srvlstdCols.has(c),
@@ -4493,7 +4514,7 @@ export async function addServiceReceiptInMssql(
             const pRs = await pReq.query(`
             SELECT TOP 1
               CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC
-            FROM op2026.dbo.SRVLSTD WHERE ${srvlstdCodeCol} = @SRV_CD
+            FROM ${mssqlDbName()}.dbo.SRVLSTD WHERE ${srvlstdCodeCol} = @SRV_CD
           `);
             const p = Number(pRs?.recordset?.[0]?.PRC);
             if (Number.isFinite(p) && p > 0) {
@@ -4507,7 +4528,7 @@ export async function addServiceReceiptInMssql(
       }
     if (basePrice == null) {
       try {
-        const srvcmfCols = await getTableColumns(pool, "op2026.dbo.SRVCMF");
+        const srvcmfCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.SRVCMF`);
         const priceCols = [
           "PRC",
           "PRC1",
@@ -4526,7 +4547,7 @@ export async function addServiceReceiptInMssql(
           const pRs = await pReq.query(`
             SELECT TOP 1
               CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC
-            FROM op2026.dbo.SRVCMF WHERE SRV_CD = @SRV_CD
+            FROM ${mssqlDbName()}.dbo.SRVCMF WHERE SRV_CD = @SRV_CD
           `);
           const p = Number(pRs?.recordset?.[0]?.PRC);
           if (Number.isFinite(p) && p > 0) {
@@ -4663,7 +4684,7 @@ export async function addServiceReceiptInMssql(
     );
 
     // Insert PAPAT_SRV row for the service
-    const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    const srvCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
     const srvTrNoCol = srvCols.has("TR_NO")
       ? "TR_NO"
       : srvCols.has("TR_NONEW")
@@ -4692,7 +4713,7 @@ export async function addServiceReceiptInMssql(
       `ISNULL((SELECT TOP 1 NULLIF(CONVERT(varchar(50), TR_TIM), '') FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), CONVERT(varchar(50), GETDATE(), 120))`,
       ...(srvTrNoCol
         ? [
-            `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), (SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV))`,
+            `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${headerTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${headerTrExpr}) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), (SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM ${mssqlDbName()}.dbo.PAPAT_SRV))`,
           ]
         : []),
       `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), TR_TY)) = 1 THEN CAST(CONVERT(varchar(50), TR_TY) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
@@ -4703,7 +4724,7 @@ export async function addServiceReceiptInMssql(
     ];
     const srvQtyColName = srvCols.has("QTY") ? "QTY" : "";
     const srvSql = `
-      INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
+      INSERT INTO ${mssqlDbName()}.dbo.PAPAT_SRV (${srvInsertCols.join(", ")})
       SELECT ${srvInsertVals.join(", ")}
     `;
     const srvReq = pool.request();
@@ -4750,6 +4771,7 @@ export async function addMultiServiceReceiptInMssql(
   shiftNumberRaw?: 1 | 2 | null,
   serviceDateRaw?: string | null,
 ): Promise<{ inserted: boolean; note?: string; trNo?: number | null }> {
+  assertMssqlWritable();
   const patientCode = String(patientCodeRaw ?? "").trim();
   const validLines = lines.filter((l) => String(l.serviceCode ?? "").trim());
   if (!patientCode || validLines.length === 0)
@@ -4881,7 +4903,7 @@ export async function addMultiServiceReceiptInMssql(
           : null;
       if (basePrice == null)
         try {
-          const srvlstdCols = await getTableColumns(pool, "op2026.dbo.SRVLSTD");
+          const srvlstdCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.SRVLSTD`);
           const srvlstdCodeCol =
             ["SRV_CD", "SERVICE_CODE", "CODE", "SRVNO", "SRV_NO"].find((c) =>
               srvlstdCols.has(c),
@@ -4903,7 +4925,7 @@ export async function addMultiServiceReceiptInMssql(
               const pReq = pool.request();
               pReq.input("SRV_CD", serviceCode);
               const pRs = await pReq.query(
-                `SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC FROM op2026.dbo.SRVLSTD WHERE ${srvlstdCodeCol} = @SRV_CD`,
+                `SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC FROM ${mssqlDbName()}.dbo.SRVLSTD WHERE ${srvlstdCodeCol} = @SRV_CD`,
               );
               const p = Number(pRs?.recordset?.[0]?.PRC);
               if (Number.isFinite(p) && p > 0) {
@@ -4917,7 +4939,7 @@ export async function addMultiServiceReceiptInMssql(
         }
       if (basePrice == null)
         try {
-          const srvcmfCols = await getTableColumns(pool, "op2026.dbo.SRVCMF");
+          const srvcmfCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.SRVCMF`);
           const priceCols = [
             "PRC",
             "PRC1",
@@ -4934,7 +4956,7 @@ export async function addMultiServiceReceiptInMssql(
             const pReq = pool.request();
             pReq.input("SRV_CD", serviceCode);
             const pRs = await pReq.query(
-              `SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC FROM op2026.dbo.SRVCMF WHERE SRV_CD = @SRV_CD`,
+              `SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${col})) = 1 THEN CAST(CONVERT(varchar(50), ${col}) AS decimal(18,2)) ELSE NULL END AS PRC FROM ${mssqlDbName()}.dbo.SRVCMF WHERE SRV_CD = @SRV_CD`,
             );
             const p = Number(pRs?.recordset?.[0]?.PRC);
             if (Number.isFinite(p) && p > 0) {
@@ -5079,7 +5101,7 @@ export async function addMultiServiceReceiptInMssql(
     );
 
     // Insert PAPAT_SRV row per service line
-    const srvCols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    const srvCols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
     const srvTrNoCol = srvCols.has("TR_NO")
       ? "TR_NO"
       : srvCols.has("TR_NONEW")
@@ -5111,7 +5133,7 @@ export async function addMultiServiceReceiptInMssql(
         ? [
             Number.isFinite(trNo)
               ? String(Math.trunc(trNo))
-              : `(SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM op2026.dbo.PAPAT_SRV)`,
+              : `(SELECT ISNULL(MAX(CASE WHEN ISNUMERIC(CONVERT(varchar(50), ${srvTrExpr})) = 1 THEN CAST(CONVERT(varchar(50), ${srvTrExpr}) AS INT) ELSE NULL END), 0) + 1 FROM ${mssqlDbName()}.dbo.PAPAT_SRV)`,
           ]
         : []),
       `ISNULL((SELECT TOP 1 CASE WHEN ISNUMERIC(CONVERT(varchar(50), TR_TY)) = 1 THEN CAST(CONVERT(varchar(50), TR_TY) AS INT) ELSE NULL END FROM ${targetTable} WHERE PAT_CD = @PAT_CD ORDER BY CASE WHEN ISDATE(UPDATEDATE) = 1 THEN CONVERT(datetime, UPDATEDATE) END DESC, CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC), 1)`,
@@ -5120,7 +5142,7 @@ export async function addMultiServiceReceiptInMssql(
       "6",
       "1",
     ];
-    const srvSql = `INSERT INTO op2026.dbo.PAPAT_SRV (${srvInsertCols.join(", ")}) SELECT ${srvInsertVals.join(", ")}`;
+    const srvSql = `INSERT INTO ${mssqlDbName()}.dbo.PAPAT_SRV (${srvInsertCols.join(", ")}) SELECT ${srvInsertVals.join(", ")}`;
 
     for (const line of resolvedLines) {
       const srvReq = pool.request();
@@ -5166,6 +5188,7 @@ export async function addMultiServiceReceiptInMssql(
 export async function deletePatientFromMssqlByCode(
   patientCodeRaw: string,
 ): Promise<{ deleted: boolean; note?: string }> {
+  assertMssqlWritable();
   const patientCode = String(patientCodeRaw ?? "").trim();
   if (!patientCode) return { deleted: false, note: "Missing patientCode" };
 
@@ -5193,16 +5216,16 @@ export async function deletePatientFromMssqlByCode(
       }
     };
 
-    const deletedSrv = await tryDeleteByCode("op2026.dbo.PAPAT_SRV");
-    const deletedIo = await tryDeleteByCode("op2026.dbo.PAPAT_IO");
-    const deletedMf = await tryDeleteByCode("op2026.dbo.PAPATMF");
+    const deletedSrv = await tryDeleteByCode(`${mssqlDbName()}.dbo.PAPAT_SRV`);
+    const deletedIo = await tryDeleteByCode(`${mssqlDbName()}.dbo.PAPAT_IO`);
+    const deletedMf = await tryDeleteByCode(`${mssqlDbName()}.dbo.PAPATMF`);
     const deletedHeader = await tryDeleteByCode(targetTable);
     // PAJRNRCVH is the receipts/journal table itself — delete from it
     // explicitly in case MSSQL_PUSH_PATIENTS_TABLE points elsewhere.
     const deletedJrn =
-      targetTable.toLowerCase() === "op2026.dbo.pajrnrcvh"
+      targetTable.toLowerCase() === `${mssqlDbName()}.dbo.pajrnrcvh`
         ? 0
-        : await tryDeleteByCode("op2026.dbo.PAJRNRCVH");
+        : await tryDeleteByCode(`${mssqlDbName()}.dbo.PAJRNRCVH`);
 
     const totalDeleted =
       deletedSrv + deletedIo + deletedMf + deletedHeader + deletedJrn;
@@ -5226,6 +5249,7 @@ export async function deletePatientFromMssqlByCode(
 export async function deletePatientServicesFromMssqlByCode(
   patientCodeRaw: string,
 ): Promise<{ deleted: boolean; deletedCount: number; note?: string }> {
+  assertMssqlWritable();
   const patientCode = String(patientCodeRaw ?? "").trim();
   if (!patientCode) return { deleted: false, deletedCount: 0, note: "Missing patientCode" };
 
@@ -5240,7 +5264,7 @@ export async function deletePatientServicesFromMssqlByCode(
     const result = await pool
       .request()
       .input("PAT_CD", patientCode)
-      .query(`DELETE FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD`);
+      .query(`DELETE FROM ${mssqlDbName()}.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD`);
     const deletedCount = Number(result?.rowsAffected?.[0] ?? 0);
     return { deleted: deletedCount > 0, deletedCount };
   } finally {
@@ -5255,6 +5279,7 @@ export async function renamePatientCodeInMssql(
   oldCodeRaw: string,
   newCodeRaw: string,
 ): Promise<{ updated: boolean; note?: string }> {
+  assertMssqlWritable();
   const oldCode = String(oldCodeRaw ?? "").trim();
   const newCode = String(newCodeRaw ?? "").trim();
   if (!oldCode || !newCode) {
@@ -5287,17 +5312,17 @@ export async function renamePatientCodeInMssql(
       }
     };
 
-    const updatedSrv = await tryRenameCode("op2026.dbo.PAPAT_SRV");
-    const updatedIo = await tryRenameCode("op2026.dbo.PAPAT_IO");
-    const updatedMf = await tryRenameCode("op2026.dbo.PAPATMF");
+    const updatedSrv = await tryRenameCode(`${mssqlDbName()}.dbo.PAPAT_SRV`);
+    const updatedIo = await tryRenameCode(`${mssqlDbName()}.dbo.PAPAT_IO`);
+    const updatedMf = await tryRenameCode(`${mssqlDbName()}.dbo.PAPATMF`);
     const updatedHeader = await tryRenameCode(targetTable);
     // PAJRNRCVH is the receipts/journal table itself — rename it explicitly
     // in case MSSQL_PUSH_PATIENTS_TABLE points elsewhere (targetTable is
     // configurable and may differ from the real receipts table).
     const updatedJrn =
-      targetTable.toLowerCase() === "op2026.dbo.pajrnrcvh"
+      targetTable.toLowerCase() === `${mssqlDbName()}.dbo.pajrnrcvh`
         ? 0
-        : await tryRenameCode("op2026.dbo.PAJRNRCVH");
+        : await tryRenameCode(`${mssqlDbName()}.dbo.PAJRNRCVH`);
 
     const total = updatedSrv + updatedIo + updatedMf + updatedHeader + updatedJrn;
     return {
@@ -5319,6 +5344,7 @@ export async function deleteSinglePatientServiceFromMssqlByCode(
   serviceCodeRaw: string,
   serviceDateRaw?: string | Date | null,
 ): Promise<{ deleted: boolean; deletedCount: number; note?: string }> {
+  assertMssqlWritable();
   const patientCode = String(patientCodeRaw ?? "").trim();
   const serviceCode = String(serviceCodeRaw ?? "").trim();
   if (!patientCode || !serviceCode) {
@@ -5343,7 +5369,7 @@ export async function deleteSinglePatientServiceFromMssqlByCode(
       : "";
     if (serviceDateIso) request.input("SRV_DT", serviceDateIso);
     const result = await request.query(
-      `DELETE FROM op2026.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${whereDate}`,
+      `DELETE FROM ${mssqlDbName()}.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND SRV_CD = @SRV_CD${whereDate}`,
     );
     const deletedCount = Number(result?.rowsAffected?.[0] ?? 0);
     return { deleted: deletedCount > 0, deletedCount };
@@ -5355,6 +5381,7 @@ export async function deleteSinglePatientServiceFromMssqlByCode(
 export async function backfillPapatSrvNamesInMssql(
   limitRaw?: number,
 ): Promise<{ updated: number; note?: string }> {
+  assertMssqlWritable();
   const enabled = asBool(process.env.MSSQL_PUSH_NEW_PATIENTS_ENABLED, true);
   if (!enabled)
     return { updated: 0, note: "MSSQL_PUSH_NEW_PATIENTS_ENABLED=false" };
@@ -5366,7 +5393,7 @@ export async function backfillPapatSrvNamesInMssql(
   const pool = await createMssqlPool();
   try {
     await pool.connect();
-    const cols = await getTableColumns(pool, "op2026.dbo.PAPAT_SRV");
+    const cols = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
     const canSetNam = cols.has("NAM");
     const canSetPatNmAr = cols.has("PAT_NM_AR");
     if (!canSetNam && !canSetPatNmAr) {
@@ -5402,12 +5429,12 @@ export async function backfillPapatSrvNamesInMssql(
               CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END DESC,
               CASE WHEN ISDATE(DT) = 1 THEN CONVERT(datetime, DT) END DESC
           ) AS rn
-        FROM op2026.dbo.PAJRNRCVH
+        FROM ${mssqlDbName()}.dbo.PAJRNRCVH
         WHERE ISNULL(PAT_CD, '') <> ''
       ),
       candidates AS (
         SELECT DISTINCT TOP (@LIM) s.PAT_CD
-        FROM op2026.dbo.PAPAT_SRV s
+        FROM ${mssqlDbName()}.dbo.PAPAT_SRV s
         INNER JOIN latest l ON l.PAT_CD = s.PAT_CD AND l.rn = 1
         WHERE ISNULL(l.H_NAM, '') <> ''
           AND (${missingParts.join(" OR ")})
@@ -5415,7 +5442,7 @@ export async function backfillPapatSrvNamesInMssql(
       )
       UPDATE s
       SET ${setParts.join(",\n          ")}
-      FROM op2026.dbo.PAPAT_SRV s
+      FROM ${mssqlDbName()}.dbo.PAPAT_SRV s
       INNER JOIN candidates c ON c.PAT_CD = s.PAT_CD
       INNER JOIN latest l ON l.PAT_CD = s.PAT_CD AND l.rn = 1
       WHERE ISNULL(l.H_NAM, '') <> ''
@@ -5485,7 +5512,7 @@ function getSyncQuery(
           CASE WHEN ISDATE(ENTRYDATE) = 1 THEN CONVERT(datetime, ENTRYDATE) END,
           CASE WHEN ISDATE(VST_DT) = 1 THEN CONVERT(datetime, VST_DT) END
         ) AS changedAt
-      FROM op2026.dbo.PAJRNRCVH
+      FROM ${mssqlDbName()}.dbo.PAJRNRCVH
       WHERE ISNULL(PAT_CD, '') <> ''
         ${
           sinceLiteral
@@ -5563,7 +5590,7 @@ function getSyncQuery(
         r.IDNO,
         r.PAY,
         r.DUE
-      FROM op2026.dbo.PAJRNRCVH r
+      FROM ${mssqlDbName()}.dbo.PAJRNRCVH r
       WHERE r.PAT_CD = l.PAT_CD
         AND (
           r.IDNO IS NOT NULL
@@ -5595,7 +5622,7 @@ function getSyncQuery(
         s.PRC,
         s.DISC_VL,
         s.PA_VL
-      FROM op2026.dbo.PAPAT_SRV s
+      FROM ${mssqlDbName()}.dbo.PAPAT_SRV s
       WHERE s.PAT_CD = l.PAT_CD
         AND ISNULL(s.SRV_CD, '') <> ''
         ${includeServiceCode ? "AND (ISNULL(l.SRV_CD, '') = '' OR s.SRV_CD = l.SRV_CD)" : ""}
@@ -5615,7 +5642,7 @@ function getSyncQuery(
           SELECT ',' + CONVERT(varchar(100), x.SRV_CD)
           FROM (
             SELECT DISTINCT s2.SRV_CD
-            FROM op2026.dbo.PAPAT_SRV s2
+            FROM ${mssqlDbName()}.dbo.PAPAT_SRV s2
             WHERE s2.PAT_CD = l.PAT_CD
               AND ISNULL(s2.SRV_CD, '') <> ''
           ) x
@@ -5839,7 +5866,7 @@ export async function getServiceCodeNamesFromMssql(
   const placeholders = uniqueCodes.map((_, i) => `@c${i}`).join(", ");
   const rs = await request.query(`
     SELECT SRV_CD AS serviceCode, SRV_NM_AR AS serviceName
-    FROM op2026.dbo.SRVCMF
+    FROM ${mssqlDbName()}.dbo.SRVCMF
     WHERE SRV_CD IN (${placeholders})
   `);
   for (const row of rs.recordset ?? []) {
@@ -5869,7 +5896,7 @@ export async function getMssqlSyncStatus() {
   };
 }
 
-export async function syncPatientsFromMssql(
+async function syncPatientsFromMssqlImpl(
   options: SyncOptions = {},
 ): Promise<SyncResult> {
   const startedAt = new Date().toISOString();
@@ -6697,7 +6724,7 @@ export async function syncPatientsFromMssql(
       try {
         const papatSrvCols = await getTableColumns(
           pool,
-          "op2026.dbo.PAPAT_SRV",
+          `${mssqlDbName()}.dbo.PAPAT_SRV`,
         );
         const trNoExpr = papatSrvCols.has("TR_NO")
           ? "CASE WHEN ISNUMERIC(CONVERT(varchar(50), TR_NO)) = 1 THEN CAST(CONVERT(varchar(50), TR_NO) AS INT) ELSE NULL END"
@@ -6717,7 +6744,7 @@ export async function syncPatientsFromMssql(
             SRV_CD AS serviceCode,
             ${trNoExpr} AS trNo,
             ${serviceDateExpr} AS serviceDate
-          FROM op2026.dbo.PAPAT_SRV
+          FROM ${mssqlDbName()}.dbo.PAPAT_SRV
           WHERE ISNULL(PAT_CD, '') <> ''
             AND ISNULL(SRV_CD, '') <> ''
           ORDER BY PAT_CD ASC, ${serviceDateExpr} DESC, ${trNoExpr} DESC
@@ -6943,4 +6970,25 @@ export async function syncPatientsFromMssql(
   }
 
   return result;
+}
+
+/** Imports into the current-year MySQL database, so they always read the current year's MSSQL database. */
+export function syncSinglePatientFromMssql(
+  ...args: Parameters<typeof syncSinglePatientFromMssqlImpl>
+): ReturnType<typeof syncSinglePatientFromMssqlImpl> {
+  return withCurrentMssqlYear(() => syncSinglePatientFromMssqlImpl(...args));
+}
+
+/** Imports into the current-year MySQL database, so they always read the current year's MSSQL database. */
+export function createOrSyncPatientFromMssql(
+  ...args: Parameters<typeof createOrSyncPatientFromMssqlImpl>
+): ReturnType<typeof createOrSyncPatientFromMssqlImpl> {
+  return withCurrentMssqlYear(() => createOrSyncPatientFromMssqlImpl(...args));
+}
+
+/** Imports into the current-year MySQL database, so they always read the current year's MSSQL database. */
+export function syncPatientsFromMssql(
+  ...args: Parameters<typeof syncPatientsFromMssqlImpl>
+): ReturnType<typeof syncPatientsFromMssqlImpl> {
+  return withCurrentMssqlYear(() => syncPatientsFromMssqlImpl(...args));
 }
