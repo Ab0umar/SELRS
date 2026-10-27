@@ -20,11 +20,9 @@ import {
 
 const PAGE_PATH = "/admin/legacy-patients";
 
-const LEGACY_YEAR_DB: Record<string, string> = {
-  "2023": "selrs23",
-  "2024": "selrs24",
-  "2025": "selrs25",
-};
+const LEGACY_YEAR_DB: Record<string, string> = Object.fromEntries(
+  Array.from({ length: 13 }, (_, i) => [String(2013 + i), `selrs${String(13 + i)}`]),
+);
 
 const yearConnections = new Map<string, mysql.Connection>();
 
@@ -87,7 +85,7 @@ function withServiceNames(
 }
 
 const searchInputSchema = z.object({
-  year: z.enum(["2023", "2024", "2025", "2026"]),
+  year: z.enum(["2013","2014","2015","2016","2017","2018","2019","2020","2021","2022","2023","2024","2025","2026"]),
   query: z.string().trim().max(255).optional(),
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(200).default(25),

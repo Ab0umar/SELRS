@@ -1418,6 +1418,11 @@ export async function getNextPatientCode() {
 }
 
 export async function getPatientById(patientId: number) {
+  if (patientId < 0) {
+    // Negative ids belong to the legacy year databases (see server/lib/legacyYearPatients.ts).
+    const { legacyGetPatientById } = await import("./lib/legacyYearPatients");
+    return await legacyGetPatientById(patientId);
+  }
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1451,6 +1456,17 @@ export async function searchPatients(
   locationType?: "center" | "external",
   limit: number = SEARCH_PATIENTS_DEFAULT_LIMIT,
 ) {
+  const yearPatients = await import("./lib/legacyYearPatients");
+  const legacyYear = yearPatients.legacyYearForSession();
+  if (legacyYear !== null) {
+    const term = String(searchTerm ?? "").trim();
+    if (term.length < SEARCH_PATIENTS_MIN_TERM) return [];
+    return await yearPatients.legacySearchPatients(
+      legacyYear,
+      term,
+      Math.min(Math.max(1, Math.trunc(Number(limit) || SEARCH_PATIENTS_DEFAULT_LIMIT)), SEARCH_PATIENTS_MAX_LIMIT),
+    );
+  }
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -2562,6 +2578,9 @@ export async function getAllPatients(options?: {
     id: number;
   };
 }) {
+  const legacy = await import("./lib/legacyYearPatients");
+  const legacyYear = legacy.legacyYearForSession();
+  if (legacyYear !== null) return await legacy.legacyGetAllPatients(legacyYear, options);
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
