@@ -1140,7 +1140,6 @@ function QueuePatientCard({
       <div className="queue-patient-service-rail">
         <span>
           <b>{serviceTypeText}</b>
-          {clinicText ? <small>{clinicText}</small> : null}
         </span>
       </div>
       <div className="queue-patient-content p-2">
@@ -1157,26 +1156,6 @@ function QueuePatientCard({
               ) : null}
             </div>
             <div className="queue-patient-meta mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
-              <Badge
-                className={cn(
-                  "queue-patient-state h-5 px-1.5 text-[13px]",
-                  queueStatusStyles[st],
-                )}
-              >
-                {queueStatusLabelsAr[st] ?? st}
-              </Badge>
-              {["clinic1", "clinic2", "pentacam"].includes(st) ? (
-                <Badge
-                  variant="outline"
-                  className="queue-patient-clinic h-5 px-1.5 text-[13px]"
-                >
-                  {st === "clinic1"
-                    ? "عيادة 1"
-                    : st === "clinic2"
-                      ? "عيادة 2"
-                      : "الأشعة - بنتاكام"}
-                </Badge>
-              ) : null}
               <span className="queue-patient-doctor min-w-0 max-w-full truncate">
                 الطبيب: {doctorText}
               </span>
@@ -1189,9 +1168,6 @@ function QueuePatientCard({
               >
                 {serviceTypeText}
               </Badge>
-              <span className="shrink-0 text-foreground tabular-nums">
-                {timeText}
-              </span>
               <span className="queue-patient-desktop-visit">{visitLink}</span>
               {st === "treated" && patient.treatedByName ? (
                 <span className="min-w-0 max-w-full truncate font-medium text-success">
@@ -1225,189 +1201,191 @@ function QueuePatientCard({
           ) : null}
         </div>
 
-        <div className="queue-patient-actions mt-1.5 flex items-center justify-center gap-1.5">
-          <span className="queue-patient-mobile-visit">{visitLink}</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="bare"
-                type="button"
-                title="طباعة الشيتات والتقارير"
-                aria-label="طباعة الشيتات والتقارير"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }}
-              >
-                <Printer className="h-4 w-4" aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-              style={{ direction: "rtl" }}
-            >
-              {PRINT_SHEET_TYPES.map(({ value, label }) => (
-                <DropdownMenuItem
-                  key={value}
+        <div className="queue-patient-actions mt-1.5 flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="bare"
+                  type="button"
+                  title="طباعة الشيتات والتقارير"
+                  aria-label="طباعة الشيتات والتقارير"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const query = new URLSearchParams({ original: "1" });
-                    query.set("visitDate", visitDate);
-                    if ((patient as any).visitType === "followup") {
-                      query.set("includeFollowups", "1");
-                    }
+                    e.preventDefault();
+                  }}
+                >
+                  <Printer className="h-4 w-4" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                onClick={(e) => e.stopPropagation()}
+                style={{ direction: "rtl" }}
+              >
+                {PRINT_SHEET_TYPES.map(({ value, label }) => (
+                  <DropdownMenuItem
+                    key={value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const query = new URLSearchParams({ original: "1" });
+                      query.set("visitDate", visitDate);
+                      if ((patient as any).visitType === "followup") {
+                        query.set("includeFollowups", "1");
+                      }
+                      window.open(
+                        buildPrintUrl(
+                          `/sheets/${value}/${patient.id}?${query.toString()}`,
+                          { autoPrint: false },
+                        ),
+                        "_blank",
+                      );
+                    }}
+                  >
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
                     window.open(
-                      buildPrintUrl(
-                        `/sheets/${value}/${patient.id}?${query.toString()}`,
-                        { autoPrint: false },
-                      ),
+                      withVisitDate(`/sheets/referral/${patient.id}`),
                       "_blank",
                     );
                   }}
                 >
-                  {label}
+                  خطاب تحويل
                 </DropdownMenuItem>
-              ))}
-              <DropdownMenuItem
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(
+                      withVisitDate(`/clinical-report/${patient.id}`),
+                      "_blank",
+                    );
+                  }}
+                >
+                  التقرير السريري الشامل
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(
+                      withVisitDate(`/pre-post-op-report/${patient.id}`),
+                      "_blank",
+                    );
+                  }}
+                >
+                  تقرير ما قبل/بعد العملية
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(
+                      withVisitDate(`/post-op-offdays/${patient.id}`),
+                      "_blank",
+                    );
+                  }}
+                >
+                  إجازة ما بعد العملية
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(
+                      withVisitDate(`/medical-condition-report/${patient.id}`),
+                      "_blank",
+                    );
+                  }}
+                >
+                  تقرير حالة طبية
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {secondaryCommands.map(({ label, icon: Icon, path }) => (
+              <Button
+                key={path}
+                variant="bare"
+                type="button"
+                title={label}
+                aria-label={label}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(
-                    withVisitDate(`/sheets/referral/${patient.id}`),
-                    "_blank",
-                  );
+                  openSecondaryPrint(path);
                 }}
               >
-                خطاب تحويل
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(
-                    withVisitDate(`/clinical-report/${patient.id}`),
-                    "_blank",
-                  );
-                }}
+                <Icon className="h-4 w-4" aria-hidden />
+              </Button>
+            ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="bare"
+                  type="button"
+                  title="المزيد من إجراءات المريض"
+                  aria-label="المزيد من إجراءات المريض"
+                  className="queue-patient-more h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Ellipsis className="h-4 w-4" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                style={{ direction: "rtl" }}
+                onClick={(e) => e.stopPropagation()}
               >
-                التقرير السريري الشامل
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(
-                    withVisitDate(`/pre-post-op-report/${patient.id}`),
-                    "_blank",
-                  );
-                }}
-              >
-                تقرير ما قبل/بعد العملية
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(
-                    withVisitDate(`/post-op-offdays/${patient.id}`),
-                    "_blank",
-                  );
-                }}
-              >
-                إجازة ما بعد العملية
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(
-                    withVisitDate(`/medical-condition-report/${patient.id}`),
-                    "_blank",
-                  );
-                }}
-              >
-                تقرير حالة طبية
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {secondaryCommands.map(({ label, icon: Icon, path }) => (
-            <Button
-              key={path}
-              variant="bare"
-              type="button"
-              title={label}
-              aria-label={label}
-              className="queue-patient-desktop-command flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                openSecondaryPrint(path);
-              }}
-            >
-              <Icon className="h-4 w-4" aria-hidden />
-            </Button>
-          ))}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+                {secondaryCommands.map(({ label, icon: Icon, path }) => (
+                  <DropdownMenuItem
+                    key={path}
+                    onSelect={() => openSecondaryPrint(path)}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+                {canMarkTreated ? (
+                  <DropdownMenuItem
+                    disabled={markingThis}
+                    onSelect={() => {
+                      if (visitId != null) onMarkVisitTreated(visitId);
+                    }}
+                  >
+                    <Check className="h-4 w-4" aria-hidden />
+                    تحديد كمعالج
+                  </DropdownMenuItem>
+                ) : null}
+                {canDelete ? (
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onSelect={() => onRequestDelete?.()}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                    حذف المريض
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {canDelete ? (
               <Button
                 variant="bare"
                 type="button"
-                title="المزيد من إجراءات المريض"
-                aria-label="المزيد من إجراءات المريض"
-                className="queue-patient-more h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
-                onClick={(e) => e.stopPropagation()}
+                title="حذف المريض"
+                aria-label={`حذف ${patient.fullName ?? "المريض"}`}
+                className="queue-patient-desktop-command flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onRequestDelete?.();
+                }}
               >
-                <Ellipsis className="h-5 w-5" aria-hidden />
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              style={{ direction: "rtl" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {secondaryCommands.map(({ label, icon: Icon, path }) => (
-                <DropdownMenuItem
-                  key={path}
-                  onSelect={() => openSecondaryPrint(path)}
-                >
-                  <Icon className="h-4 w-4" aria-hidden />
-                  {label}
-                </DropdownMenuItem>
-              ))}
-              {canMarkTreated ? (
-                <DropdownMenuItem
-                  disabled={markingThis}
-                  onSelect={() => {
-                    if (visitId != null) onMarkVisitTreated(visitId);
-                  }}
-                >
-                  <Check className="h-4 w-4" aria-hidden />
-                  تحديد كمعالج
-                </DropdownMenuItem>
-              ) : null}
-              {canDelete ? (
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onSelect={() => onRequestDelete?.()}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                  حذف المريض
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {canDelete ? (
-            <Button
-              variant="bare"
-              type="button"
-              title="حذف المريض"
-              aria-label={`حذف ${patient.fullName ?? "المريض"}`}
-              className="queue-patient-desktop-command flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onRequestDelete?.();
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" aria-hidden />
-            </Button>
-          ) : null}
+            ) : null}
+          </div>
+          <span className="queue-patient-mobile-visit">{visitLink}</span>
         </div>
       </div>
     </div>
