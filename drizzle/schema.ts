@@ -120,7 +120,15 @@ export const patients = mysqlTable("patients", {
   status: mysqlEnum("status", ["new", "followup", "archived"]).default("new"), // ط­ط§ظ„ط© ط§ظ„ظ…ط±ظٹط¶
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => [
+  index("idx_patients_phone").on(table.phone),
+  index("idx_doctor_code").on(table.doctorCode),
+  index("idx_patients_service_location_visit").on(
+    table.serviceType,
+    table.locationType,
+    table.lastVisit,
+  ),
+]);
 
 export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = typeof patients.$inferInsert;
@@ -356,7 +364,10 @@ export const visits = mysqlTable("visits", {
   ]),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => [
+  index("idx_visits_patient_date").on(table.patientId, table.visitDate),
+  index("idx_visits_visit_date").on(table.visitDate),
+]);
 
 export type Visit = typeof visits.$inferSelect;
 export type InsertVisit = typeof visits.$inferInsert;
@@ -409,7 +420,10 @@ export const examinations = mysqlTable("examinations", {
 
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => [
+  index("idx_examinations_patient").on(table.patientId),
+  index("idx_examinations_visit").on(table.visitId),
+]);
 
 export type Examination = typeof examinations.$inferSelect;
 export type InsertExamination = typeof examinations.$inferInsert;
@@ -1253,7 +1267,9 @@ export const sheetEntries = mysqlTable("sheet_entries", {
   content: text("content").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => [
+  index("idx_sheet_entries_patient_type").on(table.patientId, table.sheetType),
+]);
 
 export type SheetEntry = typeof sheetEntries.$inferSelect;
 export type InsertSheetEntry = typeof sheetEntries.$inferInsert;
