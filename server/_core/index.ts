@@ -20,6 +20,7 @@ import os from "node:os";
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { updatesGuard } from "./updatesGuard";
 import { authService, registerAuthRoutes } from "./auth";
 import { registerZKTecoAdms } from "./zktecoAdms";
 import { registerWhatsAppWebhook } from "./whatsappWebhook";
@@ -2469,15 +2470,25 @@ async function startServer() {
   // staff member, patient, or assigned external doctor for each upload.
   // Electron auto-updater: serve installer files from desktop-electron/
   const electronUpdatesDir = path.resolve(process.cwd(), "desktop-electron");
+  // Only updater artifacts are public (see updatesGuard): this folder also holds
+  // build scripts, node_modules and config dumps.
+  const updatesStaticOptions = {
+    maxAge: "5m",
+    fallthrough: true,
+    dotfiles: "deny",
+    index: false,
+  } as const;
   app.use(
     "/updates",
-    express.static(electronUpdatesDir, { maxAge: "5m", fallthrough: true }),
+    updatesGuard("electron"),
+    express.static(electronUpdatesDir, updatesStaticOptions),
   );
   // WebView2 auto-updater: serve installer files from desktop/installer/
   const webviewUpdatesDir = path.resolve(process.cwd(), "desktop", "installer");
   app.use(
     "/updates/webview",
-    express.static(webviewUpdatesDir, { maxAge: "5m", fallthrough: true }),
+    updatesGuard("webview"),
+    express.static(webviewUpdatesDir, updatesStaticOptions),
   );
   // Android auto-updater: serve release APKs from ANDROID_APK_DIR (defaults to android/releases/)
   const androidUpdatesDir = path.resolve(
@@ -2486,7 +2497,8 @@ async function startServer() {
   );
   app.use(
     "/updates/android",
-    express.static(androidUpdatesDir, { maxAge: "5m", fallthrough: true }),
+    updatesGuard("android"),
+    express.static(androidUpdatesDir, updatesStaticOptions),
   );
 
   // Facebook OAuth callback — security: state is verified, token never logged or returned to client
