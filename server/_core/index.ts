@@ -53,6 +53,7 @@ import {
   getPresignedUrlFromS3,
 } from "./s3";
 import * as db from "../db";
+import { startExpiredRowsPurge } from "../lib/purgeExpiredRows";
 const execFile = promisify(execFileCb);
 
 type Srv100UploadRow = {
@@ -2583,6 +2584,7 @@ async function startServer() {
     console.log(`[${branchName}] Server running on http://${host}:${port}/`);
   });
   await DeviceSettingsService.initializeSettings();
+  startExpiredRowsPurge();
 
   // Sync K40 Pro device clock via zkemkeeper SDK — TCP mode only.
   // In ADMS mode the device is typically remote/behind NAT and unreachable over
