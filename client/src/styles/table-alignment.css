@@ -1,0 +1,22 @@
+@media screen {
+  #root table:not(:where(
+    [data-table-alignment="custom"],
+    [data-table-alignment="custom"] table,
+    [data-clinical-print-profile] table,
+    [data-configured-print-root] table,
+    .sheet-layout table,
+    .prescription-paper table,
+    .request-tests-paper table,
+    .lasik-sheet table,
+    .specialist-sheet table,
+    .a4-page-card table,
+    .sheet-followup-body table,
+    .refraction-print-card table,
+    .report-sheet-body table,
+    .patient-summary-print-root table,
+    .printable-report-sheet table
+  )) > :is(thead, tbody, tfoot) > tr > :is(th, td) {
+    text-align: center;
+    unicode-bidi: isolate;
+  }
+}
