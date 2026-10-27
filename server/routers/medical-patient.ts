@@ -1314,7 +1314,7 @@ export const medicalPatientRoutes = {
   searchPatients: clinicalStaffProcedure
     .input(
       z.object({
-        searchTerm: z.string(),
+        searchTerm: z.string().max(100),
         sheetType: z
           .enum(["consultant", "specialist", "lasik", "external", "pentacam"])
           .optional(),
