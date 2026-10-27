@@ -13,6 +13,8 @@ import {
   pushAppNotification,
 } from "../_core/appNotifications";
 
+const stockQuantity = z.number().int().positive().max(100000);
+
 async function notifyStockShortage(itemId: number) {
   try {
     const [settings, item] = await Promise.all([
@@ -201,9 +203,9 @@ export const stockroomRouter = router({
             expiryDate: z.string().optional(),
           })
           .optional(),
-        quantity: z.number(),
-        unitPrice: z.number().optional(),
-        totalValue: z.number().optional(),
+        quantity: stockQuantity,
+        unitPrice: z.number().min(0).optional(),
+        totalValue: z.number().min(0).optional(),
         transactionDate: z.string().optional(),
       }),
     )
@@ -251,7 +253,7 @@ export const stockroomRouter = router({
     .input(
       z.object({
         itemId: z.number(),
-        quantity: z.number(),
+        quantity: stockQuantity,
         employeeName: z.string().optional(),
         destination: z.enum(["بيع", "عمليات", "عيادات"]),
         transactionDate: z.string().optional(),
@@ -330,9 +332,9 @@ export const stockroomRouter = router({
     .input(
       z.object({
         id: z.number(),
-        quantity: z.number().optional(),
-        unitPrice: z.number().optional(),
-        totalValue: z.number().optional(),
+        quantity: stockQuantity.optional(),
+        unitPrice: z.number().min(0).optional(),
+        totalValue: z.number().min(0).optional(),
         employeeName: z.string().optional(),
         destination: z.string().optional(),
       }),
