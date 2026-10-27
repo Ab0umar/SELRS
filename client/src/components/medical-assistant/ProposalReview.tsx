@@ -19,10 +19,12 @@ export default function ProposalReview({
   input,
   onApplyField,
   reviewOnly = false,
+  modelChoice,
 }: {
   input: MedicalTranscript;
   onApplyField?: (text: string | undefined) => void;
   reviewOnly?: boolean;
+  modelChoice?: string;
 }) {
   const start = trpc.medicalAssistant.startProposals.useMutation({
     retry: false,
@@ -31,10 +33,41 @@ export default function ProposalReview({
     retry: false,
   });
   const [consent, setConsent] = useState(false);
+  const settings = trpc.medicalAssistant.settings.useQuery(undefined, {
+    retry: false,
+  });
   const options = trpc.medicalAssistant.providerOptions.useQuery(undefined, {
     retry: false,
   });
-  const [engine, setEngine] = useState<"current" | "central">("current");
+  const managed =
+    options.data?.managementEnabled || options.data?.central != null;
+  const engine = managed ? "central" : "current";
+  const available =
+    settings.isSuccess &&
+    options.isSuccess &&
+    (!managed || options.data?.central?.enabled === true);
+  const [selection] = useState(
+    modelChoice
+      ? modelChoice.includes(":")
+        ? modelChoice
+        : `manus:${modelChoice}`
+      : "manus:lite",
+  );
+  const savedSelection = settings.data?.processingModel ?? selection;
+  const [submittedSelection, setSubmittedSelection] = useState<string>();
+  const effectiveSelection =
+    managed && options.data?.central?.provider && options.data.central.model
+      ? `${options.data.central.provider}:${options.data.central.model}`
+      : savedSelection;
+  const displayedSelection = submittedSelection ?? effectiveSelection;
+  const provider = displayedSelection.startsWith("gemini:")
+    ? "gemini"
+    : "manus";
+  const providerName = provider === "gemini" ? "Gemini" : "Manus";
+  const model = displayedSelection.slice(provider.length + 1);
+  useEffect(() => {
+    setConsent(false);
+  }, [effectiveSelection]);
   const [jobId, setJobId] = useState<string>();
   const [paused, setPaused] = useState(false);
   const [result, setResult] = useState<MedicalProposals>();
@@ -66,7 +99,9 @@ export default function ProposalReview({
       } catch (cause) {
         if (!canceled) {
           setError(
-            cause instanceof Error ? cause.message : "Could not check Manus.",
+            cause instanceof Error
+              ? cause.message
+              : "Could not check the AI task.",
           );
           setPaused(true);
         }
@@ -82,42 +117,19 @@ export default function ProposalReview({
   return (
     <section
       className="space-y-3 rounded border p-3"
-      aria-label="Manus proposal review"
+      aria-label="AI proposal review"
     >
       <p className="text-sm">
         {input.kind === "field"
           ? `AI scope: ${input.label} only.`
           : "AI scope: full visit, all relevant clinical fields."}{" "}
-        {engine === "central"
-          ? `Central Manus (${options.data?.central?.model ?? "lite"})`
-          : "Manus Lite"}{" "}
-        · No automatic saving.
+        {`${providerName} ${model}`} · No automatic saving.
       </p>
       {!jobId && (
         <>
-          {options.data?.central?.enabled && (
-            <label className="block space-y-2 text-sm">
-              {reviewOnly ? "محرك المعالجة" : "Processing engine"}
-              <select
-                className="block min-h-11 rounded-md border bg-background px-3"
-                value={engine}
-                disabled={start.isPending}
-                onChange={(event) => {
-                  setEngine(event.target.value as typeof engine);
-                  setConsent(false);
-                }}
-              >
-                <option value="current">
-                  {reviewOnly
-                    ? "المسار الحالي: Manus Lite"
-                    : "Current Manus Lite"}
-                </option>
-                <option value="central">
-                  Central Manus ({options.data.central.model}) · managed limits
-                </option>
-              </select>
-            </label>
-          )}
+          <p className="text-sm text-muted-foreground">
+            مزوّد المعالجة محدد من إعدادات الأدمن المركزية.
+          </p>
           <label className="flex items-start gap-2 text-sm">
             <input
               type="checkbox"
@@ -126,12 +138,17 @@ export default function ProposalReview({
               onChange={(event) => setConsent(event.target.checked)}
             />
             {reviewOnly
-              ? "حصلت على موافقة صاحب البيانات، وراجعت النص قبل إرساله إلى Manus. قد تستهلك المعالجة رصيد المزوّد."
-              : "Patient consent obtained. Send this reviewed transcript to Manus for AI processing; provider credits may be consumed."}
+              ? `حصلت على موافقة صاحب البيانات، وراجعت النص قبل إرساله إلى ${providerName}. قد تستهلك المعالجة رصيد المزوّد.`
+              : `Patient consent obtained. Send this reviewed transcript to ${providerName} for AI processing; provider credits may be consumed.`}
           </label>
           <Button
             type="button"
-            disabled={!consent || start.isPending || !input.transcript.trim()}
+            disabled={
+              !available ||
+              !consent ||
+              start.isPending ||
+              !input.transcript.trim()
+            }
             onClick={async () => {
               setError("");
               try {
@@ -139,14 +156,19 @@ export default function ProposalReview({
                   recording: input,
                   consentConfirmed: true,
                   engine,
+                  model,
+                  provider,
                 });
-                if (alive.current) setJobId(response.jobId);
+                if (alive.current) {
+                  setSubmittedSelection(effectiveSelection);
+                  setJobId(response.jobId);
+                }
               } catch (cause) {
                 if (alive.current)
                   setError(
                     cause instanceof Error
                       ? cause.message
-                      : "Could not start Manus.",
+                      : "Could not start the AI task.",
                   );
               }
             }}
@@ -156,16 +178,25 @@ export default function ProposalReview({
                 ? "جارٍ بدء المعالجة…"
                 : "إنشاء اقتراحات للمراجعة"
               : start.isPending
-                ? "Starting Manus…"
+                ? `Starting ${providerName}…`
                 : "Generate proposals"}
           </Button>
+          {!available && (
+            <p role="status">
+              {options.isError
+                ? "تعذر التحقق من إعدادات المساعد. أعد فتح المراجعة للمحاولة."
+                : options.isPending
+                  ? "جارٍ التحقق من إعدادات المساعد…"
+                  : "المساعد الطبي معطّل من المزوّدين والحدود."}
+            </p>
+          )}
         </>
       )}
       {jobId && !result && !paused && (
         <p role="status">
-          Manus is processing. Closing this window does not cancel the provider
-          task or its credits. Nothing will be applied automatically. Local task
-          access expires after ten minutes or a server restart.
+          {providerName} is processing. Closing this window does not cancel the
+          provider task or its credits. Nothing will be applied automatically.
+          Local task access expires after ten minutes or a server restart.
         </p>
       )}
       {error && <p role="alert">{error}</p>}

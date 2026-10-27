@@ -2,6 +2,7 @@ export const RECENT_KEY = (userId?: string | number | null) =>
   `selrs:recent:${userId ?? "anon"}`;
 
 export const TRACKED_ROUTES: Array<{ pathPrefix: string; label: string }> = [
+  { pathPrefix: "/ai", label: "الذكاء الاصطناعي" },
   { pathPrefix: "/dashboard", label: "لوحة التحكم" },
   { pathPrefix: "/patients", label: "المرضى" },
   { pathPrefix: "/patient-file", label: "ملف المريض" },

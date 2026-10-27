@@ -121,3 +121,38 @@ export const aiCoreUsage = mysqlTable(
     pending: index("ai_core_usage_pending").on(table.state, table.updatedMs),
   }),
 );
+
+export const aiProviderBindings = mysqlTable("ai_provider_bindings", {
+  requestId: varchar("request_id", { length: 36 }).primaryKey(),
+  inputHash: char("input_hash", { length: 64 }).notNull(),
+});
+
+export const aiMarketingJobContext = mysqlTable("ai_marketing_job_context", {
+  jobId: varchar("job_id", { length: 36 }).primaryKey(),
+  provider: mysqlEnum("provider", ["manus", "gemini"]).notNull(),
+  imageModel: varchar("image_model", { length: 100 }),
+  targetPageId: varchar("target_page_id", { length: 100 }),
+});
+
+export const aiOperationRequests = mysqlTable("ai_operation_requests", {
+  requestId: varchar("request_id", { length: 36 }).primaryKey(),
+  scope: mysqlEnum("scope", ["marketing", "probe"]).notNull(),
+  owner: int("owner").notNull(),
+  state: mysqlEnum("state", ["preflight", "accepted", "rejected"])
+    .default("preflight")
+    .notNull(),
+  contextJson: text("context_json").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+export const aiMarketingScheduleStatus = mysqlTable(
+  "ai_marketing_schedule_status",
+  {
+    pageRole: mysqlEnum("page_role", ["center", "doctor"]).primaryKey(),
+    status: mysqlEnum("status", ["idle", "running", "error"])
+      .default("idle")
+      .notNull(),
+    lastRun: timestamp("last_run"),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+);

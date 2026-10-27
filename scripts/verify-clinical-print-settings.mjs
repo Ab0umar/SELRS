@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import { PDFDocument } from 'pdf-lib';
 import { inspectLayout } from './lib/layout-scan.mjs';
 
@@ -12,6 +12,7 @@ try {
   for (const width of [320, 390, 1440]) for (const theme of ['light', 'dark']) {
     const page = await browser.newPage({ viewport: { width, height: 1050 }, acceptDownloads: true });
     let setting = { version: 1, profiles: {} }, mutations = 0;
+    let sheetSetting = { templates: { consultant: { sheetTitle: 'عنوان محفوظ' } }, layout: { specialist: { offsetXmm: 8, offsetYmm: 3, scale: 1 } }, css: { consultant: '.saved { color: navy; }' } };
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(theme => localStorage.setItem('theme', theme), theme);
@@ -22,11 +23,14 @@ try {
         assert.deepEqual(methods, ['medical.updateSystemSetting'], 'Only mocked print-setting saves are allowed');
         const body = route.request().postDataJSON();
         const input = u.searchParams.has('batch') ? body[0].json : body.json;
-        assert.equal(input.key, 'clinical_print_settings_v1');
-        setting = input.value; mutations++;
+        assert(['clinical_print_settings_v1', 'sheet_designer_config'].includes(input.key));
+        if (input.key === 'sheet_designer_config') sheetSetting = input.value;
+        else setting = input.value;
+        mutations++;
       }
-      const results = methods.map(method => ({ result: { data: { json: method === 'auth.me' ? { id: 99999, role: 'admin', name: 'Test' }
-        : method === 'medical.getSystemSetting' ? { key: 'clinical_print_settings_v1', value: setting }
+      const inputs = JSON.parse(u.searchParams.get('input') || '{}');
+      const results = methods.map((method, index) => ({ result: { data: { json: method === 'auth.me' ? { id: 99999, role: 'admin', name: 'Test' }
+        : method === 'medical.getSystemSetting' ? { value: (u.searchParams.has('batch') ? inputs[index]?.json : inputs.json)?.key === 'sheet_designer_config' ? sheetSetting : setting }
         : method === 'medical.updateSystemSetting' ? { success: true } : [] } } }));
       await route.fulfill({ json: u.searchParams.has('batch') ? results : results[0] });
     });
@@ -66,6 +70,21 @@ try {
     await page.getByRole('option', { name: 'طلبات الأشعة', exact: true }).click();
     if (width < 768) await page.getByRole('button', { name: 'الإعدادات', exact: true }).click();
     assert.equal(await page.getByRole('switch', { name: 'تطبيق إعدادات مخصصة' }).isChecked(), false, 'Profiles are independent');
+    await page.getByText('ضبط الشيتات للطباعة — إعدادات متقدمة', { exact: true }).click();
+    const specialist = page.getByRole('heading', { name: 'شيت الأخصائي', exact: true }).locator('..');
+    const offset = specialist.getByLabel('الإزاحة الأفقية (مم)', { exact: true });
+    await expect(offset).toHaveValue('8');
+    await offset.fill('12');
+    await specialist.getByLabel('المقياس', { exact: true }).fill('0');
+    await expect(page.getByRole('button', { name: 'حفظ ضبط الشيتات', exact: true })).toBeDisabled();
+    await specialist.getByLabel('المقياس', { exact: true }).fill('1.1');
+    await page.getByRole('button', { name: 'حفظ ضبط الشيتات', exact: true }).click();
+    await expect.poll(() => mutations).toBe(2);
+    assert.equal(sheetSetting.layout.specialist.offsetXmm, 12);
+    assert.equal(sheetSetting.layout.specialist.offsetYmm, 3);
+    assert.equal(sheetSetting.templates.consultant.sheetTitle, 'عنوان محفوظ');
+    assert.equal(sheetSetting.css.consultant, '.saved { color: navy; }');
+    assert.equal(setting.profiles.prescription.widthMm, 148);
     await page.getByLabel('عرض الورقة سم', { exact: true }).fill('0');
     assert.equal(await page.getByRole('button', { name: 'حفظ إعدادات المستند', exact: true }).isDisabled(), true, 'Invalid paper cannot be saved');
     assert.deepEqual(errors, []);

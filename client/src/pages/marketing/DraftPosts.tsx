@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ export default function DraftPosts() {
   } | null>(null);
   const [publishId, setPublishId] = useState<number | null>(null);
   const [imageGenId, setImageGenId] = useState<number | null>(null);
+  const imageRequests = useRef(new Map<number, string>());
   const [limit, setLimit] = useState(25);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [pickerPostId, setPickerPostId] = useState<number | null>(null);
@@ -67,9 +68,12 @@ export default function DraftPosts() {
 
   const generateImageMutation = trpc.marketing.generateImageForPost.useMutation(
     {
-      onSuccess: () => {
+      retry: false,
+      onSuccess: (_data, variables) => {
+        imageRequests.current.delete(variables.postId);
         toast.info("بدأ توليد الصورة؛ يمكنك متابعة المهمة أدناه");
         void utils.marketing.generationJobs.invalidate();
+        void utils.marketing.centralGenerationJobs.invalidate();
         setImageGenId(null);
         void utils.marketing.listPosts.invalidate();
       },
@@ -113,12 +117,29 @@ export default function DraftPosts() {
   const jobsQuery = trpc.marketing.generationJobs.useQuery(undefined, {
     refetchInterval: 5000,
   });
+  const capability = trpc.aiManagement.status.useQuery(undefined, {
+    retry: false,
+  });
+  const centralJobs = trpc.marketing.centralGenerationJobs.useQuery(undefined, {
+    enabled: capability.data?.enabled,
+    retry: false,
+    refetchInterval: 5000,
+  });
   const imagePending = (postId: number) =>
-    jobsQuery.data?.some(
-      (job) =>
-        job.postId === postId &&
-        (job.state === "starting" || job.state === "running"),
-    ) ?? false;
+    Boolean(
+      centralJobs.data?.some(
+        (job) =>
+          job.sourcePostId === postId &&
+          (job.state === "running" || job.state === "uncertain"),
+      ) ||
+      jobsQuery.data?.some(
+        (job) =>
+          job.postId === postId &&
+          (job.state === "starting" ||
+            job.state === "running" ||
+            job.state === "uncertain"),
+      ),
+    );
   const designs = designsQuery.data ?? [];
 
   return (
@@ -293,7 +314,15 @@ export default function DraftPosts() {
                         className="gap-1.5 text-xs"
                         onClick={() => {
                           setImageGenId(post.id);
-                          generateImageMutation.mutate({ postId: post.id });
+                          if (!imageRequests.current.has(post.id))
+                            imageRequests.current.set(
+                              post.id,
+                              crypto.randomUUID(),
+                            );
+                          generateImageMutation.mutate({
+                            postId: post.id,
+                            requestId: imageRequests.current.get(post.id),
+                          });
                         }}
                         disabled={
                           imagePending(post.id) ||

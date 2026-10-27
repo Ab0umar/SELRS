@@ -49,8 +49,20 @@ export const medicalProposalRequestSchema = z
     consentConfirmed: z.literal(true),
     provider: z.enum(["manus", "gemini"]).default("manus"),
     engine: z.enum(["current", "central"]).default("current"),
+    model: z.string().max(100).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) =>
+      input.model === undefined ||
+      (input.provider === "manus"
+        ? ["standard", "lite", "max"].includes(input.model)
+        : /^gemini-[a-z0-9.-]+$/.test(input.model)),
+    {
+      message: "Model does not match the selected provider",
+      path: ["model"],
+    },
+  );
 export const medicalProposalSchema = z
   .object({
     proposals: z

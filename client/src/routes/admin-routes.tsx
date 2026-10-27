@@ -56,7 +56,7 @@ export const AdminRoutes = (
     />
     <Route
       path={ROUTES.sheetDesigner}
-      component={() => <Redirect to="/admin-hub/sheet-designer" />}
+      component={() => <Redirect to="/admin-hub/print-settings" />}
     />
     <Route
       path={ROUTES.systemStatus}
@@ -104,10 +104,6 @@ export const AdminRoutes = (
       component={() => <Redirect to="/admin-hub/status" />}
     />
     <Route
-      path={ROUTES.adminCardVisibility}
-      component={() => <Redirect to="/admin-hub/card-visibility" />}
-    />
-    <Route
       path={ROUTES.adminSettingsPricingRules}
       component={() => <Redirect to="/admin-hub/settings/pricing-rules" />}
     />
@@ -137,7 +133,7 @@ export const AdminRoutes = (
     />
     <Route
       path={ROUTES.adminSheetDesigner}
-      component={() => <Redirect to="/admin-hub/sheet-designer" />}
+      component={() => <Redirect to="/admin-hub/print-settings" />}
     />
     <Route
       path={ROUTES.adminSheetCopies}
@@ -157,7 +153,7 @@ export const AdminRoutes = (
     />
     <Route
       path={ROUTES.adminTests}
-      component={() => <Redirect to="/admin-hub/tests" />}
+      component={() => <Redirect to={ROUTES.examCatalog} />}
     />
     <Route
       path={ROUTES.adminDataSourceAudit}

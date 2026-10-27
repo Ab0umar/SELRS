@@ -2,14 +2,17 @@ import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getDbConnection } from "../../db";
 import { AiManagementStore, AiManagementError } from "./managementStore";
+import { isKnownAiRejection, settleAiFailure } from "./failure";
 import {
   assertMedicalGeminiAvailable,
   extractGeminiProposals,
+  medicalGeminiOptions,
 } from "./medicalGemini";
 import {
   createManusTask,
   readManusTask,
   downloadManusFile,
+  ManusRequestError,
 } from "../marketing/manusClient";
 import {
   validateMedicalProposals,
@@ -28,10 +31,12 @@ type Job = {
   expires: number;
   provider: "manus" | "gemini";
   engine: "current" | "central";
+  model?: string;
   accounting?: {
     requestId: string;
     status?: "success" | "failed";
     credits: number | null;
+    usage?: { inputTokens: number; outputTokens: number };
   };
 };
 const jobs = new Map<string, Job>();
@@ -70,11 +75,10 @@ export async function startMedicalProposals(
   vocabulary: VocabularyEntry[] = [],
   provider: "manus" | "gemini" = "manus",
   engine: "current" | "central" = "current",
+  selectedModel?: string,
 ) {
-  if (
-    engine === "central" &&
-    (process.env.AI_CORE_MANAGEMENT_ENABLED !== "true" || provider !== "manus")
-  )
+  if (process.env.AI_CORE_MANAGEMENT_ENABLED === "true") engine = "central";
+  if (engine === "central" && process.env.AI_CORE_MANAGEMENT_ENABLED !== "true")
     throw new AiManagementError("disabled");
   if (provider === "gemini") assertMedicalGeminiAvailable();
   const now = Date.now();
@@ -84,6 +88,7 @@ export async function startMedicalProposals(
     if (
       job.provider === provider &&
       job.engine === engine &&
+      job.model === selectedModel &&
       JSON.stringify(job.input) === JSON.stringify(input)
     )
       return { jobId: id };
@@ -105,20 +110,46 @@ export async function startMedicalProposals(
     input,
     provider,
     engine,
+    model: selectedModel,
     failed: false,
     expires: now + retentionMs,
   };
   jobs.set(id, job);
-  setTimeout(() => jobs.delete(id), retentionMs).unref();
-  let agentProfile: "standard" | "lite" | "max" = "lite";
+  setTimeout(() => {
+    jobs.delete(id);
+    if (job.accounting && !job.accounting.status)
+      void new AiManagementStore(getDbConnection)
+        .markUncertain(id)
+        .catch(() => {
+          console.error("[medical-ai] Could not mark expired usage uncertain");
+        });
+  }, retentionMs).unref();
+  let model =
+    selectedModel ??
+    (provider === "gemini" ? medicalGeminiOptions().model : "lite");
+  if (
+    provider === "manus"
+      ? !["standard", "lite", "max"].includes(model)
+      : !/^gemini-[a-z0-9.-]+$/.test(model)
+  ) {
+    jobs.delete(id);
+    throw new AiManagementError("unavailable");
+  }
   if (engine === "central") {
     try {
       const profile = await new AiManagementStore(getDbConnection).reserve(
         id,
         "medical.documentation",
-        "manus",
+        provider,
+        Math.max(
+          16384,
+          Buffer.byteLength(promptFor(input, vocabulary, provider), "utf8") +
+            8192,
+        ),
+        model,
+        provider,
       );
-      agentProfile = profile.model as typeof agentProfile;
+      model = profile.model;
       job.accounting = { requestId: id, credits: null };
     } catch (error) {
       jobs.delete(id);
@@ -126,21 +157,32 @@ export async function startMedicalProposals(
     }
   }
   if (provider === "gemini") {
-    void extractGeminiProposals(promptFor(input, vocabulary, provider))
+    void extractGeminiProposals(
+      promptFor(input, vocabulary, provider),
+      model,
+      (usage) => {
+        if (job.accounting) job.accounting.usage = usage;
+      },
+    )
       .then((raw) => {
         job.result = validateMedicalProposals(raw, input);
+        if (job.accounting) job.accounting.status = "success";
       })
       .catch(() => {
         job.failed = true;
+        if (job.accounting) job.accounting.status = "failed";
         job.failureMessage =
           "Gemini extraction failed or did not pass validation. No correction applied. No fallback request was sent.";
+      })
+      .finally(() => {
+        if (job.accounting) queueMedicalSettlement(job.accounting);
       });
     return { jobId: id };
   }
   try {
     job.taskId = (
       await createManusTask(promptFor(input, vocabulary), {
-        agentProfile,
+        agentProfile: model as "standard" | "lite" | "max",
       })
     ).task_id;
     if (job.accounting) {
@@ -150,11 +192,20 @@ export async function startMedicalProposals(
       } catch {
         await store.markUncertain(id);
       }
+      watchMedicalAccounting(owner, id);
     }
     return { jobId: id };
-  } catch {
+  } catch (error) {
     if (job.accounting)
-      await new AiManagementStore(getDbConnection).markUncertain(id);
+      await settleAiFailure(new AiManagementStore(getDbConnection), id, error);
+    if (isKnownAiRejection(error)) {
+      jobs.delete(id);
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "Manus rejected task creation. Check the provider configuration before retrying.",
+      });
+    }
     // An ambiguous create failure must not automatically create a second billed task.
     throw new TRPCError({
       code: "BAD_GATEWAY",
@@ -164,12 +215,68 @@ export async function startMedicalProposals(
   }
 }
 
+function watchMedicalAccounting(owner: number, id: string) {
+  const timer = setTimeout(async () => {
+    const job = jobs.get(id);
+    if (!job || job.expires <= Date.now()) return;
+    try {
+      const response = await readMedicalProposals(owner, id);
+      if (response.status !== "running") return;
+    } catch {
+      // Checking the same task never submits another provider request.
+    }
+    watchMedicalAccounting(owner, id);
+  }, 2500);
+  timer.unref();
+}
+
 async function settleMedicalUsage(job: Job) {
   if (!job.accounting?.status) return;
+  await persistMedicalSettlement(job.accounting, job.provider === "gemini");
+}
+
+type Accounting = NonNullable<Job["accounting"]>;
+const pendingSettlements = new Map<string, Accounting>();
+let settlementTimer: ReturnType<typeof setTimeout> | undefined;
+let settlementRunning = false;
+function queueMedicalSettlement(accounting: Accounting) {
+  pendingSettlements.set(accounting.requestId, accounting);
+  void flushMedicalSettlements();
+}
+async function flushMedicalSettlements() {
+  if (settlementRunning) return;
+  settlementRunning = true;
+  for (const [id, accounting] of pendingSettlements) {
+    try {
+      await persistMedicalSettlement(accounting, true);
+      pendingSettlements.delete(id);
+    } catch {
+      // The retry queue contains accounting metadata only, never clinical text.
+    }
+  }
+  if (pendingSettlements.size && !settlementTimer) {
+    settlementTimer = setTimeout(() => {
+      settlementTimer = undefined;
+      void flushMedicalSettlements();
+    }, 5000);
+    settlementTimer.unref();
+  }
+  settlementRunning = false;
+}
+async function persistMedicalSettlement(
+  accounting: Accounting,
+  gemini: boolean,
+) {
+  if (!accounting.status) return;
   await new AiManagementStore(getDbConnection).complete(
-    job.accounting.requestId,
-    { inputTokens: 0, outputTokens: 0, status: job.accounting.status },
-    job.accounting.credits,
+    accounting.requestId,
+    {
+      inputTokens: accounting.usage?.inputTokens ?? 0,
+      outputTokens: accounting.usage?.outputTokens ?? 0,
+      status: accounting.status,
+      ...(gemini ? { usageKnown: Boolean(accounting.usage) } : {}),
+    },
+    accounting.credits,
   );
 }
 
@@ -195,7 +302,7 @@ export async function readMedicalProposals(
       status: "failed",
       message:
         job.failureMessage ??
-        "Manus output failed validation. No correction applied.",
+        "AI output failed validation. No correction applied.",
     };
   if (!job.taskId) return { status: "running" };
   try {
@@ -242,6 +349,7 @@ export async function readMedicalProposals(
       return { status: "complete", result: job.result };
     } catch (error) {
       if (job.result) throw error;
+      if (error instanceof ManusRequestError && error.retryable) throw error;
       if (error instanceof MedicalProposalValidationError) {
         const reasons = {
           duplicate_field:

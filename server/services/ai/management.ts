@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { AiGateway, type AiUsage, type AiWorkload } from "./gateway";
-import { AiManagementStore } from "./managementStore";
+import { AiManagementStore, AiManagementError } from "./managementStore";
+import { ENV } from "../../_core/env";
 import { createManusTask, readManusTask } from "../marketing/manusClient";
+import { readAiOperation, trackedAiOperation } from "./operations";
+import { settleAiFailure } from "./failure";
 
 const probeSchema = z.object({ ok: z.literal(true) }).strict();
 const instruction =
@@ -13,70 +16,91 @@ const imageInput =
 export async function runAiManagementProbe(
   store: AiManagementStore,
   requestId: string,
-  workload: Exclude<AiWorkload,"medical.documentation">,
+  workload: Exclude<AiWorkload, "medical.documentation">,
+  owner: number,
 ) {
-  const profile = await store.reserve(requestId, workload);
-  let usage: AiUsage | undefined;
-  try {
-    if (profile.provider === "manus") {
-      const task = await createManusTask(
-        `${instruction}\n${workload === "marketing.image" ? imageInput : 'Return a downloadable probe.json containing {"ok":true}.'}`,
-        { agentProfile: profile.model as "standard" | "lite" | "max" },
-      );
-      await store.attachTask(requestId, task.task_id);
-      return {
-        requestId,
-        state: "running" as const,
-        provider: "manus" as const,
-      };
-    }
-    const gateway = new AiGateway((event) => {
-      usage = event;
-    });
-    const output =
-      workload === "marketing.image"
-        ? await gateway.generateImage({
-            workload,
-            instruction,
-            input: imageInput,
-            model: profile.model,
-          })
-        : await gateway.generateJson({
-            workload,
-            instruction,
-            input: jsonInput,
-            model: profile.model,
-            schema: probeSchema,
-            jsonSchema: {
-              type: "object",
-              additionalProperties: false,
-              properties: { ok: { type: "boolean" } },
-              required: ["ok"],
-            },
+  return trackedAiOperation(
+    { requestId, scope: "probe", owner, context: { workload } },
+    async (accept) => {
+      const profile = await store.reserve(requestId, workload);
+      let usage: AiUsage | undefined;
+      let accepted = false;
+      try {
+        const credential =
+          profile.provider === "manus"
+            ? ENV.manusApiKey
+            : workload === "reply.preview" || workload === "reply.live"
+              ? process.env.AUTO_REPLY_GEMINI_KEY
+              : process.env.GEMINI_API_KEY;
+        if (!credential) throw new AiManagementError("unavailable");
+        await accept();
+        accepted = true;
+        if (profile.provider === "manus") {
+          const task = await createManusTask(
+            `${instruction}\n${workload === "marketing.image" ? imageInput : 'Return a downloadable probe.json containing {"ok":true}.'}`,
+            { agentProfile: profile.model as "standard" | "lite" | "max" },
+          );
+          await store.attachTask(requestId, task.task_id);
+          return {
+            requestId,
+            state: "running" as const,
+            provider: "manus" as const,
+          };
+        }
+        const gateway = new AiGateway((event) => {
+          usage = event;
+        });
+        const output =
+          workload === "marketing.image"
+            ? await gateway.generateImage({
+                workload,
+                instruction,
+                input: imageInput,
+                model: profile.model,
+              })
+            : await gateway.generateJson({
+                workload,
+                instruction,
+                input: jsonInput,
+                model: profile.model,
+                schema: probeSchema,
+                jsonSchema: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: { ok: { type: "boolean" } },
+                  required: ["ok"],
+                },
+              });
+        if (!usage) throw new Error("AI usage metadata unavailable");
+        await store.complete(requestId, usage);
+        return {
+          requestId,
+          state: "completed" as const,
+          provider: "gemini" as const,
+          output,
+        };
+      } catch (error) {
+        if (!accepted)
+          await store.complete(requestId, {
+            status: "failed",
+            inputTokens: 0,
+            outputTokens: 0,
           });
-    if (!usage) throw new Error("AI usage metadata unavailable");
-    await store.complete(requestId, usage);
-    return {
-      requestId,
-      state: "completed" as const,
-      provider: "gemini" as const,
-      output,
-    };
-  } catch (error) {
-    if (
-      usage?.status === "failed" &&
-      (usage.inputTokens > 0 || usage.outputTokens > 0)
-    )
-      await store.complete(requestId, { ...usage, status: "failed" });
-    else await store.markUncertain(requestId);
-    throw error;
-  }
+        else await settleAiFailure(store, requestId, error, usage);
+        throw error;
+      }
+    },
+  );
 }
 
 export async function readAiManagementProbe(
   store: AiManagementStore,
   requestId: string,
+  owner: number,
 ) {
+  const operation = await readAiOperation(requestId, "probe", owner);
+  if (!operation) return null;
+  if (operation.state === "rejected") return { state: "rejected" as const };
   const request = await store.findRequest(requestId);
   if (
     !request ||

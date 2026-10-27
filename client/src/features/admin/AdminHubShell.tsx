@@ -1,9 +1,16 @@
-import { useLocation, Link } from "wouter";
-import { useMemo, useState, Suspense, lazy } from "react";
+import { useLocation, Link, Redirect } from "wouter";
+import { useEffect, useMemo, useState, Suspense, lazy } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  CARD_USAGE_UPDATED_EVENT,
+  getCardUsageMap,
+  pickDynamicBentoCards,
+  recordCardUsage,
+} from "@/lib/card-usage";
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity,
+  ArrowLeft,
   ArrowUpLeft,
   ChevronRight,
   Database,
@@ -17,13 +24,10 @@ import {
   FileSearch,
   Link2,
   TestTube2,
-  Copy,
   Layers,
   PenSquare,
-  Scan,
   CalendarDays,
   Bell,
-  Eye,
   UserCheck,
   Hospital,
   Search,
@@ -38,12 +42,9 @@ import AdminSettings from "./AdminSettings";
 import PrintSettings from "./PrintSettings";
 import AdminPermissions from "./AdminPermissions";
 import AdminSheets from "./AdminSheets";
-import AdminSheetDesigner from "./AdminSheetDesigner";
 import AdminDoctors from "./AdminDoctors";
 import AdminPentacamFailed from "./AdminPentacamFailed";
 import AdminServices from "./AdminServices";
-import TestsManagement from "../../pages/TestsManagement";
-import AdminCardVisibility from "./AdminCardVisibility";
 import AdminDiagnostics from "./AdminDiagnostics";
 import AdminDataSourceAudit from "./AdminDataSourceAudit";
 import AdminNotificationSettings from "./AdminNotificationSettings";
@@ -60,14 +61,16 @@ import AdminPentacamLinking from "./AdminPentacamLinking";
 import AdminPentacamDuplicates from "./AdminPentacamDuplicates";
 import PentacamPage from "../../pages/PentacamPage";
 import PatientsRecordsPage from "../../pages/PatientsRecordsPage";
-import ExternalDoctors from "../../pages/ExternalDoctors";
-import ExternalDoctorReferrals from "../../pages/ExternalDoctorReferrals";
+import ExternalDoctorsHub from "./ExternalDoctorsHub";
+import { consolidateAdminDirectory } from "./admin-directory";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { AppShellSkeleton } from "@/components/layout/AppShellSkeleton";
 import "./AdminHubShell.css";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+type HubCategory = "all" | "staff" | "services" | "portal" | "system";
 
 type HubModuleCard = {
   href: string;
@@ -86,8 +89,14 @@ type HubGroup = {
   hrefs: string[];
 };
 
-// The hub home shows one card per group; every tool keeps its own route and
-// permission path, and sibling tools are reachable as tabs inside each tool.
+const CATEGORIES: { id: HubCategory; label: string; icon: LucideIcon }[] = [
+  { id: "all", label: "جميع الأقسام", icon: LayoutGrid },
+  { id: "staff", label: "الكادر والصلاحيات", icon: Users },
+  { id: "services", label: "الفحوصات والملفات", icon: Layers },
+  { id: "portal", label: "المرضى والبوابة", icon: HeartPulse },
+  { id: "system", label: "النظام والصيانة", icon: Terminal },
+];
+
 const GROUPS: HubGroup[] = [
   {
     id: "staff",
@@ -109,9 +118,8 @@ const GROUPS: HubGroup[] = [
     icon: Layers,
     hrefs: [
       "/admin-hub/services",
-      "/admin-hub/tests",
+      "/examinations/catalog",
       "/admin-hub/sheets",
-      "/admin-hub/sheet-designer",
       "/admin-hub/print-settings",
       "/admin-hub/medical-assistant",
     ],
@@ -131,30 +139,28 @@ const GROUPS: HubGroup[] = [
   {
     id: "comms",
     label: "التواصل",
-    helper: "واتساب والرد الآلي وحجوزات البوابة والذكاء الاصطناعي",
+    helper: "واتساب وحجوزات البوابة ورسائل التأكيد",
     icon: Bell,
     hrefs: [
       "/admin-hub/portal-bookings",
       "/admin-hub/whatsapp-inbox",
       "/admin-hub/whatsapp-confirmations",
       "/admin-hub/auto-reply",
-      "/admin-hub/ai",
     ],
   },
   {
     id: "settings",
     label: "الإعدادات",
-    helper: "التسعير وبطاقات اللوحة والإشعارات",
+    helper: "التسعير والإشعارات",
     icon: LayoutGrid,
     hrefs: [
       "/admin-hub/settings/pricing-rules",
-      "/admin-hub/card-visibility",
       "/admin-hub/notifications",
     ],
   },
   {
     id: "advanced",
-    label: "متقدّم",
+    label: "أدوات الصيانة",
     helper: "أدوات المطوّرين والصيانة",
     icon: Terminal,
     hrefs: [
@@ -163,29 +169,17 @@ const GROUPS: HubGroup[] = [
       "/admin-hub/audit",
       "/admin-hub/diagnostics",
       "/admin-hub/api",
+      "/admin-hub/ai",
     ],
   },
 ];
 
 const ALL_MODULES: HubModuleCard[] = [
-  {href:"/admin-hub/whatsapp-confirmations",label:"سجل رسائل التأكيد",helper:"تأكيدات الكشف والعمليات وحالة التسليم وأسباب الفشل",icon:Bell,tone:"bg-muted text-primary",category:"portal"},
-  {href:"/admin-hub/medical-assistant",label:"المساعد الطبي",helper:"التسجيل ومراجعة النصوص والاقتراحات الطبية",icon:Stethoscope,tone:"bg-muted text-primary",category:"services"},
-  { href: "/admin-hub/ai", label: "الذكاء الاصطناعي والتواصل", helper: "المزوّدون وتجارب النص والصورة وسجل الاستهلاك", icon: Database, tone: "bg-muted text-primary", category: "system" },
-  { href: "/admin-hub/auto-reply", label: "الرد الآلي", helper: "محادثات واتساب وماسنجر وتعليقات الصفحة", icon: Bell, tone: "bg-muted text-primary", category: "portal" },
-  { href: "/admin-hub/print-settings", label: "إعدادات الطباعة", helper: "مقاسات الورق والهوامش والترويسات", icon: PenSquare, tone: "bg-muted text-primary", category: "services" },
   {
     href: "/admin-hub/users",
     label: "المستخدمين",
     helper: "الحسابات والموظفين",
     icon: Users,
-    tone: "bg-muted text-primary",
-    category: "staff",
-  },
-  {
-    href: "/admin-hub/doctors",
-    label: "الأطباء",
-    helper: "الكادر الطبي والتخصصات",
-    icon: Stethoscope,
     tone: "bg-muted text-primary",
     category: "staff",
   },
@@ -198,22 +192,13 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "staff",
   },
   {
-    href: "/admin-hub/external-doctors",
-    label: "الأطباء الخارجيين",
-    helper: "أطباء الإحالة والتعاقدات",
-    icon: UserCheck,
+    href: "/admin-hub/doctors",
+    label: "الأطباء",
+    helper: "الكادر الطبي والتخصصات",
+    icon: Stethoscope,
     tone: "bg-muted text-primary",
     category: "staff",
   },
-  {
-    href: "/admin-hub/external-referrals",
-    label: "إحالات الأطباء",
-    helper: "الحالات المحولة والعمولات",
-    icon: FileSearch,
-    tone: "bg-muted text-primary",
-    category: "staff",
-  },
-
   {
     href: "/admin-hub/services",
     label: "ربط الخدمات",
@@ -223,9 +208,9 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/admin-hub/tests",
-    label: "الفحوصات",
-    helper: "الأسعار وإعدادات الباقات",
+    href: "/examinations/catalog",
+    label: "كتالوج الفحوصات",
+    helper: "التحاليل والأشعة والفحوصات والمدى الطبيعي",
     icon: TestTube2,
     tone: "bg-muted text-primary",
     category: "services",
@@ -239,10 +224,10 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "services",
   },
   {
-    href: "/admin-hub/sheet-designer",
-    label: "مصمم النماذج",
-    helper: "بناء وتعديل حقول الكشف",
-    icon: Scan,
+    href: "/admin-hub/print-settings",
+    label: "إعدادات الطباعة",
+    helper: "مقاسات الورق والهوامش والترويسات",
+    icon: PenSquare,
     tone: "bg-muted text-primary",
     category: "services",
   },
@@ -254,7 +239,30 @@ const ALL_MODULES: HubModuleCard[] = [
     tone: "bg-muted text-primary",
     category: "services",
   },
-
+  {
+    href: "/admin-hub/medical-assistant",
+    label: "المساعد الطبي",
+    helper: "التسجيل ومراجعة النصوص والاقتراحات الطبية",
+    icon: Stethoscope,
+    tone: "bg-muted text-primary",
+    category: "services",
+  },
+  {
+    href: "/admin-hub/external-doctors",
+    label: "الأطباء الخارجيين",
+    helper: "أطباء الإحالة والتعاقدات",
+    icon: UserCheck,
+    tone: "bg-muted text-primary",
+    category: "staff",
+  },
+  {
+    href: "/admin-hub/external-referrals",
+    label: "ربط حالات الأطباء الخارجيين",
+    helper: "إتاحة ملفات المرضى للطبيب الخارجي",
+    icon: FileSearch,
+    tone: "bg-muted text-primary",
+    category: "staff",
+  },
   {
     href: "/admin-hub/patients",
     label: "سجل المرضى الكلي",
@@ -265,8 +273,8 @@ const ALL_MODULES: HubModuleCard[] = [
   },
   {
     href: "/admin-hub/legacy-patients",
-    label: "الأرشيف التاريخي",
-    helper: "سجلات السنوات السابقة",
+    label: "السجلات التاريخية",
+    helper: "سجلات المرضى والعمليات والزيارات والمتابعات",
     icon: Users,
     tone: "bg-muted text-primary",
     category: "portal",
@@ -287,7 +295,54 @@ const ALL_MODULES: HubModuleCard[] = [
     tone: "bg-muted text-primary",
     category: "portal",
   },
-
+  {
+    href: "/admin-hub/whatsapp-confirmations",
+    label: "سجل رسائل التأكيد",
+    helper: "تأكيدات الكشف والعمليات وحالة التسليم وأسباب الفشل",
+    icon: Bell,
+    tone: "bg-muted text-primary",
+    category: "portal",
+  },
+  {
+    href: "/admin-hub/auto-reply",
+    label: "الرد الآلي",
+    helper: "محادثات واتساب وماسنجر وتعليقات الصفحة",
+    icon: Bell,
+    tone: "bg-muted text-primary",
+    category: "portal",
+  },
+  {
+    href: "/admin-hub/settings/pricing-rules",
+    label: "قواعد تسعير العمليات",
+    helper: "تسعير العمليات وحسابات الأطباء",
+    icon: CalendarDays,
+    tone: "bg-muted text-primary",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/notifications",
+    label: "الإشعارات",
+    helper: "قنوات التنبيه والإرسال",
+    icon: Bell,
+    tone: "bg-muted text-primary",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/op-history",
+    label: "سجل العمليات",
+    helper: "عمليات المرضى حسب النوع والتاريخ والطبيب",
+    icon: FileSearch,
+    tone: "bg-muted text-primary",
+    category: "system",
+  },
+  {
+    href: "/admin-hub/audit",
+    label: "تدقيق مصادر البيانات",
+    helper: "مصادر البيانات وحالة المزامنة",
+    icon: FileSearch,
+    tone: "bg-muted text-primary",
+    category: "system",
+  },
   {
     href: "/admin-hub/status",
     label: "حالة السيرفر",
@@ -305,42 +360,10 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/admin-hub/op-history",
-    label: "سجل العمليات",
-    helper: "سجل التعديلات والإجراءات",
-    icon: FileSearch,
-    tone: "bg-muted text-primary",
-    category: "system",
-  },
-  {
-    href: "/admin-hub/settings/pricing-rules",
-    label: "قواعد تسعير المواعيد",
-    helper: "أسعار الكشوفات وحسابات الأطباء",
-    icon: CalendarDays,
-    tone: "bg-muted text-primary",
-    category: "system",
-  },
-  {
-    href: "/admin-hub/card-visibility",
-    label: "بطاقات اللوحة",
-    helper: "التحكم في ظهور الكروت",
-    icon: Eye,
-    tone: "bg-muted text-primary",
-    category: "system",
-  },
-  {
-    href: "/admin-hub/audit",
-    label: "تدقيق البيانات",
-    helper: "سجل حركات وتعديل المبالغ",
-    icon: FileSearch,
-    tone: "bg-muted text-primary",
-    category: "system",
-  },
-  {
-    href: "/admin-hub/notifications",
-    label: "الإشعارات",
-    helper: "قنوات التنبيه والإرسال",
-    icon: Bell,
+    href: "/admin-hub/diagnostics",
+    label: "التشخيص والإصلاح",
+    helper: "فحص الأعطال والشبكة",
+    icon: Wrench,
     tone: "bg-muted text-primary",
     category: "system",
   },
@@ -353,13 +376,33 @@ const ALL_MODULES: HubModuleCard[] = [
     category: "system",
   },
   {
-    href: "/admin-hub/diagnostics",
-    label: "التشخيص والإصلاح",
-    helper: "فحص الأعطال والشبكة",
-    icon: Wrench,
+    href: "/admin-hub/ai",
+    label: "الذكاء الاصطناعي",
+    helper: "الرد الآلي وواتساب والمساعد الطبي والمزوّدون وسجل الاستهلاك",
+    icon: Database,
     tone: "bg-muted text-primary",
     category: "system",
   },
+];
+
+const HERO_PRIORITY = [
+  "/admin-hub/users",
+  "/admin-hub/permissions",
+  "/admin-hub/doctors",
+  "/admin-hub/services",
+  "/admin-hub/patients",
+  "/admin-hub/status",
+];
+
+const FEATURED_PRIORITY = [
+  "/admin-hub/permissions",
+  "/admin-hub/doctors",
+  "/admin-hub/services",
+  "/admin-hub/sheets",
+  "/admin-hub/patients",
+  "/admin-hub/whatsapp-inbox",
+  "/admin-hub/settings/pricing-rules",
+  "/admin-hub/status",
 ];
 
 type AdminHubShellProps = {
@@ -367,6 +410,7 @@ type AdminHubShellProps = {
 };
 
 const HUB_ROUTE_ALIASES: Record<string, string> = {
+  "/admin-hub/external-doctors/referrals": "/admin-hub/external-referrals",
   "/admin-hub/forms": "/admin-hub/sheets",
   "/admin-hub/sheet-copies": "/admin-hub/sheets",
   "/admin-hub/pentacam": "/admin-hub/pentacam-linking",
@@ -387,7 +431,22 @@ export default function AdminHubShell({
   basePath = "/admin-hub",
 }: AdminHubShellProps) {
   const [location, setLocation] = useLocation();
+  const [activeCategory, setActiveCategory] = useState<HubCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const [usageMap, setUsageMap] = useState(() =>
+    getCardUsageMap("admin", user?.id),
+  );
+  useEffect(() => {
+    const syncUsage = () => setUsageMap(getCardUsageMap("admin", user?.id));
+    syncUsage();
+    window.addEventListener(CARD_USAGE_UPDATED_EVENT, syncUsage);
+    window.addEventListener("storage", syncUsage);
+    return () => {
+      window.removeEventListener(CARD_USAGE_UPDATED_EVENT, syncUsage);
+      window.removeEventListener("storage", syncUsage);
+    };
+  }, [user?.id]);
   const {
     canAccess,
     isLoaded: permissionsLoaded,
@@ -424,15 +483,23 @@ export default function AdminHubShell({
     [canAccess, permissionsLoaded],
   );
 
-  const searchTerm = searchQuery.toLowerCase().trim();
+  const directoryModules = useMemo(
+    () => permissionsLoaded ? consolidateAdminDirectory(ALL_MODULES, canAccess) : [],
+    [canAccess, permissionsLoaded],
+  );
+
   const filteredModules = useMemo(() => {
-    if (!searchTerm) return accessibleModules;
-    return accessibleModules.filter(
-      (card) =>
-        card.label.toLowerCase().includes(searchTerm) ||
-        card.helper.toLowerCase().includes(searchTerm),
-    );
-  }, [accessibleModules, searchTerm]);
+    return directoryModules.filter((card) => {
+      const matchCat =
+        activeCategory === "all" || card.category === activeCategory;
+      const matchQuery =
+        !searchQuery.trim() ||
+        card.label.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+        card.helper.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+        card.searchTerms.toLowerCase().includes(searchQuery.toLowerCase().trim());
+      return matchCat && matchQuery;
+    });
+  }, [directoryModules, activeCategory, searchQuery]);
 
   const accessibleGroups = useMemo(
     () =>
@@ -461,6 +528,23 @@ export default function AdminHubShell({
     [accessibleGroups, currentModule],
   );
 
+  useEffect(() => {
+    if (!isHubHome && currentModule?.href) {
+      recordCardUsage("admin", currentModule.href, user?.id);
+    }
+  }, [isHubHome, currentModule?.href, user?.id]);
+
+  const { heroCard, featuredCards, restCards } = useMemo(
+    () =>
+      pickDynamicBentoCards(
+        filteredModules,
+        (card) => card.href,
+        usageMap,
+        [...HERO_PRIORITY, ...FEATURED_PRIORITY],
+      ),
+    [filteredModules, usageMap],
+  );
+
   const renderComponent = () => {
     const loc = normalizedHubLocation;
     if (loc === "/admin-hub/users") return <AdminUsers />;
@@ -473,7 +557,7 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/print-settings") return <PrintSettings />;
     if (loc === "/admin-hub/permissions") return <AdminPermissions />;
     if (loc === "/admin-hub/sheets") return <AdminSheets />;
-    if (loc === "/admin-hub/sheet-designer") return <AdminSheetDesigner />;
+    if (loc === "/admin-hub/sheet-designer") return <Redirect to="/admin-hub/print-settings" />;
     if (loc === "/admin-hub/doctors") return <AdminDoctors />;
     if (
       loc === "/admin-hub/pentacam-linking" ||
@@ -495,16 +579,15 @@ export default function AdminHubShell({
     if (loc === "/admin-hub/pentacam-duplicates")
       return <PentacamPage defaultTab="duplicates" embeddedInHub />;
     if (loc === "/admin-hub/portal-bookings") return <AdminPortalBookings />;
-    if (loc === "/admin-hub/card-visibility") return <AdminCardVisibility />;
     if (loc === "/admin-hub/diagnostics") return <AdminDiagnostics />;
     if (loc === "/admin-hub/audit") return <AdminDataSourceAudit />;
     if (loc === "/admin-hub/notifications")
       return <AdminNotificationSettings />;
     if (loc === "/admin-hub/services") return <AdminServices />;
-    if (loc === "/admin-hub/tests") return <TestsManagement />;
-    if (loc === "/admin-hub/external-doctors") return <ExternalDoctors />;
+    if (loc === "/admin-hub/tests") return <Redirect to="/examinations/catalog" />;
+    if (loc === "/admin-hub/external-doctors") return <ExternalDoctorsHub />;
     if (loc === "/admin-hub/external-referrals")
-      return <ExternalDoctorReferrals />;
+      return <ExternalDoctorsHub referrals />;
     return null;
   };
 
@@ -517,9 +600,9 @@ export default function AdminHubShell({
       !permissionsError &&
       canAccess(getRoutePermissionPath(normalizedHubLocation)));
 
-  const cardClassName =
-    "admin-tool-link group";
-  const hasHomeFilters = Boolean(searchQuery.trim());
+  const cardClassName = "admin-tool-link admin-bento-tile group";
+  const hasHomeFilters =
+    activeCategory !== "all" || Boolean(searchQuery.trim());
 
   return (
     <div
@@ -530,104 +613,105 @@ export default function AdminHubShell({
       <main className="w-full px-2 py-3 sm:px-4 sm:py-4">
         {isHubHome ? (
           <section className="admin-directory">
-            <div className="admin-directory-heading">
-              <div>
+            <header className="admin-directory-heading">
+              <div className="admin-directory-title-group">
+                <span className="admin-directory-eyebrow">عيون الشروق</span>
                 <h1 className="text-2xl font-semibold text-foreground">
                   مركز الإدارة
                 </h1>
-              </div>
-
-              <div
-                className="admin-health"
-                aria-label="حالة النظام"
-              >
                 <div
-                  className="admin-health-item"
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
+                  className="admin-health"
+                  aria-label="حالة النظام"
                 >
-                  <span
-                    className={cn(
-                      "size-2.5 rounded-full",
-                      !opsHealth
-                        ? "bg-muted-foreground"
-                        : opsHealth.dbConnected
-                          ? "bg-success"
-                          : "bg-destructive",
-                    )}
-                  />
-                  <span>
-                    قاعدة البيانات:{" "}
-                    {opsHealthQuery.isError
-                      ? "تعذر التحقق"
-                      : !opsHealth
-                        ? "جارٍ التحقق"
-                        : opsHealth.dbConnected
-                          ? "متصلة"
-                          : "منفصلة"}
-                  </span>
-                </div>
-                <div
-                  className="admin-health-item"
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  <Zap aria-hidden="true" className="size-3.5 text-muted-foreground" />
-                  <span>
-                    النفق الآمن:{" "}
-                    {opsHealthQuery.isError
-                      ? "تعذر التحقق"
-                      : !opsHealth
-                        ? "جارٍ التحقق"
-                        : opsHealth.tunnelConnected
-                          ? "نشط"
-                          : "غير نشط"}
-                  </span>
-                </div>
-                <div
-                  className="admin-health-item"
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  <span>
-                    مرضى اليوم:{" "}
-                    {opsHealthQuery.isError
-                      ? "تعذر تحميل العدد"
-                      : (opsHealth?.patientsCount?.toLocaleString("ar-EG") ??
-                        "جارٍ تحميل العدد")}
-                  </span>
-                </div>
-                {opsHealthQuery.isError && (
-                  <Button variant="bare"
-                    type="button"
-                    onClick={() => void opsHealthQuery.refetch()}
-                    className="min-h-11 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  <div
+                    className="admin-health-item"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
                   >
-                    إعادة المحاولة
-                  </Button>
-                )}
+                    <span
+                      className={cn(
+                        "size-2.5 rounded-full",
+                        !opsHealth
+                          ? "bg-muted-foreground"
+                          : opsHealth.dbConnected
+                            ? "bg-success"
+                            : "bg-destructive",
+                      )}
+                    />
+                    <span>
+                      قاعدة البيانات:{" "}
+                      {opsHealthQuery.isError
+                        ? "تعذر التحقق"
+                        : !opsHealth
+                          ? "جارٍ التحقق"
+                          : opsHealth.dbConnected
+                            ? "متصلة"
+                            : "منفصلة"}
+                    </span>
+                  </div>
+                  <div
+                    className="admin-health-item"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <Zap aria-hidden="true" className="size-3.5 text-muted-foreground" />
+                    <span>
+                      النفق الآمن:{" "}
+                      {opsHealthQuery.isError
+                        ? "تعذر التحقق"
+                        : !opsHealth
+                          ? "جارٍ التحقق"
+                          : opsHealth.tunnelConnected
+                            ? "نشط"
+                            : "غير نشط"}
+                    </span>
+                  </div>
+                  <div
+                    className="admin-health-item"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <span>
+                      مرضى اليوم:{" "}
+                      {opsHealthQuery.isError
+                        ? "تعذر تحميل العدد"
+                        : (opsHealth?.patientsCount?.toLocaleString("ar-EG") ??
+                          "جارٍ تحميل العدد")}
+                    </span>
+                  </div>
+                  {opsHealthQuery.isError && (
+                    <Button
+                      variant="bare"
+                      type="button"
+                      onClick={() => void opsHealthQuery.refetch()}
+                      className="min-h-11 rounded-xl border border-border/60 bg-card px-3.5 py-2 text-xs font-bold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      إعادة المحاولة
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="admin-directory-controls">
               <div className="admin-directory-search relative">
                 <Search
                   aria-hidden="true"
                   className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                 />
-                <Input bare
+                <Input
+                  bare
                   type="search"
                   aria-label="بحث في أدوات الإدارة"
-                  placeholder="بحث في أدوات الإدارة"
+                  placeholder="بحث في أدوات الإدارة…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="min-h-11 w-full rounded-md border border-input bg-card py-2 pe-12 ps-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
                 {searchQuery && (
-                  <Button variant="bare"
+                  <Button
+                    variant="bare"
                     type="button"
                     aria-label="مسح البحث"
                     onClick={() => setSearchQuery("")}
@@ -636,6 +720,52 @@ export default function AdminHubShell({
                     <X aria-hidden="true" className="size-4" />
                   </Button>
                 )}
+              </div>
+            </header>
+
+            <div className="admin-directory-controls">
+              <div
+                className="admin-category-nav"
+                role="group"
+                aria-label="تصفية أقسام الإدارة"
+              >
+                {CATEGORIES.map((cat) => {
+                  const CatIcon = cat.icon;
+                  const active = activeCategory === cat.id;
+                  const count =
+                    cat.id === "all"
+                      ? directoryModules.length
+                      : directoryModules.filter((m) => m.category === cat.id)
+                          .length;
+                  return (
+                    <Button
+                      variant="bare"
+                      key={cat.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={cn(
+                        "min-h-11 px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      <CatIcon className="size-3.5" />
+                      <span>{cat.label}</span>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[13px] font-bold",
+                          active
+                            ? "bg-primary-foreground/10 text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {count.toLocaleString("ar-EG")}
+                      </span>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
 
@@ -653,7 +783,8 @@ export default function AdminHubShell({
                 className="space-y-3 py-6 text-sm text-destructive"
               >
                 <p>تعذر تحميل صلاحيات أدوات الإدارة.</p>
-                <Button variant="bare"
+                <Button
+                  variant="bare"
                   type="button"
                   onClick={() => void refetchPermissions()}
                   className="min-h-11 rounded-md border border-destructive/40 px-3 py-2 font-medium transition hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -672,9 +803,13 @@ export default function AdminHubShell({
                     : "لا توجد أدوات متاحة لحسابك."}
                 </p>
                 {hasHomeFilters && (
-                  <Button variant="bare"
+                  <Button
+                    variant="bare"
                     type="button"
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => {
+                      setActiveCategory("all");
+                      setSearchQuery("");
+                    }}
                     className="min-h-11 rounded-md border border-border px-3 py-2 font-medium text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     مسح التصفية
@@ -684,20 +819,80 @@ export default function AdminHubShell({
             ) : (
               <div className="admin-directory-results">
                 <section className="admin-tool-group" aria-label="أدوات الإدارة">
-                {hasHomeFilters ? (
-                  <div className="admin-tool-list">
-                    {filteredModules.map((card) => {
+                  <div
+                    className="admin-tool-list"
+                    data-featured-count={featuredCards.length}
+                  >
+                    {heroCard && (
+                      <Link
+                        key={heroCard.href}
+                        href={heroCard.href}
+                        className="admin-tool-link admin-bento-hero"
+                        data-category={heroCard.category}
+                        title={heroCard.helper}
+                        onClick={() =>
+                          recordCardUsage("admin", heroCard.href, user?.id)
+                        }
+                      >
+                        <span className="admin-bento-eyebrow">
+                          {heroCard.helper}
+                        </span>
+                        <div className="admin-bento-hero-bottom">
+                          <div className="admin-tool-copy min-w-0">
+                            <h3>{heroCard.label}</h3>
+                            <p>{heroCard.helper}</p>
+                          </div>
+                          <span className="admin-tool-icon" aria-hidden="true">
+                            <ArrowLeft strokeWidth={2.4} />
+                          </span>
+                        </div>
+                      </Link>
+                    )}
+
+                    {featuredCards.map((card, index) => {
+                      const Icon = card.icon;
+                      return (
+                        <Link
+                          key={card.href}
+                          href={card.href}
+                          className="admin-tool-link admin-bento-block"
+                          data-block={index}
+                          data-category={card.category}
+                          title={card.helper}
+                          onClick={() =>
+                            recordCardUsage("admin", card.href, user?.id)
+                          }
+                        >
+                          <div className="admin-tool-copy min-w-0">
+                            <h3>{card.label}</h3>
+                            <p>{card.helper}</p>
+                          </div>
+                          <span className="admin-tool-icon" aria-hidden="true">
+                            <Icon strokeWidth={1.8} />
+                          </span>
+                        </Link>
+                      );
+                    })}
+
+                    {restCards.map((card) => {
                       const Icon = card.icon;
                       return (
                         <Link
                           key={card.href}
                           href={card.href}
                           className={cardClassName}
+                          data-category={card.category}
                           title={card.helper}
+                          onClick={() =>
+                            recordCardUsage("admin", card.href, user?.id)
+                          }
                         >
                           <div className="shrink-0">
                             <span className="admin-tool-icon">
-                              <Icon className="size-4.5 sm:size-5" strokeWidth={2} />
+                              <Icon
+                                className="size-4.5 sm:size-5"
+                                strokeWidth={1.8}
+                              />
                             </span>
                           </div>
                           <div className="admin-tool-copy min-w-0">
@@ -708,42 +903,14 @@ export default function AdminHubShell({
                               {card.helper}
                             </p>
                           </div>
-                          <ChevronRight aria-hidden="true" className="admin-tool-arrow" />
+                          <ChevronRight
+                            aria-hidden="true"
+                            className="admin-tool-arrow"
+                          />
                         </Link>
                       );
                     })}
                   </div>
-                ) : (
-                  <div className="admin-tool-list">
-                    {accessibleGroups.map((group) => {
-                      const Icon = group.icon;
-                      return (
-                        <Link
-                          key={group.id}
-                          href={group.modules[0].href}
-                          className={cardClassName}
-                          data-category={group.id}
-                          title={group.helper}
-                        >
-                          <div className="shrink-0">
-                            <span className="admin-tool-icon">
-                              <Icon className="size-4.5 sm:size-5" strokeWidth={2} />
-                            </span>
-                          </div>
-                          <div className="admin-tool-copy min-w-0">
-                            <h3 className="text-sm font-semibold leading-normal text-foreground">
-                              {group.label}
-                            </h3>
-                            <p className="mt-1 text-sm leading-normal text-muted-foreground">
-                              {group.modules.map((m) => m.label).join(" · ")}
-                            </p>
-                          </div>
-                          <ChevronRight aria-hidden="true" className="admin-tool-arrow" />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
                 </section>
               </div>
             )}
@@ -767,6 +934,21 @@ export default function AdminHubShell({
                 </span>
               </div>
 
+              <select
+                className="min-h-11 w-full min-w-0 cursor-pointer rounded-xl border border-border/60 bg-card px-4 py-2 text-xs font-bold text-foreground outline-none transition hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-auto"
+                value={currentModule?.href ?? ""}
+                onChange={(e) => {
+                  if (e.target.value) setLocation(e.target.value);
+                }}
+                aria-label="الانتقال السريع لصفحة أخرى"
+              >
+                <option value="">الانتقال السريع لصفحة أخرى…</option>
+                {accessibleModules.map((item) => (
+                  <option key={item.href} value={item.href}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {currentGroup && currentGroup.modules.length > 1 && (
@@ -810,7 +992,8 @@ export default function AdminHubShell({
                   className="space-y-3 py-8 text-center text-sm text-destructive"
                 >
                   <p>تعذر التحقق من صلاحيات هذا القسم.</p>
-                  <Button variant="bare"
+                  <Button
+                    variant="bare"
                     type="button"
                     onClick={() => void refetchPermissions()}
                     className="min-h-11 rounded-md border border-destructive/40 px-3 py-2 font-medium transition hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"

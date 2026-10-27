@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { marketingGenerationInput } from "@shared/ai-request-context";
+import {
+  readPending,
+  savePending,
+  removePending,
+} from "@/features/ai/pending-request";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ManusGenerationJobs from "./ManusGenerationJobs";
-import CentralMarketingDraft from "./CentralMarketingDraft";
+import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
+import { Input } from "@/components/ui/input";
 import {
   CalendarDays,
   CheckCircle2,
@@ -27,13 +34,10 @@ import {
   Zap,
 } from "lucide-react";
 
-import { marketingSlotLabel } from "@shared/marketingSchedule";
-
-const DAY_LABELS: Record<string, string> = {
-  saturday: "الأحد — تصحيح الإبصار والبنتاكام",
-  tuesday: "الثلاثاء — المياه البيضاء والقرنية",
-  thursday: "الخميس — صحة العيون العامة",
-};
+import {
+  marketingSlotLabel,
+  marketingSlotDescription,
+} from "@shared/marketingSchedule";
 type PageRole = "center" | "doctor";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -55,10 +59,76 @@ interface GeneratedPreview {
   imagePrompt?: string | null;
 }
 
+import {
+  configuredMarketingAssistant,
+  marketingAssistantValue,
+} from "@shared/marketing-assistant";
 export default function MarketingDashboard() {
+  const [restored] = useState(() =>
+    readPending("selrs.ai.marketing.context", marketingGenerationInput),
+  );
+  const [generationRequest, setGenerationRequest] = useState<string>(() => {
+    try {
+      return (
+        restored?.requestId ??
+        sessionStorage.getItem("selrs.ai.marketing.request") ??
+        ""
+      );
+    } catch {
+      return "";
+    }
+  });
+  const startingGeneration = useRef(false);
+  const [assistantOverride, setAssistant] = useState<string>();
+  const [generatePage, setGeneratePage] = useState<PageRole>(
+    restored?.pageRole ?? "center",
+  );
+  const [generateTopic, setGenerateTopic] = useState(restored?.topic ?? "");
+  const capabilities = trpc.aiManagement.status.useQuery(undefined, {
+    retry: false,
+  });
+  const profiles = trpc.aiManagement.profiles.useQuery(undefined, {
+    enabled: capabilities.data?.enabled,
+    retry: false,
+  });
+  const geminiText = profiles.data?.find(
+    (profile) => profile.workload === "marketing.text",
+  );
+  const configuredAssistant = configuredMarketingAssistant(profiles.data ?? []);
+  const assistant =
+    assistantOverride ??
+    (configuredAssistant
+      ? marketingAssistantValue(configuredAssistant)
+      : capabilities.data?.enabled
+        ? ""
+        : "manus:standard");
+  const geminiImage = profiles.data?.find(
+    (profile) => profile.workload === "marketing.image",
+  );
+  const geminiModels = trpc.aiManagement.models.useQuery(undefined, {
+    enabled: capabilities.data?.enabled,
+    retry: false,
+    staleTime: 300000,
+  });
+  const textModels = [
+    ...new Set([
+      ...(geminiModels.data
+        ?.filter((model) => model.kind === "text")
+        .map((model) => model.id) ?? []),
+      ...(geminiText?.provider === "gemini" ? [geminiText.model] : []),
+    ]),
+  ];
+  const imageModels = [
+    ...new Set([
+      ...(geminiModels.data
+        ?.filter((model) => model.kind === "image")
+        .map((model) => model.id) ?? []),
+      ...(geminiImage?.provider === "gemini" ? [geminiImage.model] : []),
+    ]),
+  ];
   const [generateDay, setGenerateDay] = useState<
     "saturday" | "tuesday" | "thursday"
-  >("saturday");
+  >(restored?.postDay ?? "saturday");
   const [publishId, setPublishId] = useState<number | null>(null);
   const [publishPageRoles, setPublishPageRoles] = useState<
     Record<number, PageRole>
@@ -66,22 +136,109 @@ export default function MarketingDashboard() {
   const [preview, setPreview] = useState<GeneratedPreview | null>(null);
 
   const utils = trpc.useUtils();
+  const tracked = trpc.marketing.generationRequest.useQuery(
+    { requestId: generationRequest },
+    {
+      enabled: Boolean(generationRequest),
+      retry: false,
+      refetchInterval: generationRequest ? 4000 : false,
+    },
+  );
+  const knownGeneration = tracked.data?.job;
+  useEffect(() => {
+    if (tracked.data?.state === "rejected") {
+      removePending("selrs.ai.marketing.context");
+      removePending("selrs.ai.marketing.request");
+      setGenerationRequest("");
+      toast.info("لم يبدأ التوليد. راجع الإعدادات ثم ابدأ طلبًا جديدًا.");
+      return;
+    }
+    const parsed = marketingGenerationInput.safeParse(tracked.data?.context);
+    if (!parsed.success || parsed.data.requestId !== generationRequest) return;
+    const context = parsed.data;
+    setGeneratePage(context.pageRole);
+    setGenerateDay(context.postDay);
+    setGenerateTopic(context.topic ?? "");
+    if (context.assistant)
+      setAssistant(
+        context.assistant.provider === "manus"
+          ? `manus:${context.assistant.model}`
+          : `gemini:${context.assistant.model}|${context.assistant.imageModel}`,
+      );
+    savePending("selrs.ai.marketing.context", context);
+  }, [tracked.data, generationRequest]);
 
-  const summaryQuery = trpc.marketing.dashboardSummary.useQuery();
-  const settingsQuery = trpc.marketing.getSettings.useQuery();
-  const schedulerQuery = trpc.marketing.getSchedulerStatus.useQuery(undefined, {
-    refetchInterval: 30_000,
+  const summaryQuery = trpc.marketing.dashboardSummary.useQuery({
+    pageRole: generatePage,
   });
+  const schedulerQuery = trpc.marketing.getSchedulerStatus.useQuery(
+    { pageRole: generatePage },
+    {
+      refetchInterval: 30_000,
+    },
+  );
 
   const generateMutation = trpc.marketing.generatePost.useMutation({
+    retry: false,
     onSuccess: (data) => {
       toast.info(`بدأ تجهيز النص والصورة عن: ${data.topic}`);
       void utils.marketing.generationJobs.invalidate();
+      void utils.marketing.centralGenerationJobs.invalidate();
       void utils.marketing.dashboardSummary.invalidate();
       void utils.marketing.listPosts.invalidate();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => {
+      toast.error(err.message);
+      void tracked.refetch();
+    },
   });
+  const generationLocked =
+    Boolean(generationRequest) || generateMutation.isPending;
+  const selectionReady =
+    capabilities.isSuccess &&
+    (!capabilities.data?.enabled || profiles.isSuccess) &&
+    Boolean(assistant);
+  function startGeneration() {
+    if (
+      generationRequest ||
+      startingGeneration.current ||
+      !assistant ||
+      capabilities.isLoading ||
+      capabilities.isError ||
+      (capabilities.data?.enabled && !profiles.data)
+    )
+      return;
+    startingGeneration.current = true;
+    const requestId = crypto.randomUUID();
+    setGenerationRequest(requestId);
+    try {
+      sessionStorage.setItem("selrs.ai.marketing.request", requestId);
+    } catch {
+      /* The server also retains the request identity. */
+    }
+    const context = marketingGenerationInput.parse({
+      postDay: generateDay,
+      requestId,
+      pageRole: generatePage,
+      topic: generateTopic.trim() || undefined,
+      assistant: assistant.startsWith("gemini:")
+        ? {
+            provider: "gemini",
+            model: assistant.slice("gemini:".length).split("|")[0],
+            imageModel: assistant.slice("gemini:".length).split("|")[1],
+          }
+        : {
+            provider: "manus",
+            model: assistant.split(":")[1] as "standard" | "lite" | "max",
+          },
+    });
+    savePending("selrs.ai.marketing.context", context);
+    generateMutation.mutate(context, {
+      onSettled: () => {
+        startingGeneration.current = false;
+      },
+    });
+  }
 
   const publishMutation = trpc.marketing.publishPost.useMutation({
     onSuccess: () => {
@@ -95,7 +252,7 @@ export default function MarketingDashboard() {
     },
   });
 
-  const updateSettingsMutation = trpc.marketing.updateSettings.useMutation({
+  const updateSettingsMutation = trpc.marketing.setPageAutoPublish.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث الإعدادات");
       void utils.marketing.getSettings.invalidate();
@@ -126,7 +283,7 @@ export default function MarketingDashboard() {
   });
 
   const summary = summaryQuery.data;
-  const settings = settingsQuery.data;
+  const settings = schedulerQuery.data;
   const recentPosts = summary?.recentPosts ?? [];
   const counts = summary?.counts ?? {
     draft: 0,
@@ -211,7 +368,13 @@ export default function MarketingDashboard() {
         data={schedulerQuery.data}
         isLoading={schedulerQuery.isLoading}
         isRunning={runNowMutation.isPending}
-        onRunNow={(day) => runNowMutation.mutate({ day })}
+        pageRole={generatePage}
+        onRunNow={(day) =>
+          runNowMutation.mutate({
+            day: day ?? generateDay,
+            pageRole: generatePage,
+          })
+        }
       />
 
       {/* Actions */}
@@ -219,31 +382,85 @@ export default function MarketingDashboard() {
         <h2 className="mb-4 text-sm font-semibold text-foreground">
           إجراءات سريعة
         </h2>
+        <div className="mb-4 grid gap-4 sm:grid-cols-2">
+          <AssistantModelSelect
+            value={assistant}
+            onChange={(value) => {
+              setAssistant(value);
+            }}
+            disabled={generationLocked || !selectionReady}
+            options={[
+              ...(!assistant
+                ? [
+                    {
+                      value: "",
+                      label: "تعذرت قراءة إعدادات المساعد",
+                      disabled: true,
+                    },
+                  ]
+                : []),
+              { value: "manus:standard", label: "Manus · Standard" },
+              { value: "manus:lite", label: "Manus · Lite" },
+              { value: "manus:max", label: "Manus · Max" },
+              ...textModels.flatMap((model) =>
+                imageModels.map((imageModel) => ({
+                  value: `gemini:${model}|${imageModel}`,
+                  label: `Gemini · نص: ${model} / صورة: ${imageModel}`,
+                  disabled: !geminiText?.enabled || !geminiImage?.enabled,
+                })),
+              ),
+            ]}
+          />
+          <label className="grid gap-2 text-sm">
+            الصفحة
+            <select
+              aria-label="صفحة المحتوى"
+              className="min-h-11 rounded-md border bg-background px-3"
+              value={generatePage}
+              disabled={generationLocked}
+              onChange={(event) =>
+                setGeneratePage(event.target.value as PageRole)
+              }
+            >
+              <option value="center">المركز</option>
+              <option value="doctor">العيادة</option>
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm sm:col-span-2">
+            الموضوع
+            <Input
+              aria-label="موضوع المحتوى"
+              value={generateTopic}
+              disabled={generationLocked}
+              maxLength={255}
+              onChange={(event) => setGenerateTopic(event.target.value)}
+              placeholder="اتركه فارغًا لاختيار الموضوع التالي من الجدول"
+            />
+          </label>
+        </div>
         <div className="flex flex-wrap gap-3">
           {/* Generate Post */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <select
               aria-label="يوم توليد المنشور"
               value={generateDay}
+              disabled={generationLocked}
               onChange={(e) =>
                 setGenerateDay(e.target.value as typeof generateDay)
               }
-              className="rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="min-h-11 max-w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
-              <option value="saturday">الأحد</option>
-              <option value="tuesday">الثلاثاء</option>
-              <option value="thursday">الخميس</option>
+              {(["saturday", "tuesday", "thursday"] as const).map((slot) => (
+                <option key={slot} value={slot}>
+                  {marketingSlotDescription(slot, generatePage)}
+                </option>
+              ))}
             </select>
             <Button
               size="sm"
               variant="default"
-              onClick={() =>
-                generateMutation.mutate({
-                  postDay: generateDay,
-                  requestId: crypto.randomUUID(),
-                })
-              }
-              disabled={generateMutation.isPending}
+              onClick={startGeneration}
+              disabled={generationLocked || !selectionReady}
             >
               {generateMutation.isPending ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -262,11 +479,14 @@ export default function MarketingDashboard() {
             variant="outline"
             onClick={() =>
               updateSettingsMutation.mutate({
+                pageRole: generatePage,
                 autoPublish: !settings?.autoPublish,
               })
             }
             disabled={
-              updateSettingsMutation.isPending || settingsQuery.isLoading
+              updateSettingsMutation.isPending ||
+              schedulerQuery.isLoading ||
+              !settings?.fbConnected
             }
           >
             {settings?.autoPublish ? (
@@ -291,6 +511,44 @@ export default function MarketingDashboard() {
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
+        {generationRequest && (
+          <div className="mt-4 space-y-2 text-sm" role="status">
+            <p>
+              معرف الطلب: <bdi className="break-all">{generationRequest}</bdi>.
+              تابع حالة نفس الطلب قبل بدء توليد جديد.
+            </p>
+            <p>
+              حالة الطلب:{" "}
+              {knownGeneration
+                ? {
+                    starting: "بدء التوليد",
+                    running: "جارٍ التوليد",
+                    completed: "مكتمل",
+                    failed: "فشل مؤكد",
+                    uncertain:
+                      "نتيجة غير محسومة؛ راجع المهمة الأصلية قبل طلب بديل",
+                  }[knownGeneration.state]
+                : "جارٍ التحقق من النتيجة"}
+            </p>
+            {(knownGeneration?.state === "completed" ||
+              knownGeneration?.state === "failed") && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  try {
+                    sessionStorage.removeItem("selrs.ai.marketing.request");
+                  } catch {
+                    /* The completed job remains on the server. */
+                  }
+                  setGenerationRequest("");
+                  removePending("selrs.ai.marketing.context");
+                }}
+              >
+                تجهيز محتوى جديد
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Generating indicator */}
         {generateMutation.isPending && (
@@ -298,14 +556,16 @@ export default function MarketingDashboard() {
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>
               بدء تجهيز النص والصورة عن{" "}
-              <strong>{DAY_LABELS[generateDay]}</strong>…
+              <strong>
+                {marketingSlotDescription(generateDay, generatePage)}
+              </strong>
+              …
             </span>
           </div>
         )}
       </div>
 
       {/* Generated Content Preview */}
-      <CentralMarketingDraft />
       <ManusGenerationJobs
         onCompleted={(postId) => {
           void utils.marketing.getPost
@@ -543,12 +803,6 @@ export default function MarketingDashboard() {
 
 // ─── Scheduler Card ───────────────────────────────────────────────────────────
 
-const DAY_AR: Record<string, string> = {
-  saturday: "الأحد",
-  tuesday: "الثلاثاء",
-  thursday: "الخميس",
-};
-
 const SCHED_STATUS_COLOR: Record<string, string> = {
   idle: "bg-muted text-muted-foreground",
   running: "bg-info/15 text-info",
@@ -568,11 +822,13 @@ interface SchedulerData {
 }
 
 function SchedulerCard({
+  pageRole,
   data,
   isLoading,
   isRunning,
   onRunNow,
 }: {
+  pageRole: PageRole;
   data: SchedulerData | null | undefined;
   isLoading: boolean;
   isRunning: boolean;
@@ -638,9 +894,10 @@ function SchedulerCard({
           </p>
           {data?.nextRun ? (
             <p className="text-foreground font-medium">
-              {DAY_AR[data.nextRun.day] ?? data.nextRun.day}
+              {marketingSlotLabel(data.nextRun.day, pageRole)}
               {" — "}
               {new Date(data.nextRun.date).toLocaleString("ar-EG", {
+                timeZone: "Africa/Cairo",
                 weekday: "short",
                 month: "short",
                 day: "numeric",
@@ -679,9 +936,9 @@ function SchedulerCard({
           </p>
           <p className="text-foreground">
             {[
-              data?.saturdayEnabled && "س",
-              data?.tuesdayEnabled && "ث",
-              data?.thursdayEnabled && "خ",
+              data?.saturdayEnabled && marketingSlotLabel("saturday", pageRole),
+              data?.tuesdayEnabled && marketingSlotLabel("tuesday", pageRole),
+              data?.thursdayEnabled && marketingSlotLabel("thursday", pageRole),
             ]
               .filter(Boolean)
               .join(" · ") || "لا شيء"}

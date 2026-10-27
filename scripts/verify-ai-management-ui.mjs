@@ -143,7 +143,7 @@ try {
           ),
         });
       });
-      await page.goto("http://127.0.0.1:4000/admin-hub/ai");
+      await page.goto("http://127.0.0.1:4000/ai/settings");
       const root = page.getByRole("region", {
         name: "إدارة الذكاء الاصطناعي والتواصل",
         exact: true,
@@ -173,13 +173,14 @@ try {
         root.getByRole("button", { name: "حفظ إعدادات التجربة" }),
       ).toHaveJSProperty("disabled", true);
       assert.equal(saves, 2);
-      await root.getByRole("button", { name: "تجربة توليد نص" }).click();
+      await page.goto("http://127.0.0.1:4000/ai/experiments");
+      await root.getByRole("button", { name: "تشغيل تجربة اتصال", exact: true }).click();
       await page.getByRole("button", { name: "إلغاء", exact: true }).click();
       assert.equal(calls, 0);
-      await root.getByRole("button", { name: "تجربة توليد نص" }).click();
+      await root.getByRole("button", { name: "تشغيل تجربة اتصال", exact: true }).click();
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).not.toBeVisible();
-      await root.getByRole("button", { name: "تجربة توليد نص" }).click();
+      await root.getByRole("button", { name: "تشغيل تجربة اتصال", exact: true }).click();
       await page
         .getByRole("button", { name: "تشغيل التجربة مرة واحدة" })
         .click();
@@ -192,7 +193,7 @@ try {
       await root
         .getByLabel("المهمة", { exact: true })
         .selectOption("marketing.image");
-      await root.getByRole("button", { name: "تجربة توليد صورة" }).click();
+      await root.getByRole("button", { name: "تشغيل تجربة اتصال", exact: true }).click();
       await page
         .getByRole("button", { name: "تشغيل التجربة مرة واحدة" })
         .click();
@@ -203,6 +204,7 @@ try {
           .evaluate((node) => node.naturalWidth > 0),
       );
       assert.equal(calls, 2);
+      await page.goto("http://127.0.0.1:4000/ai/settings");
       await root
         .getByLabel("المهمة", { exact: true })
         .selectOption("medical.documentation");
@@ -213,7 +215,7 @@ try {
         root
           .getByLabel("المزوّد", { exact: true })
           .locator('option[value="gemini"]'),
-      ).toHaveJSProperty("disabled", true);
+      ).toHaveJSProperty("disabled", false);
       assert.equal(
         await root.getByRole("button", { name: "تجربة توليد نص" }).count(),
         0,
@@ -227,8 +229,9 @@ try {
           root
             .getByLabel("المزوّد", { exact: true })
             .locator('option[value="manus"]'),
-        ).toHaveJSProperty("disabled", true);
+        ).toHaveJSProperty("disabled", false);
       }
+      await page.goto("http://127.0.0.1:4000/ai/experiments");
       await root
         .getByLabel("المهمة", { exact: true })
         .selectOption("marketing.image");
@@ -266,7 +269,7 @@ try {
       );
       await page.evaluate(() => (document.documentElement.style.fontSize = ""));
       uncertain = true;
-      await root.getByRole("button", { name: "تجربة توليد صورة" }).click();
+      await root.getByRole("button", { name: "تشغيل تجربة اتصال", exact: true }).click();
       await page
         .getByRole("button", { name: "تشغيل التجربة مرة واحدة" })
         .click();
@@ -275,7 +278,7 @@ try {
       ).toBeVisible();
       await page.reload();
       await expect(
-        root.getByRole("button", { name: "تجربة توليد نص" }),
+        root.getByRole("button", { name: "تشغيل تجربة اتصال", exact: true }),
       ).toBeDisabled();
       await root.getByRole("button", { name: "متابعة نفس الطلب" }).click();
       assert.equal(calls, 3);
@@ -287,7 +290,7 @@ try {
       );
       failStatus = false;
       await root.getByRole("button", { name: "تحديث الحالة" }).click();
-      await expect(root.getByLabel("الموديل", { exact: true })).toBeVisible();
+      await expect(root.getByLabel("المهمة", { exact: true })).toBeVisible();
       assert.deepEqual(errors, []);
       results.push({
         theme,

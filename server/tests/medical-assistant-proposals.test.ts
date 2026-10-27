@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../services/marketing/manusClient", () => ({
+vi.mock("../services/marketing/manusClient", async (original) => ({
+  ...(await original<typeof import("../services/marketing/manusClient")>()),
   createManusTask: vi.fn(),
   readManusTask: vi.fn(),
   downloadManusFile: vi.fn(),
@@ -9,6 +10,7 @@ import {
   createManusTask,
   readManusTask,
   downloadManusFile,
+  ManusRequestError,
 } from "../services/marketing/manusClient";
 import {
   startMedicalProposals,
@@ -52,22 +54,74 @@ beforeEach(() => {
 });
 afterEach(() => vi.clearAllMocks());
 describe("private medical Manus tasks", () => {
+  it("retries a transient attachment download on the same paid task", async () => {
+    const { jobId } = await startMedicalProposals(owner, input);
+    vi.mocked(downloadManusFile).mockRejectedValueOnce(
+      new ManusRequestError("temporary CDN failure", true),
+    );
+    await expect(readMedicalProposals(owner, jobId)).rejects.toThrow(
+      "Retry checking",
+    );
+    expect((await readMedicalProposals(owner, jobId)).status).toBe("complete");
+    expect(createManusTask).toHaveBeenCalledTimes(1);
+  });
+  it("uses the selected Manus model without changing the review workflow", async () => {
+    await startMedicalProposals(owner, input, [], "manus", "current", "max");
+    expect(createManusTask).toHaveBeenCalledWith(
+      expect.stringContaining(input.transcript),
+      { agentProfile: "max" },
+    );
+  });
   it("runs the explicitly enabled Gemini alternative through the existing validation and job owner checks", async () => {
     vi.stubEnv("MEDICAL_GEMINI_CLINICAL_APPROVED", "true");
     vi.stubEnv("GEMINI_API_KEY", "fictional-test-key");
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify({
-        proposals: [{ field: "field", text: input.transcript, sources: [input.transcript], speaker: "patient" }], warnings: [],
-      }) }] } }],
-    }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                finishReason: "STOP",
+                content: {
+                  parts: [
+                    {
+                      text: JSON.stringify({
+                        proposals: [
+                          {
+                            field: "field",
+                            text: input.transcript,
+                            sources: [input.transcript],
+                            speaker: "patient",
+                          },
+                        ],
+                        warnings: [],
+                      }),
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        ),
+      ),
+    );
     try {
       const { jobId } = await startMedicalProposals(owner, input, [], "gemini");
       await vi.waitFor(async () => {
-        expect(await readMedicalProposals(owner, jobId)).toMatchObject({ status: "complete", result: { proposals: [{ text: input.transcript }] } });
+        expect(await readMedicalProposals(owner, jobId)).toMatchObject({
+          status: "complete",
+          result: { proposals: [{ text: input.transcript }] },
+        });
       });
       expect(createManusTask).not.toHaveBeenCalled();
-      await expect(readMedicalProposals(owner + 5000, jobId)).rejects.toThrow("unavailable or expired");
-    } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs(); }
+      await expect(readMedicalProposals(owner + 5000, jobId)).rejects.toThrow(
+        "unavailable or expired",
+      );
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
   });
   it("rejects the Gemini alternative without creating a Manus fallback task", async () => {
     vi.stubEnv("MEDICAL_GEMINI_CLINICAL_APPROVED", "false");

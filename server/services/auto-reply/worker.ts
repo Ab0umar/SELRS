@@ -44,6 +44,10 @@ export function jobFailure(error: unknown, attempts: number) {
     error instanceof ProviderError
       ? error
       : new ProviderError("INTERNAL_ERROR");
+  if (safe.code === "CENTRAL_AI_PENDING") return {
+    state: attempts < 40 ? "retry" : "unknown", errorCode: safe.code,
+    availableAt: new Date(Date.now() + 15_000),
+  };
   return {
     state: safe.uncertain
       ? "unknown"

@@ -41,6 +41,7 @@ export type AiUsage = {
   durationMs: number;
   inputTokens: number;
   outputTokens: number;
+  usageKnown?: boolean;
   status: "success" | "failed";
   finishReason?: string;
   parts?: Array<{ image: boolean; mimeType?: string; thought: boolean }>;
@@ -50,6 +51,7 @@ type AiRequest = {
   instruction: string;
   input: string;
   model?: string;
+  referencePurpose?: "brand-analysis";
   references?: Array<{
     bytes: Buffer;
     mimeType: "image/png" | "image/jpeg" | "image/webp";
@@ -85,14 +87,20 @@ function validateRequest(request: AiRequest) {
   if (request.workload === "medical.documentation")
     throw new AiGatewayError("configuration");
   if (request.references?.length) {
-    if (request.workload !== "marketing.image" || request.references.length > 2)
+    const brandAnalysis =
+      request.workload === "marketing.text" &&
+      request.referencePurpose === "brand-analysis";
+    if (
+      (!brandAnalysis && request.workload !== "marketing.image") ||
+      request.references.length > (brandAnalysis ? 1 : 2)
+    )
       throw new AiGatewayError("configuration");
     for (const image of request.references) {
       const bytes = image.bytes;
       if (
         !Buffer.isBuffer(bytes) ||
         bytes.length < 32 ||
-        bytes.length > 2 * 1024 * 1024
+        bytes.length > (brandAnalysis ? 10 : 2) * 1024 * 1024
       )
         throw new AiGatewayError("configuration");
       const valid =
@@ -170,6 +178,17 @@ export class AiGateway {
             : {}),
         },
       });
+      const metadata = response.usageMetadata;
+      event.usageKnown = [
+        metadata?.promptTokenCount,
+        metadata?.candidatesTokenCount,
+        metadata?.thoughtsTokenCount ?? 0,
+      ].every(
+        (count) =>
+          typeof count === "number" &&
+          Number.isSafeInteger(count) &&
+          count >= 0,
+      );
       event.inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
       event.outputTokens =
         (response.usageMetadata?.candidatesTokenCount ?? 0) +

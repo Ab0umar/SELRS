@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import type { autoReplyRouter } from "../../../../server/routers/autoReply";
 import "./AutoReply.css";
 import { WhatsAppCoexistence } from "./WhatsAppCoexistence";
+import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
 
 type Tab = "inbox" | "knowledge" | "settings" | "test" | "activity";
 type AutoReplyOutputs = inferRouterOutputs<typeof autoReplyRouter>;
@@ -202,10 +203,12 @@ function ChannelSelect({
   value,
   onChange,
   all = false,
+  disabled = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   all?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <select
@@ -213,6 +216,7 @@ function ChannelSelect({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label="القناة"
+      disabled={disabled}
     >
       {all && <option value="">كل القنوات</option>}
       {autoReplyChannels.map((c) => (
@@ -226,6 +230,13 @@ function ChannelSelect({
 
 export default function AutoReply() {
   const [tab, setTab] = useState<Tab>("inbox");
+  const [previewPending, setPreviewPending] = useState(() => {
+    try {
+      return Boolean(sessionStorage.getItem("selrs.ai.reply.preview"));
+    } catch {
+      return false;
+    }
+  });
   const settings = trpc.autoReply.settings.useQuery(undefined, {
     refetchInterval: 30_000,
   });
@@ -263,6 +274,13 @@ export default function AutoReply() {
           </div>
         )}
       </header>
+      {settings.data && (
+        <ReplyAssistantSelect
+          key={`${settings.data.config.model}:${settings.data.config.engine}`}
+          data={settings.data}
+          disabled={previewPending}
+        />
+      )}
       <nav className="ar-tabs" aria-label="أقسام الرد الآلي">
         {(
           [
@@ -306,13 +324,149 @@ export default function AutoReply() {
               />
             )}
             {tab === "knowledge" && <Knowledge pages={settings.data.pages} />}
-            {tab === "settings" && <Settings data={settings.data} />}
-            {tab === "test" && <InternalTest pages={settings.data.pages} />}
+            {tab === "settings" && (
+              <Settings
+                key={`${settings.data.config.model}:${settings.data.config.engine}`}
+                data={settings.data}
+              />
+            )}
+            {tab === "test" && (
+              <InternalTest
+                pages={settings.data.pages}
+                activeEngine={settings.data.config.engine}
+                onPendingChange={setPreviewPending}
+              />
+            )}
             {tab === "activity" && <Activity pages={settings.data.pages} />}
           </>
         )
       )}
     </main>
+  );
+}
+
+function ReplyAssistantSelect({
+  data,
+  disabled,
+}: {
+  data: AutoReplyOutputs["settings"];
+  disabled: boolean;
+}) {
+  const models = trpc.autoReply.models.useQuery(undefined, {
+    retry: false,
+    staleTime: 300000,
+  });
+  const profiles = trpc.aiManagement.profiles.useQuery(undefined, {
+    enabled: data.centralAvailable,
+    retry: false,
+  });
+  const live = profiles.data?.find(
+    (profile) => profile.workload === "reply.live",
+  );
+  const [model, setModel] = useState(`gemini:${data.config.model}`);
+  const [feedback, setFeedback] = useState("");
+  const utils = trpc.useUtils();
+  const save = trpc.autoReply.saveSettings.useMutation({ retry: false });
+  const saveProfile = trpc.aiManagement.updateProfile.useMutation({
+    retry: false,
+  });
+  const active =
+    data.config.engine === "central" && live
+      ? `${live.provider}:${live.model}`
+      : `gemini:${data.config.model}`;
+  useEffect(() => {
+    if (active) setModel(active);
+  }, [active]);
+  const choices = new Map(
+    (models.data ?? []).map((item) => [
+      `gemini:${item.id}`,
+      {
+        value: `gemini:${item.id}`,
+        label: `Gemini · ${item.label} (${item.id})`,
+        disabled: false,
+      },
+    ]),
+  );
+  for (const tier of ["standard", "lite", "max"])
+    choices.set(`manus:${tier}`, {
+      value: `manus:${tier}`,
+      label: `Manus · ${tier}`,
+      disabled: !data.centralAvailable || !live,
+    });
+  for (const value of [`gemini:${data.config.model}`, active])
+    if (value)
+      choices.set(value, {
+        value,
+        label: value.replace(":", " · "),
+        disabled: false,
+      });
+  return (
+    <section className="ar-panel space-y-3" aria-label="مساعد الرد الآلي">
+      <AssistantModelSelect
+        value={model}
+        options={[...choices.values()]}
+        disabled={
+          disabled ||
+          save.isPending ||
+          saveProfile.isPending ||
+          (data.config.engine === "central" && !live)
+        }
+        onChange={(value) => {
+          setModel(value);
+          setFeedback("");
+        }}
+      />
+      <p className="text-sm">
+        الموديل الفعلي: <bdi>{active ?? "جارٍ تحميل الإعداد"}</bdi>. الاختبار
+        الداخلي يستخدم نفس إعداد الردود الفعلية.
+      </p>
+      {models.isError && (
+        <p role="status">تعذر تحديث قائمة الموديلات؛ الإعداد المحفوظ ظاهر.</p>
+      )}
+      {model !== active && (
+        <Button
+          disabled={disabled || save.isPending || saveProfile.isPending}
+          onClick={async () => {
+            try {
+              const provider = model.startsWith("manus:") ? "manus" : "gemini";
+              const selected = model.slice(provider.length + 1);
+              const central =
+                data.centralAvailable ||
+                provider === "manus" ||
+                data.config.engine === "central";
+              if (central) {
+                if (!live || !data.centralAvailable)
+                  throw new Error("PROFILE_UNAVAILABLE");
+                await saveProfile.mutateAsync({
+                  ...live,
+                  provider,
+                  model: selected,
+                  enabled: true,
+                });
+              }
+              await save.mutateAsync({
+                ...data.config,
+                engine: central ? "central" : "current",
+                model: provider === "gemini" ? selected : data.config.model,
+                topK: null,
+              });
+              await Promise.all([
+                utils.autoReply.settings.invalidate(),
+                utils.aiManagement.profiles.invalidate(),
+              ]);
+              setFeedback("تم حفظ الموديل للردود الجديدة والاختبار الداخلي.");
+            } catch {
+              setFeedback(
+                "تعذر تأكيد حفظ الاختيار. حدّث الإعدادات للتحقق قبل الاختبار.",
+              );
+            }
+          }}
+        >
+          حفظ اختيار المساعد
+        </Button>
+      )}
+      {feedback && <p role="status">{feedback}</p>}
+    </section>
   );
 }
 
@@ -985,24 +1139,6 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
   return (
     <section className="ar-panel">
       <h2>الربط الرسمي بالقنوات</h2>
-      {data.centralAvailable && (
-        <Field label="محرك الردود الفعلية">
-          <select
-            className="min-h-11 w-full rounded-md border border-input bg-background px-3"
-            value={config.engine}
-            onChange={(event) =>
-              update("engine", event.target.value as "current" | "central")
-            }
-          >
-            <option value="current">المسار الحالي</option>
-            <option value="central">Gemini عبر الموديول المركزي</option>
-          </select>
-          <p>
-            المسار المركزي يستخدم موديله وحدوده من إدارة AI. جرّبه في الاختبار
-            الداخلي قبل حفظ اختياره للردود الفعلية.
-          </p>
-        </Field>
-      )}
       <p>
         أضف الأسرار في بيئة السيرفر. هذه الشاشة لا تستقبل المفاتيح ولا تعرض
         قيمها. نجاح فحص الوصول لا يثبت اكتمال مراجعة التطبيق أو صلاحية إرسال كل
@@ -1137,31 +1273,6 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
           </fieldset>
         ))}
         <div className="ar-form-grid">
-          <Field label="موديل Gemini">
-            <select
-              className="ar-select"
-              aria-label="موديل Gemini"
-              dir="ltr"
-              required
-              value={config.model}
-              onChange={(e) =>
-                setConfig((current) => ({
-                  ...current,
-                  model: e.target.value,
-                  topK: null,
-                }))
-              }
-            >
-              {!models.data?.some((model) => model.id === config.model) && (
-                <option value={config.model}>{config.model}</option>
-              )}
-              {models.data?.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label} ({model.id})
-                </option>
-              ))}
-            </select>
-          </Field>
           <Field label="أقصى طول للرد بالحروف">
             <Input
               type="number"
@@ -1549,58 +1660,88 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
     </section>
   );
 }
-function InternalTest({ pages }: { pages: FacebookPages }) {
+type PendingPreview = {
+  requestId: string;
+  engine: "central_live";
+  channel: AutoReplyChannel;
+  text: string;
+  accountId?: string;
+};
+function restoredPreview(): PendingPreview | undefined {
+  try {
+    const raw: unknown = JSON.parse(
+      sessionStorage.getItem("selrs.ai.reply.preview") ?? "null",
+    );
+    if (!raw || typeof raw !== "object") return;
+    const value = raw as Record<string, unknown>;
+    if (
+      typeof value.requestId === "string" &&
+      typeof value.text === "string" &&
+      autoReplyChannels.includes(value.channel as AutoReplyChannel)
+    )
+      return {
+        requestId: value.requestId,
+        text: value.text,
+        channel: value.channel as AutoReplyChannel,
+        accountId:
+          typeof value.accountId === "string" ? value.accountId : undefined,
+        engine: "central_live",
+      };
+  } catch {}
+}
+function InternalTest({
+  pages,
+  activeEngine,
+  onPendingChange,
+}: {
+  pages: FacebookPages;
+  activeEngine: "current" | "central";
+  onPendingChange: (pending: boolean) => void;
+}) {
   const capabilities = trpc.aiManagement.status.useQuery(undefined, {
     retry: false,
   });
   const centralReady =
     capabilities.data?.enabled && capabilities.data.replyPreviewAvailable;
-  const [engine, setEngine] = useState<"current" | "central" | "central_live">(
-    "current",
+  const [restored] = useState(restoredPreview);
+  const [requestId, setRequestId] = useState<string | undefined>(
+    restored?.requestId,
   );
-  const [requestId, setRequestId] = useState<string>();
+  const engine =
+    requestId || activeEngine === "central" ? "central_live" : "current";
   const sending = useRef(false);
-  const [accountId, setAccountId] = useState("");
-  const [channel, setChannel] = useState<AutoReplyChannel>("whatsapp");
-  const [text, setText] = useState("");
+  const [accountId, setAccountId] = useState(restored?.accountId ?? "");
+  const [channel, setChannel] = useState<AutoReplyChannel>(
+    restored?.channel ?? "whatsapp",
+  );
+  const [text, setText] = useState(restored?.text ?? "");
   const test = trpc.autoReply.test.useMutation({ retry: false });
+  const lastInput = useRef<Parameters<typeof test.mutate>[0] | undefined>(
+    restored,
+  );
+  const mutate = test.mutate;
+  useEffect(() => {
+    if (test.error?.message !== "AI_TASK_PENDING" || !lastInput.current) return;
+    const timer = setTimeout(() => {
+      if (lastInput.current) mutate(lastInput.current);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [test.error, mutate]);
+  useEffect(() => {
+    if (!test.data && test.error?.message !== "AI_TASK_FAILED") return;
+    try {
+      sessionStorage.removeItem("selrs.ai.reply.preview");
+    } catch {}
+    setRequestId(undefined);
+    onPendingChange(false);
+  }, [test.data, test.error, onPendingChange]);
   return (
     <section className="ar-panel">
       <h2>اختبار داخلي دون إرسال للعملاء</h2>
       <p>
         يستخدم المعرفة المعتمدة والموديل المحدد. لا ينشئ محادثة حقيقية أو مهمة
-        إرسال. قد يستهلك رصيد Gemini.
+        إرسال. قد يستهلك رصيد المساعد المختار.
       </p>
-      <Field label="محرك المعاينة">
-        <select
-          aria-label="محرك المعاينة"
-          value={engine}
-          disabled={test.isPending}
-          onChange={(event) => {
-            setEngine(event.target.value as typeof engine);
-            test.reset();
-          }}
-          className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-foreground"
-        >
-          <option value="current">المسار الحالي</option>
-          <option value="central" disabled={!centralReady}>
-            الموديول المركزي (Gemini، معاينة فقط)
-          </option>
-          <option
-            value="central_live"
-            disabled={!centralReady || !capabilities.data?.replyLiveAvailable}
-          >
-            معاينة إعدادات الرد الآلي المركزي
-          </option>
-        </select>
-      </Field>
-      {engine === "central" && (
-        <p>
-          يستخدم موديل وحدود مهمة «معاينة الرد الآلي» في إدارة AI، وقد تختلف
-          إعداداته عن المسار الحالي. لا يغيّر الردود الفعلية. استخدم رسالة
-          تجريبية دون بيانات مرضى.
-        </p>
-      )}
       {engine === "central_live" && (
         <p>هذه معاينة دون إرسال، بنفس موديل وحدود مهمة «الرد الآلي المركزي».</p>
       )}
@@ -1610,31 +1751,44 @@ function InternalTest({ pages }: { pages: FacebookPages }) {
           if (sending.current) return;
           if (engine !== "current" && !centralReady) return;
           sending.current = true;
-          const id = engine !== "current" ? crypto.randomUUID() : undefined;
+          const id =
+            engine !== "current"
+              ? (requestId ?? crypto.randomUUID())
+              : undefined;
           setRequestId(id);
-          test.mutate(
-            {
-              engine,
-              requestId: id,
-              channel,
-              text,
-              accountId: channel === "whatsapp" ? undefined : accountId,
+          const payload: Parameters<typeof test.mutate>[0] = {
+            engine,
+            requestId: id,
+            channel,
+            text,
+            accountId: channel === "whatsapp" ? undefined : accountId,
+          };
+          lastInput.current = payload;
+          if (id) {
+            onPendingChange(true);
+            try {
+              sessionStorage.setItem(
+                "selrs.ai.reply.preview",
+                JSON.stringify(payload),
+              );
+            } catch {}
+          }
+          test.mutate(payload, {
+            onSettled: () => {
+              sending.current = false;
             },
-            {
-              onSettled: () => {
-                sending.current = false;
-              },
-            },
-          );
+          });
         }}
       >
         <ChannelSelect
           value={channel}
+          disabled={Boolean(requestId)}
           onChange={(v) => setChannel(v as AutoReplyChannel)}
         />
         {channel !== "whatsapp" && (
           <ReplyTargetSelect
             label="صفحة الاختبار"
+            disabled={Boolean(requestId)}
             value={accountId}
             onChange={setAccountId}
             pages={pages}
@@ -1645,6 +1799,7 @@ function InternalTest({ pages }: { pages: FacebookPages }) {
           <Textarea
             required
             value={text}
+            disabled={Boolean(requestId)}
             maxLength={3000}
             rows={4}
             onChange={(e) => setText(e.target.value)}
@@ -1654,11 +1809,49 @@ function InternalTest({ pages }: { pages: FacebookPages }) {
           {test.isPending ? "جارٍ تحضير المقترح…" : "عرض الرد المقترح"}
         </Button>
       </form>
-      {test.error && <ErrorState message={test.error.message} />}
+      {test.error?.message === "AI_TASK_PENDING" ? (
+        <p role="status">
+          المساعد يجهّز الرد. تتم متابعة نفس المهمة دون طلب توليد جديد.
+        </p>
+      ) : (
+        test.error && (
+          <ErrorState
+            message={
+              test.error.message === "AI_TASK_FAILED"
+                ? "فشلت المهمة أو لم ترجع ردًا صالحًا. لم يُرسل أي رد، ويمكنك مراجعة الاختيار قبل اختبار جديد."
+                : test.error.message === "AI_TASK_EXPIRED"
+                  ? "انتهت مهلة المتابعة. راجع سجل الاستخدام قبل بدء طلب بديل."
+                  : test.error.message
+            }
+          />
+        )
+      )}
       {requestId && (
         <p>
           معرف طلب المعاينة: <bdi>{requestId}</bdi>. عند خطأ الاتصال راجع هذا
           الطلب في سجل AI قبل بدء تجربة أخرى.
+          <Button
+            type="button"
+            variant="outline"
+            disabled={test.isPending}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "إيقاف المتابعة لا يلغي المهمة أو تكلفتها لدى المساعد. راجع سجل الاستخدام قبل بدء اختبار جديد. هل تريد إيقاف المتابعة المحلية؟",
+                )
+              )
+                return;
+              try {
+                sessionStorage.removeItem("selrs.ai.reply.preview");
+              } catch {}
+              lastInput.current = undefined;
+              setRequestId(undefined);
+              onPendingChange(false);
+              test.reset();
+            }}
+          >
+            إيقاف المتابعة المحلية
+          </Button>
         </p>
       )}
       {test.data && (

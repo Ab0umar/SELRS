@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -47,6 +47,12 @@ import {
   pathGrantedByRoots,
   permissionsToAllowedRoots,
 } from "@/lib/nav-permission-utils";
+import {
+  CARD_USAGE_UPDATED_EVENT,
+  getCardUsageMap,
+  pickDynamicBentoCards,
+  recordCardUsage,
+} from "@/lib/card-usage";
 
 type HomeCard = {
   label: string;
@@ -150,6 +156,13 @@ const HOME_CARDS: HomeCard[] = [
     href: "/admin-hub",
     permissionPaths: ["/admin-hub"],
     icon: Settings,
+  },
+  {
+    label: "الذكاء الاصطناعي",
+    helper: "الأدوات والتدريب والمزوّدون",
+    href: "/ai",
+    permissionPaths: ["/admin-hub/ai"],
+    icon: LayoutDashboard,
   },
   {
     label: "الحساب",
@@ -286,6 +299,7 @@ const HOME_CARD_ORDER = [
   "القيم الطبيعية للفحوصات",
   "رسائل واتساب",
   "التسويق",
+  "الذكاء الاصطناعي",
   "مركز الإدارة",
   "الحساب",
 ] as const;
@@ -353,8 +367,20 @@ const MORE_CATEGORY_CARDS: HomeCard[] = [
 
 export default function MainHome() {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
   const { user } = useAuth();
+  const [usageMap, setUsageMap] = useState(() =>
+    getCardUsageMap("home", user?.id),
+  );
+  useEffect(() => {
+    const syncUsage = () => setUsageMap(getCardUsageMap("home", user?.id));
+    syncUsage();
+    window.addEventListener(CARD_USAGE_UPDATED_EVENT, syncUsage);
+    window.addEventListener("storage", syncUsage);
+    return () => {
+      window.removeEventListener(CARD_USAGE_UPDATED_EVENT, syncUsage);
+      window.removeEventListener("storage", syncUsage);
+    };
+  }, [user?.id]);
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const permissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(user) && !isAdmin,
@@ -417,20 +443,46 @@ export default function MainHome() {
 
   const cardClassName =
     "home-app group";
-  const dailyLabels = new Set(["الاستقبال", "مسار اليوم", "مركز المريض", "الحسابات", "الشيتات", "كفرالشيخ", "التقارير"]);
-  const adminLabels = new Set(["الموظفين", "مركز الإدارة", "الحساب", "المخزن", "رسائل واتساب", "التسويق"]);
-  const categories = [
-    { id: "all", label: "الكل" },
-    { id: "daily", label: "العمل اليومي" },
-    { id: "admin", label: "الإدارة" },
-    { id: "reference", label: "المراجع" },
+  const HERO_PRIORITY = [
+    "مسار اليوم",
+    "الاستقبال",
+    "مركز المريض",
+    "الحسابات",
+    "الشيتات",
+    "السجل",
+    "كفرالشيخ",
+    "التقارير",
   ];
-  const displayedCards = visibleHomeCards.filter(card => {
-    const group = dailyLabels.has(card.label) ? "daily" : adminLabels.has(card.label) ? "admin" : "reference";
-    return (category === "all" || group === category) &&
-      `${card.label} ${card.helper ?? ""}`.includes(search.trim());
-  });
-  const workflowCard = visibleHomeCards.find(card => card.href === "/workflow");
+  const FEATURED_PRIORITY = [
+    "الاستقبال",
+    "مركز المريض",
+    "الحسابات",
+    "الشيتات",
+    "السجل",
+    "كفرالشيخ",
+    "التقارير",
+    "المخزن",
+    "الأرشيف",
+    "مركز الخدمات",
+    "القرار الإكلينيكي",
+  ];
+  const displayedCards = visibleHomeCards.filter(card =>
+    `${card.label} ${card.helper ?? ""}`.includes(search.trim()),
+  );
+  const linkableCards = displayedCards.filter(card => Boolean(card.href));
+  const { heroCard, featuredCards } = useMemo(
+    () =>
+      pickDynamicBentoCards(
+        linkableCards,
+        card => card.label,
+        usageMap,
+        [...HERO_PRIORITY, ...FEATURED_PRIORITY],
+      ),
+    [linkableCards, usageMap],
+  );
+  const restCards = displayedCards.filter(
+    card => card !== heroCard && !featuredCards.includes(card),
+  );
 
   const renderCard = (card: HomeCard) => {
     const itemClassName = cardClassName;
@@ -495,6 +547,7 @@ export default function MainHome() {
         href={card.href ?? "/home"}
         className={itemClassName}
         title={card.helper}
+        onClick={() => recordCardUsage("home", card.label, user?.id)}
       >
         {cardContent}
       </Link>
@@ -547,16 +600,46 @@ export default function MainHome() {
             </div>
           ) : (
             <div>
-              {workflowCard && <div className="home-library-quickline"><div><strong>مسار اليوم</strong><p>الزيارات والفحص</p></div><Button asChild className="home-library-open"><Link href="/workflow">فتح المسار <ArrowLeft className="size-4" aria-hidden /></Link></Button></div>}
-              <nav className="home-library-categories" aria-label="تصنيف الأقسام">
-                {categories.map(item => (
-                  <Button key={item.id} variant="bare" type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)}>{item.label}</Button>
-                ))}
-              </nav>
-              <div className="home-library-grid" aria-label="أقسام المركز">
-                {displayedCards.map(renderCard)}
+              <div className="home-library-grid" data-featured-count={featuredCards.length} aria-label="أقسام المركز">
+                {heroCard && (
+                  <Link
+                    href={heroCard.href ?? "/home"}
+                    className="home-bento-hero"
+                    title={heroCard.helper}
+                    onClick={() => recordCardUsage("home", heroCard.label, user?.id)}
+                  >
+                    <span>{heroCard.label === "مسار اليوم" ? "الزيارات والفحص" : (heroCard.helper ?? "القسم الأساسي")}</span>
+                    <div>
+                      <strong>
+                        {heroCard.label === "مسار اليوم" ? (
+                          <>مسار{" "}<br />اليوم</>
+                        ) : (
+                          heroCard.label
+                        )}
+                      </strong>
+                      <ArrowLeft aria-hidden />
+                    </div>
+                  </Link>
+                )}
+                {featuredCards.map((card, index) => {
+                  const Icon = card.icon;
+                  return (
+                    <Link
+                      key={card.label}
+                      href={card.href ?? "/home"}
+                      className="home-bento-block"
+                      data-block={index}
+                      title={card.helper}
+                      onClick={() => recordCardUsage("home", card.label, user?.id)}
+                    >
+                      <strong>{card.label}</strong>
+                      <Icon strokeWidth={1.8} aria-hidden />
+                    </Link>
+                  );
+                })}
+                {restCards.map(renderCard)}
               </div>
-              {displayedCards.length === 0 && <div className="home-library-empty" role="status"><p>لا توجد أقسام مطابقة.</p><Button variant="outline" onClick={() => { setSearch(""); setCategory("all"); }}>عرض كل الأقسام</Button></div>}
+              {displayedCards.length === 0 && <div className="home-library-empty" role="status"><p>لا توجد أقسام مطابقة.</p><Button variant="outline" onClick={() => setSearch("")}>عرض كل الأقسام</Button></div>}
             </div>
           )}
         </section>

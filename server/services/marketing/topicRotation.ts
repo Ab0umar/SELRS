@@ -4,6 +4,7 @@
  */
 
 import { marketingTopicIdentity } from "./topicIdentity";
+import { MARKETING_CONTENT_CATEGORIES } from "../../../shared/marketingSchedule";
 export const TOPICS_BY_DAY = {
   saturday: [
     "LASIK",
@@ -55,11 +56,7 @@ export function pickTopic(
   return topics[index] ?? topics[0]!;
 }
 
-export const DAY_CATEGORY_LABELS: Record<PostDay, string> = {
-  saturday: "تصحيح الإبصار والبنتاكام",
-  tuesday: "المياه البيضاء والقرنية",
-  thursday: "صحة العيون العامة",
-};
+export const DAY_CATEGORY_LABELS = MARKETING_CONTENT_CATEGORIES;
 
 export function pickUnpublishedTopic(
   day: PostDay,

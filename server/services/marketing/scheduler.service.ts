@@ -1,9 +1,9 @@
 /**
  * Marketing generation and publishing scheduler
  *
- * Runs hourly via node-cron.  On each fire it checks:
+ * Checks enabled slots on startup and every five minutes. Each check requires:
  *   1. autoPublish setting is enabled
- *   2. Current Cairo hour matches publishHour
+ *   2. The current Cairo day has reached publishHour
  *   3. Today matches the page calendar and the topic slot is enabled
  *   4. No non-failed post already exists for that day today (duplicate guard)
  *
@@ -11,8 +11,10 @@
  */
 
 import cron from "node-cron";
+import { setMarketingSchedulerStatus } from "./schedulerStatus";
 import {
   claimMarketingSchedule,
+  releaseUnusedMarketingSchedule,
   marketingSchedulerProviders,
 } from "../ai/marketingScheduler";
 import { generateCentralMarketingDraft } from "../ai/marketingDraft";
@@ -33,6 +35,7 @@ import { pickUnpublishedTopic, type PostDay } from "./topicRotation";
 import { publishedMarketingTopics } from "./topicHistory";
 import { startManusGeneration } from "./manusGeneration.service";
 import { getMarketingPageTarget, type MarketingPageRole } from "./page.service";
+import type { MarketingPageTarget } from "./page.service";
 
 // ─── Day mapping ──────────────────────────────────────────────────────────────
 
@@ -64,6 +67,31 @@ function getCairoScheduleParts(date = new Date()): {
   return { jsDay, hour: hour === undefined ? -1 : Number(hour) };
 }
 
+export function getDueMarketingSlot(
+  settings: Pick<
+    MarketingPageTarget,
+    | "pageRole"
+    | "autoPublish"
+    | "publishHour"
+    | "saturdayEnabled"
+    | "tuesdayEnabled"
+    | "thursdayEnabled"
+  >,
+  date = new Date(),
+): PostDay | null {
+  if (!settings.autoPublish) return null;
+  const now = getCairoScheduleParts(date);
+  if (now.hour < settings.publishHour) return null;
+  const day = marketingSlotForWeekday(settings.pageRole, now.jsDay);
+  const enabled =
+    day === "saturday"
+      ? settings.saturdayEnabled
+      : day === "tuesday"
+        ? settings.tuesdayEnabled
+        : day === "thursday" && settings.thursdayEnabled;
+  return day && enabled ? day : null;
+}
+
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 async function log(
@@ -76,25 +104,6 @@ async function log(
     const db = await getDb();
     if (!db) return;
     await db.insert(marketingLogs).values({ postId, action, status, message });
-  } catch {}
-}
-
-async function setSchedulerStatus(status: "idle" | "running" | "error") {
-  try {
-    const db = await getDb();
-    if (!db) return;
-    const [row] = await db
-      .select({ id: marketingSettings.id })
-      .from(marketingSettings)
-      .limit(1);
-    if (!row) return;
-    await db
-      .update(marketingSettings)
-      .set({
-        schedulerStatus: status,
-        ...(status !== "running" ? { lastSchedulerRun: new Date() } : {}),
-      })
-      .where(eq(marketingSettings.id, row.id));
   } catch {}
 }
 
@@ -210,14 +219,11 @@ export async function runScheduledPost(
     };
   }
 
-  await setSchedulerStatus("running");
-  await log(
-    null,
-    "scheduler_run",
-    "info",
-    `Starting scheduled post for ${day}`,
-  );
-
+  let unusedClaim: { id: string; provider: "manus" | "central" } | undefined;
+  let generationAccepted = false;
+  const onAccepted = async () => {
+    generationAccepted = true;
+  };
   try {
     const today = new Date().toLocaleDateString("en-CA", {
       timeZone: "Africa/Cairo",
@@ -244,7 +250,6 @@ export async function runScheduledPost(
       pageTarget.topicDirection,
     );
     if (!topic) {
-      await setSchedulerStatus("idle");
       return {
         ok: true,
         skipped: "كل موضوعات هذه الفئة سبق نشرها؛ أضف موضوعات جديدة",
@@ -252,7 +257,6 @@ export async function runScheduledPost(
     }
     const claim = await claimMarketingSchedule(id, pageRole);
     if (!claim.claimed) {
-      await setSchedulerStatus("idle");
       return {
         ok: true,
         skipped:
@@ -260,6 +264,14 @@ export async function runScheduledPost(
         jobId: id,
       };
     }
+    unusedClaim = { id, provider: claim.provider };
+    await setMarketingSchedulerStatus(pageRole, "running");
+    await log(
+      null,
+      "scheduler_run",
+      "info",
+      `Starting scheduled post for ${day}`,
+    );
     const generationInput = {
       requestId: id,
       topic,
@@ -267,7 +279,11 @@ export async function runScheduledPost(
       pageRole,
     };
     if (claim.provider === "central") {
-      const result = await generateCentralMarketingDraft(generationInput, null);
+      const result = await generateCentralMarketingDraft(
+        generationInput,
+        null,
+        onAccepted,
+      );
       if (result.state !== "completed" || !result.postId)
         throw new Error(
           "توليد الجدولة غير محسوم؛ راجع المهمة قبل المحاولة مرة أخرى",
@@ -282,10 +298,14 @@ export async function runScheduledPost(
         currentTarget.pageId === pageTarget.pageId &&
         currentProvider === "central"
       ) {
-        await publishMarketingPost(result.postId, pageRole);
+        await publishMarketingPost(result.postId, pageRole, {
+          pageId: pageTarget.pageId,
+          requireAutoPublish: true,
+          schedulerProvider: "central",
+        });
         published = true;
       }
-      await setSchedulerStatus("idle");
+      await setMarketingSchedulerStatus(pageRole, "idle");
       return {
         ok: true,
         jobId: result.jobId,
@@ -296,11 +316,20 @@ export async function runScheduledPost(
     const result = await startManusGeneration({
       ...generationInput,
       createdBy: null,
+      onAccepted,
     });
-    await setSchedulerStatus("idle");
+    await setMarketingSchedulerStatus(pageRole, "idle");
     return { ok: true, jobId: result.jobId, published: false };
   } catch (error) {
-    await setSchedulerStatus("error");
+    try {
+      await setMarketingSchedulerStatus(pageRole, "error");
+    } finally {
+      if (unusedClaim && !generationAccepted)
+        await releaseUnusedMarketingSchedule(
+          unusedClaim.id,
+          unusedClaim.provider,
+        );
+    }
     return {
       ok: false,
       error: error instanceof Error ? error.message : "تعذر بدء التوليد",
@@ -311,32 +340,49 @@ export async function runScheduledPost(
 // ─── Cron initializer ─────────────────────────────────────────────────────────
 
 let initialized = false;
+let marketingCatchupRunning = false;
+
+async function checkDueMarketingPosts() {
+  if (marketingCatchupRunning) return;
+  marketingCatchupRunning = true;
+  try {
+    for (const pageRole of ["center", "doctor"] as const) {
+      try {
+        const target = await getMarketingPageTarget(pageRole);
+        if (!target) continue;
+        const day = getDueMarketingSlot(target);
+        if (!day) continue;
+        const result = await runScheduledPost(day, pageRole);
+        if (!result.ok)
+          await log(
+            null,
+            "scheduler_run",
+            "error",
+            result.error ?? "Scheduled generation failed",
+          );
+      } catch (error) {
+        console.error(
+          `[marketing-scheduler] Could not check ${pageRole}`,
+          error,
+        );
+      }
+    }
+  } finally {
+    marketingCatchupRunning = false;
+  }
+}
 
 export function initMarketingScheduler(): void {
   if (initialized) return;
   initialized = true;
 
-  // Fire at minute 0 of every hour; inner logic checks day + hour against settings
-  cron.schedule("0 * * * *", async () => {
-    try {
-      const db = await getDb();
-      if (!db) return;
-
-      const now = getCairoScheduleParts();
-      for (const pageRole of ["center", "doctor"] as const) {
-        const postDay = marketingSlotForWeekday(pageRole, now.jsDay);
-        if (!postDay) continue;
-        const pageTarget = await getMarketingPageTarget(pageRole);
-        if (!pageTarget?.autoPublish || now.hour !== pageTarget.publishHour)
-          continue;
-        await runScheduledPost(postDay, pageRole);
-      }
-    } catch (err) {
-      console.error("[marketing-scheduler] Cron error:", err);
-    }
+  // Repeated checks cover downtime; durable page/day claims prevent duplicate work.
+  cron.schedule("*/5 * * * *", checkDueMarketingPosts, {
+    timezone: CAIRO_TIME_ZONE,
   });
+  void checkDueMarketingPosts();
 
   console.log(
-    "[marketing-scheduler] Initialized — fires hourly, checks autoPublish + day settings",
+    "[marketing-scheduler] Initialized — startup and five-minute same-day catch-up",
   );
 }

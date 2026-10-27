@@ -1,4 +1,5 @@
 import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
+import { aiPermissionPath } from "@/features/ai/navigation";
 
 // Paths that have their own explicit permission entry — parent permission does NOT cover these.
 const DEFINED_PERMISSION_PATHS = new Set(
@@ -26,7 +27,7 @@ export function normalizeNavPath(path: string): string {
   if (cleanPath.startsWith("/admin/")) {
     return `/admin-hub${cleanPath.slice("/admin".length)}`;
   }
-  return cleanPath;
+  return aiPermissionPath(cleanPath);
 }
 
 /** Strip `:r` / `:rw` suffixes from stored permission tokens and dedupe. */

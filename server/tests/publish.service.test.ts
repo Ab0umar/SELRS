@@ -76,14 +76,23 @@ const settings = {
 };
 
 function createDb(selectValues: unknown[]) {
+  const current = { ...post };
+  let phase = 0;
   const statusUpdates: unknown[] = [];
   const logEntries: unknown[] = [];
   const tx = {
-    select: vi.fn(() => chain(selectValues.shift() ?? [])),
+    select: vi.fn(() =>
+      chain(selectValues.shift() ?? (phase > 1 ? [current] : [])),
+    ),
     update: vi.fn(() => ({
       set: vi.fn((value: unknown) => {
         statusUpdates.push(value);
-        return { where: vi.fn(async () => ({ affectedRows: 1 })) };
+        return {
+          where: vi.fn(async () => {
+            Object.assign(current, value);
+            return { affectedRows: 1 };
+          }),
+        };
       }),
     })),
     insert: vi.fn(() => ({
@@ -94,9 +103,11 @@ function createDb(selectValues: unknown[]) {
     })),
   };
   const db = {
-    transaction: vi.fn(async (callback: (value: typeof tx) => unknown) =>
-      callback(tx),
-    ),
+    insert: tx.insert,
+    transaction: vi.fn(async (callback: (value: typeof tx) => unknown) => {
+      phase++;
+      return callback(tx);
+    }),
   };
   return { db, statusUpdates, logEntries };
 }

@@ -1,11 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { availableGeminiModels } from "../services/auto-reply/ai-configuration";
 import {
   startMedicalProposals,
   readMedicalProposals,
 } from "../services/ai/medical";
 import { adminProcedure, router } from "../_core/procedures";
 import { getDbConnection } from "../db";
+import { readMedicalAssistantSettings } from "../services/ai/medicalSettings";
 import {
   AiManagementStore,
   AiManagementError,
@@ -40,6 +42,17 @@ async function managementOperation<T>(work: () => Promise<T>) {
 
 export function createAiManagementRouter(store: AiManagementStore) {
   return router({
+    models: adminProcedure.query(async () =>
+      (await availableGeminiModels(process.env.GEMINI_API_KEY ?? "", true)).map(
+        (model) => ({
+          id: model.name.replace(/^models\//, ""),
+          label: model.displayName ?? model.name,
+          kind: /image|nano-banana/i.test(model.name)
+            ? ("image" as const)
+            : ("text" as const),
+        }),
+      ),
+    ),
     status: adminProcedure.query(() => ({
       enabled: process.env.AI_CORE_MANAGEMENT_ENABLED === "true",
       consumersMigrated: false,
@@ -70,8 +83,10 @@ export function createAiManagementRouter(store: AiManagementStore) {
       managementOperation(() => store.listUsage()),
     ),
     startMedicalSynthetic: adminProcedure.mutation(({ ctx }) =>
-      managementOperation(() =>
-        startMedicalProposals(
+      managementOperation(async () => {
+        const settings = await readMedicalAssistantSettings();
+        const [provider, ...model] = settings.processingModel.split(":");
+        return startMedicalProposals(
           ctx.user.id,
           {
             kind: "field",
@@ -79,10 +94,11 @@ export function createAiManagementRouter(store: AiManagementStore) {
             transcript: "مثال تدريبي خيالي: صداع من أسبوعين",
           },
           [],
-          "manus",
+          provider === "gemini" ? "gemini" : "manus",
           "central",
-        ),
-      ),
+          model.join(":"),
+        );
+      }),
     ),
     readMedicalSynthetic: adminProcedure
       .input(z.object({ jobId: z.string().uuid() }).strict())
@@ -107,12 +123,13 @@ export function createAiManagementRouter(store: AiManagementStore) {
           })
           .strict(),
       )
-      .mutation(({ input }) =>
+      .mutation(({ input, ctx }) =>
         managementOperation(async () => {
           const probe = await runAiManagementProbe(
             store,
             input.requestId,
             input.workload,
+            ctx.user.id,
           );
           if (probe.state === "completed" && "bytes" in probe.output)
             return {
@@ -131,9 +148,9 @@ export function createAiManagementRouter(store: AiManagementStore) {
       ),
     readProbe: adminProcedure
       .input(z.object({ requestId: z.string().uuid() }).strict())
-      .query(({ input }) =>
+      .query(({ input, ctx }) =>
         managementOperation(() =>
-          readAiManagementProbe(store, input.requestId),
+          readAiManagementProbe(store, input.requestId, ctx.user.id),
         ),
       ),
   });

@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { managedReplyPreview } from "../services/ai/replyPreview";
 import {
+  AiTaskPending,
+  AiTaskExpired,
+  AiTaskFailed,
+} from "../services/ai/manusJson";
+import {
   AiManagementError,
   AiManagementStore,
 } from "../services/ai/managementStore";
@@ -293,20 +298,26 @@ export const autoReplyRouter = router({
   saveSettings: autoReplyAdminProcedure
     .input(autoReplySettingsSchema)
     .mutation(async ({ input, ctx }) => {
-      if (input.engine === "central") {
-        const profile =
-          process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
+      const profile =
+        input.engine === "central"
+          ? process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
             ? (
                 await new AiManagementStore(getDbConnection).listProfiles()
               ).find((profile) => profile.workload === "reply.live")
-            : undefined;
-        if (!profile?.enabled || profile.provider !== "gemini")
+            : undefined
+          : undefined;
+      if (input.engine === "central") {
+        if (!profile?.enabled)
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message: "فعّل مهمة الرد الآلي المركزي واختبرها في المعاينة أولًا",
           });
       }
-      if (input.topK !== null && supportsGeminiSampling(input.model)) {
+      if (
+        profile?.provider !== "manus" &&
+        input.topK !== null &&
+        supportsGeminiSampling(input.model)
+      ) {
         const model = (await availableGeminiModels()).find(
           (model) => model.name === `models/${input.model}`,
         );
@@ -337,10 +348,15 @@ export const autoReplyRouter = router({
         const active = connectionTargets().filter((c) =>
           isAutoReplyEnabled(input, c.channel, c.accountId),
         );
-        if (active.length && !process.env.AUTO_REPLY_GEMINI_KEY)
+        if (
+          active.length &&
+          !(profile?.provider === "manus"
+            ? process.env.MANUS_API_KEY
+            : process.env.AUTO_REPLY_GEMINI_KEY)
+        )
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "مفتاح Gemini غير مضبوط على السيرفر",
+            message: "مفتاح مزوّد الرد الآلي المختار غير مضبوط على السيرفر",
           });
         for (const { channel, accountId } of active) {
           const check = checks.find(
@@ -659,7 +675,11 @@ export const autoReplyRouter = router({
         accountId = c.accountId;
       }
       try {
-        if (input.engine !== "current" && !input.requestId)
+        const engine =
+          input.engine === "current" && config.engine === "central"
+            ? "central_live"
+            : input.engine;
+        if (engine !== "current" && !input.requestId)
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "معرف طلب المعاينة مطلوب",
@@ -674,13 +694,11 @@ export const autoReplyRouter = router({
             settings: config,
             knowledge: approved,
           },
-          input.engine !== "current"
+          engine !== "current"
             ? managedReplyPreview(
                 input.requestId!,
                 undefined,
-                input.engine === "central_live"
-                  ? "reply.live"
-                  : "reply.preview",
+                engine === "central_live" ? "reply.live" : "reply.preview",
               )
             : undefined,
         );
@@ -708,11 +726,17 @@ export const autoReplyRouter = router({
         throw new TRPCError({
           code: "BAD_GATEWAY",
           message:
-            error instanceof ProviderError
-              ? error.code
-              : error instanceof AiManagementError
-                ? `المعاينة المركزية غير متاحة (${error.code}). راجع إعدادات مهمة معاينة الرد الآلي وسجل الاستهلاك.`
-                : "فشل الاختبار. راجع سجل الاستهلاك قبل إعادة المحاولة.",
+            error instanceof AiTaskPending
+              ? "AI_TASK_PENDING"
+              : error instanceof AiTaskExpired
+                ? "AI_TASK_EXPIRED"
+                : error instanceof AiTaskFailed
+                  ? "AI_TASK_FAILED"
+                  : error instanceof ProviderError
+                    ? error.code
+                    : error instanceof AiManagementError
+                      ? `المعاينة المركزية غير متاحة (${error.code}). راجع إعدادات مهمة معاينة الرد الآلي وسجل الاستهلاك.`
+                      : "فشل الاختبار. راجع سجل الاستهلاك قبل إعادة المحاولة.",
         });
       }
     }),

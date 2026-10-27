@@ -375,7 +375,12 @@ export function AppTopNav({
           "/medical-reference",
         ],
       },
-      // WhatsApp inbox and auto-reply live inside the admin hub (التواصل tab).
+      {
+        type: "link" as const,
+        icon: LayoutDashboard,
+        label: "الذكاء الاصطناعي",
+        path: "/ai",
+      },
       {
         type: "link" as const,
         icon: Settings,
@@ -504,162 +509,177 @@ export function AppTopNav({
       <div
         data-app-top-nav-row
         className={cn(
-          "flex h-14 w-full items-center gap-2 px-2 sm:px-4 md:h-[4.5rem] md:gap-3 lg:px-5",
+          "flex h-14 w-full items-center gap-2 px-3 sm:px-4 md:h-14 md:gap-3 lg:px-5",
           hideShortcuts && "justify-between",
         )}
         dir="rtl"
       >
         {/* Logo */}
-        <Button variant="bare"
+        <Button
+          variant="bare"
           type="button"
           onClick={() => onNavigate(logoTarget)}
-          className="flex h-11 shrink-0 items-center gap-2 rounded-md px-2 transition-colors hover:bg-muted md:gap-2.5 md:px-3"
+          className="flex h-10 shrink-0 items-center gap-2 rounded-lg px-2 transition-colors hover:bg-muted/70 md:gap-2.5 md:px-2.5"
           aria-label="الرئيسية"
         >
-          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-muted/40 md:h-8 md:w-8 md:rounded-xl" />
-          <span className="hidden text-sm font-black text-foreground 2xl:block">
+          <BrandLogo className="h-7 w-7 shrink-0 rounded-lg border border-border/60 bg-muted/40 md:h-8 md:w-8 md:rounded-lg" />
+          <span className="hidden text-[13.5px] font-black text-foreground 2xl:block">
             {BRAND_NAME_AR}
           </span>
         </Button>
 
         {/* Main tabs, desktop only */}
-        {!hideShortcuts && <nav
-          className="hidden min-w-0 flex-1 items-stretch overflow-x-auto whitespace-nowrap md:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label="القائمة الرئيسية"
-        >
-          {isAdmin
-            ? adminTopNavItems.map((item) => {
-                const Icon = item.icon;
-                const active =
-                  item.type === "link"
-                    ? (item.paths
-                        ? item.paths.some((p) => tabActive(location, p))
-                        : tabActive(location, item.path))
-                    : item.items.some((child) =>
-                        tabActive(location, child.path),
-                      );
-                const triggerClassName = cn(
-                  "my-1 flex h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-3",
-                  active
-                    ? "border-secondary bg-secondary text-secondary-foreground"
-                    : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
-                );
-
-                if (item.type === "link") {
-                  return (
-                    <Button variant="bare"
-                      key={item.path}
-                      type="button"
-                      onClick={() => onNavigate(item.path)}
-                      className={triggerClassName}
-                    >
-                      <Icon
-                        className="h-3.5 w-3.5 shrink-0"
-                        strokeWidth={active ? 2.2 : 1.8}
-                        aria-hidden
-                      />
-                      <span>{item.label}</span>
-                    </Button>
+        {!hideShortcuts && (
+          <nav
+            className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap md:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="القائمة الرئيسية"
+          >
+            {isAdmin
+              ? adminTopNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const active =
+                    item.type === "link"
+                      ? (item.paths
+                          ? item.paths.some((p) => tabActive(location, p))
+                          : tabActive(location, item.path))
+                      : item.items.some((child) =>
+                          tabActive(location, child.path),
+                        );
+                  const triggerClassName = cn(
+                    "my-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-3",
+                    active
+                      ? "border-primary/20 bg-primary/10 text-primary font-bold shadow-xs dark:bg-primary/15 dark:text-primary dark:border-primary/25"
+                      : "border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                   );
-                }
 
-                return (
-                  <DropdownMenu key={item.key}>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="bare" type="button" className={triggerClassName}>
+                  if (item.type === "link") {
+                    return (
+                      <Button
+                        variant="bare"
+                        key={item.path}
+                        type="button"
+                        data-nav-active={active ? "true" : "false"}
+                        onClick={() => onNavigate(item.path)}
+                        className={triggerClassName}
+                      >
                         <Icon
                           className="h-3.5 w-3.5 shrink-0"
                           strokeWidth={active ? 2.2 : 1.8}
                           aria-hidden
                         />
                         <span>{item.label}</span>
-                        <ChevronDown
-                          className="h-3 w-3 shrink-0 opacity-70"
-                          aria-hidden
-                        />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      className="w-48"
-                      style={{ direction: "rtl" } satisfies CSSProperties}
+                    );
+                  }
+
+                  return (
+                    <DropdownMenu key={item.key}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="bare"
+                          type="button"
+                          data-nav-active={active ? "true" : "false"}
+                          className={triggerClassName}
+                        >
+                          <Icon
+                            className="h-3.5 w-3.5 shrink-0"
+                            strokeWidth={active ? 2.2 : 1.8}
+                            aria-hidden
+                          />
+                          <span>{item.label}</span>
+                          <ChevronDown
+                            className="h-3 w-3 shrink-0 opacity-60"
+                            aria-hidden
+                          />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="start"
+                        className="w-48"
+                        style={{ direction: "rtl" } satisfies CSSProperties}
+                      >
+                        {item.items.map((child) => {
+                          const ChildIcon = child.icon;
+                          return (
+                            <DropdownMenuItem
+                              key={child.path}
+                              className="cursor-pointer gap-2"
+                              onClick={() => onNavigate(child.path)}
+                            >
+                              <ChildIcon className="h-4 w-4" aria-hidden />
+                              {child.label}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+                })
+              : mainNavTabs.map((tab) => {
+                  const active = tab.paths.some((p) => {
+                    const base = location.split("?")[0];
+                    return base === p || base.startsWith(`${p}/`);
+                  });
+                  const Icon = tab.icon;
+                  return (
+                    <Button
+                      variant="bare"
+                      key={tab.key}
+                      type="button"
+                      data-nav-active={active ? "true" : "false"}
+                      onClick={() => onNavigate(tab.path)}
+                      className={cn(
+                        "my-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-semibold transition-colors xl:px-3",
+                        active
+                          ? "border-primary/20 bg-primary/10 text-primary font-bold shadow-xs dark:bg-primary/15 dark:text-primary dark:border-primary/25"
+                          : "border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                      )}
                     >
-                      {item.items.map((child) => {
-                        const ChildIcon = child.icon;
-                        return (
-                          <DropdownMenuItem
-                            key={child.path}
-                            className="cursor-pointer gap-2"
-                            onClick={() => onNavigate(child.path)}
-                          >
-                            <ChildIcon className="h-4 w-4" aria-hidden />
-                            {child.label}
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                );
-              })
-            : mainNavTabs.map((tab) => {
-                const active = tab.paths.some((p) => {
-                  const base = location.split("?")[0];
-                  return base === p || base.startsWith(`${p}/`);
-                });
-                const Icon = tab.icon;
-                return (
-                  <Button variant="bare"
-                    key={tab.key}
-                    type="button"
-                    onClick={() => onNavigate(tab.path)}
-                    className={cn(
-                      "my-1 flex h-10 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-xl border px-1.5 text-[13px] font-semibold transition-colors xl:px-2 xl:text-[13px] 2xl:text-xs",
-                      active
-                        ? "border-secondary/20 bg-secondary text-secondary-foreground shadow-sm"
-                        : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
-                    )}
-                  >
-                    <Icon
-                      className="h-3.5 w-3.5 shrink-0"
-                      strokeWidth={active ? 2.2 : 1.8}
-                      aria-hidden
-                    />
-                    <span className="whitespace-nowrap">{tab.label}</span>
-                  </Button>
-                );
-              })}
+                      <Icon
+                        className="h-3.5 w-3.5 shrink-0"
+                        strokeWidth={active ? 2.2 : 1.8}
+                        aria-hidden
+                      />
+                      <span className="whitespace-nowrap">{tab.label}</span>
+                    </Button>
+                  );
+                })}
 
           {/* الحسابات dropdown — only shown when not already in mainNavTabs */}
           {!isAdmin &&
             accountingItems.length > 0 &&
             !mainNavTabs.some((t) => t.key === "accounting") && (
-              <div className="flex h-full items-stretch whitespace-nowrap">
-                <Button variant="bare"
+              <div className="flex h-full items-center whitespace-nowrap">
+                <Button
+                  variant="bare"
                   type="button"
+                  data-nav-active={accountingActive ? "true" : "false"}
                   onClick={() => onNavigate("/accounting")}
                   className={cn(
-                    "my-1 flex h-10 min-w-0 items-center whitespace-nowrap rounded-s-xl border px-1.5 text-[13px] font-semibold transition-colors focus-visible:outline-none xl:text-[13px] 2xl:text-xs",
+                    "my-auto flex h-9 min-w-0 items-center whitespace-nowrap rounded-s-lg border border-e-0 px-2.5 text-xs font-semibold transition-colors focus-visible:outline-none",
                     accountingActive
-                      ? "border-secondary/20 bg-secondary text-secondary-foreground shadow-sm"
-                      : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
+                      ? "border-primary/20 bg-primary/10 text-primary font-bold shadow-xs dark:bg-primary/15 dark:text-primary"
+                      : "border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                   )}
                 >
                   <span className="whitespace-nowrap">الحسابات</span>
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="bare"
+                    <Button
+                      variant="bare"
                       type="button"
+                      data-nav-active={accountingActive ? "true" : "false"}
                       className={cn(
-                        "my-1 flex h-10 items-center rounded-e-xl border px-1 text-xs transition-colors focus-visible:outline-none",
+                        "my-auto flex h-9 items-center rounded-e-lg border px-1 text-xs transition-colors focus-visible:outline-none",
                         accountingActive
-                          ? "border-secondary/20 bg-secondary text-secondary-foreground shadow-sm"
-                          : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70",
+                          ? "border-primary/20 bg-primary/10 text-primary shadow-xs dark:bg-primary/15 dark:text-primary"
+                          : "border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                       )}
                       aria-label="فتح قائمة الحسابات"
                     >
                       <ChevronDown
-                        className="h-3.5 w-3.5 opacity-70"
+                        className="h-3.5 w-3.5 opacity-60"
                         aria-hidden
                       />
                     </Button>
@@ -740,12 +760,13 @@ export function AppTopNav({
                 </DropdownMenu>
               </div>
             )}
-        </nav>}
+          </nav>
+        )}
 
         {/* Controls */}
         <div
           className={cn(
-            "flex shrink-0 items-center gap-0.5 rounded-xl border border-border/60 bg-card/75 p-0.5 shadow-xs md:gap-1 md:rounded-2xl md:p-1",
+            "flex shrink-0 items-center gap-1.5 md:gap-2",
             hideShortcuts && "order-last",
           )}
           dir="rtl"
@@ -755,7 +776,7 @@ export function AppTopNav({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-lg border border-border bg-background/70 md:hidden"
+              className="h-9 w-9 shrink-0 rounded-lg border border-border/70 bg-muted/30 text-foreground hover:bg-muted md:hidden"
               title="رجوع"
               aria-label="رجوع"
               onClick={onBack}
@@ -769,7 +790,7 @@ export function AppTopNav({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-lg border border-border bg-background/70 text-foreground md:hidden"
+              className="h-9 w-9 shrink-0 rounded-lg border border-border/70 bg-muted/30 text-foreground hover:bg-muted md:hidden"
               title="تحديث الصفحة"
               aria-label="تحديث الصفحة"
               onClick={onRefresh}
@@ -794,12 +815,12 @@ export function AppTopNav({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="hidden h-9 shrink-0 gap-0.5 whitespace-nowrap rounded-xl border border-border bg-background/70 px-2 text-[13px] font-semibold md:flex xl:text-xs"
+                  className="hidden h-9 shrink-0 gap-1 whitespace-nowrap rounded-lg border border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground px-2 text-xs font-semibold md:flex"
                 >
                   <span>المزيد</span>
                   <ChevronDown
                     className={cn(
-                      "h-3.5 w-3.5 opacity-70 transition-transform duration-200",
+                      "h-3.5 w-3.5 opacity-60 transition-transform duration-200",
                       moreOpen && "rotate-180",
                     )}
                     aria-hidden
@@ -876,7 +897,7 @@ export function AppTopNav({
           {/* Date badge, hidden on small screens */}
           <Badge
             variant="outline"
-            className="hidden rounded-2xl bg-background/70 py-1 text-[13px] font-semibold 2xl:inline-flex"
+            className="hidden h-8 rounded-lg border-border/70 bg-muted/30 px-2.5 text-[12px] font-semibold text-muted-foreground 2xl:inline-flex"
           >
             {dateStr || "…"}
           </Badge>
@@ -887,17 +908,17 @@ export function AppTopNav({
               <Button
                 variant="ghost"
                 aria-label={`الحساب: ${userName}`}
-                className="h-10 shrink-0 gap-1.5 rounded-lg border border-border bg-background/70 px-1.5 md:h-9 md:rounded-2xl"
+                className="h-9 shrink-0 gap-1.5 rounded-lg border border-border/60 bg-muted/30 px-2 hover:bg-muted hover:text-foreground md:h-9"
               >
-                <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-secondary text-secondary-foreground">
+                <Avatar className="h-6 w-6 rounded-md">
+                  <AvatarFallback className="rounded-md bg-primary text-[11px] font-bold text-primary-foreground">
                     {userName.slice(0, 2).toUpperCase() || "؟"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden max-w-[100px] truncate text-sm font-semibold 2xl:inline">
+                <span className="hidden max-w-[110px] truncate text-xs font-bold text-foreground xl:inline">
                   {userName}
                 </span>
-                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground 2xl:inline" />
+                <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground opacity-70 xl:inline" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent

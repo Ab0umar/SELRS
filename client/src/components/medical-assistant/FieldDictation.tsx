@@ -29,6 +29,9 @@ export type DictationTarget = {
 };
 
 type RecordingProps = {
+  speechProvider?: "azure" | "gemini";
+  maxRecordingMinutes?: number;
+  showDiagnostics?: boolean;
   patientName?: string;
   onClose: () => void;
 } & (
@@ -43,9 +46,63 @@ type RecordingProps = {
 );
 
 export default function FieldDictation(props: RecordingProps) {
+  const settings = trpc.medicalAssistant.settings.useQuery(undefined, {
+    retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+  });
+  const [snapshot, setSnapshot] = useState<typeof settings.data>();
+  useEffect(() => {
+    if (!snapshot && settings.isSuccess && !settings.isFetching)
+      setSnapshot(settings.data);
+  }, [snapshot, settings.data, settings.isSuccess, settings.isFetching]);
+  if (!snapshot)
+    return (
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) props.onClose();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إعدادات التسجيل</DialogTitle>
+            <DialogDescription>
+              {settings.isError
+                ? "تعذّر تحميل الإعداد المركزي. لم يبدأ التسجيل."
+                : "جارٍ تحميل إعداد التسجيل المركزي…"}
+            </DialogDescription>
+          </DialogHeader>
+          {settings.isError && (
+            <Button onClick={() => void settings.refetch()}>
+              إعادة المحاولة
+            </Button>
+          )}
+          <Button onClick={props.onClose}>إغلاق</Button>
+        </DialogContent>
+      </Dialog>
+    );
+  return (
+    <ConfiguredFieldDictation
+      {...props}
+      speechProvider={snapshot.speechProvider}
+      maxRecordingMinutes={snapshot.maxRecordingMinutes}
+      showDiagnostics={snapshot.showDiagnostics}
+    />
+  );
+}
+
+function ConfiguredFieldDictation(props: RecordingProps) {
   const { patientName, onClose } = props;
+  const provider = props.speechProvider ?? "azure";
+  const maxRecordingMinutes = Math.min(
+    8,
+    Math.max(1, props.maxRecordingMinutes ?? 8),
+  );
   const target = props.kind === "conversation" ? undefined : props.target;
   const token = trpc.medicalAssistant.speechToken.useMutation();
+  const geminiToken = trpc.medicalAssistant.geminiSpeechToken.useMutation();
   const [text, setText] = useState("");
   const [partial, setPartial] = useState("");
   const [status, setStatus] = useState("Connecting microphone…");
@@ -80,6 +137,10 @@ export default function FieldDictation(props: RecordingProps) {
   useEffect(() => {
     let disposed = false;
     let stopping = false;
+    let gemini:
+      | Awaited<ReturnType<typeof import("./gemini-live").connectGeminiLive>>
+      | undefined;
+    let finishTimer: ReturnType<typeof setTimeout> | undefined;
     let session: ReturnType<typeof maintainContinuousSpeech> | undefined;
     let limit: ReturnType<typeof setTimeout> | undefined;
     let meterTimer: ReturnType<typeof setInterval> | undefined;
@@ -109,7 +170,9 @@ export default function FieldDictation(props: RecordingProps) {
       socketProbe.dispose();
       clearInterval(meterTimer);
       clearTimeout(limit);
+      clearTimeout(finishTimer);
       releaseSpeechResources([
+        () => gemini?.close(),
         () => session?.dispose(),
         () => stopPcm?.(),
         () => pushStream?.close(),
@@ -154,7 +217,17 @@ export default function FieldDictation(props: RecordingProps) {
         }
         release();
       };
-      if (recognizer)
+      if (gemini) {
+        stopPcm?.();
+        stopPcm = undefined;
+        try {
+          gemini.finish();
+        } catch {
+          fail("Unable to finish Gemini recording. Review captured text.");
+          return;
+        }
+        finishTimer = setTimeout(finish, 2500);
+      } else if (recognizer)
         recognizer.stopContinuousRecognitionAsync(finish, () =>
           fail("Unable to finish recording. Review the captured text."),
         );
@@ -229,6 +302,69 @@ export default function FieldDictation(props: RecordingProps) {
             socketBufferedBytes: socket.bufferedBytes,
           });
         }, 250);
+        if (provider === "gemini") {
+          const credentials = await geminiToken.mutateAsync();
+          if (disposed || stopping) return;
+          if (!meterContext || !meterSource || meterContext.state !== "running")
+            throw new Error("Browser audio capture is unavailable.");
+          const { connectGeminiLive } = await import("./gemini-live");
+          if (disposed || stopping) return;
+          const connected = await connectGeminiLive(credentials, {
+            final: (value) => {
+              if (disposed) return;
+              lastResponseAt = performance.now();
+              setText((previous) =>
+                [previous, value].filter(Boolean).join("\n"),
+              );
+              setPartial("");
+            },
+            partial: (value) => {
+              if (!disposed && !stopping) {
+                lastResponseAt = performance.now();
+                setPartial(value);
+              }
+            },
+            error: () =>
+              fail(
+                "Gemini Live disconnected. Finalized text is preserved; some speech may be missing. Try Azure or start a new recording.",
+              ),
+          });
+          gemini = connected;
+          if (disposed || stopping) {
+            connected.close();
+            return;
+          }
+          connectionState = "Connected";
+          setStatus("Recording — Gemini 3.5 Transcribe Live");
+          stopPcm = await startPcmCapture(
+            meterContext,
+            meterSource,
+            (bytes) => {
+              if (disposed || stopping) return;
+              pcmChunks++;
+              try {
+                connected.write(bytes);
+                audioPackets++;
+                lastAudioSentAt = performance.now();
+              } catch {
+                fail(
+                  "Gemini audio delivery failed. Finalized text is preserved.",
+                );
+              }
+            },
+            () =>
+              fail(
+                "Browser audio capture stopped. Finalized text is preserved.",
+              ),
+          );
+          if (disposed || stopping) release();
+          else
+            limit = setTimeout(
+              () => end.current(),
+              maxRecordingMinutes * 60 * 1000,
+            );
+          return;
+        }
         const credentials = await token.mutateAsync();
         if (disposed) return;
         const sdk = await import("microsoft-cognitiveservices-speech-sdk");
@@ -330,7 +466,10 @@ export default function FieldDictation(props: RecordingProps) {
               if (!current()) return;
               setStatus("Recording — Azure Arabic (Egypt)");
               if (!limit)
-                limit = setTimeout(() => end.current(), 8 * 60 * 1000);
+                limit = setTimeout(
+                  () => end.current(),
+                  maxRecordingMinutes * 60 * 1000,
+                );
             },
             () => {
               if (current()) fail("Could not start Azure recording.");
@@ -442,43 +581,58 @@ export default function FieldDictation(props: RecordingProps) {
           </DialogDescription>
         </DialogHeader>
         <p role="status">{status}</p>
-        <section
-          aria-label="Recording diagnostics"
-          className="space-y-1 rounded border p-3 text-sm"
-        >
-          <label htmlFor="dictation-mic-level">
-            Microphone activity: {diagnostics.level}%
-          </label>
-          <progress
-            id="dictation-mic-level"
-            max={100}
-            value={diagnostics.level}
-            className="block w-full"
-          />
-          <p>
-            Microphone: {diagnostics.microphone} · Audio meter:{" "}
-            {diagnostics.meter}
+        <p>
+          مزوّد الصوت:{" "}
+          {provider === "gemini"
+            ? "Gemini 3.5 Transcribe Live"
+            : "Azure Arabic (Egypt)"}
+        </p>
+        {props.showDiagnostics !== false && provider === "gemini" && (
+          <p role="status">
+            Connection: {diagnostics.connection} · Audio chunks sent:{" "}
+            {diagnostics.packets} · Last transcription:{" "}
+            {diagnostics.lastResponse}
           </p>
-          <p>Last Azure transcription response: {diagnostics.lastResponse}</p>
-          <p>Azure connection: {diagnostics.connection}</p>
-          <p>
-            Last SDK audio packet: {diagnostics.audioSent} · Packets:{" "}
-            {diagnostics.packets}
-          </p>
-          <p>Last Azure service message: {diagnostics.serviceMessage}</p>
-          <p>PCM chunks produced: {diagnostics.pcmChunks}</p>
-          <p>
-            Actual Azure WebSocket frames sent: {diagnostics.socketFrames} ·
-            Last send: {diagnostics.socketLastSend}
-          </p>
-          <p>
-            Azure socket: {diagnostics.socketState} · Queued bytes:{" "}
-            {diagnostics.socketBufferedBytes}
-          </p>
-          <p className="text-muted-foreground">
-            Diagnostics stay in this window; no speech or audio is logged.
-          </p>
-        </section>
+        )}
+        {props.showDiagnostics !== false && provider === "azure" && (
+          <section
+            aria-label="Recording diagnostics"
+            className="space-y-1 rounded border p-3 text-sm"
+          >
+            <label htmlFor="dictation-mic-level">
+              Microphone activity: {diagnostics.level}%
+            </label>
+            <progress
+              id="dictation-mic-level"
+              max={100}
+              value={diagnostics.level}
+              className="block w-full"
+            />
+            <p>
+              Microphone: {diagnostics.microphone} · Audio meter:{" "}
+              {diagnostics.meter}
+            </p>
+            <p>Last Azure transcription response: {diagnostics.lastResponse}</p>
+            <p>Azure connection: {diagnostics.connection}</p>
+            <p>
+              Last SDK audio packet: {diagnostics.audioSent} · Packets:{" "}
+              {diagnostics.packets}
+            </p>
+            <p>Last Azure service message: {diagnostics.serviceMessage}</p>
+            <p>PCM chunks produced: {diagnostics.pcmChunks}</p>
+            <p>
+              Actual Azure WebSocket frames sent: {diagnostics.socketFrames} ·
+              Last send: {diagnostics.socketLastSend}
+            </p>
+            <p>
+              Azure socket: {diagnostics.socketState} · Queued bytes:{" "}
+              {diagnostics.socketBufferedBytes}
+            </p>
+            <p className="text-muted-foreground">
+              Diagnostics stay in this window; no speech or audio is logged.
+            </p>
+          </section>
+        )}
         {error && (
           <p role="alert" className="text-destructive">
             {error}

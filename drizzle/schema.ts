@@ -1460,7 +1460,9 @@ export const visitScheduleRequests = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     patientId: int("patientId"),
-    status: mysqlEnum("status", ["scheduled", "registered", "cancelled"]).default("scheduled").notNull(),
+    status: mysqlEnum("status", ["scheduled", "registered", "cancelled"])
+      .default("scheduled")
+      .notNull(),
     fullName: varchar("fullName", { length: 255 }).notNull(),
     age: int("age"),
     visitDate: date("visitDate").notNull(),
@@ -1476,7 +1478,10 @@ export const visitScheduleRequests = mysqlTable(
     visitDateIdx: index("idx_visit_schedule_requests_visitDate").on(
       table.visitDate,
     ),
-    patientStatusIdx: index("idx_visit_schedule_patient_status").on(table.patientId, table.status),
+    patientStatusIdx: index("idx_visit_schedule_patient_status").on(
+      table.patientId,
+      table.status,
+    ),
   }),
 );
 
@@ -2897,7 +2902,13 @@ export const marketingGenerationJobs = mysqlTable(
     id: varchar("id", { length: 36 }).primaryKey(),
     taskId: varchar("task_id", { length: 64 }),
     kind: mysqlEnum("kind", ["post", "image"]).notNull(),
-    state: mysqlEnum("state", ["starting", "running", "completed", "failed"])
+    state: mysqlEnum("state", [
+      "starting",
+      "running",
+      "completed",
+      "failed",
+      "uncertain",
+    ])
       .default("starting")
       .notNull(),
     topic: varchar("topic", { length: 255 }).notNull(),
@@ -3353,10 +3364,17 @@ export const kfLedger = mysqlTable("kf_ledger", {
 
 export type KfLedgerEntry = typeof kfLedger.$inferSelect;
 export type InsertKfLedgerEntry = typeof kfLedger.$inferInsert;
-export {whatsappConfirmationAttempts,whatsappConfirmationReceipts} from "./whatsappConfirmationSchema";
+export {
+  whatsappConfirmationAttempts,
+  whatsappConfirmationReceipts,
+} from "./whatsappConfirmationSchema";
 export {
   aiCoreProfiles,
   aiCoreUsage,
+  aiProviderBindings,
+  aiMarketingJobContext,
+  aiOperationRequests,
+  aiMarketingScheduleStatus,
   aiMarketingJobs,
   aiMarketingScheduler,
   aiMarketingScheduleClaims,

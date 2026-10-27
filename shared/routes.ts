@@ -10,6 +10,14 @@ export const ROUTES = {
   account: "/account",
   accountWildcard: "/account/*",
   forcePasswordChange: "/force-password-change",
+  ai: "/ai",
+  aiReplies: "/ai/replies",
+  aiMedical: "/ai/medical",
+  aiMarketing: "/ai/marketing",
+  aiWhatsApp: "/ai/whatsapp",
+  aiSettings: "/ai/settings",
+  aiExperiments: "/ai/experiments",
+  aiUsage: "/ai/usage",
 
   // Attendance
   attendance: "/attendance",
@@ -124,7 +132,6 @@ export const ROUTES = {
   whatsappInbox: "/admin/whatsapp-inbox",
   autoReply: "/admin-hub/auto-reply",
   adminApiTools: "/admin/api-tools",
-  adminCardVisibility: "/admin/card-visibility",
   adminDataSourceAudit: "/admin/data-source-audit",
   adminDoctors: "/admin/doctors",
   adminForms: "/admin/forms",
