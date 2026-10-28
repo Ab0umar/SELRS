@@ -204,7 +204,7 @@ export default function PostOpOffdays({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="post-op-offdays-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]">
+    <div className="post-op-offdays-root medical-report-brand min-h-screen bg-muted text-[#161d1f]">
       <style>{`
         .offdays-paper {
           width: 210mm;
@@ -319,7 +319,7 @@ export default function PostOpOffdays({
           signatureLabel="توقيع الطبيب المعالج"
         >
           <div className="flex flex-col">
-            <section className="mb-8 border border-[#c2c7d1] bg-[#eef5f7] p-5">
+            <section className="mb-8 border border-[#c2c7d1] bg-muted p-5">
               <h3 className="mb-3 text-lg font-bold text-[#00355f]">إفادة</h3>
               <Textarea
                 aria-label="نص الإفادة"
@@ -385,7 +385,7 @@ export default function PostOpOffdays({
               </h3>
               <table className="offdays-status-table w-full table-fixed border-collapse text-center">
                 <thead>
-                  <tr className="bg-[#e8eff1] text-[13px] font-bold text-[#42474f]">
+                  <tr className="bg-muted text-[13px] font-bold text-[#42474f]">
                     <th className="w-[9%] border border-[#c2c7d1] px-3 py-2">Eye</th>
                     <th className="w-[46%] border border-[#c2c7d1] px-3 py-2">VA</th>
                     <th className="w-[45%] border border-[#c2c7d1] px-3 py-2">

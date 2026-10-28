@@ -8196,6 +8196,28 @@ export async function getAllDiseases() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return await db.select().from(diseases).orderBy(desc(diseases.id));
+  // MSSQL sync stores patients.doctorCode and may leave doctorId empty.
+  const missingCodes: string[] = Array.from(
+    new Set<string>(
+      rows
+        .filter((row: any) => !String(row.doctorName ?? "").trim())
+        .map((row: any) => String(row.patientDoctorCode ?? "").trim())
+        .filter(Boolean),
+    ),
+  );
+  const doctorNameByCode = new Map<string, string>();
+  if (missingCodes.length > 0) {
+    const drRows = await db
+      .select({ code: doctorsLookup.code, name: doctorsLookup.name })
+      .from(doctorsLookup)
+      .where(inArray(doctorsLookup.code, missingCodes));
+    for (const dr of drRows) {
+      const code = String(dr.code ?? "").trim().toLowerCase();
+      const name = decodeMojibake(String(dr.name ?? "").trim());
+      if (code && name) doctorNameByCode.set(code, name);
+    }
+  }
+
 }
 
 export async function createDisease(
@@ -8330,7 +8352,12 @@ export async function getTodayVisitsByQueueStatus(
   return rows.map((row: any) => ({
     ...row,
     patientFullName: decodeMojibake(row.patientFullName),
-    doctorName: row.doctorName ?? null,
+    doctorName:
+      row.doctorName ??
+      doctorNameByCode.get(
+        String(row.patientDoctorCode ?? "").trim().toLowerCase(),
+      ) ??
+      null,
   }));
 }
 

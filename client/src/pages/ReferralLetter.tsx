@@ -580,7 +580,7 @@ export default function ReferralLetter({
               dir="ltr"
             >
               <table className="w-full table-fixed border-collapse text-center text-sm">
-                <thead className="bg-[#e7e8ea] font-bold">
+                <thead className="bg-muted font-bold">
                   <tr>
                     <th className="w-[18%] border border-[#c3c6d6] px-2 py-2">
                       Refraction

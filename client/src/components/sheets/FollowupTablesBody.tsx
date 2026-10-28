@@ -129,7 +129,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                 inputClassName="min-w-0 w-full"
               />
             </label>
-          <div className="flex items-center justify-center gap-2 bg-[#f7f9fc] px-3 py-1.5 text-[11px] font-bold text-[#475467]">
+          <div className="flex items-center justify-center gap-2 bg-muted/50 px-3 py-1.5 text-[11px] font-bold text-[#475467]">
             {(["right", "left"] as const).map((eye) => {
               const active = Boolean(operationEyes[eye]);
               const label =
@@ -210,7 +210,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                   <col />
                 </colgroup>
                 <thead>
-                  <tr className="h-5 bg-[#f8fafc] text-[9px] font-bold text-[#344054]">
+                  <tr className="h-5 bg-muted/50 text-[9px] font-bold text-[#344054]">
                     <th className="border-r border-[#c5cfdb]" colSpan={2}>
                       Clinical Item
                     </th>
@@ -225,7 +225,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                 <tbody>
                   <tr className="h-6 border-t border-[#d5dbe5]">
                     <th
-                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      className="border-r border-[#c5cfdb] bg-muted/50 text-[10px] font-bold"
                       colSpan={2}
                     >
                       {followupLabels.vaLabel ?? "V.A"}
@@ -239,7 +239,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                   </tr>
                   <tr className="followup-comment-row followup-refraction-row h-10 border-t border-[#d5dbe5]">
                     <th
-                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      className="border-r border-[#c5cfdb] bg-muted/50 text-[10px] font-bold"
                       colSpan={2}
                     >
                       {followupLabels.refractionLabel ?? "Refraction"}
@@ -252,7 +252,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                               key={part}
                               className="grid grid-rows-[16px_1fr] place-items-center text-center"
                             >
-                              <span className="flex h-full w-full items-center justify-center bg-[#f8fafc] text-center text-[11px] font-bold text-[#667085]">
+                              <span className="flex h-full w-full items-center justify-center bg-muted/50 text-center text-[11px] font-bold text-[#667085]">
                                 {part === "Axis" ? "A" : part}
                               </span>
                               {field(
@@ -268,7 +268,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                   </tr>
                   <tr className="h-6 border-t border-[#d5dbe5]">
                     <th
-                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      className="border-r border-[#c5cfdb] bg-muted/50 text-[10px] font-bold"
                       colSpan={2}
                     >
                       {followupLabels.iopLabel ?? "I.O.P"}
@@ -298,7 +298,7 @@ export default function FollowupTablesBody<T extends FollowupItem>({
                   </tr>
                   <tr className="h-8 border-t border-[#d5dbe5]">
                     <th
-                      className="border-r border-[#c5cfdb] bg-[#f8fafc] text-[10px] font-bold"
+                      className="border-r border-[#c5cfdb] bg-muted/50 text-[10px] font-bold"
                       colSpan={2}
                     >
                       Comment

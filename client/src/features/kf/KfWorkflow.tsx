@@ -637,7 +637,7 @@ export default function KfWorkflow() {
 
         <table className="w-full text-center border border-slate-300 text-xs mt-4">
           <thead>
-            <tr className="bg-slate-100 font-bold border-b border-slate-300">
+            <tr className="bg-muted font-bold border-b border-slate-300">
               <th className="p-2 border-r border-slate-300">Eye</th>
               <th className="p-2 border-r border-slate-300">Sphere (SPH)</th>
               <th className="p-2 border-r border-slate-300">Cylinder (CYL)</th>
@@ -661,7 +661,7 @@ export default function KfWorkflow() {
               <td className="p-2 font-mono font-bold">{specialistForm.bcvaOs || "—"}</td>
             </tr>
             {specialistForm.add !== "---" && (
-              <tr className="bg-slate-50 border-t border-slate-300">
+              <tr className="bg-muted/50 border-t border-slate-300">
                 <td className="p-2 border-r border-slate-300 font-bold">Reading (+Add)</td>
                 <td colSpan={4} className="p-2 text-left pl-6 font-bold">
                   Add: {specialistForm.add}

@@ -597,7 +597,7 @@ export default function KfConsultantSheet() {
                 const osIopNum = Number(formData.iopOS);
                 return (
                   <tr>
-                    <td className="px-3 py-1.5 border-r border-gray-200 bg-gray-50 text-gray-600">mmHg</td>
+                    <td className="px-3 py-1.5 border-r border-gray-200 bg-muted/50 text-gray-600">mmHg</td>
                     <td className="px-1 py-1 border-r border-gray-200"><Input aria-label="mmHg" className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${odIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOD} onChange={e => setFormData(p => ({ ...p, iopOD: e.target.value }))} placeholder="mmHg" /></td>
                     <td className="px-1 py-1"><Input aria-label="mmHg" className={`text-center text-[11px] h-7 border-gray-300 p-0 w-14 mx-auto ${osIopNum > 21 ? "text-red-600 font-bold" : ""}`} value={formData.iopOS} onChange={e => setFormData(p => ({ ...p, iopOS: e.target.value }))} placeholder="mmHg" /></td>
                   </tr>
@@ -666,7 +666,7 @@ export default function KfConsultantSheet() {
         {/* Clinical Diagrams */}
         <div className="mb-4">
           <div className="border-l-4 border-[#003D9B] bg-[#EEF4FF] pl-3 py-1 mb-2"><h3 className="text-[11px] font-bold text-[#003D9B] tracking-wide">CLINICAL DIAGRAMS / رسم توضيحي</h3></div>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg bg-gray-50" style={{ minHeight: 200 }}>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg bg-muted/50" style={{ minHeight: 200 }}>
             <div className="flex items-center justify-center gap-24 py-6">
               <div className="border-2 border-gray-300 rounded-full bg-white" style={{ width: 110, height: 110 }} />
               <div className="border-2 border-gray-300 rounded-full bg-white" style={{ width: 110, height: 110 }} />
