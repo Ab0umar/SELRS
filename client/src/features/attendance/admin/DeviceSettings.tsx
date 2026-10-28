@@ -140,7 +140,13 @@ export default function DeviceSettings() {
   const admsMins = lastAdmsPunch
     ? (Date.now() - lastAdmsPunch.getTime()) / 60000
     : Infinity;
-  const admsOnline = admsMins < 60;
+  const lastAdmsContact = adms?.lastContact ? new Date(adms.lastContact) : null;
+  const admsContactMins = lastAdmsContact
+    ? (Date.now() - lastAdmsContact.getTime()) / 60000
+    : Infinity;
+  // The device polls the server every few seconds, so recent contact means connected
+  // even when nobody has punched for a while.
+  const admsOnline = admsContactMins < 5 || admsMins < 60;
 
   const inputCls =
     "w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors text-foreground font-medium";

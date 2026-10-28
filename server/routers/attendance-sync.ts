@@ -253,7 +253,9 @@ export const attendanceSyncRoutes = {
       eq(attendancePunches.source, "tcp"),
       sql`${attendancePunches.deviceId} NOT LIKE 'fk%'`,
     );
-    return cachedStatus("adms", async () => {
+    const { getAdmsLastContact } = await import("../_core/zktecoAdms");
+    const lastContact = getAdmsLastContact();
+    const base = await cachedStatus("adms", async () => {
       const [row] = await db
         .select({ lastPunch: max(attendancePunches.punchAt), total: count() })
         .from(attendancePunches)
@@ -276,6 +278,7 @@ export const attendanceSyncRoutes = {
         recentPunches: recent,
       };
     });
+    return { ...base, lastContact };
   }),
 
   // Mirrors admsStatus but scoped to FK devices (deviceId prefixed "fk_"),

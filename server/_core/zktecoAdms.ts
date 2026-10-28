@@ -70,6 +70,17 @@ function queuedTotal(): number {
 }
 const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
 
+// Last time each allowlisted device contacted /iclock (handshake, poll or upload).
+// Punches can be hours apart, so "connected" must come from this heartbeat.
+const lastContactBySn = new Map<string, number>();
+
+/** Most recent contact from any ADMS device, or null if none since startup. */
+export function getAdmsLastContact(): Date | null {
+  let latest = 0;
+  for (const t of lastContactBySn.values()) if (t > latest) latest = t;
+  return latest ? new Date(latest) : null;
+}
+
 /** ADMS ingestion is enabled only when K40 is explicitly configured for ADMS. */
 async function isAdmsEnabled(): Promise<boolean> {
   try {
@@ -325,6 +336,7 @@ export function registerZKTecoAdms(app: Express): void {
       res.status(403).type("text/plain").send("DENY");
       return;
     }
+    lastContactBySn.set(sn, Date.now());
     next();
   });
 
