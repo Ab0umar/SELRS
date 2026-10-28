@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SELRS AI</string>
+    <string name="title_activity_main">SELRS AI</string>
+    <string name="package_name">cc.selrs.ai</string>
+    <string name="custom_url_scheme">cc.selrs.ai</string>
+</resources>

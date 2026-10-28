@@ -1,0 +1,10 @@
+{
+  "appId": "cc.selrs.ai",
+  "appName": "SELRS AI",
+  "webDir": "../outputs/ai-mobile/web",
+  "appendUserAgent": " SELRS-AI/1",
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https"
+  }
+}
