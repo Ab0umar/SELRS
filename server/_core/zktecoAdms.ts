@@ -18,7 +18,11 @@ import { attendancePunches, attendanceEmployees } from "../../drizzle/schema";
 import { sql, eq } from "drizzle-orm";
 import { broadcastPunch } from "./ws";
 import { DailyMaterializer } from "../services/attendance/dailyMaterializer";
-import { decideAdmsOffset } from "../services/attendance/admsOffsetPolicy";
+import {
+  applyAdmsTimeFix,
+  decideAdmsOffset,
+  parseAdmsTimeFixes,
+} from "../services/attendance/admsOffsetPolicy";
 
 // ---------------------------------------------------------------------------
 // Command queue — populated by pushEmployeesToAdms(), drained by /getrequest
@@ -69,6 +73,11 @@ function queuedTotal(): number {
   return total;
 }
 const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
+
+// Last ATTLOG stamp the device sent us for a batch we stored. Echoed back in the
+// handshake so the device uploads only newer records instead of its whole log.
+// Memory only: after a restart it falls back to 0 and the unique index dedups.
+const attlogStampBySn = new Map<string, string>();
 
 // Last time each allowlisted device contacted /iclock (handshake, poll or upload).
 // Punches can be hours apart, so "connected" must come from this heartbeat.
@@ -300,8 +309,10 @@ async function parseAttlogBody(
   // Auto-detect offset from fresh pushes, then correct all timestamps
   maybeDetectOffset(punches, deviceId);
   const offMs = effectiveOffsetHours(deviceId) * 3_600_000;
-  if (offMs !== 0) {
-    for (const p of punches) p.punchAt = new Date(p.punchAt.getTime() - offMs);
+  const fixes = parseAdmsTimeFixes(process.env.ZK_ADMS_TIME_FIXES);
+  for (const p of punches) {
+    const fixed = applyAdmsTimeFix(deviceId, p.rawPunchAt, fixes);
+    p.punchAt = new Date(fixed.getTime() - offMs);
   }
   return punches;
 }
@@ -369,7 +380,7 @@ export function registerZKTecoAdms(app: Express): void {
     res.set("Content-Type", "text/plain");
     res.send(
       `GET OPTION FROM: ${sn}\r\n` +
-        `ATTLOGStamp=0\r\n` +
+        `ATTLOGStamp=${attlogStampBySn.get(sn) ?? "0"}\r\n` +
         `OPERLOGStamp=0\r\n` +
         `ATTPHOTOStamp=0\r\n` +
         `ErrorDelay=30\r\n` +
@@ -455,6 +466,9 @@ export function registerZKTecoAdms(app: Express): void {
           })),
         )
         .onDuplicateKeyUpdate({ set: { updatedAt: now } });
+
+      const stamp = String(req.query.Stamp ?? req.query.stamp ?? "").trim();
+      if (/^[0-9]+$/.test(stamp)) attlogStampBySn.set(sn, stamp);
 
       console.log(
         `[ADMS] SN=${sn} pushed ${punches.length} punches → inserted to MySQL`,

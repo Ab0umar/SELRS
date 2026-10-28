@@ -46,3 +46,35 @@ export function decideAdmsOffset(
     return { offset: observed, pending: undefined, changed: true };
   return { offset: current, pending: observed, changed: false };
 }
+
+export interface AdmsTimeFix {
+  sn: string;
+  from: Date;
+  to: Date;
+  offsetMinutes: number;
+}
+
+/**
+ * Parse ZK_ADMS_TIME_FIXES: "SN|YYYY-MM-DD HH:mm:ss|YYYY-MM-DD HH:mm:ss|minutes;..."
+ * A fix covers punches whose raw device time falls in [from, to) and adds
+ * `minutes` to them (use a negative number when the device clock ran ahead).
+ */
+export function parseAdmsTimeFixes(raw: string | undefined): AdmsTimeFix[] {
+  const fixes: AdmsTimeFix[] = [];
+  for (const entry of (raw ?? "").split(";")) {
+    const parts = entry.split("|").map((part) => part.trim());
+    if (parts.length !== 4) continue;
+    const from = new Date(parts[1].replace(" ", "T"));
+    const to = new Date(parts[2].replace(" ", "T"));
+    const offsetMinutes = Number(parts[3]);
+    if (!parts[0] || isNaN(from.getTime()) || isNaN(to.getTime()) || !Number.isFinite(offsetMinutes)) continue;
+    fixes.push({ sn: parts[0], from, to, offsetMinutes });
+  }
+  return fixes;
+}
+
+export function applyAdmsTimeFix(sn: string, raw: Date, fixes: AdmsTimeFix[]): Date {
+  const fix = fixes.find((f) => f.sn === sn && raw >= f.from && raw < f.to);
+  return fix ? new Date(raw.getTime() + fix.offsetMinutes * 60_000) : raw;
+}
+

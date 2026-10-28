@@ -22,3 +22,21 @@ describe("ADMS automatic offset policy", () => {
     expect(decideAdmsOffset(3, 3, 4, undefined)).toEqual({ offset: 3, pending: undefined, changed: false });
   });
 });
+
+import { applyAdmsTimeFix, parseAdmsTimeFixes } from "../../server/services/attendance/admsOffsetPolicy";
+
+describe("ADMS time fix windows", () => {
+  const fixes = parseAdmsTimeFixes("SN1|2026-10-28 00:00:00|2026-10-28 12:00:00|-60; bad|entry");
+
+  it("parses valid entries and skips malformed ones", () => {
+    expect(fixes).toHaveLength(1);
+    expect(fixes[0].offsetMinutes).toBe(-60);
+  });
+
+  it("shifts only punches of that device inside the window", () => {
+    const inside = new Date("2026-10-28T09:30:00");
+    expect(applyAdmsTimeFix("SN1", inside, fixes)).toEqual(new Date("2026-10-28T08:30:00"));
+    expect(applyAdmsTimeFix("SN1", new Date("2026-10-28T12:00:00"), fixes)).toEqual(new Date("2026-10-28T12:00:00"));
+    expect(applyAdmsTimeFix("SN2", inside, fixes)).toEqual(inside);
+  });
+});
