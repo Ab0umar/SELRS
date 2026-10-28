@@ -272,6 +272,11 @@ export class DeviceSettingsService {
     } = updates as any;
 
     if (deviceId === 2) {
+      // The UI has no separate ADMS switch: choosing the adms protocol must also
+      // accept pushes, otherwise isAdmsEnabled() silently drops every punch.
+      if (rest.zk40Protocol === "adms" && rest.admsEnabled === undefined) {
+        rest.admsEnabled = true;
+      }
       const nextSettings = {
         ...k40Settings,
         ...rest,
