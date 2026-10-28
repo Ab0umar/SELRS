@@ -385,6 +385,9 @@ export function registerZKTecoAdms(app: Express): void {
     }
     // Respect the ADMS enable/disable toggle — ack but drop punches when disabled.
     if (!(await isAdmsEnabled())) {
+      console.warn(
+        `[ADMS] SN=${sn} ATTLOG dropped: ADMS is disabled in K40 device settings (enable it, set protocol to adms)`,
+      );
       res.set("Content-Type", "text/plain");
       res.send("OK: 0");
       return;
