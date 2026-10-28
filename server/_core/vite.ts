@@ -1,3 +1,4 @@
+import compression from "compression";
 import express, { type Express } from "express";
 import { rateLimit } from "express-rate-limit";
 import fs from "fs";
@@ -75,9 +76,19 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // Scoped to the SPA shell so API/SSE responses are never buffered by gzip.
+  const compress = compression();
+  app.use((req, res, next) =>
+    req.path.startsWith("/api/") ? next() : compress(req, res, next),
+  );
+
   app.use(
     express.static(distPath, {
       setHeaders: (res, filePath) => {
+        // Vite hashes everything under /assets, so it can be cached forever.
+        if (/[\\/]assets[\\/]/.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
         // Never cache HTML entry points; they must always reference latest hashed assets.
         if (filePath.toLowerCase().endsWith(".html")) {
           res.setHeader(

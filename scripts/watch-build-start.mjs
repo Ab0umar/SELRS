@@ -4,7 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const projectRoot = path.resolve(process.cwd());
-const LOCK_FILE = path.join(projectRoot, ".watch-build.lock");
+const SERVICE_NAME = process.env.SELRS_WEB_SERVICE || "srv100";
+const LOCK_FILE =path.join(projectRoot, ".watch-build.lock");
 const watchRoots = [
   path.join(projectRoot, "client"),
   path.join(projectRoot, "server"),
@@ -116,7 +117,7 @@ const killServer = () => {
 
 const startServer = () => {
   log("Starting server...");
-  serverProc = spawn("nssm.exe", ["restart selrs-web"], {
+  serverProc = spawn("nssm.exe", [`restart ${SERVICE_NAME}`], {
     stdio: "inherit",
     shell: true,
   });

@@ -79,6 +79,58 @@ const pendingAck = new Map<number, AdmsCommand>(); // awaiting devicecmd ACK
 // Memory only: after a restart it falls back to 0 and the unique index dedups.
 const attlogStampBySn = new Map<string, string>();
 
+// The device replays its whole stored batch after every server restart. One
+// recompute per punch day ran concurrently and fought over the materializer
+// lock, so days are merged into a single debounced range run instead.
+const RECOMPUTE_DEBOUNCE_MS = 3_000;
+const MAX_RECOMPUTE_RANGE_DAYS = 365;
+let pendingRecompute: { from: number; to: number } | null = null;
+let recomputeTimer: NodeJS.Timeout | null = null;
+let recomputeRunning = false;
+
+function scheduleAttendanceRecompute(days: Iterable<number>) {
+  for (const day of days) {
+    pendingRecompute = pendingRecompute
+      ? {
+          from: Math.min(pendingRecompute.from, day),
+          to: Math.max(pendingRecompute.to, day),
+        }
+      : { from: day, to: day };
+  }
+  if (recomputeTimer || recomputeRunning || !pendingRecompute) return;
+  recomputeTimer = setTimeout(runPendingRecompute, RECOMPUTE_DEBOUNCE_MS);
+}
+
+async function runPendingRecompute() {
+  recomputeTimer = null;
+  const range = pendingRecompute;
+  pendingRecompute = null;
+  if (!range) return;
+  recomputeRunning = true;
+  const to = new Date(range.to);
+  const earliest = new Date(to);
+  earliest.setDate(earliest.getDate() - (MAX_RECOMPUTE_RANGE_DAYS - 1));
+  const from = new Date(Math.max(range.from, earliest.getTime()));
+  try {
+    await DailyMaterializer.recomputeRange(from, to, undefined, undefined, {
+      recomputeMonthly: true,
+    });
+  } catch (err) {
+    console.error(
+      "[ADMS] Failed to recompute attendance for",
+      from,
+      "→",
+      to,
+      (err as Error)?.message ?? err,
+    );
+  } finally {
+    recomputeRunning = false;
+    if (pendingRecompute && !recomputeTimer) {
+      recomputeTimer = setTimeout(runPendingRecompute, RECOMPUTE_DEBOUNCE_MS);
+    }
+  }
+}
+
 // Last time each allowlisted device contacted /iclock (handshake, poll or upload).
 // Punches can be hours apart, so "connected" must come from this heartbeat.
 const lastContactBySn = new Map<string, number>();
@@ -490,22 +542,7 @@ export function registerZKTecoAdms(app: Express): void {
           return d.getTime();
         }),
       );
-      for (const dayMs of punchDays) {
-        const dayStart = new Date(dayMs);
-        void DailyMaterializer.recomputeRange(
-          dayStart,
-          dayStart,
-          undefined,
-          undefined,
-          { recomputeMonthly: true },
-        ).catch((err) => {
-          console.error(
-            "[ADMS] Failed to recompute attendance for",
-            dayStart,
-            err,
-          );
-        });
-      }
+      scheduleAttendanceRecompute(punchDays);
 
       res.set("Content-Type", "text/plain");
       res.send(`OK: ${punches.length}`);

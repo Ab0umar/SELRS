@@ -244,7 +244,6 @@ export default defineConfig(({ mode }) => {
               id.includes("embla-carousel-react")
             )
               return "motion";
-            if (id.includes("recharts")) return "charts";
             if (id.includes("xlsx")) return "excel";
             if (id.includes("pdf-lib")) return "pdf-lib";
             if (id.includes("html2canvas")) return "html2canvas";
@@ -258,7 +257,7 @@ export default defineConfig(({ mode }) => {
               id.includes("vaul")
             )
               return "ui-misc";
-            return "vendor";
+            return undefined;
           },
         },
       },

@@ -1,5 +1,5 @@
 param(
-    [string]$ServiceWeb = "selrs-web",
+    [string]$ServiceWeb = "srv100",
     [string]$ServiceDev = "pnpm dev"
     )
 
