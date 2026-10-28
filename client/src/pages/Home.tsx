@@ -20,6 +20,7 @@ import {
   subscribeNetworkStatus,
 } from "@/lib/appRuntime";
 import { BRAND_NAME_AR, BRAND_TAGLINE_AR } from "@/lib/brand";
+import { isAiMobileApp } from "@/lib/ai-mobile";
 import {
   NATIVE_LAST_USERNAME_KEY,
   hydrateDurableValue,
@@ -61,7 +62,7 @@ export default function Home() {
 
   useEffect(() => {
     if (loading || !user) return;
-    setLocation("/home");
+    setLocation(isAiMobileApp() ? "/ai" : "/home");
   }, [loading, user, setLocation]);
 
   useEffect(() => subscribeNetworkStatus((s) => setIsOnline(s.connected)), []);
@@ -129,7 +130,7 @@ export default function Home() {
         setError("تم تسجيل الدخول، لكن تعذر تأكيد الجلسة. حاول مرة أخرى.");
         return;
       }
-      setLocation("/home");
+      setLocation(isAiMobileApp() ? "/ai" : "/home");
     } catch (err) {
       setError(
         !navigator.onLine
@@ -158,8 +159,8 @@ export default function Home() {
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           <BrandLogo className="size-14 shrink-0 object-contain" />
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold sm:text-2xl">{BRAND_NAME_AR}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{BRAND_TAGLINE_AR}</p>
+            <h1 className="text-2xl font-bold sm:text-2xl">{isAiMobileApp() ? "SELRS AI" : BRAND_NAME_AR}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{isAiMobileApp() ? "أدوات الذكاء الاصطناعي" : BRAND_TAGLINE_AR}</p>
           </div>
         </div>
       </header>
@@ -266,14 +267,14 @@ export default function Home() {
           </Button>
         </form>
 
-        <nav className="mt-8 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row" aria-label="بوابات المركز">
+        {!isAiMobileApp() && <nav className="mt-8 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row" aria-label="بوابات المركز">
           <Link href="/my/login" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted">
             <UserRound className="size-4" aria-hidden />دخول المريض
           </Link>
           <Link href="/doctor-portal/login" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted">
             <Stethoscope className="size-4" aria-hidden />دخول الطبيب
           </Link>
-        </nav>
+        </nav>}
       </main>
       <footer className="border-t border-border px-4 py-4 text-center text-sm text-muted-foreground">
         &copy; {new Date().getFullYear()} {BRAND_NAME_AR}

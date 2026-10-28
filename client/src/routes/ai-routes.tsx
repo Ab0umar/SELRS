@@ -3,6 +3,7 @@ import { Redirect, Route } from "wouter";
 import { ROUTES } from "@shared/routes";
 import ProtectedRoute from "../components/ProtectedRoute";
 import AiLayout from "../features/ai/AiLayout";
+import { isAiMobileApp } from "../lib/ai-mobile";
 import { legacyAiRoutes } from "../features/ai/navigation";
 
 const AiOverview = lazy(() => import("../features/ai/AiOverview"));
@@ -51,7 +52,7 @@ const pages = [
 
 function AiPage({ children }: { children: ReactNode }) {
   return (
-    <ProtectedRoute requiredRoles={["admin"]}>
+    <ProtectedRoute requiredRoles={["admin"]} hideAppShell={isAiMobileApp()}>
       <AiLayout>{children}</AiLayout>
     </ProtectedRoute>
   );

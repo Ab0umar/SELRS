@@ -2,11 +2,19 @@ import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { aiMarketingPages, aiPages } from "./navigation";
 import "./ai-workspace.css";
+import { isAiMobileApp } from "../../lib/ai-mobile";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function AiLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { logout } = useAuth();
   return (
-    <div className="ai-workspace" dir="rtl" data-operational-module="ai">
+    <div
+      className="ai-workspace"
+      dir="rtl"
+      data-operational-module="ai"
+      data-ai-mobile={isAiMobileApp() || undefined}
+    >
       <a
         className="ai-skip"
         href="#ai-content"
@@ -21,7 +29,13 @@ export default function AiLayout({ children }: { children: ReactNode }) {
         <Link href="/ai" className="ai-module-title">
           الذكاء الاصطناعي
         </Link>
-        <Link href="/home">الرئيسية</Link>
+        {isAiMobileApp() ? (
+          <button type="button" onClick={() => void logout()}>
+            تسجيل الخروج
+          </button>
+        ) : (
+          <Link href="/home">الرئيسية</Link>
+        )}
       </header>
       <nav className="ai-workspace-nav" aria-label="أقسام الذكاء الاصطناعي">
         {aiPages.map((page) => (

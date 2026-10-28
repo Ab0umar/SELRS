@@ -7,7 +7,7 @@ const homeSource = readFileSync(resolve(__dirname, "pages", "Home.tsx"), "utf8")
 describe("login redirect regression", () => {
   it("refreshes the in-memory authenticated user before routing away from login", () => {
     const loginSuccess = homeSource.indexOf('if (!res.ok) {');
-    const redirect = homeSource.indexOf('setLocation("/home");', loginSuccess);
+    const redirect = homeSource.indexOf('setLocation(', loginSuccess);
 
     expect(loginSuccess).toBeGreaterThanOrEqual(0);
     expect(redirect).toBeGreaterThan(loginSuccess);

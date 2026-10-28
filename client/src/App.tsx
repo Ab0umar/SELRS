@@ -1,5 +1,6 @@
 import {
   Suspense,
+  lazy,
   memo,
   useCallback,
   useEffect,
@@ -9,7 +10,9 @@ import {
 import { Capacitor } from "@capacitor/core";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch, useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation } from "wouter";
+import { isAiMobileApp, isAiMobilePath } from "./lib/ai-mobile";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { getApiUrl } from "./const";
 import { type RuntimeIssue } from "./components/AppShellStatus";
 import MobileAppEnhancements from "./components/MobileAppEnhancements";
@@ -158,7 +161,30 @@ async function copyToClipboard(value: string) {
   }
 }
 
+const AiMobileLogin = lazy(() => import("./pages/Home"));
+const AiMobilePasswordChange = lazy(
+  () => import("./pages/ForcePasswordChange"),
+);
+
 const Router = memo(function Router() {
+  const [path] = useLocation();
+  if (isAiMobileApp()) {
+    if (!isAiMobilePath(path)) return <Redirect to="/ai" replace />;
+    return (
+      <Switch>
+        <Route path="/login" component={AiMobileLogin} />
+        <Route path="/force-password-change">
+          <ProtectedRoute hideAppShell>
+            <AiMobilePasswordChange />
+          </ProtectedRoute>
+        </Route>
+        {AiRoutes}
+        <Route>
+          <Redirect to="/ai" replace />
+        </Route>
+      </Switch>
+    );
+  }
   return (
     <Switch>
       <Route path={ROUTES.dashboard} component={DashboardRouteGate} />
@@ -278,7 +304,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.isNativePlatform() && !isAiMobileApp()) {
       void ensureNativeNotificationPermission(true).then((granted) => {
         if (!granted) {
           toast("Enable notifications from settings to stay updated.");
@@ -693,8 +719,8 @@ function App() {
       <ThemeProvider defaultTheme="light" switchable={true}>
         <TooltipProvider>
           <ClinicalPrintSettingsBridge />
-          <GlobalCommandPalette />
-          {isNativeShell ? (
+          {!isAiMobileApp() && <GlobalCommandPalette />}
+          {isAiMobileApp() ? null : isNativeShell ? (
             <MobileAppEnhancements nativeAppInfo={nativeAppInfo} />
           ) : (
             <WebAppEnhancements nativeAppInfo={nativeAppInfo} />

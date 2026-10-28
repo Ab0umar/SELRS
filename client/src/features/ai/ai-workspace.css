@@ -20,6 +20,14 @@
   align-items: center;
   min-height: 44px;
 }
+.ai-workspace-heading button {
+  min-height: 44px;
+  padding-inline: 0.75rem;
+}
+.ai-workspace[data-ai-mobile] {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
 .ai-workspace-nav {
   display: flex;
   flex-wrap: wrap;

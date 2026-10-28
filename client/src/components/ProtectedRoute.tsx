@@ -12,6 +12,7 @@ import type { User } from "@shared/types";
 import { ROUTES } from "../../../shared/routes";
 import { PAGE_PERMISSION_DEFINITIONS } from "@/lib/page-permissions";
 import { aiPermissionPath } from "@/features/ai/navigation";
+import { isAiMobileApp } from "@/lib/ai-mobile";
 
 // Paths that have their own explicit permission entry — parent permission does NOT cover these.
 const DEFINED_PERMISSION_PATHS = new Set(
@@ -206,7 +207,9 @@ export default function ProtectedRoute({
         ? cachedPermissions.permissions
         : ((permissionsQuery.data ?? []) as string[]);
     const normalized = raw
-      .map((entry) => aiPermissionPath(normalizePath(entry.replace(/:r[w]?$/, ""))))
+      .map((entry) =>
+        aiPermissionPath(normalizePath(entry.replace(/:r[w]?$/, ""))),
+      )
       .filter((entry) => entry.length > 0);
     return Array.from(new Set(normalized));
   }, [cachedPermissions, permissionsQuery.data, permissionsQuery.isError]);
@@ -224,7 +227,10 @@ export default function ProtectedRoute({
     if (userRole === "admin") return true;
     if (cleanPath === ROUTES.mainHome) return true;
     if (cleanPath === ROUTES.profile) return true;
-    if (cleanPath === ROUTES.account || cleanPath.startsWith(`${ROUTES.account}/`))
+    if (
+      cleanPath === ROUTES.account ||
+      cleanPath.startsWith(`${ROUTES.account}/`)
+    )
       return true;
     if (cleanPath === ROUTES.attendanceMy) return true;
     if (cleanPath === ROUTES.attendanceShiftSchedule) return true;
@@ -481,6 +487,7 @@ export default function ProtectedRoute({
       roleMismatch &&
       !(userRole !== "admin" && permissionsVerified && isPathAllowed)
     ) {
+      if (isAiMobileApp()) return;
       setLocation(ROUTES.home);
       return;
     }
@@ -496,6 +503,7 @@ export default function ProtectedRoute({
     }
 
     if (userRole !== "admin" && permissionsVerified && !isPathAllowed) {
+      if (isAiMobileApp()) return;
       const fallback = allowedPaths.includes(ROUTES.kf)
         ? ROUTES.kf
         : ROUTES.home;
@@ -538,7 +546,8 @@ export default function ProtectedRoute({
             تعذر التحقق من صلاحيات الصفحة
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            لم يتمكن التطبيق من الوصول إلى الخادم للتأكد من صلاحية الوصول لهذه الصفحة.
+            لم يتمكن التطبيق من الوصول إلى الخادم للتأكد من صلاحية الوصول لهذه
+            الصفحة.
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <Button
@@ -583,11 +592,14 @@ export default function ProtectedRoute({
           <p className="text-destructive font-semibold mb-4">
             ليس لديك صلاحية للوصول لهذه الصفحة
           </p>
-          <Button variant="bare"
-            onClick={() => setLocation(ROUTES.home)}
+          <Button
+            variant="bare"
+            onClick={() =>
+              isAiMobileApp() ? void logout() : setLocation(ROUTES.home)
+            }
             className="text-primary hover:underline"
           >
-            العودة للصفحة الرئيسية
+            {isAiMobileApp() ? "تسجيل الخروج" : "العودة للصفحة الرئيسية"}
           </Button>
         </div>
       </div>
@@ -608,7 +620,8 @@ export default function ProtectedRoute({
           <p className="text-destructive font-semibold mb-4">
             هذه الصفحة غير متاحة لفرعك
           </p>
-          <Button variant="bare"
+          <Button
+            variant="bare"
             onClick={() => setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
@@ -629,11 +642,12 @@ export default function ProtectedRoute({
           <p className="text-destructive font-semibold mb-4">
             ليس لديك صلاحية للوصول لهذه الصفحة
           </p>
-          <Button variant="bare"
-            onClick={() => setLocation(ROUTES.home)}
+          <Button
+            variant="bare"
+            onClick={() => isAiMobileApp() ? void logout() : setLocation(ROUTES.home)}
             className="text-primary hover:underline"
           >
-            العودة للصفحة الرئيسية
+            {isAiMobileApp() ? "تسجيل الخروج" : "العودة للصفحة الرئيسية"}
           </Button>
         </div>
       </div>
