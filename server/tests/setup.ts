@@ -38,6 +38,6 @@ export async function cleanupTables(
   ...tableNames: string[]
 ) {
   for (const tableName of tableNames) {
-    await db.execute(`TRUNCATE TABLE \`${tableName}\`` as any);
+    await db.execute(`DELETE FROM \`${tableName}\`` as any);
   }
 }

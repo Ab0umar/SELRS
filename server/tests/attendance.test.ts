@@ -220,7 +220,7 @@ describe.sequential("attendance leave and permission mutations", () => {
     expect(rows[0]?.approved).toBe(true);
   });
 
-  it("approval recomputes the day when the stored permission date is a Date", async () => {
+  it("approval recomputes a salary-exempt permission when the stored date is a Date", async () => {
     const db = await seedTestEmployee();
     const caller = appRouter.createCaller(makeCallerAs("manager"));
     const workDate = new Date("2026-03-10T12:00:00");
@@ -266,6 +266,7 @@ describe.sequential("attendance leave and permission mutations", () => {
       type: "in",
       durationMinutes: 45,
       approved: false,
+      notAffectSalary: true,
     });
     const permissionId = insertedId(permissionInsert);
     const storedPermission = await db
@@ -274,7 +275,7 @@ describe.sequential("attendance leave and permission mutations", () => {
       .where(eq(attendancePermissions.id, permissionId));
     expect(storedPermission[0]?.date).toBeInstanceOf(Date);
 
-    await dailyMaterializer.recomputeRange(workDate, workDate, {
+    await DailyMaterializer.recomputeRange(workDate, workDate, {
       empCd: TEST_EMP_CD,
     });
     let dailyRows = await db
