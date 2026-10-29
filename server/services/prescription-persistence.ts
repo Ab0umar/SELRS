@@ -8,9 +8,89 @@ import {
   testRequestItems,
   testRequests,
   visits,
+  patients,
+  tests,
 } from "../../drizzle/schema";
+import {
+  clinicalDate,
+  selectClinicalVisit,
+} from "../../shared/clinical-record";
+import { cairoDateIso } from "../../shared/visitSchedule";
+import { persistVisitSections } from "./clinical-sections";
 
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
+
+async function validateTests(
+  transaction: Transaction,
+  items: Array<{ testId: number }>,
+) {
+  const ids = [...new Set(items.map((item) => item.testId))];
+  if (!ids.length) return;
+  const existing = await transaction
+    .select({ id: tests.id })
+    .from(tests)
+    .where(inArray(tests.id, ids));
+  if (existing.length !== ids.length)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A selected test no longer exists in the catalog",
+    });
+}
+
+function preservedNote(
+  submitted: string | undefined,
+  stored: Array<string | null | undefined>,
+): string | undefined {
+  if (submitted !== undefined) return submitted;
+  const values = [...new Set(stored.map((value) => value ?? ""))];
+  if (values.length > 1)
+    throw new TRPCError({
+      code: "CONFLICT",
+      message:
+        "Existing instructions differ; review and provide the intended instructions explicitly",
+    });
+  return values[0] || undefined;
+}
+
+async function resolveRecordVisit(
+  tx: Transaction,
+  input: { patientId: number; visitId?: number; date?: string },
+) {
+  const [patient] = await tx
+    .select({ id: patients.id })
+    .from(patients)
+    .where(eq(patients.id, input.patientId))
+    .for("update");
+  if (!patient)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
+  const date = parseRecordDate(input.date ?? cairoDateIso());
+  const rows = await tx
+    .select()
+    .from(visits)
+    .where(eq(visits.patientId, input.patientId));
+  let selected;
+  try {
+    selected = selectClinicalVisit(
+      rows,
+      input.patientId,
+      input.visitId,
+      clinicalDate(date),
+    );
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: (error as Error).message,
+    });
+  }
+  if (selected) return selected.id;
+  const [visit] = await tx.insert(visits).values({
+    patientId: input.patientId,
+    visitDate: date,
+    visitType: "examination",
+    branch: "examinations",
+  });
+  return visit.insertId;
+}
 
 function parseRecordDate(input?: string) {
   const text = input?.trim();
@@ -32,6 +112,7 @@ export type PrescriptionInput = {
   doctorId?: number;
   date?: string;
   notes?: string;
+  diagnosis?: string;
   items: Array<{
     medicationId?: number;
     medicationName: string;
@@ -124,9 +205,53 @@ export async function savePrescription(
   input: PrescriptionInput,
 ) {
   return connection.transaction(async (transaction) => {
-    if (input.visitId)
-      await lockPatientVisit(transaction, input.patientId, input.visitId);
-    return insertPrescription(transaction, input);
+    const visitId = await resolveRecordVisit(transaction, input);
+    if (input.diagnosis !== undefined)
+      await persistVisitSections(
+        transaction,
+        { patientId: input.patientId, visitId, doctorId: input.doctorId },
+        { diagnosis: input.diagnosis },
+      );
+    return insertPrescription(transaction, { ...input, visitId });
+  });
+}
+
+export async function saveTestRequest(
+  connection: MySql2Database,
+  input: {
+    patientId: number;
+    visitId?: number;
+    date?: string;
+    notes?: string;
+    diagnosis?: string;
+    items: Array<{ testId: number; notes?: string }>;
+  },
+) {
+  return connection.transaction(async (tx) => {
+    await validateTests(tx, input.items);
+    const visitId = await resolveRecordVisit(tx, input);
+    if (input.diagnosis !== undefined)
+      await persistVisitSections(
+        tx,
+        { patientId: input.patientId, visitId },
+        { diagnosis: input.diagnosis },
+      );
+    const [header] = await tx.insert(testRequests).values({
+      patientId: input.patientId,
+      visitId,
+      requestDate: parseRecordDate(input.date),
+      notes: input.notes,
+      status: "pending",
+    });
+    if (input.items.length)
+      await tx.insert(testRequestItems).values(
+        input.items.map((item) => ({
+          testRequestId: header.insertId,
+          testId: item.testId,
+          result: item.notes,
+        })),
+      );
+    return { id: header.insertId, visitId };
   });
 }
 
@@ -134,23 +259,9 @@ export async function replaceVisitPrescription(
   connection: MySql2Database,
   input: PrescriptionInput & { visitId: number },
 ) {
-  return connection.transaction(async (transaction) => {
-    await lockPatientVisit(transaction, input.patientId, input.visitId);
-    const previous = await transaction
-      .select({ id: prescriptions.id })
-      .from(prescriptions)
-      .where(eq(prescriptions.visitId, input.visitId));
-    if (input.items.length > 0) await insertPrescription(transaction, input);
-    const previousIds = previous.map((prescription) => prescription.id);
-    if (previousIds.length > 0) {
-      await transaction
-        .delete(prescriptionItems)
-        .where(inArray(prescriptionItems.prescriptionId, previousIds));
-      await transaction
-        .delete(prescriptions)
-        .where(inArray(prescriptions.id, previousIds));
-    }
-  });
+  return connection.transaction((transaction) =>
+    persistVisitPrescription(transaction, input),
+  );
 }
 
 export async function replaceVisitTestRequests(
@@ -160,39 +271,141 @@ export async function replaceVisitTestRequests(
     visitId: number;
     date?: string;
     notes?: string;
+    diagnosis?: string;
     items: Array<{ testId: number; notes?: string }>;
   },
 ) {
-  return connection.transaction(async (transaction) => {
-    await lockPatientVisit(transaction, input.patientId, input.visitId);
-    const previous = await transaction
-      .select({ id: testRequests.id })
-      .from(testRequests)
-      .where(eq(testRequests.visitId, input.visitId));
-    if (input.items.length > 0) {
-      const [header] = await transaction.insert(testRequests).values({
+  return connection.transaction((transaction) =>
+    persistVisitTestRequests(transaction, input),
+  );
+}
+
+export async function persistVisitPrescription(
+  transaction: Transaction,
+  input: Parameters<typeof replaceVisitPrescription>[1],
+) {
+  await lockPatientVisit(transaction, input.patientId, input.visitId);
+  if (input.diagnosis !== undefined)
+    await persistVisitSections(
+      transaction,
+      {
         patientId: input.patientId,
         visitId: input.visitId,
-        requestDate: parseRecordDate(input.date),
-        status: "pending",
-      });
-      if (!header.insertId) throw new Error("Failed to create test request");
-      await transaction.insert(testRequestItems).values(
-        input.items.map((item) => ({
-          testRequestId: header.insertId,
-          testId: item.testId,
-          result: item.notes,
-        })),
+        doctorId: input.doctorId,
+      },
+      { diagnosis: input.diagnosis },
+    );
+  const previous = await transaction
+    .select({ id: prescriptions.id, notes: prescriptions.notes })
+    .from(prescriptions)
+    .where(
+      and(
+        eq(prescriptions.visitId, input.visitId),
+        eq(prescriptions.patientId, input.patientId),
+      ),
+    );
+  const previousIds = previous.map((prescription) => prescription.id);
+  const stored = previousIds.length
+    ? await transaction
+        .select()
+        .from(prescriptionItems)
+        .where(inArray(prescriptionItems.prescriptionId, previousIds))
+    : [];
+  const items = input.items.map((item) => {
+    const matches = stored.filter(
+      (record) => record.medicationId === item.medicationId,
+    );
+    const next = { ...item };
+    for (const key of [
+      "dosage",
+      "frequency",
+      "duration",
+      "instructions",
+    ] as const)
+      next[key] = preservedNote(
+        item[key],
+        matches.map((record) => record[key]),
       );
-    }
-    const previousIds = previous.map((request) => request.id);
-    if (previousIds.length > 0) {
-      await transaction
-        .delete(testRequestItems)
-        .where(inArray(testRequestItems.testRequestId, previousIds));
-      await transaction
-        .delete(testRequests)
-        .where(inArray(testRequests.id, previousIds));
-    }
+    return next;
   });
+  if (items.length > 0)
+    await insertPrescription(transaction, {
+      ...input,
+      items,
+      notes: preservedNote(
+        input.notes,
+        previous.map((record) => record.notes),
+      ),
+    });
+  if (previousIds.length > 0) {
+    await transaction
+      .delete(prescriptionItems)
+      .where(inArray(prescriptionItems.prescriptionId, previousIds));
+    await transaction
+      .delete(prescriptions)
+      .where(inArray(prescriptions.id, previousIds));
+  }
+}
+
+export async function persistVisitTestRequests(
+  transaction: Transaction,
+  input: Parameters<typeof replaceVisitTestRequests>[1],
+) {
+  await validateTests(transaction, input.items);
+  await lockPatientVisit(transaction, input.patientId, input.visitId);
+  if (input.diagnosis !== undefined)
+    await persistVisitSections(
+      transaction,
+      { patientId: input.patientId, visitId: input.visitId },
+      { diagnosis: input.diagnosis },
+    );
+  const previous = await transaction
+    .select({ id: testRequests.id, notes: testRequests.notes })
+    .from(testRequests)
+    .where(
+      and(
+        eq(testRequests.visitId, input.visitId),
+        eq(testRequests.patientId, input.patientId),
+      ),
+    );
+  const previousIds = previous.map((request) => request.id);
+  const stored = previousIds.length
+    ? await transaction
+        .select()
+        .from(testRequestItems)
+        .where(inArray(testRequestItems.testRequestId, previousIds))
+    : [];
+  if (input.items.length > 0) {
+    const [header] = await transaction.insert(testRequests).values({
+      patientId: input.patientId,
+      visitId: input.visitId,
+      requestDate: parseRecordDate(input.date),
+      notes: preservedNote(
+        input.notes,
+        previous.map((record) => record.notes),
+      ),
+      status: "pending",
+    });
+    if (!header.insertId) throw new Error("Failed to create test request");
+    await transaction.insert(testRequestItems).values(
+      input.items.map((item) => ({
+        testRequestId: header.insertId,
+        testId: item.testId,
+        result: preservedNote(
+          item.notes,
+          stored
+            .filter((record) => record.testId === item.testId)
+            .map((record) => record.result),
+        ),
+      })),
+    );
+  }
+  if (previousIds.length > 0) {
+    await transaction
+      .delete(testRequestItems)
+      .where(inArray(testRequestItems.testRequestId, previousIds));
+    await transaction
+      .delete(testRequests)
+      .where(inArray(testRequests.id, previousIds));
+  }
 }

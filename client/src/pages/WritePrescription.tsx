@@ -1,3 +1,4 @@
+import { selectClinicalVisit } from "../../../shared/clinical-record";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
@@ -69,6 +70,7 @@ export type WritePrescriptionProps = {
   hidePageChrome?: boolean;
   /** من مركز المريض — يطبَّق على تاريخ الروشتة */
   hubVisitDate?: string;
+  hubVisitId?: number;
   embeddedInPatientHub?: boolean;
   /** مركز المريض: عرض فقط */
   patientHubReadOnly?: boolean;
@@ -78,6 +80,7 @@ export type WritePrescriptionProps = {
 export default function WritePrescription({
   hidePageChrome,
   hubVisitDate,
+  hubVisitId,
   embeddedInPatientHub,
   patientHubReadOnly,
   patientHubViewOnlyHint = "العرض فقط داخل المركز",
@@ -102,6 +105,10 @@ export default function WritePrescription({
   const editingForbidden = isReadOnly || Boolean(patientHubReadOnly);
   const canImportReadyTemplates = isAdmin;
   const initialPatientId = params?.id ? Number(params.id) : 0;
+  const requestedVisitId =
+    hubVisitId ??
+    (Number(new URLSearchParams(window.location.search).get("visitId")) ||
+      undefined);
   const routeVisitDate =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("visitDate") || ""
@@ -160,21 +167,7 @@ export default function WritePrescription({
     "الالتزام بأخذ العلاج كما وصفه الطبيب.",
     "الالتزام بمواعيد المتابعة بعد العملية.",
   ];
-  const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: patientId ?? 0, page: "prescription" },
-    {
-      enabled:
-        Boolean(patientId) &&
-        !initialPatientId &&
-        !editingForbidden &&
-        !isKfRoute,
-      refetchOnWindowFocus: false,
-    },
-  );
-  const { mutate: savePatientPageState } =
-    trpc.medical.savePatientPageState.useMutation({
-      onSuccess: () => undefined,
-    });
+
   const templateOverridesQuery =
     trpc.medical.getReadyTemplateOverrides.useQuery(
       { scope: "prescription" },
@@ -198,10 +191,7 @@ export default function WritePrescription({
         await templateOverridesQuery.refetch();
       },
     });
-  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const hydratedPatientStateRef = useRef<number | null>(null);
+
   const importInputId = "ready-prescriptions-import";
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const importPollRef = useRef<number | null>(null);
@@ -228,7 +218,7 @@ export default function WritePrescription({
   });
   const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
     { patientId: patientId ?? 0 },
-    { enabled: Boolean(patientId && requestedVisitDate) && !isKfRoute, refetchOnWindowFocus: false },
+    { enabled: Boolean(patientId) && !isKfRoute, refetchOnWindowFocus: false },
   );
   const kfPatientQuery = trpc.kf.getPatient.useQuery(
     { kfId: patientId ?? 0 },
@@ -286,10 +276,6 @@ export default function WritePrescription({
   }, [params?.id]);
 
   useEffect(() => {
-    hydratedPatientStateRef.current = null;
-  }, [patientId]);
-
-  useEffect(() => {
     const patient = patientQuery.data as any;
     if (!patient) return;
     setPatientName(patient.fullName ?? "");
@@ -305,53 +291,12 @@ export default function WritePrescription({
     setPatientCode(String(patient.kfCode ?? "").trim());
   }, [kfPatientQuery.data, isKfRoute]);
 
-  useEffect(() => {
-    if (editingForbidden) return;
-    const data = (patientStateQuery.data as any)?.data;
-    if (!data) return;
-    if (hydratedPatientStateRef.current === patientId) return;
-    if (!requestedVisitDate && data.prescriptionDate) setPrescriptionDate(data.prescriptionDate);
-    if (data.generalNotes !== undefined)
-      setGeneralNotes(data.generalNotes ?? "");
-    if (data.medicationSearch !== undefined)
-      setMedicationSearch(data.medicationSearch ?? "");
-    if (data.diagnosis !== undefined) setDiagnosis(data.diagnosis ?? "");
-    if (Array.isArray(data.prescriptionItems))
-      setPrescriptionItems(data.prescriptionItems);
-    hydratedPatientStateRef.current = patientId;
-  }, [patientStateQuery.data, editingForbidden, patientId, requestedVisitDate]);
-
-  useEffect(() => {
-    if (!patientId || editingForbidden) return;
-    if (isKfRoute) return;
-    if (patientStateTimerRef.current)
-      clearTimeout(patientStateTimerRef.current);
-    const payload = {
-      prescriptionDate,
-      generalNotes,
-      medicationSearch,
-      prescriptionItems,
-      diagnosis,
-    };
-    patientStateTimerRef.current = setTimeout(() => {
-      savePatientPageState({ patientId, page: "prescription", data: payload });
-    }, 800);
-    return () => {
-      if (patientStateTimerRef.current)
-        clearTimeout(patientStateTimerRef.current);
-    };
-  }, [
-    patientId,
-    editingForbidden,
-    prescriptionDate,
-    generalNotes,
-    medicationSearch,
-    prescriptionItems,
-    diagnosis,
-    savePatientPageState,
-    isKfRoute,
-  ]);
-
+  const replacePrescriptionMutation =
+    trpc.medical.replacePrescriptionWithItems.useMutation({
+      onSuccess: () => toast.success("تم حفظ الروشتة"),
+      onError: (error) =>
+        toast.error(getTrpcErrorMessage(error, "فشل حفظ الروشتة")),
+    });
   if (!isAuthenticated) return null;
 
   const templateOverrides = (templateOverridesQuery.data ?? {}) as Record<
@@ -486,12 +431,14 @@ export default function WritePrescription({
       setPrescriptionItems([]);
       return;
     }
-    const latest = requestedVisitDate
-      ? history.find(
-          (item) =>
-            toDateInputValue(item.prescriptionDate) === requestedVisitDate,
-        )
-      : history[0];
+    const latest = requestedVisitId
+      ? history.find((item) => Number(item.visitId) === requestedVisitId)
+      : requestedVisitDate
+        ? history.find(
+            (item) =>
+              toDateInputValue(item.prescriptionDate) === requestedVisitDate,
+          )
+        : history[0];
     if (!latest) {
       setPrescriptionItems([]);
       setGeneralNotes("");
@@ -508,6 +455,7 @@ export default function WritePrescription({
       instructions: item.instructions ?? "",
     }));
     setPrescriptionItems(items);
+    setGeneralNotes(latest.notes ?? "");
     if (requestedVisitDate) {
       setPrescriptionDate(requestedVisitDate);
     } else if (latest.prescriptionDate) {
@@ -519,6 +467,28 @@ export default function WritePrescription({
     editingForbidden,
     initialPatientId,
     requestedVisitDate,
+    requestedVisitId,
+  ]);
+
+  useEffect(() => {
+    let visit: NonNullable<typeof visitsQuery.data>[number] | undefined;
+    try {
+      visit = selectClinicalVisit<NonNullable<typeof visitsQuery.data>[number]>(
+        visitsQuery.data ?? [],
+        patientId ?? 0,
+        requestedVisitId,
+        requestedVisitDate || prescriptionDate,
+      );
+    } catch {
+      visit = undefined;
+    }
+    setDiagnosis(visit?.diagnosis ?? "");
+  }, [
+    visitsQuery.data,
+    patientId,
+    requestedVisitId,
+    requestedVisitDate,
+    prescriptionDate,
   ]);
 
   // Auto-print (triggered by usePrintMode below) must wait for the patient
@@ -564,16 +534,26 @@ export default function WritePrescription({
       toast.error("يرجى إضافة دواء واحد على الأقل.");
       return;
     }
-    if (requestedVisitDate && (visitsQuery.isLoading || visitsQuery.isError)) {
+    if (visitsQuery.isLoading || visitsQuery.isError) {
       toast.error("تعذر تحميل الزيارة المحددة. يرجى إعادة المحاولة.");
       return;
     }
-    const selectedVisit = requestedVisitDate
-      ? visitsQuery.data?.find((visit: { id: number; visitDate: unknown }) => toDateInputValue(visit.visitDate) === prescriptionDate)
-      : undefined;
-    await createPrescriptionMutation.mutateAsync({
+    let linkedVisit;
+    try {
+      linkedVisit = selectClinicalVisit(
+        visitsQuery.data ?? [],
+        patientId,
+        requestedVisitId,
+        prescriptionDate,
+      );
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "حدد الزيارة قبل الحفظ"));
+      return;
+    }
+    const payload = {
       patientId,
-      visitId: selectedVisit?.id,
+      visitId: linkedVisit?.id,
+      diagnosis,
       date: prescriptionDate,
       notes: generalNotes,
       items: itemsToSave.map((item) => ({
@@ -584,7 +564,13 @@ export default function WritePrescription({
         duration: item.duration,
         instructions: item.instructions,
       })),
-    });
+    };
+    if (linkedVisit)
+      await replacePrescriptionMutation.mutateAsync({
+        ...payload,
+        visitId: linkedVisit.id,
+      });
+    else await createPrescriptionMutation.mutateAsync(payload);
     if (patientId) {
       await historyQuery.refetch();
     }
@@ -1146,7 +1132,8 @@ export default function WritePrescription({
                     <label className="text-xs font-bold text-muted-foreground">
                       التشخيص (Diagnosis)
                     </label>
-                    <Input aria-label="اكتب التشخيص هنا…"
+                    <Input
+                      aria-label="اكتب التشخيص هنا…"
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
                       placeholder="اكتب التشخيص هنا…"
@@ -1166,7 +1153,8 @@ export default function WritePrescription({
                     الأدوية
                   </div>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Input aria-label="ابحث في الأدوية"
+                    <Input
+                      aria-label="ابحث في الأدوية"
                       value={medicationSearch}
                       onChange={(e) => setMedicationSearch(e.target.value)}
                       placeholder="ابحث في الأدوية"
@@ -1398,7 +1386,8 @@ export default function WritePrescription({
                             استيراد مباشر من مسار السيرفر
                           </div>
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <Input aria-label="E:\\\\path\\\\to\\\\file.xlsx"
+                            <Input
+                              aria-label="E:\\\\path\\\\to\\\\file.xlsx"
                               value={importPath}
                               onChange={(e) => setImportPath(e.target.value)}
                               placeholder="E:\\path\\to\\file.xlsx"
@@ -1649,7 +1638,8 @@ export default function WritePrescription({
                           dir="ltr"
                         >
                           <div className="flex-1 space-y-2">
-                            <Input aria-label="Medication name"
+                            <Input
+                              aria-label="Medication name"
                               value={item.medicationName}
                               onChange={(e) =>
                                 setPrescriptionItems((prev) =>
@@ -1679,7 +1669,8 @@ export default function WritePrescription({
                               className="grid grid-cols-1 gap-2 sm:grid-cols-3 print:hidden"
                               dir="rtl"
                             >
-                              <Input aria-label="الجرعة"
+                              <Input
+                                aria-label="الجرعة"
                                 value={item.dosage}
                                 onChange={(e) =>
                                   setPrescriptionItems((prev) =>
@@ -1693,7 +1684,8 @@ export default function WritePrescription({
                                 placeholder="الجرعة"
                                 className="h-9 border-border/60 bg-muted/30 text-right"
                               />
-                              <Input aria-label="التكرار"
+                              <Input
+                                aria-label="التكرار"
                                 value={item.frequency}
                                 onChange={(e) =>
                                   setPrescriptionItems((prev) =>
@@ -1707,7 +1699,8 @@ export default function WritePrescription({
                                 placeholder="التكرار"
                                 className="h-9 border-border/60 bg-muted/30 text-right"
                               />
-                              <Input aria-label="المدة"
+                              <Input
+                                aria-label="المدة"
                                 value={item.duration}
                                 onChange={(e) =>
                                   setPrescriptionItems((prev) =>
@@ -1722,7 +1715,8 @@ export default function WritePrescription({
                                 className="h-9 border-border/60 bg-muted/30 text-right"
                               />
                             </div>
-                            <Textarea aria-label="تعليمات إضافية"
+                            <Textarea
+                              aria-label="تعليمات إضافية"
                               value={item.instructions}
                               onChange={(e) =>
                                 setPrescriptionItems((prev) =>

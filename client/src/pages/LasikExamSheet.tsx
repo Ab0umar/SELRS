@@ -493,14 +493,7 @@ export default function LasikExamSheet({
       refetchOnWindowFocus: false,
     },
   );
-  const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: initialPatientId ?? 0, page: "examination" },
-    {
-      enabled: isAuthenticated && Boolean(initialPatientId),
-      retry: 2,
-      refetchOnWindowFocus: false,
-    },
-  );
+
   const examinationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
     { patientId: initialPatientId ?? 0 },
     {
@@ -822,10 +815,6 @@ export default function LasikExamSheet({
       onError: (error) =>
         toast.error(getTrpcErrorMessage(error, "تعذر مسح شيت الزيارة")),
     });
-  const saveRefractionMutation =
-    trpc.medical.saveRefractionToExamination.useMutation();
-  const updateChiefComplaintMutation =
-    trpc.medical.updateVisitChiefComplaint.useMutation();
 
   const handleSelectPatient = (patient: {
     id: number;
@@ -951,7 +940,7 @@ export default function LasikExamSheet({
         setDiabetesDuration(String(parsed.diabetesDuration ?? ""));
       }
       if (parsed.medicalHistory) {
-        setMedicalHistory((prev) => ({ ...parsed.medicalHistory, ...prev }));
+        setMedicalHistory((prev) => ({ ...prev, ...parsed.medicalHistory }));
       }
       if (Object.prototype.hasOwnProperty.call(parsed, "medicalHistoryOther")) {
         const savedOther = String(parsed.medicalHistoryOther ?? "").trim();
@@ -980,9 +969,8 @@ export default function LasikExamSheet({
           both,
         });
       }
-      if (parsed.diagnosisText) setDiagnosisText(parsed.diagnosisText);
-      if (parsed.finalDecisionText)
-        setFinalDecisionText(parsed.finalDecisionText);
+      setDiagnosisText(String(parsed.diagnosisText ?? ""));
+      setFinalDecisionText(String(parsed.finalDecisionText ?? ""));
     } catch {}
   }, [loadedSheetData]);
 
@@ -1086,11 +1074,11 @@ export default function LasikExamSheet({
       autorefraction: {
         od: {
           ...previous.autorefraction.od,
-          bcva: String(latest.bcvaOD || previous.autorefraction.od.bcva || ""),
+          bcva: String(latest.bcvaOD ?? ""),
         },
         os: {
           ...previous.autorefraction.os,
-          bcva: String(latest.bcvaOS || previous.autorefraction.os.bcva || ""),
+          bcva: String(latest.bcvaOS ?? ""),
         },
       },
     }));
@@ -1116,7 +1104,7 @@ export default function LasikExamSheet({
           c: String(latest.cylinderOD ?? ""),
           axis: String(latest.axisOD ?? ""),
           ucva: String(latest.ucvaOD ?? ""),
-          bcva: String(latest.bcvaOD || previous.autorefraction.od.bcva || ""),
+          bcva: String(latest.bcvaOD ?? ""),
           iop: String(latest.iopOD ?? ""),
         },
         os: {
@@ -1125,7 +1113,7 @@ export default function LasikExamSheet({
           c: String(latest.cylinderOS ?? ""),
           axis: String(latest.axisOS ?? ""),
           ucva: String(latest.ucvaOS ?? ""),
-          bcva: String(latest.bcvaOS || previous.autorefraction.os.bcva || ""),
+          bcva: String(latest.bcvaOS ?? ""),
           iop: String(latest.iopOS ?? ""),
         },
       },
@@ -1179,16 +1167,6 @@ export default function LasikExamSheet({
   }, [reportsQuery.data, selectedVisitId]);
 
   useEffect(() => {
-    const stateData = (examinationStateQuery.data as any)?.data;
-    if (!stateData) return;
-    const doctorFromState =
-      String(stateData.doctorName ?? "").trim() ||
-      String(stateData.signatures?.doctor ?? "").trim();
-    if (!doctorFromState) return;
-    setSignatures((prev) => ({ ...prev, doctor: doctorFromState }));
-  }, [examinationStateQuery.data]);
-
-  useEffect(() => {
     const fullName = String(user?.name ?? "").trim();
     if (!fullName) return;
     const role = String(user?.role ?? "").toLowerCase();
@@ -1199,13 +1177,10 @@ export default function LasikExamSheet({
       technician: role === "technician" ? fullName : prev.technician,
       doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor,
     }));
-  }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
+  }, [user?.name, user?.role, sheetQuery.data]);
 
   const isSaving =
-    saveSheetMutation.isPending ||
-    saveRefractionMutation.isPending ||
-    updateChiefComplaintMutation.isPending ||
-    upsertMedicalHistoryMutation.isPending;
+    saveSheetMutation.isPending || upsertMedicalHistoryMutation.isPending;
 
   const handleSaveSheet = async () => {
     if (!initialPatientId) {
@@ -1231,8 +1206,7 @@ export default function LasikExamSheet({
           return {};
         }
       })();
-      const pickValue = (next: string, prev?: string) =>
-        next && next.trim() ? next : prev;
+      const pickValue = (next: string, prev?: string) => next;
       const mergedExamData = {
         autorefraction: {
           od: {
@@ -1379,7 +1353,19 @@ export default function LasikExamSheet({
           ...existing,
           visitId: selectedVisitId,
           formData: { ...(existing.formData ?? {}), ...formData },
-          examData: mergedExamData,
+          examData: {
+            ...mergedExamData,
+            glasses: {
+              od: {
+                ...clinicalRefraction.od,
+                bcva: examData.autorefraction.od.bcva,
+              },
+              os: {
+                ...clinicalRefraction.os,
+                bcva: examData.autorefraction.os.bcva,
+              },
+            },
+          },
           consultantExam,
           consultantDrawing,
           consultantDrawingDescription,
@@ -1399,45 +1385,6 @@ export default function LasikExamSheet({
           },
         }),
       });
-      if (selectedVisitId) {
-        await updateChiefComplaintMutation.mutateAsync({
-          visitId: selectedVisitId,
-          chiefComplaint: consultantExam.complains.trim(),
-        });
-      }
-      await upsertMedicalHistoryMutation.mutateAsync({
-        patientId: initialPatientId,
-        diabetes: medicalHistory["سكر؟"] === "yes",
-        hypertension: medicalHistory["ضغط؟"] === "yes",
-        thyroid: medicalHistory["الغدة الدرقية؟"] === "yes",
-        autoimmune: medicalHistory["أمراض مناعة؟"] === "yes",
-        glaucoma: medicalHistory["ماء زرقاء؟"] === "yes",
-        familyKeratoconus: medicalHistory["قرنية مخروطية بالعائلة؟"] === "yes",
-      });
-      if (selectedExamination?.id) {
-        await saveRefractionMutation.mutateAsync({
-          patientId: initialPatientId,
-          visitId: selectedVisitId,
-          examinationId: selectedExamination.id,
-          createVisitIfMissing: false,
-          glassesData: {
-            od: {
-              s: clinicalRefraction.od.s || undefined,
-              c: clinicalRefraction.od.c || undefined,
-              axis: clinicalRefraction.od.axis || undefined,
-              pd: clinicalRefraction.od.pd || undefined,
-              bcva: examData.autorefraction.od.bcva || undefined,
-            },
-            os: {
-              s: clinicalRefraction.os.s || undefined,
-              c: clinicalRefraction.os.c || undefined,
-              axis: clinicalRefraction.os.axis || undefined,
-              pd: clinicalRefraction.os.pd || undefined,
-              bcva: examData.autorefraction.os.bcva || undefined,
-            },
-          },
-        });
-      }
       await Promise.all([
         sheetQuery.refetch(),
         examinationsQuery.refetch(),
@@ -1564,7 +1511,10 @@ export default function LasikExamSheet({
                     dir="ltr"
                     value={formData.patientCode}
                     onChange={(e) =>
-                      setFormData((p) => ({ ...p, patientCode: e.target.value }))
+                      setFormData((p) => ({
+                        ...p,
+                        patientCode: e.target.value,
+                      }))
                     }
                   />
                 </label>
@@ -1655,7 +1605,7 @@ export default function LasikExamSheet({
         ) : null}
 
         <section
-          className="print-lasik-patient-grid p-4 bg-[#f3f4f6] rounded-xl border-0 flex flex-col gap-2 text-sm"
+          className="print-lasik-patient-grid p-4 bg-muted/50 rounded-xl border-0 flex flex-col gap-2 text-sm"
           dir="rtl"
         >
           <div className="patient-info-grid-3x3 grid grid-cols-3 gap-x-4 gap-y-2 text-xs">
@@ -1778,9 +1728,14 @@ export default function LasikExamSheet({
           dir="rtl"
         >
           {currentSheetType !== "external" ? (
-            <div role="region" aria-label="جدول بيانات" tabIndex={0} className="print-lasik-questions overflow-x-auto flex h-full w-full sm:w-[calc(75%-0.375rem)] min-w-0 flex-col">
+            <div
+              role="region"
+              aria-label="جدول بيانات"
+              tabIndex={0}
+              className="print-lasik-questions overflow-x-auto flex h-full w-full sm:w-[calc(75%-0.375rem)] min-w-0 flex-col"
+            >
               <table className="w-full h-full border-collapse border border-[#c3c6d6] rounded-lg overflow-hidden text-sm">
-                <thead className="bg-[#e7e8ea]">
+                <thead className="bg-muted">
                   <tr>
                     <th className="w-12 p-2 border border-[#c3c6d6]">لا</th>
                     <th className="w-12 p-2 border border-[#c3c6d6]">نعم</th>
@@ -1902,9 +1857,9 @@ export default function LasikExamSheet({
                           </React.Fragment>
                         ) : (
                           <React.Fragment key={`${rowIndex}-${colIndex}`}>
-                            <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                            <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
-                            <td className="border border-[#c3c6d6] bg-[#f8f9fb]" />
+                            <td className="border border-[#c3c6d6] bg-muted/50" />
+                            <td className="border border-[#c3c6d6] bg-muted/50" />
+                            <td className="border border-[#c3c6d6] bg-muted/50" />
                           </React.Fragment>
                         ),
                       )}
@@ -1912,7 +1867,7 @@ export default function LasikExamSheet({
                   ))}
                   <tr>
                     <td
-                      className="p-1.5 border border-[#c3c6d6] text-right bg-[#f3f4f6]"
+                      className="p-1.5 border border-[#c3c6d6] text-right bg-muted/50"
                       colSpan={3}
                     >
                       أخرى؟
@@ -1946,7 +1901,7 @@ export default function LasikExamSheet({
                   key={metric.key}
                   className="w-full text-center border-collapse"
                 >
-                  <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                  <thead className="bg-muted text-xs font-bold uppercase">
                     <tr>
                       <th className={ctd}>{metric.label}</th>
                       <th className={`${ctd} text-[#003d9b]`}>OD</th>
@@ -1955,7 +1910,7 @@ export default function LasikExamSheet({
                   </thead>
                   <tbody>
                     <tr>
-                      <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>
+                      <td className={`${ctd} bg-muted/50 text-[#434654]`}>
                         {metric.unit}
                       </td>
                       <td className={ctd}>
@@ -1983,7 +1938,7 @@ export default function LasikExamSheet({
               dir="ltr"
             >
               <table className="w-full flex-1 text-center border-collapse">
-                <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                <thead className="bg-muted text-xs font-bold uppercase">
                   <tr>
                     <th className={ctd}>IOP</th>
                     <th className={`${ctd} text-[#003d9b]`}>OD</th>
@@ -1992,7 +1947,7 @@ export default function LasikExamSheet({
                 </thead>
                 <tbody>
                   <tr>
-                    <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>
+                    <td className={`${ctd} bg-muted/50 text-[#434654]`}>
                       mmHg
                     </td>
                     <td className={ctd}>
@@ -2013,7 +1968,7 @@ export default function LasikExamSheet({
                 </tbody>
               </table>
               <table className="w-full flex-1 text-center border-collapse">
-                <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                <thead className="bg-muted text-xs font-bold uppercase">
                   <tr>
                     <th className={ctd}>Eye</th>
                     <th className={ctd}>UCVA</th>
@@ -2041,7 +1996,7 @@ export default function LasikExamSheet({
                     </td>
                   </tr>
                   <tr>
-                    <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                    <td className={`${ctd} text-[#526069] bg-muted/50`}>OS</td>
                     <td className={ctd}>
                       <input
                         className={inp}
@@ -2132,7 +2087,7 @@ export default function LasikExamSheet({
                     className={`px-3 py-2 text-sm font-bold ${
                       eye === "od"
                         ? "bg-blue-50 text-blue-900"
-                        : "bg-slate-100 text-slate-700"
+                        : "bg-muted text-slate-700"
                     }`}
                   >
                     {eye === "od" ? "OD (Right)" : "OS (Left)"}
@@ -2178,7 +2133,7 @@ export default function LasikExamSheet({
                   </div>
                 </div>
               ))}
-              <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm font-semibold text-blue-900">
+              <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-muted/50 p-2 text-sm font-semibold text-blue-900">
                 <span className="shrink-0">Reading / Add +</span>
                 <input
                   className="h-9 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 text-center font-mono outline-none focus:border-blue-600"
@@ -2188,7 +2143,12 @@ export default function LasikExamSheet({
               </label>
             </div>
           ) : null}
-          <div role="region" aria-label="جدول بيانات" tabIndex={0} className="clinical-data-scroll overflow-x-auto">
+          <div
+            role="region"
+            aria-label="جدول بيانات"
+            tabIndex={0}
+            className="clinical-data-scroll overflow-x-auto"
+          >
             <table
               className={`sheet-refraction-table clinical-refraction-desktop-table w-full table-fixed border-collapse text-center ${
                 embeddedMode === "examination" ? "hidden sm:table" : ""
@@ -2203,7 +2163,7 @@ export default function LasikExamSheet({
                 <col style={{ width: "14%" }} />
                 <col style={{ width: "14%" }} />
               </colgroup>
-              <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
+              <thead className="bg-muted text-xs uppercase font-bold">
                 <tr>
                   <th className={ctd}>Refraction</th>
                   <th className={`${ctd} text-[#003d9b]`} colSpan={3}>
@@ -2225,7 +2185,7 @@ export default function LasikExamSheet({
               </thead>
               <tbody className="font-mono">
                 <tr>
-                  <td className={`${ctd} bg-[#f3f4f6]`}>&nbsp;</td>
+                  <td className={`${ctd} bg-muted/50`}>&nbsp;</td>
                   <td className={ctd}>
                     <RefractionValueSelect
                       value={clinicalRefraction.od.s}
@@ -2294,9 +2254,7 @@ export default function LasikExamSheet({
                   </td>
                 </tr>
                 <tr>
-                  <td
-                    className={`${ctd} bg-[#f3f4f6] font-bold text-[#003d9b]`}
-                  >
+                  <td className={`${ctd} bg-muted/50 font-bold text-[#003d9b]`}>
                     Reading
                   </td>
                   <td className={ctd} colSpan={6}>
@@ -2312,7 +2270,7 @@ export default function LasikExamSheet({
                 </tr>
                 {currentSheetType !== "consultant" ? (
                   <tr>
-                    <td className={`${ctd} text-left bg-[#f3f4f6]`}>Fundus</td>
+                    <td className={`${ctd} text-left bg-muted/50`}>Fundus</td>
                     <td className={ctd} colSpan={3}>
                       <input
                         className={inp}
@@ -2375,26 +2333,28 @@ export default function LasikExamSheet({
             </div>
             <div className="consultant-right-column flex w-full sm:w-[calc(75%-0.5rem)] flex-col gap-2">
               <div
-                className="consultant-complains-block flex-[1] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]"
+                className="consultant-complains-block flex-[1] rounded-lg border border-[#c3c6d6] bg-muted/50 px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]"
                 dir="ltr"
               >
                 <p className="mb-2 text-[13px] font-bold text-[#003d9b]">
                   Complains:
                 </p>
                 <AssistantField label="Complaints">
-                <textarea aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
-                  className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b] print:placeholder-transparent"
-                  data-medical-proposals="complaints symptoms"
-                  value={consultantExam.complains}
-                  onChange={(e) =>
-                    setConsultantExamField("complains", e.target.value)
-                  }
-                  placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
-                />
+                  <textarea
+                    aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                    className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b] print:placeholder-transparent"
+                    data-medical-proposals="complaints symptoms"
+                    value={consultantExam.complains}
+                    onChange={(e) =>
+                      setConsultantExamField("complains", e.target.value)
+                    }
+                    placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                  />
                 </AssistantField>
                 <div className="relative mt-2 print:hidden">
                   <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <input aria-label="ابحث عن الأعراض…"
+                  <input
+                    aria-label="ابحث عن الأعراض…"
                     className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none focus:border-[#003d9b]"
                     placeholder="ابحث عن الأعراض…"
                     value={complainsSearchText}
@@ -2452,7 +2412,7 @@ export default function LasikExamSheet({
                 </div>
               </div>
               <div
-                className="consultant-examination-block flex-[3] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]"
+                className="consultant-examination-block flex-[3] rounded-lg border border-[#c3c6d6] bg-muted/50 p-3 text-left text-[12px] text-[#1f2937]"
                 dir="ltr"
               >
                 <p className="mb-2 text-[13px] font-bold text-[#003d9b]">
@@ -2645,7 +2605,7 @@ export default function LasikExamSheet({
                     <tbody>
                       <tr>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] w-1/3 text-right text-[11px]`}
+                          className={`${ctd} bg-muted/50 w-1/3 text-right text-[11px]`}
                         >
                           K1 (Flat)
                         </td>
@@ -2657,7 +2617,7 @@ export default function LasikExamSheet({
                           />
                         </td>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] text-center w-8 text-[11px]`}
+                          className={`${ctd} bg-muted/50 text-center w-8 text-[11px]`}
                           rowSpan={2}
                         >
                           AX
@@ -2672,7 +2632,7 @@ export default function LasikExamSheet({
                       </tr>
                       <tr>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}
+                          className={`${ctd} bg-muted/50 text-right text-[11px]`}
                         >
                           K2 (Steep)
                         </td>
@@ -2686,7 +2646,7 @@ export default function LasikExamSheet({
                       </tr>
                       <tr>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}
+                          className={`${ctd} bg-muted/50 text-right text-[11px]`}
                         >
                           Thinnest
                         </td>
@@ -2700,7 +2660,7 @@ export default function LasikExamSheet({
                       </tr>
                       <tr>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}
+                          className={`${ctd} bg-muted/50 text-right text-[11px]`}
                         >
                           Apex
                         </td>
@@ -2714,7 +2674,7 @@ export default function LasikExamSheet({
                       </tr>
                       <tr>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] text-[#003d9b] text-right text-[11px]`}
+                          className={`${ctd} bg-muted/50 text-[#003d9b] text-right text-[11px]`}
                         >
                           Residual
                         </td>
@@ -2728,7 +2688,7 @@ export default function LasikExamSheet({
                       </tr>
                       <tr>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] text-right text-[11px]`}
+                          className={`${ctd} bg-muted/50 text-right text-[11px]`}
                         >
                           Planned TTT
                         </td>
@@ -2742,7 +2702,7 @@ export default function LasikExamSheet({
                       </tr>
                       <tr>
                         <td
-                          className={`${ctd} bg-[#f3f4f6] text-[#ba1a1a] text-right text-[11px]`}
+                          className={`${ctd} bg-muted/50 text-[#ba1a1a] text-right text-[11px]`}
                         >
                           Ablation
                         </td>
@@ -2764,9 +2724,14 @@ export default function LasikExamSheet({
 
         {currentSheetType !== "consultant" ? (
           <>
-            <section role="region" aria-label="جدول بيانات" tabIndex={0} className="print-lasik-treatment-plan overflow-x-auto">
+            <section
+              role="region"
+              aria-label="جدول بيانات"
+              tabIndex={0}
+              className="print-lasik-treatment-plan overflow-x-auto"
+            >
               <table className="w-full text-center border-collapse text-sm">
-                <thead className="bg-[#e7e8ea] text-xs uppercase font-bold text-[#434654]">
+                <thead className="bg-muted text-xs uppercase font-bold text-[#434654]">
                   <tr>
                     <th className={ctd}>Target Refraction</th>
                     <th className={ctd}>OD/OS</th>
@@ -2794,7 +2759,7 @@ export default function LasikExamSheet({
                         />
                       </td>
                       <td
-                        className={`${ctd} ${label === "OD" ? "text-[#003d9b] bg-[#003d9b]/5" : "text-[#526069] bg-[#f3f4f6]"}`}
+                        className={`${ctd} ${label === "OD" ? "text-[#003d9b] bg-[#003d9b]/5" : "text-[#526069] bg-muted/50"}`}
                       >
                         {label}
                       </td>
@@ -2928,9 +2893,7 @@ export default function LasikExamSheet({
             </div>
             <div className="lg:col-span-4 border-2 border-[#003d9b] rounded-xl p-4 bg-[#003d9b]/5">
               <div className="text-center font-bold text-[#003d9b] text-xs border-b border-[#003d9b]/20 pb-2 mb-3">
-                <label htmlFor="lasik-office-notes">
-                  Notes | ملاحظات
-                </label>
+                <label htmlFor="lasik-office-notes">Notes | ملاحظات</label>
               </div>
               <Textarea
                 id="lasik-office-notes"

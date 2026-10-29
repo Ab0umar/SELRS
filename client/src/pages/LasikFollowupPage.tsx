@@ -104,10 +104,7 @@ function LasikFollowupDocument() {
       setOperationDateRight(suggestedOperationTypeQuery.data.operationDate);
     }
   }, [initialPatientId, suggestedOperationTypeQuery.data]);
-  const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: initialPatientId ?? 0, page: "examination" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
+
   const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
     { patientId: initialPatientId ?? 0, sheetType: "lasik" },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
@@ -272,14 +269,6 @@ function LasikFollowupDocument() {
     }
   }, [patientQuery.data]);
 
-  useEffect(() => {
-    const doctorFromState = String(
-      (examinationStateQuery.data as any)?.data?.doctorName ?? "",
-    ).trim();
-    const fullName = String(user?.name ?? "").trim();
-    setSignatures({ doctor: doctorFromState || fullName || "" });
-  }, [examinationStateQuery.data, user?.name]);
-
   const saveFollowupSheetMutation =
     trpc.medical.saveFollowupSheet.useMutation();
   const saveInProgressRef = useRef(false);
@@ -348,7 +337,7 @@ function LasikFollowupDocument() {
     "Later Follow-up",
   ];
 
-  const followupPages: typeof followups[] = [];
+  const followupPages: (typeof followups)[] = [];
   for (let i = 0; i < followups.length; i += 4) {
     followupPages.push(followups.slice(i, i + 4));
   }
@@ -369,9 +358,7 @@ function LasikFollowupDocument() {
 
       {/* Top nav */}
       <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">
-        <span className="text-base font-bold text-primary">
-          متابعة الليزك
-        </span>
+        <span className="text-base font-bold text-primary">متابعة الليزك</span>
         <div className="flex items-center gap-3">
           <Button
             type="button"
@@ -393,7 +380,11 @@ function LasikFollowupDocument() {
             type="button"
             className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded uppercase hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
-            disabled={isSaving || followupSheetsQuery.isFetching || followupSheetsQuery.isError}
+            disabled={
+              isSaving ||
+              followupSheetsQuery.isFetching ||
+              followupSheetsQuery.isError
+            }
           >
             {isSaving ? "جاري الحفظ…" : "حفظ"}
           </Button>

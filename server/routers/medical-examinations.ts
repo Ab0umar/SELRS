@@ -1,4 +1,6 @@
+import { examinationFormInput } from "../services/examination-form-input";
 import { z } from "zod";
+import {medicalVisitInput} from "../services/medical-visit-input";
 import { access, readFile, readdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import * as XLSX from "xlsx";
@@ -56,8 +58,10 @@ import {
   upsertPatientToMssql,
 } from "../integrations/mssqlPatients";
 
-import { normalizeVisitType } from "./_medical/service-helpers";
 import { cairoDateIso } from "../../shared/visitSchedule";
+import { clinicalArray, clinicalValue, selectClinicalVisit, fundusRecord, correctedVision } from "../../shared/clinical-record";
+import { saveClinicalSheet } from "../services/clinical-sheet";
+import {examinationSheetFields} from "../../shared/examination-fields";
 
 export const medicalExaminationsRoutes = {
   getAppointmentsByPatient: makePageProcedure("/patient-file")
@@ -162,10 +166,16 @@ export const medicalExaminationsRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        await db.createExamination({
-          ...input,
-          examinedBy: ctx.user.id,
-        });
+        const connection = await db.getDb();
+        if (!connection) throw new Error("Database not available");
+        const value = (value: unknown) => value === undefined ? undefined : String(value);
+        await saveClinicalSheet(connection,{
+          patientId:input.patientId,visitId:input.visitId,sheetType:"clinical",
+          content:JSON.stringify({examinationNotes:input.examinationNotes,examData:{autorefraction:{
+            od:{s:value(input.refOD_S),c:value(input.refOD_C),axis:value(input.refOD_A),ucva:input.ucvaOD,bcva:input.bcvaOD,iop:value(input.iopOD)},
+            os:{s:value(input.refOS_S),c:value(input.refOS_C),axis:value(input.refOS_A),ucva:input.ucvaOS,bcva:input.bcvaOS,iop:value(input.iopOS)},
+          }}}),
+        },ctx.user.id,ctx.user.role);
 
         await db.logAuditEvent(
           ctx.user.id,
@@ -546,6 +556,8 @@ export const medicalExaminationsRoutes = {
         followupItems: z.array(
           z.object({
             itemId: z.number().int().positive().optional(),
+              visitId:z.number().int().positive().optional(),
+              clinicalContent:z.record(z.string(),z.unknown()).optional(),
             tableIndex: z.number(),
             followupDate: z.string().optional(),
             operationDate: z.string().optional(),
@@ -578,6 +590,8 @@ export const medicalExaminationsRoutes = {
 
       const saved = await db.saveFollowupSheetItems({
         patientId: input.patientId,
+          doctorId:ctx.user.id,
+          role:ctx.user.role,
         sheetType: input.sheetType,
         followupItems: input.followupItems.map((item) => ({
           ...item,
@@ -687,15 +701,19 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .query(async ({ input }) => {
+      const patientVisits = await db.getVisitsByPatient(input.patientId);
+      if(input.visitId && !patientVisits.some((visit:{id:number})=>visit.id===input.visitId))throw new TRPCError({code:"BAD_REQUEST",message:"The selected visit does not belong to this patient"});
+      const effectiveVisitId = input.visitId ?? patientVisits[0]?.id;
       const stored = await db.getSheetEntry(
         input.patientId,
         input.sheetType,
-        input.visitId,
+        effectiveVisitId,
       );
       let base: any = {};
       if (stored) {
         try {
-          base = JSON.parse(stored);
+          const metadata=JSON.parse(stored);
+          base={visitId:metadata.visitId,signatures:metadata.signatures,layout:metadata.layout,printLayout:metadata.printLayout,operationId:metadata.operationId ?? metadata.operationDetails?.surgeryId};
         } catch {
           base = {};
         }
@@ -709,44 +727,35 @@ export const medicalExaminationsRoutes = {
         pentacamRows,
         reports,
         surgeries,
+        histories,
       ] = await Promise.all([
         db.getAutorefractometryByPatient(input.patientId),
         db.getAfterRefractionByPatient(input.patientId),
         db.getGlassesRecordsByPatient(input.patientId),
-        input.visitId
-          ? db.getPentacamResultsByVisit(input.visitId).then((rows) => rows.filter((row: any) => Number(row.patientId) === input.patientId))
+        effectiveVisitId
+          ? db.getPentacamResultsByVisit(effectiveVisitId).then((rows) => rows.filter((row: any) => Number(row.patientId) === input.patientId))
           : db.getPentacamResultsByPatient(input.patientId, 1),
         db.getDoctorReportsByPatient(input.patientId),
         db.getSurgeriesByPatient(input.patientId),
+        db.getMedicalHistoryByPatient(input.patientId),
       ]);
-      const visitExaminations = input.visitId
-        ? await db.getExaminationsByVisit(input.visitId)
+      const visitExaminations = effectiveVisitId
+        ? await db.getExaminationsByVisit(effectiveVisitId)
         : [];
       const visitExaminationIds = new Set(
         visitExaminations.map((row: any) => Number(row.id)),
       );
 
       const rowsForVisit = (rows: any[] | undefined) => {
-        if (!input.visitId) return rows ?? [];
+        if (!effectiveVisitId) return rows ?? [];
         return (rows ?? []).filter(
           (row: any) =>
-            Number(row?.visitId) === Number(input.visitId) ||
+            Number(row?.visitId) === Number(effectiveVisitId) ||
             visitExaminationIds.has(Number(row?.examinationId)),
         );
       };
-      const pickFirstWithValues = (rows: any[] | undefined, keys: string[]) =>
-        rowsForVisit(rows).find((row: any) =>
-          keys.some((key) => {
-            const value = row?.[key];
-            return (
-              value !== null &&
-              value !== undefined &&
-              String(value).trim() !== ""
-            );
-          }),
-        ) ??
-        rowsForVisit(rows)[0] ??
-        {};
+      const pickFirstWithValues = (rows: any[] | undefined, _keys: string[]) =>
+        rowsForVisit(rows)[0] ?? {};
 
       const autoref = pickFirstWithValues(autorefRows as any[], [
         "sphereOD",
@@ -805,8 +814,26 @@ export const medicalExaminationsRoutes = {
         "tttOS",
         "ablationOS",
       ]) as any;
-      const report = (rowsForVisit(reports as any[])?.[0] ?? {}) as any;
-      const surgery = (surgeries?.[0] ?? {}) as any;
+      const storedReport = rowsForVisit(reports as any[])?.[0];
+      const surgery = effectiveVisitId
+        ? surgeries?.find((row: any) => Number(row.visitId) === Number(effectiveVisitId) && (!base.operationId || Number(row.id)===Number(base.operationId)))
+        : surgeries?.[0];
+      const selectedVisit = patientVisits.find((row:any)=>Number(row.id)===Number(effectiveVisitId));
+      const report=storedReport ?? (selectedVisit ? {diagnosis:selectedVisit.diagnosis,treatment:selectedVisit.treatment,recommendations:selectedVisit.recommendations,additionalNotes:selectedVisit.history,diseases:JSON.stringify(selectedVisit.diseaseIds),clinicalOpinion:selectedVisit.chiefComplaint,symptoms:selectedVisit.symptoms} : undefined);
+      const selectedExamination = visitExaminations[0];
+      const pressure=selectedExamination?.airPuff;
+      const details=examinationSheetFields(selectedExamination?.findings ?? {});
+      details.treatmentPlan=Object.fromEntries((selectedExamination?.procedurePlans ?? []).map((plan:any)=>[plan.eye,plan]));
+      for (const eye of ["od","os"]) {
+        if (autoref.id && base.examData?.autorefraction?.[eye]) {
+          for (const key of ["s","s1","s2","s3","c","c1","c2","c3","axis","a1","a2","a3","ucva","bcva","iop","airPuff1","airPuff2","airPuff3"]) delete base.examData.autorefraction[eye][key];
+        }
+        if (glasses.id && base.examData?.glasses?.[eye]) base.examData.glasses[eye] = {};
+        if (pentacam.id && base.examData?.pentacam?.[eye]) base.examData.pentacam[eye] = {};
+        if (afterRefraction.id && base.examData?.autorefraction?.[eye]) {
+          for (const key of ["afterS","afterC","afterA"]) delete base.examData.autorefraction[eye][key];
+        }
+      }
       const odSphere =
         autoref?.sphereOD ?? base?.examData?.autorefraction?.od?.s ?? "";
       const odCylinder =
@@ -820,44 +847,61 @@ export const medicalExaminationsRoutes = {
       const osAxis =
         autoref?.axisOS ?? base?.examData?.autorefraction?.os?.axis ?? "";
       const odAirPuff =
-        autoref?.iopOD ?? base?.examData?.autorefraction?.od?.airPuff1 ?? "";
+        pressure?.iopOD ?? "";
       const osAirPuff =
-        autoref?.iopOS ?? base?.examData?.autorefraction?.os?.airPuff1 ?? "";
+        pressure?.iopOS ?? "";
 
       const payload = {
         ...base,
+        ...details,
+        medicalChecklist:selectedExamination?.medicalChecklist ?? {},
+        readingValue:details.readingValue ?? base.readingValue ?? "",
+        notes:details.notes ?? base.notes ?? "",
+        officeNotes:details.notes ?? base.officeNotes ?? "",
+        diabetesDuration:histories?.[0]?.diabetesDuration ?? base.diabetesDuration ?? "",
+        medicalHistoryOther:histories?.[0]?.otherHistory ?? base.medicalHistoryOther ?? "",
+        visitId: effectiveVisitId,
+        symptoms:selectedVisit?.symptoms ?? report?.symptoms ?? "",
+        fundus: selectedExamination ? {od:fundusRecord(selectedExamination.posteriorSegmentOD).otherFindings,os:fundusRecord(selectedExamination.posteriorSegmentOS).otherFindings} : base.fundus,
+        examinationNotes: selectedExamination?.radiologyLabsNotes ?? base.examinationNotes ?? "",
+        medicalHistory: histories?.[0] ? {
+          "سكر؟":histories[0].diabetes ? "yes" : "no", "ضغط؟":histories[0].hypertension ? "yes" : "no",
+          "الغدة الدرقية؟":histories[0].thyroid ? "yes" : "no", "أمراض مناعة؟":histories[0].autoimmune ? "yes" : "no",
+          "ماء زرقاء؟":histories[0].glaucoma ? "yes" : "no", "قرنية مخروطية بالعائلة؟":histories[0].familyKeratoconus ? "yes" : "no",
+        } : base.medicalHistory,
+        consultantExam: {...(details.consultantExam ?? base.consultantExam),complains:selectedVisit ? selectedVisit.chiefComplaint ?? "" : report?.clinicalOpinion ?? base?.consultantExam?.complains ?? ""},
+        historyNotes: report?.additionalNotes ?? "",
+        diseases: report ? clinicalArray(report.diseases) : base.diseases ?? [],
+        diagnosisText: clinicalValue(report, "diagnosis", base?.diagnosisText ?? base?.formData?.diagnosis),
+        finalDecisionText: clinicalValue(report, "recommendations", base?.finalDecisionText ?? base?.finalDecision),
+        finalDecision: clinicalValue(report, "recommendations", base?.finalDecision ?? base?.finalDecisionText),
         formData: {
           ...(base?.formData ?? {}),
           diagnosis:
-            String(report?.diagnosis ?? "").trim() ||
-            base?.formData?.diagnosis ||
-            "",
+            clinicalValue(report, "diagnosis", base?.formData?.diagnosis),
           treatmentPlan:
-            String(report?.treatment ?? "").trim() ||
-            base?.formData?.treatmentPlan ||
-            "",
+            clinicalValue(report, "treatment", base?.formData?.treatmentPlan),
           recommendations:
-            String(report?.recommendations ?? "").trim() ||
-            base?.formData?.recommendations ||
-            "",
+            clinicalValue(report, "recommendations", base?.formData?.recommendations),
         },
         examData: {
           ...(base?.examData ?? {}),
+          fundus:{od:fundusRecord(selectedExamination?.posteriorSegmentOD),os:fundusRecord(selectedExamination?.posteriorSegmentOS)},
           autorefraction: {
             od: {
               ...(base?.examData?.autorefraction?.od ?? {}),
               s: odSphere,
               s1: odSphere,
-              s2: odSphere,
-              s3: odSphere,
+              s2: autoref?.sphere2OD ?? "",
+              s3: autoref?.sphere3OD ?? "",
               c: odCylinder,
               c1: odCylinder,
-              c2: odCylinder,
-              c3: odCylinder,
+              c2: autoref?.cylinder2OD ?? "",
+              c3: autoref?.cylinder3OD ?? "",
               axis: odAxis,
               a1: odAxis,
-              a2: odAxis,
-              a3: odAxis,
+              a2: autoref?.axis2OD ?? "",
+              a3: autoref?.axis3OD ?? "",
               afterS:
                 afterRefraction?.sphereOD ??
                 base?.examData?.autorefraction?.od?.afterS ??
@@ -874,30 +918,27 @@ export const medicalExaminationsRoutes = {
                 autoref?.ucvaOD ??
                 base?.examData?.autorefraction?.od?.ucva ??
                 "",
-              bcva:
-                autoref?.bcvaOD ??
-                base?.examData?.autorefraction?.od?.bcva ??
-                "",
+              bcva:correctedVision(glasses.id ? glasses : undefined,undefined,"OD") ?? "",
               iop:
-                autoref?.iopOD ?? base?.examData?.autorefraction?.od?.iop ?? "",
+                pressure?.iopOD ?? "",
               airPuff1: odAirPuff,
-              airPuff2: odAirPuff,
-              airPuff3: odAirPuff,
+              airPuff2: pressure?.iop2OD ?? "",
+              airPuff3: pressure?.iop3OD ?? "",
             },
             os: {
               ...(base?.examData?.autorefraction?.os ?? {}),
               s: osSphere,
               s1: osSphere,
-              s2: osSphere,
-              s3: osSphere,
+              s2: autoref?.sphere2OS ?? "",
+              s3: autoref?.sphere3OS ?? "",
               c: osCylinder,
               c1: osCylinder,
-              c2: osCylinder,
-              c3: osCylinder,
+              c2: autoref?.cylinder2OS ?? "",
+              c3: autoref?.cylinder3OS ?? "",
               axis: osAxis,
               a1: osAxis,
-              a2: osAxis,
-              a3: osAxis,
+              a2: autoref?.axis2OS ?? "",
+              a3: autoref?.axis3OS ?? "",
               afterS:
                 afterRefraction?.sphereOS ??
                 base?.examData?.autorefraction?.os?.afterS ??
@@ -914,15 +955,12 @@ export const medicalExaminationsRoutes = {
                 autoref?.ucvaOS ??
                 base?.examData?.autorefraction?.os?.ucva ??
                 "",
-              bcva:
-                autoref?.bcvaOS ??
-                base?.examData?.autorefraction?.os?.bcva ??
-                "",
+              bcva:correctedVision(glasses.id ? glasses : undefined,undefined,"OS") ?? "",
               iop:
-                autoref?.iopOS ?? base?.examData?.autorefraction?.os?.iop ?? "",
+                pressure?.iopOS ?? "",
               airPuff1: osAirPuff,
-              airPuff2: osAirPuff,
-              airPuff3: osAirPuff,
+              airPuff2: pressure?.iop2OS ?? "",
+              airPuff3: pressure?.iop3OS ?? "",
             },
           },
           glasses: {
@@ -932,6 +970,7 @@ export const medicalExaminationsRoutes = {
               c: glasses?.cOD ?? base?.examData?.glasses?.od?.c ?? "",
               axis: glasses?.axisOD ?? base?.examData?.glasses?.od?.axis ?? "",
               pd: glasses?.pdOD ?? base?.examData?.glasses?.od?.pd ?? "",
+              add: glasses?.addOD ?? base?.examData?.glasses?.od?.add ?? "",
               bcva: glasses?.bcvaOD ?? base?.examData?.glasses?.od?.bcva ?? "",
             },
             os: {
@@ -940,6 +979,7 @@ export const medicalExaminationsRoutes = {
               c: glasses?.cOS ?? base?.examData?.glasses?.os?.c ?? "",
               axis: glasses?.axisOS ?? base?.examData?.glasses?.os?.axis ?? "",
               pd: glasses?.pdOS ?? base?.examData?.glasses?.os?.pd ?? "",
+              add: glasses?.addOS ?? base?.examData?.glasses?.os?.add ?? "",
               bcva: glasses?.bcvaOS ?? base?.examData?.glasses?.os?.bcva ?? "",
             },
           },
@@ -951,7 +991,7 @@ export const medicalExaminationsRoutes = {
               axis:
                 pentacam?.axisOD ?? base?.examData?.pentacam?.od?.axis ?? "",
               ax1: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.ax1 ?? "",
-              ax2: pentacam?.axisOD ?? base?.examData?.pentacam?.od?.ax2 ?? "",
+              ax2: pentacam?.axis2OD ?? "",
               thinnest:
                 pentacam?.thinnestPointOD ??
                 base?.examData?.pentacam?.od?.thinnest ??
@@ -979,7 +1019,7 @@ export const medicalExaminationsRoutes = {
               axis:
                 pentacam?.axisOS ?? base?.examData?.pentacam?.os?.axis ?? "",
               ax1: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.ax1 ?? "",
-              ax2: pentacam?.axisOS ?? base?.examData?.pentacam?.os?.ax2 ?? "",
+              ax2: pentacam?.axis2OS ?? "",
               thinnest:
                 pentacam?.thinnestPointOS ??
                 base?.examData?.pentacam?.os?.thinnest ??
@@ -1003,12 +1043,10 @@ export const medicalExaminationsRoutes = {
           },
         },
         operationDetails: {
-          ...(base?.operationDetails ?? {}),
-          type:
-            String(surgery?.surgeryType ?? "").trim() ||
-            base?.operationDetails?.type ||
-            "",
-          date: surgery?.surgeryDate ?? base?.operationDetails?.date ?? "",
+          surgeryId:surgery?.id,
+          type:String(surgery?.surgeryType ?? ""),
+          date:surgery?.surgeryDate ?? "",
+          eyes:{right:surgery?.eye === "OD" || surgery?.eye === "OU",left:surgery?.eye === "OS" || surgery?.eye === "OU",both:surgery?.eye === "OU"},
         },
       };
 
@@ -1039,21 +1077,18 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await db.upsertSheetEntry({
-        patientId: input.patientId,
-        visitId: input.visitId,
-        sheetType: input.sheetType,
-        content: input.content,
-      });
+      const connection = await db.getDb();
+      if (!connection) throw new Error("Database not available");
+      const saved = await saveClinicalSheet(connection, input, ctx.user.id, ctx.user.role);
       broadcastSheetUpdate(input.patientId, input.sheetType);
       await db.logAuditEvent(
         ctx.user.id,
         "SAVE_SHEET",
         "sheetEntry",
         input.patientId,
-        { sheetType: input.sheetType },
+        { sheetType: input.sheetType, visitId: saved.visitId },
       );
-      return { success: true };
+      return saved;
     }),
 
   deleteSheetEntryForVisit: medicalStaffProcedure
@@ -1082,6 +1117,7 @@ export const medicalExaminationsRoutes = {
       z.object({
         patientId: z.number(),
         visitId: z.number().optional(),
+        visitDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         examinationId: z.number().optional(),
         createVisitIfMissing: z.boolean().optional().default(true),
         autorefraction: z
@@ -1161,28 +1197,11 @@ export const medicalExaminationsRoutes = {
     .mutation(async ({ input, ctx }) => {
       // Use the explicitly selected visit when provided. Legacy callers may
       // still fall back to today's visit creation behavior.
-      const today = new Date().toISOString().split("T")[0];
+      const today = input.visitDate ?? cairoDateIso();
       const visits = await db.getVisitsByPatient(input.patientId);
-      let visitId = input.visitId;
-      if (visitId) {
-        const belongsToPatient = visits.some(
-          (visit: any) => Number(visit.id) === Number(visitId),
-        );
-        if (!belongsToPatient) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "الزيارة المحددة لا تخص هذا المريض",
-          });
-        }
-      } else {
-        visitId = visits.find((v: any) => {
-          const vDate =
-            v.visitDate instanceof Date
-              ? v.visitDate.toISOString()
-              : String(v.visitDate ?? "");
-          return vDate.split("T")[0] === today;
-        })?.id;
-      }
+      let visitId: number | undefined;
+      try {visitId=selectClinicalVisit(visits,input.patientId,input.visitId,today)?.id;}
+      catch(error) {throw new TRPCError({code:"BAD_REQUEST",message:(error as Error).message});}
 
       if (!visitId && !input.createVisitIfMissing) {
         throw new TRPCError({
@@ -1195,7 +1214,9 @@ export const medicalExaminationsRoutes = {
         // Create new visit for today
         const newVisit = await db.createVisit({
           patientId: input.patientId,
-          visitDate: new Date().toISOString(),
+          visitDate: new Date(`${today}T12:00:00`),
+          visitType: "examination",
+          branch: "examinations",
           notes: "Created from refraction save",
         });
         visitId = (newVisit as any).id ?? (newVisit as any).insertId;
@@ -1280,6 +1301,7 @@ export const medicalExaminationsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
+        visitId: z.number().int().positive().optional(),
         visitDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         visitType: z.string(),
         appointmentId: z.number().optional(),
@@ -1318,523 +1340,21 @@ export const medicalExaminationsRoutes = {
       const hasSelectionUpdate = Object.prototype.hasOwnProperty.call(input.data, "tests") ||
         Array.isArray(input.data.treatment) ||
         (typeof input.data.treatment === "string" && input.data.treatment.trim().startsWith("["));
-      if (!_hasRealData(input.data) && !hasSelectionUpdate) {
+      if (!_hasRealData(input.data) && !hasSelectionUpdate && Object.keys(input.data).length === 0) {
         return { success: true, examinationId: null, visitId: null };
       }
 
-      // Use noon so UTC conversion never rolls the date backward by a day
-      // (servers in UTC+2/+3 would shift midnight to the previous UTC day).
-      const [year, month, day] = input.visitDate.split("-");
-      const visitDate = new Date(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        12,
-        0,
-        0,
-      );
-      const visitDateStr = input.visitDate;
-
-      // Find existing visit for this patient on this date
-      const existingVisits = await db.getVisitsByPatient(input.patientId);
-      let visitId = existingVisits.find((v: any) => {
-        const vDate =
-          v.visitDate instanceof Date
-            ? v.visitDate.toISOString()
-            : String(v.visitDate ?? "");
-        return vDate.split("T")[0] === visitDateStr;
-      })?.id;
-
-      // If no visit exists for today, create one
-      if (!visitId) {
-        if (!_hasRealData(input.data)) return { success: true, examinationId: null, visitId: null };
-        const visit = await db.createVisit({
-          patientId: input.patientId,
-          visitDate: visitDate,
-          visitType: normalizeVisitType(input.visitType),
-          appointmentId: input.appointmentId || null,
-        });
-
-        visitId = (visit as any)?.insertId as number | undefined;
-        if (!visitId) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create visit - no ID returned from database",
-          });
-        }
-      }
-
-      // Keep examination row minimal; clinical values are stored in dedicated tables.
-      const examinationData: any = {
-        patientId: input.patientId,
-        visitId: visitId,
-      };
-
-      const pickNonEmptyString = (...values: unknown[]): string | undefined => {
-        for (const value of values) {
-          if (value === null || value === undefined) continue;
-          const normalized = String(value).trim();
-          if (normalized) return normalized;
-        }
-        return undefined;
-      };
-
-      // Extract autoref data from payload
-      const autorefractionPayload =
-        input.data["autorefraction"] &&
-        typeof input.data["autorefraction"] === "object"
-          ? (input.data["autorefraction"] as Record<string, any>)
-          : null;
-      const flatAutorefractionOd: Record<string, any> = {
-        s: input.data["sphereOD"],
-        c: input.data["cylinderOD"],
-        axis: input.data["axisOD"],
-        ucva: input.data["ucvaOD"],
-        bcva: input.data["bcvaOD"],
-        iop: input.data["iopOD"] ?? input.data["airPuffOD"],
-      };
-      const flatAutorefractionOs: Record<string, any> = {
-        s: input.data["sphereOS"],
-        c: input.data["cylinderOS"],
-        axis: input.data["axisOS"],
-        ucva: input.data["ucvaOS"],
-        bcva: input.data["bcvaOS"],
-        iop: input.data["iopOS"] ?? input.data["airPuffOS"],
-      };
-      const autorefractionOd: Record<string, any> =
-        (input.data["autoref-od"] as Record<string, any> | undefined) ??
-        ((input.data["autoref"] as any)?.od as
-          Record<string, any> | undefined) ??
-        (autorefractionPayload?.od as Record<string, any> | undefined) ??
-        flatAutorefractionOd;
-      const autorefractionOs: Record<string, any> =
-        (input.data["autoref-os"] as Record<string, any> | undefined) ??
-        ((input.data["autoref"] as any)?.os as
-          Record<string, any> | undefined) ??
-        (autorefractionPayload?.os as Record<string, any> | undefined) ??
-        flatAutorefractionOs;
-
-      const sphereOD = pickNonEmptyString(
-        autorefractionOd?.s,
-        autorefractionOd?.s1,
-        autorefractionOd?.s2,
-        autorefractionOd?.s3,
-      );
-      const cylinderOD = pickNonEmptyString(
-        autorefractionOd?.c,
-        autorefractionOd?.c1,
-        autorefractionOd?.c2,
-        autorefractionOd?.c3,
-      );
-      const axisOD = pickNonEmptyString(
-        autorefractionOd?.axis,
-        autorefractionOd?.a1,
-        autorefractionOd?.a2,
-        autorefractionOd?.a3,
-      );
-      const sphereOS = pickNonEmptyString(
-        autorefractionOs?.s,
-        autorefractionOs?.s1,
-        autorefractionOs?.s2,
-        autorefractionOs?.s3,
-      );
-      const cylinderOS = pickNonEmptyString(
-        autorefractionOs?.c,
-        autorefractionOs?.c1,
-        autorefractionOs?.c2,
-        autorefractionOs?.c3,
-      );
-      const axisOS = pickNonEmptyString(
-        autorefractionOs?.axis,
-        autorefractionOs?.a1,
-        autorefractionOs?.a2,
-        autorefractionOs?.a3,
-      );
-      const airPuffOD = pickNonEmptyString(
-        autorefractionOd?.airPuff1,
-        autorefractionOd?.airPuff2,
-        autorefractionOd?.airPuff3,
-      );
-      const airPuffOS = pickNonEmptyString(
-        autorefractionOs?.airPuff1,
-        autorefractionOs?.airPuff2,
-        autorefractionOs?.airPuff3,
-      );
-
-      // Extract glasses data for dedicated table save
-      const glassesPayload = input.data["glasses"];
-
-      // Store the entire payload as JSON for record-keeping
-      examinationData.radiologyLabsNotes = JSON.stringify(input.data);
-
-      let examinationId: number | undefined;
-
-      // DB is a remote server (network round trip per query) — these four
-      // lookups are independent (all keyed only by visitId), so fetch them
-      // concurrently instead of paying 4 sequential round trips.
-      const [
-        existingExams,
-        existingReports,
-        existingRequests,
-        existingPrescriptions,
-      ] = await Promise.all([
-        db.getExaminationsByVisit(visitId),
-        db.getDoctorReportsByVisit(visitId),
-        db.getTestRequestsByVisit(visitId),
-        db.getPrescriptionsWithItemsByVisit(visitId),
-      ]);
-
-      // Ensure there is one examination row per visit (FK target for dedicated exam tables).
-      if (existingExams.length > 0) {
-        await db.updateExamination(existingExams[0].id, examinationData);
-        examinationId = existingExams[0].id;
-      } else {
-        const result = await db.createExamination(examinationData);
-        examinationId = (result as any).insertId;
-      }
-
-      // Save autorefraction to separate table
-      if (
-        examinationId &&
-        (_hasRealData(autorefractionOd) || _hasRealData(autorefractionOs))
-      ) {
-        await db.saveAutorefractometryData({
-          examinationId,
-          patientId: input.patientId,
-          sphereOD,
-          cylinderOD,
-          axisOD,
-          ucvaOD: autorefractionOd?.ucva,
-          bcvaOD: autorefractionOd?.bcva,
-          iopOD: autorefractionOd?.iop ?? airPuffOD,
-          od: autorefractionOd,
-          sphereOS,
-          cylinderOS,
-          axisOS,
-          ucvaOS: autorefractionOs?.ucva,
-          bcvaOS: autorefractionOs?.bcva,
-          iopOS: autorefractionOs?.iop ?? airPuffOS,
-          os: autorefractionOs,
-        });
-      }
-
-      // Save AFTER refraction to dedicated table when present.
-      const afterRefractionPayload =
-        input.data["afterRefraction"] &&
-        typeof input.data["afterRefraction"] === "object"
-          ? (input.data["afterRefraction"] as Record<string, any>)
-          : null;
-      const afterSphereOD = pickNonEmptyString(
-        autorefractionOd?.afterS,
-        afterRefractionPayload?.od?.s,
-        afterRefractionPayload?.od?.sphere,
-      );
-      const afterCylinderOD = pickNonEmptyString(
-        autorefractionOd?.afterC,
-        afterRefractionPayload?.od?.c,
-        afterRefractionPayload?.od?.cylinder,
-      );
-      const afterAxisOD = pickNonEmptyString(
-        autorefractionOd?.afterA,
-        afterRefractionPayload?.od?.axis,
-        afterRefractionPayload?.od?.a,
-      );
-      const afterSphereOS = pickNonEmptyString(
-        autorefractionOs?.afterS,
-        afterRefractionPayload?.os?.s,
-        afterRefractionPayload?.os?.sphere,
-      );
-      const afterCylinderOS = pickNonEmptyString(
-        autorefractionOs?.afterC,
-        afterRefractionPayload?.os?.c,
-        afterRefractionPayload?.os?.cylinder,
-      );
-      const afterAxisOS = pickNonEmptyString(
-        autorefractionOs?.afterA,
-        afterRefractionPayload?.os?.axis,
-        afterRefractionPayload?.os?.a,
-      );
-      if (
-        examinationId &&
-        (afterSphereOD ||
-          afterCylinderOD ||
-          afterAxisOD ||
-          afterSphereOS ||
-          afterCylinderOS ||
-          afterAxisOS)
-      ) {
-        await db.saveAfterRefractionData({
-          examinationId,
-          patientId: input.patientId,
-          sphereOD: afterSphereOD,
-          cylinderOD: afterCylinderOD,
-          axisOD: afterAxisOD,
-          sphereOS: afterSphereOS,
-          cylinderOS: afterCylinderOS,
-          axisOS: afterAxisOS,
-        });
-      }
-
-      // Save glasses to separate table
-      if (
-        examinationId &&
-        glassesPayload &&
-        typeof glassesPayload === "object" &&
-        (_hasRealData(glassesPayload.od) || _hasRealData(glassesPayload.os))
-      ) {
-        await db.saveGlassesRecord({
-          examinationId,
-          patientId: input.patientId,
-          sOD: glassesPayload.od?.s,
-          cOD: glassesPayload.od?.c,
-          axisOD: glassesPayload.od?.axis,
-          pdOD: glassesPayload.od?.pd,
-          addOD: glassesPayload.od?.add,
-          bcvaOD: glassesPayload.od?.bcva,
-          sOS: glassesPayload.os?.s,
-          cOS: glassesPayload.os?.c,
-          axisOS: glassesPayload.os?.axis,
-          pdOS: glassesPayload.os?.pd,
-          addOS: glassesPayload.os?.add,
-          bcvaOS: glassesPayload.os?.bcva,
-        });
-      }
-
-      // Extract pentacam data if present
-      const pentacamPayload = input.data["pentacam"];
-      if (
-        pentacamPayload &&
-        typeof pentacamPayload === "object" &&
-        (_hasRealData(pentacamPayload.od) || _hasRealData(pentacamPayload.os))
-      ) {
-        const odData = pentacamPayload.od || {};
-        const osData = pentacamPayload.os || {};
-
-        const pentacamRecord = {
-          visitId: visitId,
-          patientId: input.patientId,
-          recordedBy: ctx.user.id,
-          rtK1: odData.k1,
-          rtK2: odData.k2,
-          rtAX: odData.axis || odData.ax1,
-          rtThinnestPoint: odData.thinnest,
-          rtApex: odData.apex,
-          rtResidual: odData.residual,
-          rtTTT: odData.ttt,
-          rtAblation: odData.ablation,
-          ltK1: osData.k1,
-          ltK2: osData.k2,
-          ltAX: osData.axis || osData.ax1,
-          ltThinnestPoint: osData.thinnest,
-          ltApex: osData.apex,
-          ltResidual: osData.residual,
-          ltTTT: osData.ttt,
-          ltAblation: osData.ablation,
-        };
-        const existingPentacam = await db.getPentacamResultsByVisit(visitId);
-        if (existingPentacam.length > 0) {
-          await db.updatePentacamResult(existingPentacam[0].id, {
-            k1OD: pentacamRecord.rtK1,
-            k2OD: pentacamRecord.rtK2,
-            axisOD: pentacamRecord.rtAX,
-            thinnestPointOD: pentacamRecord.rtThinnestPoint,
-            apexOD: pentacamRecord.rtApex,
-            residualOD: pentacamRecord.rtResidual,
-            tttOD: pentacamRecord.rtTTT,
-            ablationOD: pentacamRecord.rtAblation,
-            k1OS: pentacamRecord.ltK1,
-            k2OS: pentacamRecord.ltK2,
-            axisOS: pentacamRecord.ltAX,
-            thinnestPointOS: pentacamRecord.ltThinnestPoint,
-            apexOS: pentacamRecord.ltApex,
-            residualOS: pentacamRecord.ltResidual,
-            tttOS: pentacamRecord.ltTTT,
-            ablationOS: pentacamRecord.ltAblation,
-            recordedBy: ctx.user.id,
-          });
-        } else {
-          await db.createPentacamResult(pentacamRecord);
-        }
-      }
-
-      const readString = (...keys: string[]) => {
-        for (const key of keys) {
-          const raw = input.data[key];
-          if (typeof raw === "string") {
-            const v = raw.trim();
-            if (v) return v;
-          }
-        }
-        return "";
-      };
-
-      const parseAnyArray = (value: unknown): any[] => {
-        if (!value) return [];
-        if (Array.isArray(value)) return value;
-        if (typeof value === "string") {
-          const trimmed = value.trim();
-          if (!trimmed) return [];
-          try {
-            const parsed = JSON.parse(trimmed);
-            return Array.isArray(parsed) ? parsed : [];
-          } catch {
-            return [];
-          }
-        }
-        return [];
-      };
-
-      const diagnosisText = readString(
-        "diagnosis",
-        "doctor-diagnosis",
-        "medical-diagnosis",
-      );
-      const treatmentText = readString(
-        "treatment",
-        "recommended-treatment",
-        "doctor-treatment",
-        "prescription",
-      );
-      const recommendationsText = readString(
-        "recommendations",
-        "report",
-        "doctor-report",
-      );
-      const additionalNotesText = readString("additional-notes", "notes");
-      const diseasesArray = parseAnyArray(input.data["diseases"]);
-
-      // Same behavior as other save flows: always ensure a doctor report row exists per visit.
-      const doctorReportData = {
-        visitId,
-        patientId: input.patientId,
-        doctorId: ctx.user.id,
-        diagnosis: diagnosisText,
-        treatment: treatmentText,
-        recommendations: recommendationsText,
-        additionalNotes: additionalNotesText,
-        diseases:
-          diseasesArray.length > 0 ? JSON.stringify(diseasesArray) : null,
-        clinicalOpinion: additionalNotesText || null,
-      };
-
-      const _hasReportData =
-        diagnosisText ||
-        treatmentText ||
-        recommendationsText ||
-        additionalNotesText ||
-        diseasesArray.length > 0;
-      if (_hasReportData) {
-        if ((existingReports ?? []).length > 0) {
-          const { doctorId: _keepDoctor, ...reportUpdates } = doctorReportData;
-          await db.updateDoctorReport(existingReports[0].id, reportUpdates);
-        } else {
-          await db.createDoctorReport(doctorReportData);
-        }
-      }
-
-      // Upsert tests from payload (expected IDs array).
-      const requestedTestIds = Array.from(
-        new Set(
-          parseAnyArray(input.data["tests"])
-            .map((v: any) => Number(v?.testId ?? v?.id ?? v))
-            .filter((id: number) => Number.isFinite(id) && id > 0),
-        ),
-      );
-      const existingTestIds = new Set<number>(
-        (existingRequests ?? []).flatMap((request: any) =>
-          (request.items ?? []).map((item: any) => Number(item.testId)),
-        ),
-      );
-      const testsChanged =
-        Object.prototype.hasOwnProperty.call(input.data, "tests") &&
-        (requestedTestIds.length !== existingTestIds.size ||
-          requestedTestIds.some((id) => !existingTestIds.has(id)));
-      if (testsChanged || ((existingRequests ?? []).length === 0 && requestedTestIds.length > 0)) {
-        await db.replaceTestRequest({
-          patientId: input.patientId,
-          visitId,
-          date: input.visitDate,
-          items: requestedTestIds.map((testId) => ({ testId })),
-        });
-      }
-
-      // Upsert prescription from payload (expected medication IDs array).
-      const requestedMedicationIds = Array.from(
-        new Set(
-          parseAnyArray(input.data["treatment"])
-            .map((v: any) => Number(v?.medicationId ?? v?.id ?? v))
-            .filter((id: number) => Number.isFinite(id) && id > 0),
-        ),
-      );
-      const rawTreatment = input.data["treatment"];
-      const treatmentIsList =
-        Array.isArray(rawTreatment) ||
-        (typeof rawTreatment === "string" &&
-          rawTreatment.trim().startsWith("["));
-      const existingMedicationIds = new Set<number>(
-        (existingPrescriptions ?? [])
-          .flatMap((prescription: any) =>
-            (prescription.items ?? []).map((item: any) =>
-              Number(item.medicationId),
-            ),
-          )
-          .filter((id: number) => Number.isFinite(id) && id > 0),
-      );
-      const medicationsChanged =
-        treatmentIsList &&
-        (requestedMedicationIds.length !== existingMedicationIds.size ||
-          requestedMedicationIds.some((id) => !existingMedicationIds.has(id)));
-      if (ctx.user.role !== "reception" &&
-          (medicationsChanged || ((existingPrescriptions ?? []).length === 0 && requestedMedicationIds.length > 0))) {
-          const meds = await db.getAllMedications();
-          const medById = new Map(
-            (meds ?? []).map((m: any) => [Number(m.id), String(m.name ?? "")]),
-          );
-          await db.replacePrescriptionWithItems({
-            patientId: input.patientId,
-            visitId,
-            doctorId: ctx.user.id,
-            date: input.visitDate,
-            notes: "Created from examination form",
-            items: requestedMedicationIds.map((medicationId) => ({
-              medicationId,
-              medicationName: String(
-                medById.get(medicationId) || `Medication ${medicationId}`,
-              ),
-            })),
-          });
-      }
-
-      void db
-        .logAuditEvent(
-          ctx.user.id,
-          "CREATE_EXAMINATION_FORM",
-          "examination",
-          input.patientId,
-          { message: "Saved examination form" },
-        )
-        .catch((error) => {
-          console.warn("[Exam Save] Audit log failed:", error);
-        });
-
-      // Clear examination cache so next open fetches fresh medical data
-      try {
-        await db.invalidatePatientPageStateCache([input.patientId]);
-      } catch (error) {
-        console.warn(
-          `[Exam Save] Cache invalidation failed for patient ${input.patientId}:`,
-          error,
-        );
-        // Non-blocking: exam already saved successfully
-      }
-
-      return { success: true, examinationId: examinationId ?? null, visitId };
+      const normalized = examinationFormInput(input, ctx.user.role);
+      const saved = await db.saveClinicalVisitData(normalized, {doctorId:ctx.user.id,role:ctx.user.role});
+      await db.logAuditEvent(ctx.user.id,"CREATE_EXAMINATION_FORM","examination",saved.examinationId,{visitId:saved.visitId});
+      return {success:true,examinationId:saved.examinationId,visitId:saved.visitId};
     }),
 
   saveMedicalVisit: medicalStaffProcedure
     .input(
       z.object({
         patientId: z.number(),
+        visitId: z.number().int().positive().optional(),
         visitDate: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -1843,6 +1363,7 @@ export const medicalExaminationsRoutes = {
         appointmentId: z.number().optional(),
         // Medical measurements
         symptoms: z.string().optional(),
+        chiefComplaint:z.string().optional(),
         autoref: z
           .object({
             od: z
@@ -1968,6 +1489,7 @@ export const medicalExaminationsRoutes = {
         radiologyLabs: z.string().optional(),
         // Tests and treatment from dashboard
         tests: z.string().optional(),
+        medicationItems:z.array(z.object({medicationId:z.number().int().positive(),dosage:z.string().optional(),frequency:z.string().optional(),duration:z.string().optional(),instructions:z.string().optional()})).optional(),
         // Doctor notes
         diagnosis: z.string().optional(),
         treatment: z.string().optional(),
@@ -1977,302 +1499,13 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const allowedRoles = ["doctor", "nurse", "admin", "manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Insufficient permissions to save medical visit",
-        });
-      }
-
-      // Validate patient exists
-      const patient = await db.getPatientById(input.patientId);
-      if (!patient) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Patient not found",
-        });
-      }
-
-      // Guard: reject saves with no real clinical data to prevent empty visit/exam rows
-      const _hasVal = (v: string | undefined): boolean =>
-        Boolean(v && String(v).trim().length > 0);
-      const _hasObjData = (
-        obj: Record<string, string | undefined> | undefined,
-      ): boolean =>
-        Boolean(
-          obj &&
-          Object.values(obj).some((v) => _hasVal(v as string | undefined)),
-        );
-      const _hasMeasurements =
-        _hasObjData(input.autoref?.od) ||
-        _hasObjData(input.autoref?.os) ||
-        _hasVal(input.iop?.od) ||
-        _hasVal(input.iop?.os) ||
-        _hasObjData(input.after?.od) ||
-        _hasObjData(input.after?.os) ||
-        _hasObjData(input.glasses?.od) ||
-        _hasObjData(input.glasses?.os) ||
-        _hasObjData(input.fundus?.od as any) ||
-        _hasObjData(input.fundus?.os as any) ||
-        _hasObjData(input.pentacam?.od as any) ||
-        _hasObjData(input.pentacam?.os as any);
-      const _hasClinicalText =
-        _hasVal(input.symptoms) ||
-        _hasVal(input.diagnosis) ||
-        _hasVal(input.treatment) ||
-        _hasVal(input.report) ||
-        _hasVal(input.diseases) ||
-        _hasVal(input.recommendations) ||
-        _hasVal(input.radiologyLabs);
-      const _hasTests = (() => {
-        try {
-          const t = JSON.parse(input.tests ?? "[]");
-          return Array.isArray(t) && t.length > 0;
-        } catch {
-          return false;
-        }
-      })();
-      if (!_hasMeasurements && !_hasClinicalText && !_hasTests) {
-        return { success: true, examinationId: null, visitId: null };
-      }
-
-      // Use noon so UTC conversion never rolls the date backward by a day
-      // (servers in UTC+2/+3 would shift midnight to the previous UTC day).
-      let visitDate: Date;
-      if (input.visitDate) {
-        const [year, month, day] = input.visitDate.split("-");
-        visitDate = new Date(
-          parseInt(year),
-          parseInt(month) - 1,
-          parseInt(day),
-          12,
-          0,
-          0,
-        );
-      } else {
-        visitDate = new Date();
-      }
-      const visitType = input.isFollowup ? "followup" : "examination";
-
-      // Create or get visit
-      const visit = await db.createVisit({
-        patientId: input.patientId,
-        visitDate: visitDate,
-        visitType: visitType,
-        chiefComplaint: input.symptoms,
-        appointmentId: input.appointmentId || null,
-      });
-
-      let visitId = (visit as any)?.insertId as number | undefined;
-      if (!visitId) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create visit - no ID returned from database",
-        });
-      }
-
-      // autoref/IOP/glasses/pentacam are saved to their dedicated tables below;
-      // examinationData only carries the fields that genuinely belong on the row.
-      const examinationData: any = {
-        patientId: input.patientId,
-        visitId: visitId,
-      };
-
-      // Map fundus data (store as JSON in posteriorSegment fields for now)
-      if (input.fundus?.od || input.fundus?.os) {
-        // Store fundus findings as JSON in posteriorSegment fields
-        if (input.fundus.od && Object.values(input.fundus.od).some((v) => v)) {
-          examinationData.posteriorSegmentOD = JSON.stringify(input.fundus.od);
-        }
-        if (input.fundus.os && Object.values(input.fundus.os).some((v) => v)) {
-          examinationData.posteriorSegmentOS = JSON.stringify(input.fundus.os);
-        }
-      }
-
-      // Map radiology/labs notes and tests/treatment data
-      const radiologyData: any = {};
-      if (input.radiologyLabs) {
-        try {
-          Object.assign(radiologyData, JSON.parse(input.radiologyLabs));
-        } catch {
-          radiologyData.notes = input.radiologyLabs;
-        }
-      }
-      // Add tests and treatment from dashboard
-      if (input.tests) {
-        try {
-          radiologyData.tests = JSON.parse(input.tests);
-        } catch {
-          radiologyData.tests = [];
-        }
-      }
-      if (input.treatment) {
-        try {
-          radiologyData.treatment = JSON.parse(input.treatment);
-        } catch {
-          radiologyData.treatment = [];
-        }
-      }
-      if (Object.keys(radiologyData).length > 0) {
-        examinationData.radiologyLabsNotes = JSON.stringify(radiologyData);
-      }
-
-      if (input.symptoms) {
-        await db.updateVisit(visitId, { chiefComplaint: input.symptoms });
-      }
-
-      // One examination row per visit: reuse it on re-save.
-      const existingVisitExams = await db.getExaminationsByVisit(visitId);
-      let examinationId: number;
-      if (existingVisitExams.length > 0) {
-        examinationId = existingVisitExams[0].id;
-        await db.updateExamination(examinationId, examinationData);
-      } else {
-        const examResult = await db.createExamination(examinationData);
-        examinationId =
-          (examResult as any)?.insertId || (examResult as any)?.id;
-      }
-
-      // Autoref and IOP share autorefractometryData. Create the dedicated row
-      // even when this visit contains IOP only (without refraction values).
-      if (
-        _hasObjData(input.autoref?.od) ||
-        _hasObjData(input.autoref?.os) ||
-        _hasVal(input.iop?.od) ||
-        _hasVal(input.iop?.os)
-      ) {
-        await db.saveAutorefractometryData({
-          examinationId,
-          patientId: input.patientId,
-          ...input.autoref,
-          iop: input.iop,
-        });
-      }
-
-      // Save AFTER refraction only when at least one eye has real data
-      if (_hasObjData(input.after?.od) || _hasObjData(input.after?.os)) {
-        await db.saveAfterRefractionData({
-          examinationId,
-          patientId: input.patientId,
-          ...input.after,
-        });
-      }
-
-      // Save glasses only when at least one eye has real data
-      if (_hasObjData(input.glasses?.od) || _hasObjData(input.glasses?.os)) {
-        await db.saveGlassesRecord({
-          examinationId,
-          patientId: input.patientId,
-          ...input.glasses,
-        });
-      }
-
-      const hasPentacamValue = [
-        input.pentacam?.od?.k1,
-        input.pentacam?.od?.k2,
-        input.pentacam?.os?.k1,
-        input.pentacam?.os?.k2,
-        input.pentacam?.od?.thinnest,
-        input.pentacam?.os?.thinnest,
-      ].some((value) => String(value ?? "").trim().length > 0);
-
-      if (hasPentacamValue) {
-        const pentacamRecord = {
-          visitId: visitId,
-          patientId: input.patientId,
-          recordedBy: ctx.user.id,
-          rtK1: input.pentacam?.od?.k1,
-          rtK2: input.pentacam?.od?.k2,
-          rtAX: input.pentacam?.od?.axis || input.pentacam?.od?.ax1,
-          rtThinnestPoint: input.pentacam?.od?.thinnest,
-          rtApex: input.pentacam?.od?.apex,
-          rtResidual: input.pentacam?.od?.residual,
-          rtTTT: input.pentacam?.od?.ttt,
-          rtAblation: input.pentacam?.od?.ablation,
-          ltK1: input.pentacam?.os?.k1,
-          ltK2: input.pentacam?.os?.k2,
-          ltAX: input.pentacam?.os?.axis || input.pentacam?.os?.ax1,
-          ltThinnestPoint: input.pentacam?.os?.thinnest,
-          ltApex: input.pentacam?.os?.apex,
-          ltResidual: input.pentacam?.os?.residual,
-          ltTTT: input.pentacam?.os?.ttt,
-          ltAblation: input.pentacam?.os?.ablation,
-          techniciansNotes: input.radiologyLabs,
-        };
-        const existingPentacam = await db.getPentacamResultsByVisit(visitId);
-        if (existingPentacam.length > 0) {
-          await db.updatePentacamResult(existingPentacam[0].id, {
-            k1OD: pentacamRecord.rtK1,
-            k2OD: pentacamRecord.rtK2,
-            axisOD: pentacamRecord.rtAX,
-            thinnestPointOD: pentacamRecord.rtThinnestPoint,
-            apexOD: pentacamRecord.rtApex,
-            residualOD: pentacamRecord.rtResidual,
-            tttOD: pentacamRecord.rtTTT,
-            ablationOD: pentacamRecord.rtAblation,
-            k1OS: pentacamRecord.ltK1,
-            k2OS: pentacamRecord.ltK2,
-            axisOS: pentacamRecord.ltAX,
-            thinnestPointOS: pentacamRecord.ltThinnestPoint,
-            apexOS: pentacamRecord.ltApex,
-            residualOS: pentacamRecord.ltResidual,
-            tttOS: pentacamRecord.ltTTT,
-            ablationOS: pentacamRecord.ltAblation,
-            techniciansNotes: pentacamRecord.techniciansNotes,
-            recordedBy: ctx.user.id,
-          });
-        } else {
-          await db.createPentacamResult(pentacamRecord);
-        }
-      }
-
-      // Save doctor report only when at least one clinical field has real data
-      if (
-        _hasVal(input.diagnosis) ||
-        _hasVal(input.treatment) ||
-        _hasVal(input.recommendations) ||
-        _hasVal(input.report) ||
-        _hasVal(input.symptoms) ||
-        _hasVal(input.diseases) ||
-        _hasVal(input.radiologyLabs)
-      ) {
-        const visitReportData = {
-          diagnosis: input.diagnosis,
-          treatment: input.treatment,
-          recommendations: input.recommendations || input.report,
-          diseases: input.diseases,
-          additionalNotes: input.radiologyLabs,
-          clinicalOpinion: input.symptoms,
-        };
-        const existingVisitReports = await db.getDoctorReportsByVisit(visitId);
-        if (existingVisitReports.length > 0) {
-          await db.updateDoctorReport(existingVisitReports[0].id, visitReportData);
-        } else {
-          await db.createDoctorReport({
-            visitId: visitId,
-            patientId: input.patientId,
-            doctorId: ctx.user.id,
-            ...visitReportData,
-          });
-        }
-      }
-
-      // Log audit event
-      await db.logAuditEvent(
-        ctx.user.id,
-        "SAVE_MEDICAL_VISIT",
-        "visit",
-        input.patientId,
-        {
-          visitId: visitId,
-          isFollowup: input.isFollowup,
-          hasDiagnosis: !!input.diagnosis,
-          hasTreatment: !!input.treatment,
-        },
-      );
-
-      return { success: true, visitId: visitId };
+      if(!["doctor","nurse","admin","manager"].includes(ctx.user.role))throw new TRPCError({code:"FORBIDDEN",message:"Insufficient permissions to save medical visit"});
+      const normalized=medicalVisitInput(input);
+      const meaningful=(value:unknown):boolean=>typeof value==="string" ? Boolean(value.trim() && value.trim()!=="[]") : Array.isArray(value) ? value.length>0 : value!==null && typeof value==="object" ? Object.values(value).some(meaningful) : false;
+      if(!input.visitId && ![input.autoref,input.iop,input.after,input.glasses,input.fundus,input.pentacam,input.chiefComplaint,input.symptoms,input.diagnosis,input.recommendations,input.report,input.treatment,input.diseases,input.radiologyLabs,input.tests,input.medicationItems].some(meaningful))return {success:true,examinationId:null,visitId:null};
+      const saved=await db.saveClinicalVisitData(normalized,{doctorId:ctx.user.id,role:ctx.user.role});
+      await db.logAuditEvent(ctx.user.id,"SAVE_MEDICAL_VISIT","visit",saved.visitId,{visitId:saved.visitId,isFollowup:input.isFollowup});
+      return saved;
     }),
 
   updateVisitQueueStatus: protectedProcedure

@@ -32,6 +32,9 @@ export default function SpecialistSheet() {
   const { goBack } = useAppNavigation();
   const [, params] = useRoute("/sheets/specialist/:id");
   const initialPatientId = params?.id ? Number(params.id) : undefined;
+  const requestedVisitId =
+    Number(new URLSearchParams(window.location.search).get("visitId")) ||
+    undefined;
 
   const [formData, setFormData] = useState({
     patientName: "",
@@ -185,21 +188,18 @@ export default function SpecialistSheet() {
     },
   );
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: initialPatientId ?? 0, sheetType: "specialist" },
+    {
+      patientId: initialPatientId ?? 0,
+      sheetType: "specialist",
+      visitId: requestedVisitId,
+    },
     {
       enabled: isAuthenticated && Boolean(initialPatientId),
       retry: 2,
       refetchOnWindowFocus: false,
     },
   );
-  const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: initialPatientId ?? 0, page: "examination" },
-    {
-      enabled: isAuthenticated && Boolean(initialPatientId),
-      retry: 2,
-      refetchOnWindowFocus: false,
-    },
-  );
+
   // Auto-print (triggered by usePrintMode below) must wait for the sheet's
   // own data to finish loading — otherwise the print preview/dialog fires
   // against a still-empty page.
@@ -238,8 +238,6 @@ export default function SpecialistSheet() {
       toast.success("تم الحفظ");
     },
   });
-  const saveRefractionMutation =
-    trpc.medical.saveRefractionToExamination.useMutation();
 
   const handleSelectPatient = (patient: {
     id: number;
@@ -317,12 +315,12 @@ export default function SpecialistSheet() {
       const auto = parsed.examData.autorefraction;
       setFormData((prev) => ({
         ...prev,
-        ucvaOD: auto.od?.ucva ? auto.od.ucva : prev.ucvaOD,
-        ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
-        bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
-        bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
-        iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
-        iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
+        ucvaOD: auto.od?.ucva ?? "",
+        ucvaOS: auto.os?.ucva ?? "",
+        bcvaOD: auto.od?.bcva ?? "",
+        bcvaOS: auto.os?.bcva ?? "",
+        iopOD: auto.od?.iop ?? "",
+        iopOS: auto.os?.iop ?? "",
       }));
     }
     if (parsed.signatures) {
@@ -333,71 +331,30 @@ export default function SpecialistSheet() {
         doctor: parsed.signatures.doctor ?? "",
       });
     }
+    if (parsed.examData?.glasses) {
+      const glasses = parsed.examData.glasses;
+      setFormData((previous) => ({
+        ...previous,
+        refractionOD: {
+          s: glasses.od?.s ?? "",
+          c: glasses.od?.c ?? "",
+          a: glasses.od?.axis ?? "",
+        },
+        refractionOS: {
+          s: glasses.os?.s ?? "",
+          c: glasses.os?.c ?? "",
+          a: glasses.os?.axis ?? "",
+        },
+      }));
+    }
     setNotes(String(parsed.notes ?? ""));
+    setReadingValue(String(parsed.readingValue ?? ""));
     setFinalDecision(String(parsed.finalDecision ?? ""));
     if (parsed.checks) {
       setGlassesCheck(Boolean(parsed.checks.glasses));
       setXrayCheck(Boolean(parsed.checks.xray));
     }
   }, [sheetQuery.data]);
-
-  useEffect(() => {
-    if (!examinationsQuery.data || examinationsQuery.data.length === 0) return;
-    const latestExam = examinationsQuery.data[0] as any;
-    if (!latestExam.autorefraction) return;
-    const auto = latestExam.autorefraction;
-    setFormData((prev) => ({
-      ...prev,
-      ucvaOD: auto.od?.ucva ? auto.od.ucva : prev.ucvaOD,
-      ucvaOS: auto.os?.ucva ? auto.os.ucva : prev.ucvaOS,
-      bcvaOD: auto.od?.bcva ? auto.od.bcva : prev.bcvaOD,
-      bcvaOS: auto.os?.bcva ? auto.os.bcva : prev.bcvaOS,
-      iopOD: auto.od?.iop ? auto.od.iop : prev.iopOD,
-      iopOS: auto.os?.iop ? auto.os.iop : prev.iopOS,
-    }));
-  }, [examinationsQuery.data]);
-
-  useEffect(() => {
-    const latest = ((glassesQuery.data as any[]) ?? [])[0];
-    if (!latest) return;
-    setFormData((previous) => ({
-      ...previous,
-      bcvaOD: String(latest.bcvaOD ?? previous.bcvaOD),
-      bcvaOS: String(latest.bcvaOS ?? previous.bcvaOS),
-      refractionOD: {
-        s: String(latest.sOD ?? ""),
-        c: String(latest.cOD ?? ""),
-        a: String(latest.axisOD ?? ""),
-      },
-      refractionOS: {
-        s: String(latest.sOS ?? ""),
-        c: String(latest.cOS ?? ""),
-        a: String(latest.axisOS ?? ""),
-      },
-    }));
-  }, [glassesQuery.data]);
-
-  useEffect(() => {
-    const latest = ((autorefQuery.data as any[]) ?? [])[0];
-    if (!latest) return;
-    setFormData((previous) => ({
-      ...previous,
-      ucvaOD: String(latest.ucvaOD ?? ""),
-      ucvaOS: String(latest.ucvaOS ?? ""),
-      iopOD: String(latest.iopOD ?? ""),
-      iopOS: String(latest.iopOS ?? ""),
-    }));
-  }, [autorefQuery.data]);
-
-  useEffect(() => {
-    const stateData = (examinationStateQuery.data as any)?.data;
-    if (!stateData) return;
-    const doctorFromState =
-      String(stateData.doctorName ?? "").trim() ||
-      String(stateData.signatures?.doctor ?? "").trim();
-    if (!doctorFromState) return;
-    setSignatures((prev) => ({ ...prev, doctor: doctorFromState }));
-  }, [examinationStateQuery.data]);
 
   useEffect(() => {
     const fullName = String(user?.name ?? "").trim();
@@ -410,10 +367,9 @@ export default function SpecialistSheet() {
       technician: role === "technician" ? fullName : prev.technician,
       doctor: role === "doctor" ? prev.doctor || fullName : prev.doctor,
     }));
-  }, [user?.name, user?.role, sheetQuery.data, examinationStateQuery.data]);
+  }, [user?.name, user?.role, sheetQuery.data]);
 
-  const isSaving =
-    saveSheetMutation.isPending || saveRefractionMutation.isPending;
+  const isSaving = saveSheetMutation.isPending;
 
   const specialistDataQueries = [
     sheetQuery,
@@ -450,8 +406,7 @@ export default function SpecialistSheet() {
         );
         return;
       }
-      const pickValue = (next: string, prev?: string) =>
-        next && next.trim() ? next : prev;
+      const pickValue = (next: string, prev?: string) => next;
       const mergedExamData = {
         autorefraction: {
           od: {
@@ -489,6 +444,7 @@ export default function SpecialistSheet() {
       };
       await saveSheetMutation.mutateAsync({
         patientId: initialPatientId,
+        visitId: requestedVisitId,
         sheetType: "specialist",
         content: JSON.stringify({
           ...existing,
@@ -496,25 +452,10 @@ export default function SpecialistSheet() {
           examData: mergedExamData,
           checks: { glasses: glassesCheck, xray: xrayCheck },
           notes,
+          readingValue,
           finalDecision,
+          finalDecisionText: finalDecision,
         }),
-      });
-      await saveRefractionMutation.mutateAsync({
-        patientId: initialPatientId,
-        glassesData: {
-          od: {
-            s: formData.refractionOD.s || undefined,
-            c: formData.refractionOD.c || undefined,
-            axis: formData.refractionOD.a || undefined,
-            bcva: formData.bcvaOD || undefined,
-          },
-          os: {
-            s: formData.refractionOS.s || undefined,
-            c: formData.refractionOS.c || undefined,
-            axis: formData.refractionOS.a || undefined,
-            bcva: formData.bcvaOS || undefined,
-          },
-        },
       });
     } catch (error) {
       toast.error(getTrpcErrorMessage(error, "حدث خطأ أثناء الحفظ"));

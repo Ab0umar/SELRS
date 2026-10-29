@@ -10,10 +10,12 @@ import {
 import MedicalFilePanel from "@/components/MedicalFilePanel";
 import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
 import PrescriptionBinding from "@/components/medical-assistant/PrescriptionBinding";
+import { resolveTestNames } from "@/components/medical-assistant/catalog-tests";
 import { readPrescriptionTemplates, type PrescriptionDraft } from "@/components/medical-assistant/prescription-template";
 import ConsultantSheet from "@/pages/ConsultantSheet";
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
 import { localISODate } from "@/lib/utils";
+import { workflowVisits } from "@/lib/workflow-visits";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -121,6 +123,7 @@ type WorkflowData = {
   };
   specialist: {
     complains: string;
+    symptoms:string;
     bcva: Record<Eye, string>;
     distance: Record<Eye, Refraction>;
     reading: string;
@@ -210,21 +213,18 @@ const workflowSectionMeta: Array<{
     id: "pentacam",
     label: "Pentacam",
     shortLabel: "Pentacam",
-    optional: true,
     icon: ScanLine,
   },
   {
     id: "tests",
     label: "تحاليل وأشعة",
     shortLabel: "تحاليل",
-    optional: true,
     icon: FileText,
   },
   {
     id: "prescription",
     label: "الروشتة",
     shortLabel: "روشتة",
-    optional: true,
     icon: ClipboardList,
   },
   {
@@ -284,6 +284,7 @@ const createInitialData = (): WorkflowData => ({
   },
   specialist: {
     complains: "",
+    symptoms:"",
     bcva: { od: "", os: "" },
     distance: {
       od: { s: "", c: "", a: "" },
@@ -642,7 +643,7 @@ function ReadonlySummary({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="rounded-xl border border-slate-200 bg-muted/50 p-3">
       <p className="mb-2 text-xs font-bold text-slate-500">{title}</p>
       <div className="text-sm leading-6 text-slate-800">{children}</div>
     </div>
@@ -656,6 +657,7 @@ export default function WorkflowPrototypeLive() {
   const [doctorSheet, setDoctorSheet] = useState<DoctorSheet | null>(null);
   const [completed, setCompleted] = useState<StageId[]>([]);
   const [data, setData] = useState<WorkflowData>(() => createInitialData());
+  const [clinicalTreatmentPlan, setClinicalTreatmentPlan] = useState("");
   const [selectedLivePatientId, setSelectedLivePatientId] = useState<
     number | null
   >(null);
@@ -778,26 +780,18 @@ export default function WorkflowPrototypeLive() {
         ? "consultantSheet"
         : null;
   }, [doctorDirectoryQuery.data, user?.name, user?.role, user?.username]);
-  const roleDefaultAppliedRef = useRef(false);
+  const initialSectionChosenRef = useRef(false);
   useEffect(() => {
-    if (roleDefaultAppliedRef.current || !roleDefaultSection) return;
-    roleDefaultAppliedRef.current = true;
+    if (initialSectionChosenRef.current || !roleDefaultSection) return;
+    initialSectionChosenRef.current = true;
     setActiveSection(roleDefaultSection);
   }, [roleDefaultSection]);
   const liveQueue = useTodayQueuePatientsMerged(selectedDate);
   const trpcUtils = trpc.useUtils();
-  const livePatients = useMemo(() => {
-    const allowedTypes = new Set(["specialist", "consultant", "lasik"]);
-    return liveQueue.merged.filter((patient) => {
-      const serviceType = String(patient.serviceType ?? "")
-        .trim()
-        .toLowerCase();
-      const locationType = String(patient.locationType ?? "")
-        .trim()
-        .toLowerCase();
-      return patient.queueStatus !== "treated" && locationType === "center" && allowedTypes.has(serviceType);
-    });
-  }, [liveQueue.merged]);
+  const livePatients = useMemo(
+    () => workflowVisits(liveQueue.merged, selectedDate, localISODate()),
+    [liveQueue.merged, selectedDate],
+  );
   const requestedVisitId = useMemo(() => {
     const raw = new URLSearchParams(window.location.search).get("visitId");
     const value = raw ? Number(raw) : NaN;
@@ -847,6 +841,7 @@ export default function WorkflowPrototypeLive() {
   useEffect(() => {
     if (!activeWorkflowVisitId) return;
     setData(createInitialData());
+    setClinicalTreatmentPlan("");
   }, [activeWorkflowVisitId]);
   const queueStatusMutation = trpc.medical.updateVisitQueueStatus.useMutation({
     onSuccess: async () => {
@@ -906,10 +901,7 @@ export default function WorkflowPrototypeLive() {
     trpc.medical.replaceTestRequest.useMutation();
   const replaceFinalPrescriptionMutation =
     trpc.medical.replacePrescriptionWithItems.useMutation();
-  const updateFinalDoctorReportMutation =
-    trpc.medical.updateDoctorReport.useMutation();
-  const createFinalDoctorReportMutation =
-    trpc.medical.createDoctorReport.useMutation();
+  const saveFinalClinicalSheetMutation = trpc.medical.saveSheetEntry.useMutation();
   const [isSavingFinalReport, setIsSavingFinalReport] = useState(false);
 
   useEffect(() => {
@@ -997,15 +989,15 @@ export default function WorkflowPrototypeLive() {
     if (!report || !activeWorkflowVisitId) return;
     let diseases = "";
     try {
-      const parsed = JSON.parse(String(report.additionalNotes ?? ""));
+      const parsed = JSON.parse(String(report.diseases ?? report.additionalNotes ?? ""));
       diseases = Array.isArray(parsed)
         ? parsed
             .map((item) => item?.name ?? item)
             .filter(Boolean)
             .join("، ")
-        : String(report.additionalNotes ?? "");
+        : "";
     } catch {
-      diseases = String(report.additionalNotes ?? "");
+      diseases = "";
     }
     setData((current) => ({
       ...current,
@@ -1014,6 +1006,7 @@ export default function WorkflowPrototypeLive() {
         complains: String(
           report.clinicalOpinion ?? current.specialist.complains,
         ),
+        symptoms:String(report.symptoms ?? current.specialist.symptoms),
         diseases: diseases || current.specialist.diseases,
         diagnosis: String(report.diagnosis ?? current.specialist.diagnosis),
       },
@@ -1024,7 +1017,7 @@ export default function WorkflowPrototypeLive() {
         prescription: String(
           report.prescription ?? current.consultant.prescription,
         ),
-        finalDecision: (report.recommendations ||
+        finalDecision: (report.recommendations ??
           current.consultant
             .finalDecision) as WorkflowData["consultant"]["finalDecision"],
       },
@@ -1056,7 +1049,7 @@ export default function WorkflowPrototypeLive() {
           address: patientData.address ?? current.reception.address,
           occupation: patientData.occupation ?? current.reception.occupation,
           medicalHistory:
-            sheet?.formData?.medicalHistory ?? current.reception.medicalHistory,
+            sheet?.historyNotes ?? current.reception.medicalHistory,
           previousOperations:
             sheet?.formData?.previousOperations ??
             current.reception.previousOperations,
@@ -1115,8 +1108,7 @@ export default function WorkflowPrototypeLive() {
             od: glasses?.od?.bcva ?? auto?.od?.bcva ?? "",
             os: glasses?.os?.bcva ?? auto?.os?.bcva ?? "",
           },
-          reading:
-            glasses?.od?.add ?? glasses?.os?.add ?? current.specialist.reading,
+          reading:sheet?.readingValue ?? "",
           diagnosis: sheet?.formData?.diagnosis ?? current.specialist.diagnosis,
         },
         pentacam: {
@@ -1137,7 +1129,7 @@ export default function WorkflowPrototypeLive() {
         consultant: {
           ...current.consultant,
           diagnosis: sheet?.formData?.diagnosis ?? current.consultant.diagnosis,
-          finalDecision: (sheet?.formData?.recommendations ||
+          finalDecision: (sheet?.formData?.recommendations ??
             current.consultant
               .finalDecision) as WorkflowData["consultant"]["finalDecision"],
         },
@@ -1303,66 +1295,31 @@ export default function WorkflowPrototypeLive() {
     );
   };
 
+  useEffect(()=>{setClinicalTreatmentPlan(String(doctorReportQuery.data?.[0]?.treatment ?? ""));},[activeWorkflowVisitId,doctorReportQuery.data]);
+  const saveWorkflowDraftMutation = trpc.medical.saveExaminationForm.useMutation();
   const saveFinalReportEdits = async (finish = false) => {
-    if (isSavingFinalReport) return;
+    if (isSavingFinalReport) return false;
     if (!selectedLivePatient?.id || !activeWorkflowVisitId) {
       toast.error("لا توجد زيارة محددة للحفظ");
-      return;
+      return false;
+    }
+    if ([finalSheetDataQuery,doctorReportQuery,finalAutorefQuery,finalAfterQuery,finalGlassesQuery,finalPentacamQuery,finalTestRequestsQuery,finalPrescriptionsQuery].some(query=>query.isLoading || query.isError)) {
+      toast.error("انتظر تحميل بيانات الزيارة بالكامل قبل الحفظ");
+      return false;
     }
     setIsSavingFinalReport(true);
     try {
-      const report = ((doctorReportQuery.data as any[]) ?? [])[0];
-      const diagnosis = data.consultant.diagnosis.trim();
-      const recommendations = data.consultant.finalDecision.trim();
-      const reportPayload = {
-        diagnosis,
-        recommendations,
-        additionalNotes: JSON.stringify(selectedDiseaseIds),
-      };
-      if (report?.id) {
-        await updateFinalDoctorReportMutation.mutateAsync({
-          reportId: report.id,
-          ...reportPayload,
-        });
-      } else if (diagnosis || recommendations || selectedDiseaseIds.length) {
-        await createFinalDoctorReportMutation.mutateAsync({
-          visitId: activeWorkflowVisitId,
-          patientId: selectedLivePatient.id,
-          ...reportPayload,
-        });
-      }
-
-      await replaceFinalTestRequestMutation.mutateAsync({
-        patientId: selectedLivePatient.id,
-        visitId: activeWorkflowVisitId,
-        items: selectedTestIds.map((testId) => ({ testId: Number(testId) })),
-      });
-
-      await replaceFinalPrescriptionMutation.mutateAsync({
-        patientId: selectedLivePatient.id,
-        visitId: activeWorkflowVisitId,
-        notes: "Updated from final medical report",
-        items: selectedMedicationIds.map((medicationId) => {
-          const medication = medicationItems.find(
-            (item) => String(item.id) === String(medicationId),
-          );
-          const details = medicationDetailsById[String(medicationId)];
-          return {
-            medicationId: Number(medicationId),
-            medicationName: medication?.name || String(medicationId),
-            dosage: details?.dosage || undefined,
-            frequency: details?.frequency || undefined,
-            duration: details?.duration || undefined,
-            instructions: details?.instructions || undefined,
-          };
-        }),
-      });
-
-      await Promise.all([
-        doctorReportQuery.refetch(),
-        finalTestRequestsQuery.refetch(),
-        finalPrescriptionsQuery.refetch(),
-      ]);
+      const baseSheet = finalSheetDataQuery.data ? JSON.parse(finalSheetDataQuery.data) : {};
+      await saveWorkflowDraftMutation.mutateAsync({patientId:selectedLivePatient.id,visitId:activeWorkflowVisitId,visitDate:selectedDate,visitType:selectedLivePatient.visitType ?? "examination",data:{
+        chiefComplaint:data.specialist.complains,symptoms:data.specialist.symptoms,historyNotes:data.reception.medicalHistory,
+        diagnosis:data.consultant.diagnosis,recommendations:data.consultant.finalDecision,treatmentPlan:clinicalTreatmentPlan,diseases:selectedDiseaseIds,symptomIds:selectedSymptomIds,readingValue:data.specialist.reading,
+        consultantExam:{...baseSheet.consultantExam,complains:data.specialist.complains},medicalChecklist:baseSheet.medicalChecklist,
+        autorefraction:Object.fromEntries(eyeOrder.map(eye=>[eye,{s:data.nursing.autoref[eye].s,c:data.nursing.autoref[eye].c,axis:data.nursing.autoref[eye].a,ucva:data.nursing.ucva[eye],bcva:data.nursing.bcva[eye],iop:data.nursing.iop[eye],afterS:data.nursing.after[eye].s,afterC:data.nursing.after[eye].c,afterA:data.nursing.after[eye].a}])),
+        glasses:Object.fromEntries(eyeOrder.map(eye=>[eye,{...baseSheet.examData?.glasses?.[eye],s:data.specialist.distance[eye].s,c:data.specialist.distance[eye].c,axis:data.specialist.distance[eye].a,bcva:data.specialist.bcva[eye]}])),
+        pentacam:Object.fromEntries(eyeOrder.map(eye=>[eye,{...baseSheet.examData?.pentacam?.[eye],k1:data.pentacam[eye].k1,k2:data.pentacam[eye].k2,axis:data.pentacam[eye].axis,thinnest:data.pentacam[eye].thinnestLocation}])),
+        tests:selectedTestIds.map(Number),treatment:selectedMedicationIds.map(id=>({medicationId:Number(id),...(medicationDetailsById[String(id)] ?? {})})),
+      }});
+      await trpcUtils.medical.invalidate();
       if (finish) {
         await queueStatusMutation.mutateAsync({
           visitId: activeWorkflowVisitId,
@@ -1375,10 +1332,12 @@ export default function WorkflowPrototypeLive() {
         setWorkflowVisitId(undefined);
       }
       toast.success(finish ? "تم حفظ وإنهاء الزيارة" : "تم حفظ تعديلات الشيت النهائي");
+      return true;
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "تعذر حفظ الشيت النهائي",
+        `لم تُنهَ الزيارة؛ قد تكون بعض الأجزاء حُفظت قبل الخطأ. ${error instanceof Error ? error.message : "تعذر حفظ الشيت النهائي"}`,
       );
+      return false;
     } finally {
       setIsSavingFinalReport(false);
     }
@@ -1470,7 +1429,7 @@ export default function WorkflowPrototypeLive() {
         ...previous,
         specialist: {
           ...previous.specialist,
-          complains: selectedNames(symptomItems, next),
+          symptoms: selectedNames(symptomItems, next),
         },
       }));
       return next;
@@ -1719,7 +1678,7 @@ export default function WorkflowPrototypeLive() {
             />
           </div>
           <div className="mb-3 grid gap-2 sm:grid-cols-2" dir="ltr">
-            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-2">
+            <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
               <span className="w-16 text-xs font-bold">UCVA</span>
               <SelectBox
                 value={nursing.ucva.od}
@@ -1745,7 +1704,7 @@ export default function WorkflowPrototypeLive() {
                 ariaLabel="OS UCVA"
               />
             </div>
-            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-2">
+            <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
               <span className="w-28 text-xs font-bold">IOP (Air Puff)</span>
               <Input
                 dir="ltr"
@@ -1774,7 +1733,7 @@ export default function WorkflowPrototypeLive() {
           </div>
           <div className="overflow-visible rounded-lg border border-slate-200">
             <table className="w-full max-w-full table-auto text-xs" dir="ltr">
-              <thead className="bg-slate-50 text-slate-600">
+              <thead className="bg-muted/50 text-slate-600">
                 <tr>
                   <th className="p-2 text-left">Eye</th>
                   <th className="p-2 text-left">S</th>
@@ -1848,7 +1807,7 @@ export default function WorkflowPrototypeLive() {
           <h3 className="mb-3 text-sm font-bold">AFTER REFRACTION</h3>
           <div className="overflow-visible rounded-lg border border-slate-200">
             <table className="w-full max-w-full table-auto text-xs" dir="ltr">
-              <thead className="bg-slate-50 text-slate-600">
+              <thead className="bg-muted/50 text-slate-600">
                 <tr>
                   <th className="p-2 text-left">Eye</th>
                   <th className="p-2 text-left">S</th>
@@ -1922,7 +1881,7 @@ export default function WorkflowPrototypeLive() {
           <h3 className="mb-3 text-sm font-bold">PENTACAM</h3>
           <div className="overflow-visible rounded-lg border border-slate-200">
             <table className="w-full max-w-full table-auto text-xs" dir="ltr">
-              <thead className="bg-slate-50 text-slate-600">
+              <thead className="bg-muted/50 text-slate-600">
                 <tr>
                   <th className="p-2 text-left">Eye</th>
                   <th className="p-2 text-left">K1</th>
@@ -2117,6 +2076,7 @@ export default function WorkflowPrototypeLive() {
             update("specialist", { ...specialist, complains })
           }
         />
+        <Field label="Symptoms" value={specialist.symptoms} onChange={symptoms=>update("specialist",{...specialist,symptoms})} />
         <div className="rounded-xl border border-slate-200 p-3">
           <h3 className="mb-3 text-sm font-bold" dir="ltr">
             Refraction
@@ -2350,7 +2310,7 @@ export default function WorkflowPrototypeLive() {
     >
       <div className="overflow-visible rounded-xl border border-slate-200">
         <table className="w-full max-w-full table-auto text-sm" dir="ltr">
-          <thead className="bg-slate-50">
+          <thead className="bg-muted/50">
             <tr>
               <th className="p-3 text-left">Measurement</th>
               <th className="p-3 text-center">OD (Right Eye)</th>
@@ -2499,25 +2459,25 @@ export default function WorkflowPrototypeLive() {
     patientId: number | null,
     visitId: number | null = null,
   ) => {
+    initialSectionChosenRef.current = true;
     setSelectedLivePatientId(patientId);
     setSelectedLiveVisitId(visitId);
     setOpenSheetStage(null);
     setEmbeddedSheetPath(null);
-    if (roleDefaultSection) setActiveSection(roleDefaultSection);
     if (patientId == null) return;
-    const patient = livePatients.find((item) => item.id === patientId);
+    const patient = livePatients.find((item) => item.id === patientId && (visitId == null || Number(item.visitId) === visitId));
     if (!patient) return;
     const stage = stageForQueueStatus(patient.queueStatus);
     setActiveStage(stage);
-    if (stage === "nursing") setActiveSection("measurements");
-    if (stage === "specialist") setActiveSection("examination");
+    const sectionByStage: Record<StageId,WorkflowSectionId> = {
+      reception:"measurements",nursing:"measurements",specialist:"examination",pentacam:"pentacam",consultant:"final",
+    };
+    setActiveSection(roleDefaultSection ?? sectionByStage[stage]);
     if (stage === "pentacam") {
       setOptionalSections((current) =>
         current.includes("pentacam") ? current : [...current, "pentacam"],
       );
-      setActiveSection("pentacam");
     }
-    if (stage === "consultant") setActiveSection("final");
     setDoctorSheet(
       stage === "specialist"
         ? "specialist"
@@ -2584,6 +2544,10 @@ export default function WorkflowPrototypeLive() {
         <p className="mt-1 text-[13px] text-slate-500">
           جارٍ تحميل الزيارات...
         </p>
+      ) : liveQueue.isError ? (
+        <p role="alert" className="mt-1 text-[13px] text-destructive">
+          تعذر تحميل الزيارات. أعد المحاولة.
+        </p>
       ) : livePatients.length === 0 ? (
         <p className="mt-1 text-[13px] text-slate-500">
           لا توجد زيارات لهذا اليوم.
@@ -2611,8 +2575,8 @@ export default function WorkflowPrototypeLive() {
           <h3 className="mb-2 text-sm font-black text-foreground">{title}</h3>
           <div className="grid grid-cols-[52px_repeat(6,minmax(0,1fr))] items-center gap-1 text-center text-[13px] font-bold">
             <span className="text-left">EYE</span>
-            <span className="col-span-3 rounded bg-slate-100 py-1">OD</span>
-            <span className="col-span-3 rounded bg-slate-100 py-1">OS</span>
+            <span className="col-span-3 rounded bg-muted py-1">OD</span>
+            <span className="col-span-3 rounded bg-muted py-1">OS</span>
             <span />
             <span>S</span>
             <span>C</span>
@@ -2675,7 +2639,7 @@ export default function WorkflowPrototypeLive() {
       <div className="grid gap-3 lg:grid-cols-2" dir="ltr">
         <Panel title="AUTOREF" subtitle="UCVA / IOP" icon={Activity} active>
           <div className="grid gap-2" dir="ltr">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-lg border border-slate-200 bg-muted/50 p-2">
               <span className="text-xs font-black">UCVA</span>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
                 <SelectBox
@@ -2961,12 +2925,14 @@ export default function WorkflowPrototypeLive() {
       finalGlassesRecord?.pdOD || finalGlassesRecord?.pdOS || "",
     ).trim();
     const addOptional = (section: WorkflowSectionId) => {
+      initialSectionChosenRef.current = true;
       setOptionalSections((current) =>
         current.includes(section) ? current : [...current, section],
       );
       setActiveSection(section);
     };
     const removeOptional = (section: WorkflowSectionId) => {
+      initialSectionChosenRef.current = true;
       setOptionalSections((current) => current.filter((id) => id !== section));
       if (activeSection === section) setActiveSection("measurements");
     };
@@ -3248,11 +3214,11 @@ export default function WorkflowPrototypeLive() {
             >
               <div className="flex flex-col items-center gap-4 py-3 md:items-start">
                 <div className="grid w-full max-w-[280px] grid-cols-[64px_1fr_1fr] overflow-hidden rounded-xl border-2 border-slate-300 bg-white text-center text-sm font-semibold print:max-w-[52mm] print:text-[13px]">
-                  <div className="border-b border-r border-slate-300 bg-slate-100 px-2 py-2" />
-                  <div className="border-b border-r border-slate-300 bg-slate-100 px-2 py-2 font-black text-[#003d9b]">
+                  <div className="border-b border-r border-slate-300 bg-muted px-2 py-2" />
+                  <div className="border-b border-r border-slate-300 bg-muted px-2 py-2 font-black text-[#003d9b]">
                     OD
                   </div>
-                  <div className="border-b border-slate-300 bg-slate-100 px-2 py-2 font-black text-[#526069]">
+                  <div className="border-b border-slate-300 bg-muted px-2 py-2 font-black text-[#526069]">
                     OS
                   </div>
                   <div className="border-r border-slate-300 px-2 py-2 font-black">
@@ -3337,7 +3303,7 @@ export default function WorkflowPrototypeLive() {
                         <col key={index} className="w-[13%]" />
                       ))}
                     </colgroup>
-                    <thead className="bg-[#e7e8ea] text-sm font-bold uppercase text-slate-800">
+                    <thead className="bg-muted text-sm font-bold uppercase text-slate-800">
                       <tr>
                         <th className="break-words border border-slate-300 px-1 py-3 text-xs sm:text-sm">
                           Refraction
@@ -3356,7 +3322,7 @@ export default function WorkflowPrototypeLive() {
                         </th>
                       </tr>
                       <tr>
-                        <th className="whitespace-nowrap border border-slate-300 bg-[#f3f4f6] px-1 py-3 text-[13px] sm:text-sm">
+                        <th className="whitespace-nowrap border border-slate-300 bg-muted/50 px-1 py-3 text-[13px] sm:text-sm">
                           Distance
                         </th>
                         <th className="border border-slate-300 px-3 py-3">S</th>
@@ -3369,7 +3335,7 @@ export default function WorkflowPrototypeLive() {
                     </thead>
                     <tbody className="font-mono">
                       <tr>
-                        <td className="border border-slate-300 bg-[#f3f4f6] px-3 py-3">
+                        <td className="border border-slate-300 bg-muted/50 px-3 py-3">
                           &nbsp;
                         </td>
                         <td className="border border-slate-300 px-3 py-3">
@@ -3392,7 +3358,7 @@ export default function WorkflowPrototypeLive() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="border border-slate-300 bg-[#f3f4f6] px-3 py-3 font-bold text-[#003d9b]">
+                        <td className="border border-slate-300 bg-muted/50 px-3 py-3 font-bold text-[#003d9b]">
                           Reading
                         </td>
                         <td className="border border-slate-300 p-0" colSpan={6}>
@@ -3400,7 +3366,7 @@ export default function WorkflowPrototypeLive() {
                             <span className="whitespace-nowrap font-bold">
                               Add +
                             </span>
-                            <span className="flex-1 rounded border border-slate-300 bg-slate-50 px-4 py-2 text-center font-mono text-base font-semibold">
+                            <span className="flex-1 rounded border border-slate-300 bg-muted/50 px-4 py-2 text-center font-mono text-base font-semibold">
                               {data.specialist.reading || "—"}
                             </span>
                           </div>
@@ -3415,7 +3381,7 @@ export default function WorkflowPrototypeLive() {
                       className="h-full w-full max-w-full table-auto border-collapse text-center text-[14px] print:text-[16px]"
                       dir="ltr"
                     >
-                      <thead className="bg-slate-100 font-black text-slate-800">
+                      <thead className="bg-muted font-black text-slate-800">
                         <tr>
                           <th className="border border-slate-300 px-3 py-3">
                             Pentacam
@@ -3619,6 +3585,7 @@ export default function WorkflowPrototypeLive() {
           </div>
         </section>
         <section className="rounded-xl border-2 border-slate-300 p-4 print:break-inside-avoid print:p-3">
+          <label className="mb-3 block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={clinicalTreatmentPlan} onChange={event=>setClinicalTreatmentPlan(event.target.value)}/></label>
           <h3 className="text-lg font-black text-blue-950">Final Decision</h3>
           <Textarea aria-label="اكتب القرار النهائي…"
             data-medical-proposals="decision"
@@ -3793,7 +3760,7 @@ export default function WorkflowPrototypeLive() {
                 visitId={activeWorkflowVisitId}
                 visitDate={selectedDate}
               />
-              {sidebarOpen ? (
+              {sidebarOpen && workflowSectionMeta.some(item=>item.optional) ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -3845,10 +3812,12 @@ export default function WorkflowPrototypeLive() {
                       (active ? "bg-primary text-primary-foreground" : "")
                     }
                     onClick={() => {
+                      initialSectionChosenRef.current = true;
                       setActiveSection(tab.id);
                       setEmbeddedSheetPath(null);
                     }}
                     title={tab.label}
+                    aria-pressed={active}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     {sidebarOpen ? (
@@ -3872,7 +3841,7 @@ export default function WorkflowPrototypeLive() {
             })}
           </div>
         </div>
-        <main className="min-w-0 bg-[#f7f9fc] p-0 print:bg-white">
+        <main className="min-w-0 bg-muted/50 p-0 print:bg-white">
           <div className="p-3 pb-6 print:p-0" dir="ltr">
             {sectionContent[activeSection]}
           </div>
@@ -3882,7 +3851,7 @@ export default function WorkflowPrototypeLive() {
   };
 
   return (
-    <div className="workflow-day-workspace min-h-screen bg-[#f7f9fc] text-slate-900" dir="rtl">
+    <div className="workflow-day-workspace min-h-screen bg-muted/50 text-slate-900" dir="rtl">
       <AssistantFieldsProvider
         key={`${selectedLivePatient?.id ?? "none"}-${activeWorkflowVisitId ?? selectedDate}`}
         patientId={selectedLivePatient?.id ?? 0}
@@ -3890,6 +3859,20 @@ export default function WorkflowPrototypeLive() {
         visitId={activeWorkflowVisitId}
         visitDate={selectedDate}
         disabled={!selectedLivePatient}
+        saving={isSavingFinalReport}
+        onSaveDraft={async()=>{if(!await saveFinalReportEdits())throw new Error("تعذر حفظ الزيارة. راجع الرسالة الظاهرة وحاول مرة أخرى.");}}
+        draftBinding={{
+          values:{treatment:clinicalTreatmentPlan,symptoms:data.specialist.symptoms,complaints:data.specialist.complains,history:data.reception.medicalHistory,diagnosis:data.consultant.diagnosis,decision:data.consultant.finalDecision,investigations:selectedTestIds.map(id=>testItems.find(item=>String(item.id)===String(id))?.name).filter(Boolean).join("\n")},
+          destinations:{treatment:"treatment",complaints:"complaints",symptoms:"symptoms",history:"history",diagnosis:"diagnosis",decision:"decision",labs:"investigations",imaging:"investigations"},
+          accept:(field,text)=>{if(field!=="labs"&&field!=="imaging")return true;try{if(testsQuery.isLoading||testsQuery.isError)return false;resolveTestNames(text,testsQuery.data ?? [],field);return true;}catch{return false;}},
+          change:values=>{if("treatment" in values)setClinicalTreatmentPlan(values.treatment);if("investigations" in values)setSelectedTestIds(resolveTestNames(values.investigations,testsQuery.data ?? []));setData(previous=>({...previous,
+            reception:{...previous.reception,...("history" in values?{medicalHistory:values.history}:{})},
+            specialist:{...previous.specialist,...("complaints" in values?{complains:values.complaints}:{}),...("symptoms" in values?{symptoms:values.symptoms}:{})},
+            consultant:{...previous.consultant,...("diagnosis" in values?{diagnosis:values.diagnosis}:{}),...("decision" in values?{finalDecision:values.decision}:{}),...("investigations" in values?{testsRays:values.investigations}:{})},
+          }));},
+        }}
+        testsDraft={{catalog:testsQuery.data ?? [],ids:selectedTestIds.map(Number),disabled:testsQuery.isLoading || testsQuery.isError,append:ids=>setSelectedTestIds(previous=>[...new Set([...previous,...ids.map(String)])]),remove:ids=>setSelectedTestIds(previous=>previous.filter(id=>!ids.includes(Number(id))))}}
+        prescriptionDraft={{templates:[],medications:medicationItems,draft:{ids:selectedMedicationIds,details:Object.fromEntries(Object.entries(medicationDetailsById).map(([id,details])=>[id,{...details,dosage:details.dosage ?? ""}]))},disabled:medicationsQuery.isLoading || medicationsQuery.isError,change:draft=>{setSelectedMedicationIds(draft.ids);setMedicationDetailsById(draft.details);const value=selectedNames(medicationItems,draft.ids);setData(previous=>({...previous,specialist:{...previous.specialist,prescription:value},consultant:{...previous.consultant,prescription:value}}));}}}
       >
       <main className="mx-auto max-w-[1500px] space-y-2 px-2 py-0 lg:px-3">
         <h1 className="sr-only">مسار اليوم</h1>

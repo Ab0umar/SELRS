@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAssistantForm } from "./AssistantFields";
-import PrescriptionTemplateReview from "./PrescriptionTemplateReview";
+import MedicationCatalogReview from "./MedicationCatalogReview";
+import TestCatalogReview from "./TestCatalogReview";
 import {
   applyProposal,
   undoProposal,
@@ -70,11 +72,44 @@ export default function ProposalReview({
   }, [effectiveSelection]);
   const [jobId, setJobId] = useState<string>();
   const [paused, setPaused] = useState(false);
+  const [terminalFailure, setTerminalFailure] = useState(false);
   const [result, setResult] = useState<MedicalProposals>();
   const [error, setError] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
+  const [savingDraft, setSavingDraft] = useState(false);
   const form = useAssistantForm();
   const [applied, setApplied] = useState<Record<string, AppliedText>>({});
+  const autoApplied = useRef(false);
+  const draftSignature = useRef("");
+  const [draftReceipt, setDraftReceipt] = useState<{
+    skipped: string[];
+    undo: () => void;
+  }>();
+  const narrativeProposals = (proposals: MedicalProposals["proposals"]) =>
+    proposals.filter(
+      (item) =>
+        !form?.getTests?.() || !["labs", "imaging"].includes(item.field),
+    );
+  useEffect(() => {
+    if (
+      autoApplied.current ||
+      !result ||
+      reviewOnly ||
+      input.kind !== "conversation" ||
+      !form?.fillDraft ||
+      form.disabled
+    )
+      return;
+    autoApplied.current = true;
+    try {
+      setDraftReceipt(form.fillDraft(narrativeProposals(result.proposals)));
+      draftSignature.current = JSON.stringify(result.proposals);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "تعذّرت تعبئة المسودة.",
+      );
+    }
+  }, [result, reviewOnly, input.kind, form]);
   const alive = useRef(true);
   const readTask = read.mutateAsync;
   useEffect(() => {
@@ -93,6 +128,7 @@ export default function ProposalReview({
         if (canceled) return;
         if (response.status === "complete") setResult(response.result);
         else if (response.status === "failed") {
+          setTerminalFailure(true);
           setError(response.message);
           setPaused(true);
         } else timer = setTimeout(poll, 2500);
@@ -208,18 +244,127 @@ export default function ProposalReview({
           onClick={() => {
             setError("");
             setPaused(false);
+            if (terminalFailure) {
+              setJobId(undefined);
+              setSubmittedSelection(undefined);
+              setConsent(false);
+              setTerminalFailure(false);
+            }
           }}
         >
-          {reviewOnly ? "متابعة نفس المهمة" : "Check same task again"}
+          {terminalFailure
+            ? "تجهيز محاولة جديدة (قد تُحتسب تكلفة جديدة)"
+            : reviewOnly
+              ? "متابعة نفس المهمة"
+              : "Check same task again"}
         </Button>
       )}
       {result && (
         <>
+          {!reviewOnly && input.kind === "conversation" && form?.saveDraft && (
+            <div className="sticky top-0 z-10 rounded border bg-background p-3">
+              <p className="mb-2 text-sm">
+                راجع الحقول والاختيارات أدناه قبل حفظ الزيارة.
+              </p>
+              <Button
+                type="button"
+                disabled={
+                  form.disabled ||
+                  form.saving ||
+                  savingDraft ||
+                  (Boolean(form.fillDraft) && !draftReceipt) ||
+                  (Boolean(draftReceipt) &&
+                    draftSignature.current !== JSON.stringify(result.proposals))
+                }
+                onClick={async () => {
+                  setError("");
+                  setSavingDraft(true);
+                  try {
+                    await form.saveDraft!();
+                    setCopyMessage("تم حفظ الزيارة والحقول المعبأة بنجاح.");
+                  } catch (cause) {
+                    setError(
+                      cause instanceof Error
+                        ? cause.message
+                        : "تعذر حفظ الزيارة.",
+                    );
+                  } finally {
+                    setSavingDraft(false);
+                  }
+                }}
+              >
+                {savingDraft || form.saving
+                  ? "جارٍ حفظ الزيارة…"
+                  : "حفظ الزيارة بعد المراجعة"}
+              </Button>
+            </div>
+          )}
           {result.warnings.map((warning, index) => (
             <p key={index} role="note" dir="auto">
               {warning}
             </p>
           ))}
+          {draftReceipt && (
+            <div>
+              {draftSignature.current !== JSON.stringify(result.proposals) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    try {
+                      flushSync(() => draftReceipt.undo());
+                      setDraftReceipt(
+                        form!.fillDraft!(narrativeProposals(result.proposals)),
+                      );
+                      draftSignature.current = JSON.stringify(result.proposals);
+                      setError("");
+                    } catch (cause) {
+                      setError(
+                        cause instanceof Error
+                          ? cause.message
+                          : "تعذر تحديث الحقول.",
+                      );
+                    }
+                  }}
+                >
+                  نقل التعديلات إلى الحقول
+                </Button>
+              )}
+              <p role="status">
+                تمت تعبئة مسودة الحقول المتاحة تلقائيًا. راجع الكشف ثم استخدم زر
+                الحفظ؛ لم يحدث حفظ تلقائي.
+              </p>
+              {draftReceipt.skipped.length > 0 && (
+                <p>
+                  لم تُملأ تلقائيًا؛ راجع اختياراتها قبل الحفظ:{" "}
+                  {draftReceipt.skipped
+                    .map(
+                      (field) =>
+                        medicalProposalLabels[
+                          field as keyof typeof medicalProposalLabels
+                        ],
+                    )
+                    .join("، ")}
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  try {
+                    draftReceipt.undo();
+                    setDraftReceipt(undefined);
+                  } catch (cause) {
+                    setError(
+                      cause instanceof Error ? cause.message : "تعذّر التراجع.",
+                    );
+                  }
+                }}
+              >
+                تراجع عن تعبئة الحقول
+              </Button>
+            </div>
+          )}
           {!result.proposals.length && (
             <p>No supported field changes were found. Review the transcript.</p>
           )}
@@ -296,12 +441,27 @@ export default function ProposalReview({
               )}
               {!reviewOnly &&
                 input.kind === "conversation" &&
-                proposal.field === "treatment" && (
-                  <PrescriptionTemplateReview text={proposal.text} />
+                (proposal.field === "labs" || proposal.field === "imaging") && (
+                  <TestCatalogReview
+                    field={proposal.field}
+                    text={proposal.text}
+                  />
                 )}
               {!reviewOnly &&
                 input.kind === "conversation" &&
-                proposal.field !== "treatment" && (
+                proposal.field === "treatment" &&
+                (proposal.medications?.length ? (
+                  <MedicationCatalogReview medicines={proposal.medications} />
+                ) : (
+                  <p>
+                    لم تُستخرج أسماء أدوية منفصلة. نص العلاج ليس عبارة بحث؛ راجع
+                    الأسماء أو اختَر الدواء من الكتالوج.
+                  </p>
+                ))}
+              {!reviewOnly &&
+                input.kind === "conversation" &&
+                proposal.field !== "treatment" &&
+                !form?.fillDraft && (
                   <Button
                     type="button"
                     variant="outline"
@@ -348,10 +508,9 @@ export default function ProposalReview({
           ))}
           {!reviewOnly && input.kind === "conversation" && (
             <p className="text-sm">
-              Apply supports mapped text fields in the open section only.
-              Existing text is preserved; use the form’s Save button after
-              review. History and test catalogs remain review-only. Prescription
-              templates require separate confirmation.
+              التعبئة تخص المسودة فقط وتحافظ على النص السابق. راجع الحقول
+              والأدوية قبل حفظ الكشف. لا تُستخدم الوصفات الجاهزة للبحث عن أسماء
+              الأدوية.
             </p>
           )}
         </>

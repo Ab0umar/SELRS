@@ -49,7 +49,6 @@ import {
 } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
 import { broadcastSheetUpdate } from "../_core/ws";
-import { symptomDirectoryEntrySchema } from "./_medical/service-helpers";
 import { getBuildInfo } from "../_core/buildInfo";
 import {
   egyptianDrugDosageForms,
@@ -481,118 +480,46 @@ export const medicalCatalogRoutes = {
       return { success: true };
     }),
 
-  getAllSymptoms: protectedProcedure.query(async () => {
-    const row = await db.getSystemSetting("symptoms_directory");
-    if (!row?.value)
-      return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
-    try {
-      const parsed = JSON.parse(row.value);
-      const normalized = z.array(symptomDirectoryEntrySchema).safeParse(parsed);
-      if (!normalized.success)
-        return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
-      return normalized.data;
-    } catch {
-      return [] as Array<z.infer<typeof symptomDirectoryEntrySchema>>;
-    }
-  }),
-
+  getAllSymptoms: protectedProcedure.query(async () => db.getSymptomCatalog()),
   createSymptom: medicalManagerProcedure
-    .input(z.object({ name: z.string().min(1) }))
+    .input(z.object({ name: z.string().trim().min(1) }))
     .mutation(async ({ input, ctx }) => {
-      const row = await db.getSystemSetting("symptoms_directory");
-      let current: Array<z.infer<typeof symptomDirectoryEntrySchema>> = [];
-      if (row?.value) {
-        try {
-          const parsed = JSON.parse(row.value);
-          const normalized = z
-            .array(symptomDirectoryEntrySchema)
-            .safeParse(parsed);
-          if (normalized.success) current = normalized.data;
-        } catch {
-          current = [];
-        }
-      }
-      const name = String(input.name ?? "").trim();
-      if (!name) return { success: true };
-      if (
-        current.some(
-          (item) =>
-            String(item.name ?? "")
-              .trim()
-              .toLowerCase() === name.toLowerCase(),
-        )
-      ) {
-        return { success: true, duplicate: true };
-      }
-      current.push({
-        id: `sym_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        name,
-      });
-      await db.updateSystemSettings("symptoms_directory", current);
+      const saved = await db.createSymptomInCatalog(input.name);
       await db.logAuditEvent(
         ctx.user.id,
         "CREATE_SYMPTOM",
-        "systemSetting",
+        "symptomCatalog",
         0,
-        { message: `Added symptom ${name}` },
+        { symptomId: saved.id },
       );
       return { success: true };
     }),
-
   updateSymptom: medicalManagerProcedure
-    .input(z.object({ symptomId: z.string().min(1), name: z.string().min(1) }))
+    .input(
+      z.object({
+        symptomId: z.string().min(1),
+        name: z.string().trim().min(1),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
-      const row = await db.getSystemSetting("symptoms_directory");
-      let current: Array<z.infer<typeof symptomDirectoryEntrySchema>> = [];
-      if (row?.value) {
-        try {
-          const parsed = JSON.parse(row.value);
-          const normalized = z
-            .array(symptomDirectoryEntrySchema)
-            .safeParse(parsed);
-          if (normalized.success) current = normalized.data;
-        } catch {
-          current = [];
-        }
-      }
-      const next = current.map((item) =>
-        item.id === input.symptomId
-          ? { ...item, name: String(input.name ?? "").trim() }
-          : item,
-      );
-      await db.updateSystemSettings("symptoms_directory", next);
+      await db.updateSymptomInCatalog(input.symptomId, input.name);
       await db.logAuditEvent(
         ctx.user.id,
         "UPDATE_SYMPTOM",
-        "systemSetting",
+        "symptomCatalog",
         0,
         { symptomId: input.symptomId },
       );
       return { success: true };
     }),
-
   deleteSymptom: medicalManagerProcedure
     .input(z.object({ symptomId: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
-      const row = await db.getSystemSetting("symptoms_directory");
-      let current: Array<z.infer<typeof symptomDirectoryEntrySchema>> = [];
-      if (row?.value) {
-        try {
-          const parsed = JSON.parse(row.value);
-          const normalized = z
-            .array(symptomDirectoryEntrySchema)
-            .safeParse(parsed);
-          if (normalized.success) current = normalized.data;
-        } catch {
-          current = [];
-        }
-      }
-      const next = current.filter((item) => item.id !== input.symptomId);
-      await db.updateSystemSettings("symptoms_directory", next);
+      await db.deleteSymptomFromCatalog(input.symptomId);
       await db.logAuditEvent(
         ctx.user.id,
         "DELETE_SYMPTOM",
-        "systemSetting",
+        "symptomCatalog",
         0,
         { symptomId: input.symptomId },
       );
@@ -722,6 +649,7 @@ export const medicalCatalogRoutes = {
         date: z.string().optional(),
         priority: z.string().optional(),
         notes: z.string().optional(),
+        diagnosis: z.string().optional(),
         items: z.array(
           z.object({
             testId: z.number(),
@@ -731,28 +659,8 @@ export const medicalCatalogRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const result = await db.createTestRequest({
-        patientId: input.patientId,
-        visitId: input.visitId,
-        requestDate: input.date
-          ? new Date(`${input.date}T12:00:00`)
-          : new Date(),
-        status: "pending",
-        notes: input.notes,
-      });
-
-      // Get the ID of the created test request
-      const testRequestId = result[0].insertId;
-
-      // Create test request items
-      if (input.items && input.items.length > 0) {
-        const itemsToInsert = input.items.map((item: any) => ({
-          testRequestId: testRequestId,
-          testId: item.testId,
-          result: item.notes,
-        }));
-        await db.createTestRequestItems(itemsToInsert);
-      }
+      const result = await db.createPatientTestRequest(input);
+      const testRequestId = result.id;
 
       await db.logAuditEvent(
         ctx.user.id,
@@ -774,6 +682,7 @@ export const medicalCatalogRoutes = {
         date: z.string().optional(),
         priority: z.string().optional(),
         notes: z.string().optional(),
+        diagnosis: z.string().optional(),
         items: z.array(
           z.object({
             testId: z.number(),
@@ -855,7 +764,10 @@ export const medicalCatalogRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       if (ctx.user.role === "reception") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Reception cannot create prescriptions." });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Reception cannot create prescriptions.",
+        });
       }
       try {
         await db.createPrescription({
@@ -890,6 +802,7 @@ export const medicalCatalogRoutes = {
         visitId: z.number().optional(),
         date: z.string().optional(),
         notes: z.string().optional(),
+        diagnosis: z.string().optional(),
         items: z.array(
           z.object({
             medicationId: z.number().optional(),
@@ -904,7 +817,10 @@ export const medicalCatalogRoutes = {
     )
     .mutation(async ({ input, ctx }) => {
       if (ctx.user.role === "reception") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Reception cannot create prescriptions." });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Reception cannot create prescriptions.",
+        });
       }
       await db.createPrescriptionWithItems({
         patientId: input.patientId,
@@ -912,6 +828,7 @@ export const medicalCatalogRoutes = {
         doctorId: ctx.user.id,
         date: input.date,
         notes: input.notes,
+        diagnosis: input.diagnosis,
         items: input.items,
       });
       await db.logAuditEvent(
@@ -931,6 +848,7 @@ export const medicalCatalogRoutes = {
         visitId: z.number(),
         date: z.string().optional(),
         notes: z.string().optional(),
+        diagnosis: z.string().optional(),
         items: z.array(
           z.object({
             medicationId: z.number().optional(),
@@ -950,7 +868,10 @@ export const medicalCatalogRoutes = {
           message: "Reception cannot replace prescriptions.",
         });
       }
-      await db.replacePrescriptionWithItems({ ...input, doctorId: ctx.user.id });
+      await db.replacePrescriptionWithItems({
+        ...input,
+        doctorId: ctx.user.id,
+      });
       await db.logAuditEvent(
         ctx.user.id,
         "REPLACE_PRESCRIPTION",

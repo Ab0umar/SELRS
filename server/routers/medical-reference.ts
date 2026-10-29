@@ -1,12 +1,18 @@
 import { z } from "zod";
 import { and, eq, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
-import { clinicalStaffProcedure, protectedProcedure } from "../_core/procedures";
+import {
+  clinicalStaffProcedure,
+  protectedProcedure,
+} from "../_core/procedures";
 import * as db from "../db";
 import {
-  doctorReports,
+  visitDiagnoses,
+  visitDiagnosisCodes,
+  visitComplaints,
+  visitSymptoms,
+  diseases,
+  surgeries,
   glassesRecords,
-  operationListItems,
-  operationLists,
   patients,
   pentacamResults,
 } from "../../drizzle/schema";
@@ -20,7 +26,10 @@ const EXTERNAL_PATIENT_SERVICE_TYPES = [
 ] as const;
 
 const eyeSchema = z.enum(["OD", "OS", "either", "both"]);
-const rangeSchema = z.object({ min: z.number().optional(), max: z.number().optional() });
+const rangeSchema = z.object({
+  min: z.number().optional(),
+  max: z.number().optional(),
+});
 
 const criterionSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -52,7 +61,10 @@ const numericValue = (column: unknown) =>
 
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
-function rangeCondition(column: unknown, range: { min?: number; max?: number }) {
+function rangeCondition(
+  column: unknown,
+  range: { min?: number; max?: number },
+) {
   const value = numericValue(column);
   const conditions: SQL[] = [];
   if (range.min != null) conditions.push(sql`${value} >= ${range.min}`);
@@ -103,22 +115,23 @@ function buildCriterion(criterion: z.infer<typeof criterionSchema>): SQL {
   if (criterion.kind === "diagnosis") {
     const pattern = `%${escapeLike(criterion.text)}%`;
     const fields: SQL[] = [];
-    if (criterion.field === "diagnosis" || criterion.field === "any") fields.push(sql`${doctorReports.diagnosis} LIKE ${pattern}`);
-    if (criterion.field === "diseases" || criterion.field === "any") fields.push(sql`${doctorReports.diseases} LIKE ${pattern}`);
-    if (criterion.field === "symptoms" || criterion.field === "any") fields.push(sql`${doctorReports.clinicalOpinion} LIKE ${pattern}`);
-    return sql`EXISTS (SELECT 1 FROM ${doctorReports} WHERE ${doctorReports.patientId} = patients.id AND ${or(...fields)})`;
+    if (criterion.field === "diagnosis" || criterion.field === "any")
+      fields.push(
+        sql`EXISTS(SELECT 1 FROM ${visitDiagnoses} WHERE ${visitDiagnoses.patientId}=patients.id AND ${visitDiagnoses.diagnosis} LIKE ${pattern})`,
+      );
+    if (criterion.field === "diseases" || criterion.field === "any")
+      fields.push(
+        sql`EXISTS(SELECT 1 FROM ${visitDiagnosisCodes} INNER JOIN ${diseases} ON ${diseases.id}=${visitDiagnosisCodes.diseaseId} WHERE ${visitDiagnosisCodes.patientId}=patients.id AND ${diseases.name} LIKE ${pattern})`,
+      );
+    if (criterion.field === "symptoms" || criterion.field === "any")
+      fields.push(
+        sql`(EXISTS(SELECT 1 FROM ${visitSymptoms} WHERE ${visitSymptoms.patientId}=patients.id AND ${visitSymptoms.symptoms} LIKE ${pattern}) OR EXISTS(SELECT 1 FROM ${visitComplaints} WHERE ${visitComplaints.patientId}=patients.id AND ${visitComplaints.complaint} LIKE ${pattern}))`,
+      );
+    return or(...fields)!;
   }
 
   const pattern = `%${escapeLike(criterion.text)}%`;
-  return sql`(
-    EXISTS (SELECT 1 FROM ${doctorReports} WHERE ${doctorReports.patientId} = patients.id AND ${doctorReports.operationType} LIKE ${pattern})
-    OR EXISTS (
-      SELECT 1 FROM ${operationListItems}
-      INNER JOIN ${operationLists} ON ${operationLists.id} = ${operationListItems.listId}
-      WHERE ${operationListItems.code} = patients.patientCode
-        AND (${operationListItems.operation} LIKE ${pattern} OR ${operationLists.operationType} LIKE ${pattern})
-    )
-  )`;
+  return sql`EXISTS(SELECT 1 FROM ${surgeries} WHERE ${surgeries.patientId}=patients.id AND ${surgeries.status}<>'cancelled' AND ${surgeries.surgeryType} LIKE ${pattern})`;
 }
 
 export const medicalReferenceRoutes = {
@@ -134,30 +147,50 @@ export const medicalReferenceRoutes = {
     )
     .query(async ({ input }) => {
       const conn = await db.getDb();
-      if (!conn) return { rows: [], total: 0, page: input.page, pageSize: input.pageSize };
+      if (!conn)
+        return {
+          rows: [],
+          total: 0,
+          page: input.page,
+          pageSize: input.pageSize,
+        };
 
       const conditions: SQL[] = [
         and(
           eq(patients.locationType, "center"),
           or(
             isNull(patients.serviceType),
-            notInArray(patients.serviceType, [...EXTERNAL_PATIENT_SERVICE_TYPES]),
+            notInArray(patients.serviceType, [
+              ...EXTERNAL_PATIENT_SERVICE_TYPES,
+            ]),
           ),
         )!,
       ];
       if (input.search) {
         const pattern = `%${escapeLike(input.search)}%`;
-        conditions.push(or(sql`${patients.fullName} LIKE ${pattern}`, sql`${patients.patientCode} LIKE ${pattern}`)!);
+        conditions.push(
+          or(
+            sql`${patients.fullName} LIKE ${pattern}`,
+            sql`${patients.patientCode} LIKE ${pattern}`,
+          )!,
+        );
       }
       const criterionConditions = input.criteria.map(buildCriterion);
       if (criterionConditions.length) {
-        conditions.push(input.mode === "and" ? and(...criterionConditions)! : or(...criterionConditions)!);
+        conditions.push(
+          input.mode === "and"
+            ? and(...criterionConditions)!
+            : or(...criterionConditions)!,
+        );
       }
       const where = conditions.length ? and(...conditions) : undefined;
       const offset = (input.page - 1) * input.pageSize;
 
       const [countRows, rows] = await Promise.all([
-        conn.select({ total: sql<number>`COUNT(*)` }).from(patients).where(where),
+        conn
+          .select({ total: sql<number>`COUNT(*)` })
+          .from(patients)
+          .where(where),
         conn
           .select({
             id: patients.id,
@@ -166,20 +199,48 @@ export const medicalReferenceRoutes = {
             age: patients.age,
             gender: patients.gender,
             lastVisit: patients.lastVisit,
-            sphereOD: sql<string | null>`(SELECT g.sOD FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.sOD), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
-            cylinderOD: sql<string | null>`(SELECT g.cOD FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.cOD), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
-            axisOD: sql<string | null>`(SELECT g.axisOD FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.axisOD), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
-            sphereOS: sql<string | null>`(SELECT g.sOS FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.sOS), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
-            cylinderOS: sql<string | null>`(SELECT g.cOS FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.cOS), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
-            axisOS: sql<string | null>`(SELECT g.axisOS FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.axisOS), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
-            k1OD: sql<string | null>`(SELECT pc.k1OD FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
-            k2OD: sql<string | null>`(SELECT pc.k2OD FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
-            thicknessOD: sql<string | null>`(SELECT pc.thinnestPointOD FROM pentacamResults pc WHERE pc.patientId = patients.id AND NULLIF(TRIM(pc.thinnestPointOD), '') IS NOT NULL ORDER BY pc.createdAt DESC LIMIT 1)`,
-            k1OS: sql<string | null>`(SELECT pc.k1OS FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
-            k2OS: sql<string | null>`(SELECT pc.k2OS FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
-            thicknessOS: sql<string | null>`(SELECT pc.thinnestPointOS FROM pentacamResults pc WHERE pc.patientId = patients.id AND NULLIF(TRIM(pc.thinnestPointOS), '') IS NOT NULL ORDER BY pc.createdAt DESC LIMIT 1)`,
-            diagnosis: sql<string | null>`(SELECT dr.diagnosis FROM doctorReports dr WHERE dr.patientId = patients.id ORDER BY dr.createdAt DESC LIMIT 1)`,
-            operationType: sql<string | null>`(SELECT dr.operationType FROM doctorReports dr WHERE dr.patientId = patients.id AND dr.operationType IS NOT NULL ORDER BY dr.createdAt DESC LIMIT 1)`,
+            sphereOD: sql<
+              string | null
+            >`(SELECT g.sOD FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.sOD), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
+            cylinderOD: sql<
+              string | null
+            >`(SELECT g.cOD FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.cOD), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
+            axisOD: sql<
+              string | null
+            >`(SELECT g.axisOD FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.axisOD), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
+            sphereOS: sql<
+              string | null
+            >`(SELECT g.sOS FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.sOS), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
+            cylinderOS: sql<
+              string | null
+            >`(SELECT g.cOS FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.cOS), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
+            axisOS: sql<
+              string | null
+            >`(SELECT g.axisOS FROM glassesRecords g WHERE g.patientId = patients.id AND NULLIF(TRIM(g.axisOS), '') IS NOT NULL ORDER BY g.createdAt DESC LIMIT 1)`,
+            k1OD: sql<
+              string | null
+            >`(SELECT pc.k1OD FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
+            k2OD: sql<
+              string | null
+            >`(SELECT pc.k2OD FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
+            thicknessOD: sql<
+              string | null
+            >`(SELECT pc.thinnestPointOD FROM pentacamResults pc WHERE pc.patientId = patients.id AND NULLIF(TRIM(pc.thinnestPointOD), '') IS NOT NULL ORDER BY pc.createdAt DESC LIMIT 1)`,
+            k1OS: sql<
+              string | null
+            >`(SELECT pc.k1OS FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
+            k2OS: sql<
+              string | null
+            >`(SELECT pc.k2OS FROM pentacamResults pc WHERE pc.patientId = patients.id ORDER BY pc.createdAt DESC LIMIT 1)`,
+            thicknessOS: sql<
+              string | null
+            >`(SELECT pc.thinnestPointOS FROM pentacamResults pc WHERE pc.patientId = patients.id AND NULLIF(TRIM(pc.thinnestPointOS), '') IS NOT NULL ORDER BY pc.createdAt DESC LIMIT 1)`,
+            diagnosis: sql<
+              string | null
+            >`(SELECT d.diagnosis FROM visitDiagnoses d INNER JOIN visits v ON v.id=d.visitId AND v.patientId=d.patientId WHERE d.patientId=patients.id ORDER BY v.visitDate DESC,v.id DESC LIMIT 1)`,
+            operationType: sql<
+              string | null
+            >`(SELECT s.surgeryType FROM surgeries s WHERE s.patientId=patients.id AND s.status<>'cancelled' ORDER BY s.surgeryDate DESC,s.id DESC LIMIT 1)`,
           })
           .from(patients)
           .where(where)

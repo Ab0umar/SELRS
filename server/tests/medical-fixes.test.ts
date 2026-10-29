@@ -17,6 +17,11 @@ import {
   testRequests,
   tests as medicalTests,
   visits,
+  visitDiagnoses,
+  visitMedicalHistory,
+  visitDiagnosisCodes,
+  diseases,
+  airPuffMeasurements,
 } from "../../drizzle/schema";
 import { appRouter } from "../routers";
 import { makeCallerAs } from "./helpers/auth";
@@ -39,10 +44,27 @@ async function cleanupTables(
       ]),
     );
   await conn.delete(medicalTests).where(eq(medicalTests.name, "MFIX lab"));
+  await conn
+    .delete(diseases)
+    .where(inArray(diseases.name, ["MFIX disease a", "MFIX disease b"]));
 }
 
 // Children first: TRUNCATE is rejected for tables referenced by foreign keys.
 const TABLES = [
+  "medicalMigrationConflicts",
+  "visitDiagnosisCodes",
+  "visitSymptomCodes",
+  "visitComplaints",
+  "visitSymptoms",
+  "visitDiagnoses",
+  "visitTreatmentPlans",
+  "visitDecisions",
+  "visitMedicalHistory",
+  "airPuffMeasurements",
+  "examinationProcedurePlans",
+  "fundusFindings",
+  "examinationFindings",
+  "sheet_entries",
   "prescriptionItems",
   "prescriptions",
   "testRequestItems",
@@ -120,7 +142,8 @@ describe.sequential("medical review fixes", () => {
     expect(await conn.select().from(pentacamResults)).toHaveLength(1);
     const reports = await conn.select().from(doctorReports);
     expect(reports).toHaveLength(1);
-    expect(reports[0].diagnosis).toBe("Dx2");
+    const [diagnosis] = await conn.select().from(visitDiagnoses);
+    expect(diagnosis.diagnosis).toBe("Dx2");
   });
 
   it("saveExaminationForm updates pentacam instead of duplicating it", async () => {
@@ -184,21 +207,33 @@ describe.sequential("medical review fixes", () => {
   it("updateDoctorReport writes diseases without clobbering additionalNotes", async () => {
     const patientId = await seedPatient();
     const doctor = caller("doctor");
+    const conn = await getTestDb();
+    const [visit] = await conn
+      .insert(visits)
+      .values({ patientId, visitDate: new Date("2026-03-15T12:00:00") });
+    const [first] = await conn
+      .insert(diseases)
+      .values({ name: "MFIX disease a" });
+    const [second] = await conn
+      .insert(diseases)
+      .values({ name: "MFIX disease b" });
     await doctor.medical.createDoctorReport({
-      visitId: 1,
+      visitId: visit.insertId,
       patientId,
       diagnosis: "Dx",
       additionalNotes: "keep me",
     });
-    const conn = await getTestDb();
     const [report] = await conn.select().from(doctorReports);
     await doctor.medical.updateDoctorReport({
       reportId: report.id,
-      diseases: ["a", "b"],
+      diseases: [first.insertId, second.insertId],
     });
-    const [after] = await conn.select().from(doctorReports);
-    expect(after.additionalNotes).toBe("keep me");
-    expect(JSON.parse(String(after.diseases))).toEqual(["a", "b"]);
+    const [after] = await conn.select().from(visitMedicalHistory);
+    expect(after.history).toBe("keep me");
+    const codes = await conn.select().from(visitDiagnosisCodes);
+    expect(codes.map((code) => code.diseaseId).sort()).toEqual(
+      [first.insertId, second.insertId].sort(),
+    );
   });
 
   it("updateMedicalReport only changes the fields it receives", async () => {
@@ -206,6 +241,7 @@ describe.sequential("medical review fixes", () => {
     const doctor = caller("doctor");
     await doctor.medical.createMedicalReport({
       patientId,
+      visitDate: "2026-03-15",
       diagnosis: "Dx",
       recommendations: "rest",
     });
@@ -215,7 +251,9 @@ describe.sequential("medical review fixes", () => {
       reportId: report.id,
       diagnosis: "Dx2",
     });
-    const [after] = await conn.select().from(doctorReports);
+    const [after] = await doctor.medical.getDoctorReportsByVisit({
+      visitId: report.visitId,
+    });
     expect(after.diagnosis).toBe("Dx2");
     expect(after.recommendations).toBe("rest");
   });
@@ -325,7 +363,16 @@ describe.sequential("medical review fixes", () => {
     });
     const conn = await getTestDb();
     const sheets = await conn.select().from(followupSheets);
-    const stored = await conn.select().from(followupItems);
+    const stored = (
+      await doctor.medical.getFollowupSheets({
+        patientId,
+        sheetType: "consultant",
+      })
+    ).flatMap(
+      (sheet: {
+        items: Array<{ id: number; tableIndex: number; notes: string }>;
+      }) => sheet.items,
+    );
     expect(sheets).toHaveLength(2);
     expect(stored.map((item) => item.notes).sort()).toEqual([
       "visit 0",
@@ -345,7 +392,14 @@ describe.sequential("medical review fixes", () => {
       })),
     });
     expect(await conn.select().from(followupSheets)).toHaveLength(2);
-    const edited = await conn.select().from(followupItems);
+    const edited = (
+      await doctor.medical.getFollowupSheets({
+        patientId,
+        sheetType: "consultant",
+      })
+    ).flatMap(
+      (sheet: { items: Array<{ id: number; notes: string }> }) => sheet.items,
+    );
     expect(edited).toHaveLength(5);
     expect(edited.every((item) => item.notes?.endsWith(" edited"))).toBe(true);
   });
@@ -367,8 +421,11 @@ describe.sequential("medical review fixes", () => {
         examinationId: exam.id,
         updates: { [field]: null },
       });
-      const [refraction] = await conn.select().from(autorefractometryData);
-      expect(refraction[field]).toBeNull();
+      const value =
+        field === "iopOD"
+          ? (await conn.select().from(airPuffMeasurements))[0].iopOD
+          : (await conn.select().from(autorefractometryData))[0].sphereOD;
+      expect(value).toBeNull();
     },
   );
 

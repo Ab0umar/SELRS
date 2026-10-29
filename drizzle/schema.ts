@@ -19,6 +19,7 @@ import { attendanceTimestamp } from "./attendanceTimestamp";
 import { encryptedText } from "./encryptedText";
 import type { TestReferenceRange } from "../shared/test-reference-ranges";
 export * from "./autoReply";
+export * from "./clinical";
 /**
  * Core user table with local authentication (username/password)
  */
@@ -438,6 +439,18 @@ export const autorefractometryData = mysqlTable("autorefractometryData", {
     .notNull()
     .references(() => examinations.id, { onDelete: "cascade" }),
   patientId: int("patientId").notNull(),
+  sphere2OD:varchar("sphere2OD",{length:20}),
+  cylinder2OD:varchar("cylinder2OD",{length:20}),
+  axis2OD:varchar("axis2OD",{length:20}),
+  sphere3OD:varchar("sphere3OD",{length:20}),
+  cylinder3OD:varchar("cylinder3OD",{length:20}),
+  axis3OD:varchar("axis3OD",{length:20}),
+  sphere2OS:varchar("sphere2OS",{length:20}),
+  cylinder2OS:varchar("cylinder2OS",{length:20}),
+  axis2OS:varchar("axis2OS",{length:20}),
+  sphere3OS:varchar("sphere3OS",{length:20}),
+  cylinder3OS:varchar("cylinder3OS",{length:20}),
+  axis3OS:varchar("axis3OS",{length:20}),
 
   // Right Eye (OD)
   sphereOD: varchar("sphereOD", { length: 20 }),
@@ -526,6 +539,8 @@ export const pentacamResults = mysqlTable("pentacamResults", {
   id: int("id").autoincrement().primaryKey(),
   visitId: int("visitId").notNull(),
   patientId: int("patientId").notNull(),
+  axis2OD:varchar("axis2OD",{length:20}),
+  axis2OS:varchar("axis2OS",{length:20}),
   recordedBy: int("recordedBy"), // ط§ظ„ظپظ†ظٹ ط§ظ„ط°ظٹ ط³ط¬ظ„ ط§ظ„ظ†طھط§ط¦ط¬
 
   // Pachymetry - ط§ظ„ظ…ط­ط§ط°اة (corneal thickness)
@@ -985,8 +1000,11 @@ export type InsertServiceCodeOpTypeMap =
 export const surgeries = mysqlTable("surgeries", {
   id: int("id").autoincrement().primaryKey(),
   patientId: int("patientId").notNull(),
+  visitId: int("visitId"),
+  eye: varchar("eye", {length:8}),
+  sourceRef: varchar("sourceRef", {length:191}),
   surgeryType: varchar("surgeryType", { length: 255 }), // ظ†ظˆط¹ ط§ظ„ط¹ظ…ظ„ظٹط©
-  surgeryDate: timestamp("surgeryDate").notNull(), // طھط§ط±ظٹط® ط§ظ„ط¹ظ…ظ„ظٹط©
+  surgeryDate: timestamp("surgeryDate"), // طھط§ط±ظٹط® ط§ظ„ط¹ظ…ظ„ظٹط©
   surgeon: varchar("surgeon", { length: 255 }), // ط§ظ„ط¬ط±ط§ط­
   notes: text("notes"), // ظ…ظ„ط§ط­ط¸ط§طھ
   status: mysqlEnum("status", ["scheduled", "completed", "cancelled"]).default(
@@ -999,7 +1017,7 @@ export const surgeries = mysqlTable("surgeries", {
   patientGenderOverride: varchar("patientGenderOverride", { length: 16 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+},table=>[uniqueIndex("idx_surgeries_source_ref").on(table.sourceRef),index("idx_surgeries_visit").on(table.visitId)]);
 
 export type Surgery = typeof surgeries.$inferSelect;
 export type InsertSurgery = typeof surgeries.$inferInsert;
@@ -1042,6 +1060,8 @@ export type InsertConsentForm = typeof consentForms.$inferInsert;
 export const medicalHistoryChecklist = mysqlTable("medicalHistoryChecklist", {
   id: int("id").autoincrement().primaryKey(),
   patientId: int("patientId").notNull(),
+  diabetesDuration: text("diabetesDuration"),
+  otherHistory: text("otherHistory"),
   diabetes: boolean("diabetes").default(false),
   hypertension: boolean("hypertension").default(false),
   heartDisease: boolean("heartDisease").default(false),
@@ -1196,6 +1216,7 @@ export const testRequests = mysqlTable("testRequests", {
   patientId: int("patientId").notNull(),
   visitId: int("visitId"),
   requestDate: timestamp("requestDate").defaultNow().notNull(),
+  notes: text("notes"),
   status: mysqlEnum("status", ["pending", "completed", "cancelled"]).default(
     "pending",
   ),
@@ -1258,6 +1279,7 @@ export type InsertUserPermission = typeof userPermissions.$inferInsert;
 export const sheetEntries = mysqlTable("sheet_entries", {
   id: int("id").autoincrement().primaryKey(),
   patientId: int("patientId").notNull(),
+  visitId:int("visitId"),
   sheetType: mysqlEnum("sheetType", [
     "consultant",
     "specialist",
@@ -1406,6 +1428,7 @@ export const followupItems = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     followupSheetId: int("followupSheetId").notNull(), // الرابط إلى followup_sheets
+    visitId: int("visitId"),
     tableIndex: int("tableIndex").notNull(), // رقم الجدول (0-3 في كل شيت)
     followupDate: timestamp("followupDate"), // تاريخ المتابعة
     operationDate: timestamp("operationDate"), // تاريخ العملية

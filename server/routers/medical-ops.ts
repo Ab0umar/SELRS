@@ -1,4 +1,5 @@
 import { z } from "zod";
+import {selectClinicalVisit} from "../../shared/clinical-record";
 import { parseWebPushSubscription } from "../_core/webPushSubscription";
 import {
   canonicalSettingKey,
@@ -846,6 +847,7 @@ export const medicalOpsRoutes = {
         visitId: z.number(),
         patientId: z.number(),
         diagnosis: z.string(),
+        symptoms:z.string().optional(),
         clinicalOpinion: z.string().optional(),
         recommendedTreatment: z.string().optional(),
         recommendations: z.string().optional(),
@@ -891,6 +893,7 @@ export const medicalOpsRoutes = {
     .input(
       z.object({
         reportId: z.number(),
+        symptoms:z.string().optional(),
         diagnosis: z.string().optional(),
         clinicalOpinion: z.string().optional(),
         recommendedTreatment: z.string().optional(),
@@ -1131,6 +1134,7 @@ export const medicalOpsRoutes = {
     .input(
       z.object({
         patientId: z.number(),
+        visitId:z.number().int().positive().optional(),
         visitDate: z.string().optional(),
         diagnosis: z.string(),
         diseases: z.array(z.string()).optional(),
@@ -1144,8 +1148,11 @@ export const medicalOpsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const selectedVisit=selectClinicalVisit(await db.getVisitsByPatient(input.patientId),input.patientId,input.visitId,input.visitDate);
+      if(!selectedVisit && !input.visitDate) throw new TRPCError({code:"BAD_REQUEST",message:"Select a visit date before creating the medical report"});
+      const linkedVisit=selectedVisit ?? await db.createVisit({patientId:input.patientId,visitDate:new Date(`${input.visitDate}T12:00:00`),visitType:"examination",branch:"examinations"});
       await db.createDoctorReport({
-        visitId: 0,
+        visitId:Number((linkedVisit as {id?:number;insertId?:number}).id ?? (linkedVisit as {insertId?:number}).insertId),
         patientId: input.patientId,
         doctorId: ctx.user.id,
         diagnosis: input.diagnosis,

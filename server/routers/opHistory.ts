@@ -158,14 +158,14 @@ export const opHistoryRouter = router({
     .mutation(async ({ input, ctx }) => {
       await assertCanEditPatientData(ctx.user.id, ctx.user.role);
       const sourceRef = `manual:${crypto.randomUUID()}`;
-      await db.upsertPatientOperation({
+      await db.createSurgery({
         patientId: input.patientId,
-        operationType: input.operationType,
-        operationDate: input.operationDate ?? null,
-        source: "manual",
+        surgeryType: input.operationType,
+        surgeryDate: input.operationDate ?? null,
         sourceRef,
         eye: input.eye ?? null,
         notes: input.notes ?? null,
+        status:"completed",
       });
       return { success: true } as const;
     }),

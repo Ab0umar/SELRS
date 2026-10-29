@@ -49,6 +49,14 @@ export default function AdminMigrations() {
   const utils = trpc.useUtils();
   const [confirmFixOrphans, setConfirmFixOrphans] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [conflictPage, setConflictPage] = useState(1);
+  const conflictsQuery = trpc.system.medicalMigrationConflicts.useQuery(
+    { page: conflictPage },
+    {
+      enabled: isAuthenticated && user?.role === "admin",
+      refetchOnWindowFocus: false,
+    },
+  );
 
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
@@ -68,6 +76,7 @@ export default function AdminMigrations() {
         setActionFeedback("لا توجد ترحيلات معلقة للتطبيق.");
       }
       await utils.system.listMigrations.invalidate();
+      await utils.system.medicalMigrationConflicts.invalidate();
     },
     onError: (error: unknown) => {
       const message = getTrpcErrorMessage(error, "تعذر تطبيق الترحيلات");
@@ -113,6 +122,7 @@ export default function AdminMigrations() {
   }, [migrationsQuery.data]);
 
   const handleRefresh = async () => {
+    void conflictsQuery.refetch();
     setActionFeedback("جاري تحديث قائمة الترحيلات…");
     const result = await migrationsQuery.refetch();
     if (result.error) {
@@ -405,6 +415,74 @@ export default function AdminMigrations() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>بيانات طبية تحتاج مراجعة بعد الترحيل</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {conflictsQuery.isLoading ? (
+            <p>جاري تحميل نتائج المراجعة…</p>
+          ) : conflictsQuery.isError ? (
+            <p role="alert">تعذّر تحميل نتائج المراجعة.</p>
+          ) : conflictsQuery.data?.migrationRequired ? (
+            <p>ستظهر النتائج بعد تطبيق ترحيل البيانات الطبية.</p>
+          ) : (
+            <>
+              <p className="mb-3">
+                {conflictsQuery.data?.total ?? 0} سجل يحتاج مراجعة. لم تُستبدل
+                القيم المتعارضة تلقائيًا. يُعتمد التعديل من شاشة المريض بعد
+                مراجعة المصدر.
+              </p>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>المريض</TableHead>
+                      <TableHead>الزيارة</TableHead>
+                      <TableHead>الحقل</TableHead>
+                      <TableHead>المصدر</TableHead>
+                      <TableHead>القيمة الأصلية</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(conflictsQuery.data?.rows ?? []).map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>{row.patientId}</TableCell>
+                        <TableCell>{row.visitId ?? "غير محددة"}</TableCell>
+                        <TableCell>{row.fieldName}</TableCell>
+                        <TableCell>{row.sourceRef}</TableCell>
+                        <TableCell className="max-w-md whitespace-pre-wrap break-words">
+                          {row.candidateValue}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  disabled={conflictPage === 1 || conflictsQuery.isFetching}
+                  onClick={() => setConflictPage((page) => page - 1)}
+                >
+                  السابق
+                </Button>
+                <span>{conflictPage}</span>
+                <Button
+                  variant="outline"
+                  disabled={
+                    conflictPage * 50 >= (conflictsQuery.data?.total ?? 0) ||
+                    conflictsQuery.isFetching
+                  }
+                  onClick={() => setConflictPage((page) => page + 1)}
+                >
+                  التالي
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60 bg-muted/5 shadow-sm border-dashed">
           <CardContent className="flex flex-col items-center justify-center gap-4 py-8 text-center">

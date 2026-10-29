@@ -204,6 +204,48 @@
       "when": 1788958936279,
       "tag": "0040_strange_the_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1793222400000,
+      "tag": "0041_clinical_test_request_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1793222400001,
+      "tag": "0042_clinical_canonical_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1793222400002,
+      "tag": "0043_medical_service_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "5",
+      "when": 1793222400003,
+      "tag": "0044_backfill_medical_service_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "5",
+      "when": 1793222400004,
+      "tag": "0045_backfill_typed_examination_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "5",
+      "when": 1793222400005,
+      "tag": "0046_complete_typed_measurements",
+      "breakpoints": true
     }
   ]
 }

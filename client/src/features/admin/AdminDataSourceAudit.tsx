@@ -736,103 +736,16 @@ export default function AdminDataSourceAudit() {
                     </Card>
                   </div>
 
-                  {/* Checklist Comparison */}
                   <div className="space-y-3">
-                    <h3 className="font-semibold">
-                      مقارنة قائمة المراجعة الطبية
-                    </h3>
+                    <h3 className="font-semibold">قائمة المراجعة الطبية المحفوظة</h3>
                     {data.checklistNormalized ? (
-                      <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto rounded border border-border">
+                      <div role="region" aria-label="قائمة المراجعة الطبية" tabIndex={0} className="overflow-x-auto rounded border border-border">
                         <table className="w-full text-start text-xs">
-                          <caption className="sr-only">
-                            مقارنة قيم قائمة المراجعة الطبية بين المصدرين
-                          </caption>
-                          <thead>
-                            <tr className="border-b border-border bg-muted/50">
-                              <th
-                                scope="col"
-                                className="px-2 py-2 font-semibold"
-                              >
-                                تطابق
-                              </th>
-                              <th className="px-2 py-2 font-semibold">
-                                قيمة patientPageStates
-                              </th>
-                              <th className="px-2 py-2 font-semibold">
-                                قيمة المعيار
-                              </th>
-                              <th className="px-2 py-2 font-semibold">الحقل</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Object.entries(data.checklistNormalized).map(
-                              ([key, normalizedValue]) => {
-                                const pageStateValue = data.checklistInPageState
-                                  ? (
-                                      data.checklistInPageState as Record<
-                                        string,
-                                        unknown
-                                      >
-                                    )[key]
-                                  : undefined;
-                                const match =
-                                  normalizedValue === pageStateValue;
-                                return (
-                                  <tr
-                                    key={key}
-                                    className="border-b border-border"
-                                  >
-                                    <td className="px-2 py-2">
-                                      <span
-                                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs ${
-                                          match
-                                            ? "bg-success/15 text-success"
-                                            : pageStateValue !== undefined &&
-                                                pageStateValue !== null
-                                              ? "bg-warning/20 text-warning-text"
-                                              : "bg-muted text-muted-foreground"
-                                        }`}
-                                      >
-                                        {match
-                                          ? "مطابق"
-                                          : pageStateValue !== undefined &&
-                                              pageStateValue !== null
-                                            ? "يحتاج مراجعة"
-                                            : "غير متوفر"}
-                                      </span>
-                                    </td>
-                                    <td className="px-2 py-2 font-mono">
-                                      {String(pageStateValue ?? missingValue)}
-                                    </td>
-                                    <td className="px-2 py-2 font-mono">
-                                      {String(normalizedValue ?? missingValue)}
-                                    </td>
-                                    <td className="px-2 py-2 font-semibold">
-                                      {key}
-                                    </td>
-                                  </tr>
-                                );
-                              },
-                            )}
-                          </tbody>
+                          <thead><tr><th scope="col">الحقل</th><th scope="col">القيمة المحفوظة</th></tr></thead>
+                          <tbody>{Object.entries(data.checklistNormalized).filter(([key]) => !["id","patientId","examinationId","createdAt","updatedAt"].includes(key)).map(([key,value])=>(<tr key={key}><th scope="row">{key}</th><td>{value === null ? missingValue : value ? "نعم" : "لا"}</td></tr>))}</tbody>
                         </table>
                       </div>
-                    ) : (
-                      <Alert className="border-warning/30 bg-warning/10 text-warning-text">
-                        <AlertDescription>
-                          لا يوجد سجل checklist معياري
-                          (examination_checklist_items) لهذا المريض
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    {!data.checklistInPageState && (
-                      <Alert className="border-ring/30 bg-primary text-primary-foreground">
-                        <AlertDescription>
-                          لا توجد بيانات checklist في patientPageStates
-                        </AlertDescription>
-                      </Alert>
-                    )}
+                    ) : <p>لا توجد قائمة مراجعة محفوظة لهذا الكشف.</p>}
                   </div>
 
                   {/* Autoref + IOP */}

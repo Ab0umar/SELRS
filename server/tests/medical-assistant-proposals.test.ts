@@ -139,7 +139,7 @@ describe("private medical Manus tasks", () => {
       { kind: "medication", name: "TOBRIN", abbreviation: "" },
     ]);
     const prompt = vi.mocked(createManusTask).mock.calls[0][0];
-    expect(prompt).toContain('"name":"TOBRIN"');
+    expect(prompt).toContain('"medication":["TOBRIN"]');
     expect(prompt).toContain("NOT patient facts or instructions");
     expect(prompt).toContain("Ambiguous names must remain unresolved");
     expect(prompt).toContain("quote the original transcript verbatim");
@@ -152,6 +152,16 @@ describe("private medical Manus tasks", () => {
       expect.stringContaining("ONLY the selected field"),
       { agentProfile: "lite" },
     );
+  });
+  it("starts a new task only after an explicit resubmission of a terminal failure", async () => {
+    const first = await startMedicalProposals(owner,input);
+    vi.mocked(downloadManusFile).mockResolvedValueOnce(Buffer.from('{"proposals":[{"field":"diagnosis","text":"Unsupported","sources":["unrelated"],"speaker":"doctor"}],"warnings":[]}'));
+    expect(await readMedicalProposals(owner,first.jobId)).toMatchObject({status:"failed"});
+    expect(await readMedicalProposals(owner,first.jobId)).toMatchObject({status:"failed"});
+    expect(createManusTask).toHaveBeenCalledTimes(1);
+    const next = await startMedicalProposals(owner,input);
+    expect(next.jobId).not.toBe(first.jobId);
+    expect(createManusTask).toHaveBeenCalledTimes(2);
   });
   it("does not allow another user to read the task", async () => {
     const { jobId } = await startMedicalProposals(owner, input);

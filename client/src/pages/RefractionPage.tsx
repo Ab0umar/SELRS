@@ -113,34 +113,35 @@ export default function RefractionPage() {
   const requestedVisitDate = /^\d{4}-\d{2}-\d{2}$/.test(routeVisitDate)
     ? routeVisitDate
     : "";
+  const requestedVisitId = Number(new URLSearchParams(window.location.search).get("visitId")) || undefined;
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId, {
     enabled: patientIdValid,
     refetchOnWindowFocus: false,
   });
   const consultantQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId, sheetType: "consultant" },
+    { patientId, sheetType: "consultant", visitId: requestedVisitId },
     {
       enabled: patientIdValid,
       refetchOnWindowFocus: false,
     },
   );
   const specialistQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId, sheetType: "specialist" },
+    { patientId, sheetType: "specialist", visitId: requestedVisitId },
     {
       enabled: patientIdValid,
       refetchOnWindowFocus: false,
     },
   );
   const lasikQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId, sheetType: "lasik" },
+    { patientId, sheetType: "lasik", visitId: requestedVisitId },
     {
       enabled: patientIdValid,
       refetchOnWindowFocus: false,
     },
   );
   const externalQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId, sheetType: "external" },
+    { patientId, sheetType: "external", visitId: requestedVisitId },
     {
       enabled: patientIdValid,
       refetchOnWindowFocus: false,
@@ -162,7 +163,6 @@ export default function RefractionPage() {
   const printMode = usePrintMode({ ready: patientIdValid && dataReady });
 
   const utils = trpc.useUtils();
-  const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation();
   const saveRefractionMutation =
     trpc.medical.saveRefractionToExamination.useMutation({
       onSuccess: () => {
@@ -178,7 +178,7 @@ export default function RefractionPage() {
   useEffect(() => {
     if (!patientId) return;
     const records = (glassesQuery.data as any[]) ?? [];
-    const latest = requestedVisitDate
+    const latest = requestedVisitId ? records.find(record=>Number(record.visitId)===requestedVisitId) : requestedVisitDate
       ? records.find((record) => {
           const value = record.visitDate ?? record.createdAt;
           if (!value) return false;
@@ -208,110 +208,36 @@ export default function RefractionPage() {
       addOS: String(latest.addOS ?? ""),
     };
     setForm(next);
-  }, [patientId, glassesQuery.data, requestedVisitDate]);
-
-  const mergeAndSerialize = (
-    content: string | null | undefined,
-    sheetType: "consultant" | "specialist" | "lasik" | "external",
-  ) => {
-    const parsed = (() => {
-      if (!content) return {} as any;
-      try {
-        return JSON.parse(content) as any;
-      } catch {
-        return {} as any;
-      }
-    })();
-    const next = { ...parsed } as any;
-
-    if (sheetType === "consultant" || sheetType === "specialist") {
-      next.formData = {
-        ...(parsed.formData ?? {}),
-        bcvaOD: form.bcvaOD,
-        bcvaOS: form.bcvaOS,
-        pdOD: form.pdOD,
-        pdOS: form.pdOS,
-        refractionOD: {
-          ...(parsed.formData?.refractionOD ?? {}),
-          s: form.sOD,
-          c: form.cOD,
-          a: form.aOD,
-        },
-        refractionOS: {
-          ...(parsed.formData?.refractionOS ?? {}),
-          s: form.sOS,
-          c: form.cOS,
-          a: form.aOS,
-        },
-      };
-    }
-
-    return JSON.stringify(next);
-  };
+  }, [patientId, glassesQuery.data, requestedVisitDate, requestedVisitId]);
 
   const handleSave = async () => {
     if (!patientId) return;
     try {
-      // Save to sheets (for review and printing)
-      await Promise.all([
-        saveSheetMutation.mutateAsync({
-          patientId,
-          sheetType: "consultant",
-          content: mergeAndSerialize(consultantQuery.data, "consultant"),
-        }),
-        saveSheetMutation.mutateAsync({
-          patientId,
-          sheetType: "specialist",
-          content: mergeAndSerialize(specialistQuery.data, "specialist"),
-        }),
-        saveSheetMutation.mutateAsync({
-          patientId,
-          sheetType: "lasik",
-          content: mergeAndSerialize(lasikQuery.data, "lasik"),
-        }),
-        saveSheetMutation.mutateAsync({
-          patientId,
-          sheetType: "external",
-          content: mergeAndSerialize(externalQuery.data, "external"),
-        }),
-      ]);
-
-      // The glasses prescription belongs exclusively to glassesrecords.
-      const getParsedSheet = (content: string | null | undefined) => {
-        if (!content) return {};
-        try {
-          return JSON.parse(content) as any;
-        } catch {
-          return {};
-        }
-      };
-
-      const consultantParsed = getParsedSheet(consultantQuery.data);
-      const pentacam = consultantParsed?.examData?.pentacam;
       const glassesData = {
         od: {
-          s: form.sOD || undefined,
-          c: form.cOD || undefined,
-          axis: form.aOD || undefined,
-          pd: form.pdOD || undefined,
-          add: form.addOD || undefined,
-          bcva: form.bcvaOD || undefined,
+          s: form.sOD,
+          c: form.cOD,
+          axis: form.aOD,
+          pd: form.pdOD,
+          add: form.addOD,
+          bcva: form.bcvaOD,
         },
         os: {
-          s: form.sOS || undefined,
-          c: form.cOS || undefined,
-          axis: form.aOS || undefined,
-          pd: form.pdOS || undefined,
-          add: form.addOS || undefined,
-          bcva: form.bcvaOS || undefined,
+          s: form.sOS,
+          c: form.cOS,
+          axis: form.aOS,
+          pd: form.pdOS,
+          add: form.addOS,
+          bcva: form.bcvaOS,
         },
       };
 
       // Also save all refraction data to examination (for patient file/summary display)
       await saveRefractionMutation.mutateAsync({
         patientId,
+        visitId: requestedVisitId,
+        visitDate: requestedVisitDate || undefined,
         glassesData,
-        pentacam,
       });
 
       toast.success(
@@ -518,7 +444,7 @@ export default function RefractionPage() {
             <Button
               type="button"
               onClick={handleSave}
-              disabled={saveSheetMutation.isPending}
+              disabled={saveRefractionMutation.isPending}
             >
               Save
             </Button>

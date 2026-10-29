@@ -1,16 +1,25 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
-import { followupItems, followupSheets, patients } from "../../drizzle/schema";
+import {
+  followupItems,
+  followupSheets,
+  patients,
+  visits,
+} from "../../drizzle/schema";
+import { persistClinicalSheet } from "./clinical-sheet";
+import { clinicalDate } from "../../shared/clinical-record";
 
 export type FollowupSaveInput = {
   patientId: number;
+  doctorId?: number;
+  role?: string;
   sheetType: typeof followupSheets.$inferInsert.sheetType;
   followupItems: Array<
     Omit<
       typeof followupItems.$inferInsert,
       "id" | "followupSheetId" | "createdAt" | "updatedAt"
-    > & { itemId?: number }
+    > & { itemId?: number; clinicalContent?: Record<string, unknown> }
   >;
 };
 
@@ -45,14 +54,111 @@ export async function savePatientFollowups(
               id: followupItems.id,
               followupSheetId: followupItems.followupSheetId,
               tableIndex: followupItems.tableIndex,
+              visitId: followupItems.visitId,
             })
             .from(followupItems)
             .where(inArray(followupItems.followupSheetId, sheetIds))
         : [];
     let latestSheet = sheets[0];
     let savedSheet = latestSheet;
+    const savedItems: Array<{ itemId: number; visitId: number }> = [];
     for (const submitted of input.followupItems) {
-      const { itemId, ...measurements } = submitted;
+      const { itemId, clinicalContent, ...submittedFields } = submitted;
+      const existingItem = itemId
+        ? storedItems.find((item) => item.id === itemId)
+        : undefined;
+      if (itemId && !existingItem)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Followup does not belong to this patient and sheet type",
+        });
+      if (!submittedFields.followupDate && !existingItem) continue;
+      const parse = (value: unknown): Record<string, unknown> => {
+        if (value === null || value === undefined) return {};
+        const parsed = typeof value === "string" ? JSON.parse(value) : value;
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+          ? (parsed as Record<string, unknown>)
+          : {};
+      };
+      const content: Record<string, unknown> = {
+        ...clinicalContent,
+        formData: {
+          examinationDate: clinicalDate(submittedFields.followupDate),
+        },
+      };
+      const auto: Record<string, Record<string, unknown>> = { od: {}, os: {} };
+      const findings: Record<string, unknown> = {};
+      for (const eye of ["OD", "OS"] as const) {
+        const refraction = parse(submittedFields[`refrac${eye}`]);
+        const fields = auto[eye.toLowerCase()];
+        for (const [source, target] of Object.entries({
+          s: "s",
+          c: "c",
+          a: "axis",
+          axis: "axis",
+        }))
+          if (Object.hasOwn(refraction, source))
+            fields[target] = refraction[source];
+        for (const [source, target] of Object.entries({
+          va: "ucva",
+          iop: "iop",
+        }))
+          if (Object.hasOwn(submittedFields, `${source}${eye}`))
+            fields[target] = submittedFields[`${source}${eye}` as "vaOD"];
+        const flap = parse(submittedFields[`flap${eye}`]);
+        for (const [source, target] of Object.entries({
+          edges: "flapEdges",
+          bed: "flapBed",
+        }))
+          if (Object.hasOwn(flap, source))
+            findings[`${target}${eye}`] = String(flap[source] ?? "");
+      }
+      content.examData = {
+        autorefraction: auto,
+        ...((clinicalContent?.examData as Record<string, unknown>) ?? {}),
+      };
+      if (submittedFields.treatment !== undefined)
+        content.treatmentPlan = submittedFields.treatment;
+      if (submittedFields.notes !== undefined)
+        content.officeNotes = submittedFields.notes;
+      if (Object.keys(findings).length) content.followupFindings = findings;
+      if (submittedFields.operationType)
+        content.operationDetails = {
+          type: submittedFields.operationType,
+          date: submittedFields.operationDate,
+          eyes: {
+            right: submittedFields.rightEye,
+            left: submittedFields.leftEye,
+          },
+        };
+      const clinical = await persistClinicalSheet(
+        transaction,
+        {
+          patientId: input.patientId,
+          visitId:
+            submittedFields.visitId ?? existingItem?.visitId ?? undefined,
+          sheetType: "followup",
+          content: JSON.stringify(content),
+        },
+        { doctorId: input.doctorId ?? 0, role: input.role ?? "doctor" },
+      );
+      const measurements = {
+        visitId: clinical.visitId,
+        followupName: submittedFields.followupName,
+        rightEye: submittedFields.rightEye,
+        leftEye: submittedFields.leftEye,
+        tableIndex: submittedFields.tableIndex,
+      };
+      if (submittedFields.followupDate)
+        await transaction
+          .update(visits)
+          .set({ visitDate: submittedFields.followupDate })
+          .where(
+            and(
+              eq(visits.id, clinical.visitId),
+              eq(visits.patientId, input.patientId),
+            ),
+          );
       if (itemId) {
         const existing = storedItems.find((item) => item.id === itemId);
         if (!existing)
@@ -67,9 +173,9 @@ export async function savePatientFollowups(
         savedSheet = sheets.find(
           (sheet) => sheet.id === existing.followupSheetId,
         )!;
+        savedItems.push({ itemId: existing.id, visitId: clinical.visitId });
         continue;
       }
-      if (!measurements.followupDate) continue;
       const occupied = new Set(
         storedItems
           .filter((item) => item.followupSheetId === latestSheet?.id)
@@ -100,18 +206,22 @@ export async function savePatientFollowups(
         ...measurements,
         followupSheetId: latestSheet.id,
         tableIndex,
+        visitId: clinical.visitId,
       });
       storedItems.push({
         id: header.insertId,
         followupSheetId: latestSheet.id,
         tableIndex,
+        visitId: clinical.visitId,
       });
       savedSheet = latestSheet;
+      savedItems.push({ itemId: header.insertId, visitId: clinical.visitId });
     }
     return {
       success: true as const,
       sheetId: savedSheet?.id ?? null,
       version: savedSheet?.version ?? null,
+      items: savedItems,
     };
   });
 }
