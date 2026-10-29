@@ -3,8 +3,10 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { DiagnosisImagesPanel } from "@/components/patient-details/DiagnosisImagesPanel";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  AssistantInput as Input,
+  AssistantTextarea as Textarea,
+} from "@/components/medical-assistant/AssistantFields";
 import { trpc } from "@/lib/trpc";
 import {
   WorkflowCard,

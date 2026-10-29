@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Save, Search } from "lucide-react";
 import { toast } from "sonner";
+import { AssistantField } from "@/components/medical-assistant/AssistantFields";
 import RefractionValueSelect from "@/components/RefractionValueSelect";
 import { Button } from "@/components/ui/button";
 import { getTrpcErrorMessage } from "@/lib/utils";
@@ -481,14 +482,16 @@ export default function WorkflowExamination({
             <div className="flex w-full flex-col gap-2 sm:w-[calc(75%-0.5rem)]">
               <div className="flex-1 rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]">
                 <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
-                <textarea
-                  aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
-                  data-medical-proposals="complaints symptoms"
-                  className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b]"
-                  value={exam.complains}
-                  onChange={(event) => setExamField("complains", event.target.value)}
-                  placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
-                />
+                <AssistantField label="Complaints">
+                  <textarea
+                    aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                    data-medical-proposals="complaints symptoms"
+                    className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b]"
+                    value={exam.complains}
+                    onChange={(event) => setExamField("complains", event.target.value)}
+                    placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                  />
+                </AssistantField>
                 <div className="relative mt-2">
                   <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
