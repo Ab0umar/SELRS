@@ -157,7 +157,7 @@ try {
       await expect(root.getByLabel("الموديل", { exact: true })).toBeVisible();
       await root.getByLabel("الحد اليومي للطلبات", { exact: true }).fill("11");
       failSave = true;
-      await root.getByRole("button", { name: "حفظ إعدادات التجربة" }).click();
+      await root.getByRole("button", { name: "حفظ إعدادات المهمة" }).click();
       await expect(
         root.getByRole("status").filter({ hasText: "تعذرت العملية" }),
       ).toBeVisible();
@@ -168,9 +168,9 @@ try {
         "11",
       );
       failSave = false;
-      await root.getByRole("button", { name: "حفظ إعدادات التجربة" }).click();
+      await root.getByRole("button", { name: "حفظ إعدادات المهمة" }).click();
       await expect(
-        root.getByRole("button", { name: "حفظ إعدادات التجربة" }),
+        root.getByRole("button", { name: "حفظ إعدادات المهمة" }),
       ).toHaveJSProperty("disabled", true);
       assert.equal(saves, 2);
       await page.goto("http://127.0.0.1:4000/ai/experiments");
