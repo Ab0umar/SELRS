@@ -1,4 +1,5 @@
 import type { MySql2Database } from "drizzle-orm/mysql2";
+import type { InvestigationInput } from "../../shared/clinical-catalog-items";
 import { and, desc, eq } from "drizzle-orm";
 import { visits, sheetEntries } from "../../drizzle/schema";
 import {
@@ -15,7 +16,7 @@ export type ClinicalVisitInput = ClinicalSheetInput & {
   visitType?: "examination" | "followup";
   appointmentId?: number;
   prescriptionItems?: PrescriptionInput["items"];
-  testItems?: Array<{ testId: number; notes?: string }>;
+  testItems?: InvestigationInput[];
   sheetMetadataTypes?: Array<
     "consultant" | "specialist" | "lasik" | "external"
   >;

@@ -304,18 +304,15 @@ async function moveToDirAvoidingOverwrite(
   return candidate;
 }
 
-async function renameWithPrefix(
-  filePath: string,
-  prefix: string,
-): Promise<string> {
+async function renameWithFailureSuffix(filePath: string): Promise<string> {
   const parsed = path.parse(filePath);
-  if (parsed.base.startsWith(`${prefix}_`)) return filePath;
-  let candidate = path.join(parsed.dir, `${prefix}_${parsed.base}`);
+  if (/_FAILED(?:_\d+)?$/i.test(parsed.name)) return filePath;
+  let candidate = path.join(parsed.dir, `${parsed.name}_FAILED${parsed.ext}`);
   let i = 1;
   while (await exists(candidate)) {
     candidate = path.join(
       parsed.dir,
-      `${prefix}_${parsed.name}_${i}${parsed.ext}`,
+      `${parsed.name}_FAILED_${i}${parsed.ext}`,
     );
     i += 1;
   }
@@ -738,7 +735,8 @@ async function loadImageFromImportFolders(
   const importCfg = getSrv100FolderImportOptions();
   const raw = String(fileName ?? "").trim();
   if (!raw) return null;
-  const candidates = [raw, `FAILED_${raw}`, `IMPORTED_${raw}`];
+  const parsed = path.parse(raw);
+  const candidates = [raw, `FAILED_${raw}`, `IMPORTED_${raw}`, `${parsed.name}_FAILED${parsed.ext}`];
   const dirs = Array.from(
     new Set(
       [importCfg.sourceDir, importCfg.processedDir, importCfg.failedDir].filter(
@@ -1156,7 +1154,8 @@ async function startSrv100FolderImporter() {
                 subEntry.isFile() &&
                 IMPORTABLE_IMAGE_EXT.test(subEntry.name) &&
                 !subEntry.name.startsWith("IMPORTED_") &&
-                !subEntry.name.startsWith("FAILED_")
+                !subEntry.name.startsWith("FAILED_") &&
+                !/_FAILED(?:_\d+)?$/i.test(path.parse(subEntry.name).name)
               ) {
                 files.push(path.join(entry.name, subEntry.name));
               }
@@ -1165,7 +1164,8 @@ async function startSrv100FolderImporter() {
             entry.isFile() &&
             IMPORTABLE_IMAGE_EXT.test(entry.name) &&
             !entry.name.startsWith("IMPORTED_") &&
-            !entry.name.startsWith("FAILED_")
+            !entry.name.startsWith("FAILED_") &&
+            !/_FAILED(?:_\d+)?$/i.test(path.parse(entry.name).name)
           ) {
             files.push(entry.name);
           }
@@ -1191,10 +1191,11 @@ async function startSrv100FolderImporter() {
         if (now - Number(fileInfo.mtimeMs || 0) < cfg.minFileAgeMs) continue;
 
         let fileData: Buffer | null = null;
+        let stage: "read" | "database" | "storage" | "finalize" = "read";
         try {
           fileData = await readFile(fullPath);
           if (fileData.length === 0) {
-            throw new Error("File is empty");
+            throw Object.assign(new Error("File is empty"), { code: "PENTACAM_EMPTY_IMAGE" });
           }
           const mimeType = guessMimeType(fileName);
           // Use the basename only — collectFiles may return "{code}/{name}.JPG"
@@ -1207,6 +1208,7 @@ async function startSrv100FolderImporter() {
 
           // Dedup on file_name (indexed, basename) — stable regardless of how
           // old rows stored document_id (some used stem, some full name).
+          stage = "database";
           const [existing] = await withDb(async (conn) => {
             return conn.query(
               `SELECT id FROM srv100_uploads WHERE file_name = ? LIMIT 1`,
@@ -1221,6 +1223,7 @@ async function startSrv100FolderImporter() {
           }
 
           let s3Key: string | null = null;
+          stage = "storage";
           try {
             const patientIdMatch = dbFileName.match(/^(\d{4})_/);
             const patientPrefix = patientIdMatch
@@ -1236,6 +1239,7 @@ async function startSrv100FolderImporter() {
             );
           }
 
+          stage = "database";
           const uploadId = await withDb(async (conn) => {
             const [insertResult] = await conn.query(
               `INSERT INTO srv100_uploads
@@ -1253,6 +1257,7 @@ async function startSrv100FolderImporter() {
             return Number((insertResult as any)?.insertId ?? 0);
           });
           importedFileNames.add(dbFileName);
+          stage = "finalize";
 
           let importCode = "";
           const ocrCfg = getSrv100OcrLinkOptions();
@@ -1308,6 +1313,7 @@ async function startSrv100FolderImporter() {
             movedFileName = path.basename(movedPath).slice(0, 255);
           }
           if (uploadId > 0 && movedFileName && movedFileName !== dbFileName) {
+            stage = "database";
             await withDb((conn) =>
               conn.query(
                 "UPDATE srv100_uploads SET file_name = ?, document_id = ? WHERE id = ?",
@@ -1322,40 +1328,18 @@ async function startSrv100FolderImporter() {
           console.log(`[srv100-import] Imported ${fileName}`);
         } catch (error: any) {
           const reason = String(error?.message ?? "unknown error");
-          if (isLockWaitError(error)) {
+          if (error?.code === "PENTACAM_EMPTY_IMAGE") {
             try {
-              const ocrCfg = getSrv100OcrLinkOptions();
-              if (ocrCfg.enabled && fileData && fileData.length > 0) {
-                const tsvRows = await runOcrTsvFromBuffer(
-                  fileData,
-                  fileName,
-                  ocrCfg,
-                  4,
-                );
-                const strictCode = extractStrictHeaderIdFromTsv(tsvRows);
-                if (strictCode) {
-                  const renamedPath = await renameToPatientIdentity(
-                    fullPath,
-                    strictCode,
-                    undefined,
-                    undefined,
-                  );
-                  const renamed = path.basename(renamedPath);
-                  console.log(
-                    `[srv100-import] Renamed by OCR on lock timeout: ${fileName} -> ${renamed}`,
-                  );
-                }
-              }
-            } catch {
-              // Keep import loop resilient; rename fallback is best-effort only.
+              const failedPath = await renameWithFailureSuffix(fullPath);
+              console.error(`[srv100-import] Empty file marked for review: ${path.basename(failedPath)}`);
+            } catch (markError) {
+              console.error(`[srv100-import] Could not mark empty file ${fileName}: ${String(markError)}`);
             }
-            console.warn(
-              `[srv100-import] Lock timeout on ${fileName}; will retry next cycle.`,
-            );
             continue;
           }
-          console.error(`[srv100-import] Failed ${fileName}: ${reason}`);
-          await renameWithPrefix(fullPath, "FAILED").catch(() => undefined);
+          console.warn(`[srv100-import] Deferred ${fileName} (${stage}); name unchanged, will retry next cycle: ${reason}`);
+          // An unavailable database affects every file; leave the rest for the next cycle.
+          if (stage === "database") break;
         }
       }
     } catch (error: any) {

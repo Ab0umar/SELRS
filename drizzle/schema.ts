@@ -759,7 +759,8 @@ export type InsertPrescription = typeof prescriptions.$inferInsert;
 export const prescriptionItems = mysqlTable("prescriptionItems", {
   id: int("id").autoincrement().primaryKey(),
   prescriptionId: int("prescriptionId").notNull(),
-  medicationId: int("medicationId").notNull(),
+  medicationId: int("medicationId"),
+  medicationName: varchar("medicationName", { length: 255 }),
   dosage: varchar("dosage", { length: 100 }), // ط§ظ„ط¬ط±ط¹ط©
   frequency: varchar("frequency", { length: 100 }), // ط§ظ„طھظƒط±ط§ط±
   duration: varchar("duration", { length: 100 }), // ط§ظ„ظ…ط¯ط©
@@ -1233,7 +1234,9 @@ export type InsertTestRequest = typeof testRequests.$inferInsert;
 export const testRequestItems = mysqlTable("testRequestItems", {
   id: int("id").autoincrement().primaryKey(),
   testRequestId: int("testRequestId").notNull(),
-  testId: int("testId").notNull(),
+  testId: int("testId"),
+  testName: varchar("testName", { length: 255 }),
+  testType: mysqlEnum("testType", ["lab", "imaging", "examination", "other"]),
   result: text("result"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

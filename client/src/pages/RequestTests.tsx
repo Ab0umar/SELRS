@@ -1,3 +1,5 @@
+import { confirmedInvestigationsFromRecords, type ConfirmedInvestigation } from "@shared/clinical-catalog-items";
+import { ConfirmedItems } from "@/components/medical-assistant/ConfirmedItems";
 import { selectClinicalVisit } from "../../../shared/clinical-record";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
@@ -136,6 +138,7 @@ export default function RequestTests({
     }
   }, [requestedVisitDate]);
 
+  const [manualTests, setManualTests] = useState<ConfirmedInvestigation[]>([]);
   const [selectedTests, setSelectedTests] = useState<TestItem[]>([]);
   const [printProfile, setPrintProfile] = useState<"tests" | "radiology">(() =>
     new URLSearchParams(window.location.search).get("printProfile") ===
@@ -285,14 +288,16 @@ export default function RequestTests({
           )[0];
     if (!request) {
       setSelectedTests([]);
+      setManualTests([]);
       setGeneralNotes("");
       if (requestedVisitDate) setRequestDate(requestedVisitDate);
       return;
     }
     setRequestDate(requestedVisitDate || toDateValue(request.requestDate));
     setGeneralNotes(request.notes ?? "");
+    setManualTests(confirmedInvestigationsFromRecords(request.items ?? []));
     setSelectedTests(
-      (request.items ?? []).map((item: any) => ({
+      (request.items ?? []).filter((item:any)=>Number(item.testId)>0).map((item: any) => ({
         id: Number(item.testId),
         name: item.testName ?? "",
         category: "other",
@@ -762,13 +767,13 @@ export default function RequestTests({
       toast.error("الحفظ داخل KF منفصل عن جداول طلبات الفحوصات العامة حالياً.");
       return;
     }
-    if (selectedTests.length === 0) {
+    if (selectedTests.length === 0 && manualTests.length === 0) {
       toast.error("لا توجد فحوصات مسجّلة لحفظها.");
       return;
     }
     const validItems = selectedTests.filter((t) => t.id > 0);
     const skippedCount = selectedTests.length - validItems.length;
-    if (validItems.length === 0) {
+    if (validItems.length === 0 && manualTests.length === 0) {
       toast.error(
         "لا توجد معرّفات فحوصات صالحة للحفظ (يلزم وجود الرقم في النظام).",
       );
@@ -801,7 +806,7 @@ export default function RequestTests({
       diagnosis,
       date: requestDate,
       notes: generalNotes,
-      items: validItems.map((t) => ({ testId: t.id, notes: t.notes })),
+      items: [...validItems.map((t) => ({ testId: t.id, notes: t.notes })), ...manualTests],
     };
     if (linkedVisit)
       await replaceRequestMutation.mutateAsync({
@@ -959,7 +964,7 @@ export default function RequestTests({
                       عدد الفحوصات
                     </span>
                     <span className="font-semibold text-foreground" dir="ltr">
-                      {selectedTests.length}
+                      {selectedTests.length + manualTests.length}
                     </span>
                   </div>
                 </div>
@@ -1329,11 +1334,12 @@ export default function RequestTests({
                   className="rounded-md bg-primary/10 px-2 py-1 text-xs"
                   dir="ltr"
                 >
-                  {selectedTests.length}
+                  {selectedTests.length + manualTests.length}
                 </span>
               </div>
               <div className="divide-y divide-[#e5ebf3] p-4">
-                {selectedTests.length === 0 ? (
+                <ConfirmedItems tests={manualTests} disabled={editingForbidden} removeTest={name=>setManualTests(previous=>previous.filter(item=>item.testName!==name))} />
+                {selectedTests.length === 0 && manualTests.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-border/60 bg-muted/30 py-12 text-center text-sm text-muted-foreground">
                     لا توجد فحوصات مسجّلة لهذا الطلب بعد.
                   </p>

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAssistantForm } from "./AssistantFields";
 import MedicationCatalogReview from "./MedicationCatalogReview";
 import TestCatalogReview from "./TestCatalogReview";
+import { normalizeTemplateName } from "./prescription-template";
 import {
   applyProposal,
   undoProposal,
@@ -78,6 +79,29 @@ export default function ProposalReview({
   const [copyMessage, setCopyMessage] = useState("");
   const [savingDraft, setSavingDraft] = useState(false);
   const form = useAssistantForm();
+  const [confirmedDiagnosis, setConfirmedDiagnosis] = useState("");
+  const diagnosisText =
+    result?.proposals.find((item) => item.field === "diagnosis")?.text ?? "";
+  const diseases = trpc.medical.getAllDiseases.useQuery(undefined, {
+    enabled:
+      !reviewOnly && input.kind === "conversation" && Boolean(diagnosisText),
+    refetchOnWindowFocus: false,
+  });
+  const knownDiagnosis =
+    Boolean(diagnosisText.trim()) &&
+    (diseases.data ?? []).filter(
+      (item: { name: string; abbrev?: string | null }) =>
+        [item.name, item.abbrev].some(
+          (name) =>
+            name &&
+            normalizeTemplateName(name) ===
+              normalizeTemplateName(diagnosisText),
+        ),
+    ).length === 1;
+  const diagnosisPending =
+    Boolean(diagnosisText.trim()) &&
+    !knownDiagnosis &&
+    confirmedDiagnosis !== diagnosisText;
   const [applied, setApplied] = useState<Record<string, AppliedText>>({});
   const autoApplied = useRef(false);
   const draftSignature = useRef("");
@@ -88,7 +112,8 @@ export default function ProposalReview({
   const narrativeProposals = (proposals: MedicalProposals["proposals"]) =>
     proposals.filter(
       (item) =>
-        !form?.getTests?.() || !["labs", "imaging"].includes(item.field),
+        !(item.field === "diagnosis" && diagnosisPending) &&
+        (!form?.getTests?.() || !["labs", "imaging"].includes(item.field)),
     );
   useEffect(() => {
     if (
@@ -97,7 +122,8 @@ export default function ProposalReview({
       reviewOnly ||
       input.kind !== "conversation" ||
       !form?.fillDraft ||
-      form.disabled
+      form.disabled ||
+      (Boolean(diagnosisText) && diseases.isLoading)
     )
       return;
     autoApplied.current = true;
@@ -109,7 +135,14 @@ export default function ProposalReview({
         cause instanceof Error ? cause.message : "تعذّرت تعبئة المسودة.",
       );
     }
-  }, [result, reviewOnly, input.kind, form]);
+  }, [
+    result,
+    reviewOnly,
+    input.kind,
+    form,
+    diseases.isLoading,
+    diagnosisPending,
+  ]);
   const alive = useRef(true);
   const readTask = read.mutateAsync;
   useEffect(() => {
@@ -272,6 +305,7 @@ export default function ProposalReview({
                   form.disabled ||
                   form.saving ||
                   savingDraft ||
+                  diagnosisPending ||
                   (Boolean(form.fillDraft) && !draftReceipt) ||
                   (Boolean(draftReceipt) &&
                     draftSignature.current !== JSON.stringify(result.proposals))
@@ -378,6 +412,56 @@ export default function ProposalReview({
               <p className="text-sm">
                 Reported speaker: {proposal.speaker} · Doctor review required
               </p>
+              {!reviewOnly &&
+                input.kind === "conversation" &&
+                proposal.field === "diagnosis" &&
+                diagnosisPending && (
+                  <div className="space-y-2">
+                    <p>
+                      {diseases.isError
+                        ? "تعذر التحقق من الكتالوج. راجع التشخيص وأكده كنص."
+                        : "التشخيص غير مطابق بشكل وحيد للكتالوج. راجع النص قبل نقله للمسودة."}
+                    </p>
+                    <Button
+                      className="h-auto max-w-full whitespace-normal text-start"
+                      type="button"
+                      variant="outline"
+                      disabled={form?.disabled || diseases.isLoading}
+                      onClick={() => {
+                        try {
+                          if (!form?.fillDraft) {
+                            setConfirmedDiagnosis(diagnosisText);
+                            return;
+                          }
+                          if (draftReceipt)
+                            flushSync(() => draftReceipt.undo());
+                          setDraftReceipt(
+                            form.fillDraft(
+                              result.proposals.filter(
+                                (item) =>
+                                  !form.getTests?.() ||
+                                  !["labs", "imaging"].includes(item.field),
+                              ),
+                            ),
+                          );
+                          setConfirmedDiagnosis(diagnosisText);
+                          draftSignature.current = JSON.stringify(
+                            result.proposals,
+                          );
+                          setError("");
+                        } catch (cause) {
+                          setError(
+                            cause instanceof Error
+                              ? cause.message
+                              : "تعذر نقل التشخيص للمسودة.",
+                          );
+                        }
+                      }}
+                    >
+                      تأكيد التشخيص وإضافته للمسودة بدون إضافته للكتالوج
+                    </Button>
+                  </div>
+                )}
               <Textarea
                 aria-label={`Proposal: ${proposal.field}`}
                 style={reviewOnly ? { maxWidth: "none" } : undefined}
@@ -465,7 +549,11 @@ export default function ProposalReview({
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={form?.disabled || !proposal.text.trim()}
+                    disabled={
+                      form?.disabled ||
+                      !proposal.text.trim() ||
+                      (proposal.field === "diagnosis" && diagnosisPending)
+                    }
                     onClick={() => {
                       try {
                         const root = form?.root.current;

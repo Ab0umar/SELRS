@@ -4760,7 +4760,7 @@ async function hydrateDoctorReports<T extends {visitId:number}>(rows:T[]) {
   const ids=[...new Set(rows.map(row=>row.visitId))];
   const visitHeaders:typeof visits.$inferSelect[]=ids.length ? await connection.select().from(visits).where(inArray(visits.id,ids)) : [];
   type PrescriptionLine={visitId:number|null;name:string;dosage:string|null;frequency:string|null;duration:string|null;instructions:string|null};
-  const prescriptionLines:PrescriptionLine[]=ids.length ? await connection.select({visitId:prescriptions.visitId,name:medications.name,dosage:prescriptionItems.dosage,frequency:prescriptionItems.frequency,duration:prescriptionItems.duration,instructions:prescriptionItems.instructions}).from(prescriptions).innerJoin(visits,and(eq(visits.id,prescriptions.visitId),eq(visits.patientId,prescriptions.patientId))).innerJoin(prescriptionItems,eq(prescriptionItems.prescriptionId,prescriptions.id)).innerJoin(medications,eq(medications.id,prescriptionItems.medicationId)).where(inArray(prescriptions.visitId,ids)).orderBy(desc(prescriptions.id),prescriptionItems.id) : [];
+  const prescriptionLines:PrescriptionLine[]=ids.length ? await connection.select({visitId:prescriptions.visitId,name:sql<string>`COALESCE(${prescriptionItems.medicationName}, ${medications.name})`,dosage:prescriptionItems.dosage,frequency:prescriptionItems.frequency,duration:prescriptionItems.duration,instructions:prescriptionItems.instructions}).from(prescriptions).innerJoin(visits,and(eq(visits.id,prescriptions.visitId),eq(visits.patientId,prescriptions.patientId))).innerJoin(prescriptionItems,eq(prescriptionItems.prescriptionId,prescriptions.id)).leftJoin(medications,eq(medications.id,prescriptionItems.medicationId)).where(inArray(prescriptions.visitId,ids)).orderBy(desc(prescriptions.id),prescriptionItems.id) : [];
   const operations:typeof surgeries.$inferSelect[]=ids.length ? await connection.select().from(surgeries).where(and(inArray(surgeries.visitId,ids),ne(surgeries.status,"cancelled"))) : [];
   return rows.map(row=>{
     const section=sections.get(row.visitId);
@@ -5107,7 +5107,7 @@ export async function getPrescriptionsWithItemsByVisit(visitId: number) {
       notes: prescriptions.notes,
       itemId: prescriptionItems.id,
       medicationId: prescriptionItems.medicationId,
-      medicationName: medications.name,
+      medicationName: sql<string>`COALESCE(${prescriptionItems.medicationName}, ${medications.name})`,
       dosage: prescriptionItems.dosage,
       frequency: prescriptionItems.frequency,
       duration: prescriptionItems.duration,
@@ -5162,7 +5162,7 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
       notes: prescriptions.notes,
       itemId: prescriptionItems.id,
       medicationId: prescriptionItems.medicationId,
-      medicationName: medications.name,
+      medicationName: sql<string>`COALESCE(${prescriptionItems.medicationName}, ${medications.name})`,
       dosage: prescriptionItems.dosage,
       frequency: prescriptionItems.frequency,
       duration: prescriptionItems.duration,
@@ -5752,11 +5752,12 @@ export async function getTestRequestsByVisit(visitId: number) {
         .select({
           id: testRequestItems.id,
           testId: testRequestItems.testId,
-          testName: tests.name,
+          testName: sql<string>`COALESCE(${testRequestItems.testName}, ${tests.name})`,
+          testType: sql<"lab" | "imaging" | "examination" | "other">`COALESCE(${testRequestItems.testType}, ${tests.type})`,
           result: testRequestItems.result,
         })
         .from(testRequestItems)
-        .innerJoin(tests, eq(testRequestItems.testId, tests.id))
+        .leftJoin(tests, eq(testRequestItems.testId, tests.id))
         .where(eq(testRequestItems.testRequestId, req.id));
       return { ...req, items };
     }),
@@ -5806,11 +5807,12 @@ export async function getTestRequestsByPatient(patientId: number) {
         .select({
           id: testRequestItems.id,
           testId: testRequestItems.testId,
-          testName: tests.name,
+          testName: sql<string>`COALESCE(${testRequestItems.testName}, ${tests.name})`,
+          testType: sql<"lab" | "imaging" | "examination" | "other">`COALESCE(${testRequestItems.testType}, ${tests.type})`,
           result: testRequestItems.result,
         })
         .from(testRequestItems)
-        .innerJoin(tests, eq(testRequestItems.testId, tests.id))
+        .leftJoin(tests, eq(testRequestItems.testId, tests.id))
         .where(eq(testRequestItems.testRequestId, req.id));
       return { ...req, items };
     }),

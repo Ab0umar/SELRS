@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { investigationInputSchema, prescriptionLineInputSchema } from "../../shared/clinical-catalog-items";
 import {
   legacyReferenceFields,
   testReferenceRangesSchema,
@@ -650,12 +651,7 @@ export const medicalCatalogRoutes = {
         priority: z.string().optional(),
         notes: z.string().optional(),
         diagnosis: z.string().optional(),
-        items: z.array(
-          z.object({
-            testId: z.number(),
-            notes: z.string().optional(),
-          }),
-        ),
+        items: z.array(investigationInputSchema),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -683,12 +679,7 @@ export const medicalCatalogRoutes = {
         priority: z.string().optional(),
         notes: z.string().optional(),
         diagnosis: z.string().optional(),
-        items: z.array(
-          z.object({
-            testId: z.number(),
-            notes: z.string().optional(),
-          }),
-        ),
+        items: z.array(investigationInputSchema),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -803,16 +794,7 @@ export const medicalCatalogRoutes = {
         date: z.string().optional(),
         notes: z.string().optional(),
         diagnosis: z.string().optional(),
-        items: z.array(
-          z.object({
-            medicationId: z.number().optional(),
-            medicationName: z.string(),
-            dosage: z.string().optional(),
-            frequency: z.string().optional(),
-            duration: z.string().optional(),
-            instructions: z.string().optional(),
-          }),
-        ),
+        items: z.array(prescriptionLineInputSchema),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -849,16 +831,7 @@ export const medicalCatalogRoutes = {
         date: z.string().optional(),
         notes: z.string().optional(),
         diagnosis: z.string().optional(),
-        items: z.array(
-          z.object({
-            medicationId: z.number().optional(),
-            medicationName: z.string(),
-            dosage: z.string().optional(),
-            frequency: z.string().optional(),
-            duration: z.string().optional(),
-            instructions: z.string().optional(),
-          }),
-        ),
+        items: z.array(prescriptionLineInputSchema),
       }),
     )
     .mutation(async ({ input, ctx }) => {

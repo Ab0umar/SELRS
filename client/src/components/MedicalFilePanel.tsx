@@ -1,3 +1,5 @@
+import { confirmedMedicationsFromRecords, confirmedInvestigationsFromRecords, type ConfirmedMedication, type ConfirmedInvestigation } from "@shared/clinical-catalog-items";
+import { ConfirmedItems } from "@/components/medical-assistant/ConfirmedItems";
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
@@ -259,6 +261,8 @@ export default function MedicalFilePanel({
         ablation: "",
       },
     },
+    manualTests: [] as ConfirmedInvestigation[],
+    manualMedications: [] as ConfirmedMedication[],
     tests: [],
     treatment: [],
     diagnosis: "",
@@ -630,7 +634,7 @@ export default function MedicalFilePanel({
       // Load test request IDs from visit
       const testIds = (visitTestRequestsQuery.data ?? []).flatMap((req: any) =>
         req.items && Array.isArray(req.items)
-          ? req.items.map((item: any) => item.testId || item.id)
+          ? req.items.filter((item:any) => Number(item.testId) > 0).map((item: any) => item.testId)
           : [],
       );
 
@@ -638,16 +642,16 @@ export default function MedicalFilePanel({
       const prescriptionMedIds = (visitPrescriptionsQuery.data ?? []).flatMap(
         (presc: any) =>
           presc.items && Array.isArray(presc.items)
-            ? presc.items.map((item: any) => item.medicationId || item.id)
+            ? presc.items.filter((item:any) => Number(item.medicationId) > 0).map((item: any) => item.medicationId)
             : [],
       );
       const prescriptionDetails = Object.fromEntries(
         (visitPrescriptionsQuery.data ?? []).flatMap((presc: any) =>
           Array.isArray(presc.items)
             ? presc.items
-                .filter((item: any) => Number(item.medicationId || item.id) > 0)
+                .filter((item: any) => Number(item.medicationId) > 0)
                 .map((item: any) => [
-                  Number(item.medicationId || item.id),
+                  Number(item.medicationId),
                   {
                     dosage: String(item.dosage ?? ""),
                     frequency: String(item.frequency ?? ""),
@@ -709,6 +713,8 @@ export default function MedicalFilePanel({
           diagnosis:doctorReport?.diagnosis ?? visitsQuery.data?.find((visit:{id:number})=>visit.id===selectedExamination.visitId)?.diagnosis ?? "",
           recommendations:doctorReport?.recommendations ?? visitsQuery.data?.find((visit:{id:number})=>visit.id===selectedExamination.visitId)?.recommendations ?? "",
           diseases: diseases,
+          manualTests: confirmedInvestigationsFromRecords((visitTestRequestsQuery.data ?? []).flatMap((request:any) => request.items ?? [])),
+          manualMedications: confirmedMedicationsFromRecords((visitPrescriptionsQuery.data ?? []).flatMap((prescription:any) => prescription.items ?? [])),
           tests: finalTests,
           treatment: finalTreatment,
         };
@@ -949,7 +955,7 @@ export default function MedicalFilePanel({
     // testItems is an array of objects with testId property
     const itemIds = Array.isArray(template.testItems)
       ? template.testItems
-          .map((item: any) => item.testId || item.id)
+          .map((item: any) => item.testId)
           .filter((id: any) => id !== undefined && id !== null)
       : [];
     console.log("Item IDs to add:", itemIds);
@@ -1292,7 +1298,7 @@ export default function MedicalFilePanel({
           glasses:Object.fromEntries(["od","os"].map(eye=>[eye,{s:refVal(refractionTableData[eye as "od"|"os"]?.s),c:refVal(refractionTableData[eye as "od"|"os"]?.c),axis:refVal(refractionTableData[eye as "od"|"os"]?.a),pd:refVal(refractionTableData[eye as "od"|"os"]?.pd),add:refVal(refractionTableData[eye as "od"|"os"]?.add),bcva:refVal(formData.measurements?.autoref?.[eye]?.bcva)}])),
           fundus:formData.fundus,pentacam:formData.pentacam,chiefComplaint:formData.medicalHistory,symptoms:formData.symptoms,
           historyNotes:formData.historyNotes,treatmentPlan:formData.treatmentPlan,diagnosis:formData.diagnosis,diseases:formData.diseases,recommendations:formData.recommendations,
-          treatment:(formData.treatment ?? []).map((medicationId:number)=>({medicationId,...(treatmentDetailsByMedicationId[medicationId] ?? {})})),tests:formData.tests ?? [],
+          treatment:[...(formData.treatment ?? []).map((medicationId:number)=>({medicationId,...(treatmentDetailsByMedicationId[medicationId] ?? {})})),...(formData.manualMedications ?? [])],tests:[...(formData.tests ?? []),...(formData.manualTests ?? [])],
         },
       });
       await utils.medical.invalidate();
@@ -1306,6 +1312,8 @@ export default function MedicalFilePanel({
   const printCurrentMedicalItems = (kind: "tests" | "treatment") => {
     const isTests = kind === "tests";
     const ids = isTests ? formData.tests || [] : formData.treatment || [];
+    const manualPrescriptionHtml = (formData.manualMedications ?? []).map((item:ConfirmedMedication)=>`<div class="prescription-item"><div class="medication-name">${escapePrintText(item.medicationName)}</div><div class="medication-instructions">${escapePrintText([item.dosage,item.frequency,item.duration,item.instructions].filter(Boolean).join(" - "))}</div></div>`).join("");
+    const manualTestsHtml = (formData.manualTests ?? []).map((item:ConfirmedInvestigation)=>`<div class="request-test-item"><b>${escapePrintText(item.testName)}</b> ${escapePrintText(item.notes)}</div>`).join("");
     const prescriptionItems = !isTests
       ? ids
           .map((id: number) => {
@@ -1325,7 +1333,7 @@ export default function MedicalFilePanel({
               : "";
             return `<div class="prescription-item"><div class="medication-name">${escapePrintText(item?.name || id)}</div>${instructions ? `<div class="medication-instructions">${escapePrintText(instructions)}</div>` : ""}</div>`;
           })
-          .join("")
+          .join("") + manualPrescriptionHtml
       : "";
     const testItems = isTests
       ? ids
@@ -1333,7 +1341,7 @@ export default function MedicalFilePanel({
             const item = testsQuery.data?.find((entry: any) => entry.id === id);
             return `<div class="request-test-item"><b><span dir="ltr">${index + 1}.</span> ${escapePrintText(item?.name || id)}</b></div>`;
           })
-          .join("")
+          .join("") + manualTestsHtml
       : "";
     const printableContent = isTests
       ? testItems
@@ -1395,8 +1403,8 @@ export default function MedicalFilePanel({
         accept:(field,text)=>{if(field!=="labs"&&field!=="imaging")return true;try{if(testsQuery.isLoading||testsQuery.isError)return false;resolveTestNames(text,testsQuery.data ?? [],field);return true;}catch{return false;}},
         change:values=>{const tests="tests" in values?resolveTestNames(values.tests,testsQuery.data ?? []):undefined;setFormData((previous:any)=>({...previous,...("history" in values?{historyNotes:values.history}:{}),...("treatment" in values?{treatmentPlan:values.treatment}:{}),...("complaints" in values?{medicalHistory:values.complaints}:{}),...("symptoms" in values?{symptoms:values.symptoms}:{}),...("diagnosis" in values?{diagnosis:values.diagnosis}:{}),...("decision" in values?{recommendations:values.decision}:{}),...(tests?{tests}:{})}));},
       }}
-      testsDraft={{catalog:testsQuery.data ?? [],ids:formData.tests ?? [],disabled:hubRo || testsQuery.isLoading || testsQuery.isError,append:ids=>setFormData((previous:any)=>({...previous,tests:[...new Set([...(previous.tests ?? []),...ids])]})),remove:ids=>setFormData((previous:any)=>({...previous,tests:(previous.tests ?? []).filter((id:number)=>!ids.includes(id))}))}}
-      prescriptionDraft={{templates:[],medications:medicationsQuery.data ?? [],draft:{ids:formData.treatment ?? [],details:treatmentDetailsByMedicationId},disabled:hubRo || medicationsQuery.isLoading || medicationsQuery.isError,change:draft=>{setFormData((previous:any)=>({...previous,treatment:draft.ids}));setTreatmentDetailsByMedicationId(draft.details);}}}
+      testsDraft={{manualItems:formData.manualTests ?? [],appendManual:item=>setFormData((previous:any)=>({...previous,manualTests:[...(previous.manualTests ?? []).filter((existing:ConfirmedInvestigation)=>existing.testName!==item.testName),item]})),removeManual:name=>setFormData((previous:any)=>({...previous,manualTests:(previous.manualTests ?? []).filter((item:ConfirmedInvestigation)=>item.testName!==name)})),catalog:testsQuery.data ?? [],ids:formData.tests ?? [],disabled:hubRo || testsQuery.isLoading || testsQuery.isError,append:ids=>setFormData((previous:any)=>({...previous,tests:[...new Set([...(previous.tests ?? []),...ids])]})),remove:ids=>setFormData((previous:any)=>({...previous,tests:(previous.tests ?? []).filter((id:number)=>!ids.includes(id))}))}}
+      prescriptionDraft={{templates:[],medications:medicationsQuery.data ?? [],draft:{manualItems:formData.manualMedications ?? [],ids:formData.treatment ?? [],details:treatmentDetailsByMedicationId},disabled:hubRo || medicationsQuery.isLoading || medicationsQuery.isError,change:draft=>{setFormData((previous:any)=>({...previous,treatment:draft.ids,manualMedications:draft.manualItems ?? []}));setTreatmentDetailsByMedicationId(draft.details);}}}
     >
     <div className={outerCls} data-medical-file-overlay={!embedded || undefined}>
       <div className={innerCls} data-medical-file-surface>
@@ -3187,6 +3195,7 @@ export default function MedicalFilePanel({
                         className="h-10 ps-8 text-xs"
                       />
                     </div>
+                          <ConfirmedItems tests={formData.manualTests ?? []} disabled={hubRo} removeTest={name=>setFormData((previous:any)=>({...previous,manualTests:(previous.manualTests ?? []).filter((item:ConfirmedInvestigation)=>item.testName!==name)}))} />
                     {testSearchText && (
                       <>
                         {testsQuery.isLoading ? (
@@ -3325,14 +3334,15 @@ export default function MedicalFilePanel({
 
                   {/* Treatment / Medications */}
                   <div className="flex flex-col rounded-md border border-border/60 p-3">
+                    <ConfirmedItems medicines={formData.manualMedications ?? []} disabled={hubRo} removeMedicine={name=>setFormData((previous:any)=>({...previous,manualMedications:(previous.manualMedications ?? []).filter((item:ConfirmedMedication)=>item.medicationName!==name)}))} />
                     <PrescriptionBinding
                       templates={readPrescriptionTemplates(prescriptionsQuery.data)}
                       medications={medicationsQuery.data ?? []}
-                      draft={{ ids: formData.treatment ?? [], details: treatmentDetailsByMedicationId }}
+                      draft={{ manualItems:formData.manualMedications ?? [], ids: formData.treatment ?? [], details: treatmentDetailsByMedicationId }}
                       disabled={hubRo || patientQuery.isLoading || medicationsQuery.isLoading || medicationsQuery.isError || prescriptionsQuery.isLoading || prescriptionsQuery.isError}
                       change={(draft) => {
                         setTreatmentDetailsByMedicationId(draft.details);
-                        setFormData((previous: typeof formData) => ({ ...previous, treatment: draft.ids.map(Number) }));
+                        setFormData((previous: typeof formData) => ({ ...previous, treatment: draft.ids.map(Number), manualMedications:draft.manualItems ?? [] }));
                       }}
                     />
                     <div className="order-0 mb-2 flex items-center justify-between gap-2">

@@ -57,6 +57,7 @@ import { buildRowLookup, getRowValue } from "@/lib/importUtils";
 import { DateInput } from "@/components/ui/date-input";
 
 interface PrescriptionItem {
+  catalogConfirmed?: true;
   id: string;
   medicationId: number;
   medicationName: string;
@@ -448,6 +449,7 @@ export default function WritePrescription({
     const items = (latest.items ?? []).map((item: any) => ({
       id: String(item.id ?? Date.now()),
       medicationId: item.medicationId ?? 0,
+      catalogConfirmed: item.medicationId == null ? true as const : undefined,
       medicationName: item.medicationName ?? "",
       dosage: item.dosage ?? "",
       frequency: item.frequency ?? "",
@@ -557,7 +559,8 @@ export default function WritePrescription({
       date: prescriptionDate,
       notes: generalNotes,
       items: itemsToSave.map((item) => ({
-        medicationId: item.medicationId,
+        medicationId: item.catalogConfirmed ? undefined : item.medicationId,
+        catalogConfirmed: item.catalogConfirmed,
         medicationName: item.medicationName,
         dosage: item.dosage,
         frequency: item.frequency,

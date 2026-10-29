@@ -1,3 +1,4 @@
+import type { ConfirmedMedication } from "@shared/clinical-catalog-items";
 export type MedicationInstructions = {
   dosage: string;
   frequency: string;
@@ -7,6 +8,7 @@ export type MedicationInstructions = {
 export type PrescriptionDraft = {
   ids: Array<string | number>;
   details: Record<string, MedicationInstructions>;
+  manualItems?: ConfirmedMedication[];
 };
 export type PrescriptionTemplate = {
   id: string;
@@ -73,6 +75,7 @@ export function appendPrescriptionTemplate(
 ): PrescriptionDraft {
   if (binding.disabled) throw new Error("The prescription is not editable.");
   const next: PrescriptionDraft = {
+    ...binding.draft,
     ids: [...binding.draft.ids],
     details: { ...binding.draft.details },
   };

@@ -13,6 +13,41 @@ const form = (data: Record<string, unknown>) =>
     "doctor",
   );
 describe("examination form normalization", () => {
+  it("keeps explicitly confirmed uncatalogued medicines and investigations as named items", () => {
+    const input = form({
+      treatment: [
+        {
+          medicationName: "Uncatalogued drops",
+          catalogConfirmed: true,
+          frequency: "مرتين",
+        },
+      ],
+      tests: [
+        {
+          testName: "Uncatalogued scan",
+          testType: "examination",
+          catalogConfirmed: true,
+        },
+      ],
+    });
+    expect(input.prescriptionItems).toEqual([
+      {
+        medicationName: "Uncatalogued drops",
+        catalogConfirmed: true,
+        frequency: "مرتين",
+      },
+    ]);
+    expect(input.testItems).toEqual([
+      {
+        testName: "Uncatalogued scan",
+        testType: "examination",
+        catalogConfirmed: true,
+      },
+    ]);
+  });
+  it("rejects uncatalogued investigation names without explicit review", () => {
+    expect(() => form({ tests: [{ testName: "Unreviewed scan" }] })).toThrow();
+  });
   it("retains explicitly changed medication instructions without inventing omitted doses", () => {
     expect(
       form({

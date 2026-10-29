@@ -54,6 +54,23 @@ beforeEach(() => {
 });
 afterEach(() => vi.clearAllMocks());
 describe("private medical Manus tasks", () => {
+  it("retains doctor-stated names outside the catalog and ambiguous OCT for explicit review", async () => {
+    const recording = { kind: "conversation", mode: "dictation", transcript: "التشخيص Rare diagnosis والعلاج Rare drops واطلب OCT" } as const;
+    const proposals = [
+      {field: "diagnosis", text: "Rare diagnosis", speaker: "doctor", sources: ["التشخيص Rare diagnosis"]},
+      {field: "treatment", text: "Rare drops", speaker: "doctor", sources: ["العلاج Rare drops"], medications: [{name:"Rare drops", source:"العلاج Rare drops",dosage:"",frequency:"",duration:"",instructions:""}]},
+      {field: "imaging", text: "OCT", speaker: "doctor", sources: ["واطلب OCT"]},
+    ];
+    vi.mocked(downloadManusFile).mockResolvedValueOnce(Buffer.from(JSON.stringify({proposals, warnings:["يلزم اختيار نوع OCT"]})));
+    const {jobId} = await startMedicalProposals(owner, recording);
+    const response = await readMedicalProposals(owner, jobId);
+    expect(response).toMatchObject({status:"complete",result:{proposals:expect.arrayContaining([
+      expect.objectContaining({field:"diagnosis",text:"Rare diagnosis"}),
+      expect.objectContaining({field:"treatment",text:"Rare drops"}),
+      expect.objectContaining({field:"imaging",text:"OCT"}),
+    ])}});
+    expect(vi.mocked(createManusTask).mock.calls[0][0]).toContain("never omit the request or invent a subtype");
+  });
   it("retries a transient attachment download on the same paid task", async () => {
     const { jobId } = await startMedicalProposals(owner, input);
     vi.mocked(downloadManusFile).mockRejectedValueOnce(

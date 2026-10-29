@@ -246,6 +246,13 @@
       "when": 1793222400005,
       "tag": "0046_complete_typed_measurements",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "5",
+      "when": 1793222400006,
+      "tag": "0047_confirmed_uncatalogued_items",
+      "breakpoints": true
     }
   ]
 }
