@@ -1,3 +1,5 @@
+import { confirmedMedicationsFromRecords, confirmedInvestigationsFromRecords, type ConfirmedMedication, type ConfirmedInvestigation } from "@shared/clinical-catalog-items";
+import { ConfirmedItems } from "@/components/medical-assistant/ConfirmedItems";
 import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import {
   useEffect,
@@ -687,6 +689,8 @@ export default function WorkflowPrototypeLive() {
   const [selectedDiseaseIds, setSelectedDiseaseIds] = useState<
     Array<string | number>
   >([]);
+  const [manualMedications, setManualMedications] = useState<ConfirmedMedication[]>([]);
+  const [manualTests, setManualTests] = useState<ConfirmedInvestigation[]>([]);
   const [selectedTestIds, setSelectedTestIds] = useState<
     Array<string | number>
   >([]);
@@ -907,19 +911,21 @@ export default function WorkflowPrototypeLive() {
   useEffect(() => {
     setSelectedTestIds(
       ((finalTestRequestsQuery.data as any[]) ?? []).flatMap((request) =>
-        (request.items ?? []).map((item: any) => item.testId),
+        (request.items ?? []).filter((item:any)=>Number(item.testId)>0).map((item: any) => item.testId),
       ),
     );
+    setManualTests(confirmedInvestigationsFromRecords(((finalTestRequestsQuery.data as any[]) ?? []).flatMap(request=>request.items ?? [])));
   }, [activeWorkflowVisitId, finalTestRequestsQuery.data]);
 
   useEffect(() => {
     const items = ((finalPrescriptionsQuery.data as any[]) ?? []).flatMap(
       (prescription) => prescription.items ?? [],
     );
-    setSelectedMedicationIds(items.map((item: any) => item.medicationId));
+    setSelectedMedicationIds(items.filter((item:any)=>Number(item.medicationId)>0).map((item: any) => item.medicationId));
+    setManualMedications(confirmedMedicationsFromRecords(items));
     setMedicationDetailsById(
       Object.fromEntries(
-        items.map((item: any) => [
+        items.filter((item:any)=>Number(item.medicationId)>0).map((item: any) => [
           String(item.medicationId),
           {
             dosage: item.dosage ?? "",
@@ -1317,7 +1323,7 @@ export default function WorkflowPrototypeLive() {
         autorefraction:Object.fromEntries(eyeOrder.map(eye=>[eye,{s:data.nursing.autoref[eye].s,c:data.nursing.autoref[eye].c,axis:data.nursing.autoref[eye].a,ucva:data.nursing.ucva[eye],bcva:data.nursing.bcva[eye],iop:data.nursing.iop[eye],afterS:data.nursing.after[eye].s,afterC:data.nursing.after[eye].c,afterA:data.nursing.after[eye].a}])),
         glasses:Object.fromEntries(eyeOrder.map(eye=>[eye,{...baseSheet.examData?.glasses?.[eye],s:data.specialist.distance[eye].s,c:data.specialist.distance[eye].c,axis:data.specialist.distance[eye].a,bcva:data.specialist.bcva[eye]}])),
         pentacam:Object.fromEntries(eyeOrder.map(eye=>[eye,{...baseSheet.examData?.pentacam?.[eye],k1:data.pentacam[eye].k1,k2:data.pentacam[eye].k2,axis:data.pentacam[eye].axis,thinnest:data.pentacam[eye].thinnestLocation}])),
-        tests:selectedTestIds.map(Number),treatment:selectedMedicationIds.map(id=>({medicationId:Number(id),...(medicationDetailsById[String(id)] ?? {})})),
+        tests:[...selectedTestIds.map(Number),...manualTests],treatment:[...selectedMedicationIds.map(id=>({medicationId:Number(id),...(medicationDetailsById[String(id)] ?? {})})),...manualMedications],
       }});
       await trpcUtils.medical.invalidate();
       if (finish) {
@@ -2880,6 +2886,7 @@ export default function WorkflowPrototypeLive() {
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#039;");
+      names.push(...(isTests ? manualTests.map(item=>item.testName) : manualMedications.map(item=>[item.medicationName,item.dosage,item.frequency,item.duration,item.instructions].filter(Boolean).join(" - "))));
       const content = names.length
         ? names
             .map(
@@ -2994,18 +3001,22 @@ export default function WorkflowPrototypeLive() {
       toast.success(`تم إضافة ${ids.length} دواء من القالب`);
     };
     const assistantPrescriptionBinding = (
+      <>
+      <ConfirmedItems medicines={manualMedications} removeMedicine={name=>setManualMedications(previous=>previous.filter(item=>item.medicationName!==name))} />
       <PrescriptionBinding
         templates={readPrescriptionTemplates(prescriptionTemplatesQuery.data)}
         medications={medicationItems}
-        draft={{ ids: selectedMedicationIds, details: Object.fromEntries(Object.entries(medicationDetailsById).map(([id, details]) => [id, { ...details, dosage: details.dosage ?? "" }])) }}
+        draft={{ manualItems:manualMedications, ids: selectedMedicationIds, details: Object.fromEntries(Object.entries(medicationDetailsById).map(([id, details]) => [id, { ...details, dosage: details.dosage ?? "" }])) }}
         disabled={medicationsQuery.isLoading || medicationsQuery.isError || prescriptionTemplatesQuery.isLoading || prescriptionTemplatesQuery.isError}
         change={(draft: PrescriptionDraft) => {
+          setManualMedications(draft.manualItems ?? []);
           setSelectedMedicationIds(draft.ids);
           setMedicationDetailsById(draft.details);
           const value = selectedNames(medicationItems, draft.ids);
           setData(previous => ({ ...previous, specialist: { ...previous.specialist, prescription: value }, consultant: { ...previous.consultant, prescription: value } }));
         }}
       />
+      </>
     );
     const renderReadyTemplateMenus = (
       templateData: Record<string, any> | undefined,
@@ -3533,6 +3544,7 @@ export default function WorkflowPrototypeLive() {
                   READY_TEST_TABS,
                   "tests",
                 )}
+      <ConfirmedItems tests={manualTests} removeTest={name=>setManualTests(previous=>previous.filter(item=>item.testName!==name))} />
                 <CatalogSearchSelect
                   label="Tests & Rays"
                   placeholder="ابحث عن التحاليل والأشعة…"
@@ -3683,6 +3695,7 @@ export default function WorkflowPrototypeLive() {
               طباعة
             </Button>
           </div>
+      <ConfirmedItems tests={manualTests} removeTest={name=>setManualTests(previous=>previous.filter(item=>item.testName!==name))} />
           <CatalogSearchSelect
             label="Tests & Rays"
             placeholder="Search tests and rays…"
@@ -3871,8 +3884,8 @@ export default function WorkflowPrototypeLive() {
             consultant:{...previous.consultant,...("diagnosis" in values?{diagnosis:values.diagnosis}:{}),...("decision" in values?{finalDecision:values.decision}:{}),...("investigations" in values?{testsRays:values.investigations}:{})},
           }));},
         }}
-        testsDraft={{catalog:testsQuery.data ?? [],ids:selectedTestIds.map(Number),disabled:testsQuery.isLoading || testsQuery.isError,append:ids=>setSelectedTestIds(previous=>[...new Set([...previous,...ids.map(String)])]),remove:ids=>setSelectedTestIds(previous=>previous.filter(id=>!ids.includes(Number(id))))}}
-        prescriptionDraft={{templates:[],medications:medicationItems,draft:{ids:selectedMedicationIds,details:Object.fromEntries(Object.entries(medicationDetailsById).map(([id,details])=>[id,{...details,dosage:details.dosage ?? ""}]))},disabled:medicationsQuery.isLoading || medicationsQuery.isError,change:draft=>{setSelectedMedicationIds(draft.ids);setMedicationDetailsById(draft.details);const value=selectedNames(medicationItems,draft.ids);setData(previous=>({...previous,specialist:{...previous.specialist,prescription:value},consultant:{...previous.consultant,prescription:value}}));}}}
+        testsDraft={{manualItems:manualTests,appendManual:item=>setManualTests(previous=>[...previous.filter(existing=>existing.testName!==item.testName),item]),removeManual:name=>setManualTests(previous=>previous.filter(item=>item.testName!==name)),catalog:testsQuery.data ?? [],ids:selectedTestIds.map(Number),disabled:testsQuery.isLoading || testsQuery.isError,append:ids=>setSelectedTestIds(previous=>[...new Set([...previous,...ids.map(String)])]),remove:ids=>setSelectedTestIds(previous=>previous.filter(id=>!ids.includes(Number(id))))}}
+        prescriptionDraft={{templates:[],medications:medicationItems,draft:{manualItems:manualMedications,ids:selectedMedicationIds,details:Object.fromEntries(Object.entries(medicationDetailsById).map(([id,details])=>[id,{...details,dosage:details.dosage ?? ""}]))},disabled:medicationsQuery.isLoading || medicationsQuery.isError,change:draft=>{setManualMedications(draft.manualItems ?? []);setSelectedMedicationIds(draft.ids);setMedicationDetailsById(draft.details);const value=selectedNames(medicationItems,draft.ids);setData(previous=>({...previous,specialist:{...previous.specialist,prescription:value},consultant:{...previous.consultant,prescription:value}}));}}}
       >
       <main className="mx-auto max-w-[1500px] space-y-2 px-2 py-0 lg:px-3">
         <h1 className="sr-only">مسار اليوم</h1>

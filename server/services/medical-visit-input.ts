@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { clinicalObject } from "../../shared/examination-fields";
 import { cairoDateIso } from "../../shared/visitSchedule";
 import type { ClinicalVisitInput } from "./clinical-visit";
+import { investigationInputSchema } from "../../shared/clinical-catalog-items";
 
 function list(value: unknown): unknown[] {
   try {
@@ -92,8 +93,18 @@ export function medicalVisitInput(
     ).map((value) => {
       const item = clinicalObject(value);
       return {
-        medicationId: catalogId(value, "medicationId"),
-        medicationName: "",
+        ...(item.catalogConfirmed === true &&
+        item.medicationId == null &&
+        typeof item.medicationName === "string" &&
+        item.medicationName.trim()
+          ? {
+              medicationName: item.medicationName.trim(),
+              catalogConfirmed: true as const,
+            }
+          : {
+              medicationId: catalogId(value, "medicationId"),
+              medicationName: "",
+            }),
         ...Object.fromEntries(
           ["dosage", "frequency", "duration", "instructions"]
             .filter((key) => item[key] !== undefined)
@@ -104,12 +115,17 @@ export function medicalVisitInput(
   } else if (input.treatment !== undefined)
     content.treatmentPlan = String(input.treatment ?? "");
   if (input.tests !== undefined)
-    result.testItems = list(input.tests).map((value) => ({
-      testId: catalogId(value, "testId"),
-      ...(clinicalObject(value).notes !== undefined
-        ? { notes: String(clinicalObject(value).notes ?? "") }
-        : {}),
-    }));
+    result.testItems = list(input.tests).map((value) => {
+      const item = clinicalObject(value);
+      if (item.catalogConfirmed === true && item.testId == null)
+        return investigationInputSchema.parse(item);
+      return {
+        testId: catalogId(value, "testId"),
+        ...(item.notes !== undefined
+          ? { notes: String(item.notes ?? "") }
+          : {}),
+      };
+    });
   result.content = JSON.stringify(content);
   return result;
 }

@@ -102,6 +102,56 @@ describe.sequential("medical review fixes", () => {
   beforeEach(async () => cleanupTables(await getTestDb(), ...TABLES));
   afterEach(async () => cleanupTables(await getTestDb(), ...TABLES));
 
+  it("saves confirmed named items without catalog inserts and reads them after replacement", async () => {
+    const patientId = await seedPatient();
+    const doctor = caller("doctor");
+    const conn = await getTestDb();
+    const medicinesBefore = await conn.select().from(medications);
+    const testsBefore = await conn.select().from(medicalTests);
+    const saved = await doctor.medical.saveExaminationForm({
+      patientId, visitDate: "2026-03-15", visitType: "examination",
+      data: {
+        diagnosis: "Doctor confirmed uncommon diagnosis",
+        treatment: [
+          {medicationName: "Confirmed drops A", catalogConfirmed: true, frequency: "مرتين"},
+          {medicationName: "Confirmed drops B", catalogConfirmed: true, instructions: "تعليمات ب"},
+        ],
+        tests: [{testName: "OCT", testType: "imaging", catalogConfirmed: true, notes: "راجع النوع"}],
+      },
+    });
+    const visitId = Number(saved.visitId);
+    const prescriptionsRead = await doctor.medical.getPrescriptionsWithItemsByPatient({patientId});
+    const items = prescriptionsRead.flatMap(prescription => prescription.items);
+    expect(items).toEqual(expect.arrayContaining([
+      expect.objectContaining({medicationId: null, medicationName: "Confirmed drops A", frequency: "مرتين", dosage: ""}),
+      expect.objectContaining({medicationId: null, medicationName: "Confirmed drops B", instructions: "تعليمات ب"}),
+    ]));
+    const rawItems = await conn.select().from(prescriptionItems);
+    expect(rawItems.every(item => item.dosage === null)).toBe(true);
+    expect(await doctor.medical.getTestRequestsByVisit({visitId})).toEqual(expect.arrayContaining([
+      expect.objectContaining({items: [expect.objectContaining({testId: null, testName: "OCT", testType: "imaging", result: "راجع النوع"})]}),
+    ]));
+    await doctor.medical.replacePrescriptionWithItems({patientId, visitId, items: [
+      {medicationName: "Confirmed drops A", catalogConfirmed: true},
+      {medicationName: "Confirmed drops B", catalogConfirmed: true},
+    ]});
+    const replaced = (await doctor.medical.getPrescriptionsWithItemsByPatient({patientId})).flatMap(prescription => prescription.items);
+    expect(replaced.find(item => item.medicationName === "Confirmed drops A")?.frequency).toBe("مرتين");
+    expect(replaced.find(item => item.medicationName === "Confirmed drops B")?.instructions).toBe("تعليمات ب");
+    expect(await conn.select().from(medications)).toEqual(medicinesBefore);
+    expect(await conn.select().from(medicalTests)).toEqual(testsBefore);
+    await expect(doctor.medical.replacePrescriptionWithItems({patientId, visitId, items:[{medicationId:2147483647, medicationName:"Confirmed drops A", catalogConfirmed:true}]})).rejects.toThrow();
+    expect((await doctor.medical.getPrescriptionsWithItemsByPatient({patientId})).flatMap(prescription=>prescription.items)).toHaveLength(2);
+    await expect(doctor.medical.replaceTestRequest({patientId, visitId, items: [{testId: 2147483647, testName:"OCT", catalogConfirmed:true}]})).rejects.toThrow();
+    expect((await doctor.medical.getTestRequestsByVisit({visitId}))[0].items[0].testName).toBe("OCT");
+  });
+
+  it("rejects unconfirmed named visit items before writing clinical records", async () => {
+    const patientId = await seedPatient();
+    await expect(caller("doctor").medical.saveExaminationForm({patientId, visitDate:"2026-03-15",visitType:"examination",data:{treatment:[{medicationName:"Unreviewed"}]}})).rejects.toThrow();
+    expect(await (await getTestDb()).select().from(prescriptions)).toHaveLength(0);
+  });
+
   it("clinical reads reject roles without patient access", async () => {
     await expect(caller("worker").medical.getVisits()).rejects.toMatchObject({
       code: "FORBIDDEN",

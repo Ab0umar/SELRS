@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import FieldDictation, { type DictationTarget } from "./FieldDictation";
 import type { PrescriptionBinding } from "./prescription-template";
+import type { ConfirmedInvestigation } from "@shared/clinical-catalog-items";
 import {
   prepareDraftAdditions,
   assertDraftUndo,
@@ -31,6 +32,9 @@ type Scope = {
   testsDraft?: TestCatalogBinding;
 };
 export type TestCatalogBinding = {
+  manualItems?: ConfirmedInvestigation[];
+  appendManual?: (item: ConfirmedInvestigation) => void;
+  removeManual?: (name: string) => void;
   catalog: Array<{
     id: number | string;
     name: string;

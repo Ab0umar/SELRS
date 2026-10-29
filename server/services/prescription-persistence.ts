@@ -17,24 +17,57 @@ import {
 } from "../../shared/clinical-record";
 import { cairoDateIso } from "../../shared/visitSchedule";
 import { persistVisitSections } from "./clinical-sections";
+import type { InvestigationInput } from "../../shared/clinical-catalog-items";
 
 type Transaction = Parameters<Parameters<MySql2Database["transaction"]>[0]>[0];
 
 async function validateTests(
   transaction: Transaction,
-  items: Array<{ testId: number }>,
+  items: InvestigationInput[],
 ) {
-  const ids = [...new Set(items.map((item) => item.testId))];
-  if (!ids.length) return;
-  const existing = await transaction
-    .select({ id: tests.id })
-    .from(tests)
-    .where(inArray(tests.id, ids));
+  for (const item of items) {
+    if (item.testId != null) {
+      if (!Number.isSafeInteger(item.testId) || item.testId <= 0)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid test catalog ID",
+        });
+    } else if (
+      item.catalogConfirmed !== true ||
+      !item.testName?.trim() ||
+      item.testName.trim().length > 255
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Confirm the uncatalogued investigation name before saving",
+      });
+    }
+  }
+  const ids = [
+    ...new Set(
+      items.flatMap((item) => (item.testId == null ? [] : [item.testId])),
+    ),
+  ];
+  const existing = ids.length
+    ? await transaction
+        .select({ id: tests.id, name: tests.name, type: tests.type })
+        .from(tests)
+        .where(inArray(tests.id, ids))
+    : [];
   if (existing.length !== ids.length)
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "A selected test no longer exists in the catalog",
     });
+  return items.map((item) => {
+    const selected = existing.find((row) => row.id === item.testId);
+    return {
+      ...item,
+      testId: selected?.id ?? null,
+      testName: selected?.name ?? item.testName!.trim(),
+      testType: selected?.type ?? item.testType ?? ("other" as const),
+    };
+  });
 }
 
 function preservedNote(
@@ -116,6 +149,7 @@ export type PrescriptionInput = {
   items: Array<{
     medicationId?: number;
     medicationName: string;
+    catalogConfirmed?: true;
     dosage?: string;
     frequency?: string;
     duration?: string;
@@ -157,10 +191,20 @@ async function insertPrescription(
   if (!prescriptionId) throw new Error("Failed to create prescription");
 
   for (const item of validItems) {
+    if (
+      item.medicationId != null &&
+      item.medicationId !== 0 &&
+      (!Number.isSafeInteger(item.medicationId) || item.medicationId < 0)
+    )
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Invalid medication catalog ID",
+      });
     let medicationId = item.medicationId;
+    let medicationName = item.medicationName.trim();
     if (medicationId && medicationId > 0) {
       const [existing] = await transaction
-        .select({ id: medications.id })
+        .select({ id: medications.id, name: medications.name })
         .from(medications)
         .where(eq(medications.id, medicationId))
         .for("update");
@@ -171,6 +215,14 @@ async function insertPrescription(
             "The selected medication no longer exists. Please select it again.",
         });
       }
+      medicationName = existing.name;
+    } else if (item.catalogConfirmed === true) {
+      if (!medicationName || medicationName.length > 255)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Review the uncatalogued medication name",
+        });
+      medicationId = undefined;
     } else {
       const name = item.medicationName.trim();
       const [existing] = await transaction
@@ -186,11 +238,12 @@ async function insertPrescription(
         medicationId = medication.insertId;
       }
     }
-    if (!medicationId)
+    if (!medicationId && item.catalogConfirmed !== true)
       throw new Error("Failed to resolve prescription medication");
     await transaction.insert(prescriptionItems).values({
       prescriptionId,
-      medicationId,
+      medicationId: medicationId ?? null,
+      medicationName,
       dosage: item.dosage ?? null,
       frequency: item.frequency ?? null,
       duration: item.duration ?? null,
@@ -224,11 +277,11 @@ export async function saveTestRequest(
     date?: string;
     notes?: string;
     diagnosis?: string;
-    items: Array<{ testId: number; notes?: string }>;
+    items: InvestigationInput[];
   },
 ) {
   return connection.transaction(async (tx) => {
-    await validateTests(tx, input.items);
+    const items = await validateTests(tx, input.items);
     const visitId = await resolveRecordVisit(tx, input);
     if (input.diagnosis !== undefined)
       await persistVisitSections(
@@ -245,9 +298,11 @@ export async function saveTestRequest(
     });
     if (input.items.length)
       await tx.insert(testRequestItems).values(
-        input.items.map((item) => ({
+        items.map((item) => ({
           testRequestId: header.insertId,
           testId: item.testId,
+          testName: item.testName,
+          testType: item.testType,
           result: item.notes,
         })),
       );
@@ -272,7 +327,7 @@ export async function replaceVisitTestRequests(
     date?: string;
     notes?: string;
     diagnosis?: string;
-    items: Array<{ testId: number; notes?: string }>;
+    items: InvestigationInput[];
   },
 ) {
   return connection.transaction((transaction) =>
@@ -312,8 +367,12 @@ export async function persistVisitPrescription(
         .where(inArray(prescriptionItems.prescriptionId, previousIds))
     : [];
   const items = input.items.map((item) => {
-    const matches = stored.filter(
-      (record) => record.medicationId === item.medicationId,
+    const matches = stored.filter((record) =>
+      item.medicationId != null
+        ? record.medicationId === item.medicationId
+        : record.medicationId == null &&
+          record.medicationName?.trim().toLowerCase() ===
+            item.medicationName.trim().toLowerCase(),
     );
     const next = { ...item };
     for (const key of [
@@ -351,7 +410,7 @@ export async function persistVisitTestRequests(
   transaction: Transaction,
   input: Parameters<typeof replaceVisitTestRequests>[1],
 ) {
-  await validateTests(transaction, input.items);
+  const items = await validateTests(transaction, input.items);
   await lockPatientVisit(transaction, input.patientId, input.visitId);
   if (input.diagnosis !== undefined)
     await persistVisitSections(
@@ -388,13 +447,21 @@ export async function persistVisitTestRequests(
     });
     if (!header.insertId) throw new Error("Failed to create test request");
     await transaction.insert(testRequestItems).values(
-      input.items.map((item) => ({
+      items.map((item) => ({
         testRequestId: header.insertId,
         testId: item.testId,
+        testName: item.testName,
+        testType: item.testType,
         result: preservedNote(
           item.notes,
           stored
-            .filter((record) => record.testId === item.testId)
+            .filter((record) =>
+              item.testId != null
+                ? record.testId === item.testId
+                : record.testId == null &&
+                  record.testName?.trim().toLowerCase() ===
+                    item.testName.trim().toLowerCase(),
+            )
             .map((record) => record.result),
         ),
       })),

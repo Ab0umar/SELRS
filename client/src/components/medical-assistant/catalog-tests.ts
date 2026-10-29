@@ -5,10 +5,19 @@ type Test = {
   type?: string;
   isActive?: boolean;
 };
+export function testNameCandidates(name: string, catalog: Test[]) {
+  const query = normalizeTemplateName(name);
+  if (!query) return [];
+  return catalog.filter(
+    (item) =>
+      item.isActive !== false &&
+      ` ${normalizeTemplateName(item.name)} `.includes(` ${query} `),
+  );
+}
 export function resolveTestNames(
   text: string,
   catalog: Test[],
-  field?: string,
+  _field?: string,
 ) {
   const names = text
     .split("\n")
@@ -19,10 +28,6 @@ export function resolveTestNames(
     const matches = catalog.filter(
       (item) =>
         item.isActive !== false &&
-        (!field ||
-          (field === "labs"
-            ? item.type === "lab"
-            : ["imaging", "examination"].includes(item.type ?? ""))) &&
         normalizeTemplateName(item.name) === normalizeTemplateName(name),
     );
     if (

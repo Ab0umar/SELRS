@@ -48,15 +48,33 @@ export default function MedicationCatalogReview({
             ` ${normalizeTemplateName(item.name)} `.includes(` ${query} `),
         );
   };
-  const add = (index: number, name: string) => {
+  const add = (index: number, name: string, manual = false) => {
     try {
       const current = binding();
       const { name: _, source: __, ...instructions } = medicines[index];
-      const after = appendPrescriptionTemplate(current, {
-        id: "catalog",
-        name: "catalog",
-        items: [{ medicationName: name, ...instructions }],
-      });
+      const after: PrescriptionDraft = manual
+        ? {
+            ...current.draft,
+            manualItems: (current.draft.manualItems ?? []).some(
+              (item) =>
+                normalizeTemplateName(item.medicationName) ===
+                normalizeTemplateName(name),
+            )
+              ? current.draft.manualItems
+              : [
+                  ...(current.draft.manualItems ?? []),
+                  {
+                    medicationName: name,
+                    catalogConfirmed: true,
+                    ...instructions,
+                  },
+                ],
+          }
+        : appendPrescriptionTemplate(current, {
+            id: "catalog",
+            name: "catalog",
+            items: [{ medicationName: name, ...instructions }],
+          });
       receipts.current.push({
         before: current.draft,
         after,
@@ -149,10 +167,18 @@ export default function MedicationCatalogReview({
               ))}
               {!matches(medicine.name).length && (
                 <p>
-                  لا توجد مطابقة آمنة لهذا الاسم. اختَر الدواء يدويًا من
-                  الكتالوج.
+                  لا توجد مطابقة آمنة لهذا الاسم. راجع الاسم قبل إضافته كنص.
                 </p>
               )}
+              <Button
+                className="h-auto max-w-full whitespace-normal text-start"
+                type="button"
+                variant="outline"
+                disabled={form?.disabled || form?.getPrescription?.()?.disabled}
+                onClick={() => add(index, medicine.name, true)}
+              >
+                تأكيد «{medicine.name}» وإضافته للروشتة بدون إضافته للكتالوج
+              </Button>
             </>
           )}
         </div>
