@@ -1,5 +1,8 @@
 import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import {
+  Activity as ReactActivity,
+  Suspense,
+  lazy,
   useEffect,
   useMemo,
   useRef,
@@ -7,11 +10,20 @@ import {
   type ReactNode,
   type SyntheticEvent,
 } from "react";
-import MedicalFilePanel from "@/components/MedicalFilePanel";
-import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
-import PrescriptionBinding from "@/components/medical-assistant/PrescriptionBinding";
+import WorkflowExamination from "@/components/workflow/WorkflowExamination";
+import WorkflowDiagnosis from "@/components/workflow/WorkflowDiagnosis";
+import WorkflowPentacam from "@/components/workflow/WorkflowPentacam";
+import WorkflowMeasurements from "@/components/workflow/WorkflowMeasurements";
 import { readPrescriptionTemplates, type PrescriptionDraft } from "@/components/medical-assistant/prescription-template";
-import ConsultantSheet from "@/pages/ConsultantSheet";
+
+const MedicalAssistantPreview = lazy(
+  () => import("@/components/medical-assistant/MedicalAssistantPreview"),
+);
+const PrescriptionBinding = lazy(
+  () => import("@/components/medical-assistant/PrescriptionBinding"),
+);
+const importConsultantSheet = () => import("@/pages/ConsultantSheet");
+const ConsultantSheet = lazy(importConsultantSheet);
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
 import { localISODate } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
@@ -700,18 +712,27 @@ export default function WorkflowPrototypeLive() {
   const [referenceMedicationItems, setReferenceMedicationItems] = useState<
     CatalogItem[]
   >([]);
-  const symptomsQuery = trpc.medical.getAllSymptoms.useQuery(undefined, {
+  // Reference catalogs change rarely; keep them cached across patient switches.
+  const catalogQueryOptions = {
     refetchOnWindowFocus: false,
-  });
-  const diseasesQuery = trpc.medical.getAllDiseases.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
-  const testsQuery = trpc.medical.getAllTests.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
-  const medicationsQuery = trpc.medical.getAllMedications.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
+    staleTime: 10 * 60 * 1000,
+  } as const;
+  const symptomsQuery = trpc.medical.getAllSymptoms.useQuery(
+    undefined,
+    catalogQueryOptions,
+  );
+  const diseasesQuery = trpc.medical.getAllDiseases.useQuery(
+    undefined,
+    catalogQueryOptions,
+  );
+  const testsQuery = trpc.medical.getAllTests.useQuery(
+    undefined,
+    catalogQueryOptions,
+  );
+  const medicationsQuery = trpc.medical.getAllMedications.useQuery(
+    undefined,
+    catalogQueryOptions,
+  );
   const referenceMedicationsQuery =
     trpc.medical.searchEgyptianDrugReference.useQuery(
       { query: medicationSearchText.trim(), limit: 25 },
@@ -737,12 +758,12 @@ export default function WorkflowPrototypeLive() {
   }, [referenceMedicationsQuery.data?.items]);
   const testTemplatesQuery = trpc.medical.getReadyTemplateOverrides.useQuery(
     { scope: "tests" },
-    { refetchOnWindowFocus: false },
+    catalogQueryOptions,
   );
   const prescriptionTemplatesQuery =
     trpc.medical.getReadyTemplateOverrides.useQuery(
       { scope: "prescription" },
-      { refetchOnWindowFocus: false },
+      catalogQueryOptions,
     );
   const doctorDirectoryQuery = trpc.medical.getDoctorDirectory.useQuery(
     undefined,
@@ -848,6 +869,31 @@ export default function WorkflowPrototypeLive() {
     if (!activeWorkflowVisitId) return;
     setData(createInitialData());
   }, [activeWorkflowVisitId]);
+  // Tabs the user already opened stay mounted (hidden) so switching back is instant
+  // and unsaved input is not lost. The list resets when the visit changes.
+  const visitKey = `${selectedLivePatient?.id ?? "none"}-${activeWorkflowVisitId ?? "none"}`;
+  const [visitedSections, setVisitedSections] = useState<{
+    key: string;
+    ids: WorkflowSectionId[];
+  }>({ key: "", ids: [] });
+  useEffect(() => {
+    setVisitedSections((current) => {
+      const ids = current.key === visitKey ? current.ids : [];
+      return ids.includes(activeSection)
+        ? current.key === visitKey
+          ? current
+          : { key: visitKey, ids }
+        : { key: visitKey, ids: [...ids, activeSection] };
+    });
+  }, [visitKey, activeSection]);
+  useEffect(() => {
+    const warm = () => void importConsultantSheet();
+    const idle = (window as any).requestIdleCallback as
+      | ((cb: () => void) => number)
+      | undefined;
+    if (idle) idle(warm);
+    else window.setTimeout(warm, 1500);
+  }, []);
   const queueStatusMutation = trpc.medical.updateVisitQueueStatus.useMutation({
     onSuccess: async () => {
       await trpcUtils.medical.getTodayPatientsByQueueStatus.invalidate();
@@ -3644,43 +3690,38 @@ export default function WorkflowPrototypeLive() {
       </div>
     );
 
-    const sectionContent: Record<WorkflowSectionId, ReactNode> = {
-      measurements: (
-        <MedicalFilePanel
+    const sectionContent: Record<WorkflowSectionId, () => ReactNode> = {
+      measurements: () => (
+        <WorkflowMeasurements
+          key={selectedLivePatient.id}
           patientId={selectedLivePatient.id}
-          embedded
+          patientName={selectedLivePatient.fullName}
           hubVisitId={workflowVisitId ?? selectedLivePatient.visitId}
-          hubVisitDate={selectedDate}
-          initialMedicalTab="data"
-          initialMeasurementView="autoref"
-          workflowMeasurementsOnly
-          workflowMeasurementViews={["autoref", "after"]}
-          workflowStackMeasurementViews
+          visitDate={selectedDate}
           onHubVisitIdChange={setWorkflowVisitId}
           onSaved={advanceLiveVisitAfterSave}
         />
       ),
-      examination: (
-        <ConsultantSheet
-          embedded
-          embeddedMode="examination"
+      examination: () => (
+        <WorkflowExamination
+          key={selectedLivePatient.id}
           patientId={selectedLivePatient.id}
+          patientName={selectedLivePatient.fullName}
           visitId={workflowVisitId ?? selectedLivePatient.visitId}
-          sheetType="consultant"
         />
       ),
-      diagnosis: (
-        <MedicalFilePanel
+      diagnosis: () => (
+        <WorkflowDiagnosis
+          key={selectedLivePatient.id}
           patientId={selectedLivePatient.id}
-          embedded
+          patientName={selectedLivePatient.fullName}
           hubVisitId={workflowVisitId ?? selectedLivePatient.visitId}
-          hubVisitDate={selectedDate}
-          initialMedicalTab="plan"
-          workflowPlanOnly
+          visitDate={selectedDate}
+          onHubVisitIdChange={setWorkflowVisitId}
           onSaved={advanceLiveVisitAfterSave}
         />
       ),
-      consultantSheet: (
+      consultantSheet: () => (
         <ConsultantSheet
           embedded
           patientId={selectedLivePatient.id}
@@ -3688,21 +3729,18 @@ export default function WorkflowPrototypeLive() {
           sheetType={selectedFileSheetType}
         />
       ),
-      pentacam: (
-        <MedicalFilePanel
+      pentacam: () => (
+        <WorkflowPentacam
+          key={selectedLivePatient.id}
           patientId={selectedLivePatient.id}
-          embedded
+          patientName={selectedLivePatient.fullName}
           hubVisitId={workflowVisitId ?? selectedLivePatient.visitId}
-          hubVisitDate={selectedDate}
-          initialMedicalTab="data"
-          initialMeasurementView="pentacam"
-          workflowMeasurementsOnly
-          workflowMeasurementViews={["pentacam"]}
+          visitDate={selectedDate}
           onHubVisitIdChange={setWorkflowVisitId}
           onSaved={advanceLiveVisitAfterSave}
         />
       ),
-      tests: (
+      tests: () => (
         <Panel title="Tests & Rays" subtitle="Optional" icon={FileText} active>
           <div className="flex justify-end">
             <Button
@@ -3735,7 +3773,7 @@ export default function WorkflowPrototypeLive() {
           )}
         </Panel>
       ),
-      prescription: (
+      prescription: () => (
         <Panel
           title="Prescription"
           subtitle="Optional"
@@ -3774,25 +3812,27 @@ export default function WorkflowPrototypeLive() {
           )}
         </Panel>
       ),
-      final: renderDigitalFinal(),
+      final: renderDigitalFinal,
     };
 
     return (
       <div className="space-y-2">
         <div
-          className="grid w-full gap-2 rounded-xl bg-white p-2 shadow-sm print:hidden"
+          className="grid w-full gap-2 rounded-xl border border-border/60 bg-white p-2 print:hidden"
           dir="rtl"
         >
           <div className="flex min-w-0 flex-wrap items-end justify-between gap-2 border-b border-border/60 pb-2">
             {renderLivePatientPicker()}
             <div className="flex shrink-0 items-center gap-1">
-              <MedicalAssistantPreview
-                key={`${selectedLivePatient.id}-${activeWorkflowVisitId ?? selectedDate}`}
-                patientId={selectedLivePatient.id}
-                patientName={selectedLivePatient.fullName ?? undefined}
-                visitId={activeWorkflowVisitId}
-                visitDate={selectedDate}
-              />
+              <Suspense fallback={null}>
+                <MedicalAssistantPreview
+                  key={`${selectedLivePatient.id}-${activeWorkflowVisitId ?? selectedDate}`}
+                  patientId={selectedLivePatient.id}
+                  patientName={selectedLivePatient.fullName ?? undefined}
+                  visitId={activeWorkflowVisitId}
+                  visitDate={selectedDate}
+                />
+              </Suspense>
               {sidebarOpen ? (
                 <Button
                   type="button"
@@ -3830,19 +3870,25 @@ export default function WorkflowPrototypeLive() {
           <div
             className="flex min-w-0 flex-wrap items-center gap-1 pb-0.5"
             dir="rtl"
+            role="tablist"
+            aria-label="أقسام الزيارة"
           >
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const active = activeSection === tab.id;
               return (
-                <div key={tab.id} className="flex shrink-0 items-center gap-1">
+                <div key={tab.id} className="flex shrink-0 items-center gap-0.5">
                   <Button
                     type="button"
-                    variant={active ? "default" : "ghost"}
+                    role="tab"
+                    aria-selected={active}
+                    variant="ghost"
                     className={
                       (sidebarOpen ? "gap-2 px-3" : "px-2") +
-                      " h-8 shrink-0 " +
-                      (active ? "bg-primary text-primary-foreground" : "")
+                      " h-9 shrink-0 border text-[13px] font-semibold " +
+                      (active
+                        ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                        : "border-transparent text-slate-600 hover:bg-slate-100")
                     }
                     onClick={() => {
                       setActiveSection(tab.id);
@@ -3862,7 +3908,8 @@ export default function WorkflowPrototypeLive() {
                       size="icon"
                       className="h-7 w-7 shrink-0"
                       onClick={() => removeOptional(tab.id)}
-                      aria-label={"Remove " + tab.label}
+                      aria-label={"إزالة قسم " + tab.label}
+                      title={"إزالة قسم " + tab.label}
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>
@@ -3874,7 +3921,30 @@ export default function WorkflowPrototypeLive() {
         </div>
         <main className="min-w-0 bg-[#f7f9fc] p-0 print:bg-white">
           <div className="p-3 pb-6 print:p-0" dir="ltr">
-            {sectionContent[activeSection]}
+            <Suspense
+              fallback={
+                <p className="p-4 text-sm text-slate-500" role="status">
+                  جارٍ تحميل القسم...
+                </p>
+              }
+            >
+              {tabs
+                .filter(
+                  (item) =>
+                    item.id === activeSection ||
+                    (item.id !== "final" &&
+                      visitedSections.key === visitKey &&
+                      visitedSections.ids.includes(item.id)),
+                )
+                .map((item) => (
+                  <ReactActivity
+                    key={item.id}
+                    mode={item.id === activeSection ? "visible" : "hidden"}
+                  >
+                    {sectionContent[item.id]()}
+                  </ReactActivity>
+                ))}
+            </Suspense>
           </div>
         </main>
       </div>
