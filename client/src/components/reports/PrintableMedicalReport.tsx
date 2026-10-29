@@ -92,11 +92,7 @@ const ARABIC_MONTHS = [
 
 function formatReportDateEn(dateVal?: string | Date | null): string {
   if (!dateVal) {
-    return new Date().toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    return "";
   }
   const d = new Date(dateVal);
   if (isNaN(d.getTime())) return String(dateVal);
@@ -108,7 +104,8 @@ function formatReportDateEn(dateVal?: string | Date | null): string {
 }
 
 function formatReportDateAr(dateVal?: string | Date | null): string {
-  const d = dateVal ? new Date(dateVal) : new Date();
+  if (!dateVal) return "";
+  const d = new Date(dateVal);
   if (isNaN(d.getTime())) return String(dateVal);
   const day = d.getDate();
   const month = ARABIC_MONTHS[d.getMonth()];
@@ -171,12 +168,20 @@ export default function PrintableMedicalReport({
     { patientId: selectedPatientId ?? 0 },
     { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false },
   );
+  const reportsQuery = trpc.medical.getMedicalReportsByPatient.useQuery(
+    {patientId:selectedPatientId ?? 0}, {enabled:Boolean(selectedPatientId),refetchOnWindowFocus:false},
+  );
+  const surgeriesQuery = trpc.medical.getSurgeriesByPatient.useQuery(
+    {patientId:selectedPatientId ?? 0}, {enabled:Boolean(selectedPatientId),refetchOnWindowFocus:false},
+  );
 
   const reportQueries = [
     patientQuery,
     examinationsQuery,
     glassesRecordsQuery,
     autorefQuery,
+    reportsQuery,
+    surgeriesQuery,
   ];
   const reportLoading =
     Boolean(selectedPatientId) && reportQueries.some((query) => query.isLoading);
@@ -197,24 +202,27 @@ export default function PrintableMedicalReport({
 
     const patient = patientQuery.data as any;
     const exams = (examinationsQuery.data as any[] | undefined) || [];
-    const latestExam = exams[0];
+    const requestedVisitId = Number(new URLSearchParams(window.location.search).get("visitId")) || undefined;
+    const latestExam = requestedVisitId ? exams.find(exam=>Number(exam.visitId)===requestedVisitId) : exams[0];
+    const report = ((reportsQuery.data ?? []) as any[]).find(row=>Number(row.visitId)===Number(latestExam?.visitId));
+    const surgery = !requestedVisitId ? ((surgeriesQuery.data ?? []) as any[]).find(row=>row.status === "completed") : undefined;
 
     const glassesList = (glassesRecordsQuery.data as any[] | undefined) || [];
-    const latestGlasses = glassesList[0];
+    const latestGlasses = glassesList.find(row=>Number(row.examinationId)===Number(latestExam?.id));
 
     const autorefList = (autorefQuery.data as any[] | undefined) || [];
-    const latestAutoref = autorefList[0];
+    const latestAutoref = autorefList.find(row=>Number(row.examinationId)===Number(latestExam?.id));
 
     const isFemale = patient.gender === "female" || patient.gender === "أنثى";
     const patientNameEn = `${isFemale ? "Ms." : "Mr."} ${patient.fullName || "Valued Patient"}`;
     const patientNameAr = `${isFemale ? "السيدة / " : "السيد / "} ${patient.fullName || "المريض الكريم"}`;
 
-    const examDateRaw = latestExam?.visitDate || latestExam?.createdAt || new Date();
+    const examDateRaw = latestExam?.visitDate || latestExam?.createdAt;
     const examDateEn = formatReportDateEn(examDateRaw);
     const examDateAr = formatReportDateAr(examDateRaw);
 
-    const procDateEn = formatReportDateEn(new Date());
-    const procDateAr = formatReportDateAr(new Date());
+    const procDateEn = formatReportDateEn(surgery?.surgeryDate);
+    const procDateAr = formatReportDateAr(surgery?.surgeryDate);
 
     // Extract refraction from glasses record or autoref
     const odCyl = latestGlasses?.cOD ?? latestAutoref?.cylinderOD;
@@ -243,18 +251,10 @@ export default function PrintableMedicalReport({
       { eye: "OS", sphere: formattedOsSph, cylinder: formattedOsCyl, axis: formattedOsAxis },
     ];
 
-    const isHighAstig = Math.abs(Number(odCyl || 0)) >= 2.5 || Math.abs(Number(osCyl || 0)) >= 2.5;
-    const diagnosisEn = latestExam?.diagnosis || (isHighAstig ? "high astigmatism" : "myopic astigmatism");
-    const diagnosisAr = latestExam?.diagnosis || (isHighAstig ? "درجات استجماتيزم مرتفعة" : "استجماتيزم وحسر بصر");
-
-    const isPrk = patient.serviceType && String(patient.serviceType).toLowerCase().includes("prk");
-    const procEn = isPrk
-      ? `Custom PRK was performed on ${procDateEn}.`
-      : `Femto-LASIK was performed on ${procDateEn}.`;
-
-    const procAr = isPrk
-      ? ` ${procDateAr}.`
-      : ` ${procDateAr}.`;
+    const diagnosisEn = String(report?.diagnosis ?? "");
+    const diagnosisAr = diagnosisEn;
+    const procEn = String(surgery?.surgeryType ?? "");
+    const procAr = procEn;
 
     const treatingDoctor = patient.treatingDoctor || "";
     const doctorAr = patient.treatingDoctor || "";
@@ -264,14 +264,13 @@ export default function PrintableMedicalReport({
       patientName: patientNameEn,
       examinationDate: examDateEn,
       procedureDate: procDateEn,
-      clinicalSummary: `The patient presented with ${diagnosisEn} and was evaluated for refractive surgery.`,
+      clinicalSummary: diagnosisEn,
       refraction: refractionEn,
       procedure: procEn,
-      followUp:
-        "Postoperative improvement has been noted. Final visual assessment is recommended after approximately six weeks.",
+      followUp: String(report?.recommendations ?? ""),
       physician: {
         name: treatingDoctor,
-        title: treatingDoctor ? "Professor of Ophthalmology" : "",
+        title: "",
       },
     });
 
@@ -280,13 +279,13 @@ export default function PrintableMedicalReport({
       patientName: patientNameAr,
       examinationDate: examDateAr,
       procedureDate: procDateAr,
-      clinicalSummary: `.`,
+      clinicalSummary: diagnosisAr,
       refraction: refractionAr,
       procedure: procAr,
-      followUp: "",
+      followUp: String(report?.recommendations ?? ""),
       physician: {
         name: doctorAr,
-        title: doctorAr ? "أستاذ طب وجراحة العيون" : "",
+        title: "",
       },
     });
   }, [
@@ -295,6 +294,8 @@ export default function PrintableMedicalReport({
     examinationsQuery.data,
     glassesRecordsQuery.data,
     autorefQuery.data,
+    reportsQuery.data,
+    surgeriesQuery.data,
   ]);
 
   // Editing helpers
@@ -352,7 +353,7 @@ export default function PrintableMedicalReport({
   }
 
   return (
-    <main className="w-full min-h-[calc(100vh-220px)] bg-slate-100 dark:bg-slate-900/40 rounded-xl px-2 sm:px-4 py-6 print:bg-white print:p-0 print:rounded-none">
+    <main className="w-full min-h-[calc(100vh-220px)] bg-muted dark:bg-slate-900/40 rounded-xl px-2 sm:px-4 py-6 print:bg-white print:p-0 print:rounded-none">
       <style>{`
         @page {
           size: A4 portrait;
@@ -418,9 +419,9 @@ export default function PrintableMedicalReport({
             print-color-adjust: exact !important;
           }
 
-          .printable-report-sheet tr.bg-sky-50,
-          .printable-report-sheet tr.bg-sky-50 td,
-          .printable-report-sheet div.bg-sky-50 {
+          .printable-report-sheet tr.bg-muted/50,
+          .printable-report-sheet tr.bg-muted/50 td,
+          .printable-report-sheet div.bg-muted/50 {
             background-color: #f0f9ff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -714,7 +715,7 @@ export default function PrintableMedicalReport({
                   return (
                     <tr
                       key={index}
-                      className={isEven ? "bg-sky-50" : "bg-white"}
+                      className={isEven ? "bg-muted/50" : "bg-white"}
                       style={{
                         backgroundColor: rowBg,
                         WebkitPrintColorAdjust: "exact",
@@ -1054,7 +1055,7 @@ export default function PrintableMedicalReport({
                   return (
                     <tr
                       key={index}
-                      className={isEven ? "bg-sky-50" : "bg-white"}
+                      className={isEven ? "bg-muted/50" : "bg-white"}
                       style={{
                         backgroundColor: rowBg,
                         WebkitPrintColorAdjust: "exact",
@@ -1249,7 +1250,7 @@ function InfoRow({
       className={`grid grid-cols-[35%_65%] border-b border-sky-800 last:border-b-0 ${
         featured
           ? "medical-report-featured-row bg-sky-800 text-white"
-          : "bg-sky-50 text-slate-900"
+          : "bg-muted/50 text-slate-900"
       }`}
       style={{
         backgroundColor: featured ? "#075985" : "#f0f9ff",

@@ -115,11 +115,14 @@ export function useExaminationForm(
   const [, routeParams] = useRoute("/examination/:id");
   const formRef = useRef<HTMLFormElement | null>(null);
   const [loading, setLoading] = useState(false);
-  const requestedVisitDate = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("visitDate") ?? ""
-    : "";
+  const requestedVisitDate =
+    typeof window !== "undefined"
+      ? (new URLSearchParams(window.location.search).get("visitDate") ?? "")
+      : "";
   const [visitDate, setVisitDate] = useState(() =>
-    /^\d{4}-\d{2}-\d{2}$/.test(requestedVisitDate) ? requestedVisitDate : localISODate(),
+    /^\d{4}-\d{2}-\d{2}$/.test(requestedVisitDate)
+      ? requestedVisitDate
+      : localISODate(),
   );
   const [receptionSignature, setReceptionSignature] = useState("");
   const [nurseSignature, setNurseSignature] = useState("");
@@ -233,7 +236,8 @@ export function useExaminationForm(
       visits
         .map((visit) => formatDateForInput(visit.visitDate))
         .filter(Boolean)
-        .sort().reverse()[0] ?? ""
+        .sort()
+        .reverse()[0] ?? ""
     );
   }, [visitsQuery.data, embedded]);
   const latestExaminationId = useMemo(() => {
@@ -281,8 +285,7 @@ export function useExaminationForm(
   );
   const savePatientStateMutation =
     trpc.medical.savePatientPageState.useMutation();
-  const saveExaminationChecklistMutation =
-    trpc.medical.saveExaminationChecklist.useMutation();
+
   const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -458,9 +461,7 @@ export function useExaminationForm(
         toast.error(getTrpcErrorMessage(error, "فشل إنشاء مريض جديد"));
       },
     });
-  const saveSheetMutation = trpc.medical.saveSheetEntry.useMutation();
   const utils = trpc.useUtils();
-  const lastSyncedRef = useRef<Record<string, string>>({});
 
   const hasPatient = Boolean(patientInfo.id);
   const normalizedRole = String(
@@ -827,7 +828,6 @@ export function useExaminationForm(
         },
       },
     });
-    lastSyncedRef.current = {};
   };
 
   // Load patient data from query
@@ -861,8 +861,11 @@ export function useExaminationForm(
   useEffect(() => {
     if (!patientInfo.id || !registrationVisitDate) return;
     if (initializedVisitDatePatientRef.current === patientInfo.id) return;
-    if (manuallySelectedVisitPatientRef.current !== patientInfo.id &&
-        !/^\d{4}-\d{2}-\d{2}$/.test(requestedVisitDate)) setVisitDate(registrationVisitDate);
+    if (
+      manuallySelectedVisitPatientRef.current !== patientInfo.id &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(requestedVisitDate)
+    )
+      setVisitDate(registrationVisitDate);
     initializedVisitDatePatientRef.current = patientInfo.id;
   }, [registrationVisitDate, patientInfo.id, requestedVisitDate]);
 
@@ -972,41 +975,7 @@ export function useExaminationForm(
       }));
       return;
     }
-
-    const pageState = (
-      patientStateQuery.data as { data?: unknown } | null | undefined
-    )?.data;
-    const stateData =
-      pageState && typeof pageState === "object"
-        ? (pageState as Record<string, unknown>)
-        : null;
-    if (
-      stateData?.medicalChecklist &&
-      examinationChecklistQuery.data === null
-    ) {
-      const fallbackChecklist = stateData.medicalChecklist as Record<
-        string,
-        unknown
-      >;
-      setMedicalChecklist((prev) => ({
-        ...prev,
-        generalDiseases: Boolean(fallbackChecklist.generalDiseases),
-        pregnancyOrLactation: Boolean(fallbackChecklist.pregnancyOrLactation),
-        usesAllergySupplementsSteroidsOrPressureMeds: Boolean(
-          fallbackChecklist.usesAllergySupplementsSteroidsOrPressureMeds,
-        ),
-        acneTreatment: Boolean(fallbackChecklist.acneTreatment),
-        familyKeratoconus: Boolean(fallbackChecklist.familyKeratoconus),
-        usesTearSubstituteOrExcessTearsOrSandySensation: Boolean(
-          fallbackChecklist.usesTearSubstituteOrExcessTearsOrSandySensation,
-        ),
-        symptomsWorseWithAirOrAC: Boolean(
-          fallbackChecklist.symptomsWorseWithAirOrAC,
-        ),
-        glaucomaTreatment: Boolean(fallbackChecklist.glaucomaTreatment),
-      }));
-    }
-  }, [examinationChecklistQuery.data, patientStateQuery.data]);
+  }, [examinationChecklistQuery.data]);
 
   // Auto-save patient state (workflow state only, not medical data)
   useEffect(() => {
@@ -1042,302 +1011,6 @@ export function useExaminationForm(
     isFollowup,
     savePatientStateMutation,
   ]);
-
-  // Auto-save sheet entries (debounced)
-  useEffect(() => {
-    if (!EXAM_AUTO_SAVE_ENABLED) return;
-    if (!patientInfo.id) return;
-    const serialized = JSON.stringify({
-      patient: {
-        name: patientInfo.name,
-        code: patientInfo.code,
-        dateOfBirth: patientDetails.dateOfBirth,
-        age: patientDetails.age,
-        address: patientDetails.address,
-        phone: patientDetails.phone,
-        job: patientDetails.job,
-      },
-      medicalChecklist,
-      examData,
-      refractionTableData,
-      signatures: {
-        reception: receptionSignature,
-        nurse: nurseSignature,
-        technician: technicianSignature,
-        doctor: doctorName,
-      },
-    });
-    const sheetTypes: Array<
-      "consultant" | "specialist" | "lasik" | "external"
-    > = ["consultant", "specialist", "lasik", "external"];
-
-    const timeout = setTimeout(async () => {
-      try {
-        const pickValue = (next: string | undefined, prev?: string) =>
-          next && String(next).trim() && next !== "---" ? next : prev;
-
-        const stripDash = (obj: any): any => {
-          if (typeof obj === "string") return obj === "---" ? "" : obj;
-          if (Array.isArray(obj)) return obj.map(stripDash);
-          if (obj && typeof obj === "object")
-            return Object.fromEntries(
-              Object.entries(obj).map(([k, v]) => [k, stripDash(v)]),
-            );
-          return obj;
-        };
-
-        await Promise.all(
-          sheetTypes.map(async (sheetType) => {
-            if (lastSyncedRef.current[sheetType] === serialized) return;
-            const existingRaw = await utils.medical.getSheetEntry.fetch({
-              patientId: patientInfo.id,
-              sheetType,
-            });
-            let existing: any = {};
-            try {
-              existing = existingRaw ? JSON.parse(existingRaw) : {};
-            } catch {
-              existing = {};
-            }
-
-            const updated = {
-              ...existing,
-              patient: {
-                name: patientInfo.name,
-                code: patientInfo.code,
-                dateOfBirth: patientDetails.dateOfBirth,
-                age: patientDetails.age,
-                address: patientDetails.address,
-                phone: patientDetails.phone,
-                job: patientDetails.job,
-              },
-              medicalChecklist,
-              examData: stripDash(examData),
-              formData: {
-                ...(existing.formData ?? {}),
-                ucvaOD: pickValue(
-                  examData.autorefraction.od.ucva,
-                  existing.formData?.ucvaOD,
-                ),
-                ucvaOS: pickValue(
-                  examData.autorefraction.os.ucva,
-                  existing.formData?.ucvaOS,
-                ),
-                bcvaOD: pickValue(
-                  examData.autorefraction.od.bcva,
-                  existing.formData?.bcvaOD,
-                ),
-                bcvaOS: pickValue(
-                  examData.autorefraction.os.bcva,
-                  existing.formData?.bcvaOS,
-                ),
-                iopOD: pickValue(
-                  examData.autorefraction.od.iop,
-                  existing.formData?.iopOD,
-                ),
-                iopOS: pickValue(
-                  examData.autorefraction.os.iop,
-                  existing.formData?.iopOS,
-                ),
-                pdOD: pickValue(
-                  refractionTableData.od.pd,
-                  existing.formData?.pdOD,
-                ),
-                pdOS: pickValue(
-                  refractionTableData.os.pd,
-                  existing.formData?.pdOS,
-                ),
-                refractionOD: {
-                  ...(existing.formData?.refractionOD ?? {}),
-                  s: pickValue(
-                    refractionTableData.od.s,
-                    existing.formData?.refractionOD?.s,
-                  ),
-                  c: pickValue(
-                    refractionTableData.od.c,
-                    existing.formData?.refractionOD?.c,
-                  ),
-                  a: pickValue(
-                    refractionTableData.od.a,
-                    existing.formData?.refractionOD?.a,
-                  ),
-                  add: pickValue(
-                    refractionTableData.od.add,
-                    existing.formData?.refractionOD?.add,
-                  ),
-                },
-                refractionOS: {
-                  ...(existing.formData?.refractionOS ?? {}),
-                  s: pickValue(
-                    refractionTableData.os.s,
-                    existing.formData?.refractionOS?.s,
-                  ),
-                  c: pickValue(
-                    refractionTableData.os.c,
-                    existing.formData?.refractionOS?.c,
-                  ),
-                  a: pickValue(
-                    refractionTableData.os.a,
-                    existing.formData?.refractionOS?.a,
-                  ),
-                  add: pickValue(
-                    refractionTableData.os.add,
-                    existing.formData?.refractionOS?.add,
-                  ),
-                },
-              },
-              signatures: {
-                reception: receptionSignature,
-                nurse: nurseSignature,
-                technician: technicianSignature,
-                doctor: doctorName,
-              },
-            };
-
-            await saveSheetMutation.mutateAsync({
-              patientId: patientInfo.id,
-              sheetType,
-              content: JSON.stringify(updated),
-            });
-            lastSyncedRef.current[sheetType] = serialized;
-          }),
-        );
-      } catch {
-        // ignore sync errors
-      }
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [
-    EXAM_AUTO_SAVE_ENABLED,
-    examData,
-    refractionTableData,
-    patientInfo.id,
-    patientInfo.name,
-    patientInfo.code,
-    patientDetails.dateOfBirth,
-    patientDetails.age,
-    patientDetails.address,
-    patientDetails.phone,
-    patientDetails.job,
-    medicalChecklist,
-    receptionSignature,
-    nurseSignature,
-    technicianSignature,
-    doctorName,
-    saveSheetMutation,
-    utils.medical,
-  ]);
-
-  const syncSelectedSheets = async (
-    patientId: number,
-    sheetTypes: Array<"consultant" | "specialist" | "lasik" | "external">,
-  ) => {
-    const pickValue = (next: string | undefined, prev?: string) =>
-      next && String(next).trim() && next !== "---" ? next : prev;
-
-    const stripDash = (obj: any): any => {
-      if (typeof obj === "string") return obj === "---" ? "" : obj;
-      if (Array.isArray(obj)) return obj.map(stripDash);
-      if (obj && typeof obj === "object")
-        return Object.fromEntries(
-          Object.entries(obj).map(([k, v]) => [k, stripDash(v)]),
-        );
-      return obj;
-    };
-
-    await Promise.all(
-      sheetTypes.map(async (sheetType) => {
-        const existingRaw = await utils.medical.getSheetEntry.fetch({
-          patientId,
-          sheetType,
-        });
-        let existing: any = {};
-        try {
-          existing = existingRaw ? JSON.parse(existingRaw) : {};
-        } catch {
-          existing = {};
-        }
-
-        const updated = {
-          ...existing,
-          medicalChecklist,
-          examData: stripDash(examData),
-          formData: {
-            ...(existing.formData ?? {}),
-            ucvaOD: pickValue(
-              examData.autorefraction.od.ucva,
-              existing.formData?.ucvaOD,
-            ),
-            ucvaOS: pickValue(
-              examData.autorefraction.os.ucva,
-              existing.formData?.ucvaOS,
-            ),
-            bcvaOD: pickValue(
-              examData.autorefraction.od.bcva,
-              existing.formData?.bcvaOD,
-            ),
-            bcvaOS: pickValue(
-              examData.autorefraction.os.bcva,
-              existing.formData?.bcvaOS,
-            ),
-            iopOD: pickValue(
-              examData.autorefraction.od.iop,
-              existing.formData?.iopOD,
-            ),
-            iopOS: pickValue(
-              examData.autorefraction.os.iop,
-              existing.formData?.iopOS,
-            ),
-            pdOD: pickValue(refractionTableData.od.pd, existing.formData?.pdOD),
-            pdOS: pickValue(refractionTableData.os.pd, existing.formData?.pdOS),
-            refractionOD: {
-              ...(existing.formData?.refractionOD ?? {}),
-              s: pickValue(
-                refractionTableData.od.s,
-                existing.formData?.refractionOD?.s,
-              ),
-              c: pickValue(
-                refractionTableData.od.c,
-                existing.formData?.refractionOD?.c,
-              ),
-              a: pickValue(
-                refractionTableData.od.a,
-                existing.formData?.refractionOD?.a,
-              ),
-            },
-            refractionOS: {
-              ...(existing.formData?.refractionOS ?? {}),
-              s: pickValue(
-                refractionTableData.os.s,
-                existing.formData?.refractionOS?.s,
-              ),
-              c: pickValue(
-                refractionTableData.os.c,
-                existing.formData?.refractionOS?.c,
-              ),
-              a: pickValue(
-                refractionTableData.os.a,
-                existing.formData?.refractionOS?.a,
-              ),
-            },
-          },
-          signatures: {
-            reception: receptionSignature,
-            nurse: nurseSignature,
-            technician: technicianSignature,
-            doctor: doctorName,
-          },
-        };
-
-        await saveSheetMutation.mutateAsync({
-          patientId,
-          sheetType,
-          content: JSON.stringify(updated),
-        });
-      }),
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1484,7 +1157,7 @@ export function useExaminationForm(
 
       const form = formRef.current;
       const formData = form ? new FormData(form) : new FormData();
-      const payload: Record<string, any> = {};
+      const payload: Record<string, any> = {medicalChecklist,signatures:{reception:receptionSignature,nurse:nurseSignature,technician:technicianSignature,doctor:doctorName}};
       formData.forEach((value, key) => {
         payload[key] = String(value);
       });
@@ -1550,54 +1223,19 @@ export function useExaminationForm(
         data: {
           sheetSelection,
           visitDate,
-          doctorName,
-          services,
           isFollowup,
         },
       });
 
       const savedExam = await saveExamMutation.mutateAsync({
         patientId: effectivePatientId,
+        visitId:
+          Number(new URLSearchParams(window.location.search).get("visitId")) ||
+          undefined,
         visitDate: visitDate || registrationVisitDate || localISODate(),
         visitType: isFollowup ? "followup" : "examination",
         data: payload,
       });
-      const savedExaminationId = Number(
-        (savedExam as { examinationId?: unknown } | null)?.examinationId ?? 0,
-      );
-      if (savedExaminationId > 0) {
-        try {
-          await saveExaminationChecklistMutation.mutateAsync({
-            examinationId: savedExaminationId,
-            patientId: effectivePatientId,
-            checklist: medicalChecklist,
-          });
-        } catch (error) {
-          console.warn(
-            "[Examination] Checklist save failed after exam save",
-            error,
-          );
-          toast.warning(
-            "تم حفظ الفحص لكن فشل حفظ قائمة المرض. يرجى إعادة المحاولة.",
-          );
-        }
-      }
-
-      const preferredType = (
-        isFollowup ? "consultant" : sheetSelection || "consultant"
-      ) as "consultant" | "specialist" | "lasik" | "external";
-      const allSheetTypes: Array<
-        "consultant" | "specialist" | "lasik" | "external"
-      > = [
-        preferredType,
-        "consultant",
-        "specialist",
-        "lasik",
-        "external",
-      ].filter((v, i, arr) => arr.indexOf(v) === i) as Array<
-        "consultant" | "specialist" | "lasik" | "external"
-      >;
-      await syncSelectedSheets(effectivePatientId, allSheetTypes);
       if (embedded) {
         await onEmbeddedSaved?.({
           patientId: effectivePatientId,

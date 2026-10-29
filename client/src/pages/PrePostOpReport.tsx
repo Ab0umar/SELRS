@@ -62,7 +62,7 @@ function RefractionTable({
         dir="ltr"
       >
         <thead>
-          <tr className="bg-[#e8eff1] font-bold uppercase text-[#00355f]">
+          <tr className="bg-muted font-bold uppercase text-[#00355f]">
             <th className="w-[18%] px-2 py-1.5">{title}</th>
             <th colSpan={3} className="px-2 py-1.5">
               OD
@@ -72,7 +72,7 @@ function RefractionTable({
             </th>
             <th className="w-[12%] px-2 py-1.5" />
           </tr>
-          <tr className="bg-[#f4fafd] text-[11px] font-bold uppercase text-[#42474f]">
+          <tr className="bg-muted/50 text-[11px] font-bold uppercase text-[#42474f]">
             <th className="px-1.5 py-1">Distance</th>
             <th className="px-1.5 py-1">S</th>
             <th className="px-1.5 py-1">C</th>
@@ -438,7 +438,7 @@ export default function PrePostOpReport({
 
   if (patientId && (reportLoading || reportError)) {
     return (
-      <div className="prepost-report-root medical-report-brand min-h-screen bg-[#eef5f7] p-4 text-[#161d1f]">
+      <div className="prepost-report-root medical-report-brand min-h-screen bg-muted p-4 text-[#161d1f]">
         <ReportQueryState
           loading={reportLoading}
           error={reportError}
@@ -449,7 +449,7 @@ export default function PrePostOpReport({
   }
 
   return (
-    <div className="prepost-report-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]">
+    <div className="prepost-report-root medical-report-brand min-h-screen bg-muted text-[#161d1f]">
       <style>{`
         .prepost-paper {
           box-sizing: border-box;
@@ -729,7 +729,7 @@ export default function PrePostOpReport({
                 <Textarea aria-label="Procedure notes, complications, attachments, and follow-up instructions."
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
-                  className="mt-2 min-h-[96px] resize-none border-dashed border-[#c2c7d1] bg-[#f4fafd]"
+                  className="mt-2 min-h-[96px] resize-none border-dashed border-[#c2c7d1] bg-muted/50"
                   placeholder="Procedure notes, complications, attachments, and follow-up instructions."
                 />
               </label>

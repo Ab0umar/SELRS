@@ -216,7 +216,7 @@ export default function ConsultantFollowupPage() {
   const BRAND = "#003D9B";
 
   return (
-    <div className="min-h-screen bg-gray-50 sheet-layout">
+    <div className="min-h-screen bg-muted/50 sheet-layout">
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 5mm; }
@@ -403,7 +403,7 @@ export default function ConsultantFollowupPage() {
               className="mx-6 mb-4 border border-gray-200 rounded-lg overflow-hidden"
             >
               {/* Card header */}
-              <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between">
+              <div className="bg-muted/50 border-b px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-full bg-[#1B2B6B] text-white text-sm font-bold flex items-center justify-center">
                     {index + 1}
@@ -459,7 +459,7 @@ export default function ConsultantFollowupPage() {
                   {/* Data table */}
                   <table className="w-full text-[12px] border-collapse">
                     <thead>
-                      <tr className="bg-gray-100 text-gray-600 font-semibold text-[11px] uppercase">
+                      <tr className="bg-muted text-gray-600 font-semibold text-[11px] uppercase">
                         <th className="px-3 py-2 text-left border-b border-gray-200">
                           EYE
                         </th>
@@ -635,7 +635,7 @@ export default function ConsultantFollowupPage() {
             <p className="text-[10px] font-bold uppercase text-gray-500 mb-2">
               PENTACAM STATUS
             </p>
-            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center mb-2">
+            <div className="w-8 h-8 bg-muted rounded flex items-center justify-center mb-2">
               <Eye className="h-4 w-4 text-gray-500" />
             </div>
             <p className="font-semibold text-sm text-gray-800">Map Available</p>

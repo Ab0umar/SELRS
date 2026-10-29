@@ -58,7 +58,7 @@ const ROLE_META: Record<Role, { label: string; short: string; icon: typeof UserR
     label: "الاستقبال",
     short: "بيانات الزيارة",
     icon: UserRound,
-    tone: "bg-slate-100 text-slate-700 border-slate-200",
+    tone: "bg-muted text-slate-700 border-slate-200",
   },
   nursing: {
     label: "التمريض",
@@ -203,7 +203,7 @@ function EyeTable({
 }) {
   return (
     <div className="overflow-hidden rounded border border-border" dir="ltr">
-      <div className="border-b border-border bg-slate-50 px-3 py-2 text-center text-xs font-bold text-slate-700">{title}</div>
+      <div className="border-b border-border bg-muted/50 px-3 py-2 text-center text-xs font-bold text-slate-700">{title}</div>
       <div className="grid" style={{ gridTemplateColumns: `76px repeat(${fields.length}, minmax(74px, 1fr))` }}>
         <div className="border-b border-r border-border bg-muted/50 p-2 text-center text-[13px] font-bold">EYE</div>
         {fields.map((field) => (
@@ -213,7 +213,7 @@ function EyeTable({
         ))}
         {(["od", "os"] as EyeSide[]).map((eye) => (
           <div key={eye} className="contents">
-            <div className={cn("border-r border-t border-border p-2 text-center text-xs font-bold", eye === "od" ? "bg-muted text-foreground" : "bg-slate-100 text-slate-700")}>
+            <div className={cn("border-r border-t border-border p-2 text-center text-xs font-bold", eye === "od" ? "bg-muted text-foreground" : "bg-muted text-slate-700")}>
               {eye.toUpperCase()}
             </div>
             {fields.map((field) => (
@@ -435,7 +435,7 @@ export default function WorkflowPrototype() {
                 </div>
               </div>
               <div className="overflow-hidden rounded border border-border">
-                <div className="border-b border-border bg-slate-50 px-3 py-2 text-center text-xs font-bold">Fundus Examination</div>
+                <div className="border-b border-border bg-muted/50 px-3 py-2 text-center text-xs font-bold">Fundus Examination</div>
                 {(["od", "os"] as EyeSide[]).map((eye) => (
                   <div key={eye} className="grid grid-cols-[64px_110px_1fr] items-center gap-2 border-b border-border p-2 last:border-b-0">
                     <strong className={cn("text-center text-xs", eye === "od" ? "text-foreground" : "text-slate-600")}>{eye.toUpperCase()}</strong>

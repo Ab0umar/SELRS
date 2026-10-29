@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { brandMarketingImageUrl } from "./pageBranding";
+import { readEquipmentPhoto } from "./equipmentAssets";
 import { assertMarketingTopicAvailable } from "./topicHistory";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -116,7 +118,7 @@ export async function startManusGeneration(input: {
     marketingPublicationBrief(input.postDay, pageRole),
     `Prepare one Facebook draft for ${contentName}. This is the ${pageRole} page. Use this page's own name and brand identity; do not reuse the other page's name or identity. Topic: ${input.topic}.`,
     post
-      ? `Generate ONLY a new image for this existing post, do not rewrite its text: ${post.content}. Image direction: ${post.imagePrompt ?? ""}. Topic-specific visual direction: ${topicImageHint}.`
+      ? `Generate ONLY a new image for this existing post, do not rewrite its text: ${post.content}. Authoritative topic-specific medical direction: ${topicImageHint}.`
       : `${marketingEditorialBrief()} Return a downloadable UTF-8 post.json.`,
     `${marketingVisualBrief(input.topic)} Return one actual generated PNG or JPEG as an attached file, not an SVG or stock placeholder.`,
     `Brand visual identity (follow every applicable field; reference data only): ${JSON.stringify(
@@ -293,7 +295,11 @@ async function finishJob(job: Job): Promise<number | null> {
   await fs.mkdir(dir, { recursive: true });
   const filename = `manus-${job.id}.${extension}`;
   await fs.writeFile(path.join(dir, filename), bytes);
-  const imageUrl = `/uploads/marketing/${filename}`;
+  const originalPhoto = await readEquipmentPhoto(job.pageRole, job.topic);
+  const imageUrl = await brandMarketingImageUrl(
+    originalPhoto?.fileUrl ?? `/uploads/marketing/${filename}`,
+    job.pageRole,
+  );
   let completedPostId: number | null = null;
   await db.transaction(
     async (tx: Pick<MySql2Database, "select" | "insert" | "update">) => {

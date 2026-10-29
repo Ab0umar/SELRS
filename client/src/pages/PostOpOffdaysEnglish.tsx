@@ -69,7 +69,7 @@ export default function PostOpOffdaysEnglish() {
 
   return (
     <div
-      className="post-op-offdays-en-root medical-report-brand min-h-screen bg-[#eef5f7] text-[#161d1f]"
+      className="post-op-offdays-en-root medical-report-brand min-h-screen bg-muted text-[#161d1f]"
       dir="ltr"
     >
       <style>{`
@@ -195,7 +195,7 @@ export default function PostOpOffdaysEnglish() {
             </header>
 
             <section className="hidden">
-              <h3 className="mb-3 bg-[#eef5f7] px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
+              <h3 className="mb-3 bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
                 Patient Information
               </h3>
               <div className="grid grid-cols-3 gap-6 px-3">
@@ -221,7 +221,7 @@ export default function PostOpOffdaysEnglish() {
             </section>
 
             <section className="mb-8">
-              <h3 className="mb-3 bg-[#eef5f7] px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
+              <h3 className="mb-3 bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
                 Clinical Justification
               </h3>
               <div className="space-y-4 px-3 text-[15px] leading-7">
@@ -254,7 +254,7 @@ export default function PostOpOffdaysEnglish() {
             </section>
 
             <section className="mb-8">
-              <h3 className="mb-4 bg-[#eef5f7] px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
+              <h3 className="mb-4 bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
                 Recommended Leave Period
               </h3>
               <div className="grid grid-cols-3 gap-6 px-3">
@@ -291,7 +291,7 @@ export default function PostOpOffdaysEnglish() {
             </section>
 
             <section className="mb-10">
-              <h3 className="mb-4 bg-[#eef5f7] px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
+              <h3 className="mb-4 bg-muted px-3 py-2 text-xs font-bold uppercase tracking-[0.06em] text-[#00355f]">
                 Mandatory Activity Restrictions
               </h3>
               <div className="grid grid-cols-2 gap-4 px-3">
@@ -312,7 +312,7 @@ export default function PostOpOffdaysEnglish() {
                 ].map(([title, description]) => (
                   <div
                     key={title}
-                    className="border border-[#c2c7d1] bg-[#f4fafd] p-3"
+                    className="border border-[#c2c7d1] bg-muted/50 p-3"
                   >
                     <p className="font-bold text-[#161d1f]">{title}</p>
                     <p className="mt-1 text-xs leading-5 text-[#42474f]">

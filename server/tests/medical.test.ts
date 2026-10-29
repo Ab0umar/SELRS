@@ -1,22 +1,29 @@
-import { eq } from "drizzle-orm";
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { randomUUID } from "node:crypto";
+import { eq, inArray } from "drizzle-orm";
+import { describe, expect, it, afterEach } from "vitest";
 import { patients, patientServiceEntries, visits } from "../../drizzle/schema";
 import * as db from "../db";
 import { makeCallerAs } from "./helpers/auth";
-import { cleanupTables, getTestDb } from "./setup";
+import { getTestDb } from "./setup";
 import { appRouter } from "../routers";
 
-const MEDICAL_PATIENT_CODE = "MED-TEST-001";
-const MEDICAL_OTHER_PATIENT_CODE = "MED-TEST-002";
+const medicalRunId = randomUUID().slice(0, 8);
+const MEDICAL_PATIENT_CODE = `MED-${medicalRunId}-001`;
+const MEDICAL_OTHER_PATIENT_CODE = `MED-${medicalRunId}-002`;
+const ownedPatientIds = new Set<number>();
 
 async function resetMedicalTables() {
+  if (!ownedPatientIds.size) return;
   const db = await getTestDb();
-  await cleanupTables(
-    db,
-    "patientServiceEntries",
-    "visits",
-    "patients",
-  );
+  const patientIds = [...ownedPatientIds];
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(patientServiceEntries)
+      .where(inArray(patientServiceEntries.patientId, patientIds));
+    await tx.delete(visits).where(inArray(visits.patientId, patientIds));
+    await tx.delete(patients).where(inArray(patients.id, patientIds));
+  });
+  ownedPatientIds.clear();
 }
 
 async function seedPatient(patientCode: string, fullName: string) {
@@ -26,13 +33,18 @@ async function seedPatient(patientCode: string, fullName: string) {
     fullName,
   });
   const id = Number((result as any)?.insertId ?? 0);
-  if (id > 0) return { id, patientCode };
+  if (id > 0) {
+    ownedPatientIds.add(id);
+    return { id, patientCode };
+  }
   const [row] = await db
     .select()
     .from(patients)
     .where(eq(patients.patientCode, patientCode))
     .limit(1);
-  return { id: Number(row?.id ?? 0), patientCode: row?.patientCode ?? patientCode };
+  const resolvedId = Number(row?.id ?? 0);
+  if (resolvedId > 0) ownedPatientIds.add(resolvedId);
+  return { id: resolvedId, patientCode: row?.patientCode ?? patientCode };
 }
 
 async function seedVisit(patientId: number) {
@@ -48,10 +60,6 @@ async function seedVisit(patientId: number) {
 }
 
 describe.sequential("medical patient service and queue mutations", () => {
-  beforeEach(async () => {
-    await resetMedicalTables();
-  });
-
   afterEach(async () => {
     await resetMedicalTables();
   });
@@ -252,6 +260,7 @@ describe.sequential("medical patient service and queue mutations", () => {
         branch: "examinations",
         serviceType: "consultant",
       });
+      ownedPatientIds.add(Number(result.patientId));
 
       expect(result.patientId).toBeGreaterThan(0);
 

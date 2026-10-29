@@ -12,6 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import FieldDictation, { type DictationTarget } from "./FieldDictation";
 import type { PrescriptionBinding } from "./prescription-template";
+import {
+  prepareDraftAdditions,
+  assertDraftUndo,
+  type DraftBinding,
+} from "./draft-binding";
 
 type Scope = {
   patientId: number;
@@ -19,10 +24,35 @@ type Scope = {
   visitDate?: string;
   patientName?: string;
   disabled?: boolean;
+  draftBinding?: DraftBinding;
+  prescriptionDraft?: PrescriptionBinding;
+  onSaveDraft?: () => Promise<void>;
+  saving?: boolean;
+  testsDraft?: TestCatalogBinding;
+};
+export type TestCatalogBinding = {
+  catalog: Array<{
+    id: number | string;
+    name: string;
+    type?: string;
+    isActive?: boolean;
+  }>;
+  ids: number[];
+  disabled: boolean;
+  append: (ids: number[]) => void;
+  remove: (ids: number[]) => void;
 };
 const AssistantContext = createContext<{
   request: (field: DictationTarget) => void;
   disabled: boolean;
+  saveDraft?: () => Promise<void>;
+  saving: boolean;
+  fillDraft?: (proposals: Array<{ field: string; text: string }>) => {
+    skipped: string[];
+    undo: () => void;
+  };
+  getPrescription?: () => PrescriptionBinding | undefined;
+  getTests?: () => TestCatalogBinding | undefined;
   root: React.RefObject<HTMLDivElement | null>;
   prescriptions: React.RefObject<
     Map<symbol, { element: HTMLElement; get: () => PrescriptionBinding }>
@@ -38,17 +68,59 @@ export function AssistantFieldsProvider({
   ...scope
 }: Scope & { children: ReactNode }) {
   const parent = useContext(AssistantContext);
+  const latest = useRef(scope);
+  latest.current = scope;
   const [target, setTarget] = useState<DictationTarget | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const prescriptions = useRef(
     new Map<symbol, { element: HTMLElement; get: () => PrescriptionBinding }>(),
   );
-  if (parent) return <>{children}</>;
+  if (parent && !scope.draftBinding) return <>{children}</>;
   return (
     <AssistantContext.Provider
       value={{
         request: setTarget,
         disabled: Boolean(scope.disabled),
+        saving: Boolean(scope.saving),
+        getTests: () =>
+          latest.current.disabled ? undefined : latest.current.testsDraft,
+        saveDraft: scope.onSaveDraft
+          ? async () => {
+              if (
+                latest.current.disabled ||
+                latest.current.saving ||
+                !latest.current.onSaveDraft
+              )
+                throw new Error("الزيارة غير متاحة للحفظ الآن.");
+              await latest.current.onSaveDraft();
+            }
+          : undefined,
+        getPrescription: () =>
+          latest.current.disabled
+            ? undefined
+            : latest.current.prescriptionDraft,
+        fillDraft: scope.draftBinding
+          ? (proposals) => {
+              const current = latest.current;
+              if (current.disabled || !current.draftBinding)
+                throw new Error("المسودة غير متاحة للتعديل.");
+              const receipt = prepareDraftAdditions(
+                current.draftBinding,
+                proposals,
+              );
+              current.draftBinding.change(receipt.after);
+              return {
+                skipped: receipt.skipped,
+                undo: () => {
+                  const binding = latest.current.draftBinding;
+                  if (latest.current.disabled || !binding)
+                    throw new Error("المسودة غير متاحة.");
+                  assertDraftUndo(binding, receipt.after);
+                  binding.change(receipt.before);
+                },
+              };
+            }
+          : undefined,
         root,
         prescriptions,
       }}

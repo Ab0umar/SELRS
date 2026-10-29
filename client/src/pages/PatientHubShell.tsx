@@ -642,6 +642,7 @@ export default function PatientHubShell() {
             component={() => (
               <WritePrescription
                 hidePageChrome
+                hubVisitId={visitId ?? undefined}
                 hubVisitDate={visitDate}
                 embeddedInPatientHub
                 patientHubReadOnly
@@ -654,6 +655,7 @@ export default function PatientHubShell() {
             component={() => (
               <WritePrescription
                 hidePageChrome
+                hubVisitId={visitId ?? undefined}
                 hubVisitDate={visitDate}
                 embeddedInPatientHub
                 patientHubReadOnly
@@ -667,6 +669,7 @@ export default function PatientHubShell() {
             component={() => (
               <RequestTests
                 hidePageChrome
+                hubVisitId={visitId ?? undefined}
                 hubVisitDate={visitDate}
                 embeddedInPatientHub
                 patientHubReadOnly
@@ -679,6 +682,7 @@ export default function PatientHubShell() {
             component={() => (
               <RequestTests
                 hidePageChrome
+                hubVisitId={visitId ?? undefined}
                 hubVisitDate={visitDate}
                 embeddedInPatientHub
                 patientHubReadOnly

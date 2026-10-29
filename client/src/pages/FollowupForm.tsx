@@ -132,6 +132,8 @@ export default function FollowupForm() {
   );
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savedFollowup,setSavedFollowup]=useState<{itemId:number;visitId:number}|null>(null);
+  useEffect(()=>{setSavedFollowup(null);},[patientId,followupDate]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -165,6 +167,8 @@ export default function FollowupForm() {
       const followupItems = [
         {
           tableIndex: 0,
+          ...savedFollowup,
+          clinicalContent:{examData:{...examData,glasses:refractionTableData},fundus:examData.fundus},
           followupDate,
           vaOD: examData.autorefraction.od.ucva,
           vaOS: examData.autorefraction.os.ucva,
@@ -189,11 +193,12 @@ export default function FollowupForm() {
         (patient?.serviceType as
           "consultant" | "specialist" | "lasik" | "external") || "consultant";
 
-      await saveFollowupMutation.mutateAsync({
+      const saved=await saveFollowupMutation.mutateAsync({
         patientId,
         sheetType,
         followupItems,
       });
+      setSavedFollowup(saved.items[0] ?? null);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "فشل حفظ بيانات المتابعة",

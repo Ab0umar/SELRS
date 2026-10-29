@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
+import { fundusRecord } from "@shared/clinical-record";
 import { useAuth } from "@/hooks/useAuth";
 import { DiagnosisImagesPanel } from "./patient-details/DiagnosisImagesPanel";
 import { Button } from "./ui/button";
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
 import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
 import PrescriptionBinding from "@/components/medical-assistant/PrescriptionBinding";
+import { resolveTestNames } from "@/components/medical-assistant/catalog-tests";
 import { readPrescriptionTemplates } from "@/components/medical-assistant/prescription-template";
 
 interface MedicalFilePanelProps {
@@ -186,7 +188,12 @@ export default function MedicalFilePanel({
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const hubRo = Boolean(patientHubReadOnly);
   const queryClient = useQueryClient();
-  const [activeMedicalTab, setActiveMedicalTab] = useState(initialMedicalTab);
+  const [selectedMedicalTab, setActiveMedicalTab] = useState(initialMedicalTab);
+  const activeMedicalTab = workflowPlanOnly
+    ? "plan"
+    : workflowMeasurementsOnly
+      ? "data"
+      : selectedMedicalTab;
 
   const [planEverActive, setPlanEverActive] = useState(
     initialMedicalTab === "plan" || workflowPlanOnly,
@@ -196,6 +203,9 @@ export default function MedicalFilePanel({
   const touchStartY = useRef(0);
   const [formData, setFormData] = useState<any>({
     medicalHistory: "",
+    historyNotes: "",
+    treatmentPlan: "",
+    symptoms:"",
     measurements: {
       autoref: {
         od: { s: "---", c: "---", axis: "", ucva: "", bcva: "" },
@@ -307,9 +317,12 @@ export default function MedicalFilePanel({
   const [destinationTab, setDestinationTab] = useState<string | null>(null);
   const [shouldSaveAfterCreate, setShouldSaveAfterCreate] = useState(false);
   const [isFollowup, setIsFollowup] = useState(false);
-  const [autorefSectionTab, setAutorefSectionTab] = useState(
+  const [selectedMeasurementView, setAutorefSectionTab] = useState(
     initialMeasurementView,
   );
+  const autorefSectionTab = workflowMeasurementsOnly && workflowMeasurementViews?.length === 1
+    ? workflowMeasurementViews[0]
+    : selectedMeasurementView;
   const visibleMeasurementViews = workflowMeasurementViews?.length
     ? MEASUREMENT_VIEWS.filter((option) =>
         workflowMeasurementViews.includes(option.value),
@@ -514,14 +527,14 @@ export default function MedicalFilePanel({
       };
       if (selectedExamination.posteriorSegmentOD) {
         try {
-          fundusData.od = JSON.parse(selectedExamination.posteriorSegmentOD);
+          fundusData.od = fundusRecord(selectedExamination.posteriorSegmentOD);
         } catch (e) {
           // Keep default empty object
         }
       }
       if (selectedExamination.posteriorSegmentOS) {
         try {
-          fundusData.os = JSON.parse(selectedExamination.posteriorSegmentOS);
+          fundusData.os = fundusRecord(selectedExamination.posteriorSegmentOS);
         } catch (e) {
           // Keep default empty object
         }
@@ -603,9 +616,9 @@ export default function MedicalFilePanel({
       const doctorReport = doctorReportQuery.data?.[0];
 
       let diseases: any[] = [];
-      if (doctorReport?.additionalNotes) {
+      if (doctorReport?.diseases || doctorReport?.additionalNotes) {
         try {
-          diseases = JSON.parse(doctorReport.additionalNotes);
+          diseases = JSON.parse(doctorReport.diseases ?? doctorReport.additionalNotes);
           if (!Array.isArray(diseases)) {
             diseases = [];
           }
@@ -689,16 +702,12 @@ export default function MedicalFilePanel({
                 },
               }
             : prev.pentacam,
-          medicalHistory:
-            (selectedExamination as any)?.chiefComplaint ||
-            (selectedExamination as any)?.symptoms ||
-            (visitsQuery.data as any[])?.find(
-              (v: any) => v.id === selectedExamination.visitId,
-            )?.chiefComplaint ||
-            doctorReport?.clinicalOpinion ||
-            "",
-          diagnosis: doctorReport?.diagnosis || "",
-          recommendations: doctorReport?.recommendations || "",
+          historyNotes: doctorReport?.additionalNotes ?? "",
+          treatmentPlan: doctorReport?.treatment ?? "",
+          medicalHistory: doctorReport?.clinicalOpinion ?? (visitsQuery.data as any[])?.find((v:any)=>v.id===selectedExamination.visitId)?.chiefComplaint ?? "",
+          symptoms:doctorReport?.symptoms ?? (visitsQuery.data as any[])?.find((v:any)=>v.id===selectedExamination.visitId)?.symptoms ?? "",
+          diagnosis:doctorReport?.diagnosis ?? visitsQuery.data?.find((visit:{id:number})=>visit.id===selectedExamination.visitId)?.diagnosis ?? "",
+          recommendations:doctorReport?.recommendations ?? visitsQuery.data?.find((visit:{id:number})=>visit.id===selectedExamination.visitId)?.recommendations ?? "",
           diseases: diseases,
           tests: finalTests,
           treatment: finalTreatment,
@@ -823,13 +832,10 @@ export default function MedicalFilePanel({
                 reportId: doctorReport.id,
                 diagnosis: formData.diagnosis || "",
                 clinicalOpinion: formData.medicalHistory || "",
-                additionalNotes: formData.diseases
-                  ? JSON.stringify(formData.diseases)
-                  : "",
+                symptoms:formData.symptoms || "",
+                diseases: formData.diseases ?? [],
                 recommendations: formData.recommendations || "",
-                prescription: formData.treatment
-                  ? JSON.stringify(formData.treatment)
-                  : "",
+
               });
             }
 
@@ -1181,50 +1187,6 @@ export default function MedicalFilePanel({
 
       const visitId = data.visitId;
 
-      // Save test requests if any
-      if (visitId && (formData.tests || []).length > 0) {
-        const validTests = (formData.tests || []).filter(
-          (id: any) => id !== undefined && id !== null,
-        );
-        if (validTests.length > 0) {
-          console.log("Saving test requests:", validTests);
-          const testItems = validTests.map((testId: number) => ({
-            testId: testId,
-          }));
-          await createTestRequestMutation.mutateAsync({
-            patientId: patientId,
-            visitId: visitId,
-            items: testItems,
-          });
-        }
-      }
-
-      // Save prescriptions if any
-      if (visitId && (formData.treatment || []).length > 0) {
-        const validMeds = (formData.treatment || []).filter(
-          (id: any) => id !== undefined && id !== null,
-        );
-        if (validMeds.length > 0) {
-          console.log("Saving prescriptions:", validMeds);
-          const prescriptionItems = validMeds.map((medId: number) => {
-            const medication = medicationsQuery.data?.find(
-              (m: any) => m.id === medId,
-            );
-            return {
-              medicationId: medId,
-              medicationName: medication?.name || `Med ${medId}`,
-              ...(treatmentDetailsByMedicationId[medId] ?? {}),
-            };
-          });
-          await createPrescriptionWithItemsMutation.mutateAsync({
-            patientId: patientId,
-            visitId: visitId,
-            notes: "Prescribed from medical file panel",
-            items: prescriptionItems,
-          });
-        }
-      }
-
       // Refetch visits and examinations to load the newly created data
       if (visitId) {
         console.log(
@@ -1314,305 +1276,32 @@ export default function MedicalFilePanel({
     });
   };
 
-  const handleSave = (finish = false) => {
-    if (hubRo) {
-      toast.info(patientHubViewOnlyHint);
-      return;
-    }
-    if (isSaving || isFinishing) return;
-    // Build glasses data from refraction table (used for both first visit and no exam selected cases)
-    const refVal = (v: string | undefined) => (!v || v === "---" ? "" : v);
-    const glassesData = {
-      od: {
-        s: refVal(refractionTableData.od?.s),
-        c: refVal(refractionTableData.od?.c),
-        axis: refVal(refractionTableData.od?.a),
-        pd: refVal(refractionTableData.od?.pd),
-        add: refVal(refractionTableData.od?.add),
-        bcva: formData.measurements?.autoref?.od?.bcva || "",
-      },
-      os: {
-        s: refVal(refractionTableData.os?.s),
-        c: refVal(refractionTableData.os?.c),
-        axis: refVal(refractionTableData.os?.a),
-        pd: refVal(refractionTableData.os?.pd),
-        add: refVal(refractionTableData.os?.add),
-        bcva: formData.measurements?.autoref?.os?.bcva || "",
-      },
-    };
-    const autorefForSave = {
-      od: {
-        ...formData.measurements?.autoref?.od,
-        bcva: undefined,
-      },
-      os: {
-        ...formData.measurements?.autoref?.os,
-        bcva: undefined,
-      },
-    };
-
-    // Create a new visit when there are no exams OR when exams exist but none is selected.
-    if (examinations.length === 0 || !selectedExaminationId) {
-      finishAfterSave.current = finish;
-      setIsFinishing(finish);
-      setIsSaving(true);
-
-      saveMedicalVisitMutation.mutate({
-        patientId: patientId,
-        visitDate: visitDate,
-        isFollowup: isFollowup,
-        autoref: stripDash(autorefForSave),
-        iop: stripDash(formData.measurements?.iop),
-        after: stripDash(formData.measurements?.after),
-        glasses: glassesData,
-        fundus: formData.fundus,
-        pentacam: formData.pentacam,
-        symptoms: formData.medicalHistory,
-        diagnosis: formData.diagnosis,
-        treatment: formData.treatment?.length
-          ? JSON.stringify(formData.treatment)
-          : undefined,
-        diseases: formData.diseases
-          ? JSON.stringify(formData.diseases)
-          : undefined,
-        recommendations: formData.recommendations,
-      });
-      return;
-    }
-
-    const examIdToSave = selectedExaminationId;
-    const selectedExam = examinations.find((e: any) => e.id === examIdToSave);
-
-    if (examinationsQuery.isLoading) {
-      toast.error("جاري تحميل الفحوصات…");
-      return;
-    }
-
-    if (!examIdToSave || !selectedExam) {
-      toast.error("خطأ في تحديد الفحص");
-      return;
-    }
-
+  const saveVisitDraftMutation = trpc.medical.saveExaminationForm.useMutation();
+  const saveVisitDraft = async (finish = false) => {
+    if (hubRo || isSaving || isFinishing) throw new Error("الزيارة غير متاحة للحفظ الآن.");
+    if ([examinationsQuery, visitsQuery, medicationsQuery, testsQuery, doctorReportQuery, visitTestRequestsQuery, visitPrescriptionsQuery].some(query=>query.isLoading || query.isError)) throw new Error("انتظر تحميل بيانات الزيارة قبل الحفظ.");
     setIsSaving(true);
-    finishAfterSave.current = finish;
-    setIsFinishing(finish);
-
-    // Flatten the nested formData structure to database column names
-    const fv = (v: string | undefined | null) => (!v || v === "---" ? null : v);
-    const fvs = (v: string | undefined | null) => (!v || v === "---" ? "" : v);
-    const flattenedUpdates: any = {
-      sphereOD: fv(formData.measurements?.autoref?.od?.s),
-      sphereOS: fv(formData.measurements?.autoref?.os?.s),
-      cylinderOD: fv(formData.measurements?.autoref?.od?.c),
-      cylinderOS: fv(formData.measurements?.autoref?.os?.c),
-      axisOD: fv(formData.measurements?.autoref?.od?.axis),
-      axisOS: fv(formData.measurements?.autoref?.os?.axis),
-      ucvaOD: fv(formData.measurements?.autoref?.od?.ucva),
-      ucvaOS: fv(formData.measurements?.autoref?.os?.ucva),
-      iopOD: fv(formData.measurements?.iop?.od),
-      iopOS: fv(formData.measurements?.iop?.os),
-      glassesData: JSON.stringify({
-        od: {
-          s: fvs(refractionTableData.od?.s),
-          c: fvs(refractionTableData.od?.c),
-          axis: fvs(refractionTableData.od?.a),
-          pd: fvs(refractionTableData.od?.pd),
-          bcva: fvs(formData.measurements?.autoref?.od?.bcva),
+    try {
+      const refVal = (value:unknown) => value == null || value === "---" ? "" : String(value);
+      const saved = await saveVisitDraftMutation.mutateAsync({
+        patientId, visitId:hubVisitId ?? selectedExamination?.visitId, visitDate,visitType:isFollowup?"followup":"examination",
+        data:{
+          autorefraction:stripDash(formData.measurements?.autoref),
+          afterRefraction:stripDash(formData.measurements?.after),
+          iopOD:refVal(formData.measurements?.iop?.od),iopOS:refVal(formData.measurements?.iop?.os),
+          glasses:Object.fromEntries(["od","os"].map(eye=>[eye,{s:refVal(refractionTableData[eye as "od"|"os"]?.s),c:refVal(refractionTableData[eye as "od"|"os"]?.c),axis:refVal(refractionTableData[eye as "od"|"os"]?.a),pd:refVal(refractionTableData[eye as "od"|"os"]?.pd),add:refVal(refractionTableData[eye as "od"|"os"]?.add),bcva:refVal(formData.measurements?.autoref?.[eye]?.bcva)}])),
+          fundus:formData.fundus,pentacam:formData.pentacam,chiefComplaint:formData.medicalHistory,symptoms:formData.symptoms,
+          historyNotes:formData.historyNotes,treatmentPlan:formData.treatmentPlan,diagnosis:formData.diagnosis,diseases:formData.diseases,recommendations:formData.recommendations,
+          treatment:(formData.treatment ?? []).map((medicationId:number)=>({medicationId,...(treatmentDetailsByMedicationId[medicationId] ?? {})})),tests:formData.tests ?? [],
         },
-        os: {
-          s: fvs(refractionTableData.os?.s),
-          c: fvs(refractionTableData.os?.c),
-          axis: fvs(refractionTableData.os?.a),
-          pd: fvs(refractionTableData.os?.pd),
-          bcva: fvs(formData.measurements?.autoref?.os?.bcva),
-        },
-      }),
-      posteriorSegmentOD: Object.values(formData.fundus?.od || {}).some(
-        (v) => v,
-      )
-        ? JSON.stringify(formData.fundus?.od)
-        : null,
-      posteriorSegmentOS: Object.values(formData.fundus?.os || {}).some(
-        (v) => v,
-      )
-        ? JSON.stringify(formData.fundus?.os)
-        : null,
-      radiologyLabsNotes: formData.radiologyLabsNotes || null,
-    };
-
-    console.log("flattenedUpdates:", flattenedUpdates);
-
-    // Save examination data
-    updateExaminationMutation.mutate(
-      {
-        examinationId: examIdToSave,
-        updates: flattenedUpdates,
-      },
-      {
-        onSuccess: async () => {
-          try {
-          await saveAfterRefractionMutation.mutateAsync({
-            examinationId: examIdToSave,
-            patientId,
-            od: stripDash(formData.measurements?.after?.od),
-            os: stripDash(formData.measurements?.after?.os),
-          });
-          const visitId = selectedExam?.visitId;
-          if (visitId && formData.medicalHistory) {
-            await updateVisitChiefComplaintMutation.mutateAsync({
-              visitId,
-              chiefComplaint: formData.medicalHistory,
-            });
-          }
-          console.log("Exam saved, now saving doctor report");
-          const doctorReport = (doctorReportQuery.data as any)?.[0];
-
-          if (doctorReport?.id) {
-            // Update existing report
-            console.log("Updating doctor report:", doctorReport.id);
-            await updateDoctorReportMutation.mutateAsync(
-              {
-                reportId: doctorReport.id,
-                diagnosis: formData.diagnosis || "",
-                clinicalOpinion: formData.medicalHistory || "",
-                additionalNotes: formData.diseases
-                  ? JSON.stringify(formData.diseases)
-                  : "",
-                recommendations: formData.recommendations || "",
-                prescription: formData.treatment
-                  ? JSON.stringify(formData.treatment)
-                  : "",
-              },
-              {
-                onSuccess: () => {
-                  console.log("Doctor report updated");
-                  setIsSaving(false);
-                },
-                onError: (err: any) => {
-                  console.error("Doctor report update error:", err);
-                  setIsSaving(false);
-                },
-              },
-            );
-          } else if (
-            visitId &&
-            (formData.diagnosis ||
-              formData.recommendations ||
-              formData.diseases?.length > 0)
-          ) {
-            // Create new report if none exists and there's data to save
-            console.log("Creating new doctor report for visitId:", visitId);
-            await createDoctorReportMutation.mutateAsync(
-              {
-                visitId: visitId,
-                patientId: patientId,
-                diagnosis: formData.diagnosis || "No diagnosis entered",
-                clinicalOpinion: formData.medicalHistory || "",
-                recommendations: formData.recommendations || "",
-                additionalNotes: formData.diseases
-                  ? JSON.stringify(formData.diseases)
-                  : "",
-              },
-              {
-                onSuccess: () => {
-                  console.log("Doctor report created");
-                  doctorReportQuery.refetch();
-                  setIsSaving(false);
-                },
-                onError: (err: any) => {
-                  console.error("Doctor report create error:", err);
-                  setIsSaving(false);
-                },
-              },
-            );
-          } else {
-            console.log("No visit found or no doctor report data to save");
-          }
-
-          // Save pentacam data if any fields are filled
-          const hasPentacamData =
-            Object.values(formData.pentacam?.od || {}).some((v) => v) ||
-            Object.values(formData.pentacam?.os || {}).some((v) => v);
-          if (visitId && hasPentacamData) {
-            console.log("Saving pentacam data for visitId:", visitId);
-            const existingPentacam = pentacamQuery.data?.[0];
-            await updatePentacamResultMutation.mutateAsync({
-              visitId: visitId,
-              patientId: patientId,
-              pentacamId: existingPentacam?.id,
-              k1OD: String(formData.pentacam?.od?.k1 || ""),
-              k2OD: String(formData.pentacam?.od?.k2 || ""),
-              axisOD: String(formData.pentacam?.od?.axis || ""),
-              thinnestPointOD: String(formData.pentacam?.od?.thinnest || ""),
-              apexOD: String(formData.pentacam?.od?.apex || ""),
-              residualOD: String(formData.pentacam?.od?.residual || ""),
-              tttOD: String(formData.pentacam?.od?.ttt || ""),
-              ablationOD: String(formData.pentacam?.od?.ablation || ""),
-              k1OS: String(formData.pentacam?.os?.k1 || ""),
-              k2OS: String(formData.pentacam?.os?.k2 || ""),
-              axisOS: String(formData.pentacam?.os?.axis || ""),
-              thinnestPointOS: String(formData.pentacam?.os?.thinnest || ""),
-              apexOS: String(formData.pentacam?.os?.apex || ""),
-              residualOS: String(formData.pentacam?.os?.residual || ""),
-              tttOS: String(formData.pentacam?.os?.ttt || ""),
-              ablationOS: String(formData.pentacam?.os?.ablation || ""),
-            });
-          }
-
-          // Replace the visit test request, including clearing it when empty.
-          if (visitId) {
-            const validTests = (formData.tests || []).filter(
-              (id: any) => id !== undefined && id !== null,
-            );
-            const testItems = validTests.map((testId: number) => ({ testId }));
-            await replaceTestRequestMutation.mutateAsync({
-              patientId,
-              visitId,
-              items: testItems,
-            });
-          }
-
-          // Replace the visit prescription, including clearing it when no items remain.
-          if (visitId) {
-            const validMeds = (formData.treatment || []).filter(
-              (id: any) => id !== undefined && id !== null,
-            );
-            const prescriptionItems = validMeds.map((medId: number) => {
-              const medication = medicationsQuery.data?.find(
-                (m: any) => m.id === medId,
-              );
-              return {
-                medicationId: medId,
-                medicationName: medication?.name || `Med ${medId}`,
-                ...(treatmentDetailsByMedicationId[medId] ?? {}),
-              };
-            });
-
-            await replacePrescriptionWithItemsMutation.mutateAsync({
-              patientId: patientId,
-              visitId: visitId,
-              notes: "Prescribed from medical file panel",
-              items: prescriptionItems,
-            });
-          }
-
-          if (finishAfterSave.current) {
-            if (!visitId) throw new Error("تعذر تحديد الزيارة لإنهائها");
-            await finishSavedVisit(visitId);
-            await onSaved?.();
-            if (!embedded) dismiss();
-          }
-          } catch (error) {
-            finishAfterSave.current = false;
-            setIsFinishing(false);
-            toast.error(error instanceof Error ? error.message : "تعذر حفظ وإنهاء الزيارة");
-          } finally {
-            setIsSaving(false);
-          }
-        },
-      },
-    );
+      });
+      await utils.medical.invalidate();
+      if (finish && saved.visitId) await finishSavedVisit(saved.visitId);
+      await onSaved?.();
+      toast.success("تم حفظ الزيارة والبيانات الطبية بنجاح");
+    } finally {setIsSaving(false);setIsFinishing(false);}
   };
+  const handleSave = (finish = false) => {void saveVisitDraft(finish).catch(error=>toast.error(error instanceof Error?error.message:"تعذر حفظ الزيارة."));};
 
   const printCurrentMedicalItems = (kind: "tests" | "treatment") => {
     const isTests = kind === "tests";
@@ -1698,6 +1387,16 @@ export default function MedicalFilePanel({
       visitId={hubVisitId ?? selectedExamination?.visitId}
       visitDate={visitDate}
       disabled={hubRo || patientQuery.isLoading}
+      saving={isSaving}
+      onSaveDraft={()=>saveVisitDraft()}
+      draftBinding={{
+        values: {history:formData.historyNotes ?? "",treatment:formData.treatmentPlan ?? "",symptoms:formData.symptoms ?? "",complaints:formData.medicalHistory ?? "",diagnosis:formData.diagnosis ?? "",decision:formData.recommendations ?? "",tests:(formData.tests ?? []).map((id:number)=>testsQuery.data?.find((item:{id:number;name:string})=>item.id===id)?.name).filter(Boolean).join("\n")},
+        destinations:{history:"history",treatment:"treatment",complaints:"complaints",symptoms:"symptoms",diagnosis:"diagnosis",decision:"decision",labs:"tests",imaging:"tests"},
+        accept:(field,text)=>{if(field!=="labs"&&field!=="imaging")return true;try{if(testsQuery.isLoading||testsQuery.isError)return false;resolveTestNames(text,testsQuery.data ?? [],field);return true;}catch{return false;}},
+        change:values=>{const tests="tests" in values?resolveTestNames(values.tests,testsQuery.data ?? []):undefined;setFormData((previous:any)=>({...previous,...("history" in values?{historyNotes:values.history}:{}),...("treatment" in values?{treatmentPlan:values.treatment}:{}),...("complaints" in values?{medicalHistory:values.complaints}:{}),...("symptoms" in values?{symptoms:values.symptoms}:{}),...("diagnosis" in values?{diagnosis:values.diagnosis}:{}),...("decision" in values?{recommendations:values.decision}:{}),...(tests?{tests}:{})}));},
+      }}
+      testsDraft={{catalog:testsQuery.data ?? [],ids:formData.tests ?? [],disabled:hubRo || testsQuery.isLoading || testsQuery.isError,append:ids=>setFormData((previous:any)=>({...previous,tests:[...new Set([...(previous.tests ?? []),...ids])]})),remove:ids=>setFormData((previous:any)=>({...previous,tests:(previous.tests ?? []).filter((id:number)=>!ids.includes(id))}))}}
+      prescriptionDraft={{templates:[],medications:medicationsQuery.data ?? [],draft:{ids:formData.treatment ?? [],details:treatmentDetailsByMedicationId},disabled:hubRo || medicationsQuery.isLoading || medicationsQuery.isError,change:draft=>{setFormData((previous:any)=>({...previous,treatment:draft.ids}));setTreatmentDetailsByMedicationId(draft.details);}}}
     >
     <div className={outerCls} data-medical-file-overlay={!embedded || undefined}>
       <div className={innerCls} data-medical-file-surface>
@@ -1752,6 +1451,7 @@ export default function MedicalFilePanel({
               visitId={hubVisitId ?? selectedExamination?.visitId}
               visitDate={visitDate}
               disabled={hubRo || patientQuery.isLoading}
+
             />
           )}
           <label
@@ -3201,7 +2901,7 @@ export default function MedicalFilePanel({
             )}
           </div>
 
-          {planEverActive && (
+          {(planEverActive || activeMedicalTab === "plan") && (
             <div
               className={cn(
                 "text-base [&_h3]:!text-base [&_label]:!text-base [&_input]:!text-base [&_textarea]:!text-base [&_button]:!text-sm",
@@ -3266,7 +2966,7 @@ export default function MedicalFilePanel({
                       الشكوى و الاعراض
                     </h3>
                     <Textarea aria-label="اكتب الشكوى و الاعراض هنا…"
-                      data-medical-proposals="complaints symptoms"
+                      data-medical-proposals="complaints"
                       value={formData.medicalHistory}
                       onChange={(e) =>
                         setFormData((prev: any) => ({
@@ -3278,6 +2978,7 @@ export default function MedicalFilePanel({
                       className="order-3 min-h-[120px] text-sm"
                       rows={5}
                     />
+                    <Textarea aria-label="الأعراض" data-medical-proposals="symptoms" value={formData.symptoms ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,symptoms:event.target.value}))} placeholder="الأعراض" className="order-4 mt-2 min-h-[80px] text-sm" />
                     <div className="relative order-1 mb-2 me-auto w-full md:w-80">
                       <Search className="absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input aria-label="ابحث عن الأعراض…"
@@ -3322,8 +3023,8 @@ export default function MedicalFilePanel({
                                     onClick={() => {
                                       setFormData((prev: any) => ({
                                         ...prev,
-                                        medicalHistory: prev.medicalHistory
-                                          ? `${prev.medicalHistory}, ${symptom.name}`
+                                        symptoms: prev.symptoms
+                                          ? `${prev.symptoms}, ${symptom.name}`
                                           : symptom.name,
                                       }));
                                       setSymptomSearchText("");
@@ -3437,7 +3138,11 @@ export default function MedicalFilePanel({
                     <p className="mb-2 !text-[13px] font-bold text-primary">
                       Recommendations:
                     </p>
-                    <Textarea aria-label="اكتب التوصيات هنا…"
+                    <label className="block">التاريخ المرضي<Textarea aria-label="التاريخ المرضي" data-medical-proposals="history" value={formData.historyNotes ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,historyNotes:event.target.value}))}/></label>
+                    <label className="block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={formData.treatmentPlan ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,treatmentPlan:event.target.value}))}/></label>
+                    <label className="block">التاريخ المرضي<Textarea aria-label="التاريخ المرضي" data-medical-proposals="history" value={formData.historyNotes ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,historyNotes:event.target.value}))}/></label>
+                  <label className="block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={formData.treatmentPlan ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,treatmentPlan:event.target.value}))}/></label>
+                  <Textarea aria-label="اكتب التوصيات هنا…"
                       data-medical-proposals="decision"
                       value={formData.recommendations}
                       onChange={(e) =>
@@ -3822,6 +3527,8 @@ export default function MedicalFilePanel({
                   <Label className="text-xs font-medium mb-1.5 block">
                     التوصيات
                   </Label>
+                  <label className="mb-3 block">التاريخ المرضي<Textarea aria-label="التاريخ المرضي" data-medical-proposals="history" value={formData.historyNotes ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,historyNotes:event.target.value}))}/></label>
+                  <label className="mb-3 block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={formData.treatmentPlan ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,treatmentPlan:event.target.value}))}/></label>
                   <Textarea aria-label="أدخل التوصيات…"
                     data-medical-proposals="decision"
                     value={formData.recommendations}

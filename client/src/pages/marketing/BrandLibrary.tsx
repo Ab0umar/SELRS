@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import EquipmentReferenceSettings from "./EquipmentReferenceSettings";
 import {
   BookImage,
   CheckCircle2,
@@ -172,7 +173,8 @@ export default function BrandLibrary() {
                 ["doctor", "هوية الدكتور"],
               ] as const
             ).map(([role, label]) => (
-              <Button variant="bare"
+              <Button
+                variant="bare"
                 key={role}
                 type="button"
                 className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${pageRole === role ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
@@ -197,6 +199,11 @@ export default function BrandLibrary() {
         </Button>
       </div>
 
+      <EquipmentReferenceSettings
+        key={pageRole}
+        pageRole={pageRole}
+        designs={designs}
+      />
       {/* Upload zone */}
       <div
         role="button"

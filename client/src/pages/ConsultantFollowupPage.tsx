@@ -24,12 +24,23 @@ const FOLLOWUP_TITLES = [
   "المتابعة الرابعة",
 ];
 
-export default function ConsultantFollowupPage({ sheetType = "consultant" }: { sheetType?: "consultant" | "specialist" } = {}) {
+export default function ConsultantFollowupPage({
+  sheetType = "consultant",
+}: { sheetType?: "consultant" | "specialist" } = {}) {
   const [, params] = useRoute("/sheets/:type/:id/followup");
-  return <ConsultantFollowupDocument key={`${sheetType}:${params?.id ?? "new"}`} sheetType={sheetType} />;
+  return (
+    <ConsultantFollowupDocument
+      key={`${sheetType}:${params?.id ?? "new"}`}
+      sheetType={sheetType}
+    />
+  );
 }
 
-function ConsultantFollowupDocument({ sheetType }: { sheetType: "consultant" | "specialist" }) {
+function ConsultantFollowupDocument({
+  sheetType,
+}: {
+  sheetType: "consultant" | "specialist";
+}) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/sheets/:type/:id/followup");
@@ -112,10 +123,7 @@ function ConsultantFollowupDocument({ sheetType }: { sheetType: "consultant" | "
       setOperationDateRight(suggestedOperationTypeQuery.data.operationDate);
     }
   }, [initialPatientId, suggestedOperationTypeQuery.data]);
-  const examinationStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: initialPatientId ?? 0, page: "examination" },
-    { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
-  );
+
   const followupSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
     { patientId: initialPatientId ?? 0, sheetType },
     { enabled: Boolean(initialPatientId), refetchOnWindowFocus: false },
@@ -292,14 +300,6 @@ function ConsultantFollowupDocument({ sheetType }: { sheetType: "consultant" | "
     }
   }, [patientQuery.data]);
 
-  useEffect(() => {
-    const doctorFromState = String(
-      (examinationStateQuery.data as any)?.data?.doctorName ?? "",
-    ).trim();
-    const fullName = String(user?.name ?? "").trim();
-    setSignatures({ doctor: doctorFromState || fullName || "" });
-  }, [examinationStateQuery.data, user?.name]);
-
   const saveFollowupSheetMutation =
     trpc.medical.saveFollowupSheet.useMutation();
   const saveInProgressRef = useRef(false);
@@ -364,7 +364,7 @@ function ConsultantFollowupDocument({ sheetType }: { sheetType: "consultant" | "
     if (patient?.id) setLocation(`/sheets/${sheetType}/${patient.id}/followup`);
   };
 
-  const followupPages: typeof followups[] = [];
+  const followupPages: (typeof followups)[] = [];
   for (let i = 0; i < followups.length; i += 4) {
     followupPages.push(followups.slice(i, i + 4));
   }
@@ -409,7 +409,11 @@ function ConsultantFollowupDocument({ sheetType }: { sheetType: "consultant" | "
             type="button"
             className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded hover:opacity-80 active:scale-95 disabled:opacity-60"
             onClick={handleSaveFollowup}
-            disabled={isSaving || followupSheetsQuery.isFetching || followupSheetsQuery.isError}
+            disabled={
+              isSaving ||
+              followupSheetsQuery.isFetching ||
+              followupSheetsQuery.isError
+            }
           >
             {isSaving ? "جاري الحفظ…" : "حفظ"}
           </Button>
@@ -440,8 +444,16 @@ function ConsultantFollowupDocument({ sheetType }: { sheetType: "consultant" | "
                 style={pageIndex > 0 ? { marginTop: "8mm" } : undefined}
               >
                 <FollowupTablesBody
-                  titleEn={sheetType === "consultant" ? "Consultant Follow-up" : "Specialist Follow-up"}
-                  titleAr={sheetType === "consultant" ? "متابعة الاستشاري" : "متابعة الأخصائي"}
+                  titleEn={
+                    sheetType === "consultant"
+                      ? "Consultant Follow-up"
+                      : "Specialist Follow-up"
+                  }
+                  titleAr={
+                    sheetType === "consultant"
+                      ? "متابعة الاستشاري"
+                      : "متابعة الأخصائي"
+                  }
                   patientName={patientName}
                   patientDOB={patientDOB}
                   operationType={operationType}

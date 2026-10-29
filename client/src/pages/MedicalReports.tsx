@@ -173,6 +173,8 @@ const OVERVIEW_FILTERS = MEDICAL_REPORT_TYPE_TABS.map((t) => ({
 
 type ReportRow = {
   id: number;
+  patientId?: number;
+  visitId?: number;
   patientName: string;
   patientCode: string;
   patientAge?: string;
@@ -187,7 +189,12 @@ type ReportRow = {
   visitDate?: string;
 };
 
-export default function MedicalReports({ recordsCategory }: { recordsCategory?: "labs" | "xrays" | "consult" | "tests-rays"; params?: Record<string, string | undefined> } = {}) {
+export default function MedicalReports({
+  recordsCategory,
+}: {
+  recordsCategory?: "labs" | "xrays" | "consult" | "tests-rays";
+  params?: Record<string, string | undefined>;
+} = {}) {
   const { user, isAuthenticated } = useAuth();
   const [loc, setLocation] = useLocation();
   const inHubReports = loc.startsWith("/patient-hub/reports");
@@ -209,12 +216,9 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
   const saveUserStateMutation = trpc.medical.saveUserPageState.useMutation();
   const userStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didHydrateUserStateRef = useRef(false);
+  const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null);
   const patientQuery = trpc.patient.getPatient.useQuery(
     selectedPatientId ?? 0,
-    { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false },
-  );
-  const prescriptionsQuery = trpc.medical.getPrescriptionsByPatient.useQuery(
-    { patientId: selectedPatientId ?? 0 },
     { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false },
   );
   const medicalHistoryQuery = trpc.medical.getMedicalHistoryByPatient.useQuery(
@@ -242,14 +246,19 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
           `تاريخ عائلي: ${savedMedicalHistory.familyHistory}`,
       ].filter(Boolean) as string[])
     : [];
-  const prescriptionsWithItemsQuery =
-    trpc.medical.getPrescriptionsWithItemsByPatient.useQuery(
-      { patientId: selectedPatientId ?? 0 },
-      { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false },
-    );
   const sheetQuery = trpc.medical.getSheetEntry.useQuery(
-    { patientId: selectedPatientId ?? 0, sheetType: "consultant" },
-    { enabled: Boolean(selectedPatientId), refetchOnWindowFocus: false },
+    {
+      patientId: selectedReport?.patientId ?? selectedPatientId ?? 0,
+      visitId: selectedReport?.visitId,
+      sheetType: "consultant",
+    },
+    {
+      enabled: Boolean(
+        (selectedReport?.patientId ?? selectedPatientId) &&
+        selectedReport?.visitId,
+      ),
+      refetchOnWindowFocus: false,
+    },
   );
   const diseasesQuery = trpc.medical.getAllDiseases.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -280,7 +289,6 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
   const [overviewType, setOverviewType] = useState<string>("all");
   const [delConfirm, setDelConfirm] = useState<number | null>(null);
 
-  const [selectedReport, setSelectedReport] = useState<ReportRow | null>(null);
   const [diseaseSearch, setDiseaseSearch] = useState("");
   const [expandedDiseaseGroups, setExpandedDiseaseGroups] = useState<string[]>(
     [],
@@ -299,62 +307,6 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
     prescription: "",
     notes: "",
   });
-
-  const buildPrescriptionTextFromRecord = (record: any): string => {
-    if (!record) return "";
-    const items = Array.isArray(record.items) ? record.items : [];
-    const lines = items
-      .map((item: any) => {
-        const name = String(item?.medicationName ?? "").trim();
-        const instructions = String(item?.instructions ?? "").trim();
-        const parts = [
-          String(item?.dosage ?? "").trim(),
-          String(item?.frequency ?? "").trim(),
-          String(item?.duration ?? "").trim(),
-        ].filter(Boolean);
-        const details = instructions || parts.join(" / ");
-        if (!name && !details) return "";
-        if (name && details) return `${name} - ${details}`;
-        return name || details;
-      })
-      .filter(Boolean);
-    if (lines.length > 0) return lines.join("\n");
-    return String(record?.notes ?? "").trim();
-  };
-  const getPrescriptionCandidates = (
-    recordsWithItems: any[],
-    simpleRecords: any[],
-  ) => {
-    const candidates: Array<{ id: string; date: string; text: string }> = [];
-    const withItemsList = Array.isArray(recordsWithItems)
-      ? recordsWithItems
-      : [];
-    for (const record of withItemsList) {
-      const text = buildPrescriptionTextFromRecord(record);
-      if (!text) continue;
-      candidates.push({
-        id: String(record?.id ?? ""),
-        date: formatDateLabel(
-          String(record?.prescriptionDate ?? "").split("T")[0],
-        ),
-        text,
-      });
-    }
-    if (candidates.length > 0) return candidates;
-    const simpleList = Array.isArray(simpleRecords) ? simpleRecords : [];
-    for (const record of simpleList) {
-      const text = String(record?.notes ?? "").trim();
-      if (!text) continue;
-      candidates.push({
-        id: String(record?.id ?? ""),
-        date: formatDateLabel(
-          String(record?.prescriptionDate ?? "").split("T")[0],
-        ),
-        text,
-      });
-    }
-    return candidates;
-  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -418,7 +370,13 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
     try {
       const raw = row.diseases ? JSON.parse(String(row.diseases)) : [];
       diseasesArr = Array.isArray(raw)
-        ? raw.map((x: unknown) => String(x))
+        ? raw.map((x: unknown) => {
+            const item = (diseasesQuery.data ?? []).find(
+              (d: { id: number; name: string; abbrev: string | null }) =>
+                String(d.id) === String(x),
+            );
+            return item ? item.abbrev || item.name : String(x);
+          })
         : [];
     } catch {
       diseasesArr = [];
@@ -445,6 +403,8 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
       .join("\n\n");
     return {
       id: Number(row.id ?? 0),
+      patientId: Number(row.patientId),
+      visitId: Number(row.visitId),
       patientName: String(patient?.fullName ?? "").trim(),
       patientCode: String(patient?.patientCode ?? "").trim(),
       patientAge: patient?.age != null ? String(patient.age) : "",
@@ -453,7 +413,7 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
       diagnosis: String(row.diagnosis ?? ""),
       diseases: diseasesArr,
       recommendation: String(row.recommendations ?? ""),
-      prescription: String(row.treatment ?? ""),
+      prescription: String(row.prescription ?? ""),
       notes: notesCombined,
       operationType: String(row.operationType ?? ""),
       visitDate: visitDateIso,
@@ -484,7 +444,6 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
         visitDate: formData.visitDate,
         diagnosis: formData.diagnosis,
         diseases: formData.diseases,
-        prescription: formData.prescription,
         recommendations: formData.recommendation,
         clinicalOpinion: formData.notes,
         operationType: formData.operationType,
@@ -525,6 +484,7 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
 
   const handleViewReport = (report: any) => {
     setSelectedReport(report);
+    if (report.patientId) setSelectedPatientId(report.patientId);
     setFormData({
       patientName: report.patientName || "",
       patientCode: report.patientCode || "",
@@ -546,7 +506,13 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
     try {
       const raw = row.diseases ? JSON.parse(String(row.diseases)) : [];
       diseasesArr = Array.isArray(raw)
-        ? raw.map((x: unknown) => String(x))
+        ? raw.map((x: unknown) => {
+            const item = (diseasesQuery.data ?? []).find(
+              (d: { id: number; name: string; abbrev: string | null }) =>
+                String(d.id) === String(x),
+            );
+            return item ? item.abbrev || item.name : String(x);
+          })
         : [];
     } catch {
       diseasesArr = [];
@@ -563,6 +529,8 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
       : "";
     return {
       id: row.id as number,
+      patientId: Number(row.patientId),
+      visitId: Number(row.visitId),
       patientName: String(row.patientName ?? ""),
       patientCode: String(row.patientCode ?? ""),
       patientAge: "",
@@ -571,7 +539,7 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
       diagnosis: String(row.diagnosis ?? ""),
       diseases: diseasesArr,
       recommendation: String(row.recommendations ?? row.operationType ?? ""),
-      prescription: String(row.treatment ?? ""),
+      prescription: String(row.prescription ?? ""),
       notes: String(row.clinicalOpinion ?? row.additionalNotes ?? ""),
       operationType: String(row.operationType ?? ""),
       visitDate: visitDateIso,
@@ -636,90 +604,6 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
     }));
   }, [patientQuery.data]);
 
-  useEffect(() => {
-    const diagnosisFromDiseases = formData.diseases.join("، ");
-    if (formData.diagnosis === diagnosisFromDiseases) return;
-    setFormData((prev) => ({
-      ...prev,
-      diagnosis: diagnosisFromDiseases,
-    }));
-  }, [formData.diseases, formData.diagnosis]);
-
-  useEffect(() => {
-    if (!sheetQuery.data) return;
-    try {
-      const parsed = JSON.parse(sheetQuery.data);
-      if (parsed?.examData?.autorefraction) {
-        const auto = parsed.examData.autorefraction;
-        const summary = [
-          `UCVA OD: ${auto?.od?.ucva ?? "-"}`,
-          `UCVA OS: ${auto?.os?.ucva ?? "-"}`,
-          `BCVA OD: ${auto?.od?.bcva ?? "-"}`,
-          `BCVA OS: ${auto?.os?.bcva ?? "-"}`,
-          `IOP OD: ${auto?.od?.iop ?? "-"}`,
-          `IOP OS: ${auto?.os?.iop ?? "-"}`,
-        ].join(" | ");
-        setFormData((prev) => ({
-          ...prev,
-          notes: prev.notes ? prev.notes : summary,
-        }));
-      }
-    } catch {
-      // ignore
-    }
-  }, [sheetQuery.data]);
-
-  useEffect(() => {
-    const candidates = getPrescriptionCandidates(
-      (prescriptionsWithItemsQuery.data ?? []) as any[],
-      (prescriptionsQuery.data ?? []) as any[],
-    );
-    const latestText = candidates[0]?.text ?? "";
-    if (!latestText) return;
-    setFormData((prev) => ({
-      ...prev,
-      prescription: prev.prescription || latestText,
-    }));
-  }, [prescriptionsWithItemsQuery.data, prescriptionsQuery.data]);
-
-  const handleLoadPrescriptionFromPage = () => {
-    const candidates = getPrescriptionCandidates(
-      (prescriptionsWithItemsQuery.data ?? []) as any[],
-      (prescriptionsQuery.data ?? []) as any[],
-    );
-    if (candidates.length === 0) {
-      toast.error("لا توجد روشتة محفوظة لهذا المريض");
-      return;
-    }
-    if (candidates.length === 1) {
-      setFormData((prev) => ({ ...prev, prescription: candidates[0].text }));
-      toast.success("تم تحميل الروشتة من صفحة الروشتة");
-      return;
-    }
-    const menu = candidates
-      .map((item, index) => {
-        const preview = item.text.replace(/\s+/g, " ").slice(0, 60);
-        return `${index + 1}) ${item.date || "بدون تاريخ"} - ${preview}`;
-      })
-      .join("\n");
-    const selectedRaw = window.prompt(`اختر رقم الروشتة:\n${menu}`, "1");
-    if (!selectedRaw) return;
-    const selectedIndex = Number(selectedRaw) - 1;
-    if (
-      !Number.isFinite(selectedIndex) ||
-      selectedIndex < 0 ||
-      selectedIndex >= candidates.length
-    ) {
-      toast.error("اختيار غير صحيح");
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      prescription: candidates[selectedIndex].text,
-    }));
-    toast.success("تم تحميل الروشتة من صفحة الروشتة");
-  };
-
   const overviewRows = (overviewQuery.data ?? []) as Record<string, unknown>[];
 
   const overviewStats = useMemo(() => {
@@ -751,7 +635,12 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
     return overviewRows.filter((row) => {
       const cat = categorizeMedicalReport(row as any);
       const category = recordsCategory ?? overviewType;
-      if (category === "tests-rays" ? cat !== "labs" && cat !== "xrays" : category !== "all" && cat !== category) return false;
+      if (
+        category === "tests-rays"
+          ? cat !== "labs" && cat !== "xrays"
+          : category !== "all" && cat !== category
+      )
+        return false;
       if (!q) return true;
       const hay = [
         row.patientName,
@@ -769,12 +658,16 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
     });
   }, [overviewRows, overviewSearch, overviewType, recordsCategory]);
 
-  const patientDoctorReportRows = ((reportsQuery.data ?? []) as Record<
-    string,
-    unknown
-  >[]).filter(row => {
+  const patientDoctorReportRows = (
+    (reportsQuery.data ?? []) as Record<string, unknown>[]
+  ).filter((row) => {
     const category = categorizeMedicalReport(row);
-    return !recordsCategory || (recordsCategory === "tests-rays" ? category === "labs" || category === "xrays" : category === recordsCategory);
+    return (
+      !recordsCategory ||
+      (recordsCategory === "tests-rays"
+        ? category === "labs" || category === "xrays"
+        : category === recordsCategory)
+    );
   });
 
   // Inline form panel — below hub table
@@ -970,7 +863,8 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
                 </div>
                 <div>
                   <Label>التشخيص</Label>
-                  <Input aria-label="ابحث عن تشخيص…"
+                  <Input
+                    aria-label="ابحث عن تشخيص…"
                     value={diseaseSearch}
                     onChange={(e) => setDiseaseSearch(e.target.value)}
                     placeholder="ابحث عن تشخيص…"
@@ -1075,16 +969,23 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={handleLoadPrescriptionFromPage}
+                      disabled={
+                        !selectedReport?.visitId ||
+                        !(selectedReport?.patientId ?? selectedPatientId)
+                      }
+                      onClick={() =>
+                        setLocation(
+                          `/prescription/${selectedReport?.patientId ?? selectedPatientId}?visitId=${selectedReport?.visitId}`,
+                        )
+                      }
                     >
-                      تحميل من صفحة الروشتة
+                      تعديل من صفحة الروشتة
                     </Button>
                   </div>
-                  <Textarea aria-label="أدخل الأدوية والتعليمات"
+                  <Textarea
+                    aria-label="أدخل الأدوية والتعليمات"
                     value={formData.prescription}
-                    onChange={(e) =>
-                      setFormData({ ...formData, prescription: e.target.value })
-                    }
+                    readOnly
                     className="h-32 mt-2"
                     placeholder="أدخل الأدوية والتعليمات"
                   />
@@ -1199,12 +1100,14 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
                   placeholder="بحث بالاسم أو عنوان التقرير…"
                 />
               </div>
-              {!recordsCategory && <FilterBar
-                filters={OVERVIEW_FILTERS}
-                selected={overviewType}
-                onSelect={setOverviewType}
-                className="sm:justify-end"
-              />}
+              {!recordsCategory && (
+                <FilterBar
+                  filters={OVERVIEW_FILTERS}
+                  selected={overviewType}
+                  onSelect={setOverviewType}
+                  className="sm:justify-end"
+                />
+              )}
             </div>
 
             <div className="mb-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm print:hidden">
@@ -1219,7 +1122,12 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
                     : "لا توجد تقارير مطابقة للتصفية."}
                 </div>
               ) : (
-                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+                <div
+                  role="region"
+                  aria-label="جدول بيانات"
+                  tabIndex={0}
+                  className="overflow-x-auto"
+                >
                   <table className="min-w-[980px] w-full text-right text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
@@ -1483,7 +1391,12 @@ export default function MedicalReports({ recordsCategory }: { recordsCategory?: 
                 <div className="border-b bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
                   <span>التقارير الطبية المحفوظة للمريض</span>
                 </div>
-                <div role="region" aria-label="جدول بيانات" tabIndex={0} className="overflow-x-auto">
+                <div
+                  role="region"
+                  aria-label="جدول بيانات"
+                  tabIndex={0}
+                  className="overflow-x-auto"
+                >
                   <table className="w-full text-right text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40 font-semibold">

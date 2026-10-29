@@ -104,7 +104,7 @@ export default function SheetPatientVisionBlock({
     <>
       {/* Patient Info */}
       <section
-        className="print-sheet-patient-grid p-4 bg-[#f3f4f6] rounded-xl border-0 flex flex-col gap-2 text-sm"
+        className="print-sheet-patient-grid p-4 bg-muted/50 rounded-xl border-0 flex flex-col gap-2 text-sm"
         dir="rtl"
       >
         <div className="patient-info-grid-3x3 grid grid-cols-3 gap-x-4 gap-y-2 text-xs">
@@ -207,7 +207,7 @@ export default function SheetPatientVisionBlock({
           "w-14 text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003d9b] focus-visible:ring-offset-2 py-1 text-sm";
         const iopTable = (
           <table className="text-center border-collapse w-auto">
-            <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+            <thead className="bg-muted text-xs font-bold uppercase">
               <tr>
                 <th className={`${ctd} w-auto`}>IOP</th>
                 <th className={`${ctd} w-auto text-[#003d9b]`}>OD</th>
@@ -216,7 +216,7 @@ export default function SheetPatientVisionBlock({
             </thead>
             <tbody>
               <tr>
-                <td className={`${ctd} bg-[#f3f4f6] text-[#434654]`}>mmHg</td>
+                <td className={`${ctd} bg-muted/50 text-[#434654]`}>mmHg</td>
                 <td className={ctd}>
                   <input
                     className={compactInp}
@@ -238,7 +238,7 @@ export default function SheetPatientVisionBlock({
 
         const acuityTable = (
           <table className="text-center border-collapse w-auto">
-            <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+            <thead className="bg-muted text-xs font-bold uppercase">
               <tr>
                 <th className={`${ctd} w-auto`}>Eye</th>
                 <th className={`${ctd} w-auto`}>UCVA</th>
@@ -264,7 +264,7 @@ export default function SheetPatientVisionBlock({
                 </td>
               </tr>
               <tr>
-                <td className={`${ctd} text-[#526069] bg-[#f3f4f6]`}>OS</td>
+                <td className={`${ctd} text-[#526069] bg-muted/50`}>OS</td>
                 <td className={ctd}>
                   <input
                     className={compactInp}
@@ -295,7 +295,7 @@ export default function SheetPatientVisionBlock({
               <col style={{ width: "14%" }} />
               <col style={{ width: "14%" }} />
             </colgroup>
-            <thead className="bg-[#e7e8ea] text-xs uppercase font-bold">
+            <thead className="bg-muted text-xs uppercase font-bold">
               <tr>
                 <th className={ctd}>Refraction</th>
                 <th className={`${ctd} text-[#003d9b]`} colSpan={3}>
@@ -317,7 +317,7 @@ export default function SheetPatientVisionBlock({
             </thead>
             <tbody className="font-mono">
               <tr>
-                <td className={`${ctd} bg-[#f3f4f6]`}>&nbsp;</td>
+                <td className={`${ctd} bg-muted/50`}>&nbsp;</td>
                 <td className={ctd}>
                   <input
                     className={inp}
@@ -392,7 +392,7 @@ export default function SheetPatientVisionBlock({
                 </td>
               </tr>
               <tr>
-                <td className={`${ctd} bg-[#f3f4f6] font-bold text-[#003d9b]`}>
+                <td className={`${ctd} bg-muted/50 font-bold text-[#003d9b]`}>
                   Reading
                 </td>
                 <td className={ctd} colSpan={6}>

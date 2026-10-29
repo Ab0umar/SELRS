@@ -7,6 +7,7 @@ import {
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { getDb } from "../../db";
 import { ENV } from "../../_core/env";
+import { prepareMarketingPublication } from "./pageBranding";
 import {
   marketingGenerationJobs,
   marketingLogs,
@@ -34,6 +35,7 @@ type PublicationClaim =
   | { kind: "published"; fbPostId: string }
   | {
       kind: "ready";
+      pageRole: "center" | "doctor";
       topicKey: string;
       pageId: string;
       accessToken: string;
@@ -217,6 +219,7 @@ export async function publishMarketingPost(
       });
       return {
         kind: "ready",
+        pageRole,
         topicKey,
         pageId: target.pageId,
         accessToken: target.accessToken,
@@ -229,16 +232,33 @@ export async function publishMarketingPost(
   if (claim.kind === "published")
     return { fbPostId: claim.fbPostId, alreadyPublished: true };
   let fbPostId: string;
+  let publishedImageUrl = claim.imageUrl;
+  let submitted = false;
   try {
+    const prepared = await prepareMarketingPublication(
+      claim.message,
+      claim.imageUrl,
+      claim.pageRole,
+      claim.pageId,
+    );
+    publishedImageUrl = prepared.imageUrl;
+    submitted = true;
     ({ fbPostId } = await publishPostToFacebook(
       claim.pageId,
       claim.accessToken,
-      claim.message,
-      claim.imageUrl,
+      prepared.message,
+      prepared.imageUrl,
       ENV.fbAppOrigin || "https://selrs.cc",
     ));
   } catch (error) {
-    const failure = normalizeFacebookError(error);
+    const failure = submitted
+      ? normalizeFacebookError(error)
+      : new MarketingPublishError(
+          error instanceof Error
+            ? error.message
+            : "تعذر تجهيز هوية المنشور؛ لم يتم إرساله إلى Facebook",
+          false,
+        );
     if (!failure.uncertain) {
       try {
         await db.transaction(
@@ -307,7 +327,12 @@ export async function publishMarketingPost(
           );
         await tx
           .update(marketingPosts)
-          .set({ status: "published", publishedAt: new Date(), fbPostId })
+          .set({
+            status: "published",
+            publishedAt: new Date(),
+            fbPostId,
+            imageUrl: publishedImageUrl,
+          })
           .where(eq(marketingPosts.id, postId));
         await confirmTopicPublication(tx, claim.topicKey, postId);
         await tx.insert(marketingLogs).values({

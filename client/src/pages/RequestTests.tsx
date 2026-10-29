@@ -1,3 +1,4 @@
+import { selectClinicalVisit } from "../../../shared/clinical-record";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useLocation, useRoute } from "wouter";
@@ -67,6 +68,7 @@ interface TestItem {
 export type RequestTestsProps = {
   hidePageChrome?: boolean;
   hubVisitDate?: string;
+  hubVisitId?: number;
   embeddedInPatientHub?: boolean;
   patientHubReadOnly?: boolean;
   patientHubViewOnlyHint?: string;
@@ -75,6 +77,7 @@ export type RequestTestsProps = {
 export default function RequestTests({
   hidePageChrome,
   hubVisitDate,
+  hubVisitId,
   embeddedInPatientHub,
   patientHubReadOnly,
   patientHubViewOnlyHint = "العرض فقط داخل المركز",
@@ -86,8 +89,12 @@ export default function RequestTests({
   const [, hubParams] = useRoute("/patient-hub/request-tests/:id");
   const mergedParams = params ?? kfParams ?? hubParams;
   const isKfRoute = location.startsWith("/kf/request-tests");
-  const draftScope = isKfRoute ? "kf-request-tests" : "request-tests";
+
   const initialPatientId = mergedParams?.id ? Number(mergedParams.id) : 0;
+  const requestedVisitId =
+    hubVisitId ??
+    (Number(new URLSearchParams(window.location.search).get("visitId")) ||
+      undefined);
   const routeVisitDate =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("visitDate") || ""
@@ -130,33 +137,14 @@ export default function RequestTests({
   }, [requestedVisitDate]);
 
   const [selectedTests, setSelectedTests] = useState<TestItem[]>([]);
-  const [printProfile, setPrintProfile] = useState<"tests" | "radiology">(() => new URLSearchParams(window.location.search).get("printProfile") === "radiology" ? "radiology" : "tests");
-  const [generalNotes, setGeneralNotes] = useState("");
-  const patientStateQuery = trpc.medical.getPatientPageState.useQuery(
-    { patientId: patientId ?? 0, page: "request-tests" },
-    {
-      enabled:
-        Boolean(patientId) &&
-        !initialPatientId &&
-        !editingForbidden &&
-        !isKfRoute,
-      refetchOnWindowFocus: false,
-    },
+  const [printProfile, setPrintProfile] = useState<"tests" | "radiology">(() =>
+    new URLSearchParams(window.location.search).get("printProfile") ===
+    "radiology"
+      ? "radiology"
+      : "tests",
   );
-  const savePatientStateMutation =
-    trpc.medical.savePatientPageState.useMutation({
-      onSuccess: () => {
-        const key = patientId
-          ? `selrs:patient-draft:${draftScope}:${patientId}`
-          : `selrs:patient-draft:${draftScope}:temp`;
-        try {
-          window.localStorage.removeItem(key);
-          window.sessionStorage.removeItem(key);
-        } catch (e) {
-          // Ignore storage failures.
-        }
-      },
-    });
+  const [generalNotes, setGeneralNotes] = useState("");
+
   const templateOverridesQuery =
     trpc.medical.getReadyTemplateOverrides.useQuery(
       { scope: "tests" },
@@ -180,91 +168,6 @@ export default function RequestTests({
         await templateOverridesQuery.refetch();
       },
     });
-  const patientStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const localDraftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastAppliedDraftRef = useRef<string | null>(null);
-  const hydratedPatientStateRef = useRef<number | null>(null);
-
-  const readDraft = (keys: string[]) => {
-    for (const key of keys) {
-      try {
-        const raw = window.localStorage.getItem(key);
-        if (raw) {
-          if ((window as any).__selrsDraftDebug) {
-            console.warn("[draft] read localStorage", key);
-          }
-          return raw;
-        }
-      } catch {
-        // Ignore localStorage failures.
-      }
-      try {
-        const raw = window.sessionStorage.getItem(key);
-        if (raw) {
-          if ((window as any).__selrsDraftDebug) {
-            console.warn("[draft] read sessionStorage", key);
-          }
-          return raw;
-        }
-      } catch {
-        // Ignore sessionStorage failures.
-      }
-      try {
-        const name = window.name || "";
-        if (name.startsWith("selrs:")) {
-          const parsed = JSON.parse(name.slice(6)) as Record<string, string>;
-          if (parsed && parsed[key]) {
-            if ((window as any).__selrsDraftDebug) {
-              console.warn("[draft] read window.name", key);
-            }
-            return parsed[key];
-          }
-        }
-      } catch {
-        // Ignore window.name failures.
-      }
-    }
-    return null;
-  };
-
-  const writeDraft = (key: string, draft: { updatedAt: string; data: any }) => {
-    const raw = JSON.stringify(draft);
-    try {
-      window.localStorage.setItem(key, raw);
-      if ((window as any).__selrsDraftDebug) {
-        console.warn("[draft] wrote localStorage", key);
-      }
-      return true;
-    } catch {
-      // Ignore localStorage failures.
-    }
-    try {
-      window.sessionStorage.setItem(key, raw);
-      if ((window as any).__selrsDraftDebug) {
-        console.warn("[draft] wrote sessionStorage", key);
-      }
-      return true;
-    } catch {
-      // Ignore sessionStorage failures.
-    }
-    try {
-      const name = window.name || "";
-      const parsed = name.startsWith("selrs:")
-        ? (JSON.parse(name.slice(6)) as Record<string, string>)
-        : {};
-      parsed[key] = raw;
-      window.name = `selrs:${JSON.stringify(parsed).slice(0, 150000)}`;
-      if ((window as any).__selrsDraftDebug) {
-        console.warn("[draft] wrote window.name", key);
-      }
-      return true;
-    } catch {
-      // Ignore window.name failures.
-    }
-    return false;
-  };
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId) && !isKfRoute,
@@ -276,6 +179,10 @@ export default function RequestTests({
       enabled: Boolean(patientId) && isKfRoute,
       refetchOnWindowFocus: false,
     },
+  );
+  const visitsQuery = trpc.medical.getVisitsByPatient.useQuery(
+    { patientId: patientId ?? 0 },
+    { enabled: Boolean(patientId) && !isKfRoute, refetchOnWindowFocus: false },
   );
   const requestsHistoryQuery = trpc.medical.getTestRequestsByPatient.useQuery(
     { patientId: patientId ?? 0 },
@@ -341,10 +248,6 @@ export default function RequestTests({
   }, [params?.id]);
 
   useEffect(() => {
-    hydratedPatientStateRef.current = null;
-  }, [patientId]);
-
-  useEffect(() => {
     const patient = patientQuery.data as any;
     if (!patient) return;
     setPatientName(patient.fullName ?? "");
@@ -361,19 +264,6 @@ export default function RequestTests({
   }, [kfPatientQuery.data, isKfRoute]);
 
   useEffect(() => {
-    const data = (patientStateQuery.data as any)?.data;
-    if (!data) return;
-    if (hydratedPatientStateRef.current === patientId) return;
-    if (data.requestDate) setRequestDate(data.requestDate);
-    if (data.generalNotes !== undefined)
-      setGeneralNotes(data.generalNotes ?? "");
-    if (data.diagnosis !== undefined)
-      setDiagnosis(data.diagnosis ?? "");
-    if (Array.isArray(data.selectedTests)) setSelectedTests(data.selectedTests);
-    hydratedPatientStateRef.current = patientId;
-  }, [patientStateQuery.data, patientId]);
-
-  useEffect(() => {
     if (!initialPatientId) return;
     const history = (requestsHistoryQuery.data ?? []) as any[];
     const toDateValue = (value: unknown) => {
@@ -382,15 +272,17 @@ export default function RequestTests({
         ? ""
         : date.toISOString().split("T")[0];
     };
-    const request = requestedVisitDate
-      ? history.find(
-          (item) => toDateValue(item.requestDate) === requestedVisitDate,
-        )
-      : [...history].sort(
-          (left, right) =>
-            new Date(right.requestDate).getTime() -
-            new Date(left.requestDate).getTime(),
-        )[0];
+    const request = requestedVisitId
+      ? history.find((item) => Number(item.visitId) === requestedVisitId)
+      : requestedVisitDate
+        ? history.find(
+            (item) => toDateValue(item.requestDate) === requestedVisitDate,
+          )
+        : [...history].sort(
+            (left, right) =>
+              new Date(right.requestDate).getTime() -
+              new Date(left.requestDate).getTime(),
+          )[0];
     if (!request) {
       setSelectedTests([]);
       setGeneralNotes("");
@@ -408,111 +300,38 @@ export default function RequestTests({
         notes: item.result ?? "",
       })),
     );
-  }, [initialPatientId, requestsHistoryQuery.data, requestedVisitDate]);
-
-  useEffect(() => {
-    if (!patientId || editingForbidden) return;
-    if (isKfRoute) return;
-    if (patientStateTimerRef.current)
-      clearTimeout(patientStateTimerRef.current);
-    const payload = {
-      requestDate,
-      generalNotes,
-      selectedTests,
-      diagnosis,
-    };
-    patientStateTimerRef.current = setTimeout(() => {
-      savePatientStateMutation.mutate({
-        patientId,
-        page: "request-tests",
-        data: payload,
-      });
-    }, 800);
-    return () => {
-      if (patientStateTimerRef.current)
-        clearTimeout(patientStateTimerRef.current);
-    };
   }, [
-    patientId,
-    editingForbidden,
-    requestDate,
-    generalNotes,
-    selectedTests,
-    diagnosis,
-    savePatientStateMutation,
-    isKfRoute,
+    initialPatientId,
+    requestsHistoryQuery.data,
+    requestedVisitDate,
+    requestedVisitId,
   ]);
 
+  const replaceRequestMutation = trpc.medical.replaceTestRequest.useMutation({
+    onSuccess: () => toast.success("تم حفظ طلب الفحوصات"),
+    onError: (error) =>
+      toast.error(getTrpcErrorMessage(error, "فشل حفظ طلب الفحوصات")),
+  });
   useEffect(() => {
-    if (editingForbidden) return;
-    if (localDraftTimerRef.current) clearTimeout(localDraftTimerRef.current);
-    const payload = {
-      requestDate,
-      generalNotes,
-      selectedTests,
-      diagnosis,
-    };
-    localDraftTimerRef.current = setTimeout(() => {
-      const key = patientId
-        ? `selrs:patient-draft:${draftScope}:${patientId}`
-        : `selrs:patient-draft:${draftScope}:temp`;
-      const draft = {
-        updatedAt: new Date().toISOString(),
-        data: payload,
-      };
-      writeDraft(key, draft);
-    }, 400);
-    return () => {
-      if (localDraftTimerRef.current) clearTimeout(localDraftTimerRef.current);
-    };
+    let visit: NonNullable<typeof visitsQuery.data>[number] | undefined;
+    try {
+      visit = selectClinicalVisit<NonNullable<typeof visitsQuery.data>[number]>(
+        visitsQuery.data ?? [],
+        patientId ?? 0,
+        requestedVisitId,
+        requestedVisitDate || requestDate,
+      );
+    } catch {
+      visit = undefined;
+    }
+    setDiagnosis(visit?.diagnosis ?? "");
   }, [
+    visitsQuery.data,
     patientId,
-    editingForbidden,
+    requestedVisitId,
+    requestedVisitDate,
     requestDate,
-    generalNotes,
-    selectedTests,
-    diagnosis,
-    draftScope,
   ]);
-
-  useEffect(() => {
-    if (editingForbidden) return;
-    const persistNow = () => {
-      const payload = {
-        requestDate,
-        generalNotes,
-        selectedTests,
-        diagnosis,
-      };
-      const draft = {
-        updatedAt: new Date().toISOString(),
-        data: payload,
-      };
-      const key = patientId
-        ? `selrs:patient-draft:${draftScope}:${patientId}`
-        : `selrs:patient-draft:${draftScope}:temp`;
-      writeDraft(key, draft);
-    };
-    const handleVisibility = () => {
-      if (document.hidden) persistNow();
-    };
-    window.addEventListener("beforeunload", persistNow);
-    window.addEventListener("pagehide", persistNow);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.removeEventListener("beforeunload", persistNow);
-      window.removeEventListener("pagehide", persistNow);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [
-    patientId,
-    editingForbidden,
-    requestDate,
-    generalNotes,
-    selectedTests,
-    diagnosis,
-  ]);
-
   if (!isAuthenticated) return null;
 
   const templateOverrides = (templateOverridesQuery.data ?? {}) as Record<
@@ -960,12 +779,37 @@ export default function RequestTests({
         `تم تجاهل ${skippedCount} فحص غير موجود بالنظام أثناء الحفظ.`,
       );
     }
-    await createRequestMutation.mutateAsync({
+    if (visitsQuery.isLoading || visitsQuery.isError) {
+      toast.error("انتظر تحميل بيانات الزيارة قبل الحفظ");
+      return;
+    }
+    let linkedVisit;
+    try {
+      linkedVisit = selectClinicalVisit(
+        visitsQuery.data ?? [],
+        patientId,
+        requestedVisitId,
+        requestDate,
+      );
+    } catch (error) {
+      toast.error(getTrpcErrorMessage(error, "حدد الزيارة قبل الحفظ"));
+      return;
+    }
+    const payload = {
       patientId,
+      visitId: linkedVisit?.id,
+      diagnosis,
       date: requestDate,
       notes: generalNotes,
       items: validItems.map((t) => ({ testId: t.id, notes: t.notes })),
-    });
+    };
+    if (linkedVisit)
+      await replaceRequestMutation.mutateAsync({
+        ...payload,
+        visitId: linkedVisit.id,
+      });
+    else await createRequestMutation.mutateAsync(payload);
+    await requestsHistoryQuery.refetch();
   };
 
   const handlePrint = () => {
@@ -1132,8 +976,11 @@ export default function RequestTests({
                 </div>
                 <div className="grid grid-cols-1 gap-2 mt-2">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-muted-foreground">التشخيص (Diagnosis)</label>
-                    <Input aria-label="اكتب التشخيص هنا…"
+                    <label className="text-xs font-bold text-muted-foreground">
+                      التشخيص (Diagnosis)
+                    </label>
+                    <Input
+                      aria-label="اكتب التشخيص هنا…"
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
                       placeholder="اكتب التشخيص هنا…"
@@ -1247,7 +1094,8 @@ export default function RequestTests({
                             استيراد مباشر من مسار السيرفر
                           </div>
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <Input aria-label="E:\\\\path\\\\to\\\\file.xlsx"
+                            <Input
+                              aria-label="E:\\\\path\\\\to\\\\file.xlsx"
                               value={importPath}
                               onChange={(e) => setImportPath(e.target.value)}
                               placeholder="E:\\path\\to\\file.xlsx"
@@ -1423,7 +1271,8 @@ export default function RequestTests({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  <Textarea aria-label="ملاحظات إضافية…"
+                  <Textarea
+                    aria-label="ملاحظات إضافية…"
                     value={generalNotes}
                     readOnly={editingForbidden}
                     onChange={(e) => setGeneralNotes(e.target.value)}
@@ -1436,20 +1285,23 @@ export default function RequestTests({
           </aside>
 
           {/* Test List & Notes (Single Column) */}
-          <div data-clinical-print-profile={printProfile} className="request-tests-print-content request-tests-paper space-y-5">
+          <div
+            data-clinical-print-profile={printProfile}
+            className="request-tests-print-content request-tests-paper space-y-5"
+          >
             <div className="request-tests-paper-header">
-              <div
-                className="request-patient-grid"
-                dir="rtl"
-              >
+              <div className="request-patient-grid" dir="rtl">
                 <div className="request-patient-field">
                   <span className="request-patient-label">الاسم:</span>
-                  <span className="request-patient-value">{patientName || "غير محدد"}</span>
+                  <span className="request-patient-value">
+                    {patientName || "غير محدد"}
+                  </span>
                 </div>
                 <div className="request-patient-field">
                   <span className="request-patient-label">الكود:</span>
                   <span className="request-patient-value" dir="ltr">
-                    {patientCode || (patientId != null ? String(patientId) : "")}
+                    {patientCode ||
+                      (patientId != null ? String(patientId) : "")}
                   </span>
                 </div>
                 <div className="request-patient-field">
@@ -1460,7 +1312,9 @@ export default function RequestTests({
                 </div>
                 <div className="request-patient-diagnosis">
                   <span className="request-patient-label">التشخيص:</span>
-                  <span className="request-patient-value font-bold ms-1">{diagnosis || "غير محدد"}</span>
+                  <span className="request-patient-value font-bold ms-1">
+                    {diagnosis || "غير محدد"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1510,7 +1364,8 @@ export default function RequestTests({
                         <label className="block text-xs font-medium text-muted-foreground mb-1">
                           Notes / ملاحظات
                         </label>
-                        <Textarea aria-label="ملاحظات خاصة بهذا الفحص…"
+                        <Textarea
+                          aria-label="ملاحظات خاصة بهذا الفحص…"
                           value={test.notes}
                           readOnly={editingForbidden}
                           onChange={(e) =>
@@ -1551,9 +1406,19 @@ export default function RequestTests({
               <span>طلب الفحوصات والتحاليل</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={printProfile} onValueChange={value => setPrintProfile(value as "tests" | "radiology")}>
-                <SelectTrigger aria-label="قالب طباعة الطلب" className="w-36"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="tests">تحاليل وفحوصات</SelectItem><SelectItem value="radiology">أشعة</SelectItem></SelectContent>
+              <Select
+                value={printProfile}
+                onValueChange={(value) =>
+                  setPrintProfile(value as "tests" | "radiology")
+                }
+              >
+                <SelectTrigger aria-label="قالب طباعة الطلب" className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tests">تحاليل وفحوصات</SelectItem>
+                  <SelectItem value="radiology">أشعة</SelectItem>
+                </SelectContent>
               </Select>
               {!editingForbidden ? (
                 <Button

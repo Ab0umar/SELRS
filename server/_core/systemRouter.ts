@@ -5,6 +5,8 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import mysql from "mysql2/promise";
 import * as db from "../db";
+import { medicalMigrationConflicts } from "../../drizzle/clinical";
+import { desc, eq, sql } from "drizzle-orm";
 import { DIAGNOSTIC_CHECKS, runDiagnostic } from "../services/diagnosticRunner";
 
 type MigrationStatus = {
@@ -142,6 +144,40 @@ export const systemRouter = router({
   listMigrations: adminProcedure.query(async () => {
     return await listDrizzleMigrations();
   }),
+
+  medicalMigrationConflicts: adminProcedure
+    .input(
+      z
+        .object({
+          patientId: z.number().int().positive().optional(),
+          page: z.number().int().min(1).max(100000).default(1),
+        })
+        .default({ page: 1 }),
+    )
+    .query(async ({ input }) => {
+      const connection = await db.getDb();
+      if (!connection) throw new Error("Database not available");
+      const [metadata] = await connection.execute(
+        sql`SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND LOWER(TABLE_NAME)='medicalmigrationconflicts' LIMIT 1`,
+      );
+      if (!(metadata as unknown[]).length)
+        return { migrationRequired: true, total: 0, rows: [] };
+      const where = input.patientId
+        ? eq(medicalMigrationConflicts.patientId, input.patientId)
+        : undefined;
+      const [count] = await connection
+        .select({ total: sql<number>`COUNT(*)` })
+        .from(medicalMigrationConflicts)
+        .where(where);
+      const rows:typeof medicalMigrationConflicts.$inferSelect[] = await connection
+        .select()
+        .from(medicalMigrationConflicts)
+        .where(where)
+        .orderBy(desc(medicalMigrationConflicts.id))
+        .limit(50)
+        .offset((input.page - 1) * 50);
+      return { migrationRequired: false, total: Number(count.total), rows };
+    }),
 
   diagnosticChecks: adminProcedure.query(() => DIAGNOSTIC_CHECKS),
 

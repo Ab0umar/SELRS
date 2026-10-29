@@ -1,4 +1,22 @@
 import "dotenv/config";
+vi.mock("../services/marketing/equipmentAssets", async (original) => ({
+  ...(await original<typeof import("../services/marketing/equipmentAssets")>()),
+  readEquipmentPhoto: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("../services/marketing/pageBranding", () => ({
+  readMarketingPageBranding: vi.fn().mockResolvedValue({
+    pageRole: "center",
+    pageId: "1",
+    name: "Fixture",
+    address: "Fixture address",
+    phone: "000",
+    logo: Buffer.alloc(0),
+  }),
+  brandMarketingImageUrl: vi.fn(async (url: string) => url),
+  prepareMarketingPublication: vi.fn(
+    async (message: string, imageUrl: string | null) => ({ message, imageUrl }),
+  ),
+}));
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import mysql, { type Connection, type Pool } from "mysql2/promise";
@@ -17,6 +35,7 @@ import {
   aiWhatsAppDrafts,
   aiMarketingScheduler,
   aiMarketingScheduleClaims,
+  marketingReferenceDesigns,
 } from "../../drizzle/schema";
 import { publishMarketingPost } from "../services/marketing/publish.service";
 import { assertDraftImageAvailable } from "../services/marketing/draftImageClaim";
@@ -31,7 +50,9 @@ import {
   generateCentralMarketingDraft,
   withMarketingBudget,
   marketingUsageId,
+  persistMarketingImage,
 } from "../services/ai/marketingDraft";
+import { readEquipmentPhoto } from "../services/marketing/equipmentAssets";
 import { managedReplyPreview } from "../services/ai/replyPreview";
 import { generateWhatsAppCopy } from "../services/ai/whatsappCopy";
 import { z } from "zod";
@@ -39,12 +60,14 @@ const mocks = vi.hoisted(() => ({
   connect: vi.fn(),
   db: vi.fn(),
   readSetting: vi.fn(),
+  writeSetting: vi.fn(),
 }));
 vi.mock("../db", async (original) => ({
   ...(await original<typeof import("../db")>()),
   getDbConnection: mocks.connect,
   getDb: mocks.db,
   getSystemSetting: mocks.readSetting,
+  updateSystemSettings: mocks.writeSetting,
 }));
 import {
   readMedicalAssistantSettings,
@@ -104,6 +127,7 @@ describe.skipIf(!testUrl)(
         aiWhatsAppDrafts,
         aiMarketingScheduler,
         aiMarketingScheduleClaims,
+        marketingReferenceDesigns,
       ] as MySqlTable[]) {
         const config = getTableConfig(table);
         const columns = config.columns.map((column) => {
@@ -156,6 +180,14 @@ describe.skipIf(!testUrl)(
         );
         return rows[0] ?? null;
       });
+      mocks.writeSetting.mockImplementation(
+        async (key: string, value: unknown) => {
+          await pool!.execute(
+            "INSERT INTO systemSettings (`key`,value) VALUES (?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)",
+            [key, JSON.stringify(value)],
+          );
+        },
+      );
     });
     afterAll(async () => {
       await pool?.end();
@@ -215,6 +247,98 @@ describe.skipIf(!testUrl)(
         await store.updateProfile(original);
         vi.unstubAllEnvs();
       }
+    });
+    it("uses only an assigned real equipment image belonging to the selected page", async () => {
+      const equipment = await vi.importActual<
+        typeof import("../services/marketing/equipmentAssets")
+      >("../services/marketing/equipmentAssets");
+      await pool!.execute(
+        "INSERT INTO marketing_reference_designs (id,filename,original_name,file_path,file_url,mime_type,page_role) VALUES (9001,'device.png','Original device photo','fixture','/uploads/marketing/reference-designs/device.png','image/png','center')",
+      );
+      await equipment.saveEquipmentAssignment({
+        pageRole: "center",
+        kind: "pentacam",
+        referenceId: 9001,
+      });
+      expect(await equipment.readEquipmentPhoto("center", "البنتاكام")).toEqual(
+        {
+          id: 9001,
+          fileUrl: "/uploads/marketing/reference-designs/device.png",
+        },
+      );
+      await expect(
+        equipment.saveEquipmentAssignment({
+          pageRole: "doctor",
+          kind: "pentacam",
+          referenceId: 9001,
+        }),
+      ).rejects.toThrow("هذه الصفحة");
+      await pool!.execute(
+        "DELETE FROM marketing_reference_designs WHERE id=9001",
+      );
+      await expect(
+        equipment.readEquipmentPhoto("center", "البنتاكام"),
+      ).rejects.toThrow("غير موجودة");
+      await equipment.saveEquipmentAssignment({
+        pageRole: "center",
+        kind: "pentacam",
+        referenceId: null,
+      });
+      expect(
+        await equipment.readEquipmentPhoto("center", "البنتاكام"),
+      ).toBeNull();
+    });
+    it("attaches the assigned original equipment photo without reserving paid image generation", async () => {
+      const id = randomUUID();
+      await pool!.execute(
+        "INSERT INTO ai_marketing_jobs (id,kind,topic,page_role,post_day,state,execution_id) VALUES (?,'image','البنتاكام','center','saturday','running',?)",
+        [id, id],
+      );
+      vi.mocked(readEquipmentPhoto).mockResolvedValueOnce({
+        id: 9002,
+        fileUrl: "/uploads/marketing/reference-designs/original-pentacam.png",
+      });
+      expect(
+        await persistMarketingImage(id, id, {
+          instruction: "fixture",
+          input: "fixture",
+        }),
+      ).toBe("/uploads/marketing/reference-designs/original-pentacam.png");
+      expect(
+        await store.findRequest(marketingUsageId(id, "marketing.image")),
+      ).toBeNull();
+    });
+    it("updates an image from an assigned photo without requiring an enabled AI provider", async () => {
+      const { marketingRouter } = await import("../routers/marketing");
+      const { makeCallerAs } = await import("./helpers/auth");
+      await pool!.execute(
+        "INSERT INTO marketing_posts (id,title,content,topic,page_role,status) VALUES (9003,'Original device','Fixture','البنتاكام','center','draft')",
+      );
+      vi.mocked(readEquipmentPhoto).mockResolvedValueOnce({
+        id: 9002,
+        fileUrl: "/uploads/marketing/reference-designs/original-pentacam.png",
+      });
+      const id = randomUUID();
+      const result = await marketingRouter
+        .createCaller(makeCallerAs("admin"))
+        .generateImageForPost({ postId: 9003, requestId: id });
+      expect(result).toEqual({ jobId: null, source: "equipment" });
+      vi.mocked(readEquipmentPhoto).mockClear();
+      expect(
+        await marketingRouter
+          .createCaller(makeCallerAs("admin"))
+          .generateImageForPost({ postId: 9003, requestId: id }),
+      ).toEqual(result);
+      expect(readEquipmentPhoto).not.toHaveBeenCalled();
+      expect(
+        await store.findRequest(marketingUsageId(id, "marketing.image")),
+      ).toBeNull();
+      const [rows] = await pool!.execute<mysql.RowDataPacket[]>(
+        "SELECT image_url FROM marketing_posts WHERE id=9003",
+      );
+      expect(rows[0].image_url).toBe(
+        "/uploads/marketing/reference-designs/original-pentacam.png",
+      );
     });
     it("retains request binding and task identity across store instances", async () => {
       const id = randomUUID();

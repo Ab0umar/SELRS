@@ -1,5 +1,14 @@
 import { z } from "zod";
+import {
+  equipmentInput,
+  readEquipmentAssignments,
+  saveEquipmentAssignment,
+  readEquipmentPhoto,
+} from "../services/marketing/equipmentAssets";
+import { brandMarketingImageUrl } from "../services/marketing/pageBranding";
+import { assertDraftImageAvailable } from "../services/marketing/draftImageClaim";
 import type { RowDataPacket } from "mysql2/promise";
+import type { MySql2Database } from "drizzle-orm/mysql2";
 import { configuredMarketingAssistant } from "../../shared/marketing-assistant";
 import {
   AiManagementStore,
@@ -7,7 +16,7 @@ import {
 } from "../services/ai/managementStore";
 import { getDbConnection } from "../db";
 import { marketingGenerationInput } from "../../shared/ai-request-context";
-import { trackedAiOperation } from "../services/ai/operations";
+import { trackedAiOperation, readAiOperation } from "../services/ai/operations";
 import { readMarketingGenerationRequest } from "../services/marketing/generationRequest";
 import { readMarketingSchedulerStatus } from "../services/marketing/schedulerStatus";
 import {
@@ -585,6 +594,83 @@ export const marketingRouter = router({
         }
       }
       let model: "standard" | "lite" | "max" | undefined;
+      if (input.requestId) {
+        const operation = await readAiOperation(
+          input.requestId,
+          "marketing",
+          ctx.user.id,
+        );
+        if (operation) {
+          const saved = z
+            .object({ kind: z.literal("equipment-photo"), postId: z.number() })
+            .safeParse(operation.context);
+          if (
+            !saved.success ||
+            saved.data.postId !== post.id ||
+            operation.state !== "accepted"
+          )
+            throw new AiManagementError("duplicate");
+          return { jobId: null, source: "equipment" as const };
+        }
+      }
+      const originalPhoto = await readEquipmentPhoto(
+        post.pageRole,
+        post.topic || post.title,
+      );
+      if (originalPhoto) {
+        const imageUrl = await brandMarketingImageUrl(
+          originalPhoto.fileUrl,
+          post.pageRole,
+        );
+        return trackedAiOperation(
+          {
+            requestId,
+            scope: "marketing",
+            owner: ctx.user.id,
+            context: {
+              kind: "equipment-photo",
+              postId: post.id,
+              pageRole: post.pageRole,
+              referenceId: originalPhoto.id,
+            },
+          },
+          async (accept) => {
+            await db.transaction(
+              async (
+                tx: Pick<MySql2Database, "select" | "update" | "insert">,
+              ) => {
+                const [current] = await tx
+                  .select()
+                  .from(marketingPosts)
+                  .where(eq(marketingPosts.id, post.id))
+                  .for("update");
+                if (
+                  !current ||
+                  current.status !== "draft" ||
+                  current.pageRole !== post.pageRole ||
+                  current.topic !== post.topic
+                )
+                  throw new Error(
+                    "تغيرت المسودة؛ حدّثها قبل اختيار صورة الجهاز",
+                  );
+                await assertDraftImageAvailable(tx, post.id);
+                await tx
+                  .update(marketingPosts)
+                  .set({ imageUrl })
+                  .where(eq(marketingPosts.id, post.id));
+                await tx.insert(marketingLogs).values({
+                  postId: post.id,
+                  action: "equipment_photo",
+                  status: "success",
+                  message: `Original equipment photo ${originalPhoto.id}; no AI generation`,
+                });
+                await accept(tx);
+              },
+            );
+            return { jobId: null, source: "equipment" as const };
+          },
+        );
+      }
       if (process.env.AI_CORE_MANAGEMENT_ENABLED === "true") {
         const profile = (
           await new AiManagementStore(getDbConnection).listProfiles()
@@ -612,6 +698,12 @@ export const marketingRouter = router({
 
   // ─── Settings ─────────────────────────────────────────────
 
+  equipmentReferences: adminProcedure
+    .input(z.object({ pageRole: z.enum(["center", "doctor"]) }))
+    .query(({ input }) => readEquipmentAssignments(input.pageRole)),
+  setEquipmentReference: adminProcedure
+    .input(equipmentInput)
+    .mutation(({ input }) => saveEquipmentAssignment(input)),
   getSettings: adminProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");

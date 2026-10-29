@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("../services/marketing/equipmentAssets",async original=>({...await original<typeof import("../services/marketing/equipmentAssets")>(),readEquipmentPhoto:vi.fn().mockResolvedValue(null)}));
+vi.mock("../services/marketing/pageBranding",()=>({readMarketingPageBranding:vi.fn().mockResolvedValue({pageRole:"center",pageId:"1",name:"Fixture",address:"Fixture address",phone:"000",logo:Buffer.alloc(0)}),brandMarketingImageUrl:vi.fn(async(url:string)=>url),prepareMarketingPublication:vi.fn(async(message:string,imageUrl:string|null)=>({message,imageUrl}))}));
 import * as pageService from "../services/marketing/page.service";
 import * as jobContext from "../services/marketing/jobContext";
 import * as publisher from "../services/marketing/publish.service";

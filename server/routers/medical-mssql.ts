@@ -140,42 +140,6 @@ export const medicalMssqlRoutes = {
         Array.from(svcMap.keys()).slice(0, 10),
       );
 
-      const pageStateRows = await dbConn
-        .select({
-          patientId: patientPageStates.patientId,
-          data: patientPageStates.data,
-        })
-        .from(patientPageStates)
-        .where(eq(patientPageStates.page, "examination"));
-      const sheetTypeByPatientId = new Map<number, Record<string, string>>();
-      for (const row of pageStateRows) {
-        const patientId = Number(row.patientId ?? 0);
-        if (!patientId) continue;
-        const rawData = row.data as any;
-        const dataObj =
-          rawData && typeof rawData === "object"
-            ? rawData
-            : (() => {
-                try {
-                  return JSON.parse(String(rawData ?? "{}"));
-                } catch {
-                  return {};
-                }
-              })();
-        const rawMap =
-          dataObj && typeof dataObj.serviceSheetTypeByCode === "object"
-            ? (dataObj.serviceSheetTypeByCode as Record<string, unknown>)
-            : {};
-        const normalizedMap: Record<string, string> = {};
-        for (const [k, v] of Object.entries(rawMap)) {
-          const nk = normalizeServiceCodeKey(k);
-          const sv = String(v ?? "").trim();
-          if (nk && sv) normalizedMap[nk] = sv;
-        }
-        if (Object.keys(normalizedMap).length > 0)
-          sheetTypeByPatientId.set(patientId, normalizedMap);
-      }
-
       // Get all patients with their current service type
       const allPatients = await dbConn
         .select({
@@ -1059,129 +1023,23 @@ export const medicalMssqlRoutes = {
       // 1. Patient row from patients table
       const patientRow = await db.getPatientById(patientId);
 
-      // 2. Latest examination for this patient
-      const examinationRows = await dbConn
-        .select()
-        .from(examinations)
-        .where(eq(examinations.patientId, patientId))
-        .orderBy(desc(examinations.createdAt))
-        .limit(1);
-      const latestExam = examinationRows[0] ?? null;
-
-      // 3. Checklist from examination_checklist_items
-      let checklistNormalized: Record<string, boolean | null> | null = null;
-      if (latestExam) {
-        const checklistRows = await dbConn
-          .select()
-          .from(examinationChecklistItems)
-          .where(eq(examinationChecklistItems.examinationId, latestExam.id))
-          .limit(1);
-        if (checklistRows[0]) {
-          const row = checklistRows[0];
-          checklistNormalized = {
-            generalDiseases: row.generalDiseases ?? null,
-            pregnancyOrLactation: row.pregnancyOrLactation ?? null,
-            usesAllergySupplementsSteroidsOrPressureMeds:
-              row.usesAllergySupplementsSteroidsOrPressureMeds ?? null,
-            acneTreatment: row.acneTreatment ?? null,
-            familyKeratoconus: row.familyKeratoconus ?? null,
-            usesTearSubstituteOrExcessTearsOrSandySensation:
-              row.usesTearSubstituteOrExcessTearsOrSandySensation ?? null,
-            symptomsWorseWithAirOrAC: row.symptomsWorseWithAirOrAC ?? null,
-            glaucomaTreatment: row.glaucomaTreatment ?? null,
-          };
-        }
-      }
-
-      // 4. patientPageStates for examination page
-      const pageStateRows = await dbConn
-        .select()
-        .from(patientPageStates)
-        .where(
-          and(
-            eq(patientPageStates.patientId, patientId),
-            eq(patientPageStates.page, "examination"),
-          ),
-        )
-        .orderBy(desc(patientPageStates.updatedAt))
-        .limit(1);
-      const pageStateData = (pageStateRows[0]?.data ?? null) as Record<
-        string,
-        unknown
-      > | null;
-      const checklistInPageState = pageStateData
-        ? {
-            generalDiseases: pageStateData.generalDiseases ?? null,
-            pregnancyOrLactation: pageStateData.pregnancyOrLactation ?? null,
-            usesAllergySupplementsSteroidsOrPressureMeds:
-              pageStateData.usesAllergySupplementsSteroidsOrPressureMeds ??
-              null,
-            acneTreatment: pageStateData.acneTreatment ?? null,
-            familyKeratoconus: pageStateData.familyKeratoconus ?? null,
-            usesTearSubstituteOrExcessTearsOrSandySensation:
-              pageStateData.usesTearSubstituteOrExcessTearsOrSandySensation ??
-              null,
-            symptomsWorseWithAirOrAC:
-              pageStateData.symptomsWorseWithAirOrAC ?? null,
-            glaucomaTreatment: pageStateData.glaucomaTreatment ?? null,
-          }
-        : null;
-
-      // 5. Autorefractometry data (autoref + IOP)
-      const autorefRows = await dbConn
-        .select()
-        .from(autorefractometryData)
-        .where(eq(autorefractometryData.patientId, patientId))
-        .orderBy(desc(autorefractometryData.createdAt))
-        .limit(1);
-      const latestAutoref = autorefRows[0] ?? null;
-
-      // 6. After refraction data
-      const afterRefRows = latestExam
-        ? await dbConn
-            .select()
-            .from(afterRefractionData)
-            .where(eq(afterRefractionData.examinationId, latestExam.id))
-            .limit(1)
-        : [];
-      const afterRefData = afterRefRows[0] ?? null;
-
-      // 7. Glasses records
-      const glassesRows = await dbConn
-        .select()
-        .from(glassesRecords)
-        .where(eq(glassesRecords.patientId, patientId))
-        .orderBy(desc(glassesRecords.createdAt))
-        .limit(1);
-      const latestGlasses = glassesRows[0] ?? null;
-
-      // 8. Pentacam data
-      const pentacamRows = latestExam
-        ? await dbConn
-            .select()
-            .from(pentacamResults)
-            .where(eq(pentacamResults.visitId, latestExam.id))
-            .limit(1)
-        : [];
-      const pentacamData = pentacamRows[0] ?? null;
-
-      // 9. Doctor report (diagnosis, treatment)
-      const doctorReportRows = latestExam
-        ? await dbConn
-            .select()
-            .from(doctorReports)
-            .where(eq(doctorReports.visitId, latestExam.id))
-            .limit(1)
-        : [];
-      const doctorReportData = doctorReportRows[0] ?? null;
-
-      // 10. Test requests
-      const testReqRows = await dbConn
-        .select()
-        .from(testRequests)
-        .where(eq(testRequests.patientId, patientId))
-        .orderBy(desc(testRequests.createdAt))
-        .limit(1);
+      const examinationRows = await db.getExaminationsByPatient(patientId);
+      const latestExam = [...examinationRows].sort((a,b)=>Number(b.id)-Number(a.id))[0] ?? null;
+      const checklistNormalized = latestExam?.medicalChecklist ?? null;
+      const checklistInPageState = null;
+      const pageState = await db.getPatientPageState(patientId,"examination");
+      const pageStateData = pageState?.data as Record<string,unknown> | undefined;
+      const autorefRows = await db.getAutorefractometryByPatient(patientId);
+      const latestAutoref = autorefRows.find((row:{examinationId:number})=>Number(row.examinationId)===Number(latestExam?.id)) ?? null;
+      const afterRows = await db.getAfterRefractionByPatient(patientId);
+      const afterRefData = afterRows.find((row:{examinationId:number})=>Number(row.examinationId)===Number(latestExam?.id)) ?? null;
+      const glassesRows = await db.getGlassesRecordsByPatient(patientId);
+      const latestGlasses = glassesRows.find((row:{examinationId:number})=>Number(row.examinationId)===Number(latestExam?.id)) ?? null;
+      const pentacamRows = latestExam ? await db.getPentacamResultsByVisit(latestExam.visitId) : [];
+      const pentacamData = pentacamRows.find((row:{patientId:number})=>row.patientId===patientId) ?? null;
+      const doctorReportRows = latestExam ? await db.getDoctorReportsByVisit(latestExam.visitId) : [];
+      const doctorReportData = doctorReportRows.find((row:{patientId:number})=>row.patientId===patientId) ?? null;
+      const testReqRows = latestExam ? await db.getTestRequestsByVisit(latestExam.visitId) : [];
       const latestTestRequest = testReqRows[0] ?? null;
 
       return {
@@ -1200,7 +1058,7 @@ export const medicalMssqlRoutes = {
         latestExamId: latestExam?.id ?? null,
         checklistNormalized,
         checklistInPageState,
-        pageStateUpdatedAt: pageStateRows[0]?.updatedAt ?? null,
+        pageStateUpdatedAt: pageState?.updatedAt ?? null,
         pageStateSessionFields: pageStateData
           ? {
               doctorName: pageStateData.doctorName ?? null,

@@ -171,7 +171,9 @@ describe.skipIf(!testUrl)(
       vi.stubEnv("AUTO_REPLY_PUBLIC_ORIGIN", "https://selrs.cc");
       vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "999");
       for (const table of tableNames)
-        await pool.query(`TRUNCATE TABLE \`${table}\``);
+        await pool.query(`DELETE FROM \`${table}\``);
+      // Provider fixtures cite knowledge ID 1 in each isolated test case.
+      await pool.query("ALTER TABLE `auto_reply_knowledge` AUTO_INCREMENT = 1");
       vi.stubEnv("AUTO_REPLY_META_APP_SECRET", "fixture-secret");
       vi.stubEnv("AUTO_REPLY_META_APP_ID", "123");
       vi.stubEnv("AUTO_REPLY_META_GRAPH_VERSION", "v25.0");

@@ -14,6 +14,8 @@ export default defineConfig({
   test: {
     include: ["server/tests/**/*.test.ts"],
     setupFiles: ["server/tests/vitest.setup.ts"],
+    // Database-backed files reset shared test tables and must not overlap.
+    fileParallelism: false,
     testTimeout: 30_000,
   },
 });

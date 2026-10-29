@@ -1,6 +1,58 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { medicalProposalFields } from "../../../shared/medical-assistant";
+import {
+  medicalProposalFields,
+  MedicalProposalValidationError,
+} from "../../../shared/medical-assistant";
+
+export class GeminiDocumentationError extends Error {
+  constructor(
+    readonly reason:
+      "request" | "timeout" | "response" | "incomplete" | "invalid_json",
+    readonly httpStatus?: number,
+  ) {
+    super(
+      `Gemini documentation ${reason}${httpStatus ? ` HTTP ${httpStatus}` : ""}`,
+    );
+  }
+}
+
+export function geminiDocumentationFailure(error: unknown) {
+  let code = "unknown";
+  let message = "تعذرت معالجة النص بواسطة Gemini.";
+  if (error instanceof GeminiDocumentationError) {
+    code = error.reason;
+    if (error.reason === "request") {
+      code = `http_${error.httpStatus}`;
+      message =
+        error.httpStatus === 429
+          ? "وصل Gemini لحد الاستخدام أو الرصيد المتاح (HTTP 429)."
+          : error.httpStatus === 400
+            ? "رفض Gemini صيغة طلب استخراج الحقول (HTTP 400)."
+            : `تعذر طلب Gemini (HTTP ${error.httpStatus}).`;
+    } else if (error.reason === "timeout")
+      message = "انتهت مهلة معالجة Gemini.";
+    else if (error.reason === "incomplete")
+      message = "لم يُكمل Gemini الرد أو حُجب الرد.";
+    else message = "أعاد Gemini ردًا غير صالح للقراءة.";
+  } else if (error instanceof MedicalProposalValidationError) {
+    code = `validation_${error.reason}`;
+    const reasons = {
+      source: "الاستشهاد النصي في اقتراح Gemini لا يطابق التسجيل.",
+      scope: "اقتراح Gemini خارج نطاق الحقل أو الزيارة المحددة.",
+      speaker: "لم يتأكد أن القرار الطبي صادر عن الطبيب.",
+      duplicate_field: "أعاد Gemini أكثر من اقتراح للحقل نفسه.",
+    };
+    message = reasons[error.reason];
+  } else if (error instanceof z.ZodError) {
+    code = "validation_shape";
+    message = "صيغة حقول Gemini لا تطابق الحقول المطلوبة.";
+  }
+  return {
+    code,
+    message: `${message} النص محفوظ ولم يُطبّق تعديل أو يُرسل طلب بديل تلقائيًا.`,
+  };
+}
 
 export function medicalGeminiOptions() {
   return {
@@ -64,7 +116,7 @@ export async function extractGeminiProposals(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: "POST",
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(120000),
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": process.env.GEMINI_API_KEY!,
@@ -72,6 +124,9 @@ export async function extractGeminiProposals(
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
+          ...(/^gemini-3[.-]/.test(model)
+            ? { thinkingConfig: { thinkingLevel: "LOW" } }
+            : {}),
           maxOutputTokens: 8192,
           responseMimeType: "application/json",
           responseJsonSchema: {
@@ -81,7 +136,6 @@ export async function extractGeminiProposals(
             properties: {
               proposals: {
                 type: "array",
-                maxItems: 8,
                 items: {
                   type: "object",
                   additionalProperties: false,
@@ -94,6 +148,29 @@ export async function extractGeminiProposals(
                       type: "string",
                       enum: ["doctor", "patient", "uncertain"],
                     },
+                    medications: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        additionalProperties: false,
+                        required: [
+                          "name",
+                          "source",
+                          "dosage",
+                          "frequency",
+                          "duration",
+                          "instructions",
+                        ],
+                        properties: {
+                          name: { type: "string" },
+                          source: { type: "string" },
+                          dosage: { type: "string" },
+                          frequency: { type: "string" },
+                          duration: { type: "string" },
+                          instructions: { type: "string" },
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -103,34 +180,65 @@ export async function extractGeminiProposals(
         },
       }),
     },
-  );
+  ).catch((error: unknown) => {
+    if (
+      error instanceof Error &&
+      ["TimeoutError", "AbortError"].includes(error.name)
+    )
+      throw new GeminiDocumentationError("timeout");
+    throw error;
+  });
   if (!response.ok)
-    throw new Error(`Gemini documentation HTTP ${response.status}`);
-  const payload = responseSchema.parse(await response.json());
+    throw new GeminiDocumentationError("request", response.status);
+  const raw: unknown = await response.json();
+  const accounting = z
+    .object({
+      usageMetadata: z.object({
+        promptTokenCount: z
+          .number()
+          .int()
+          .nonnegative()
+          .max(Number.MAX_SAFE_INTEGER),
+        candidatesTokenCount: z
+          .number()
+          .int()
+          .nonnegative()
+          .max(Number.MAX_SAFE_INTEGER),
+        thoughtsTokenCount: z
+          .number()
+          .int()
+          .nonnegative()
+          .max(Number.MAX_SAFE_INTEGER)
+          .optional(),
+      }),
+    })
+    .safeParse(raw);
   if (
-    payload.usageMetadata &&
-    [
-      payload.usageMetadata.promptTokenCount,
-      payload.usageMetadata.candidatesTokenCount,
-      payload.usageMetadata.thoughtsTokenCount ?? 0,
-    ].every(
-      (count) =>
-        typeof count === "number" && Number.isSafeInteger(count) && count >= 0,
+    accounting.success &&
+    Number.isSafeInteger(
+      accounting.data.usageMetadata.candidatesTokenCount +
+        (accounting.data.usageMetadata.thoughtsTokenCount ?? 0),
     )
   )
     onUsage?.({
-      inputTokens: payload.usageMetadata.promptTokenCount ?? 0,
+      inputTokens: accounting.data.usageMetadata.promptTokenCount,
       outputTokens:
-        (payload.usageMetadata.candidatesTokenCount ?? 0) +
-        (payload.usageMetadata.thoughtsTokenCount ?? 0),
+        accounting.data.usageMetadata.candidatesTokenCount +
+        (accounting.data.usageMetadata.thoughtsTokenCount ?? 0),
     });
+  const parsed = responseSchema.safeParse(raw);
+  if (!parsed.success) throw new GeminiDocumentationError("response");
+  const payload = parsed.data;
   const candidate = payload.candidates[0];
   if (candidate.finishReason !== "STOP")
-    throw new Error("Gemini documentation output is incomplete or blocked");
-  return JSON.parse(
-    candidate.content.parts
-      .filter((part) => !part.thought)
-      .map((part) => part.text ?? "")
-      .join(""),
-  );
+    throw new GeminiDocumentationError("incomplete");
+  const output = candidate.content.parts
+    .filter((part) => !part.thought)
+    .map((part) => part.text ?? "")
+    .join("");
+  try {
+    return JSON.parse(output);
+  } catch {
+    throw new GeminiDocumentationError("invalid_json");
+  }
 }

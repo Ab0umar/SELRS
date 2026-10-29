@@ -89,8 +89,8 @@ function MedicalAssistantDialog({
           <DialogHeader className="border-b p-5 pr-12 text-left">
             <DialogTitle>Medical assistant</DialogTitle>
             <DialogDescription>
-              Full-visit recording. Review the transcript before AI processing.
-              No clinical fields are changed automatically.
+              سجّل الزيارة كاملة وراجع النص. المساعد يملأ مسودة الحقول، والحفظ
+              بعد مراجعتك فقط.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 overflow-y-auto p-5">
@@ -199,7 +199,7 @@ function MedicalAssistantDialog({
           </div>
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t p-5">
             <p className="text-sm text-muted-foreground">
-              Review changes before applying them to the form.
+              راجع التعديلات واختيارات الكتالوج، ثم اضغط حفظ الزيارة.
             </p>
           </footer>
         </DialogContent>

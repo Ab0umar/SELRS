@@ -73,6 +73,21 @@ export const medicalProposalSchema = z
             text: z.string().trim().min(1).max(6000),
             sources: z.array(z.string().min(1).max(4000)).min(1).max(12),
             speaker: z.enum(["doctor", "patient", "uncertain"]),
+            medications: z
+              .array(
+                z
+                  .object({
+                    name: z.string().trim().min(1).max(255),
+                    source: z.string().min(1).max(4000),
+                    dosage: z.string().max(255),
+                    frequency: z.string().max(255),
+                    duration: z.string().max(255),
+                    instructions: z.string().max(1000),
+                  })
+                  .strict(),
+              )
+              .max(20)
+              .optional(),
           })
           .strict(),
       )
@@ -104,6 +119,16 @@ export function validateMedicalProposals(
         "Duplicate proposal field",
       );
     seen.add(proposal.field);
+    if (
+      proposal.medications?.length &&
+      (proposal.field !== "treatment" ||
+        proposal.medications.some(
+          (item) => !input.transcript.includes(item.source),
+        ))
+    )
+      throw new Error(
+        "Medicine extraction is outside treatment scope or lacks transcript evidence",
+      );
     if ((input.kind === "field") !== (proposal.field === "field"))
       throw new MedicalProposalValidationError(
         "scope",

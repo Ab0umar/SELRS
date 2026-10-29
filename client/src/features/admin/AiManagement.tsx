@@ -54,14 +54,11 @@ function errorText(message: string) {
   return "تعذرت العملية. راجع حالة الخادم وسجل الطلبات قبل إعادة المحاولة.";
 }
 
-function ProfileEditor({
-  profile,
-  pending,
-}: {
-  profile: Profile;
-  pending: boolean;
-}) {
+function ProfileEditor({ profile }: { profile: Profile }) {
   const [draft, setDraft] = useState(profile);
+  useEffect(() => {
+    setDraft(profile);
+  }, [profile]);
   const [message, setMessage] = useState("");
   const utils = trpc.useUtils();
   const save = trpc.aiManagement.updateProfile.useMutation({ retry: false });
@@ -77,7 +74,9 @@ function ProfileEditor({
         try {
           await save.mutateAsync(draft);
           await utils.aiManagement.profiles.invalidate();
-          setMessage("تم حفظ إعدادات التجربة. الخدمات الحالية لم تتغير.");
+          setMessage(
+            "تم حفظ إعدادات المهمة. الحدود الجديدة تسري على الطلبات التالية، ولا تلغي حجوزات أو طلبات سابقة.",
+          );
         } catch (error) {
           setMessage(errorText(error instanceof Error ? error.message : ""));
         }
@@ -90,7 +89,7 @@ function ProfileEditor({
           <select
             aria-label="المزوّد"
             value={draft.provider}
-            disabled={save.isPending || pending}
+            disabled={save.isPending}
             onChange={(event) => {
               const provider = event.target.value as Profile["provider"];
               setDraft((current) => ({
@@ -116,7 +115,7 @@ function ProfileEditor({
             value={draft.model}
             required
             maxLength={100}
-            disabled={save.isPending || pending}
+            disabled={save.isPending}
             onChange={(event) =>
               setDraft((current) => ({ ...current, model: event.target.value }))
             }
@@ -130,7 +129,7 @@ function ProfileEditor({
             max={1000}
             required
             value={draft.dailyRequests}
-            disabled={save.isPending || pending}
+            disabled={save.isPending}
             onChange={(event) =>
               setDraft((current) => ({
                 ...current,
@@ -147,7 +146,7 @@ function ProfileEditor({
             max={10000000}
             required
             value={draft.dailyTokens}
-            disabled={save.isPending || pending}
+            disabled={save.isPending}
             onChange={(event) =>
               setDraft((current) => ({
                 ...current,
@@ -164,7 +163,7 @@ function ProfileEditor({
             max={5}
             required
             value={draft.maxConcurrent}
-            disabled={save.isPending || pending}
+            disabled={save.isPending}
             onChange={(event) =>
               setDraft((current) => ({
                 ...current,
@@ -178,7 +177,7 @@ function ProfileEditor({
         <input
           type="checkbox"
           checked={draft.enabled}
-          disabled={save.isPending || pending}
+          disabled={save.isPending}
           onChange={(event) =>
             setDraft((current) => ({
               ...current,
@@ -193,8 +192,8 @@ function ProfileEditor({
         Manus وحدتان مختلفتان وليستا ميزانية مالية.
       </p>
       <div className="ai-actions">
-        <Button type="submit" disabled={!dirty || save.isPending || pending}>
-          {save.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات التجربة"}
+        <Button type="submit" disabled={!dirty || save.isPending}>
+          {save.isPending ? "جارٍ الحفظ..." : "حفظ إعدادات المهمة"}
         </Button>
       </div>
       {message && (
@@ -461,11 +460,7 @@ export default function AiManagement({
             </label>
           )}
           {showProfiles && active && view === "settings" && (
-            <ProfileEditor
-              key={`${active.workload}:${JSON.stringify(active)}`}
-              profile={active}
-              pending={Boolean(requestId)}
-            />
+            <ProfileEditor key={active.workload} profile={active} />
           )}
           {view === "experiments" && active && (
             <section className="ai-panel space-y-3" aria-label="تجربة المهمة">

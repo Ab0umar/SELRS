@@ -38,7 +38,7 @@
   [data-queue-workspace] .queue-workspace-tabs { margin-bottom: 6px !important; }
   [data-queue-workspace] .queue-workspace-patients { gap: 6px; }
   [data-queue-workspace] .queue-workspace-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 6px;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 6px;
   }
   [data-queue-workspace] .queue-workspace-date {
     flex-direction: row; flex-wrap: wrap; align-items: center;
@@ -54,9 +54,10 @@
   [data-queue-patient-card] {
     position: relative; width: 100%; max-width: none; min-width: 0;
     min-height: 0 !important; padding: 0 !important;
+    display: flex; flex-direction: column;
   }
   [data-queue-patient-card] .queue-patient-service-rail {
-    position: absolute; inset-inline-start: 0; top: 0; bottom: 44px;
+    position: absolute; inset-inline-start: 0; top: 0; bottom: 38px;
     width: 24px; display: flex; align-items: center; justify-content: center;
     color: var(--queue-service);
     border-inline-end: 2.5px solid var(--queue-service);
@@ -72,7 +73,9 @@
     color: #e4ebf4;
     background: color-mix(in srgb, var(--queue-service) 20%, transparent);
   }
-  [data-queue-patient-card] .queue-patient-content { padding: 8px 8px 6px !important; }
+  [data-queue-patient-card] .queue-patient-content {
+    flex: 1; display: flex; flex-direction: column; padding: 8px 8px 6px !important;
+  }
   [data-queue-patient-card] .queue-patient-heading {
     display: block; position: relative; margin-inline-start: 24px; min-height: 52px;
   }
@@ -94,25 +97,26 @@
     white-space: normal; overflow-wrap: anywhere; font-weight: 700; color: var(--foreground);
   }
   [data-queue-patient-card] .queue-patient-service {
-    display: inline-flex !important; font-size: 10.5px; height: 20px; padding: 0 6px; font-weight: 700;
+    display: none !important;
   }
-  [data-queue-patient-card] :is(.queue-patient-clinic, .queue-patient-desktop-visit) { display: none; }
+  [data-queue-patient-card] :is(.queue-patient-clinic, .queue-patient-desktop-visit, .queue-patient-desktop-command) { display: none; }
   [data-queue-patient-card] .queue-patient-mobile-visit { display: flex; }
   [data-queue-patient-card] .queue-patient-more { display: flex; }
   [data-queue-patient-card] .queue-patient-actions {
     display: flex; justify-content: space-between; align-items: center; gap: 4px;
     border-top: 1px solid color-mix(in srgb, var(--queue-service) 15%, transparent);
-    margin: 6px 0 0 !important; padding: 4px 6px 0 !important;
+    margin: auto 0 0 !important; padding: 4px 0 0 !important;
   }
+  [data-queue-patient-card] .queue-patient-actions > div { flex: 1; min-width: 0; gap: 2px; }
   [data-queue-patient-card] .queue-patient-actions button {
-    width: 28px !important; height: 28px !important;
-    min-width: 28px !important; min-height: 28px !important; padding: 0 !important;
+    width: 28px !important; height: 28px !important; flex: 0 1 28px;
+    min-width: 22px !important; min-height: 28px !important; padding: 0 !important;
     border-radius: 6px;
   }
   [data-queue-patient-card] .queue-patient-actions svg { width: 15px; height: 15px; }
   [data-queue-patient-card] .queue-patient-visit-link {
-    width: 30px !important; height: 30px !important;
-    min-width: 30px !important; min-height: 30px !important;
+    width: 28px !important; height: 28px !important; flex: 0 0 28px;
+    min-width: 28px !important; min-height: 28px !important;
     color: var(--queue-service);
   }
   .dark [data-queue-patient-card] .queue-patient-visit-link { color: #cfdbff; }

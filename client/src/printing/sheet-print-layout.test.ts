@@ -35,7 +35,7 @@ describe("medical sheet print layout regressions", () => {
     expect(consultant).toContain('sheetType = "consultant"');
     expect(consultant).toContain('sheetType?: "consultant" | "specialist"');
     expect(consultant).toContain('data-followup-kind={sheetType}');
-    expect(consultant).toContain('titleAr={sheetType === "consultant" ? "متابعة الاستشاري" : "متابعة الأخصائي"}');
+    expect(consultant.replace(/\s+/g, " ")).toContain('titleAr={ sheetType === "consultant" ? "متابعة الاستشاري" : "متابعة الأخصائي" }');
     expect(lasik).toContain('data-followup-kind="lasik"');
     expect(lasik).toContain('titleAr="متابعة الليزك"');
   });

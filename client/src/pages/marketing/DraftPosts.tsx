@@ -69,9 +69,13 @@ export default function DraftPosts() {
   const generateImageMutation = trpc.marketing.generateImageForPost.useMutation(
     {
       retry: false,
-      onSuccess: (_data, variables) => {
+      onSuccess: (data, variables) => {
         imageRequests.current.delete(variables.postId);
-        toast.info("بدأ توليد الصورة؛ يمكنك متابعة المهمة أدناه");
+        toast.info(
+          data.jobId === null
+            ? "تم استخدام صورة الجهاز الأصلية مع لوجو الصفحة"
+            : "بدأ توليد الصورة؛ يمكنك متابعة المهمة أدناه",
+        );
         void utils.marketing.generationJobs.invalidate();
         void utils.marketing.centralGenerationJobs.invalidate();
         setImageGenId(null);

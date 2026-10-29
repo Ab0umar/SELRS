@@ -1295,7 +1295,7 @@ function AdminPanel() {
             return (
               <Link key={item.href} href={item.href} className="group block">
                 <div className="flex items-start gap-4 p-4 -m-4 rounded-2xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors group-hover:bg-primary/10 group-hover:text-primary dark:group-hover:bg-primary/20">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors group-hover:bg-primary/10 group-hover:text-primary dark:group-hover:bg-primary/20">
                     <Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <div className="pt-1">
