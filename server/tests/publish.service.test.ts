@@ -1,4 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("../services/marketing/equipmentAssets", async (original) => ({
+  ...(await original<typeof import("../services/marketing/equipmentAssets")>()),
+  readEquipmentPhoto: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("../services/marketing/pageBranding", () => ({
+  readMarketingPageBranding: vi
+    .fn()
+    .mockResolvedValue({
+      pageRole: "center",
+      pageId: "1",
+      name: "Fixture",
+      address: "Fixture address",
+      phone: "000",
+      logo: Buffer.alloc(0),
+    }),
+  brandMarketingImageUrl: vi.fn(async (url: string) => url),
+  prepareMarketingPublication: vi.fn(
+    async (message: string, imageUrl: string | null) => ({ message, imageUrl }),
+  ),
+}));
 vi.mock("../services/marketing/topicHistory", () => ({
   reserveTopicPublication: vi.fn(async () => "topic-key"),
   confirmTopicPublication: vi.fn(),
@@ -38,6 +58,7 @@ import {
   MarketingPublishError,
   publishMarketingPost,
 } from "../services/marketing/publish.service";
+import { prepareMarketingPublication } from "../services/marketing/pageBranding";
 
 function chain<T>(value: T) {
   const result: {
@@ -113,6 +134,23 @@ function createDb(selectValues: unknown[]) {
 }
 
 describe("marketing post publishing", () => {
+  it("releases a claim without posting if page identity cannot be prepared", async () => {
+    const { db, statusUpdates } = createDb([[post], [], [settings]]);
+    vi.mocked(getDb).mockResolvedValue(db as never);
+    vi.mocked(prepareMarketingPublication).mockRejectedValueOnce(
+      new Error("missing page address"),
+    );
+    await expect(publishMarketingPost(7)).rejects.toMatchObject({
+      uncertain: false,
+      message: "missing page address",
+    });
+    expect(publishPostToFacebook).not.toHaveBeenCalled();
+    expect(statusUpdates).toEqual([
+      { status: "publishing" },
+      { status: "draft" },
+    ]);
+    expect(releaseTopicPublication).toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(reserveTopicPublication).mockResolvedValue("topic-key");
@@ -139,7 +177,12 @@ describe("marketing post publishing", () => {
     );
     expect(statusUpdates).toEqual([
       { status: "publishing" },
-      { status: "published", publishedAt: expect.any(Date), fbPostId: "fb-7" },
+      {
+        status: "published",
+        publishedAt: expect.any(Date),
+        fbPostId: "fb-7",
+        imageUrl: post.imageUrl,
+      },
     ]);
     expect(confirmTopicPublication).toHaveBeenCalledWith(
       expect.anything(),

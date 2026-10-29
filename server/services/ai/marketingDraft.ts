@@ -1,6 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import { settleAiFailure } from "./failure";
 import { marketingReferences } from "./marketingReferences";
+import { readEquipmentPhoto } from "../marketing/equipmentAssets";
+import { medicalVisualDirection } from "../marketing/medicalVisuals";
+import {
+  readMarketingPageBranding,
+  brandMarketingImageUrl,
+} from "../marketing/pageBranding";
 import { marketingImagePrompt } from "../marketing/imagePolicy";
 import { assertMarketingTopicAvailable } from "../marketing/topicHistory";
 import fs from "node:fs/promises";
@@ -160,11 +166,44 @@ export async function persistMarketingImage(
   if (!db) throw new AiManagementError("unavailable");
   const usageId = marketingUsageId(usageParent, "marketing.image");
   const [owner] = await db
-    .select({ pageRole: aiMarketingJobs.pageRole })
+    .select({
+      pageRole: aiMarketingJobs.pageRole,
+      topic: aiMarketingJobs.topic,
+    })
     .from(aiMarketingJobs)
     .where(eq(aiMarketingJobs.id, jobId));
   if (!owner) throw new AiManagementError("unavailable");
-  const references = await marketingReferences(owner.pageRole);
+  const branding = await readMarketingPageBranding(owner.pageRole);
+  const equipmentPhoto = await readEquipmentPhoto(
+    owner.pageRole,
+    owner.topic ?? "",
+  );
+  if (equipmentPhoto) {
+    const imageUrl = await brandMarketingImageUrl(
+      equipmentPhoto.fileUrl,
+      owner.pageRole,
+      branding,
+    );
+    const [written] = await db
+      .update(aiMarketingJobs)
+      .set({
+        imageArtifact: imageUrl,
+        imageUsageId: null,
+        referenceIds: JSON.stringify([equipmentPhoto.id]),
+      })
+      .where(
+        and(
+          eq(aiMarketingJobs.id, jobId),
+          eq(aiMarketingJobs.state, "running"),
+          eq(aiMarketingJobs.executionId, usageParent),
+        ),
+      );
+    if (!written.affectedRows) throw new StaleMarketingExecutionError();
+    return imageUrl;
+  }
+  const references = medicalVisualDirection(owner.topic ?? "").knownTopic
+    ? { images: [], ids: [] }
+    : await marketingReferences(owner.pageRole);
   const [claimed] = await db
     .update(aiMarketingJobs)
     .set({
@@ -222,7 +261,22 @@ export async function persistMarketingImage(
             eq(aiMarketingJobs.executionId, usageParent),
           ),
         );
-      return imageUrl;
+      const brandedUrl = await brandMarketingImageUrl(
+        imageUrl,
+        owner.pageRole,
+        branding,
+      );
+      await db
+        .update(aiMarketingJobs)
+        .set({ imageArtifact: brandedUrl })
+        .where(
+          and(
+            eq(aiMarketingJobs.id, jobId),
+            eq(aiMarketingJobs.imageUsageId, usageId),
+            eq(aiMarketingJobs.executionId, usageParent),
+          ),
+        );
+      return brandedUrl;
     },
   );
 }

@@ -146,6 +146,7 @@
     "react-hook-form": "^7.91.0",
     "react-resizable-panels": "^4.14.8",
     "recharts": "^3.10.1",
+    "sharp": "0.35.4",
     "sonner": "^2.0.8",
     "streamdown": "^2.7.1",
     "superjson": "^2.2.6",
