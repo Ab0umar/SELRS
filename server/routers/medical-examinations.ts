@@ -74,6 +74,14 @@ export const medicalExaminationsRoutes = {
     return await db.getMedicalTotals();
   }),
 
+  getPatientRegistrationTrend: clinicalStaffProcedure
+    .input(
+      z.object({ months: z.number().int().min(1).max(36).default(12) }).optional(),
+    )
+    .query(async ({ input }) => {
+      return await db.getPatientRegistrationTrend(input?.months ?? 12);
+    }),
+
   getOperations: clinicalStaffProcedure
     .input(
       z

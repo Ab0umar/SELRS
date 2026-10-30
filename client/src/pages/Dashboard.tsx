@@ -39,7 +39,7 @@ import { OperationsBookingQuickDialog } from "@/components/operations/Operations
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import { formatMoneyAr } from "../features/accounting/accountingFormat";
 import "@/styles/frontdesk-design.css";
@@ -579,7 +579,7 @@ function TodayPanel({
               <SectionHeader title="أقسام المركز" />
               <div className="p-3 sm:p-4">
                 <Suspense fallback={<ChartLoading />}>
-                  <DepartmentWorkloadChart />
+                  <DepartmentWorkloadChart selectedDate={selectedDate} />
                 </Suspense>
               </div>
             </Surface>
@@ -1413,6 +1413,12 @@ export default function Dashboard() {
     const tab = new URLSearchParams(window.location.search).get("tab");
     return TABS.some((item) => item.id === tab) ? (tab as TabId) : "today";
   });
+
+  const search = useSearch();
+  useEffect(() => {
+    const tab = new URLSearchParams(search).get("tab");
+    setActiveTab(TABS.some((item) => item.id === tab) ? (tab as TabId) : "today");
+  }, [search]);
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => t.permPath === null || canAccess(t.permPath)),

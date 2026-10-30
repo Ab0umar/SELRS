@@ -7804,7 +7804,22 @@ export async function getMedicalTotals() {
         NULLIF(TRIM(COALESCE(${pentacamResults.keratometryOS}, '')), '') IS NOT NULL OR
         NULLIF(TRIM(COALESCE(${pentacamResults.notes}, '')), '') IS NOT NULL
       )`),
-    db.select({ c: sql<number>`COUNT(*)` }).from(appointments),
+    // Operations = distinct patient+day with a service entry whose code belongs to an active operation service in the catalog.
+    db
+      .select({
+        c: sql<number>`COUNT(DISTINCT ${patientServiceEntries.patientId}, ${patientServiceEntries.serviceDate})`,
+      })
+      .from(patientServiceEntries)
+      .where(
+        sql`${patientServiceEntries.serviceCode} IN (
+          SELECT ${services.code} FROM ${services}
+          WHERE ${services.isActive} = 1
+            AND (
+              ${services.category} IN ('operations', 'عمليات')
+              OR ${services.serviceType} IN ('surgery', 'surgery_center', 'surgery_external')
+            )
+        )`,
+      ),
   ]);
 
   return {
@@ -7814,6 +7829,34 @@ export async function getMedicalTotals() {
     pentacam: Number(pentacamRows[0]?.c ?? 0),
     operations: Number(operationsRows[0]?.c ?? 0),
   };
+}
+
+/** Patients registered per month (patients.createdAt) over the last `months` months, oldest first. */
+export async function getPatientRegistrationTrend(months = 12) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const span = Math.max(1, Math.min(36, Math.floor(months)));
+  const monthKey = sql<string>`DATE_FORMAT(${patients.createdAt}, '%Y-%m')`;
+  const rows = await db
+    .select({ month: monthKey, count: sql<number>`COUNT(*)` })
+    .from(patients)
+    .where(
+      sql`${patients.createdAt} >= DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL ${span - 1} MONTH)`,
+    )
+    .groupBy(monthKey);
+
+  const countByMonth = new Map<string, number>(
+    rows.map((r: { month: string; count: number }) => [String(r.month), Number(r.count)]),
+  );
+  const now = new Date();
+  const out: Array<{ month: string; count: number }> = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ month: key, count: countByMonth.get(key) ?? 0 });
+  }
+  return out;
 }
 
 /**

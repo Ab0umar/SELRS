@@ -44,68 +44,52 @@ const trendChartConfig: ChartConfig = {
   },
 };
 
-function monthKeyUtc(d: Date) {
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-/** Buckets `createdAt` from latest patient page (حد 500 صفحة) على 12 شهرًا؛ عيّنة وليس إجمالي النظام. */
+/** Monthly new-patient registrations over the last 12 months (server-side aggregate over all patients). */
 export function PatientTrendChart() {
   const trendGradId = `fillPatientTrend-${useId().replace(/:/g, "")}`;
-  const patientsQuery = trpc.medical.getAllPatients.useQuery({ limit: 500 });
-  const rows = patientsQuery.data?.rows ?? [];
+  const trendQuery = trpc.medical.getPatientRegistrationTrend.useQuery(
+    { months: 12 },
+    { refetchOnWindowFocus: false },
+  );
+  const rows = trendQuery.data ?? [];
 
-  const chartData = useMemo(() => {
-    const now = new Date();
-    const keys: string[] = [];
-    for (let i = 11; i >= 0; i--) {
-      const anchor = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
-      );
-      keys.push(monthKeyUtc(anchor));
-    }
-    const counts = new Map<string, number>();
-    for (const k of keys) counts.set(k, 0);
-    for (const row of rows) {
-      const raw = (row as { createdAt?: string | Date | null }).createdAt;
-      if (raw == null) continue;
-      const dt = new Date(raw as string);
-      if (Number.isNaN(dt.getTime())) continue;
-      const key = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}`;
-      if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    return keys.map((key) => {
-      const [y, m] = key.split("-").map(Number);
-      const label = new Date(Date.UTC(y, (m ?? 1) - 1, 1)).toLocaleDateString(
-        "ar-EG",
-        {
-          month: "short",
-          year: "numeric",
-        },
-      );
-      return { key, label, count: counts.get(key) ?? 0 };
-    });
-  }, [rows]);
+  const chartData = useMemo(
+    () =>
+      rows.map(({ month, count }) => {
+        const [y, m] = month.split("-").map(Number);
+        const label = new Date(Date.UTC(y, (m ?? 1) - 1, 1)).toLocaleDateString(
+          "ar-EG",
+          { month: "short", year: "numeric" },
+        );
+        return { key: month, label, count };
+      }),
+    [rows],
+  );
 
   const totalMonthsWithData = chartData.filter((d) => d.count > 0).length;
 
-  if (patientsQuery.isLoading) {
+  if (trendQuery.isLoading) {
     return (
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">
-          وفقًا لأحدث 500 سجل — توزيع شهري تقريبي
+          المرضى المسجلون شهريًا — آخر 12 شهرًا
         </p>
         <Skeleton className="h-[180px] sm:h-[220px] w-full" />
       </div>
     );
   }
 
-  if (totalMonthsWithData === 0 || rows.length === 0) {
+  if (trendQuery.isError) {
+    return <EmptyChart message="تعذر تحميل اتجاه المرضى" />;
+  }
+
+  if (totalMonthsWithData === 0) {
     return (
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">
-          وفقًا لأحدث 500 سجل — توزيع شهري تقريبي
+          المرضى المسجلون شهريًا — آخر 12 شهرًا
         </p>
-        <EmptyChart message="لا تاريخ تسجيل في العيّنة الحالية" />
+        <EmptyChart message="لا يوجد مرضى مسجلون في آخر 12 شهرًا" />
       </div>
     );
   }
@@ -113,8 +97,7 @@ export function PatientTrendChart() {
   return (
     <div className="space-y-1">
       <p className="text-sm text-muted-foreground">
-        وفقًا لأحدث 500 سجل — توزيع شهري تقريبي (
-        {rows.length.toLocaleString("ar-EG")} صفوف)
+        المرضى المسجلون شهريًا — آخر 12 شهرًا ({chartData.reduce((n, d) => n + d.count, 0).toLocaleString("ar-EG")} مريض)
       </p>
       <ChartContainer
         config={trendChartConfig}
@@ -295,8 +278,8 @@ const workloadChartConfig: ChartConfig = {
 };
 
 /** توزيع نوع الخدمة لمراجعي اليوم (من المرضى الممزوج live). */
-export function DepartmentWorkloadChart() {
-  const queue = useTodayQueuePatientsMerged();
+export function DepartmentWorkloadChart({ selectedDate }: { selectedDate?: string }) {
+  const queue = useTodayQueuePatientsMerged(selectedDate);
   const { merged, isLoading } = queue;
 
   const data = useMemo(() => {

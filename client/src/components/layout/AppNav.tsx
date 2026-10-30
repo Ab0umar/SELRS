@@ -176,7 +176,7 @@ export const adminNavGroups: NavGroup[] = [
   {
     icon: Activity,
     label: "لوحة التحكم",
-    path: "/dashboard?tab=admin",
+    path: "/dashboard?tab=today",
     isMain: true,
   },
   attendanceNavGroup,
