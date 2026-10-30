@@ -15,17 +15,8 @@ import { OperationsBookingQuickDialog } from "@/components/operations/Operations
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getLocalDateIso } from "@/hooks/operations/operationsShared";
-import {
-  Users,
-  Activity,
-  Clock,
-  Syringe,
-  CalendarDays,
-  RefreshCw,
-} from "lucide-react";
+import { CalendarDays, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatCard, STAT_CARDS_MOBILE_ROW } from "@/components/shared/StatCard";
-import { formatCount, summarizeToday } from "@/components/today/todaySummary";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function TodayPatients() {
@@ -42,7 +33,6 @@ export default function TodayPatients() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [portalBookingOpen, setPortalBookingOpen] = useState(false);
-  const [totalsOpen, setTotalsOpen] = useState(true);
   const [quickActionsOpen, setQuickActionsOpen] = usePersistedOpenState(
     `selrs:today-patients:quick-actions-open:${user?.id ?? "anon"}`,
     true,
@@ -53,23 +43,13 @@ export default function TodayPatients() {
   const utils = trpc.useUtils();
 
   const queue = useTodayQueuePatientsMerged(selectedDate);
-  const { merged, isLoading: queueLoading, isError } = queue;
-  const opsQuery = trpc.medical.getTodayOperationLists.useQuery(
-    { date: selectedDate },
-    { refetchOnWindowFocus: false },
-  );
+  const { isLoading: queueLoading } = queue;
 
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
   }, [isAuthenticated, setLocation]);
 
-  // opsCount sums the operations inside each list (not the number of lists),
-  // so the strip agrees with the Operations tab badge.
-  const summary = summarizeToday(merged, opsQuery.data);
-  const queuePending = queueLoading || isError;
-  const opsPending = opsQuery.isLoading || opsQuery.isError;
-
-  const isLoading = queueLoading || opsQuery.isLoading;
+  const isLoading = queueLoading;
   const refreshToday = () => {
     void utils.medical.getTodayPatientsByQueueStatus.invalidate();
     void utils.medical.getTodayOperationLists.invalidate();
@@ -147,58 +127,6 @@ export default function TodayPatients() {
               </QuickActionsDisclosure>
             </div>
           </div>
-        </div>
-
-        {/* ── Today Summary Strip ──────────────────────────────────────── */}
-        <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
-          <Button
-            variant="bare"
-            type="button"
-            aria-expanded={totalsOpen}
-            onClick={() => setTotalsOpen((open) => !open)}
-            className="mb-2 flex w-full items-center justify-between rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            ملخص اليوم
-            <span aria-hidden>{totalsOpen ? "−" : "+"}</span>
-          </Button>
-          {totalsOpen ? (
-            <div
-              className={cn(
-                STAT_CARDS_MOBILE_ROW,
-                "sm:grid sm:grid-cols-4 sm:gap-3",
-              )}
-            >
-              <StatCard
-                label="مرضى اليوم"
-                value={queuePending ? "—" : formatCount(summary.total)}
-                icon={Users}
-                iconColor="bg-primary/10 text-primary"
-              />
-              <StatCard
-                label="تم معالجتهم"
-                value={queuePending ? "—" : formatCount(summary.treated)}
-                icon={Activity}
-                iconColor="bg-success/15 text-success"
-                description={
-                  queuePending
-                    ? undefined
-                    : `نسبة الإنجاز ${summary.completionRate}%`
-                }
-              />
-              <StatCard
-                label="في الانتظار"
-                value={queuePending ? "—" : formatCount(summary.waiting)}
-                icon={Clock}
-                iconColor="bg-warning/15 text-warning-text"
-              />
-              <StatCard
-                label="العمليات"
-                value={opsPending ? "—" : formatCount(summary.opsCount)}
-                icon={Syringe}
-                iconColor="bg-secondary/15 text-primary"
-              />
-            </div>
-          ) : null}
         </div>
 
         {/* ── Main Appointments Bento Card ──────────────────────────────── */}
