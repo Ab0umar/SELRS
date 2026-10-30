@@ -169,11 +169,27 @@ export async function readVisitSections(
     if (!summaries.has(id)) summaries.set(id, {});
     summaries.get(id)![key] = value;
   };
-  for (const section of sections) {
-    const rows = await connection
+  // The section tables are independent: read them in parallel, then apply in order.
+  const [sectionRows, codes, symptoms] = await Promise.all([
+    Promise.all(
+      sections.map((section) =>
+        connection
+          .select()
+          .from(section.table)
+          .where(inArray(section.table.visitId, ids)),
+      ),
+    ),
+    connection
       .select()
-      .from(section.table)
-      .where(inArray(section.table.visitId, ids));
+      .from(visitDiagnosisCodes)
+      .where(inArray(visitDiagnosisCodes.visitId, ids)),
+    connection
+      .select()
+      .from(visitSymptomCodes)
+      .where(inArray(visitSymptomCodes.visitId, ids)),
+  ]);
+  for (const [index, section] of sections.entries()) {
+    const rows = sectionRows[index];
     for (const row of rows) {
       add(
         row.visitId,
@@ -188,10 +204,6 @@ export async function readVisitSections(
         );
     }
   }
-  const codes = await connection
-    .select()
-    .from(visitDiagnosisCodes)
-    .where(inArray(visitDiagnosisCodes.visitId, ids));
   for (const id of ids)
     if (summaries.has(id))
       add(
@@ -199,10 +211,6 @@ export async function readVisitSections(
         "diseaseIds",
         codes.filter((row) => row.visitId === id).map((row) => row.diseaseId),
       );
-  const symptoms = await connection
-    .select()
-    .from(visitSymptomCodes)
-    .where(inArray(visitSymptomCodes.visitId, ids));
   for (const id of ids)
     add(
       id,

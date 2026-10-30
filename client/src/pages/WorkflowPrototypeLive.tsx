@@ -863,6 +863,35 @@ export default function WorkflowPrototypeLive() {
   }, [selectedLivePatient?.id, selectedLivePatient?.visitId]);
   const activeWorkflowVisitId =
     workflowVisitId ?? selectedLivePatient?.visitId ?? undefined;
+  const prefetchPatientId = selectedLivePatient?.id;
+  useEffect(() => {
+    // Warm the queries of the first tabs (measurements, examination, diagnosis)
+    // in one batched request so switching to them doesn't wait on the network.
+    if (!prefetchPatientId) return;
+    const patientId = prefetchPatientId;
+    const visitId = activeWorkflowVisitId;
+    const medical = trpcUtils.medical;
+    // Let the open tab's own requests go out first; a shared batch would wait on the slowest query.
+    const timer = window.setTimeout(() => void Promise.allSettled([
+      medical.getExaminationsByPatient.prefetch({ patientId }),
+      medical.getAutorefractometryByPatient.prefetch({ patientId }),
+      medical.getAfterRefractionByPatient.prefetch({ patientId }),
+      medical.getGlassesRecordsByPatient.prefetch({ patientId }),
+      medical.getVisitsByPatient.prefetch({ patientId }),
+      medical.getSheetEntry.prefetch({
+        patientId,
+        visitId,
+        sheetType: "consultant",
+      }),
+      medical.getAllSymptoms.prefetch(undefined, { staleTime: 10 * 60 * 1000 }),
+      medical.getAllDiseases.prefetch(undefined, { staleTime: 10 * 60 * 1000 }),
+      ...(visitId
+        ? [medical.getDoctorReportsByVisit.prefetch({ visitId })]
+        : []),
+    ]), 700);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefetchPatientId, activeWorkflowVisitId]);
   useEffect(() => {
     if (!activeWorkflowVisitId) return;
     setData(createInitialData());

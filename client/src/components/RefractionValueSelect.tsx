@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -40,9 +41,18 @@ export default function RefractionValueSelect({
   const effectiveValue =
     normalizedValue || (hasZeroDash ? ZERO_DASH_VALUE : EMPTY_SELECT_VALUE);
 
+  // Radix mounts every SelectItem even while closed. With 80-240 options per
+  // field and dozens of fields per tab that made the tabs slow, so while closed
+  // only the selected item is mounted (enough for SelectValue to show its text).
+  const [open, setOpen] = useState(false);
+  const selectedLabel =
+    effectiveValue === EMPTY_SELECT_VALUE ? "----" : effectiveValue;
+
   return (
     <span className="block w-full print:contents">
       <Select
+        open={open}
+        onOpenChange={setOpen}
         value={effectiveValue}
         onValueChange={(nextValue) =>
           onChange(nextValue === EMPTY_SELECT_VALUE ? "" : nextValue)
@@ -56,14 +66,20 @@ export default function RefractionValueSelect({
           <SelectValue placeholder={placeholder ?? "----"} />
         </SelectTrigger>
         <SelectContent className={className} position="item-aligned">
-          {!hasZeroDash && (
-            <SelectItem value={EMPTY_SELECT_VALUE}>----</SelectItem>
+          {open ? (
+            <>
+              {!hasZeroDash && (
+                <SelectItem value={EMPTY_SELECT_VALUE}>----</SelectItem>
+              )}
+              {options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </>
+          ) : (
+            <SelectItem value={effectiveValue}>{selectedLabel}</SelectItem>
           )}
-          {options.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
         </SelectContent>
       </Select>
       {/* Print shows the raw value as plain text over a fill-in line; an

@@ -4756,12 +4756,14 @@ export async function updateDoctorReport(reportId:number,updates:any) {
 async function hydrateDoctorReports<T extends {visitId:number}>(rows:T[]) {
   const connection=await getDb();
   if(!connection) throw new Error("Database not available");
-  const sections=await readVisitSections(connection,rows.map(row=>row.visitId));
   const ids=[...new Set(rows.map(row=>row.visitId))];
-  const visitHeaders:typeof visits.$inferSelect[]=ids.length ? await connection.select().from(visits).where(inArray(visits.id,ids)) : [];
   type PrescriptionLine={visitId:number|null;name:string;dosage:string|null;frequency:string|null;duration:string|null;instructions:string|null};
-  const prescriptionLines:PrescriptionLine[]=ids.length ? await connection.select({visitId:prescriptions.visitId,name:sql<string>`COALESCE(${prescriptionItems.medicationName}, ${medications.name})`,dosage:prescriptionItems.dosage,frequency:prescriptionItems.frequency,duration:prescriptionItems.duration,instructions:prescriptionItems.instructions}).from(prescriptions).innerJoin(visits,and(eq(visits.id,prescriptions.visitId),eq(visits.patientId,prescriptions.patientId))).innerJoin(prescriptionItems,eq(prescriptionItems.prescriptionId,prescriptions.id)).leftJoin(medications,eq(medications.id,prescriptionItems.medicationId)).where(inArray(prescriptions.visitId,ids)).orderBy(desc(prescriptions.id),prescriptionItems.id) : [];
-  const operations:typeof surgeries.$inferSelect[]=ids.length ? await connection.select().from(surgeries).where(and(inArray(surgeries.visitId,ids),ne(surgeries.status,"cancelled"))) : [];
+  const [sections,visitHeaders,prescriptionLines,operations]=await Promise.all([
+    readVisitSections(connection,rows.map(row=>row.visitId)),
+    (ids.length ? connection.select().from(visits).where(inArray(visits.id,ids)) : Promise.resolve([])) as Promise<typeof visits.$inferSelect[]>,
+    (ids.length ? connection.select({visitId:prescriptions.visitId,name:sql<string>`COALESCE(${prescriptionItems.medicationName}, ${medications.name})`,dosage:prescriptionItems.dosage,frequency:prescriptionItems.frequency,duration:prescriptionItems.duration,instructions:prescriptionItems.instructions}).from(prescriptions).innerJoin(visits,and(eq(visits.id,prescriptions.visitId),eq(visits.patientId,prescriptions.patientId))).innerJoin(prescriptionItems,eq(prescriptionItems.prescriptionId,prescriptions.id)).leftJoin(medications,eq(medications.id,prescriptionItems.medicationId)).where(inArray(prescriptions.visitId,ids)).orderBy(desc(prescriptions.id),prescriptionItems.id) : Promise.resolve([])) as Promise<PrescriptionLine[]>,
+    (ids.length ? connection.select().from(surgeries).where(and(inArray(surgeries.visitId,ids),ne(surgeries.status,"cancelled"))) : Promise.resolve([])) as Promise<typeof surgeries.$inferSelect[]>,
+  ]);
   return rows.map(row=>{
     const section=sections.get(row.visitId);
     return {...row,prescription:prescriptionLines.filter(item=>item.visitId===row.visitId).map(item=>[item.name,item.dosage,item.frequency,item.duration,item.instructions].filter(value=>value!==null && value.trim()).join(" - ")).join("\n"),visitDate:visitHeaders.find(visit=>visit.id===row.visitId)?.visitDate ?? null,operationType:[...new Set(operations.filter(operation=>operation.visitId===row.visitId).map(operation=>operation.surgeryType).filter(Boolean))].join(", "),diagnosis:String(section?.diagnosis ?? ""),treatment:String(section?.treatment ?? ""),recommendations:String(section?.decision ?? ""),additionalNotes:String(section?.history ?? ""),clinicalOpinion:String(section?.complaint ?? ""),symptoms:String(section?.symptoms ?? ""),diseases:JSON.stringify(section?.diseaseIds ?? []),followUpDate:(section?.followUpDate ?? null) as Date|null};
