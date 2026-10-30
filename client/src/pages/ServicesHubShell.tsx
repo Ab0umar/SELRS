@@ -13,7 +13,7 @@ const AdminServices = lazy(() => import("../features/admin/AdminServices"));
 
 type HubTabKey = "drug-reference" | "registry" | "services";
 
-const TAB_ORDER: HubTabKey[] = ["drug-reference", "registry", "services"];
+const TAB_ORDER: HubTabKey[] = ["registry", "services", "drug-reference"];
 
 const TAB_META: Record<
   HubTabKey,

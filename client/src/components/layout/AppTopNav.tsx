@@ -21,6 +21,9 @@ import {
   ArrowRight,
   Banknote,
   CalendarCheck,
+  FileSpreadsheet,
+  FileText,
+  Sparkles,
   CalendarDays,
   ChevronDown,
   Clock,
@@ -74,6 +77,33 @@ function tabActive(location: string, path: string): boolean {
   if (locBase === navBase) return true;
   if (navBase.length <= 1) return false;
   return locBase.startsWith(`${navBase}/`);
+}
+
+type AdminTopNavChild = { icon: typeof Users; label: string; path: string };
+type AdminTopNavItem =
+  | {
+      type: "link";
+      icon: typeof Users;
+      label: string;
+      path: string;
+      paths?: string[];
+      iconOnly?: boolean;
+    }
+  | {
+      type: "menu";
+      key: string;
+      icon: typeof Users;
+      label: string;
+      items: AdminTopNavChild[];
+    };
+
+function navTabClass(active: boolean): string {
+  return cn(
+    "my-auto flex h-12 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-none border-b-2 px-2.5 text-[11px] font-semibold leading-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-3",
+    active
+      ? "border-primary text-primary font-bold"
+      : "border-transparent text-muted-foreground hover:text-foreground",
+  );
 }
 
 type AppTopNavProps = {
@@ -209,7 +239,7 @@ export function AppTopNav({
       },
       {
         icon: Users,
-        label: "مركز المريض",
+        label: "المرضى",
         path: "/patient-hub",
         key: "patients",
         paths: [
@@ -239,28 +269,12 @@ export function AppTopNav({
         checkPath: "/accounting",
       },
       {
-        icon: Hospital,
-        label: "كفرالشيخ",
-        path: "/kf",
-        key: "kf",
-        paths: ["/kf"],
-        checkPath: "/kf",
-      },
-      {
         icon: Archive,
         label: "المخزن",
         path: "/stockroom",
         key: "stockroom",
         paths: ["/stockroom"],
         checkPath: "/stockroom",
-      },
-      {
-        icon: DollarSign,
-        label: "المرتبات",
-        path: "/salary",
-        key: "salary",
-        paths: ["/salary"],
-        checkPath: "/salary",
       },
       {
         icon: Activity,
@@ -280,6 +294,22 @@ export function AppTopNav({
         roles: ["doctor", "technician", "manager"],
       },
       {
+        icon: DollarSign,
+        label: "المرتبات",
+        path: "/salary",
+        key: "salary",
+        paths: ["/salary"],
+        checkPath: "/salary",
+      },
+      {
+        icon: Hospital,
+        label: "كفرالشيخ",
+        path: "/kf",
+        key: "kf",
+        paths: ["/kf"],
+        checkPath: "/kf",
+      },
+      {
         icon: Archive,
         label: "أرشيف",
         path: "/archive",
@@ -296,7 +326,7 @@ export function AppTopNav({
       },
       {
         icon: MessageCircle,
-        label: "رسائل واتساب",
+        label: "واتساب",
         path: "/admin-hub/whatsapp-inbox",
         key: "whatsapp-inbox",
         paths: ["/admin-hub/whatsapp-inbox"],
@@ -321,32 +351,37 @@ export function AppTopNav({
     });
   }, [isAdmin, allNavTabs, permissionsQuery.isSuccess, allowedRoots, userRole]);
 
-  const adminTopNavItems = useMemo(
+  const aiNavItems = useMemo<AdminTopNavChild[]>(
+    () =>
+      adminNavGroups.flatMap((group) =>
+        "items" in group && group.navKey === "ai" ? group.items : [],
+      ),
+    [],
+  );
+
+  const adminTopNavItems = useMemo<AdminTopNavItem[]>(
     () => [
       {
-        type: "link" as const,
+        type: "link",
         icon: LayoutDashboard,
         label: "لوحة التحكم",
-        path: "/dashboard?tab=admin",
+        path: "/dashboard?tab=today",
+        iconOnly: true,
       },
       {
-        type: "link" as const,
+        type: "link",
         icon: Network,
-        label: "مركز المريض",
+        label: "المرضى",
         path: "/patient-hub",
       },
       {
-        type: "menu" as const,
-        key: "finance-stock",
+        type: "link",
         icon: Banknote,
-        label: "الحسابات والمخزن",
-        items: [
-          { icon: Banknote, label: "الحسابات", path: "/accounting" },
-          { icon: Archive, label: "المخزن", path: "/stockroom" },
-        ],
+        label: "الحسابات",
+        path: "/accounting",
       },
       {
-        type: "menu" as const,
+        type: "menu",
         key: "employees",
         icon: Users,
         label: "الموظفين",
@@ -356,13 +391,17 @@ export function AppTopNav({
         ],
       },
       {
-        type: "link" as const,
-        icon: Hospital,
-        label: "كفرالشيخ",
-        path: "/kf",
+        type: "menu",
+        key: "records",
+        icon: ScrollText,
+        label: "السجل",
+        items: [
+          { icon: History, label: "سجلات المرضى", path: "/records/patients" },
+          { icon: Activity, label: "السجلات الطبية", path: "/records/medical" },
+        ],
       },
       {
-        type: "link" as const,
+        type: "link",
         icon: Archive,
         label: "أرشيف",
         path: "/archive",
@@ -376,19 +415,50 @@ export function AppTopNav({
         ],
       },
       {
-        type: "link" as const,
-        icon: LayoutDashboard,
-        label: "الذكاء الاصطناعي",
-        path: "/ai",
+        type: "link",
+        icon: FileSpreadsheet,
+        label: "الشيتات",
+        path: "/sheets",
       },
       {
-        type: "link" as const,
+        type: "link",
+        icon: FileText,
+        label: "التقارير",
+        path: "/reports",
+      },
+      {
+        type: "menu",
+        key: "ai",
+        icon: Sparkles,
+        label: "AI",
+        items: aiNavItems,
+      },
+      {
+        type: "link",
+        icon: Syringe,
+        label: "العمليات",
+        path: "/operations",
+      },
+      {
+        type: "link",
+        icon: Archive,
+        label: "المخزن",
+        path: "/stockroom",
+      },
+      {
+        type: "link",
+        icon: Hospital,
+        label: "كفرالشيخ",
+        path: "/kf",
+      },
+      {
+        type: "link",
         icon: Settings,
-        label: "مركز الإدارة",
+        label: "الإدارة",
         path: "/admin-hub",
       },
     ],
-    [],
+    [aiNavItems],
   );
 
   const accountingItems = useMemo(
@@ -431,6 +501,11 @@ export function AppTopNav({
       "/records/patients",
       "/medical-reports",
     ]);
+    if (isAdmin) {
+      ["ai", "clinics-sheets", "clinics-reports"].forEach((key) =>
+        excludedSections.add(key),
+      );
+    }
     const remainingSections = sections
       .filter((section) => !excludedSections.has(section.navKey ?? ""))
       .map((section) => ({
@@ -453,12 +528,16 @@ export function AppTopNav({
       : [];
 
     return [
-      {
-        label: "سجل",
-        navKey: "records",
-        groupPath: "/patients-hub",
-        items: recordItems,
-      },
+      ...(isAdmin
+        ? []
+        : [
+            {
+              label: "سجل",
+              navKey: "records",
+              groupPath: "/patients-hub",
+              items: recordItems,
+            },
+          ]),
       ...marketingSection,
       ...remainingSections,
     ].filter((section) => section.items.length > 0);
@@ -545,12 +624,7 @@ export function AppTopNav({
                       : item.items.some((child) =>
                           tabActive(location, child.path),
                         );
-                  const triggerClassName = cn(
-                    "my-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-3",
-                    active
-                      ? "border-primary/20 bg-primary/10 text-primary font-bold shadow-xs dark:bg-primary/15 dark:text-primary dark:border-primary/25"
-                      : "border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                  );
+                  const triggerClassName = navTabClass(active);
 
                   if (item.type === "link") {
                     return (
@@ -561,13 +635,17 @@ export function AppTopNav({
                         data-nav-active={active ? "true" : "false"}
                         onClick={() => onNavigate(item.path)}
                         className={triggerClassName}
+                        aria-label={item.label}
+                        title={item.label}
                       >
                         <Icon
-                          className="h-3.5 w-3.5 shrink-0"
+                          className="h-4 w-4 shrink-0"
                           strokeWidth={active ? 2.2 : 1.8}
                           aria-hidden
                         />
-                        <span>{item.label}</span>
+                        <span className={cn(item.iconOnly && "sr-only")}>
+                          {item.label}
+                        </span>
                       </Button>
                     );
                   }
@@ -582,15 +660,17 @@ export function AppTopNav({
                           className={triggerClassName}
                         >
                           <Icon
-                            className="h-3.5 w-3.5 shrink-0"
+                            className="h-4 w-4 shrink-0"
                             strokeWidth={active ? 2.2 : 1.8}
                             aria-hidden
                           />
-                          <span>{item.label}</span>
-                          <ChevronDown
-                            className="h-3 w-3 shrink-0 opacity-60"
-                            aria-hidden
-                          />
+                          <span className="inline-flex items-center gap-0.5">
+                            {item.label}
+                            <ChevronDown
+                              className="h-3 w-3 shrink-0 opacity-60"
+                              aria-hidden
+                            />
+                          </span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
@@ -628,15 +708,10 @@ export function AppTopNav({
                       type="button"
                       data-nav-active={active ? "true" : "false"}
                       onClick={() => onNavigate(tab.path)}
-                      className={cn(
-                        "my-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs font-semibold transition-colors xl:px-3",
-                        active
-                          ? "border-primary/20 bg-primary/10 text-primary font-bold shadow-xs dark:bg-primary/15 dark:text-primary dark:border-primary/25"
-                          : "border-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                      )}
+                      className={navTabClass(active)}
                     >
                       <Icon
-                        className="h-3.5 w-3.5 shrink-0"
+                        className="h-4 w-4 shrink-0"
                         strokeWidth={active ? 2.2 : 1.8}
                         aria-hidden
                       />

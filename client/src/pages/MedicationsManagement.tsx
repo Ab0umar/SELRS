@@ -25,6 +25,7 @@ import {
   MessageSquareWarning,
   Microscope,
   Pill,
+  Plus,
   Save,
   Trash2,
   Edit2,
@@ -36,6 +37,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { OfflinePageState } from "@/components/OfflinePageState";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadXlsx } from "@/lib/xlsx";
 
@@ -159,6 +161,7 @@ export default function MedicationsManagement({
 
   const [newSymptom, setNewSymptom] = useState({ name: "" });
   const [editingSymptomId, setEditingSymptomId] = useState<string | null>(null);
+  const [formDialog, setFormDialog] = useState<RegistryTab | null>(null);
   const [delConfirmMed, setDelConfirmMed] = useState<number | null>(null);
   const [delConfirmTest, setDelConfirmTest] = useState<number | null>(null);
   const [delConfirmDisease, setDelConfirmDisease] = useState<number | null>(
@@ -495,6 +498,23 @@ export default function MedicationsManagement({
     });
   };
 
+  const closeFormDialog = () => {
+    setFormDialog(null);
+    setEditingId(null);
+    resetMedForm();
+    setEditingTestId(null);
+    resetTestForm();
+    setEditingDiseaseId(null);
+    setNewDisease({ name: "", branch: "", abbrev: "" });
+    setEditingSymptomId(null);
+    setNewSymptom({ name: "" });
+  };
+
+  const openFormDialog = (tab: RegistryTab) => {
+    closeFormDialog();
+    setFormDialog(tab);
+  };
+
   const handleSaveMedication = async () => {
     if (!newMedication.name.trim()) {
       toast.error("يرجى إدخال اسم الدواء");
@@ -518,6 +538,7 @@ export default function MedicationsManagement({
       });
     }
 
+    setFormDialog(null);
     resetMedForm();
   };
 
@@ -528,6 +549,7 @@ export default function MedicationsManagement({
       strength: medication.strength ?? "",
     });
     setEditingId(medication.id);
+    setFormDialog("medications");
   };
 
   const handleDeleteMedication = async (id: number) => {
@@ -647,6 +669,7 @@ export default function MedicationsManagement({
         category: category || undefined,
       });
     }
+    setFormDialog(null);
     resetTestForm();
   };
 
@@ -657,6 +680,7 @@ export default function MedicationsManagement({
       category: test.category ?? "",
     });
     setEditingTestId(test.id);
+    setFormDialog("tests");
   };
 
   const handleDeleteTest = async (id: number) => {
@@ -768,6 +792,7 @@ export default function MedicationsManagement({
         abbrev: newDisease.abbrev.trim() || undefined,
       });
     }
+    setFormDialog(null);
     setNewDisease({ name: "", branch: "", abbrev: "" });
   };
 
@@ -778,6 +803,7 @@ export default function MedicationsManagement({
       abbrev: disease.abbrev ?? "",
     });
     setEditingDiseaseId(disease.id);
+    setFormDialog("diseases");
   };
 
   const handleDeleteDisease = async (id: number) => {
@@ -869,12 +895,14 @@ export default function MedicationsManagement({
         name: newSymptom.name.trim(),
       });
     }
+    setFormDialog(null);
     setNewSymptom({ name: "" });
   };
 
   const handleEditSymptom = (symptom: { id: string; name: string }) => {
     setNewSymptom({ name: symptom.name ?? "" });
     setEditingSymptomId(symptom.id);
+    setFormDialog("symptoms");
   };
 
   const handleDeleteSymptom = async (symptomId: string) => {
@@ -929,6 +957,7 @@ export default function MedicationsManagement({
         onValueChange={handleRegistryTabChange}
         persistKey="medications-management"
         className="w-full"
+        dir="rtl"
       >
         <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl border border-border bg-muted/30 p-1.5 sm:grid-cols-4">
           <TabsTrigger
@@ -944,21 +973,29 @@ export default function MedicationsManagement({
             الفحوصات
           </TabsTrigger>
           <TabsTrigger
-            value="diseases"
-            className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
-          >
-            الأمراض
-          </TabsTrigger>
-          <TabsTrigger
             value="symptoms"
             className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
           >
             الأعراض
           </TabsTrigger>
+          <TabsTrigger
+            value="diseases"
+            className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
+          >
+            الأمراض
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="medications" className="mt-0">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+            <Dialog
+              open={formDialog === "medications"}
+              onOpenChange={(open) => {
+                if (!open) closeFormDialog();
+              }}
+            >
+              <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+                <DialogTitle className="sr-only">قائمة الأدوية</DialogTitle>
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
@@ -1060,10 +1097,23 @@ export default function MedicationsManagement({
                 </div>
               </CardContent>
             </Card>
+              </DialogContent>
+            </Dialog>
 
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="border-b border-border/80 py-4">
-                <CardTitle className="text-base">قائمة الأدوية</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">قائمة الأدوية</CardTitle>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => openFormDialog("medications")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة
+                  </Button>
+                </div>
                 <CardDescription>
                   {medications.length} دواء مسجّل
                 </CardDescription>
@@ -1168,7 +1218,15 @@ export default function MedicationsManagement({
         </TabsContent>
 
         <TabsContent value="tests" className="mt-0">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+            <Dialog
+              open={formDialog === "tests"}
+              onOpenChange={(open) => {
+                if (!open) closeFormDialog();
+              }}
+            >
+              <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+                <DialogTitle className="sr-only">قائمة الفحوصات</DialogTitle>
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
@@ -1255,10 +1313,23 @@ export default function MedicationsManagement({
                 </div>
               </CardContent>
             </Card>
+              </DialogContent>
+            </Dialog>
 
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="border-b border-border/80 py-4">
-                <CardTitle className="text-base">قائمة الفحوصات</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">قائمة الفحوصات</CardTitle>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => openFormDialog("tests")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة
+                  </Button>
+                </div>
                 <CardDescription>{tests.length} فحص مسجّل</CardDescription>
                 <SearchBar
                   value={testListSearch}
@@ -1534,7 +1605,15 @@ export default function MedicationsManagement({
         </TabsContent>
 
         <TabsContent value="diseases" className="mt-0">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+            <Dialog
+              open={formDialog === "diseases"}
+              onOpenChange={(open) => {
+                if (!open) closeFormDialog();
+              }}
+            >
+              <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+                <DialogTitle className="sr-only">قائمة الأمراض</DialogTitle>
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
@@ -1613,10 +1692,23 @@ export default function MedicationsManagement({
                 </div>
               </CardContent>
             </Card>
+              </DialogContent>
+            </Dialog>
 
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="border-b border-border/80 py-4">
-                <CardTitle className="text-base">قائمة الأمراض</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">قائمة الأمراض</CardTitle>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => openFormDialog("diseases")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة
+                  </Button>
+                </div>
                 <CardDescription>{diseases.length} مرض مسجّل</CardDescription>
                 <SearchBar
                   value={diseaseListSearch}
@@ -1711,7 +1803,15 @@ export default function MedicationsManagement({
         </TabsContent>
 
         <TabsContent value="symptoms" className="mt-0">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+            <Dialog
+              open={formDialog === "symptoms"}
+              onOpenChange={(open) => {
+                if (!open) closeFormDialog();
+              }}
+            >
+              <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+                <DialogTitle className="sr-only">قائمة الأعراض</DialogTitle>
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="space-y-1 border-b border-border/80 bg-muted/20 pb-4">
                 <div className="flex items-center gap-2">
@@ -1768,10 +1868,23 @@ export default function MedicationsManagement({
                 </div>
               </CardContent>
             </Card>
+              </DialogContent>
+            </Dialog>
 
             <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="border-b border-border/80 py-4">
-                <CardTitle className="text-base">قائمة الأعراض</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">قائمة الأعراض</CardTitle>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => openFormDialog("symptoms")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة
+                  </Button>
+                </div>
                 <CardDescription>{symptoms.length} عرض مسجّل</CardDescription>
                 <SearchBar
                   value={symptomListSearch}
