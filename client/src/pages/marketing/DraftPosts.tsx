@@ -321,7 +321,7 @@ export default function DraftPosts() {
                           if (!imageRequests.current.has(post.id))
                             imageRequests.current.set(
                               post.id,
-                              crypto.randomUUID(),
+                              createRequestId(),
                             );
                           generateImageMutation.mutate({
                             postId: post.id,
@@ -572,3 +572,4 @@ export default function DraftPosts() {
     </div>
   );
 }
+import { createRequestId } from "@/lib/request-id";

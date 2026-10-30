@@ -12,6 +12,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import "./AiManagement.css";
+import {
+  isMarketingWorkload,
+  GROK_TEXT_MODEL,
+  GROK_IMAGE_MODEL,
+} from "@shared/marketing-providers";
+import { createRequestId } from "@/lib/request-id";
 
 type Output = inferRouterOutputs<AppRouter>["aiManagement"];
 type Profile = Output["profiles"][number];
@@ -98,14 +104,21 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 model:
                   provider === "manus"
                     ? "lite"
-                    : profile.workload === "marketing.image"
-                      ? "gemini-nano-banana-2.1"
-                      : "gemini-3.8-flash",
+                    : provider === "grok"
+                      ? profile.workload === "marketing.image"
+                        ? GROK_IMAGE_MODEL
+                        : GROK_TEXT_MODEL
+                      : profile.workload === "marketing.image"
+                        ? "gemini-nano-banana-2.1"
+                        : "gemini-3.8-flash",
               }));
             }}
           >
             <option value="gemini">Gemini</option>
             <option value="manus">Manus</option>
+            {isMarketingWorkload(profile.workload) && (
+              <option value="grok">Grok</option>
+            )}
           </select>
         </label>
         <label>
@@ -139,7 +152,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
           />
         </label>
         <label>
-          الحد اليومي لتوكنات Gemini
+          الحد اليومي لتوكنات النص والصور
           <Input
             type="number"
             min={16384}
@@ -188,8 +201,8 @@ function ProfileEditor({ profile }: { profile: Profile }) {
         تفعيل هذه المهمة
       </label>
       <p className="ai-help">
-        الحدود تخص الطلبات التي تمر عبر الموديول المركزي. توكنات Gemini وأرصدة
-        Manus وحدتان مختلفتان وليستا ميزانية مالية.
+        الحدود تخص الطلبات التي تمر عبر الموديول المركزي. التوكنات وأرصدة Manus
+        وحدات مختلفة وليست ميزانية مالية. Grok متاح لنصوص وصور التسويق فقط.
       </p>
       <div className="ai-actions">
         <Button type="submit" disabled={!dirty || save.isPending}>
@@ -290,7 +303,7 @@ export default function AiManagement({
     if (profile.workload === "medical.documentation") return;
     setConfirm(undefined);
     sending.current = true;
-    const id = crypto.randomUUID();
+    const id = createRequestId();
     setRequestId(id);
     setImage(undefined);
     setMessage("");
@@ -395,6 +408,14 @@ export default function AiManagement({
               : "يلزم تطبيق جداول الموديول وتفعيل AI_CORE_MANAGEMENT_ENABLED على الخادم قبل الحفظ أو التوليد."}
           </p>
           <dl className="ai-credentials">
+            <div>
+              <dt>مفتاح Grok للتسويق</dt>
+              <dd>
+                {status.data.credentials.grok
+                  ? "موجود على الخادم"
+                  : "غير مضبوط"}
+              </dd>
+            </div>
             <div>
               <dt>مفتاح Gemini العام</dt>
               <dd>
@@ -610,9 +631,13 @@ export default function AiManagement({
             </DialogTitle>
             <DialogDescription>
               سيُرسل طلب واحد إلى{" "}
-              {confirm?.provider === "manus" ? "Manus" : "Gemini"}، وقد يستهلك
-              رصيدًا مدفوعًا. سنستخدم بيانات ثابتة فقط، بدون نشر أو إرسال رسائل
-              أو بيانات مرضى.
+              {confirm?.provider === "manus"
+                ? "Manus"
+                : confirm?.provider === "grok"
+                  ? "Grok"
+                  : "Gemini"}
+              ، وقد يستهلك رصيدًا مدفوعًا. سنستخدم بيانات ثابتة فقط، بدون نشر أو
+              إرسال رسائل أو بيانات مرضى.
             </DialogDescription>
           </DialogHeader>
           <div className="ai-actions">

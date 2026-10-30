@@ -85,7 +85,7 @@ function buildImagePrompt(
     : "Color palette: deep blue, white, clean medical tones.";
 
   return marketingImagePrompt(
-    `Professional medical marketing photograph for an Arabic ophthalmology center. Visual: ${hint}. ${brandPart} Ultra-high quality, no text, no Arabic writing, no words, no numbers on the image. Photorealistic, cinematic lighting. Medical center branding aesthetic.`,
+    `Professional complete Arabic medical marketing poster. Visual: ${hint}. ${brandPart} Integrate a readable Arabic headline and concise educational explanation with the main visual. No invented contact details, logo or exaggerated glow.`,
   );
 }
 
@@ -100,7 +100,7 @@ function buildFinalImagePrompt(
     `${buildBrandAwareImagePrompt(topic, brandProfile)}
 
 Visual subject: ${topicHint}
-Photorealistic medical marketing image, with no text, Arabic writing, logo, watermark, or overlaid words.`.trim(),
+Complete Arabic medical marketing poster, combining a readable headline and concise educational explanation with the medical visual. No invented logo, contact details or watermark.`.trim(),
   );
 }
 

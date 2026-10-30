@@ -1,6 +1,6 @@
 type Profile = {
   workload: string;
-  provider: "gemini" | "manus";
+  provider: "gemini" | "manus" | "grok";
   model: string;
   enabled: boolean;
 };
@@ -13,9 +13,9 @@ export function configuredMarketingAssistant(profiles: readonly Profile[]) {
   );
   if (!text?.enabled || !image?.enabled || text.provider !== image.provider)
     return undefined;
-  if (text.provider === "gemini")
+  if (text.provider === "gemini" || text.provider === "grok")
     return {
-      provider: "gemini" as const,
+      provider: text.provider,
       model: text.model,
       imageModel: image.model,
     };
@@ -32,7 +32,7 @@ export function configuredMarketingAssistant(profiles: readonly Profile[]) {
 export function marketingAssistantValue(
   assistant: NonNullable<ReturnType<typeof configuredMarketingAssistant>>,
 ) {
-  return assistant.provider === "gemini"
-    ? `gemini:${assistant.model}|${assistant.imageModel}`
+  return assistant.provider !== "manus"
+    ? `${assistant.provider}:${assistant.model}|${assistant.imageModel}`
     : `manus:${assistant.model}`;
 }

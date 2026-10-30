@@ -84,7 +84,7 @@ async function generateWithFal(
         guidance_scale: 2.5,
       }
     : {
-        prompt: `Professional, photorealistic medical marketing image for an Arabic ophthalmology center. ${prompt}. No text, no Arabic writing, no logo, no watermark.`,
+        prompt: `Professional complete Arabic medical marketing poster. ${prompt}. Integrate a readable Arabic headline and explanatory copy with the medical visual. No invented logo or watermark.`,
         image_size: "square_hd",
       };
 
@@ -177,7 +177,7 @@ async function generateWithOpenAI(
         `Study their visual style: color palette, layout, lighting, photography style, and aesthetic. ` +
         `Generate a COMPLETELY NEW professional medical marketing image for this topic: ${prompt}. ` +
         `The new image must look like it belongs to the same brand family. ` +
-        `No text, no Arabic writing, no watermarks, photorealistic, ultra high quality.`;
+        `Integrate readable Arabic headline and explanatory copy. No invented logos or watermarks; preserve the topic's medical accuracy.`;
 
       const editResponse = await (client.images as any).edit({
         model: "gpt-image-1",

@@ -80,7 +80,7 @@ export const aiMarketingScheduleClaims = mysqlTable(
 
 export const aiCoreProfiles = mysqlTable("ai_core_profiles", {
   workload: varchar("workload", { length: 40 }).primaryKey(),
-  provider: mysqlEnum("provider", ["gemini", "manus"]).notNull(),
+  provider: mysqlEnum("provider", ["gemini", "manus", "grok"]).notNull(),
   model: varchar("model", { length: 100 }).notNull(),
   enabled: boolean("enabled").default(false).notNull(),
   dailyRequests: int("daily_requests", { unsigned: true })
@@ -97,7 +97,7 @@ export const aiCoreUsage = mysqlTable(
   {
     requestId: varchar("request_id", { length: 36 }).primaryKey(),
     workload: varchar("workload", { length: 40 }).notNull(),
-    provider: mysqlEnum("provider", ["gemini", "manus"]).notNull(),
+    provider: mysqlEnum("provider", ["gemini", "manus", "grok"]).notNull(),
     model: varchar("model", { length: 100 }).notNull(),
     budgetDay: char("budget_day", { length: 10 }).notNull(),
     state: mysqlEnum("state", [
@@ -129,7 +129,7 @@ export const aiProviderBindings = mysqlTable("ai_provider_bindings", {
 
 export const aiMarketingJobContext = mysqlTable("ai_marketing_job_context", {
   jobId: varchar("job_id", { length: 36 }).primaryKey(),
-  provider: mysqlEnum("provider", ["manus", "gemini"]).notNull(),
+  provider: mysqlEnum("provider", ["manus", "gemini", "grok"]).notNull(),
   imageModel: varchar("image_model", { length: 100 }),
   targetPageId: varchar("target_page_id", { length: 100 }),
 });

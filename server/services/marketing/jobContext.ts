@@ -3,7 +3,7 @@ import { getDb } from "../../db";
 import { aiMarketingJobContext } from "../../../drizzle/schema";
 export async function readMarketingJobContext(
   jobId: string,
-  provider: "manus" | "gemini",
+  provider?: "manus" | "gemini" | "grok",
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -13,7 +13,7 @@ export async function readMarketingJobContext(
     .where(
       and(
         eq(aiMarketingJobContext.jobId, jobId),
-        eq(aiMarketingJobContext.provider, provider),
+        provider ? eq(aiMarketingJobContext.provider, provider) : undefined,
       ),
     )
     .limit(1);

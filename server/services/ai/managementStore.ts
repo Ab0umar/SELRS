@@ -1,6 +1,7 @@
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { z } from "zod";
 import type { AiUsage, AiWorkload } from "./gateway";
+import { isMarketingWorkload } from "../../../shared/marketing-providers";
 const workloadSchema = z.enum([
   "reply.preview",
   "reply.live",
@@ -14,7 +15,7 @@ const workloadSchema = z.enum([
 export const profileSchema = z
   .object({
     workload: workloadSchema,
-    provider: z.enum(["gemini", "manus"]),
+    provider: z.enum(["gemini", "manus", "grok"]),
     model: z.string().min(1).max(100),
     enabled: z.boolean(),
     dailyRequests: z.number().int().min(1).max(1000),
@@ -23,6 +24,21 @@ export const profileSchema = z
   })
   .strict()
   .superRefine((profile, context) => {
+    if (profile.provider === "grok") {
+      if (
+        !isMarketingWorkload(profile.workload) ||
+        !/^grok-[a-z0-9.-]+$/.test(profile.model) ||
+        (profile.workload === "marketing.image") !==
+          profile.model.startsWith("grok-imagine-image")
+      )
+        context.addIssue({
+          code: "custom",
+          message:
+            "Grok is supported only for marketing text and images with a matching model",
+          path: ["provider"],
+        });
+      return;
+    }
     if (
       profile.provider === "gemini"
         ? !/^gemini-[a-z0-9.-]+$/.test(profile.model)
@@ -50,7 +66,7 @@ type ConnectionFactory = () => Promise<PoolConnection>;
 const usageRowSchema = z.object({
   request_id: z.string().uuid(),
   workload: workloadSchema,
-  provider: z.enum(["gemini", "manus"]),
+  provider: z.enum(["gemini", "manus", "grok"]),
   model: z.string(),
   state: z.enum(["reserved", "running", "completed", "failed", "uncertain"]),
   reserved_tokens: z.coerce.number().nonnegative(),
@@ -164,10 +180,10 @@ export class AiManagementStore {
           "SELECT COUNT(*) AS pending FROM ai_core_usage WHERE workload=? AND state IN ('reserved','running','uncertain') AND COALESCE(error_code,'') NOT IN ('usage_metadata_missing','provider_finished_output_pending')",
           [workload],
         );
-        const tokens = profile.provider === "gemini" ? tokenReservation : 0;
+        const tokens = profile.provider !== "manus" ? tokenReservation : 0;
         if (
           Number(budget[0].requests) >= profile.dailyRequests ||
-          (profile.provider === "gemini" &&
+          (profile.provider !== "manus" &&
             Number(budget[0].tokens) + tokens > profile.dailyTokens)
         )
           throw new AiManagementError("budget");
@@ -300,7 +316,7 @@ export class AiManagementStore {
       if (!rows[0]) return null;
       return z
         .object({
-          provider: z.enum(["gemini", "manus"]),
+          provider: z.enum(["gemini", "manus", "grok"]),
           state: z.enum([
             "reserved",
             "running",
@@ -334,7 +350,7 @@ export class AiManagementStore {
       if (!rows[0]) return null;
       return z
         .object({
-          provider: z.enum(["gemini", "manus"]),
+          provider: z.enum(["gemini", "manus", "grok"]),
           model: z.string(),
           workload: workloadSchema,
           state: z.enum([

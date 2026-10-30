@@ -18,9 +18,9 @@ export const MARKETING_CONTENT_CATEGORIES: Record<
   MarketingScheduleSlot,
   string
 > = {
-  saturday: "تصحيح الإبصار والبنتاكام",
-  tuesday: "المياه البيضاء والقرنية",
-  thursday: "صحة العيون العامة",
+  saturday: "موضوع متنوع من مجالات طب العيون",
+  tuesday: "موضوع متنوع من مجالات طب العيون",
+  thursday: "موضوع متنوع من مجالات طب العيون",
 };
 
 export function marketingSlotDescription(

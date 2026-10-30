@@ -11,16 +11,16 @@ import { medicalProposalRequestSchema } from "../../shared/medical-assistant";
 describe("shared assistant workflow briefs", () => {
   it("gives both providers the actual page weekday and content category", () => {
     expect(marketingPublicationBrief("tuesday", "doctor")).toContain(
-      "الاثنين — المياه البيضاء والقرنية",
+      "الاثنين — موضوع متنوع من مجالات طب العيون",
     );
     expect(marketingPublicationBrief("saturday", "center")).toContain(
-      "الأحد — تصحيح الإبصار والبنتاكام",
+      "الأحد — موضوع متنوع من مجالات طب العيون",
     );
     expect(marketingPublicationBrief("saturday", "doctor")).toContain(
       "Page: doctor",
     );
   });
-  it("carries the final caption and idea into the image input, including edited posts", () => {
+  it("supplies final Arabic copy for the integrated poster but excludes stale image instructions", () => {
     const post = {
       title: "جفاف العين",
       content: "نص البوست النهائي بعد المراجعة",
@@ -29,17 +29,12 @@ describe("shared assistant workflow briefs", () => {
       imagePrompt: "صورة مرتبطة بالفكرة",
     };
     const data = marketingImageData(post, "جفاف العين");
-    expect(data.post).toEqual({
-      title: post.title,
-      content: post.content,
-      idea: post.idea,
-      cta: post.cta,
-    });
-    expect(data.text).toBe(post.content);
-    expect(
-      marketingImageData({ ...post, content: "النص المعدل" }, "جفاف العين").post
-        .content,
-    ).toBe("النص المعدل");
+    expect(data).not.toHaveProperty("text");
+    expect(data.post.content).toBe(post.content);
+    expect(data.post.title).toBe(post.title);
+    expect(data.post).not.toHaveProperty("imagePrompt");
+    expect(data.topic).toBe("جفاف العين");
+    expect(data.clinicalVisual.subject).toContain("tear film");
   });
   it("uses the Manus editorial contract independently of provider", () => {
     const brief = marketingEditorialBrief();
@@ -55,6 +50,9 @@ describe("shared assistant workflow briefs", () => {
     expect(brief).toContain("laser refractive-correction context");
     expect(brief).toContain("not a generic eye exam");
     expect(brief).toContain("laser beam");
+    expect(brief).toContain("complete ophthalmology educational marketing POSTER");
+    expect(brief).toContain("45–75 Arabic words");
+    expect(brief).toContain("do not redraw a logo");
     expect(brief).toContain(MARKETING_IMAGE_PEOPLE_POLICY);
   });
   it("accepts only supported Manus model choices while retaining required clinical consent", () => {

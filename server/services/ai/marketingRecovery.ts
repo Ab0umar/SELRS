@@ -85,6 +85,7 @@ async function artifact(job: Job) {
     job.imageUsageId || marketingUsageId(job.id, "marketing.image");
   z.string().uuid().parse(usageId);
   const stems = [
+    `grok-output-${usageId}`,
     `gemini-output-${usageId}`,
     job.kind === "image" ? `gemini-image-${job.id}` : `gemini-${job.id}`,
   ];
@@ -160,14 +161,18 @@ async function inspect(job: Job, ownExecution?: string): Promise<Plan> {
           : "provider_uncertain",
     };
   const profiles = await new AiManagementStore(getDbConnection).listProfiles();
-  const context = await readMarketingJobContext(job.id, "gemini");
+  const context = await readMarketingJobContext(job.id);
   const imageModel =
     context?.imageModel ??
-    (usage?.provider === "gemini" ? usage.model : undefined);
-  if (!imageModel || !/^gemini-[a-z0-9.-]+$/.test(imageModel))
+    (usage?.provider === "gemini" || usage?.provider === "grok"
+      ? usage.model
+      : undefined);
+  if (!imageModel || !/^(gemini|grok)-[a-z0-9.-]+$/.test(imageModel))
     return { action: "blocked", reason: "original_model_missing" };
   if (
-    !process.env.GEMINI_API_KEY ||
+    !(imageModel.startsWith("grok-")
+      ? process.env.XAI_API_KEY
+      : process.env.GEMINI_API_KEY) ||
     !profiles.some(
       (profile) => profile.workload === "marketing.image" && profile.enabled,
     )

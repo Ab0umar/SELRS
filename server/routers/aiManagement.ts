@@ -1,4 +1,8 @@
 import { TRPCError } from "@trpc/server";
+import {
+  GROK_TEXT_MODEL,
+  GROK_IMAGE_MODEL,
+} from "../../shared/marketing-providers";
 import { z } from "zod";
 import { availableGeminiModels } from "../services/auto-reply/ai-configuration";
 import {
@@ -66,10 +70,12 @@ export function createAiManagementRouter(store: AiManagementStore) {
       whatsappCopyAvailable: true,
       medicalWorkflowAvailable: true,
       credentials: {
+        grok: Boolean(process.env.XAI_API_KEY),
         gemini: Boolean(process.env.GEMINI_API_KEY),
         replyGemini: Boolean(process.env.AUTO_REPLY_GEMINI_KEY),
         manus: Boolean(process.env.MANUS_API_KEY),
       },
+      grokModels: { text: GROK_TEXT_MODEL, image: GROK_IMAGE_MODEL },
     })),
     profiles: adminProcedure.query(() =>
       managementOperation(() => store.listProfiles()),

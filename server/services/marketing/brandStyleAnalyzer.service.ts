@@ -428,5 +428,5 @@ STRICTLY follow this brand's visual identity (do NOT create generic medical imag
 - Overall aesthetic: ${brandProfile.overallAesthetic ?? "clean medical ophthalmology center"}
 
 The image should look like it belongs to the same brand family as the center's existing designs. Do NOT copy any specific design — create a fresh composition that matches the brand DNA.
-No text overlay needed (text will be added separately). Focus on the visual composition and mood.`.trim();
+Integrate a readable Arabic headline and concise explanatory copy into the medical poster. The original page logo is added separately; do not invent one.`.trim();
 }

@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { marketingModelProvider } from "../../../shared/marketing-providers";
 import { settleAiFailure } from "./failure";
 import { marketingReferences } from "./marketingReferences";
 import { readEquipmentPhoto } from "../marketing/equipmentAssets";
@@ -48,7 +49,7 @@ async function imageModelForJob(selected?: string) {
     await new AiManagementStore(getDbConnection).listProfiles()
   ).find(
     (profile) =>
-      profile.workload === "marketing.image" && profile.provider === "gemini",
+      profile.workload === "marketing.image" && profile.provider !== "manus",
   );
   if (!profile) throw new AiManagementError("unavailable");
   return profile.model;
@@ -62,12 +63,12 @@ export const centralMarketingInput = z
     postDay: z.enum(["saturday", "tuesday", "thursday"]),
     textModel: z
       .string()
-      .regex(/^gemini-[a-z0-9.-]+$/)
+      .regex(/^(gemini|grok)-[a-z0-9.-]+$/)
       .max(100)
       .optional(),
     imageModel: z
       .string()
-      .regex(/^gemini-[a-z0-9.-]+$/)
+      .regex(/^(gemini|grok)-[a-z0-9.-]+$/)
       .max(100)
       .optional(),
   })
@@ -116,6 +117,16 @@ export async function withMarketingBudget<T>(
   if (request.instruction.length > 32000 || request.input.length > 32000)
     throw new AiManagementError("unavailable");
   const store = new AiManagementStore(getDbConnection);
+  const defaultProfile = request.model
+    ? undefined
+    : (await store.listProfiles()).find(
+        (profile) => profile.workload === workload,
+      );
+  const provider = request.model
+    ? marketingModelProvider(request.model)
+    : defaultProfile?.provider;
+  if (!provider || provider === "manus")
+    throw new AiManagementError("unavailable");
   const requestId = marketingUsageId(jobId, workload);
   const tokens = Math.max(
     16384,
@@ -126,10 +137,10 @@ export async function withMarketingBudget<T>(
   const profile = await store.reserve(
     requestId,
     workload,
-    "gemini",
+    provider,
     tokens,
     request.model,
-    request.model ? "gemini" : undefined,
+    request.model ? provider : undefined,
   );
   let usage: AiUsage | undefined;
   try {
@@ -201,9 +212,11 @@ export async function persistMarketingImage(
     if (!written.affectedRows) throw new StaleMarketingExecutionError();
     return imageUrl;
   }
-  const references = medicalVisualDirection(owner.topic ?? "").knownTopic
-    ? { images: [], ids: [] }
-    : await marketingReferences(owner.pageRole);
+  const references =
+    request.model?.startsWith("grok-") ||
+    medicalVisualDirection(owner.topic ?? "").knownTopic
+      ? { images: [], ids: [] }
+      : await marketingReferences(owner.pageRole);
   const [claimed] = await db
     .update(aiMarketingJobs)
     .set({
@@ -246,7 +259,7 @@ export async function persistMarketingImage(
           path.join(process.cwd(), "uploads", "marketing"),
       );
       await fs.mkdir(directory, { recursive: true });
-      const filename = `gemini-output-${usageId}.${image.mimeType === "image/png" ? "png" : image.mimeType === "image/webp" ? "webp" : "jpg"}`;
+      const filename = `${marketingModelProvider(model)}-output-${usageId}.${image.mimeType === "image/png" ? "png" : image.mimeType === "image/webp" ? "webp" : "jpg"}`;
       const temporary = path.join(directory, `${filename}.${randomUUID()}.tmp`);
       await fs.writeFile(temporary, image.bytes, { flag: "wx" });
       await fs.rename(temporary, path.join(directory, filename));
@@ -348,14 +361,22 @@ export async function generateCentralMarketingDraft(
   };
   const known = await readJob();
   if (known) return reuse(known);
-  if (!process.env.GEMINI_API_KEY) throw new AiManagementError("unavailable");
   const profiles = await new AiManagementStore(getDbConnection).listProfiles();
   for (const [workload, selected] of [
     ["marketing.text", input.textModel],
     ["marketing.image", input.imageModel],
   ] as const) {
     const profile = profiles.find((entry) => entry.workload === workload);
-    if (!profile?.enabled || (!selected && profile.provider !== "gemini"))
+    if (!profile?.enabled || (!selected && profile.provider === "manus"))
+      throw new AiManagementError("unavailable");
+    const provider = selected
+      ? marketingModelProvider(selected)
+      : profile.provider;
+    if (
+      !(provider === "grok"
+        ? process.env.XAI_API_KEY
+        : process.env.GEMINI_API_KEY)
+    )
       throw new AiManagementError("unavailable");
   }
   await assertMarketingTopicAvailable(input.topic);
@@ -373,7 +394,11 @@ export async function generateCentralMarketingDraft(
         });
         await tx
           .insert(aiMarketingJobContext)
-          .values({ jobId: input.requestId, provider: "gemini", imageModel });
+          .values({
+            jobId: input.requestId,
+            provider: marketingModelProvider(imageModel),
+            imageModel,
+          });
         await onAccepted?.(tx);
       },
     );
@@ -512,7 +537,7 @@ export async function finishCentralMarketingDraft(
           postId,
           action: "central_ai_draft",
           status: "success",
-          message: `Gemini draft ready (${input.requestId}); not published`,
+          message: `Central AI draft ready (${input.requestId}); not published`,
         });
       },
     );
@@ -612,7 +637,7 @@ export async function regenerateCentralMarketingImage(
   if (!db) throw new AiManagementError("unavailable");
   const imageModel =
     selectedImageModel ??
-    (await readMarketingJobContext(input.requestId, "gemini"))?.imageModel ??
+    (await readMarketingJobContext(input.requestId))?.imageModel ??
     (await imageModelForJob());
   const snapshot = await db.transaction(
     async (tx: Pick<MySql2Database, "select" | "insert">) => {
@@ -657,7 +682,11 @@ export async function regenerateCentralMarketingImage(
       });
       await tx
         .insert(aiMarketingJobContext)
-        .values({ jobId: input.requestId, provider: "gemini", imageModel });
+        .values({
+          jobId: input.requestId,
+          provider: marketingModelProvider(imageModel),
+          imageModel,
+        });
       return { post, existing: false };
     },
   );

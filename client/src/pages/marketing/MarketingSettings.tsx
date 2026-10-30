@@ -541,19 +541,19 @@ export default function MarketingSettings() {
             />
             <ToggleRow
               label={pageRole === "center" ? "الأحد" : "السبت"}
-              description="تصحيح الإبصار والبنتاكام"
+              description="موضوع جديد من المجالات الاثني عشر"
               value={form.saturdayEnabled}
               onChange={(v) => setForm((f) => ({ ...f, saturdayEnabled: v }))}
             />
             <ToggleRow
               label={pageRole === "center" ? "الثلاثاء" : "الاثنين"}
-              description="المياه البيضاء والقرنية"
+              description="موضوع جديد من المجالات الاثني عشر"
               value={form.tuesdayEnabled}
               onChange={(v) => setForm((f) => ({ ...f, tuesdayEnabled: v }))}
             />
             <ToggleRow
               label={pageRole === "center" ? "الخميس" : "الأربعاء"}
-              description="صحة العيون العامة"
+              description="موضوع جديد من المجالات الاثني عشر"
               value={form.thursdayEnabled}
               onChange={(v) => setForm((f) => ({ ...f, thursdayEnabled: v }))}
             />

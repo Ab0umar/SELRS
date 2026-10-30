@@ -9,6 +9,19 @@ export const marketingGenerationInput = z.object({
     .discriminatedUnion("provider", [
       z
         .object({
+          provider: z.literal("grok"),
+          model: z
+            .string()
+            .regex(/^grok-(?!imagine-image)[a-z0-9.-]+$/)
+            .max(100),
+          imageModel: z
+            .string()
+            .regex(/^grok-imagine-image[a-z0-9.-]*$/)
+            .max(100),
+        })
+        .strict(),
+      z
+        .object({
           provider: z.literal("manus"),
           model: z.enum(["standard", "lite", "max"]),
         })

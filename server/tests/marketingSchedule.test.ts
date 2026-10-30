@@ -29,13 +29,13 @@ describe("per-page marketing calendar", () => {
   });
   it("keeps content categories consistent while changing the calendar by page", () => {
     expect(marketingSlotDescription("tuesday", "center")).toBe(
-      "الثلاثاء — المياه البيضاء والقرنية",
+      "الثلاثاء — موضوع متنوع من مجالات طب العيون",
     );
     expect(marketingSlotDescription("tuesday", "doctor")).toBe(
-      "الاثنين — المياه البيضاء والقرنية",
+      "الاثنين — موضوع متنوع من مجالات طب العيون",
     );
     expect(marketingSlotDescription("thursday", "doctor")).toBe(
-      "الأربعاء — صحة العيون العامة",
+      "الأربعاء — موضوع متنوع من مجالات طب العيون",
     );
   });
 });

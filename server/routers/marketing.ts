@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { planMarketingTopic } from "../services/marketing/topicPlanner";
 import {
   equipmentInput,
   readEquipmentAssignments,
@@ -408,32 +409,6 @@ export const marketingRouter = router({
 
           const day = input.postDay as PostDay;
 
-          // Determine topic: explicit override or round-robin from list
-          let selectedTopic = input.topic;
-          if (!selectedTopic) {
-            const [countRow] = await db
-              .select({ total: drizzleCount() })
-              .from(marketingPosts)
-              .where(
-                and(
-                  eq(marketingPosts.postDay, day),
-                  eq(marketingPosts.pageRole, input.pageRole),
-                ),
-              );
-            const topicIndex = countRow?.total ?? 0;
-            const pageTarget = await getMarketingPageTarget(input.pageRole);
-            selectedTopic = pickUnpublishedTopic(
-              day,
-              topicIndex,
-              await publishedMarketingTopics(),
-              pageTarget?.topicDirection ?? "forward",
-            );
-            if (!selectedTopic)
-              throw new Error(
-                "كل موضوعات هذه الفئة سبق نشرها؛ أضف موضوعًا جديدًا",
-              );
-          }
-
           const assistant =
             input.assistant ??
             (process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
@@ -447,7 +422,17 @@ export const marketingRouter = router({
             !assistant
           )
             throw new AiManagementError("unavailable");
-          if (assistant?.provider === "gemini") {
+          const selectedTopic =
+            input.topic ||
+            (await planMarketingTopic(
+              assistant?.provider === "grok" || assistant?.provider === "gemini"
+                ? assistant.model
+                : undefined,
+            ));
+          if (
+            assistant?.provider === "gemini" ||
+            assistant?.provider === "grok"
+          ) {
             const result = await generateCentralMarketingDraft(
               {
                 requestId: input.requestId,
@@ -676,7 +661,7 @@ export const marketingRouter = router({
           await new AiManagementStore(getDbConnection).listProfiles()
         ).find((p) => p.workload === "marketing.image");
         if (!profile?.enabled) throw new AiManagementError("unavailable");
-        if (profile.provider === "gemini")
+        if (profile.provider === "gemini" || profile.provider === "grok")
           return regenerateCentralMarketingImage(
             { postId: post.id, requestId },
             ctx.user.id,

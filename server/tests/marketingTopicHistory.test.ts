@@ -10,7 +10,7 @@ import {
 describe("published marketing topics never rotate back", () => {
   it("skips any published topic across index wraparound", () => {
     expect(pickUnpublishedTopic("saturday", 0, ["lasik"])).toBe("Femto LASIK");
-    expect(pickUnpublishedTopic("saturday", 10, ["LASIK"])).toBe("Femto LASIK");
+    expect(pickUnpublishedTopic("saturday", TOPICS_BY_DAY.saturday.length, ["LASIK"])).toBe("Femto LASIK");
   });
   it("stops when every topic was published instead of restarting the list", () => {
     expect(
@@ -19,8 +19,8 @@ describe("published marketing topics never rotate back", () => {
   });
   it("preserves reverse order while excluding retired topics", () => {
     expect(
-      pickUnpublishedTopic("tuesday", 0, ["زراعة القرنية"], "reverse"),
-    ).toBe("أمراض القرنية");
+      pickUnpublishedTopic("tuesday", 0, [TOPICS_BY_DAY.tuesday.at(-1)!], "reverse"),
+    ).toBe(TOPICS_BY_DAY.tuesday.at(-2));
   });
   it("matches case, punctuation, Arabic marks and known bilingual aliases", () => {
     expect(marketingTopicKey("  LASIK!! ")).toBe(marketingTopicKey("اللِّيزك"));

@@ -11,6 +11,7 @@
  */
 
 import cron from "node-cron";
+import { planMarketingTopic } from "./topicPlanner";
 import { setMarketingSchedulerStatus } from "./schedulerStatus";
 import {
   claimMarketingSchedule,
@@ -234,27 +235,6 @@ export async function runScheduledPost(
       .digest("hex")
       .slice(0, 32);
     const id = `${requestId.slice(0, 8)}-${requestId.slice(8, 12)}-4${requestId.slice(13, 16)}-a${requestId.slice(17, 20)}-${requestId.slice(20, 32)}`;
-    const [countRow] = await db
-      .select({ total: drizzleCount() })
-      .from(marketingPosts)
-      .where(
-        and(
-          eq(marketingPosts.postDay, day),
-          eq(marketingPosts.pageRole, pageRole),
-        ),
-      );
-    const topic = pickUnpublishedTopic(
-      day,
-      countRow?.total ?? 0,
-      await publishedMarketingTopics(),
-      pageTarget.topicDirection,
-    );
-    if (!topic) {
-      return {
-        ok: true,
-        skipped: "كل موضوعات هذه الفئة سبق نشرها؛ أضف موضوعات جديدة",
-      };
-    }
     const claim = await claimMarketingSchedule(id, pageRole);
     if (!claim.claimed) {
       return {
@@ -265,6 +245,7 @@ export async function runScheduledPost(
       };
     }
     unusedClaim = { id, provider: claim.provider };
+    const topic = await planMarketingTopic();
     await setMarketingSchedulerStatus(pageRole, "running");
     await log(
       null,

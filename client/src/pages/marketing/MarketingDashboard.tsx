@@ -6,6 +6,7 @@ import {
   removePending,
 } from "@/features/ai/pending-request";
 import { Link } from "wouter";
+import { GROK_TEXT_MODEL, GROK_IMAGE_MODEL } from "@shared/marketing-providers";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -163,7 +164,7 @@ export default function MarketingDashboard() {
       setAssistant(
         context.assistant.provider === "manus"
           ? `manus:${context.assistant.model}`
-          : `gemini:${context.assistant.model}|${context.assistant.imageModel}`,
+          : `${context.assistant.provider}:${context.assistant.model}|${context.assistant.imageModel}`,
       );
     savePending("selrs.ai.marketing.context", context);
   }, [tracked.data, generationRequest]);
@@ -209,7 +210,7 @@ export default function MarketingDashboard() {
     )
       return;
     startingGeneration.current = true;
-    const requestId = crypto.randomUUID();
+    const requestId = createRequestId();
     setGenerationRequest(requestId);
     try {
       sessionStorage.setItem("selrs.ai.marketing.request", requestId);
@@ -221,16 +222,22 @@ export default function MarketingDashboard() {
       requestId,
       pageRole: generatePage,
       topic: generateTopic.trim() || undefined,
-      assistant: assistant.startsWith("gemini:")
+      assistant: assistant.startsWith("grok:")
         ? {
-            provider: "gemini",
-            model: assistant.slice("gemini:".length).split("|")[0],
-            imageModel: assistant.slice("gemini:".length).split("|")[1],
+            provider: "grok",
+            model: assistant.slice(5).split("|")[0],
+            imageModel: assistant.slice(5).split("|")[1],
           }
-        : {
-            provider: "manus",
-            model: assistant.split(":")[1] as "standard" | "lite" | "max",
-          },
+        : assistant.startsWith("gemini:")
+          ? {
+              provider: "gemini",
+              model: assistant.slice("gemini:".length).split("|")[0],
+              imageModel: assistant.slice("gemini:".length).split("|")[1],
+            }
+          : {
+              provider: "manus",
+              model: assistant.split(":")[1] as "standard" | "lite" | "max",
+            },
     });
     savePending("selrs.ai.marketing.context", context);
     generateMutation.mutate(context, {
@@ -402,6 +409,14 @@ export default function MarketingDashboard() {
               { value: "manus:standard", label: "Manus · Standard" },
               { value: "manus:lite", label: "Manus · Lite" },
               { value: "manus:max", label: "Manus · Max" },
+              {
+                value: `grok:${geminiText?.provider === "grok" ? geminiText.model : GROK_TEXT_MODEL}|${geminiImage?.provider === "grok" ? geminiImage.model : GROK_IMAGE_MODEL}`,
+                label: "Grok · نص وصورة",
+                disabled:
+                  !capabilities.data?.credentials.grok ||
+                  !geminiText?.enabled ||
+                  !geminiImage?.enabled,
+              },
               ...textModels.flatMap((model) =>
                 imageModels.map((imageModel) => ({
                   value: `gemini:${model}|${imageModel}`,
@@ -959,3 +974,4 @@ function SchedulerCard({
     </div>
   );
 }
+import { createRequestId } from "@/lib/request-id";

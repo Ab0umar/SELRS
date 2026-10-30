@@ -29,9 +29,11 @@ export async function runAiManagementProbe(
         const credential =
           profile.provider === "manus"
             ? ENV.manusApiKey
-            : workload === "reply.preview" || workload === "reply.live"
-              ? process.env.AUTO_REPLY_GEMINI_KEY
-              : process.env.GEMINI_API_KEY;
+            : profile.provider === "grok"
+              ? process.env.XAI_API_KEY
+              : workload === "reply.preview" || workload === "reply.live"
+                ? process.env.AUTO_REPLY_GEMINI_KEY
+                : process.env.GEMINI_API_KEY;
         if (!credential) throw new AiManagementError("unavailable");
         await accept();
         accepted = true;
@@ -76,7 +78,7 @@ export async function runAiManagementProbe(
         return {
           requestId,
           state: "completed" as const,
-          provider: "gemini" as const,
+          provider: profile.provider,
           output,
         };
       } catch (error) {

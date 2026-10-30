@@ -6,6 +6,12 @@ import {
   type GenerateContentConfig,
 } from "@google/genai";
 import { z, type ZodType } from "zod";
+import { isMarketingWorkload } from "../../../shared/marketing-providers";
+import {
+  requestGrok,
+  GrokRequestError,
+  type GrokOutput,
+} from "./providers/grok";
 
 export type AiWorkload =
   | "reply.preview"
@@ -36,7 +42,7 @@ export class AiGatewayError extends Error {
 export type AiUsage = {
   requestId: string;
   workload: AiWorkload;
-  provider: "gemini";
+  provider: "gemini" | "grok";
   model: string;
   durationMs: number;
   inputTokens: number;
@@ -127,6 +133,63 @@ function validateRequest(request: AiRequest) {
 
 export class AiGateway {
   constructor(private readonly usage: (event: AiUsage) => void) {}
+
+  private async executeGrok<T>(
+    request: AiRequest,
+    consume: (output: GrokOutput) => T,
+  ): Promise<T> {
+    validateRequest(request);
+    if (
+      !isMarketingWorkload(request.workload) ||
+      !process.env.XAI_API_KEY ||
+      !/^grok-[a-z0-9.-]+$/.test(request.model ?? "") ||
+      (request.workload === "marketing.image") !==
+        request.model!.startsWith("grok-imagine-image") ||
+      (request.workload === "marketing.image" && request.references?.length)
+    )
+      throw new AiGatewayError("configuration");
+    if ((busy.get(request.workload) ?? 0) >= 2)
+      throw new AiGatewayError("capacity");
+    busy.set(request.workload, (busy.get(request.workload) ?? 0) + 1);
+    const started = Date.now();
+    const event: AiUsage = {
+      requestId: randomUUID(),
+      workload: request.workload,
+      provider: "grok",
+      model: request.model!,
+      durationMs: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      status: "failed",
+    };
+    try {
+      const result = await requestGrok({
+        ...request,
+        model: request.model!,
+        image: request.workload === "marketing.image",
+      });
+      event.inputTokens = result.inputTokens;
+      event.outputTokens = result.outputTokens;
+      event.usageKnown = result.usageKnown;
+      const output = consume(result);
+      event.status = "success";
+      return output;
+    } catch (error) {
+      if (error instanceof AiGatewayError) throw error;
+      throw new AiGatewayError(
+        error instanceof GrokRequestError ? "provider" : "invalid_output",
+        error instanceof GrokRequestError ? error.status : undefined,
+      );
+    } finally {
+      busy.set(request.workload, (busy.get(request.workload) ?? 1) - 1);
+      event.durationMs = Date.now() - started;
+      try {
+        this.usage(event);
+      } catch {
+        console.error("[ai-gateway] Usage recording failed");
+      }
+    }
+  }
 
   private async execute<T>(
     request: AiRequest,
@@ -229,6 +292,10 @@ export class AiGateway {
   ): Promise<T> {
     if (request.workload === "marketing.image")
       throw new AiGatewayError("configuration");
+    if (request.model?.startsWith("grok-"))
+      return this.executeGrok(request, (output) =>
+        request.schema.parse(JSON.parse(output.text || "null")),
+      );
     return this.execute(
       request,
       {
@@ -255,6 +322,11 @@ export class AiGateway {
   ): Promise<{ bytes: Buffer; mimeType: string }> {
     if (request.workload !== "marketing.image")
       throw new AiGatewayError("configuration");
+    if (request.model?.startsWith("grok-"))
+      return this.executeGrok(request, (output) => {
+        if (!output.image) throw new AiGatewayError("invalid_output");
+        return output.image;
+      });
     return this.execute(
       request,
       {

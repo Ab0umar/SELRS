@@ -164,7 +164,7 @@ export default function WhatsAppCopy() {
           onClick={() =>
             void submitCopy(
               whatsappRequestContext.parse({
-                requestId: crypto.randomUUID(),
+                requestId: createRequestId(),
                 kind,
                 ...(kind === "exam" ? { days } : {}),
               }),
@@ -245,3 +245,4 @@ export default function WhatsAppCopy() {
     </section>
   );
 }
+import { createRequestId } from "@/lib/request-id";

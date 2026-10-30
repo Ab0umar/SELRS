@@ -91,7 +91,7 @@ export default function CentralMarketingDraft() {
           event.preventDefault();
           if (!available || busy.current || pending || requestId) return;
           busy.current = true;
-          const id = crypto.randomUUID();
+          const id = createRequestId();
           sessionStorage.setItem("selrs.central-marketing.request", id);
           setRequestId(id);
           create.mutate({ requestId: id, topic, pageRole, postDay });
@@ -229,3 +229,4 @@ export default function CentralMarketingDraft() {
     </section>
   );
 }
+import { createRequestId } from "@/lib/request-id";

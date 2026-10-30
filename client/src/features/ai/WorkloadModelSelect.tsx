@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import AssistantModelSelect from "./AssistantModelSelect";
+import { GROK_TEXT_MODEL } from "@shared/marketing-providers";
 
 export default function WorkloadModelSelect({
   workload,
@@ -55,9 +56,14 @@ export default function WorkloadModelSelect({
       value: `manus:${tier}`,
       label: `Manus · ${tier}`,
     });
+  if (workload === "marketing.text")
+    options.set(`grok:${GROK_TEXT_MODEL}`, {
+      value: `grok:${GROK_TEXT_MODEL}`,
+      label: `Grok · ${GROK_TEXT_MODEL}`,
+    });
   options.set(`${profile.provider}:${profile.model}`, {
     value: `${profile.provider}:${profile.model}`,
-    label: `${profile.provider === "manus" ? "Manus" : "Gemini"} · ${profile.model}`,
+    label: `${profile.provider === "manus" ? "Manus" : profile.provider === "grok" ? "Grok" : "Gemini"} · ${profile.model}`,
   });
   return (
     <div className="grid gap-3">
@@ -80,7 +86,11 @@ export default function WorkloadModelSelect({
           disabled={disabled || save.isPending}
           onClick={async () => {
             try {
-              const provider = model.startsWith("manus:") ? "manus" : "gemini";
+              const provider = model.startsWith("manus:")
+                ? "manus"
+                : model.startsWith("grok:")
+                  ? "grok"
+                  : "gemini";
               await save.mutateAsync({
                 ...profile,
                 provider,

@@ -56,7 +56,7 @@ export default function CentralDraftImage({ postId }: { postId: number }) {
         disabled={!enabled || pending}
         onClick={() => {
           if (busy.current || pending) return;
-          const id = crypto.randomUUID();
+          const id = createRequestId();
           sessionStorage.setItem(
             storageKey,
             JSON.stringify({ postId, requestId: id }),
@@ -89,3 +89,4 @@ export default function CentralDraftImage({ postId }: { postId: number }) {
     </div>
   );
 }
+import { createRequestId } from "@/lib/request-id";

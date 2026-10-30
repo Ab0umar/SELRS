@@ -57,7 +57,7 @@ export default function MarketingJobRecovery({ jobId }: { jobId: string }) {
     setConfirm(false);
     recover.mutate({
       jobId,
-      requestId: crypto.randomUUID(),
+      requestId: createRequestId(),
       allowImageGeneration,
     });
   }
@@ -162,3 +162,4 @@ export default function MarketingJobRecovery({ jobId }: { jobId: string }) {
     </div>
   );
 }
+import { createRequestId } from "@/lib/request-id";
