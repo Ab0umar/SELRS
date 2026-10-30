@@ -244,7 +244,12 @@ function watchMedicalAccounting(owner: number, id: string) {
 
 async function settleMedicalUsage(job: Job) {
   if (!job.accounting?.status) return;
-  await persistMedicalSettlement(job.accounting, job.provider === "gemini");
+  try {
+    await persistMedicalSettlement(job.accounting, job.provider === "gemini");
+  } catch {
+    // Accounting must never block delivery of the clinical result.
+    queueMedicalSettlement(job.accounting);
+  }
 }
 
 type Accounting = NonNullable<Job["accounting"]>;

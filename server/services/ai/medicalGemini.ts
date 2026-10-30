@@ -88,18 +88,23 @@ const responseSchema = z.object({
   candidates: z
     .array(
       z.object({
-        finishReason: z.string(),
-        content: z.object({
-          parts: z.array(
-            z.object({
-              text: z.string().optional(),
-              thought: z.boolean().optional(),
-            }),
-          ),
-        }),
+        finishReason: z.string().optional(),
+        content: z
+          .object({
+            parts: z
+              .array(
+                z.object({
+                  text: z.string().optional(),
+                  thought: z.boolean().optional(),
+                }),
+              )
+              .default([]),
+          })
+          .optional(),
       }),
     )
-    .min(1),
+    .optional(),
+  promptFeedback: z.object({ blockReason: z.string().optional() }).optional(),
 });
 
 export async function extractGeminiProposals(
@@ -229,8 +234,13 @@ export async function extractGeminiProposals(
   const parsed = responseSchema.safeParse(raw);
   if (!parsed.success) throw new GeminiDocumentationError("response");
   const payload = parsed.data;
-  const candidate = payload.candidates[0];
-  if (candidate.finishReason !== "STOP")
+  const candidate = payload.candidates?.[0];
+  if (!candidate) {
+    if (payload.promptFeedback?.blockReason)
+      throw new GeminiDocumentationError("incomplete");
+    throw new GeminiDocumentationError("response");
+  }
+  if (candidate.finishReason !== "STOP" || !candidate.content)
     throw new GeminiDocumentationError("incomplete");
   const output = candidate.content.parts
     .filter((part) => !part.thought)

@@ -59,7 +59,8 @@ export async function saveMedicalAssistantSettings(
     });
   if (
     settings.speechProvider === "azure" &&
-    (!process.env.AZURE_SPEECH_KEY || !process.env.AZURE_SPEECH_REGION?.trim())
+    (!process.env.AZURE_SPEECH_KEY ||
+      !/^[a-z0-9]+$/.test(process.env.AZURE_SPEECH_REGION?.trim() ?? ""))
   )
     throw new TRPCError({
       code: "PRECONDITION_FAILED",

@@ -172,6 +172,8 @@ export default function ProposalReview({
               ? cause.message
               : "Could not check the AI task.",
           );
+          if ((cause as { data?: { code?: string } })?.data?.code === "NOT_FOUND")
+            setTerminalFailure(true);
           setPaused(true);
         }
       }

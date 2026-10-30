@@ -387,7 +387,8 @@ export default function MedicalAssistant() {
             setTranscript((previous) =>
               [previous.trim(), result.transcript.trim()]
                 .filter(Boolean)
-                .join("\n"),
+                .join("\n")
+                .slice(0, 8000),
             );
             setMode(result.mode);
             setRecording(false);

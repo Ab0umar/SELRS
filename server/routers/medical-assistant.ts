@@ -14,6 +14,7 @@ import { medicalStaffProcedure } from "../_core/procedures";
 import { adminProcedure } from "../_core/procedures";
 import {
   medicalGeminiOptions,
+  assertMedicalGeminiAvailable,
   extractGeminiProposals,
 } from "../services/ai/medicalGemini";
 import { validateMedicalProposals } from "../../shared/medical-assistant";
@@ -25,6 +26,23 @@ import {
   startMedicalProposals,
   readMedicalProposals,
 } from "../services/ai/medical";
+
+let geminiModelsFailedUntil = 0;
+async function geminiModelList() {
+  if (geminiModelsFailedUntil > Date.now()) return [];
+  try {
+    return (
+      await availableGeminiModels(process.env.GEMINI_API_KEY ?? "")
+    ).map((model) => ({
+      id: model.name.replace(/^models\//, ""),
+      label: model.displayName ?? model.name,
+    }));
+  } catch {
+    // Avoid making every page load wait on an unreachable Gemini endpoint.
+    geminiModelsFailedUntil = Date.now() + 60_000;
+    return [];
+  }
+}
 
 export const medicalAssistantRouter = router({
   settings: medicalStaffProcedure.query(() => readMedicalAssistantSettings()),
@@ -46,40 +64,38 @@ export const medicalAssistantRouter = router({
       clinicalEnabled: process.env.MEDICAL_GEMINI_CLINICAL_APPROVED === "true",
     },
   })),
-  providerOptions: medicalStaffProcedure.query(async () => ({
-    managementEnabled: process.env.AI_CORE_MANAGEMENT_ENABLED === "true",
-    defaultProvider: (
-      await readMedicalAssistantSettings()
-    ).processingModel.startsWith("gemini:")
-      ? ("gemini" as const)
-      : ("manus" as const),
-    gemini: {
-      ...medicalGeminiOptions(),
-      models:
-        medicalGeminiOptions().configured &&
-        medicalGeminiOptions().clinicalEnabled
-          ? (
-              await availableGeminiModels(
-                process.env.GEMINI_API_KEY ?? "",
-              ).catch(() => [])
-            ).map((model) => ({
-              id: model.name.replace(/^models\//, ""),
-              label: model.displayName ?? model.name,
-            }))
-          : [],
-    },
-    central:
-      process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
-        ? ((await new AiManagementStore(getDbConnection).listProfiles())
-            .filter((profile) => profile.workload === "medical.documentation")
-            .map((profile) => ({
-              enabled: profile.enabled,
-              model: profile.model,
-              provider: profile.provider,
-            }))[0] ?? null)
+  providerOptions: medicalStaffProcedure.query(async () => {
+    const managementEnabled = process.env.AI_CORE_MANAGEMENT_ENABLED === "true";
+    const gemini = medicalGeminiOptions();
+    const [settings, models, profiles] = await Promise.all([
+      readMedicalAssistantSettings(),
+      gemini.configured && gemini.clinicalEnabled
+        ? geminiModelList()
+        : Promise.resolve([]),
+      managementEnabled
+        ? new AiManagementStore(getDbConnection).listProfiles()
+        : Promise.resolve([]),
+    ]);
+    const central = profiles.find(
+      (profile) => profile.workload === "medical.documentation",
+    );
+    return {
+      managementEnabled,
+      defaultProvider: settings.processingModel.startsWith("gemini:")
+        ? ("gemini" as const)
+        : ("manus" as const),
+      gemini: { ...gemini, models },
+      central: central
+        ? {
+            enabled: central.enabled,
+            model: central.model,
+            provider: central.provider,
+          }
         : null,
-  })),
+    };
+  }),
   testGeminiSynthetic: adminProcedure.mutation(async () => {
+    assertMedicalGeminiAvailable();
     const recording = {
       kind: "field",
       label: "Complaints",

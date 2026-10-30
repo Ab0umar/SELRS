@@ -3804,15 +3804,6 @@ export default function WorkflowPrototypeLive() {
           <div className="flex min-w-0 flex-wrap items-end justify-between gap-2 border-b border-border/60 pb-2">
             {renderLivePatientPicker()}
             <div className="flex shrink-0 items-center gap-1">
-              <Suspense fallback={null}>
-                <MedicalAssistantPreview
-                  key={`${selectedLivePatient.id}-${activeWorkflowVisitId ?? selectedDate}`}
-                  patientId={selectedLivePatient.id}
-                  patientName={selectedLivePatient.fullName ?? undefined}
-                  visitId={activeWorkflowVisitId}
-                  visitDate={selectedDate}
-                />
-              </Suspense>
               {sidebarOpen && workflowSectionMeta.some(item=>item.optional) ? (
                 <Button
                   type="button"
@@ -3899,6 +3890,15 @@ export default function WorkflowPrototypeLive() {
                 </div>
               );
             })}
+            <Suspense fallback={null}>
+              <MedicalAssistantPreview
+                key={`${selectedLivePatient.id}-${activeWorkflowVisitId ?? selectedDate}`}
+                patientId={selectedLivePatient.id}
+                patientName={selectedLivePatient.fullName ?? undefined}
+                visitId={activeWorkflowVisitId}
+                visitDate={selectedDate}
+              />
+            </Suspense>
           </div>
         </div>
         <main className="min-w-0 bg-muted/50 p-0 print:bg-white">
