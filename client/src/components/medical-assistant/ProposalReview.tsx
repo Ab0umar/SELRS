@@ -23,11 +23,14 @@ export default function ProposalReview({
   onApplyField,
   reviewOnly = false,
   modelChoice,
+  autoStart = false,
 }: {
   input: MedicalTranscript;
   onApplyField?: (text: string | undefined) => void;
   reviewOnly?: boolean;
   modelChoice?: string;
+  /** Starts without a click; the caller has already confirmed patient consent. */
+  autoStart?: boolean;
 }) {
   const start = trpc.medicalAssistant.startProposals.useMutation({
     retry: false,
@@ -35,7 +38,7 @@ export default function ProposalReview({
   const read = trpc.medicalAssistant.readProposals.useMutation({
     retry: false,
   });
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsent] = useState(autoStart);
   const settings = trpc.medicalAssistant.settings.useQuery(undefined, {
     retry: false,
   });
@@ -69,8 +72,8 @@ export default function ProposalReview({
   const providerName = provider === "gemini" ? "Gemini" : "Manus";
   const model = displayedSelection.slice(provider.length + 1);
   useEffect(() => {
-    setConsent(false);
-  }, [effectiveSelection]);
+    setConsent(autoStart);
+  }, [effectiveSelection, autoStart]);
   const [jobId, setJobId] = useState<string>();
   const [paused, setPaused] = useState(false);
   const [terminalFailure, setTerminalFailure] = useState(false);
@@ -143,6 +146,41 @@ export default function ProposalReview({
     diseases.isLoading,
     diagnosisPending,
   ]);
+  const autoStarted = useRef(false);
+  const begin = async () => {
+    setError("");
+    try {
+      const response = await start.mutateAsync({
+        recording: input,
+        consentConfirmed: true,
+        engine,
+        model,
+        provider,
+      });
+      if (alive.current) {
+        setSubmittedSelection(effectiveSelection);
+        setJobId(response.jobId);
+      }
+    } catch (cause) {
+      if (alive.current)
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "تعذّر بدء مهمة الذكاء الاصطناعي.",
+        );
+    }
+  };
+  useEffect(() => {
+    if (
+      !autoStart ||
+      autoStarted.current ||
+      !available ||
+      !input.transcript.trim()
+    )
+      return;
+    autoStarted.current = true;
+    void begin();
+  });
   const alive = useRef(true);
   const readTask = read.mutateAsync;
   useEffect(() => {
@@ -172,7 +210,9 @@ export default function ProposalReview({
               ? cause.message
               : "Could not check the AI task.",
           );
-          if ((cause as { data?: { code?: string } })?.data?.code === "NOT_FOUND")
+          if (
+            (cause as { data?: { code?: string } })?.data?.code === "NOT_FOUND"
+          )
             setTerminalFailure(true);
           setPaused(true);
         }
@@ -192,11 +232,37 @@ export default function ProposalReview({
     >
       <p className="text-sm">
         {input.kind === "field"
-          ? `AI scope: ${input.label} only.`
-          : "AI scope: full visit, all relevant clinical fields."}{" "}
-        {`${providerName} ${model}`} · No automatic saving.
+          ? `نطاق الذكاء الاصطناعي: ${input.label} فقط.`
+          : "نطاق الذكاء الاصطناعي: الزيارة كاملة وكل الحقول السريرية ذات الصلة."}{" "}
+        {`${providerName} ${model}`} · لا حفظ تلقائي.
       </p>
-      {!jobId && (
+      {!jobId && autoStart && (
+        <>
+          {start.isPending || !autoStarted.current ? (
+            <p role="status" className="text-sm">
+              جارٍ بدء المراجعة التلقائية عبر {providerName}…
+            </p>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void begin()}
+            >
+              إعادة المراجعة (قد تُحتسب تكلفة جديدة)
+            </Button>
+          )}
+          {!available && (
+            <p role="status">
+              {options.isError
+                ? "تعذر التحقق من إعدادات المساعد. أعد فتح الشريط للمحاولة."
+                : options.isPending
+                  ? "جارٍ التحقق من إعدادات المساعد…"
+                  : "المساعد الطبي معطّل من المزوّدين والحدود."}
+            </p>
+          )}
+        </>
+      )}
+      {!jobId && !autoStart && (
         <>
           <p className="text-sm text-muted-foreground">
             مزوّد المعالجة محدد من إعدادات الأدمن المركزية.
@@ -220,29 +286,7 @@ export default function ProposalReview({
               start.isPending ||
               !input.transcript.trim()
             }
-            onClick={async () => {
-              setError("");
-              try {
-                const response = await start.mutateAsync({
-                  recording: input,
-                  consentConfirmed: true,
-                  engine,
-                  model,
-                  provider,
-                });
-                if (alive.current) {
-                  setSubmittedSelection(effectiveSelection);
-                  setJobId(response.jobId);
-                }
-              } catch (cause) {
-                if (alive.current)
-                  setError(
-                    cause instanceof Error
-                      ? cause.message
-                      : "Could not start the AI task.",
-                  );
-              }
-            }}
+            onClick={() => void begin()}
           >
             {reviewOnly
               ? start.isPending
@@ -265,9 +309,9 @@ export default function ProposalReview({
       )}
       {jobId && !result && !paused && (
         <p role="status">
-          {providerName} is processing. Closing this window does not cancel the
-          provider task or its credits. Nothing will be applied automatically.
-          Local task access expires after ten minutes or a server restart.
+          {providerName} يعالج النص الآن. إغلاق الشريط لا يلغي المهمة ولا
+          تكلفتها. لن يُطبّق شيء تلقائيًا. المتابعة متاحة لمدة عشر دقائق أو حتى
+          إعادة تشغيل الخادم.
         </p>
       )}
       {error && <p role="alert">{error}</p>}
@@ -402,7 +446,7 @@ export default function ProposalReview({
             </div>
           )}
           {!result.proposals.length && (
-            <p>No supported field changes were found. Review the transcript.</p>
+            <p>لم تُوجد تعديلات مدعومة على الحقول. راجع النص.</p>
           )}
           {result.proposals.map((proposal) => (
             <div key={proposal.field} className="space-y-2 rounded border p-3">
@@ -412,7 +456,7 @@ export default function ProposalReview({
                   : medicalProposalLabels[proposal.field]}
               </p>
               <p className="text-sm">
-                Reported speaker: {proposal.speaker} · Doctor review required
+                المتحدث المُبلَّغ: {proposal.speaker} · مراجعة الطبيب مطلوبة
               </p>
               {!reviewOnly &&
                 input.kind === "conversation" &&
@@ -491,7 +535,7 @@ export default function ProposalReview({
                 <summary>
                   {reviewOnly
                     ? "الاقتباسات من النص الأصلي"
-                    : "Transcript evidence"}
+                    : "الاقتباسات من النص الأصلي"}
                 </summary>
                 {proposal.sources.map((source, index) => (
                   <p key={index} dir="auto">
@@ -522,7 +566,7 @@ export default function ProposalReview({
                   disabled={!proposal.text.trim()}
                   onClick={() => onApplyField(proposal.text)}
                 >
-                  Approve proposal for this field
+                  اعتماد الاقتراح لهذا الحقل
                 </Button>
               )}
               {!reviewOnly &&
@@ -590,8 +634,8 @@ export default function ProposalReview({
                     }}
                   >
                     {applied[proposal.field]
-                      ? "Undo draft addition"
-                      : "Append to open form"}
+                      ? "تراجع عن الإضافة للمسودة"
+                      : "إضافة للنموذج المفتوح"}
                   </Button>
                 )}
             </div>

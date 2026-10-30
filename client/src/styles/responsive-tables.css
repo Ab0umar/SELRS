@@ -60,3 +60,40 @@
     max-width: 100% !important;
   }
 }
+
+/* Compact data-entry/summary tables (refraction, pentacam, final sheet) that
+   fit a phone instead of the 40rem scroll minimum used for wide data tables. */
+@media screen and (max-width: 640px) {
+  #root table[data-mobile-fit][data-mobile-fit] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  #root table[data-mobile-fit][data-mobile-fit] :is(th, td) {
+    white-space: normal !important;
+    padding: 0.3rem 0.2rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  #root table[data-mobile-fit][data-mobile-fit] th {
+    font-size: 0.6875rem !important;
+    letter-spacing: -0.02em;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  #root table[data-mobile-fit][data-mobile-fit] tbody.font-mono td {
+    white-space: nowrap !important;
+    font-size: 0.6875rem !important;
+    letter-spacing: -0.03em;
+  }
+
+  #root table[data-mobile-fit][data-mobile-fit] :is(input, select) {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding-inline: 0.25rem !important;
+    font-size: 0.8125rem !important;
+  }
+}

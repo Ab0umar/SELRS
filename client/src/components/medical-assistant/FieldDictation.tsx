@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 import type {
   AudioConfig,
   Connection,
@@ -13,6 +14,7 @@ import { startPcmCapture } from "./pcm-capture";
 import { releaseSpeechResources } from "./speech-cleanup";
 import { routeTranscript, type RoutedTranscript } from "./transcript-routing";
 import ProposalReview from "./ProposalReview";
+import FloatingBar from "./FloatingBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -105,10 +107,13 @@ function ConfiguredFieldDictation(props: RecordingProps) {
   const geminiToken = trpc.medicalAssistant.geminiSpeechToken.useMutation();
   const [text, setText] = useState("");
   const [partial, setPartial] = useState("");
-  const [status, setStatus] = useState("Connecting microphone…");
+  const [status, setStatus] = useState("جارٍ تشغيل الميكروفون…");
   const [active, setActive] = useState(true);
   const [error, setError] = useState("");
   const [applied, setApplied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [reviewText, setReviewText] = useState<string>();
+  const [seconds, setSeconds] = useState(0);
   const [approvedProposal, setApprovedProposal] = useState<string>();
   const [diagnostics, setDiagnostics] = useState({
     level: 0,
@@ -197,7 +202,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
       if (disposed) return;
       stopping = true;
       setError(message);
-      setStatus("Recording interrupted — captured text preserved.");
+      setStatus("انقطع التسجيل — النص الملتقط محفوظ.");
       setActive(false);
       setPartial("");
       release();
@@ -207,13 +212,13 @@ function ConfiguredFieldDictation(props: RecordingProps) {
       stopping = true;
       session?.stop();
       clearTimeout(limit);
-      setStatus("Stopping…");
+      setStatus("جارٍ الإيقاف…");
       const recognizer = resources.current.recognizer;
       const finish = () => {
         if (!disposed) {
           setActive(false);
           setPartial("");
-          setStatus("Stopped — review the transcript.");
+          setStatus("تم الإيقاف — راجع النص.");
         }
         release();
       };
@@ -235,7 +240,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
         disposed = true;
         finish();
         setActive(false);
-        setStatus("Stopped");
+        setStatus("تم الإيقاف");
       }
     };
     void (async () => {
@@ -335,7 +340,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
             return;
           }
           connectionState = "Connected";
-          setStatus("Recording — Gemini 3.5 Transcribe Live");
+          setStatus("جارٍ التسجيل — Gemini");
           stopPcm = await startPcmCapture(
             meterContext,
             meterSource,
@@ -450,11 +455,11 @@ function ConfiguredFieldDictation(props: RecordingProps) {
             sdk.CancellationReason.Error,
             {
               recording: () => {
-                if (current()) setStatus("Recording — Azure Arabic (Egypt)");
+                if (current()) setStatus("جارٍ التسجيل — Azure عربي (مصر)");
               },
               reconnecting: () => {
                 if (current())
-                  setStatus("Reconnecting Azure — keep this window open.");
+                  setStatus("إعادة اتصال Azure — اترك الشريط مفتوحًا.");
               },
               failed: (message) => {
                 if (current()) fail(message);
@@ -464,7 +469,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
           recognizer.startContinuousRecognitionAsync(
             () => {
               if (!current()) return;
-              setStatus("Recording — Azure Arabic (Egypt)");
+              setStatus("جارٍ التسجيل — Azure عربي (مصر)");
               if (!limit)
                 limit = setTimeout(
                   () => end.current(),
@@ -494,10 +499,10 @@ function ConfiguredFieldDictation(props: RecordingProps) {
               return;
             }
             setError(
-              "Audio delivery stalled. Speech during this interruption may be missing. Please repeat it after recording resumes.",
+              "توقف إرسال الصوت. قد يكون الكلام أثناء التوقف ناقصًا؛ أعده بعد استئناف التسجيل.",
             );
             setPartial("");
-            setStatus("Rebuilding Azure connection — wait before speaking.");
+            setStatus("إعادة بناء اتصال Azure — انتظر قبل الكلام.");
             try {
               connectAzure();
             } catch {
@@ -542,11 +547,24 @@ function ConfiguredFieldDictation(props: RecordingProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!active) return;
+    const timer = setInterval(() => setSeconds((value) => value + 1), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  useEffect(() => {
+    if (!active || error) setExpanded(true);
+  }, [active, error]);
+  useEffect(() => {
+    // Snapshot the finished recording once: edits, apply and undo must never restart a billed request.
+    if (!active && reviewText === undefined && text.trim()) setReviewText(text);
+  }, [active, text, reviewText]);
+
   const write = (value: string) => {
     if (!target) return false;
     const element = target.element;
     if (!element.isConnected || element.disabled || element.readOnly) {
-      setError("This field is no longer editable. Close and select it again.");
+      setError("الحقل لم يعد قابلًا للتعديل. أغلق الشريط واختر الحقل من جديد.");
       return false;
     }
     const prototype =
@@ -560,171 +578,227 @@ function ConfiguredFieldDictation(props: RecordingProps) {
     element.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
   };
+  const applyTranscript = () => {
+    if (props.kind === "conversation") {
+      const result = routeTranscript(
+        { kind: "conversation", mode: props.mode },
+        text,
+      );
+      if (result.kind === "conversation") props.onTranscript(result);
+      return;
+    }
+    if (!target) return;
+    if (target.element.value !== initial.current) {
+      setError(
+        "تغيّر الحقل أثناء التسجيل. أغلق الشريط وأعد المحاولة حتى لا يُمسح تعديلك.",
+      );
+      return;
+    }
+    const result = routeTranscript(
+      { kind: "field", label: target.label },
+      approvedProposal ?? text,
+    );
+    const value = [initial.current, result.transcript]
+      .filter(Boolean)
+      .join("\n");
+    if (write(value)) {
+      lastApplied.current = value;
+      setApplied(true);
+    }
+  };
+  const undoApplied = () => {
+    if (!target) return;
+    if (target.element.value !== lastApplied.current) {
+      setError("تغيّر الحقل بعد التطبيق، فلا يمكن التراجع.");
+      return;
+    }
+    if (write(initial.current)) setApplied(false);
+  };
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent className="z-[60] max-h-[90dvh] overflow-y-auto" dir="ltr">
-        <DialogHeader>
-          <DialogTitle>
-            {target ? `Dictate: ${target.label}` : "Record full visit"}
-          </DialogTitle>
-          <DialogDescription>
-            {patientName} · Review before applying. Existing text is preserved.
-            Obtain patient consent before recording.
-            {target
-              ? " This recording applies only to this field."
-              : " This recording is for the full visit; no fields are changed here."}
-          </DialogDescription>
-        </DialogHeader>
-        <p role="status">{status}</p>
-        <p>
-          مزوّد الصوت:{" "}
-          {provider === "gemini"
-            ? "Gemini 3.5 Transcribe Live"
-            : "Azure Arabic (Egypt)"}
-        </p>
-        {props.showDiagnostics !== false && provider === "gemini" && (
-          <p role="status">
-            Connection: {diagnostics.connection} · Audio chunks sent:{" "}
-            {diagnostics.packets} · Last transcription:{" "}
-            {diagnostics.lastResponse}
+    <FloatingBar
+      label={target ? `إملاء: ${target.label}` : "تسجيل الزيارة كاملة"}
+      storageKey="medical-dictation-bar-position"
+      expanded={expanded}
+      zIndex={60}
+      onEscape={onClose}
+      sheetTitle={
+        <>
+          <h2 className="text-sm font-semibold">
+            {target ? `إملاء: ${target.label}` : "تسجيل الزيارة كاملة"}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {patientName} · راجع قبل التطبيق.{" "}
+            {target ? "يُطبّق على هذا الحقل فقط." : "لا تتغير أي حقول من هنا."}{" "}
+            · {provider === "gemini" ? "Gemini" : "Azure عربي (مصر)"}
           </p>
-        )}
-        {props.showDiagnostics !== false && provider === "azure" && (
-          <section
-            aria-label="Recording diagnostics"
-            className="space-y-1 rounded border p-3 text-sm"
-          >
-            <label htmlFor="dictation-mic-level">
-              Microphone activity: {diagnostics.level}%
-            </label>
-            <progress
-              id="dictation-mic-level"
-              max={100}
-              value={diagnostics.level}
-              className="block w-full"
-            />
-            <p>
-              Microphone: {diagnostics.microphone} · Audio meter:{" "}
-              {diagnostics.meter}
+        </>
+      }
+      sheet={
+        <>
+          {props.showDiagnostics !== false && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">
+                تشخيص الاتصال
+              </summary>
+              {provider === "gemini" && (
+                <p role="status">
+                  Connection: {diagnostics.connection} · Audio chunks sent:{" "}
+                  {diagnostics.packets} · Last transcription:{" "}
+                  {diagnostics.lastResponse}
+                </p>
+              )}
+              {provider === "azure" && (
+                <section
+                  aria-label="Recording diagnostics"
+                  className="space-y-1 rounded border p-3 text-sm"
+                >
+                  <label htmlFor="dictation-mic-level">
+                    Microphone activity: {diagnostics.level}%
+                  </label>
+                  <progress
+                    id="dictation-mic-level"
+                    max={100}
+                    value={diagnostics.level}
+                    className="block w-full"
+                  />
+                  <p>
+                    Microphone: {diagnostics.microphone} · Audio meter:{" "}
+                    {diagnostics.meter}
+                  </p>
+                  <p>
+                    Last Azure transcription response:{" "}
+                    {diagnostics.lastResponse}
+                  </p>
+                  <p>Azure connection: {diagnostics.connection}</p>
+                  <p>
+                    Last SDK audio packet: {diagnostics.audioSent} · Packets:{" "}
+                    {diagnostics.packets}
+                  </p>
+                  <p>
+                    Last Azure service message: {diagnostics.serviceMessage}
+                  </p>
+                  <p>PCM chunks produced: {diagnostics.pcmChunks}</p>
+                  <p>
+                    Actual Azure WebSocket frames sent:{" "}
+                    {diagnostics.socketFrames} · Last send:{" "}
+                    {diagnostics.socketLastSend}
+                  </p>
+                  <p>
+                    Azure socket: {diagnostics.socketState} · Queued bytes:{" "}
+                    {diagnostics.socketBufferedBytes}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Diagnostics stay in this window; no speech or audio is
+                    logged.
+                  </p>
+                </section>
+              )}
+            </details>
+          )}
+          {error && (
+            <p role="alert" className="text-destructive">
+              {error}
             </p>
-            <p>Last Azure transcription response: {diagnostics.lastResponse}</p>
-            <p>Azure connection: {diagnostics.connection}</p>
-            <p>
-              Last SDK audio packet: {diagnostics.audioSent} · Packets:{" "}
-              {diagnostics.packets}
-            </p>
-            <p>Last Azure service message: {diagnostics.serviceMessage}</p>
-            <p>PCM chunks produced: {diagnostics.pcmChunks}</p>
-            <p>
-              Actual Azure WebSocket frames sent: {diagnostics.socketFrames} ·
-              Last send: {diagnostics.socketLastSend}
-            </p>
-            <p>
-              Azure socket: {diagnostics.socketState} · Queued bytes:{" "}
-              {diagnostics.socketBufferedBytes}
-            </p>
-            <p className="text-muted-foreground">
-              Diagnostics stay in this window; no speech or audio is logged.
-            </p>
-          </section>
-        )}
-        {error && (
-          <p role="alert" className="text-destructive">
-            {error}
-          </p>
-        )}
-        <Textarea
-          aria-label="Transcript"
-          dir="auto"
-          value={text}
-          readOnly={active || applied}
-          onChange={(event) => {
-            setText(event.target.value);
-            setApprovedProposal(undefined);
-          }}
-          className="min-h-40"
-        />
-        {partial && (
-          <p dir="auto" className="text-muted-foreground">
-            {partial}
-          </p>
-        )}
-        {target && !active && !applied && text.trim() && (
-          <ProposalReview
-            key={text}
-            input={{ kind: "field", label: target.label, transcript: text }}
-            onApplyField={(value) => setApprovedProposal(value)}
+          )}
+          <Textarea
+            aria-label="النص"
+            dir="auto"
+            value={text}
+            readOnly={active || applied}
+            onChange={(event) => {
+              setText(event.target.value);
+              setApprovedProposal(undefined);
+            }}
+            className="min-h-16 max-h-32"
           />
-        )}
-        {approvedProposal && !applied && (
-          <p role="status">
-            AI proposal approved for this field. Apply below to append it; the
-            original transcript is preserved above.
+          {partial && (
+            <p dir="auto" className="text-muted-foreground">
+              {partial}
+            </p>
+          )}
+          {target && reviewText !== undefined && (
+            <div hidden={applied}>
+              <ProposalReview
+                autoStart
+                input={{
+                  kind: "field",
+                  label: target.label,
+                  transcript: reviewText,
+                }}
+                onApplyField={(value) => setApprovedProposal(value)}
+              />
+            </div>
+          )}
+          {approvedProposal && !applied && (
+            <p role="status">
+              تم اعتماد اقتراح الذكاء الاصطناعي. اضغط تطبيق لإضافته؛ النص الأصلي
+              يبقى محفوظًا.
+            </p>
+          )}
+        </>
+      }
+      pill={
+        <>
+          <span
+            aria-hidden="true"
+            className={
+              "h-2.5 w-2.5 shrink-0 rounded-full " +
+              (active ? "animate-pulse bg-destructive" : "bg-muted-foreground")
+            }
+          />
+          <span className="w-12 shrink-0 font-mono text-sm tabular-nums max-sm:me-auto">
+            {String(Math.floor(seconds / 60)).padStart(2, "0")}:
+            {String(seconds % 60).padStart(2, "0")}
+          </span>
+          <p
+            role="status"
+            className="hidden min-w-0 flex-1 truncate text-sm sm:block"
+          >
+            {error || partial || status}
           </p>
-        )}
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => end.current()} disabled={!active}>
-            Stop
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Close
+          {active ? (
+            <Button size="sm" onClick={() => end.current()}>
+              إيقاف
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              disabled={applied || !text.trim()}
+              onClick={applyTranscript}
+            >
+              {target ? "تطبيق على الحقل" : "استخدام نص الزيارة"}
+            </Button>
+          )}
+          {target && applied && (
+            <Button size="sm" variant="outline" onClick={undoApplied}>
+              تراجع
+            </Button>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 shrink-0"
+            aria-label={expanded ? "إخفاء المراجعة" : "إظهار المراجعة"}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? (
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
+            )}
           </Button>
           <Button
-            disabled={active || applied || !text.trim()}
-            onClick={() => {
-              if (props.kind === "conversation") {
-                const result = routeTranscript(
-                  { kind: "conversation", mode: props.mode },
-                  text,
-                );
-                if (result.kind === "conversation") props.onTranscript(result);
-                return;
-              }
-              if (!target) return;
-              if (target.element.value !== initial.current) {
-                setError(
-                  "The field changed during recording. Close and try again to avoid overwriting it.",
-                );
-                return;
-              }
-              const result = routeTranscript(
-                { kind: "field", label: target.label },
-                approvedProposal ?? text,
-              );
-              const value = [initial.current, result.transcript]
-                .filter(Boolean)
-                .join("\n");
-              if (write(value)) {
-                lastApplied.current = value;
-                setApplied(true);
-              }
-            }}
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 shrink-0"
+            aria-label="إغلاق"
+            onClick={onClose}
           >
-            {target ? "Apply to field" : "Use full-visit transcript"}
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
-          <Button
-            variant="outline"
-            disabled={!target || !applied}
-            onClick={() => {
-              if (!target) return;
-              if (target.element.value !== lastApplied.current) {
-                setError(
-                  "The field has changed since applying; undo is unavailable.",
-                );
-                return;
-              }
-              if (write(initial.current)) setApplied(false);
-            }}
-          >
-            Undo
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    />
   );
 }

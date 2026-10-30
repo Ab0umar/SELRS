@@ -1784,7 +1784,7 @@ export default function WorkflowPrototypeLive() {
             </div>
           </div>
           <div className="overflow-visible rounded-lg border border-slate-200">
-            <table className="w-full max-w-full table-auto text-xs" dir="ltr">
+            <table data-mobile-fit className="w-full max-w-full table-auto text-xs" dir="ltr">
               <thead className="bg-muted/50 text-slate-600">
                 <tr>
                   <th className="p-2 text-left">Eye</th>
@@ -1858,7 +1858,7 @@ export default function WorkflowPrototypeLive() {
         <section className="rounded-xl border border-slate-200 bg-white p-3">
           <h3 className="mb-3 text-sm font-bold">AFTER REFRACTION</h3>
           <div className="overflow-visible rounded-lg border border-slate-200">
-            <table className="w-full max-w-full table-auto text-xs" dir="ltr">
+            <table data-mobile-fit className="w-full max-w-full table-auto text-xs" dir="ltr">
               <thead className="bg-muted/50 text-slate-600">
                 <tr>
                   <th className="p-2 text-left">Eye</th>
@@ -1932,7 +1932,7 @@ export default function WorkflowPrototypeLive() {
         <section className="rounded-xl border border-slate-200 bg-white p-3">
           <h3 className="mb-3 text-sm font-bold">PENTACAM</h3>
           <div className="overflow-visible rounded-lg border border-slate-200">
-            <table className="w-full max-w-full table-auto text-xs" dir="ltr">
+            <table data-mobile-fit className="w-full max-w-full table-auto text-xs" dir="ltr">
               <thead className="bg-muted/50 text-slate-600">
                 <tr>
                   <th className="p-2 text-left">Eye</th>
@@ -2361,7 +2361,7 @@ export default function WorkflowPrototypeLive() {
       active={activeStage === "pentacam"}
     >
       <div className="overflow-visible rounded-xl border border-slate-200">
-        <table className="w-full max-w-full table-auto text-sm" dir="ltr">
+        <table data-mobile-fit className="w-full max-w-full table-auto text-sm" dir="ltr">
           <thead className="bg-muted/50">
             <tr>
               <th className="p-3 text-left">Measurement</th>
@@ -3351,6 +3351,7 @@ export default function WorkflowPrototypeLive() {
               <div className="min-w-0 space-y-5 print:flex print:h-full print:flex-col print:gap-3 print:space-y-0">
                 <div className="min-w-0 overflow-hidden rounded-xl border-2 border-slate-300 bg-white print:flex-[3]">
                   <table
+                    data-mobile-fit
                     className="w-full max-w-full table-fixed border-collapse text-center text-[14px] font-semibold print:h-full print:text-[16px] [&_td]:!px-1 [&_th]:!px-1"
                     dir="ltr"
                   >
@@ -3435,6 +3436,7 @@ export default function WorkflowPrototypeLive() {
                 {hasPentacam ? (
                   <div className="overflow-visible rounded-xl border-2 border-slate-300 bg-white print:flex-[2]">
                     <table
+                    data-mobile-fit
                       className="h-full w-full max-w-full table-auto border-collapse text-center text-[14px] print:text-[16px]"
                       dir="ltr"
                     >

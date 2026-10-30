@@ -376,7 +376,7 @@ export default function WorkflowExamination({
               role="region"
               aria-label="جدول بيانات"
               tabIndex={0}
-              className="overflow-x-auto"
+              className="hidden overflow-x-auto md:block"
             >
               <table className="w-full min-w-[480px] table-fixed border-collapse text-center">
                 <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
@@ -431,6 +431,65 @@ export default function WorkflowExamination({
                   </tr>
                 </tbody>
               </table>
+            </div>
+            <div className="space-y-2 md:hidden">
+              {(["od", "os"] as const).map((eye) => (
+                <div key={eye} className="rounded-lg border border-[#c3c6d6] p-2">
+                  <div
+                    className={`mb-1.5 text-xs font-bold ${
+                      eye === "od" ? "text-[#003d9b]" : "text-[#526069]"
+                    }`}
+                  >
+                    {eye === "od" ? "OD (Right)" : "OS (Left)"}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <label className="space-y-1 text-[11px] text-muted-foreground">
+                      S
+                      <RefractionValueSelect
+                        value={refraction[eye].s}
+                        onChange={(next) => setRefractionField(eye, "s", next)}
+                        options={SPHERE_OPTIONS}
+                        aria-label={`Refraction ${eye.toUpperCase()} S`}
+                        triggerClassName="h-9 w-full text-center font-mono text-xs"
+                      />
+                    </label>
+                    <label className="space-y-1 text-[11px] text-muted-foreground">
+                      C
+                      <RefractionValueSelect
+                        value={refraction[eye].c}
+                        onChange={(next) => setRefractionField(eye, "c", next)}
+                        options={CYLINDER_OPTIONS}
+                        aria-label={`Refraction ${eye.toUpperCase()} C`}
+                        triggerClassName="h-9 w-full text-center font-mono text-xs"
+                      />
+                    </label>
+                    <label className="space-y-1 text-[11px] text-muted-foreground">
+                      Axis
+                      <input
+                        className="h-9 w-full rounded-md border border-input bg-background text-center font-mono text-xs"
+                        aria-label={`Refraction ${eye.toUpperCase()} Axis`}
+                        inputMode="numeric"
+                        value={refraction[eye].axis}
+                        onChange={(event) =>
+                          setRefractionField(eye, "axis", event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+              <label className="flex items-center gap-2 rounded-lg border border-[#c3c6d6] p-2 text-xs font-bold">
+                Reading Add +
+                <input
+                  className={`${axisInput} max-w-24`}
+                  aria-label="Reading Add"
+                  value={reading}
+                  onChange={(event) => {
+                    dirtyRef.current = true;
+                    setReading(event.target.value);
+                  }}
+                />
+              </label>
             </div>
           </section>
 

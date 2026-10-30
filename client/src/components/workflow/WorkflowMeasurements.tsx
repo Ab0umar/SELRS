@@ -102,7 +102,7 @@ function RefractionTable({
       <h3 className="mb-3 text-xs font-semibold uppercase text-muted-foreground">
         {title}
       </h3>
-      <div className="mx-auto max-w-4xl overflow-hidden rounded-lg border">
+      <div className="mx-auto hidden max-w-4xl overflow-hidden rounded-lg border md:block">
         <table
           className="w-full border-collapse text-center text-base"
           dir="ltr"
@@ -157,6 +157,49 @@ function RefractionTable({
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="space-y-2 md:hidden" dir="ltr">
+        {EYES.map((eye) => (
+          <div key={eye} className="rounded-lg border p-2">
+            <div className="mb-1.5 text-xs font-semibold">
+              {eye.toUpperCase()}
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <label className="space-y-1 text-[11px] text-muted-foreground">
+                S
+                <RefractionValueSelect
+                  value={value[eye].s}
+                  onChange={(next) => onChange(eye, "s", next)}
+                  options={SPHERE_OPTIONS}
+                  aria-label={`${title} ${eye.toUpperCase()} S`}
+                  triggerClassName="h-9 w-full border-input text-center text-xs"
+                />
+              </label>
+              <label className="space-y-1 text-[11px] text-muted-foreground">
+                C
+                <RefractionValueSelect
+                  value={value[eye].c}
+                  onChange={(next) => onChange(eye, "c", next)}
+                  options={CYLINDER_OPTIONS}
+                  aria-label={`${title} ${eye.toUpperCase()} C`}
+                  triggerClassName="h-9 w-full border-input text-center text-xs"
+                />
+              </label>
+              <label className="space-y-1 text-[11px] text-muted-foreground">
+                Axis
+                <Input
+                  value={value[eye].axis}
+                  onChange={(event) =>
+                    onChange(eye, "axis", event.target.value)
+                  }
+                  aria-label={`${title} ${eye.toUpperCase()} Axis`}
+                  inputMode="numeric"
+                  className="h-9 w-full border-input text-center text-xs"
+                />
+              </label>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
