@@ -95,10 +95,6 @@ function MedicalAssistantDialog({
               <p className="text-xs text-muted-foreground" dir="auto">
                 {patientLabel} · {visitLabel}
               </p>
-              <p className="text-xs text-muted-foreground">
-                سجّل الزيارة كاملة وراجع النص. المساعد يملأ مسودة الحقول، والحفظ
-                بعد مراجعتك فقط.
-              </p>
             </>
           }
           sheet={
@@ -143,11 +139,6 @@ function MedicalAssistantDialog({
                   <ProposalReview key={reviewRun} autoStart input={result} />
                 )}
               </section>
-              <p className="text-xs text-muted-foreground">
-                مزوّد الصوت يُحدّد من الإعداد المركزي. بالضغط على تسجيل تؤكد
-                حصولك على موافقة المريض على التسجيل وإرسال النص للمعالجة. راجع
-                التعديلات واختيارات الكتالوج، ثم اضغط حفظ الزيارة.
-              </p>
             </>
           }
           pill={

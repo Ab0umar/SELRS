@@ -112,12 +112,14 @@ export default function FloatingBar({
       }}
       className={
         "fixed w-[min(680px,calc(100vw-2rem))] print:hidden " +
-        (position ? "" : "bottom-4 left-1/2 -translate-x-1/2")
+        (position
+          ? ""
+          : "bottom-[calc(6rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 md:bottom-4")
       }
     >
       <div
         hidden={!expanded}
-        className="mb-2 max-h-[min(42dvh,340px)] space-y-2 overflow-y-auto rounded-2xl border bg-card p-3 text-sm text-card-foreground shadow-2xl"
+        className="mb-2 max-h-[min(36dvh,340px)] space-y-2 md:max-h-[min(42dvh,340px)] overflow-y-auto rounded-2xl border bg-card p-3 text-sm text-card-foreground shadow-2xl"
       >
         <div
           data-drag-handle
