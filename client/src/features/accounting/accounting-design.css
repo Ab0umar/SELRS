@@ -35,7 +35,7 @@
   [data-operational-module="accounting"] .accounting-cashbook-date { white-space: normal; overflow-wrap: anywhere; }
   div[data-operational-module="accounting"][data-ledger] {
     padding: 12px;
-    background: var(--background) !important;
+    background: transparent !important;
   }
   div[data-operational-module="accounting"][data-ledger] > div {
     max-width: 1600px;

@@ -125,6 +125,16 @@ The 12 valid serviceType values: `consultant`, `specialist`, `lasik`, `surgery`,
 
 The migration runner requires `--> statement-breakpoint` (not semicolons) between ALTER TABLE statements. Multiple statements in one migration file MUST be separated by this exact marker on its own line. Also: never add `NOT NULL` to an ALTER TABLE MODIFY COLUMN if any existing rows might have NULL for that column.
 
+## UI Surface Rules (site-wide)
+
+- Every border is curved; never square corners.
+- Each section has one glass background and one outer border of its own.
+- No border inside a border: only the section's outer border shows.
+- No glass on glass: nothing inside a glass section adds its own glass fill or blur.
+- Page content always spans the full page width; no max-width caps on page wrappers.
+- Text without a background of its own is bold.
+- Implemented in the SITE-WIDE blocks at the end of `client/src/styles/app-surfaces.css`.
+
 ## Extra Project Rules
 
 - Use `.claude/rules/frontend.md` for route/page/component work.

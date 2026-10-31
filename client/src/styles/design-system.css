@@ -11,7 +11,7 @@
     --background: #f5f8fc;
     --canvas: #f5f8fc;
     --foreground: #0f2440;
-    --card: #ffffff;
+    --card: rgba(255, 255, 255, 0.55);
     --card-foreground: #0f2440;
     --popover: #ffffff;
     --popover-foreground: #0f2440;
@@ -54,26 +54,26 @@
   }
 
   .dark {
-    --background: #121820;
-    --canvas: #121820;
+    --background: #0c1a33;
+    --canvas: #0c1a33;
     --foreground: #edf3fb;
-    --card: #202936;
+    --card: rgba(255, 255, 255, 0.07);
     --card-foreground: #edf3fb;
-    --popover: #202936;
+    --popover: #1a2c4d;
     --popover-foreground: #edf3fb;
-    --field-surface: #17202b;
+    --field-surface: #12233f;
     --surface-shadow: 0 3px 12px #00000017;
-    --primary: #8bbcff;
-    --primary-foreground: #14263d;
-    --secondary: #ffad42;
-    --secondary-foreground: #20252b;
-    --muted: #17202b;
+    --primary: #f2873a;
+    --primary-foreground: #0c1a33;
+    --secondary: #f2873a;
+    --secondary-foreground: #0c1a33;
+    --muted: #12233f;
     --muted-foreground: #aab9cb;
-    --accent: #273c55;
+    --accent: #1e3358;
     --accent-foreground: #c1d9ff;
-    --border: #354457;
+    --border: #2b3d5e;
     --input: #8794a4;
-    --ring: #8bbcff;
+    --ring: #f2873a;
     --destructive: #fca5a5;
     --destructive-foreground: #491515;
     --destructive-text: #fca5a5;
@@ -87,6 +87,21 @@
     --warning: #ffcf70;
     --warning-foreground: #452c00;
     --warning-text: #ffcf70;
+  }
+
+  .dark body {
+    background:
+      radial-gradient(circle at 0% 0%, rgba(11, 92, 194, 0.55), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(242, 135, 58, 0.22), transparent 50%),
+      radial-gradient(circle at 100% 0%, rgba(11, 92, 194, 0.25), transparent 45%),
+      var(--background);
+    background-attachment: scroll;
+  }
+  .dark .selrs-app-content,
+  .dark .selrs-page-bg,
+  .dark .selrs-page-bg > main,
+  .dark .page-layout {
+    background-color: transparent !important;
   }
 
   body {
@@ -154,6 +169,22 @@
   html:not(.dark) body,
   html:not(.dark) [data-app-scroll-container] {
     background-color: var(--canvas);
+  }
+  html:not(.dark) body {
+    background:
+      radial-gradient(circle at 0% 0%, rgba(6, 62, 148, 0.72), transparent 55%),
+      radial-gradient(circle at 100% 0%, rgba(44, 94, 205, 0.45), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(214, 98, 22, 0.62), transparent 55%),
+      radial-gradient(circle at 0% 100%, rgba(16, 128, 196, 0.4), transparent 50%),
+      var(--canvas);
+    background-attachment: fixed;
+  }
+  html:not(.dark) .selrs-app-content,
+  html:not(.dark) .selrs-page-bg,
+  html:not(.dark) .selrs-page-bg > main,
+  html:not(.dark) .page-layout,
+  html:not(.dark) [data-app-scroll-container] {
+    background-color: transparent !important;
   }
   html:not(.dark) [data-app-top-nav] {
     background: var(--card);

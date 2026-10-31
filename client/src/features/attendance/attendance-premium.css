@@ -12,7 +12,7 @@
       [data-operational-module="attendance"],
       #module-content
     ) {
-    background: var(--background) !important;
+    background: transparent !important;
   }
   .attendance-studio[data-operational-module="attendance"]:has(
       .attendance-home-focused

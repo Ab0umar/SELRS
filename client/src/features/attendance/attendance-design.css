@@ -2,7 +2,7 @@
   .attendance-studio[data-operational-module="attendance"] {
     --attendance-canvas: var(--background);
     --attendance-surface: var(--card);
-    background: var(--background) !important;
+    background: transparent !important;
     padding: 12px;
   }
 

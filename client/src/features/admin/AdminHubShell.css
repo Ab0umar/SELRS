@@ -31,16 +31,16 @@
 @layer base {
   @media screen {
     html #root [data-admin-hub].exact-admin-hub .admin-directory-search input {
-      background: #ffffff !important;
-      background-color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.5) !important;
+      background-color: rgba(255, 255, 255, 0.5) !important;
       color: #0f2440 !important;
-      border-color: #d5dfeb !important;
+      border-color: rgba(255, 255, 255, 0.75) !important;
     }
     html.dark #root [data-admin-hub].exact-admin-hub .admin-directory-search input {
-      background: #12304f !important;
-      background-color: #12304f !important;
+      background: rgba(255, 255, 255, 0.07) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       color: #ffffff !important;
-      border-color: #1f4468 !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
     }
     html #root [data-admin-hub].exact-admin-hub .admin-directory-search input::placeholder {
       color: #4b5f78 !important;
@@ -53,11 +53,11 @@
 
 @media screen {
   [data-admin-hub].exact-admin-hub:has(.admin-directory) {
-    background: #f5f8fc !important;
+    background: transparent !important;
     color: #0f2440;
   }
   .dark [data-admin-hub].exact-admin-hub:has(.admin-directory) {
-    background: #0a1a2f !important;
+    background: transparent !important;
     color: #ffffff;
   }
 
@@ -174,19 +174,21 @@
     flex-shrink: 0;
     min-height: 44px;
     padding: 8px 16px;
-    border: 1px solid #d5dfeb !important;
+    border: 1px solid rgba(255, 255, 255, 0.75) !important;
     border-radius: 999px !important;
     text-align: start;
     font-size: 13px;
     font-weight: 700;
-    background: #ffffff !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     color: #0f2440 !important;
     white-space: nowrap;
   }
 
   .dark .exact-admin-hub .admin-category-nav button {
-    border-color: #1f4468 !important;
-    background: #12304f !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
     color: #ffffff !important;
   }
 
@@ -363,13 +365,27 @@
   }
 
   .exact-admin-hub .admin-bento-block[data-block="1"] {
-    background: #e3eef9 !important;
+    background: rgba(255, 255, 255, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     color: #08366b !important;
+  }
+
+  .dark .exact-admin-hub .admin-bento-block[data-block="1"] {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #ffffff !important;
   }
 
   .exact-admin-hub .admin-bento-block[data-block="1"] .admin-tool-copy h3,
   .exact-admin-hub .admin-bento-block[data-block="1"] .admin-tool-icon {
     color: #08366b !important;
+  }
+
+  .dark .exact-admin-hub .admin-bento-block[data-block="1"] .admin-tool-copy h3,
+  .dark .exact-admin-hub .admin-bento-block[data-block="1"] .admin-tool-icon {
+    color: #ffffff !important;
   }
 
   .exact-admin-hub .admin-bento-block[data-block="2"] {
@@ -391,9 +407,11 @@
     gap: 6px;
     min-height: 104px;
     padding: 8px;
-    border: 1px solid #d5dfeb;
+    border: 1px solid rgba(255, 255, 255, 0.75);
     border-radius: 18px;
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     color: #0f2440;
     text-align: center;
   }
@@ -403,8 +421,8 @@
   }
 
   .dark .exact-admin-hub .admin-bento-tile {
-    border-color: #1f4468;
-    background: #12304f;
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.07);
     color: #ffffff;
   }
 

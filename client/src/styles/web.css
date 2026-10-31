@@ -812,7 +812,9 @@
 
 @layer utilities {
   .dark [data-slot="card"] {
-    background-color: var(--card) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     color: var(--card-foreground) !important;
     border-color: var(--border) !important;
     box-shadow: none !important;
@@ -835,12 +837,16 @@
     box-shadow: none !important;
   }
 
-  .dark [class~="bg-white"] {
-    background-color: var(--card) !important;
+  .dark [class~="bg-white"]:not(.sticky, [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [data-slot*="dialog"], [data-slot*="sheet"], [data-slot*="popover"], [data-slot*="dropdown"], [data-slot*="select"], [data-slot*="tooltip"]) {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 
-  .dark [class*="bg-white/"] {
-    background-color: var(--card) !important;
+  .dark [class*="bg-white/"]:not(.sticky, [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [data-slot*="dialog"], [data-slot*="sheet"], [data-slot*="popover"], [data-slot*="dropdown"], [data-slot*="select"], [data-slot*="tooltip"]) {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 
   .dark [class*="bg-slate-50"],
@@ -849,8 +855,10 @@
     background-color: var(--card) !important;
   }
 
-  .dark [class*="bg-card"] {
-    background-color: var(--card) !important;
+  .dark [class*="bg-card"]:not(.sticky, [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [data-slot*="dialog"], [data-slot*="sheet"], [data-slot*="popover"], [data-slot*="dropdown"], [data-slot*="select"], [data-slot*="tooltip"]) {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 
   .dark [class*="bg-muted"] {
@@ -1093,10 +1101,12 @@ html:not(.dark)
     .patient-guest-content,
     .salary-table-redesign :where(.overflow-x-auto, .overflow-auto):has(> table)
   ) {
-  border: 1px solid var(--border) !important;
-  background: var(--card) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   color: var(--foreground) !important;
-  box-shadow: 0 1px 2px rgba(17, 23, 84, 0.04) !important;
+  box-shadow: 0 8px 30px rgba(0, 61, 130, 0.08) !important;
 }
 
 html:not(.dark)
@@ -1105,8 +1115,10 @@ html:not(.dark)
     [class*="bg-card"],
     [class*="bg-slate-50"],
     [class*="bg-slate-100"]
-  ) {
-  background-color: var(--card) !important;
+  ):not(.sticky, [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [data-slot*="dialog"], [data-slot*="sheet"], [data-slot*="popover"], [data-slot*="dropdown"], [data-slot*="select"], [data-slot*="tooltip"]) {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 html:not(.dark)

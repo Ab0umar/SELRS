@@ -460,8 +460,8 @@
     background-image: none;
   }
   .dark body {
-    background-image: none;
-    background-color: #0d1117;
+    background-image: radial-gradient(circle at 0% 0%, rgba(11, 92, 194, 0.45), transparent 46%);
+    background-color: #0c1a33;
   }
   body * {
     unicode-bidi: plaintext;
@@ -519,13 +519,13 @@
 
   .dark html,
   .dark body {
-    background-color: #0d1117 !important;
-    background-image: none !important;
+    background-color: #0c1a33 !important;
+    background-image: radial-gradient(circle at 0% 0%, rgba(11, 92, 194, 0.45), transparent 46%) !important;
     background-attachment: scroll !important;
   }
 
   .dark .selrs-page-bg {
-    background-color: #0d1117 !important;
+    background-color: #0c1a33 !important;
     background-image: none !important;
     background-attachment: scroll !important;
   }
@@ -638,22 +638,22 @@ img {
   }
 
   .dark [class~="bg-white"] {
-    background-color: rgba(22, 27, 34, 0.96) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
   }
 
   .dark [class*="bg-white/"] {
-    background-color: rgba(22, 27, 34, 0.92) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
   }
 
   .dark [class*="bg-slate-50"],
   .dark [class*="bg-slate-100"] {
-    background-color: rgba(33, 38, 45, 0.85) !important;
+    background-color: rgba(255, 255, 255, 0.09) !important;
   }
 
   .dark [class*="border-slate-100"],
   .dark [class*="border-slate-200"],
   .dark [class*="border-white/80"] {
-    border-color: rgba(48, 54, 61, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
   }
 
   .dark [class*="text-slate-950"],
@@ -676,7 +676,7 @@ img {
         rgba(56, 189, 248, 0.06),
         transparent 34%
       ),
-      linear-gradient(135deg, rgba(13, 17, 23, 0.97), rgba(22, 27, 34, 0.8)) !important;
+      linear-gradient(135deg, rgba(12, 26, 51, 0.97), rgba(21, 37, 64, 0.8)) !important;
   }
 
   .dark [class*="shadow-sm"],
@@ -906,7 +906,7 @@ img {
   }
 
   .dark .selrs-page-bg {
-    background-color: #0d1117;
+    background-color: #0c1a33;
     background-image: none;
   }
 
@@ -916,7 +916,7 @@ img {
   }
 
   .dark .selrs-sidebar-bg {
-    background: #010409;
+    background: #0a1630;
   }
 
   .selrs-login-bg {
@@ -931,7 +931,7 @@ img {
     --border: #dbe4ef;
     --input: #dbe4ef;
     --primary: #003d82;
-    --primary-foreground: #ffffff;
+    --primary-foreground: #0c1a33;
     --secondary: #ff9500;
     --secondary-foreground: #001f47;
     --accent: #ff9500;
@@ -983,7 +983,7 @@ img {
     --border: #dbe4ef;
     --input: #dbe4ef;
     --primary: #003d82;
-    --primary-foreground: #ffffff;
+    --primary-foreground: #0c1a33;
     --secondary: #ff9500;
     --secondary-foreground: #001f47;
     --accent: #ff9500;
@@ -1019,10 +1019,10 @@ img {
   }
 
   .dark .selrs-glass-card {
-    border: 1px solid rgba(48, 54, 61, 0.8);
-    background: rgba(22, 27, 34, 0.95);
-    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.3);
-    backdrop-filter: none;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: none;
+    backdrop-filter: blur(8px);
   }
 
   .selrs-active-nav {
@@ -1052,6 +1052,19 @@ img {
     border-radius: 1.25rem;
     background: var(--card);
     box-shadow: var(--bento-shadow-soft);
+  }
+
+  .dark .page-layout [data-slot="card"],
+  .dark .page-layout .rounded-lg.border.bg-card,
+  .dark .page-layout .rounded-xl.border.bg-card,
+  .dark .page-layout .rounded-2xl.border.bg-card,
+  .dark .page-layout .rounded-lg.border.border-border.bg-card,
+  .dark .page-layout .rounded-xl.border.border-border.bg-card {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: none;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 
   .page-layout [data-slot="card-header"] {
@@ -2930,7 +2943,9 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
   }
 
   [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-rail-link.is-active {
-    background: white;
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     color: var(--v3-navy);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
   }
@@ -3034,7 +3049,9 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
     min-width: 15rem;
     border: 1px solid var(--v3-line);
     border-radius: 0.65rem;
-    background: white;
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     color: var(--v3-navy);
     font-family: inherit;
     font-size: 0.75rem;
@@ -3095,7 +3112,9 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
     display: flex;
     flex-shrink: 0;
     border: 1px solid var(--v3-line);
-    background: white;
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
 
   [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-health-item {
@@ -3156,7 +3175,15 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
 
   [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-section-block {
     border: 1px solid var(--v3-line);
-    background: white;
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  .dark [data-admin-hub].admin-hub-redesign-v3 :is(.admin-hub-v3-rail-link.is-active, .admin-hub-v3-page-switcher, .admin-hub-v3-health-strip, .admin-hub-v3-section-block, .admin-hub-v3-menu-button) {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #e6efff;
   }
 
   [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-section-heading {
@@ -3390,7 +3417,9 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
       justify-content: center;
       border: 1px solid var(--v3-line);
       border-radius: 0.65rem;
-      background: white;
+      background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
       color: var(--v3-navy);
     }
 
