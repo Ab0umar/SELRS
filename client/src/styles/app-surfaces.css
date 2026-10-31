@@ -125,3 +125,241 @@
   }
 }
 }
+
+/* Top nav: floating glass capsule with an active glass pill */
+@media screen {
+  html [data-app-top-nav] {
+    background: var(--popover) !important;
+    color: var(--foreground);
+  }
+
+  /* Floating capsule: transparent over the page gradient, frosted glass once the page scrolls. */
+  html [data-app-top-nav][data-app-top-nav] {
+    margin: 6px 8px 0;
+    border: 1px solid transparent !important;
+    border-radius: 999px;
+    background: transparent !important;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  html[data-nav-scrolled] [data-app-top-nav][data-app-top-nav] {
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  html:not(.dark)[data-nav-scrolled] [data-app-top-nav][data-app-top-nav] {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border-color: rgba(255, 255, 255, 0.75) !important;
+    box-shadow: 0 8px 30px rgba(0, 61, 130, 0.12);
+  }
+
+  html.dark[data-nav-scrolled] [data-app-top-nav][data-app-top-nav] {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  /* On phones the bar floats over scrolling content, so blur what passes under it. */
+  @media (max-width: 767px) {
+    html [data-app-top-nav][data-app-top-nav] {
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+    }
+  }
+
+  /* Active tab: glass pill with an orange underline. */
+  html [data-app-top-nav][data-app-top-nav] nav :is(button, a)[data-nav-active="true"] {
+    border-radius: 999px !important;
+    box-shadow: inset 0 -2px 0 #f2873a;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  html:not(.dark) [data-app-top-nav][data-app-top-nav] nav :is(button, a)[data-nav-active="true"] {
+    background: rgba(255, 255, 255, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.85) !important;
+    color: #0b4a8f !important;
+  }
+  html:not(.dark) [data-app-top-nav][data-app-top-nav] nav :is(button, a)[data-nav-active="true"] * {
+    color: #0b4a8f !important;
+  }
+  html.dark [data-app-top-nav][data-app-top-nav] nav :is(button, a)[data-nav-active="true"] {
+    background: rgba(255, 255, 255, 0.10) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+  }
+  html.dark [data-app-top-nav][data-app-top-nav] nav :is(button, a)[data-nav-active="true"] * {
+    color: #ffffff !important;
+  }
+}
+
+/* Dark sheets and reports share the clinical report look: soft outlined boxes and fields. */
+@layer utilities {
+  @media screen {
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) :is(table, td, th, [class*="border-["], [class*="border-slate"], [class*="border-border"]) {
+      border-color: rgba(255, 255, 255, 0.22) !important;
+    }
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) div[class*="border-["]:not([class*="grid"]),
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) section[class*="border-["] {
+      border-radius: 14px !important;
+    }
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) :is(input, textarea, select):not(td *, th *):not([type="checkbox"]):not([type="radio"]):not([class*="text-[18pt]"]) {
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
+      border-radius: 10px !important;
+    }
+  }
+}
+
+/* Dark: the card that merely wraps a sheet or report paper drops its own glass and outline. */
+@layer utilities {
+  @media screen {
+    html.dark .selrs-app-content [class*="bg-card"]:has(.lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .report-sheet-body, .printable-report-sheet):not(.lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .report-sheet-body, .printable-report-sheet) {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* Dark: whatever is typed or selected in a sheet or report field is light text. */
+@layer utilities {
+  @media screen {
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) :is(input, textarea, select, button[role="combobox"], [data-slot="select-trigger"], [data-slot="select-value"], [data-field-surface] button, [data-field-surface] input) {
+      color: #e6efff !important;
+      -webkit-text-fill-color: #e6efff !important;
+      caret-color: #e6efff;
+    }
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) :is(input, textarea)::placeholder,
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) [data-placeholder] {
+      color: #8aa0c8 !important;
+      -webkit-text-fill-color: #8aa0c8 !important;
+    }
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) :is(input[type="date"], input[type="time"])::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+    }
+  }
+}
+
+/* Dark: small buttons inside sheet paper whose light fill was cleared get light text, unless they are the active (colored) one. */
+@layer utilities {
+  @media screen {
+    html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) button:not([class*="bg-primary"]):not([class*="bg-[#003"]):not([class*="bg-[#f2873a]"]):not([data-state="on"]):not([aria-pressed="true"]) {
+      color: #e6efff !important;
+    }
+  }
+}
+
+/* Dark: the base layer forces white fields with !important, and base wins over utilities, so this one lives in base with extra specificity. */
+@layer base {
+  @media screen {
+    html.dark .selrs-app-content .sheet-followup-body.sheet-followup-body.sheet-followup-body.sheet-followup-body.sheet-followup-body.sheet-followup-body.sheet-followup-body :is(input, textarea, select, [data-slot="select-trigger"], [data-field-surface] > button),
+    html.dark .selrs-app-content .lasik-sheet.lasik-sheet.lasik-sheet.lasik-sheet.lasik-sheet.lasik-sheet.lasik-sheet :is(input, textarea, select, [data-slot="select-trigger"], [data-field-surface] > button),
+    html.dark .selrs-app-content .specialist-sheet.specialist-sheet.specialist-sheet.specialist-sheet.specialist-sheet.specialist-sheet.specialist-sheet :is(input, textarea, select, [data-slot="select-trigger"], [data-field-surface] > button),
+    html.dark .selrs-app-content .medical-report-page.medical-report-page.medical-report-page.medical-report-page.medical-report-page.medical-report-page.medical-report-page :is(input, textarea, select, [data-slot="select-trigger"], [data-field-surface] > button),
+    html.dark .selrs-app-content .printable-report-sheet.printable-report-sheet.printable-report-sheet.printable-report-sheet.printable-report-sheet.printable-report-sheet.printable-report-sheet :is(input, textarea, select, [data-slot="select-trigger"], [data-field-surface] > button),
+    html.dark .selrs-app-content .report-sheet-body.report-sheet-body.report-sheet-body.report-sheet-body.report-sheet-body.report-sheet-body.report-sheet-body :is(input, textarea, select, [data-slot="select-trigger"], [data-field-surface] > button) {
+      background-color: transparent !important;
+    }
+  }
+}
+
+/* Dark: the full-height muted canvas behind a report or sheet paper is removed. */
+@layer utilities {
+  @media screen {
+    html.dark .selrs-app-content :is(div, main, section)[class*="bg-muted"][class*="min-h-"] {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+/* Dark: the medical report paper has no fill of its own, like the other reports' paper (outline and blur only). */
+@layer utilities {
+  @media screen {
+    html.dark .selrs-app-content .printable-report-sheet {
+      background: transparent !important;
+    }
+  }
+}
+
+/* Dark: the solid blue band behind the featured "patient name" row is removed; the row keeps its label and outlined field. */
+@layer utilities {
+  @media screen {
+    html.dark .selrs-app-content .printable-report-sheet .medical-report-featured-row {
+      background: transparent !important;
+      border-color: transparent !important;
+    }
+    html.dark .selrs-app-content .printable-report-sheet .medical-report-featured-row > div {
+      border-color: transparent !important;
+    }
+  }
+}
+
+/* ===== DARK MODE: same rules, readable text, glass fields ===== */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), textarea, select, button[data-slot="select-trigger"], [data-slot="input"], [data-slot="textarea"]) {
+    background-color: rgba(255,255,255,0.07) !important; color: #edf3fb !important; -webkit-text-fill-color: #edf3fb !important;
+    border-color: rgba(255,255,255,0.28) !important; border-radius: 12px !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(input, textarea)::placeholder { color: rgba(237,243,251,0.6) !important; -webkit-text-fill-color: rgba(237,243,251,0.6) !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.salary-home-payroll, .salary-home-payroll *) { color: #edf3fb !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content span.inline-flex[class*="rounded-md"][class*="border"]:not([class*="bg-destructive"], [class*="bg-success"], [class*="bg-warning"], [class*="bg-info"]) { color: #edf3fb !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content span[class*="bg-warning"] { color: #fcd34d !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(div[role="tablist"], div.flex.gap-1) > button:not([aria-selected="true"], [data-state="active"], [class*="bg-primary"]) {
+    background-color: rgba(255,255,255,0.07) !important; color: #edf3fb !important; }
+}}
+
+/* dark: inactive segmented buttons (no tablist role), archive code badges */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(div.flex.items-center.gap-2, div[role="group"]) > button[class*="bg-background"]:not([aria-pressed="true"], [data-state="active"]),
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content div.flex.items-center.gap-2 > button:not([class*="bg-primary"], [class*="bg-destructive"], [aria-pressed="true"], [data-slot="button"]) {
+    background-color: rgba(255,255,255,0.07) !important; color: #edf3fb !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content td span.inline-flex[class*="rounded-md"][class*="border"] { background-color: transparent !important; color: #edf3fb !important; }
+}}
+
+/* dark: paper sheets stay dark-on-white; group buttons; rose text */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is([class*="-paper"], [class*="print-content"], .a4-page-card) { color: #0f2440 !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is([class*="-paper"], [class*="print-content"], .a4-page-card) :is(span, p, div, td, th, label, h1, h2, h3, small, strong) { color: inherit; }
+  html.dark body [data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module][data-operational-module] #module-content div[role="group"] > button:not([aria-pressed="true"], [data-state="active"], [class*="bg-primary"]) {
+    background-color: rgba(255,255,255,0.07) !important; color: #edf3fb !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content span[class*="text-rose-500"] { color: #fb7185 !important; }
+}}
+
+/* dark: print-style pages whose root stays light keep dark text */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) { color: #0f2440 !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) :is(span, p, div, td, th, label, h1, h2, h3, small, strong, li):not(button *, [class*="text-primary"], [class*="text-destructive"], [class*="text-success"]) { color: inherit; }
+}}
+
+/* dark: outline buttons are glass with light text, never white */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content button[data-slot="button"][class*="border"]:not([class*="bg-primary"], [class*="bg-destructive"], [class*="bg-success"], [aria-pressed="true"], [data-state="active"]),
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content button[data-slot="button"][class*="min-h-11"]:not([class*="bg-primary"], [class*="bg-destructive"], [class*="bg-success"], [aria-pressed="true"], [data-state="active"], [class*="hover:bg-accent/50"]) {
+    background-color: rgba(255,255,255,0.07) !important; color: #edf3fb !important; border-color: rgba(255,255,255,0.28) !important; }
+}}
+
+/* dark: prescription and request-tests pages are dark; only the paper sheet stays white */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) {
+    background: transparent !important; background-color: transparent !important; color: #edf3fb !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) :is(span, p, div, td, th, label, h1, h2, h3, small, strong, li):not(button *, [class*="text-primary"], [class*="text-destructive"], [class*="text-success"]) { color: inherit; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-print-content, .request-tests-print-content, [class*="-paper"]) { background-color: #ffffff !important; color: #0f2440 !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-print-content, .request-tests-print-content, [class*="-paper"]) * { color: inherit; }
+}}
+
+/* dark: prescription / request-tests main area and sticky action bar are dark glass */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) main,
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) div[class*="print:hidden"][class*="sticky"] {
+    background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; color: #edf3fb !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) main { background: transparent !important; background-color: transparent !important; }
+}}
+
+/* dark: text outside the paper sheet on prescription / request-tests pages is light */
+@layer base { @media screen {
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.prescription-root, .request-tests-root) :is(span, div, p, label, small, strong, h1, h2, h3, li):not(.prescription-print-content *, .request-tests-print-content *, button *, [class*="text-primary"], [class*="text-destructive"], [class*="text-success"], [class*="text-warning"]) {
+    color: #edf3fb !important; }
+}}
