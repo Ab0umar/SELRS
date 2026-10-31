@@ -1,6 +1,7 @@
 /**
- * Shift already-stored ADMS punches whose device clock was wrong for a while.
- * Dry run by default; pass --apply to write.
+ * Shift already-stored punches of one device (ADMS serial or FK id such as
+ * fk_ef10k) whose device clock was wrong for a while. Dry run by default; pass
+ * --apply to write and recompute the affected days.
  *
  *   npx tsx scripts/fix-adms-clock-window.ts --sn GED7254500027 \
  *     --from "2026-10-28 00:00:00" --to "2026-10-28 12:00:00" --minutes -60 [--apply]
@@ -12,6 +13,7 @@ import "dotenv/config";
 import { and, eq, gte, lt } from "drizzle-orm";
 import { getDb } from "../server/db";
 import { attendancePunches } from "../drizzle/schema";
+import { DailyMaterializer } from "../server/services/attendance/dailyMaterializer";
 
 function arg(name: string): string {
   const i = process.argv.indexOf(`--${name}`);
@@ -44,6 +46,11 @@ function arg(name: string): string {
       .update(attendancePunches)
       .set({ punchAt: next, sourceRowId: `${r.empCd}_${next.getTime()}` })
       .where(eq(attendancePunches.id, r.id));
+  }
+  if (apply && rows.length) {
+    const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    await DailyMaterializer.recomputeRange(day(from), day(to), undefined, undefined, { recomputeMonthly: true });
+    console.log("daily records recomputed");
   }
   process.exit(0);
 })().catch((e) => {
