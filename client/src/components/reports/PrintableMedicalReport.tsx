@@ -16,6 +16,7 @@ import {
   Globe,
   FileText,
 } from "lucide-react";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 export interface RefractionEntry {
   eye: string;
@@ -462,7 +463,7 @@ export default function PrintableMedicalReport({
       `}</style>
 
       {/* Interactive Controls, Patient Search Bar & Tabs Switcher (Hidden when printing) */}
-      <div className="mx-auto mb-6 max-w-[210mm] space-y-3 print:hidden">
+      <ReportHeader className="mx-auto mb-6 max-w-[210mm] space-y-3 print:hidden">
         <div className="bg-card text-foreground border border-border rounded-xl p-3.5 shadow-sm space-y-3">
           
           {/* Top Bar: Search, Language Tabs & Actions */}
@@ -547,7 +548,7 @@ export default function PrintableMedicalReport({
           )}
 
           </div>
-        </div>
+        </ReportHeader>
 
       {/* ========================================================= */}
       {/* TAB 1: ENGLISH REPORT ARTICLE                             */}

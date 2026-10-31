@@ -106,11 +106,11 @@ export default function PatientHubHome({ visitDate }: PatientHubHomeProps) {
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col items-center px-4 py-10 sm:py-14"
+      className="flex min-h-0 flex-1 flex-col items-start px-4 py-10 sm:px-8 sm:py-14"
       dir="rtl"
     >
       <div className="w-full max-w-xl">
-        <div className="relative">
+        <div className="relative max-w-[260px] [unicode-bidi:normal]">
           <Search
             className="pointer-events-none absolute end-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground/50"
             aria-hidden

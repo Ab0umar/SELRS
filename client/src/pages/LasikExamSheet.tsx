@@ -50,6 +50,7 @@ import {
   formatSheetDate,
   getPatientSheetDateOfBirth,
 } from "@/lib/sheetDates";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 function FundusDrawingCanvas({
   value,
@@ -3737,7 +3738,7 @@ export default function LasikExamSheet({
         }
       `}</style>
       {!embedded ? (
-        <header className="clinical-sheet-toolbar sticky top-0 z-30 flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:px-4 print:hidden">
+        <ReportHeader className="clinical-sheet-toolbar sticky top-0 z-30 flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:px-4 print:hidden">
           {initialPatientId ? (
             <nav
               aria-label="نوع الشيت"
@@ -3799,7 +3800,7 @@ export default function LasikExamSheet({
               <Printer className="h-4 w-4" aria-hidden /> طباعة
             </Button>
           </div>
-        </header>
+        </ReportHeader>
       ) : null}
       {!embedded && printMode.printView && (
         <PrintPreviewBanner

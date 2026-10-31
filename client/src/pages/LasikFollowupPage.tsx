@@ -15,6 +15,7 @@ import { printOrExportPdf } from "@/lib/nativePdf";
 import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 import { operationTypeLabelAr } from "@shared/opTypes";
 import { toast } from "sonner";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 const FOLLOWUP_TITLES = [
   "المتابعة الأولى",
@@ -357,7 +358,7 @@ function LasikFollowupDocument() {
       `}</style>
 
       {/* Top nav */}
-      <header className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">
+      <ReportHeader className="print:hidden sticky top-0 z-50 flex justify-between items-center w-full px-6 py-2 bg-background border-b border-border/70">
         <span className="text-base font-bold text-primary">متابعة الليزك</span>
         <div className="flex items-center gap-3">
           <Button
@@ -402,7 +403,7 @@ function LasikFollowupDocument() {
             <Printer className="h-3 w-3 me-1" /> طباعة
           </Button>
         </div>
-      </header>
+      </ReportHeader>
 
       <div className="flex min-h-screen print:min-h-0">
         {/* Main content */}

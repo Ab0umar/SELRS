@@ -221,7 +221,6 @@ export default function AdminLegacyPatients() {
                     <TableHead className="w-32 text-start">
                       تاريخ الميلاد
                     </TableHead>
-                    <TableHead className="w-20 text-start">الجنس</TableHead>
                     <TableHead className="min-w-36 text-start">
                       الطبيب
                     </TableHead>
@@ -257,13 +256,6 @@ export default function AdminLegacyPatients() {
                       </TableCell>
                       <TableCell data-label="تاريخ الميلاد" className="tabular-nums">
                         {formatDate(patient.dateOfBirth)}
-                      </TableCell>
-                      <TableCell data-label="الجنس">
-                        {patient.gender === "male"
-                          ? "ذكر"
-                          : patient.gender === "female"
-                            ? "أنثى"
-                            : "—"}
                       </TableCell>
                       <TableCell data-label="الطبيب">
                         {patient.doctorName || patient.doctorCode || "—"}

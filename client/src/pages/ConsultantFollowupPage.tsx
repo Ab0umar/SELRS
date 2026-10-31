@@ -16,6 +16,7 @@ import FollowupTablesBody from "@/components/sheets/FollowupTablesBody";
 import "@/components/sheets/clinical-screen.css";
 import { operationTypeLabelAr } from "@shared/opTypes";
 import { toast } from "sonner";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 const FOLLOWUP_TITLES = [
   "المتابعة الأولى",
@@ -385,7 +386,7 @@ function ConsultantFollowupDocument({
       `}</style>
 
       {/* Top nav */}
-      <header className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex min-w-0 flex-wrap justify-between items-center gap-2 w-full px-3 py-2 bg-background/95 border-b border-border/60">
+      <ReportHeader className="consultant-followup-toolbar print:hidden sticky top-0 z-50 flex min-w-0 flex-wrap justify-between items-center gap-2 w-full px-3 py-2 bg-background/95 border-b border-border/60">
         <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto">
           <Button
             type="button"
@@ -431,7 +432,7 @@ function ConsultantFollowupDocument({
             <Printer className="h-3 w-3 me-1" /> طباعة
           </Button>
         </div>
-      </header>
+      </ReportHeader>
 
       <div className="flex min-h-screen print:min-h-0">
         {/* Main content */}

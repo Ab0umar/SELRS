@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -34,12 +35,13 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
-  Megaphone,
   MessageCircle,
+  Moon,
   Network,
   RefreshCw,
   ScrollText,
   Settings,
+  Sun,
   Syringe,
   UserCog,
   UserX,
@@ -186,6 +188,7 @@ export function AppTopNav({
   showRefresh = false,
   mobileHidden = false,
 }: AppTopNavProps) {
+  const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
   const userRole = String(user?.role ?? "").toLowerCase();
   const isAdmin = userRole === "admin";
@@ -516,17 +519,6 @@ export function AppTopNav({
       }))
       .filter((section) => section.items.length > 0);
 
-    const marketingSection = isAdmin
-      ? [
-          {
-            label: "التسويق",
-            navKey: "marketing",
-            groupPath: "/marketing",
-            items: [{ icon: Megaphone, label: "التسويق", path: "/marketing" }],
-          },
-        ]
-      : [];
-
     return [
       ...(isAdmin
         ? []
@@ -538,7 +530,6 @@ export function AppTopNav({
               items: recordItems,
             },
           ]),
-      ...marketingSection,
       ...remainingSections,
     ].filter((section) => section.items.length > 0);
   }, [isAdmin, navGroups, leafVisible]);
@@ -977,6 +968,24 @@ export function AppTopNav({
             {dateStr || "…"}
           </Badge>
 
+          {toggleTheme && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+              title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+              className="h-9 w-9 shrink-0 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted hover:text-foreground"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+
           {/* Avatar + user dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1033,6 +1042,19 @@ export function AppTopNav({
                 <UserCog className="h-4 w-4" />
                 إعدادات الحساب
               </DropdownMenuItem>
+              {toggleTheme && (
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onClick={toggleTheme}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                  {theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="cursor-pointer gap-2"
                 onClick={onOpenPassword}

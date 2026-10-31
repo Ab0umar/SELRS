@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { displaySheetDate } from "@/lib/sheetDates";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 function CertLabel({ children }: { children: string }) {
   return (
@@ -245,7 +246,7 @@ export default function PostOpOffdays({
         }
 `}</style>
 
-      <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
+      <ReportHeader className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-4">
           <div>
             <h1 className="text-2xl font-extrabold text-[#00355f]">
@@ -301,7 +302,7 @@ export default function PostOpOffdays({
             )}
           </div>
         </div>
-      </header>
+      </ReportHeader>
 
       <div className="offdays-print-shell flex min-w-0 justify-center p-2 sm:p-4" dir="rtl">
         <ClinicalReportFrame

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { ReferralDoctorPicker } from "@/components/reports/ReferralDoctorPicker";
 import { referralDoctorSnapshot } from "../../../shared/referral-doctors";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 const TODAY = new Date().toISOString().split("T")[0];
 const REF_ID = `REF-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
@@ -846,7 +847,7 @@ export default function ReferralLetter({
         }
       `}</style>
 
-      <header
+      <ReportHeader
         className="sticky top-0 z-50 print:hidden flex justify-between items-center px-6 py-2 bg-background border-b border-border/70"
         style={{ fontFamily: "Inter, sans-serif" }}
       >
@@ -907,7 +908,7 @@ export default function ReferralLetter({
             </>
           )}
         </div>
-      </header>
+      </ReportHeader>
 
       <main className="print:p-0 px-4 py-8">
         {patientId && (reportLoading || reportError) ? (

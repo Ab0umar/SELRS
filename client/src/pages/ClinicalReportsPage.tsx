@@ -28,6 +28,7 @@ import MedicalConditionReport from "./MedicalConditionReport";
 import ReferralLetter from "./ReferralLetter";
 import PrintableMedicalReport from "@/components/reports/PrintableMedicalReport";
 import { direction } from "html2canvas/dist/types/css/property-descriptors/direction";
+import { ReportHeaderSlotContext } from "@/components/reports/ReportHeader";
 
 export type ClinicalReportsTabKey =
   | "clinical"
@@ -152,6 +153,7 @@ export default function ClinicalReportsPage({
   }, [location, defaultTab]);
 
   const [activeTab, setActiveTab] = useState<ClinicalReportsTabKey>(initialTab);
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -215,11 +217,11 @@ export default function ClinicalReportsPage({
           }
         }
       `}</style>
-      <div className="w-full space-y-4 p-3 sm:p-5 print:p-0 print:space-y-0">
+      <div className="w-full space-y-4 p-3 sm:p-5 lg:px-4 lg:pt-2 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-4 lg:space-y-0 print:block print:p-0 print:space-y-0">
         {!embeddedInHub && (
-          <div className="mobile-unframed-content rounded-2xl border border-border/80 bg-card p-4 shadow-sm print:hidden space-y-3">
-            <div className="records-page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3" >
-              <h1 className="text-2xl font-semibold">التقارير الطبية</h1>
+          <div data-report-header className="mobile-unframed-content flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card px-4 py-3 lg:sticky lg:top-3 lg:col-start-1 lg:flex-col lg:items-stretch print:hidden">
+            <div className="records-page-header flex items-center justify-between gap-3">
+              <h1 className="whitespace-nowrap text-xl font-semibold">التقارير الطبية</h1>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -234,7 +236,7 @@ export default function ClinicalReportsPage({
             </div>
 
             {/* Unified Patient Search Bar and Global Print Button wired to ALL tabs */}
-            <div className="mobile-report-toolbar pt-3 border-t border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="mobile-report-toolbar flex min-w-[260px] flex-1 flex-wrap items-center justify-between gap-3 lg:min-w-0 lg:flex-none lg:flex-col lg:items-stretch">
               <div className="flex-1 max-w-xl" dir="rtl">
                 <PatientPicker
                   label="المريض"
@@ -274,17 +276,21 @@ export default function ClinicalReportsPage({
                 </Button>
               </div>
             </div>
+
+            {/* The open report's own title row is moved here by <ReportHeader>. */}
+            <div ref={setHeaderSlot} data-report-slot className="empty:hidden ms-auto lg:ms-0 lg:border-t lg:border-border/60 lg:pt-3" />
           </div>
         )}
 
+        <ReportHeaderSlotContext.Provider value={headerSlot}>
         <Tabs
           dir="rtl"
           value={activeTab}
           onValueChange={handleTabChange}
-          className="w-full space-y-4 print:space-y-0"
+          className="w-full space-y-4 lg:contents print:space-y-0"
         >
-          <div className="overflow-x-auto pb-1 [scrollbar-width:none] print:hidden">
-            <TabsList className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1">
+          <div className="overflow-x-auto pb-1 [scrollbar-width:none] lg:col-start-1 print:hidden">
+            <TabsList className="inline-flex h-11 w-full min-w-max justify-start gap-1 rounded-xl border border-border/70 bg-muted/60 p-1 lg:h-auto lg:min-w-0 lg:flex-col lg:items-stretch">
               {[
                 { value: "offdays", label: "إجازة ما بعد العملية", icon: CalendarOff },
                 { value: "pre-post-op", label: "تقرير قبل وبعد", icon: FileCheck2 },
@@ -307,9 +313,9 @@ export default function ClinicalReportsPage({
 
           <TabsContent
             value="clinical"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 min-w-0 focus-visible:outline-none lg:col-start-2 lg:row-span-2 lg:row-start-1 print:m-0 print:p-0"
           >
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
+            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 lg:p-0 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <ClinicalReport
                 patientId={selectedPatientId}
                 onSelectPatient={handlePatientSelect}
@@ -321,9 +327,9 @@ export default function ClinicalReportsPage({
 
           <TabsContent
             value="pre-post-op"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 min-w-0 focus-visible:outline-none lg:col-start-2 lg:row-span-2 lg:row-start-1 print:m-0 print:p-0"
           >
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
+            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 lg:p-0 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <PrePostOpReport
                 patientId={selectedPatientId}
                 onSelectPatient={handlePatientSelect}
@@ -335,9 +341,9 @@ export default function ClinicalReportsPage({
 
           <TabsContent
             value="offdays"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 min-w-0 focus-visible:outline-none lg:col-start-2 lg:row-span-2 lg:row-start-1 print:m-0 print:p-0"
           >
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
+            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 lg:p-0 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <PostOpOffdays
                 patientId={selectedPatientId}
                 onSelectPatient={handlePatientSelect}
@@ -349,9 +355,9 @@ export default function ClinicalReportsPage({
 
           <TabsContent
             value="condition"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 min-w-0 focus-visible:outline-none lg:col-start-2 lg:row-span-2 lg:row-start-1 print:m-0 print:p-0"
           >
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
+            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 lg:p-0 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <MedicalConditionReport
                 patientId={selectedPatientId}
                 onSelectPatient={handlePatientSelect}
@@ -363,9 +369,9 @@ export default function ClinicalReportsPage({
 
           <TabsContent
             value="referral"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 min-w-0 focus-visible:outline-none lg:col-start-2 lg:row-span-2 lg:row-start-1 print:m-0 print:p-0"
           >
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
+            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 lg:p-0 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <ReferralLetter
                 patientId={selectedPatientId}
                 onSelectPatient={handlePatientSelect}
@@ -377,9 +383,9 @@ export default function ClinicalReportsPage({
 
           <TabsContent
             value="medical-report"
-            className="m-0 focus-visible:outline-none print:m-0 print:p-0"
+            className="m-0 min-w-0 focus-visible:outline-none lg:col-start-2 lg:row-span-2 lg:row-start-1 print:m-0 print:p-0"
           >
-            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
+            <div className="rounded-2xl border border-border/80 bg-card p-2 sm:p-4 lg:p-0 shadow-sm print:p-0 print:border-0 print:shadow-none print:bg-transparent print:rounded-none">
               <PrintableMedicalReport
                 initialPatientId={selectedPatientId}
                 onSelectPatient={handlePatientSelect}
@@ -389,6 +395,7 @@ export default function ClinicalReportsPage({
             </div>
           </TabsContent>
         </Tabs>
+        </ReportHeaderSlotContext.Provider>
       </div>
     </div>
   );

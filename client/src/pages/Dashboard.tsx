@@ -130,15 +130,6 @@ const TABS: Array<{
   },
 ];
 
-function useClock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
-
 function SectionHeader({
   title,
   titleExtra,
@@ -1432,7 +1423,6 @@ export default function Dashboard() {
     }
   }, [permsLoaded, visibleTabs, activeTab]);
   const utils = trpc.useUtils();
-  const now = useClock();
   const syncMssqlMutation = trpc.medical.syncPatientsFromMssql.useMutation({
     onSuccess: async (result) => {
       toast.success(
@@ -1482,12 +1472,6 @@ export default function Dashboard() {
       ) : null,
   };
 
-  const timeStr = now.toLocaleTimeString("ar-EG", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-
   const selectTab = (tab: TabId) => {
     setActiveTab(tab);
     if (typeof window === "undefined") return;
@@ -1500,9 +1484,6 @@ export default function Dashboard() {
     }
     window.history.replaceState({}, "", `${url.pathname}${url.search}`);
   };
-
-  const activeTabMeta = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
-  const ActiveTabIcon = activeTabMeta.icon;
 
   return (
     <div
@@ -1630,44 +1611,6 @@ export default function Dashboard() {
             aria-labelledby={`dashboard-tab-${activeTab}`}
             tabIndex={0}
           >
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/40">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <ActiveTabIcon className="h-4 w-4" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate text-sm font-black text-foreground">
-                  {activeTabMeta.label}
-                </h2>
-              </div>
-
-              <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                {[
-                  {
-                    href: "/today",
-                    label: "مرضى اليوم",
-                    icon: Users,
-                  },
-                  { href: "/operations", label: "العمليات", icon: Syringe },
-                  { href: "/patients", label: "كل المرضى", icon: Search },
-                  { href: "/accounting", label: "الحسابات", icon: Wallet },
-                ].map(({ href, label, icon: NavIcon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="inline-flex h-9 shrink-0 items-center bg-background text-xs font-bold text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary gap-1.5 rounded-xl border border-border/50 px-2.5"
-                  >
-                    <NavIcon className="h-3 w-3" aria-hidden />
-                    {label}
-                  </Link>
-                ))}
-              </div>
-
-              <span className="inline-flex h-9 items-center bg-secondary/15 text-xs font-bold text-primary tabular-nums shrink-0 gap-1.5 rounded-full px-2.5">
-                <Clock className="h-3 w-3" aria-hidden />
-                {timeStr}
-              </span>
-            </div>
-
             <div>
               {activeTab === "today" && (
                 <TodayPanel

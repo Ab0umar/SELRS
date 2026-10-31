@@ -17,6 +17,7 @@ import {
   formatSheetDate,
   getPatientSheetDateOfBirth,
 } from "@/lib/sheetDates";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 function formatFundusFinding(value: unknown) {
   if (!value) return "—";
@@ -403,7 +404,7 @@ export default function ClinicalReport({
         }
       `}</style>
 
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden">
+      <ReportHeader className="sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-card px-6 py-2 print:hidden">
         {!hideHeaderSearch ? (
           <Button
             size="sm"
@@ -469,7 +470,7 @@ export default function ClinicalReport({
             </Button>
           )}
         </div>
-      </header>
+      </ReportHeader>
 
       <div className="clinical-print-shell flex justify-center p-4 sm:p-8">
       <main className="clinical-report-frame medical-report-page mx-auto max-w-[210mm] bg-background p-4 text-foreground sm:p-8">

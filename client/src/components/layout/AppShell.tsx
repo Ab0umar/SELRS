@@ -166,6 +166,7 @@ export function AppShell({
     const nextScrollTop = Math.max(0, Math.min(scrollContainer.scrollTop, maxScrollTop));
     const delta = nextScrollTop - previousScrollTopRef.current;
     previousScrollTopRef.current = nextScrollTop;
+    document.documentElement.toggleAttribute("data-nav-scrolled", nextScrollTop > 8);
     if (nextScrollTop <= 12) {
       setTopNavHidden(false);
       scrollTravelRef.current = 0;

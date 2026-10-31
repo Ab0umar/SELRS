@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 function CertLabel({ children }: { children: string }) {
   return (
@@ -282,7 +283,7 @@ export default function MedicalConditionReport({
         }
 `}</style>
 
-      <header className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
+      <ReportHeader className="no-print sticky top-0 z-50 border-b border-[#c2c7d1] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div>
             <h1 className="text-2xl font-extrabold text-[#00355f] ">
@@ -350,7 +351,7 @@ export default function MedicalConditionReport({
             )}
           </div>
         </div>
-      </header>
+      </ReportHeader>
 
       <div className="mcr-print-shell flex justify-center p-8" dir="rtl" >
         <ClinicalReportFrame 

@@ -1,38 +1,29 @@
 import { useState } from "react";
-import { Link, Redirect, useLocation } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import {
   Eye,
+  EyeOff,
   Loader2,
   LockKeyhole,
-  Microscope,
-  Scan,
   ShieldCheck,
   Stethoscope,
   UserRound,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BrandLogo } from "@/components/BrandLogo";
+import { LoginShell, useLoginPalette } from "@/components/auth/LoginShell";
 import { trpc } from "@/lib/trpc";
 import { useDoctorAuth } from "@/hooks/useDoctorAuth";
 import { toast } from "sonner";
-
-const SERVICES = [
-  { icon: Zap, ar: "تصحيح الإبصار" },
-  { icon: Eye, ar: "المياه البيضاء" },
-  { icon: Scan, ar: "أشعة القرنية" },
-  { icon: Microscope, ar: "زراعة العدسات" },
-] as const;
+import { cn } from "@/lib/utils";
 
 export default function DoctorLogin() {
   const [, navigate] = useLocation();
   const { login, isLoggedIn } = useDoctorAuth();
+  const { p, fieldRef, fieldClass } = useLoginPalette();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  if (isLoggedIn) return <Redirect to="/doctor-portal/dashboard" />;
 
   const loginMutation = trpc.doctorPortal.login.useMutation({
     onSuccess: (data) => {
@@ -41,6 +32,8 @@ export default function DoctorLogin() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  if (isLoggedIn) return <Redirect to="/doctor-portal/dashboard" />;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,184 +47,118 @@ export default function DoctorLogin() {
     !loginMutation.isPending;
 
   return (
-    <div
-      className="h-dvh w-full overflow-hidden flex flex-col lg:flex-row bg-white text-foreground font-sans selection:bg-primary/10 selection:text-primary"
-      dir="rtl"
+    <LoginShell
+      title="مركز عيون الشروق"
+      subtitle="لأمراض القرنية وتصحيح الإبصار"
+      headerLink={{ href: "/login", label: "دخول النظام" }}
     >
-      <div className="relative overflow-hidden w-full h-[34dvh] min-h-[220px] max-h-[285px] lg:h-auto lg:max-h-none lg:w-[56%] flex flex-col bg-[#003d82] py-5 px-5 sm:p-8 lg:p-14 justify-between shrink-0">
+      <section className={cn("rounded-3xl p-5 sm:p-6", p.panel)}>
+        <span className={cn("mb-2 inline-flex items-center gap-1.5 text-xs font-bold", p.accent)}>
+          <span className="size-1.5 rounded-full bg-secondary" />
+          تسجيل دخول آمن
+        </span>
+        <h2 className={cn("m-0 text-xl font-extrabold", p.heading)}>
+          دخول الطبيب
+        </h2>
+        <p className={cn("mb-4 mt-1 text-xs leading-relaxed", p.muted)}>
+          أدخل بيانات الطبيب المعتمدة للوصول إلى لوحة بوابة الأطباء.
+        </p>
 
-        <div className="relative z-10 flex flex-1 flex-row items-center justify-center gap-5 lg:gap-7">
-          <BrandLogo className="size-32 lg:size-44 object-contain select-none shrink-0" />
-          <div className="flex flex-col items-start text-start">
-            <h1 className="whitespace-nowrap text-[32px] sm:text-[42px] lg:text-[56px] font-extrabold text-white leading-none">
-              مركز عيون الشروق
-            </h1>
-            <span className="text-base lg:text-2xl font-bold text-secondary mt-2">
-              لامراض القرنيه و تصحيح الابصار
-            </span>
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-auto hidden lg:grid grid-cols-4 gap-2.5">
-          {SERVICES.map(({ icon: Icon, ar: label }) => (
-            <div
-              key={label}
-              className="flex h-20 flex-col items-center justify-center gap-2 text-center"
-            >
-              <span className="flex items-center justify-center text-secondary shrink-0">
-                <Icon className="size-7" />
-              </span>
-              <span className="text-white/85 text-sm font-bold leading-tight">
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="relative z-10 mt-4 grid lg:hidden grid-cols-4 gap-1.5">
-          {SERVICES.map(({ icon: Icon, ar: label }) => (
-            <div
-              key={label}
-              className="flex h-16 flex-col items-center justify-center gap-1.5 text-center"
-            >
-              <span className="text-secondary">
-                <Icon className="size-5" />
-              </span>
-              <span className="text-white/85 text-[13px] sm:text-[13px] font-bold leading-tight">
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-hidden bg-white rounded-t-[22px] lg:rounded-none -mt-5 lg:mt-0 p-5 sm:p-10 lg:p-20 flex flex-col justify-between relative z-10 shadow-[0_-8px_30px_rgba(15,32,80,0.06)] lg:shadow-none">
-        <div className="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-muted" />
-
-        <div className="w-full max-w-[420px] mx-auto my-auto flex flex-col justify-center">
-          <span className="inline-flex items-center gap-1.5 self-start text-[13px] sm:text-xs font-bold uppercase text-primary mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-            تسجيل دخول آمن
+        <div className={cn("mb-4 flex items-center gap-3 rounded-xl p-3", p.list)}>
+          <span
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-xl",
+              p.tileIcon,
+            )}
+          >
+            <Stethoscope className="size-5" />
           </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground m-0">
-            دخول الطبيب
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-4 sm:mb-8 leading-relaxed">
-            أدخل بيانات الطبيب المعتمدة للوصول إلى لوحة بوابة الأطباء.
+          <p className={cn("m-0 text-xs leading-5", p.muted)}>
+            هذه البوابة مخصصة للأطباء الخارجيين المعتمدين لمراجعة ملفات مرضاهم.
           </p>
+        </div>
 
-          <div className="mb-4 sm:mb-6 flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3 sm:p-3.5">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-foreground">
-              <Stethoscope className="size-5" />
-            </span>
-            <p className="m-0 text-xs leading-5 text-muted-foreground">
-              هذه البوابة مخصصة للأطباء الخارجيين المعتمدين لمراجعة ملفات
-              مرضاهم.
-            </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label
+              className={cn("block text-xs font-bold", p.label)}
+              htmlFor="doctor-username"
+            >
+              اسم المستخدم
+            </label>
+            <div className="relative">
+              <Input
+                ref={fieldRef}
+                id="doctor-username"
+                type="text"
+                placeholder="أدخل اسم المستخدم"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                className={cn(fieldClass, "ps-12 text-start")}
+                disabled={loginMutation.isPending}
+              />
+              <UserRound className={cn("pointer-events-none absolute start-4 top-1/2 size-5 -translate-y-1/2", p.muted)} />
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
-            <div className="space-y-1.5">
-              <label
-                className="block text-xs sm:text-sm font-bold text-foreground"
-                htmlFor="doctor-username"
-              >
-                اسم المستخدم
-              </label>
-              <div className="relative">
-                <Input
-                  id="doctor-username"
-                  type="text"
-                  placeholder="أدخل اسم المستخدم"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                  className="h-12 border-border/60 bg-muted/40 rounded-xl ps-12 focus-visible:ring-primary/10 text-start font-medium"
-                  disabled={loginMutation.isPending}
-                />
-                <UserRound className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                className="block text-xs sm:text-sm font-bold text-foreground"
-                htmlFor="doctor-password"
-              >
-                كلمة المرور
-              </label>
-              <div className="relative">
-                <Input
-                  id="doctor-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="******"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  className="h-12 border-border/60 bg-muted/40 rounded-xl ps-12 pe-12 focus-visible:ring-primary/10 text-start font-medium"
-                  disabled={loginMutation.isPending}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && canSubmit && handleSubmit(e as any)
-                  }
-                />
-                <LockKeyhole className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Button variant="bare"
-                  type="button"
-                  aria-label={
-                    showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
-                  }
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute end-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                  tabIndex={-1}
-                >
-                  <Eye className="size-5" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-2">
+          <div className="space-y-1.5">
+            <label
+              className={cn("block text-xs font-bold", p.label)}
+              htmlFor="doctor-password"
+            >
+              كلمة المرور
+            </label>
+            <div className="relative">
+              <Input
+                ref={fieldRef}
+                id="doctor-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="******"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className={cn(fieldClass, "ps-12 pe-12 text-start")}
+                disabled={loginMutation.isPending}
+              />
+              <LockKeyhole className={cn("pointer-events-none absolute start-4 top-1/2 size-5 -translate-y-1/2", p.muted)} />
               <Button
-                type="submit"
-                className="h-12 w-full text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-xl shadow-md cursor-pointer"
-                disabled={!canSubmit}
+                variant="bare"
+                type="button"
+                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                onClick={() => setShowPassword((v) => !v)}
+                className={cn("absolute end-4 top-1/2 -translate-y-1/2 cursor-pointer transition-colors", p.muted)}
+                tabIndex={-1}
               >
-                {loginMutation.isPending ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-5 animate-spin" />
-                    <span>جارٍ التحقق…</span>
-                  </div>
-                ) : (
-                  "دخول إلى بوابة الأطباء"
-                )}
+                {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
               </Button>
             </div>
+          </div>
 
-            <div className="hidden sm:block rounded-xl border border-border/60 bg-muted/40 p-3.5 text-xs text-muted-foreground space-y-1 leading-5">
-              <div className="flex items-center gap-1.5 font-bold text-primary mb-1">
-                <ShieldCheck className="size-4 shrink-0" />
-                <span>تنبيه أمان البيانات</span>
-              </div>
-              <p>استخدم بيانات الاعتماد الممنوحة لك من إدارة المركز فقط.</p>
-              <p>
-                هذه البوابة مخصصة للأطباء الخارجيين المعتمدين لمراجعة ملفات
-                مرضاهم.
-              </p>
-            </div>
-          </form>
-        </div>
-
-        <footer className="mt-4 pt-4 sm:mt-8 sm:pt-6 border-t border-border/60 flex flex-row items-center justify-between text-[13px] sm:text-xs text-muted-foreground w-full">
-          <Link
-            href="/login"
-            className="font-bold text-primary hover:underline"
+          <Button
+            type="submit"
+            className={cn(
+              "h-12 w-full cursor-pointer rounded-xl text-base font-bold shadow-md transition-all",
+              p.cta,
+            )}
+            disabled={!canSubmit}
           >
-            دخول النظام
-          </Link>
-          <p className="m-0 text-muted-foreground/80">
-            © {new Date().getFullYear()} مركز عيون الشروق
+            {loginMutation.isPending ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="size-5 animate-spin" />
+                <span>جارٍ التحقق…</span>
+              </div>
+            ) : (
+              "دخول إلى بوابة الأطباء"
+            )}
+          </Button>
+
+          <p className={cn("m-0 flex items-start gap-1.5 text-xs leading-5", p.muted)}>
+            <ShieldCheck className={cn("mt-0.5 size-4 shrink-0", p.accent)} />
+            <span>استخدم بيانات الاعتماد الممنوحة لك من إدارة المركز فقط.</span>
           </p>
-        </footer>
-      </div>
-    </div>
+        </form>
+      </section>
+    </LoginShell>
   );
 }

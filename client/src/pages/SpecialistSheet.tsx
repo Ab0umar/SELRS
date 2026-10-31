@@ -25,6 +25,7 @@ import SheetPatientVisionBlock from "@/components/sheets/SheetPatientVisionBlock
 import SheetPrintHeader from "@/components/sheets/SheetPrintHeader";
 import SheetWatermark from "@/components/sheets/SheetWatermark";
 import { formatSheetDate, getPatientSheetDateOfBirth } from "@/lib/sheetDates";
+import { ReportHeader } from "@/components/reports/ReportHeader";
 
 export default function SpecialistSheet() {
   const { user, isAuthenticated } = useAuth();
@@ -691,7 +692,7 @@ export default function SpecialistSheet() {
           }
         }
       `}</style>
-      <header
+      <ReportHeader
         className={`specialist-screen-toolbar sticky top-0 z-50 flex flex-wrap items-start justify-between gap-3 border-b border-border/60 bg-card px-3 py-2 sm:px-6 print:hidden ${printMode.printView ? "hidden" : ""}`}
         dir="ltr"
         style={{ fontFamily: "Inter, sans-serif" }}
@@ -777,7 +778,7 @@ export default function SpecialistSheet() {
             <Printer className="h-4 w-4 mr-1" /> طباعة
           </Button>
         </div>
-      </header>
+      </ReportHeader>
 
       {printMode.printView && (
         <PrintPreviewBanner
@@ -789,18 +790,15 @@ export default function SpecialistSheet() {
 
       <div className="py-8 print:py-0 print-page-center-a5">
         {!printMode.printView && !initialPatientId ? (
-          <div
+          <ReportHeader
             className="print:hidden mx-auto mb-6 max-w-md rounded-xl border border-border bg-card p-4 text-center"
             dir="rtl"
           >
-            <p className="mb-3 text-sm font-semibold text-foreground">
-              اختر مريضًا لفتح شيت مقاس النظارة
-            </p>
             <PatientPicker
               onSelect={handleSelectPatient}
               placeholder="ابحث برمز المريض"
             />
-          </div>
+          </ReportHeader>
         ) : null}
         {!printMode.printView && specialistDataFailed ? (
           <div

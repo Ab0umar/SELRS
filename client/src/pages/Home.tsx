@@ -12,9 +12,10 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BrandLogo } from "@/components/BrandLogo";
+import { LoginShell, useLoginPalette } from "@/components/auth/LoginShell";
 import { getApiUrl } from "@/const";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 import {
   getOfflineCacheSummary,
   subscribeNetworkStatus,
@@ -29,6 +30,7 @@ import {
 
 export default function Home() {
   const { loading, user, error: sessionError, refresh } = useAuth();
+  const { p, fieldRef, fieldClass } = useLoginPalette();
   const [, setLocation] = useLocation();
   const [username, setUsername] = useState(() =>
     typeof window !== "undefined"
@@ -154,20 +156,15 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background text-foreground" dir="rtl">
-      <header className="border-b border-border bg-card px-4 py-4 sm:px-8">
-        <div className="mx-auto flex max-w-5xl items-center gap-3">
-          <BrandLogo className="size-14 shrink-0 object-contain" />
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold sm:text-2xl">{isAiMobileApp() ? "SELRS AI" : BRAND_NAME_AR}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{isAiMobileApp() ? "أدوات الذكاء الاصطناعي" : BRAND_TAGLINE_AR}</p>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-8 sm:px-6 sm:py-12">
-        <h2 className="mb-6 text-2xl font-bold">تسجيل الدخول</h2>
-        <form onSubmit={handleLogin} className="space-y-5" aria-busy={submitting}>
+    <LoginShell
+      title={isAiMobileApp() ? "SELRS AI" : BRAND_NAME_AR}
+      subtitle={isAiMobileApp() ? "أدوات الذكاء الاصطناعي" : BRAND_TAGLINE_AR}
+    >
+      <section className={cn("rounded-3xl p-5 sm:p-6", p.panel)}>
+        <h2 className={cn("m-0 mb-4 text-xl font-extrabold", p.heading)}>
+          تسجيل الدخول
+        </h2>
+        <form onSubmit={handleLogin} className="space-y-4" aria-busy={submitting}>
           {error ? (
             <Alert className="border-destructive bg-destructive/5 text-destructive-text">
               <AlertDescription className="text-destructive-text">{error}</AlertDescription>
@@ -186,15 +183,16 @@ export default function Home() {
               <AlertDescription>وضع عدم الاتصال: {offlineCacheSummary.count} ملف مخزن</AlertDescription>
             </Alert>
           ) : null}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium" htmlFor="username">اسم المستخدم</label>
+          <div className="space-y-1.5">
+            <label className={cn("block text-xs font-bold", p.label)} htmlFor="username">اسم المستخدم</label>
             <Input
+              ref={fieldRef}
               id="username"
               type="text"
               placeholder="أدخل اسم المستخدم"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="h-12 bg-card"
+              className={fieldClass}
               disabled={submitting}
               required
               autoComplete="username"
@@ -202,15 +200,16 @@ export default function Home() {
               spellCheck={false}
             />
           </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium" htmlFor="password">كلمة المرور</label>
+          <div className="space-y-1.5">
+            <label className={cn("block text-xs font-bold", p.label)} htmlFor="password">كلمة المرور</label>
             <div className="relative">
               <Input
+                ref={fieldRef}
                 id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-12 bg-card ps-3 pe-12"
+                className={cn(fieldClass, "ps-3 pe-12")}
                 disabled={submitting}
                 required
                 autoComplete="current-password"
@@ -224,20 +223,21 @@ export default function Home() {
                 aria-pressed={showPassword}
                 onClick={() => setShowPassword((v) => !v)}
                 disabled={submitting}
-                className="absolute end-1 top-1 text-muted-foreground"
+                className={cn("absolute end-1 top-2", p.muted)}
               >
                 {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
               </Button>
             </div>
           </div>
           {yearOptions && yearOptions.years.length > 1 ? (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="mssql-year">السنة</label>
+            <div className="space-y-1.5">
+              <label className={cn("block text-xs font-bold", p.label)} htmlFor="mssql-year">السنة</label>
               <select
+                ref={fieldRef}
                 id="mssql-year"
                 value={mssqlYear}
                 onChange={(e) => setMssqlYear(e.target.value)}
-                className="h-12 w-full rounded-md border border-input bg-card px-3 text-sm"
+                className={cn(fieldClass, "w-full border px-3 text-sm")}
                 disabled={submitting}
               >
                 <option value="auto">تلقائي (سنة {yearOptions.current})</option>
@@ -256,29 +256,32 @@ export default function Home() {
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="size-5 accent-primary rounded border-border"
+              className="size-5 rounded border-border accent-[#f2873a]"
               disabled={submitting}
             />
             <span>تذكرني</span>
           </label>
-          <Button type="submit" variant="secondary" className="h-12 w-full font-semibold" disabled={submitting}>
+          <Button
+            type="submit"
+            className={cn("h-12 w-full cursor-pointer rounded-xl text-base font-bold shadow-md", p.cta)}
+            disabled={submitting}
+          >
             {submitting ? <Loader2 className="size-5 animate-spin" aria-hidden /> : null}
             {submitting ? "جارٍ التحقق..." : "دخول إلى النظام"}
           </Button>
         </form>
 
-        {!isAiMobileApp() && <nav className="mt-8 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row" aria-label="بوابات المركز">
-          <Link href="/my/login" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted">
-            <UserRound className="size-4" aria-hidden />دخول المريض
-          </Link>
-          <Link href="/doctor-portal/login" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted">
-            <Stethoscope className="size-4" aria-hidden />دخول الطبيب
-          </Link>
-        </nav>}
-      </main>
-      <footer className="border-t border-border px-4 py-4 text-center text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} {BRAND_NAME_AR}
-      </footer>
-    </div>
+        {!isAiMobileApp() && (
+          <nav className={cn("mt-5 flex flex-col gap-2 border-t pt-4 sm:flex-row", p.list, "border-x-0 border-b-0 bg-transparent")} aria-label="بوابات المركز">
+            <Link href="/my/login" className={cn("inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium", p.accent)}>
+              <UserRound className="size-4" aria-hidden />دخول المريض
+            </Link>
+            <Link href="/doctor-portal/login" className={cn("inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium", p.accent)}>
+              <Stethoscope className="size-4" aria-hidden />دخول الطبيب
+            </Link>
+          </nav>
+        )}
+      </section>
+    </LoginShell>
   );
 }
