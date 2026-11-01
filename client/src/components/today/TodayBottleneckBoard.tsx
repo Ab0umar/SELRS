@@ -917,7 +917,7 @@ export function TodayBottleneckBoard({
     [merged],
   );
   const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
-    { patientIds: todayPatientIds },
+    { patientIds: todayPatientIds, visitIds: merged.map(p => Number(p.visitId)).filter(id => Number.isInteger(id) && id > 0) },
     {
       enabled: todayPatientIds.length > 0,
       staleTime: 120_000,

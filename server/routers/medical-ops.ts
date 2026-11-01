@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasMedicalContent, medicalVisitScope } from "../services/medical-status-content";
 import {selectClinicalVisit} from "../../shared/clinical-record";
 import { parseWebPushSubscription } from "../_core/webPushSubscription";
 import {
@@ -51,6 +52,8 @@ import {
   doctorReports,
   testRequests,
   prescriptions,
+  prescriptionItems,
+  testRequestItems,
   patientServiceEntries,
 } from "../../drizzle/schema";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
@@ -733,10 +736,11 @@ export const medicalOpsRoutes = {
 
   getPatientMedicalStatusBatch: clinicalStaffProcedure
     .input(
-      z.object({ patientIds: z.array(z.number().int().positive()).max(500) }),
+      z.object({ patientIds: z.array(z.number().int().positive()).max(500), visitIds: z.array(z.number().int().positive()).max(500).optional() }),
     )
     .query(async ({ input }) => {
       const ids = input.patientIds;
+      const scopeVisit = (column: Parameters<typeof medicalVisitScope>[0]) => medicalVisitScope(column, input.visitIds);
       if (ids.length === 0)
         return {} as Record<
           number,
@@ -778,31 +782,53 @@ export const medicalOpsRoutes = {
         dbInstance
           .selectDistinct({ patientId: autorefractometryData.patientId })
           .from(autorefractometryData)
-          .where(inArray(autorefractometryData.patientId, ids)),
+          .innerJoin(examinations, eq(autorefractometryData.examinationId, examinations.id))
+          .where(and(inArray(autorefractometryData.patientId, ids), scopeVisit(examinations.visitId), hasMedicalContent([
+            autorefractometryData.sphereOD, autorefractometryData.cylinderOD, autorefractometryData.axisOD, autorefractometryData.ucvaOD, autorefractometryData.bcvaOD, autorefractometryData.iopOD,
+            autorefractometryData.sphereOS, autorefractometryData.cylinderOS, autorefractometryData.axisOS, autorefractometryData.ucvaOS, autorefractometryData.bcvaOS, autorefractometryData.iopOS,
+          ]))),
         dbInstance
           .selectDistinct({ patientId: afterRefractionData.patientId })
           .from(afterRefractionData)
-          .where(inArray(afterRefractionData.patientId, ids)),
+          .innerJoin(examinations, eq(afterRefractionData.examinationId, examinations.id))
+          .where(and(inArray(afterRefractionData.patientId, ids), scopeVisit(examinations.visitId), hasMedicalContent([
+            afterRefractionData.sphereOD, afterRefractionData.cylinderOD, afterRefractionData.axisOD,
+            afterRefractionData.sphereOS, afterRefractionData.cylinderOS, afterRefractionData.axisOS,
+          ]))),
         dbInstance
           .selectDistinct({ patientId: glassesRecords.patientId })
           .from(glassesRecords)
-          .where(inArray(glassesRecords.patientId, ids)),
+          .innerJoin(examinations, eq(glassesRecords.examinationId, examinations.id))
+          .where(and(inArray(glassesRecords.patientId, ids), scopeVisit(examinations.visitId), hasMedicalContent([
+            glassesRecords.sOD, glassesRecords.cOD, glassesRecords.axisOD, glassesRecords.pdOD, glassesRecords.addOD, glassesRecords.bcvaOD,
+            glassesRecords.sOS, glassesRecords.cOS, glassesRecords.axisOS, glassesRecords.pdOS, glassesRecords.addOS, glassesRecords.bcvaOS,
+          ]))),
         dbInstance
           .selectDistinct({ patientId: pentacamResults.patientId })
           .from(pentacamResults)
-          .where(inArray(pentacamResults.patientId, ids)),
+          .where(and(inArray(pentacamResults.patientId, ids), scopeVisit(pentacamResults.visitId), hasMedicalContent([
+            pentacamResults.pachymetryOD, pentacamResults.pachymetryOS, pentacamResults.k1OD, pentacamResults.k2OD, pentacamResults.k1OS, pentacamResults.k2OS,
+            pentacamResults.axisOD, pentacamResults.axisOS, pentacamResults.thinnestPointOD, pentacamResults.thinnestPointOS,
+            pentacamResults.apexOD, pentacamResults.apexOS, pentacamResults.residualOD, pentacamResults.residualOS,
+            pentacamResults.tttOD, pentacamResults.tttOS, pentacamResults.ablationOD, pentacamResults.ablationOS,
+            pentacamResults.keratometryOD, pentacamResults.keratometryOS, pentacamResults.notes,
+          ]))),
         dbInstance
           .selectDistinct({ patientId: prescriptions.patientId })
           .from(prescriptions)
-          .where(inArray(prescriptions.patientId, ids)),
+          .innerJoin(prescriptionItems, eq(prescriptionItems.prescriptionId, prescriptions.id))
+          .where(and(inArray(prescriptions.patientId, ids), scopeVisit(prescriptions.visitId))),
         dbInstance
           .selectDistinct({ patientId: testRequests.patientId })
           .from(testRequests)
-          .where(inArray(testRequests.patientId, ids)),
+          .innerJoin(testRequestItems, eq(testRequestItems.testRequestId, testRequests.id))
+          .where(and(inArray(testRequests.patientId, ids), scopeVisit(testRequests.visitId))),
         dbInstance
           .selectDistinct({ patientId: doctorReports.patientId })
           .from(doctorReports)
-          .where(inArray(doctorReports.patientId, ids)),
+          .where(and(inArray(doctorReports.patientId, ids), scopeVisit(doctorReports.visitId), hasMedicalContent([
+            doctorReports.diagnosis, doctorReports.treatment, doctorReports.clinicalOpinion, doctorReports.recommendations, doctorReports.additionalNotes, doctorReports.diseases,
+          ]))),
       ]);
 
       const withAutoref = new Set(autorefRows.map((r: any) => r.patientId));
