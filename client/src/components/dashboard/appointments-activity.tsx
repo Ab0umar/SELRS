@@ -38,6 +38,7 @@ import {
   Printer,
   Syringe,
   Trash2,
+  Undo2,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -147,6 +148,9 @@ export function AppointmentsSection({
   const { user } = useAuth();
   const userRole = String((user as any)?.role ?? "").toLowerCase();
   const canDeletePatient = userRole === "admin";
+  const canUndoTreated = ["reception", "accountant", "admin"].includes(
+    userRole,
+  );
   const canManageTreated = [
     "doctor",
     "nurse",
@@ -295,6 +299,16 @@ export function AppointmentsSection({
     },
     onError: (error: unknown) => {
       toast.error(getTrpcErrorMessage(error, "تعذر تحديث حالة الطابور"));
+    },
+  });
+
+  const undoVisitTreated = trpc.medical.undoVisitTreated.useMutation({
+    onSuccess: async () => {
+      await utils.medical.getTodayPatientsByQueueStatus.invalidate();
+      toast.success("تم إرجاع المريض إلى مؤكد");
+    },
+    onError: (error: unknown) => {
+      toast.error(getTrpcErrorMessage(error, "تعذر التراجع عن حالة معالج"));
     },
   });
 
@@ -651,6 +665,15 @@ export function AppointmentsSection({
                       });
                     }}
                     canManageTreated={canManageTreated}
+                    canUndoTreated={canUndoTreated}
+                    undoPending={
+                      undoVisitTreated.isPending &&
+                      undoVisitTreated.variables?.visitId ===
+                        (patient as { visitId?: number }).visitId
+                    }
+                    onUndoVisitTreated={(visitId) =>
+                      undoVisitTreated.mutate({ visitId })
+                    }
                     canDelete={canDeletePatient}
                     onRequestDelete={() => setDeleteTarget(patient)}
                     visitDate={selectedDate}
@@ -1031,6 +1054,9 @@ function QueuePatientCard({
   onMarkVisitTreated,
   markVisitTreatedPendingVisitId,
   canManageTreated,
+  canUndoTreated,
+  undoPending,
+  onUndoVisitTreated,
   canDelete,
   onRequestDelete,
   visitDate,
@@ -1041,6 +1067,9 @@ function QueuePatientCard({
   onMarkVisitTreated: (visitId: number) => void;
   markVisitTreatedPendingVisitId: number | null;
   canManageTreated: boolean;
+  canUndoTreated: boolean;
+  undoPending: boolean;
+  onUndoVisitTreated: (visitId: number) => void;
   canDelete?: boolean;
   onRequestDelete?: () => void;
   visitDate: string;
@@ -1192,6 +1221,22 @@ function QueuePatientCard({
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
               <span className="queue-patient-mark-label">معالج</span>
+            </Button>
+          ) : st === "treated" && canUndoTreated && visitId != null ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={undoPending}
+              className="queue-patient-undo-treated h-7 shrink-0 gap-1 px-2 text-[13px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onUndoVisitTreated(visitId);
+              }}
+            >
+              <Undo2 className="h-3.5 w-3.5" aria-hidden />
+              <span>تراجع</span>
             </Button>
           ) : st === "treated" ? (
             <CheckCircle2

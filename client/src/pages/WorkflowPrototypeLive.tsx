@@ -2614,8 +2614,8 @@ export default function WorkflowPrototypeLive() {
                 key={`${patient.id}-${patient.visitId ?? "visit"}`}
                 value={patient.visitId ?? ""}
               >
-                {patient.fullName ?? "مريض غير مسمى"} | رقم الزيارة:
-                {patient.visitId ?? "غير متاح"}
+                {patient.fullName ?? "مريض غير مسمى"}
+                {patient.queueStatus === "treated" ? " — معالج" : ""}
               </option>
             ))}
           </select>

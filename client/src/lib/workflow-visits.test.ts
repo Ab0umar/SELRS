@@ -14,8 +14,8 @@ describe("workflow historical visit selection", () => {
   it("retains completed visits when reviewing a previous day", () => {
     expect(workflowVisits([completed], "2026-10-28", "2026-10-29")).toEqual([completed]);
   });
-  it("keeps the current day limited to unfinished visits", () => {
-    expect(workflowVisits([completed], "2026-10-29", "2026-10-29")).toEqual([]);
+  it("keeps treated visits in the current day list", () => {
+    expect(workflowVisits([completed], "2026-10-29", "2026-10-29")).toEqual([completed]);
     const active = { ...completed, queueStatus: "clinic1" as const };
     expect(workflowVisits([active], "2026-10-29", "2026-10-29")).toEqual([active]);
   });
