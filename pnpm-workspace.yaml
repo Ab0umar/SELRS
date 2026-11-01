@@ -19,3 +19,11 @@ patchedDependencies:
   "@capacitor/camera@8.2.0": patches/@capacitor__camera@8.2.0.patch
   "@capacitor/filesystem@8.1.2": patches/@capacitor__filesystem@8.1.2.patch
   "@capacitor/geolocation@8.2.0": patches/@capacitor__geolocation@8.2.0.patch
+
+permissions:
+  '@trpc/client':
+    skills: true
+  '@trpc/server':
+    skills: true
+  dotenv:
+    skills: true
