@@ -2487,3 +2487,9 @@
   html.dark body .workflow-day-workspace main [class*="text-[#"]:not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *, [class*="text-white"]) { color: #edf3fb !important; }
   html.dark body .workflow-day-workspace main [class*="bg-[#f"]:not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *, [class*="text-white"]), html.dark body .workflow-day-workspace main [class*="bg-[#e"]:not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *, [class*="text-white"]) { background-color: rgba(255, 255, 255, 0.07) !important; }
 }}
+
+/* Dark: fundus drawing circles - light crosshair lines and outlines instead of dark ones */
+@layer base { @media screen {
+  html.dark body .workflow-day-workspace main [class*="border-slate-900"] { border-color: #ffffff !important; }
+  html.dark body .workflow-day-workspace main div[class*="aspect-square"][class*="rounded-full"][class*="border-4"] { border-color: rgba(255, 255, 255, 0.35) !important; }
+}}
