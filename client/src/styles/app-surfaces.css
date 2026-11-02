@@ -2498,3 +2498,10 @@
 @layer base { @media screen {
   html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) [class*="rounded-full"] { border-radius: 9999px !important; }
 }}
+
+/* Dark consultant sheet: complaints and examination boxes carry no fill of their own */
+@layer base { @media screen {
+  html.dark body .selrs-app-content .lasik-sheet :is(.consultant-complains-block, .consultant-examination-block) {
+    background: transparent !important; background-color: transparent !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important; }
+}}
