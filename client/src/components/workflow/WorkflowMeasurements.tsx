@@ -3,7 +3,6 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import RefractionValueSelect from "@/components/RefractionValueSelect";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -396,7 +395,10 @@ export default function WorkflowMeasurements({
   const canFinish = FINISH_ROLES.includes(String(user?.role ?? ""));
 
   return (
-    <div className="flex min-h-0 w-full flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm">
+    <div
+      className="flex min-h-0 w-full flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm"
+      dir="rtl"
+    >
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
         <h2 className="truncate text-sm font-semibold">
           {patientName || "بدون اسم"}
@@ -404,14 +406,6 @@ export default function WorkflowMeasurements({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-b border-border/40 bg-muted/20 px-4 py-2">
-        <label className="inline-flex items-center gap-2 rounded-md border border-warning/60 px-2.5 py-1.5 text-xs font-semibold text-warning-text">
-          <Checkbox
-            checked={isFollowup}
-            onCheckedChange={(checked) => setIsFollowup(Boolean(checked))}
-            className="h-4 w-4"
-          />
-          متابعه
-        </label>
         {exams.length > 0 ? (
           <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">الفحص:</span>
