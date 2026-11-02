@@ -2520,3 +2520,10 @@
     background: transparent !important; background-color: transparent !important;
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }}
+
+/* Dark workflow file tab: the sticky save bar has no fill or blur */
+@layer base { @media screen {
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 .lasik-print-root div[class*="sticky"][class*="top-0"][class*="z-30"] {
+    background: transparent !important; background-color: transparent !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border-color: transparent !important; }
+}}
