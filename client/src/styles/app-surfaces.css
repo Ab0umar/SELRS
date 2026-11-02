@@ -2527,3 +2527,10 @@
     background: transparent !important; background-color: transparent !important;
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border-color: transparent !important; }
 }}
+
+/* Dark day workflow: the tab content wrapper carries no fill */
+@layer base { @media screen {
+  html.dark body .workflow-day-workspace main.min-w-0.min-w-0.min-w-0 {
+    background: transparent !important; background-color: transparent !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+}}
