@@ -480,7 +480,9 @@ function CatalogSearchSelect({
         </div>
       ) : null}
       <div className={`relative ${inline ? "w-[320px] max-w-full" : ""}`}>
-        <Search className="absolute end-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search
+          className={`absolute top-2 h-3.5 w-3.5 text-muted-foreground ${inline ? "left-2.5" : "end-2.5"}`}
+        />
         <Input
           dir="ltr"
           placeholder={placeholder}
