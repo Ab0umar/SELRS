@@ -74,9 +74,12 @@ export function WorkflowCard({
   footer: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 w-full flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm">
-      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-        <h2 className="truncate text-sm font-semibold">{title || "بدون اسم"}</h2>
+    <div
+      className="flex min-h-0 w-full flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm"
+      dir="rtl"
+    >
+      <div className="flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 self-center border-b border-border/50 px-6 py-1.5">
+        <h2 className="min-w-0 truncate text-sm font-semibold">{title || "بدون اسم"}</h2>
       </div>
       <div className="space-y-4 px-4 py-4" dir="rtl">
         {children}
