@@ -2505,3 +2505,10 @@
     background: transparent !important; background-color: transparent !important;
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important; }
 }}
+
+/* Dark consultant sheet inside the day workflow: beat the workflow fill chain */
+@layer base { @media screen {
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 .lasik-sheet :is(.consultant-complains-block, .consultant-examination-block) {
+    background: transparent !important; background-color: transparent !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+}}
