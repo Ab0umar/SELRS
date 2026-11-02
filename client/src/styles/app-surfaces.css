@@ -2746,3 +2746,14 @@
   html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-patients > div:nth-child(2) > label { margin-inline-start: auto; }
   html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-patients > div:nth-child(n+3) { flex-basis: 100% !important; }
 }}
+
+/* Dashboard queue: tabs, date, status chips and the discharged toggle share one RTL line */
+@layer base { @media screen {
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-today-queue-panel div.space-y-4:has(> .queue-workspace-tabs) { display: flex !important; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 12px; direction: rtl; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-today-queue-panel div.space-y-4:has(> .queue-workspace-tabs) > * { margin: 0 !important; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-today-queue-panel div.space-y-4:has(> .queue-workspace-tabs) > .queue-workspace-tabs { margin-bottom: 0 !important; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-today-queue-panel div.space-y-4:has(> .queue-workspace-tabs) > div.grid:not(.queue-workspace-tabs) { display: contents !important; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-today-queue-panel div.space-y-4:has(> .queue-workspace-tabs) .queue-workspace-patients { display: contents !important; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-today-queue-panel div.space-y-4:has(> .queue-workspace-tabs) .queue-workspace-patients > div:nth-child(n+3) { flex-basis: 100%; width: 100%; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-today-queue-panel div.space-y-4:has(> .queue-workspace-tabs) > div.grid:not(.queue-workspace-tabs) > :not(.queue-workspace-patients) { flex-basis: 100%; width: 100%; }
+}}
