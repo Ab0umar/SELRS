@@ -504,7 +504,7 @@ export default function WorkflowMeasurements({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-border/50 px-4 py-2.5">
+      <div className="flex w-fit max-w-full flex-wrap items-center justify-center gap-2 self-center border-t border-border/50 px-4 py-1.5">
         <Button
           size="sm"
           className="gap-1.5 text-xs"
