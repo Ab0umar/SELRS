@@ -268,8 +268,22 @@
     box-shadow: 0 2px 10px rgba(0, 132, 255, 0.22) !important;
   }
 
+  @media print{
+
   .dark [class~="bg-white"] {
     background-color: var(--card) !important;
+  }
+  }
+
+  .dark [class~="bg-white"] {
+    background-color: var(--card) !important;
+  }
+
+  @media print{
+
+  .dark [class*="bg-white/"] {
+    background-color: var(--card) !important;
+  }
   }
 
   .dark [class*="bg-white/"] {
@@ -280,6 +294,13 @@
   .dark [class*="bg-slate-100"],
   .dark [class*="bg-slate-200"] {
     background-color: var(--card) !important;
+  }
+
+  @media print{
+
+  .dark [class*="bg-card"] {
+    background-color: var(--card) !important;
+  }
   }
 
   .dark [class*="bg-card"] {
@@ -2372,4 +2393,14 @@ html:not(.dark) :where(body, .selrs-page-bg) {
       color: #003d9b !important;
     }
   }
+}
+/* Light theme imported from glass-design; main dark theme is preserved. */
+@media screen{
+
+:root:where(:not(.dark)) {
+  /* SELRS Brand Colors */
+
+  /* Card elevation — navy-tinted, not neutral black */
+  --background: #f5f8fc;
+}
 }

@@ -692,3 +692,42 @@
     }
   }
 }
+
+/* Light theme imported from glass-design; main dark theme is preserved. */
+
+@layer base {
+  @media screen {
+    html:where(:not(.dark)) #root [data-admin-hub].exact-admin-hub .admin-directory-search input {
+      background: rgba(255, 255, 255, 0.5) !important;
+      background-color: rgba(255, 255, 255, 0.5) !important;
+      border-color: rgba(255, 255, 255, 0.75) !important;
+    }
+  }
+}
+
+@media screen {
+  :where(html:not(.dark)) [data-admin-hub].exact-admin-hub:has(.admin-directory) {
+    background: transparent !important;
+  }
+
+  :where(html:not(.dark)) .exact-admin-hub .admin-category-nav button {
+    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  :where(html:not(.dark)) .exact-admin-hub .admin-bento-block[data-block="1"] {
+    background: rgba(255, 255, 255, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  :where(html:not(.dark)) .exact-admin-hub .admin-bento-tile {
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+}

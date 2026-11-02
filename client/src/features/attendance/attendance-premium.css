@@ -286,3 +286,16 @@
       transition: none;
     }
   }
+  /* Light theme imported from glass-design; main dark theme is preserved. */
+  @media screen {
+  html:not(.dark)
+    .selrs-mobile-brand-canvas:has([data-operational-module="attendance"])
+    :is(
+      [data-app-scroll-container],
+      .selrs-app-content,
+      [data-operational-module="attendance"],
+      #module-content
+    ) {
+    background: transparent !important;
+  }
+}

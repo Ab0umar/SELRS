@@ -3478,3 +3478,50 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
   -webkit-text-fill-color: transparent !important;
   opacity: 0 !important;
 }
+/* Light theme imported from glass-design; main dark theme is preserved. */
+@media screen{
+
+:root:where(:not(.dark)) {
+  /* Bento One clinical redesign: calm blue structure with warm orange action. */
+
+  --background: #f5f8fc;
+}
+}
+@layer components {
+
+  @media screen{
+
+  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-rail-link.is-active {
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-page-switcher {
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-health-strip {
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-section-block {
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+  }
+
+  @media screen and (max-width: 767px) {
+
+    :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-menu-button {
+      background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    }
+  }
+}

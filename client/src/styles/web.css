@@ -835,8 +835,22 @@
     box-shadow: none !important;
   }
 
+  @media print{
+
   .dark [class~="bg-white"] {
     background-color: var(--card) !important;
+  }
+  }
+
+  .dark [class~="bg-white"] {
+    background-color: var(--card) !important;
+  }
+
+  @media print{
+
+  .dark [class*="bg-white/"] {
+    background-color: var(--card) !important;
+  }
   }
 
   .dark [class*="bg-white/"] {
@@ -847,6 +861,13 @@
   .dark [class*="bg-slate-100"],
   .dark [class*="bg-slate-200"] {
     background-color: var(--card) !important;
+  }
+
+  @media print{
+
+  .dark [class*="bg-card"] {
+    background-color: var(--card) !important;
+  }
   }
 
   .dark [class*="bg-card"] {
@@ -1099,6 +1120,8 @@ html:not(.dark)
   box-shadow: 0 1px 2px rgba(17, 23, 84, 0.04) !important;
 }
 
+@media print{
+
 html:not(.dark)
   :where(
     [class*="bg-white"],
@@ -1107,6 +1130,7 @@ html:not(.dark)
     [class*="bg-slate-100"]
   ) {
   background-color: var(--card) !important;
+}
 }
 
 html:not(.dark)
@@ -1376,9 +1400,6 @@ html:not(.dark)
     z-index: 9999 !important;
     padding: 0 !important;
   }
-}
-
-@media print {
   body {
     margin: 0;
     padding: 0;
@@ -2270,4 +2291,49 @@ select {
   .patient-guest-content {
     padding-inline: 0.25rem;
   }
+}
+/* Light theme imported from glass-design; main dark theme is preserved. */
+@media screen{
+
+:root:where(:not(.dark)) {
+  /* SELRS Brand Colors */
+
+  /* Card elevation — navy-tinted, not neutral black */
+
+  /* Primary Colors - deep utility blue */
+
+  /* Charts - deep blue to orange gradient */
+
+  /* Light Mode */
+  --background: #f5f8fc;
+}
+
+html:not(.dark)
+  :where(
+    [data-slot="card"],
+    [data-slot="tabs-list"],
+    .sheet-section-card,
+    .sheet-collapsible,
+    .patient-portal-frame,
+    .patient-guest-content,
+    .salary-table-redesign :where(.overflow-x-auto, .overflow-auto):has(> table)
+  ) {
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 30px rgba(0, 61, 130, 0.08) !important;
+}
+
+html:not(.dark)
+  :where(
+    [class*="bg-white"],
+    [class*="bg-card"],
+    [class*="bg-slate-50"],
+    [class*="bg-slate-100"]
+  ):not(.sticky, [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [data-slot*="dialog"], [data-slot*="sheet"], [data-slot*="popover"], [data-slot*="dropdown"], [data-slot*="select"], [data-slot*="tooltip"]) {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
 }
