@@ -1377,6 +1377,8 @@ export function TodayBottleneckBoard({
         patientId={followupPatient?.id ?? 0}
         patientName={followupPatient?.fullName}
         serviceType={followupPatient?.serviceType}
+        visitId={followupPatient?.visitId}
+        visitDate={selectedDate}
       />
     </div>
   );

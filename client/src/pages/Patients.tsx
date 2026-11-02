@@ -180,35 +180,36 @@ export default function Patients() {
   );
 
   const [editingPatient, setEditingPatient] = useState<any | null>(null);
-  const [editDraft, setEditDraft] = useState<{
-    fullName: string; phone: string; age: string; dateOfBirth: string; address: string; occupation: string; patientCode: string;
-  }>({ fullName: "", phone: "", age: "", dateOfBirth: "", address: "", occupation: "", patientCode: "" });
+  const [editDraft, setEditDraft] = useState<Record<string, string>>({});
+  const editFields = [
+    ["fullName", "الاسم الكامل"], ["phone", "رقم الهاتف"],
+    ["alternatePhone", "هاتف إضافي"], ["email", "البريد الإلكتروني"],
+    ["nationalId", "الرقم القومي"], ["age", "السن"],
+    ["dateOfBirth", "تاريخ الميلاد"], ["address", "العنوان"],
+    ["occupation", "المهنة"], ["referralSource", "مصدر الإحالة"],
+    ["medicalHistory", "التاريخ المرضي"], ["allergies", "الحساسية"],
+  ];
 
   const openEdit = (patient: any) => {
     setEditingPatient(patient);
-    setEditDraft({
-      fullName: patient.fullName ?? "",
-      phone: patient.phone ?? "",
-      age: patient.age != null ? String(patient.age) : "",
-      dateOfBirth: patient.dateOfBirth ?? "",
-      address: patient.address ?? "",
-      occupation: patient.occupation ?? "",
-      patientCode: patient.patientCode ?? "",
-    });
+    setEditDraft(Object.fromEntries([
+      ...editFields.map(([key]) => [key, patient[key] == null ? "" : key === "dateOfBirth" ? String(patient[key]).slice(0, 10) : String(patient[key])]),
+      ["gender", patient.gender ?? ""], ["doctorCode", patient.doctorCode ?? ""],
+    ]));
   };
 
   const handleEditSave = async () => {
     if (!editingPatient) return;
-    await handleUpdatePatient(editingPatient.id, {
-      fullName: editDraft.fullName.trim(),
-      phone: editDraft.phone.trim(),
-      age: editDraft.age ? Number(editDraft.age) : undefined,
-      dateOfBirth: editDraft.dateOfBirth || undefined,
-      address: editDraft.address.trim(),
-      occupation: editDraft.occupation.trim(),
-      patientCode: editDraft.patientCode.trim(),
-    });
-    setEditingPatient(null);
+    const updates = Object.fromEntries(editFields.map(([key]) => [key,
+      key === "age" ? (editDraft[key] ? Number(editDraft[key]) : null) :
+      key === "dateOfBirth" ? (editDraft[key] || null) : (editDraft[key] ?? "").trim(),
+    ]));
+    updates.gender = editDraft.gender || null;
+    if (editDraft.doctorCode !== String(editingPatient.doctorCode ?? "")) {
+      updates.doctorCode = editDraft.doctorCode;
+    }
+    const saved = await handleUpdatePatient(editingPatient.id, updates);
+    if (saved) setEditingPatient(null);
   };
 
   return (
@@ -375,39 +376,41 @@ export default function Patients() {
         </main>
       </PullToRefresh>
       <Dialog open={!!editingPatient} onOpenChange={(open) => { if (!open) setEditingPatient(null); }}>
-        <DialogContent dir="rtl" className="max-w-md">
+        <DialogContent dir="rtl" className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>تعديل بيانات المريض</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="grid max-h-[65vh] gap-3 overflow-y-auto px-1 sm:grid-cols-2">
             <div className="space-y-1">
-              <Label>الاسم الكامل</Label>
-              <Input value={editDraft.fullName} onChange={(e) => setEditDraft((d) => ({ ...d, fullName: e.target.value }))} />
+              <Label htmlFor="edit-patient-code">كود المريض</Label>
+              <Input id="edit-patient-code" value={editingPatient?.patientCode ?? ""} readOnly />
+            </div>
+            {editFields.map(([key, label]) => (
+              <div key={key} className="space-y-1">
+                <Label htmlFor={`edit-patient-${key}`}>{label}</Label>
+                <Input id={`edit-patient-${key}`} type={key === "dateOfBirth" ? "date" : key === "age" ? "number" : key === "email" ? "email" : "text"}
+                  min={key === "age" ? 0 : undefined}
+                  value={editDraft[key] ?? ""} onChange={(event) => setEditDraft((draft) => ({ ...draft, [key]: event.target.value }))} />
+              </div>
+            ))}
+            <div className="space-y-1">
+              <Label htmlFor="edit-patient-gender">النوع</Label>
+              <select id="edit-patient-gender" className="h-10 w-full rounded-md border border-input bg-background px-3" value={editDraft.gender ?? ""} onChange={(event) => setEditDraft((draft) => ({ ...draft, gender: event.target.value }))}>
+                <option value="">غير محدد</option><option value="male">ذكر</option><option value="female">أنثى</option>
+              </select>
             </div>
             <div className="space-y-1">
-              <Label>رقم الهاتف</Label>
-              <Input value={editDraft.phone} onChange={(e) => setEditDraft((d) => ({ ...d, phone: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <Label>رمز المريض</Label>
-              <Input value={editDraft.patientCode} onChange={(e) => setEditDraft((d) => ({ ...d, patientCode: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <Label>السن</Label>
-              <Input type="number" value={editDraft.age} onChange={(e) => setEditDraft((d) => ({ ...d, age: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <Label>العنوان</Label>
-              <Input value={editDraft.address} onChange={(e) => setEditDraft((d) => ({ ...d, address: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <Label>المهنة</Label>
-              <Input value={editDraft.occupation} onChange={(e) => setEditDraft((d) => ({ ...d, occupation: e.target.value }))} />
+              <Label htmlFor="edit-patient-doctor">طبيب آخر إيصال</Label>
+              <select id="edit-patient-doctor" className="h-10 w-full rounded-md border border-input bg-background px-3" value={editDraft.doctorCode ?? ""} disabled={doctorsLoading} onChange={(event) => setEditDraft((draft) => ({ ...draft, doctorCode: event.target.value }))}>
+                <option value="">اختر الطبيب</option>
+                {editDraft.doctorCode && !availableDoctors.some((doctor) => doctor.code === editDraft.doctorCode) && <option value={editDraft.doctorCode}>{editDraft.doctorCode}</option>}
+                {availableDoctors.map((doctor) => <option key={doctor.code} value={doctor.code}>{doctor.name} ({doctor.code})</option>)}
+              </select>
             </div>
           </div>
           <DialogFooter className="flex gap-2 mt-2">
             <Button variant="outline" onClick={() => setEditingPatient(null)}>إلغاء</Button>
-            <Button onClick={handleEditSave}>حفظ</Button>
+            <Button disabled={updatePatientMutation.isPending} onClick={handleEditSave}>{updatePatientMutation.isPending ? "جاري الحفظ والمزامنة…" : "حفظ"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

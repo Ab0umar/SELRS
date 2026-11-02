@@ -8,10 +8,16 @@ import {
   CalendarCheck,
   CalendarDays,
   ChevronDown,
+  Check,
+  Edit,
   Plus,
+  Trash2,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
+import { toast } from "sonner";
 
 type FollowupStatus = "upcoming" | "completed" | "overdue" | "invalid-date";
 
@@ -81,12 +87,16 @@ export default function Followups(
   const patientHubViewOnlyHint =
     props?.patientHubViewOnlyHint ?? "العرض فقط داخل المركز";
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [patientId, setPatientId] = useState<number>(0);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [activeStatus, setActiveStatus] = useState("all");
+  const [editingVisitId, setEditingVisitId] = useState<number | null>(null);
+  const [editVisitDate, setEditVisitDate] = useState("");
+  const updateVisitDateMutation = trpc.medical.updateVisitDate.useMutation();
+  const deleteVisitMutation = trpc.medical.deleteVisitWithAllData.useMutation();
 
   const patientQuery = trpc.patient.getPatient.useQuery(patientId ?? 0, {
     enabled: Boolean(patientId),
@@ -129,6 +139,30 @@ export default function Followups(
   const isLoading =
     patientId > 0 ? patientSheetsQuery.isLoading : allItemsQuery.isLoading;
   const followupsQuery = patientId > 0 ? patientSheetsQuery : allItemsQuery;
+
+  const saveFollowupVisitDate = async (visitId: number) => {
+    if (!editVisitDate) return;
+    try {
+      await updateVisitDateMutation.mutateAsync({ visitId, visitDate: editVisitDate });
+      setEditingVisitId(null);
+      await Promise.all([patientSheetsQuery.refetch(), allItemsQuery.refetch()]);
+      toast.success("تم تعديل تاريخ المتابعة");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر تعديل التاريخ");
+    }
+  };
+
+  const deleteFollowupVisit = async (visitId: number) => {
+    if (!window.confirm("سيتم حذف الزيارة وكل بياناتها الطبية المرتبطة بها. هل تريد المتابعة؟")) return;
+    try {
+      await deleteVisitMutation.mutateAsync({ visitId });
+      setExpandedId(null);
+      await Promise.all([patientSheetsQuery.refetch(), allItemsQuery.refetch()]);
+      toast.success("تم حذف الزيارة وبياناتها");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حذف الزيارة");
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) setLocation("/");
@@ -569,6 +603,66 @@ export default function Followups(
                     id={`followup-details-${item.id}`}
                     className="border-t border-border/60 bg-background p-5"
                   >
+                    {item.visitId && !patientHubReadOnly && (
+                      <div className="mb-4 flex flex-wrap items-center gap-2">
+                        {editingVisitId === Number(item.visitId) ? (
+                          <>
+                            <DateInput
+                              aria-label="تاريخ الزيارة والمتابعة"
+                              value={editVisitDate}
+                              onChange={(event) => setEditVisitDate(event.target.value)}
+                              className="h-9 w-40"
+                              dir="ltr"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={updateVisitDateMutation.isPending || !editVisitDate}
+                              onClick={() => saveFollowupVisitDate(Number(item.visitId))}
+                            >
+                              <Check className="me-1 h-4 w-4" /> حفظ التاريخ
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingVisitId(null)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const date = new Date(String(item.followupDate));
+                              if (Number.isNaN(date.getTime())) return;
+                              setEditVisitDate(
+                                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+                              );
+                              setEditingVisitId(Number(item.visitId));
+                            }}
+                          >
+                            <Edit className="me-1 h-4 w-4" /> تعديل تاريخ الزيارة
+                          </Button>
+                        )}
+                        {String(user?.role ?? "").toLowerCase() === "admin" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            disabled={deleteVisitMutation.isPending}
+                            onClick={() => deleteFollowupVisit(Number(item.visitId))}
+                          >
+                            <Trash2 className="me-1 h-4 w-4" /> حذف الزيارة وبياناتها
+                          </Button>
+                        )}
+                      </div>
+                    )}
                     {isOverdue && (
                       <div className="mb-4 flex items-start gap-3 bg-destructive/10/30 border border-destructive/20 rounded-lg p-3">
                         <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />

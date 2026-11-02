@@ -472,6 +472,8 @@ export function AppointmentsSection({
         patientId={followupPatient?.id ?? 0}
         patientName={followupPatient?.fullName}
         serviceType={(followupPatient as any)?.serviceType}
+        visitId={followupPatient?.visitId}
+        visitDate={selectedDate}
       />
       <Dialog
         open={deleteTarget != null}

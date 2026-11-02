@@ -35,6 +35,7 @@ import {patientWorkflowState} from "./services/patient-workflow-state";
 import {saveClinicalVisit,type ClinicalVisitInput} from "./services/clinical-visit";
 import {airPuffMeasurements,examinationFindings,examinationProcedurePlans,fundusFindings,visitComplaints,visitSymptoms,visitDiagnoses,visitDiagnosisCodes,visitTreatmentPlans,visitDecisions,visitMedicalHistory,symptomCatalog,visitSymptomCodes} from "../drizzle/clinical";
 import mysql from "mysql2/promise";
+import { TRPCError } from "@trpc/server";
 import { getDbPoolOptions } from "./_core/dbPoolOptions";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -3338,6 +3339,51 @@ export async function updateVisit(visitId: number, updates: any) {
     if(symptoms !== undefined) patch.symptoms=String(symptoms ?? "");
     if(Object.keys(patch).length) await persistVisitSections(tx,{patientId:visit.patientId,visitId},patch);
     if(Object.keys(header).length) await tx.update(visits).set(header).where(eq(visits.id,visitId));
+  });
+}
+
+export async function updateVisitDate(visitId: number, visitDate: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const dateIso = visitDate.toISOString().slice(0, 10);
+
+  await db.transaction(async (tx: Parameters<Parameters<MySql2Database["transaction"]>[0]>[0]) => {
+    const [visitSnapshot] = await tx
+      .select({ patientId: visits.patientId })
+      .from(visits)
+      .where(eq(visits.id, visitId));
+    if (!visitSnapshot) throw new TRPCError({ code: "NOT_FOUND", message: "الزيارة غير موجودة" });
+
+    await tx
+      .select({ id: patients.id })
+      .from(patients)
+      .where(eq(patients.id, visitSnapshot.patientId))
+      .for("update");
+    const [visit] = await tx
+      .select({ id: visits.id, patientId: visits.patientId })
+      .from(visits)
+      .where(and(eq(visits.id, visitId), eq(visits.patientId, visitSnapshot.patientId)))
+      .for("update");
+    if (!visit) throw new TRPCError({ code: "NOT_FOUND", message: "الزيارة غير موجودة" });
+
+    const [conflict] = await tx
+      .select({ id: visits.id })
+      .from(visits)
+      .where(
+        and(
+          eq(visits.patientId, visit.patientId),
+          ne(visits.id, visitId),
+          sql`DATE(${visits.visitDate}) = ${dateIso}`,
+        ),
+      )
+      .limit(1);
+    if (conflict)
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "للمريض زيارة أخرى في التاريخ المحدد. اخترها من سجل الزيارات.",
+      });
+
+    await tx.update(visits).set({ visitDate }).where(eq(visits.id, visitId));
   });
 }
 

@@ -1,6 +1,7 @@
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import type { InvestigationInput } from "../../shared/clinical-catalog-items";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { visits, sheetEntries } from "../../drizzle/schema";
 import {
   persistClinicalSheet,
@@ -15,6 +16,7 @@ import {
 export type ClinicalVisitInput = ClinicalSheetInput & {
   visitType?: "examination" | "followup";
   appointmentId?: number;
+  visitDate?: Date;
   prescriptionItems?: PrescriptionInput["items"];
   testItems?: InvestigationInput[];
   sheetMetadataTypes?: Array<
@@ -32,10 +34,30 @@ export function saveClinicalVisit(
     const header: {
       visitType?: "examination" | "followup";
       appointmentId?: number;
+      visitDate?: Date;
     } = {};
     if (input.visitType !== undefined) header.visitType = input.visitType;
     if (input.appointmentId !== undefined)
       header.appointmentId = input.appointmentId;
+    if (input.visitDate !== undefined) {
+      const [conflictingVisit] = await transaction
+        .select({ id: visits.id })
+        .from(visits)
+        .where(
+          and(
+            eq(visits.patientId, input.patientId),
+            ne(visits.id, saved.visitId),
+            sql`DATE(${visits.visitDate}) = ${input.visitDate.toISOString().slice(0, 10)}`,
+          ),
+        )
+        .limit(1);
+      if (conflictingVisit)
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "للمريض زيارة أخرى في التاريخ المحدد. اخترها من قائمة الزيارات.",
+        });
+      header.visitDate = input.visitDate;
+    }
     if (Object.keys(header).length)
       await transaction
         .update(visits)

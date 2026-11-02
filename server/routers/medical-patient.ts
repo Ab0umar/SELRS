@@ -32,6 +32,7 @@ import {
   visits,
   externalDoctors,
   externalDoctorReferrals,
+  doctorsLookup,
 } from "../../drizzle/schema";
 import { broadcastToDoctorPortal } from "../_core/ws";
 import {
@@ -1497,7 +1498,20 @@ export const medicalPatientRoutes = {
           "dateOfBirth",
           "branch",
           "locationType",
+          "doctorCode",
         ]);
+        if (nextUpdates.doctorCode !== undefined && !String(nextUpdates.doctorCode ?? "").trim()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "اختر الطبيب قبل الحفظ" });
+        }
+        if (nextUpdates.doctorCode !== undefined) {
+          const connection = await db.getDb();
+          if (!connection) throw new Error("Database not available");
+          const [doctor] = await connection.select().from(doctorsLookup)
+            .where(eq(doctorsLookup.code, String(nextUpdates.doctorCode).trim())).limit(1);
+          if (!doctor?.isActive) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "الطبيب غير موجود أو غير نشط" });
+          }
+        }
         const changesAuthoritativeData = Object.keys(nextUpdates).some((key) =>
           authoritativeFields.has(key),
         );
@@ -1525,6 +1539,8 @@ export const medicalPatientRoutes = {
           };
           const pushResult = await upsertPatientToMssql({
             patientCode,
+            doctorCode: nextUpdates.doctorCode === undefined ? undefined : String(nextUpdates.doctorCode).trim(),
+            updateDoctor: nextUpdates.doctorCode !== undefined,
             fullName: String(proposed.fullName ?? "").trim(),
             phone: String(proposed.phone ?? "").trim() || null,
             address: String(proposed.address ?? "").trim() || null,
@@ -1556,6 +1572,12 @@ export const medicalPatientRoutes = {
                 syncResult.message ||
                 "MSSQL was updated but MySQL synchronization failed",
             });
+          }
+          if (nextUpdates.doctorCode !== undefined) {
+            const syncedPatient = await db.getPatientById(input.patientId);
+            if (String(syncedPatient?.doctorCode ?? "").trim() !== String(nextUpdates.doctorCode).trim()) {
+              throw new TRPCError({ code: "BAD_GATEWAY", message: "تم تحديث MSSQL لكن لم ينعكس الطبيب في MySQL؛ أعد المزامنة" });
+            }
           }
         }
 

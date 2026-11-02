@@ -444,7 +444,7 @@ export const medicalExaminationsRoutes = {
     return await db.getAllExaminations();
   }),
 
-  updateVisitDate: adminProcedure
+  updateVisitDate: medicalStaffProcedure
     .input(
       z.object({
         visitId: z.number(),
@@ -464,7 +464,7 @@ export const medicalExaminationsRoutes = {
         0,
       );
 
-      await db.updateVisit(input.visitId, { visitDate });
+      await db.updateVisitDate(input.visitId, visitDate);
       return { success: true };
     }),
 

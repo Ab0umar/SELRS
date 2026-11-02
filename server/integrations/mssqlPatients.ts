@@ -3220,7 +3220,7 @@ export async function insertPatientToMssql(
 }
 
 export async function upsertPatientToMssql(
-  input: MssqlPatientInsertInput,
+  input: MssqlPatientInsertInput & { updateDoctor?: boolean },
 ): Promise<{ upserted: boolean; note?: string }> {
   assertMssqlWritable();
   const patientCode = String(input.patientCode ?? "").trim();
@@ -3528,6 +3528,25 @@ export async function upsertPatientToMssql(
       latestHeaderRs.recordset.length > 0
         ? latestHeaderRs.recordset[0]
         : {};
+    if (input.updateDoctor && doctorCode) {
+      const receiptNo = Number(latestH.TR_NO);
+      if (!Number.isFinite(receiptNo) || receiptNo <= 0) {
+        throw new Error("لا يوجد إيصال مرتبط لتعديل الطبيب");
+      }
+      const serviceColumns = await getTableColumns(pool, `${mssqlDbName()}.dbo.PAPAT_SRV`);
+      const doctorColumns = ["SRV_BY1", "CUR_SRV_BY", "DR_CD"].filter((column) => serviceColumns.has(column));
+      if (!doctorColumns.length || !serviceColumns.has("TR_NO")) {
+        throw new Error("جدول الخدمات لا يدعم تعديل الطبيب للإيصال");
+      }
+      const request = pool.request();
+      request.input("PAT_CD", patientCode);
+      request.input("TR_NO", receiptNo);
+      request.input("DOCTOR_CODE", doctorCode);
+      await request.query(`UPDATE ${mssqlDbName()}.dbo.PAPAT_SRV
+        SET ${doctorColumns.map((column) => `${column} = @DOCTOR_CODE`).join(", ")}
+        WHERE PAT_CD = @PAT_CD AND TR_NO = @TR_NO
+        AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')`);
+    }
     await ensurePapatIoDefaults(
       pool,
       patientCode,

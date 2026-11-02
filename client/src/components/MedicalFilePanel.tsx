@@ -33,7 +33,7 @@ import {
   IOP_OPTIONS,
   ADD_OPTIONS,
 } from "@/lib/refractionOptions";
-import { cn } from "@/lib/utils";
+import { cn, localISODate } from "@/lib/utils";
 import { DateInput } from "@/components/ui/date-input";
 import MedicalAssistantPreview from "@/components/medical-assistant/MedicalAssistantPreview";
 import PrescriptionBinding from "@/components/medical-assistant/PrescriptionBinding";
@@ -282,11 +282,8 @@ export default function MedicalFilePanel({
       >
     >({});
 
-  const [examinationDate, setExaminationDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
   const [visitDate, setVisitDate] = useState(
-    new Date().toISOString().split("T")[0],
+    hubVisitDate ?? localISODate(),
   );
   const [selectedExaminationId, setSelectedExaminationId] = useState<
     number | null
@@ -359,6 +356,16 @@ export default function MedicalFilePanel({
 
   const patient = patientQuery.data;
   const examinations = examinationsQuery.data || [];
+  const examinationVisitDate = (exam: { visitId?: number }) => {
+    const linkedVisit = visitsQuery.data?.find(
+      (visit: { id: number }) => Number(visit.id) === Number(exam.visitId),
+    );
+    const date = linkedVisit?.visitDate;
+    if (date) return localISODate(new Date(date));
+    if (Number(exam.visitId) === Number(hubVisitId) && hubVisitDate) return hubVisitDate;
+    return "";
+  };
+  const examinationDate = visitDate;
 
   useEffect(() => {
     if (!hubVisitDate) return;
@@ -413,6 +420,14 @@ export default function MedicalFilePanel({
     const nextVisitId = Number(examination?.visitId);
     if (Number.isFinite(nextVisitId) && nextVisitId > 0) {
       onHubVisitIdChange?.(nextVisitId);
+      const linkedVisit = (visitsQuery.data as any[] | undefined)?.find(
+        (visit) => Number(visit.id) === nextVisitId,
+      );
+      if (linkedVisit?.visitDate) {
+        const nextDate = localISODate(new Date(linkedVisit.visitDate));
+        setVisitDate(nextDate);
+        onHubVisitDateChange?.(nextDate);
+      }
     }
   };
 
@@ -740,13 +755,6 @@ export default function MedicalFilePanel({
         });
       }
 
-      // Update dates
-      if (selectedExamination.createdAt) {
-        const dateStr = new Date(selectedExamination.createdAt)
-          .toISOString()
-          .split("T")[0];
-        setExaminationDate(dateStr);
-      }
     }
   }, [
     selectedExaminationId,
@@ -1290,7 +1298,7 @@ export default function MedicalFilePanel({
     try {
       const refVal = (value:unknown) => value == null || value === "---" ? "" : String(value);
       const saved = await saveVisitDraftMutation.mutateAsync({
-        patientId, visitId:hubVisitId ?? selectedExamination?.visitId, visitDate,visitType:isFollowup?"followup":"examination",
+        patientId, visitId:selectedExamination?.visitId ?? hubVisitId, visitDate,visitType:isFollowup?"followup":"examination",
         data:{
           autorefraction:stripDash(formData.measurements?.autoref),
           afterRefraction:stripDash(formData.measurements?.after),
@@ -1301,6 +1309,11 @@ export default function MedicalFilePanel({
           treatment:[...(formData.treatment ?? []).map((medicationId:number)=>({medicationId,...(treatmentDetailsByMedicationId[medicationId] ?? {})})),...(formData.manualMedications ?? [])],tests:[...(formData.tests ?? []),...(formData.manualTests ?? [])],
         },
       });
+      if (saved.visitId) {
+        onHubVisitIdChange?.(saved.visitId);
+        onHubVisitDateChange?.(visitDate);
+        await Promise.all([visitsQuery.refetch(), examinationsQuery.refetch()]);
+      }
       await utils.medical.invalidate();
       if (finish && saved.visitId) await finishSavedVisit(saved.visitId);
       await onSaved?.();
@@ -1489,7 +1502,7 @@ export default function MedicalFilePanel({
                 <SelectContent>
                   {examinations.map((exam: any) => (
                     <SelectItem key={exam.id} value={String(exam.id)}>
-                      {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
+                      {examinationVisitDate(exam) || "تاريخ الزيارة غير متاح"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1565,7 +1578,7 @@ export default function MedicalFilePanel({
                   <SelectContent>
                     {examinations.map((exam: any) => (
                       <SelectItem key={exam.id} value={String(exam.id)}>
-                        {new Date(exam.createdAt).toLocaleDateString("ar-EG")}
+                        {examinationVisitDate(exam) || "تاريخ الزيارة غير متاح"}
                       </SelectItem>
                     ))}
                   </SelectContent>

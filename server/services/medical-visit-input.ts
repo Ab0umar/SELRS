@@ -83,6 +83,10 @@ export function medicalVisitInput(
     result.visitType = input.isFollowup ? "followup" : "examination";
   if (input.appointmentId !== undefined)
     result.appointmentId = Number(input.appointmentId);
+  if (typeof input.visitDate === "string") {
+    const [year, month, day] = input.visitDate.split("-").map(Number);
+    result.visitDate = new Date(year, month - 1, day, 12, 0, 0);
+  }
   const treatmentIsList =
     (typeof input.treatment === "string" &&
       input.treatment.trim().startsWith("[")) ||

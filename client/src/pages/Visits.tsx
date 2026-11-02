@@ -19,6 +19,7 @@ import {
   Check,
   ChevronDown,
   FileText,
+  Trash2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
   const patientHubReadOnly = Boolean(props?.patientHubReadOnly);
   const patientHubViewOnlyHint =
     props?.patientHubViewOnlyHint ?? "العرض فقط داخل المركز";
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [, routeParamsVisits] = useRoute("/visits/:id");
   const [, routeParamsHub] = useRoute("/patient-hub/visits/:id");
@@ -106,6 +107,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
   );
 
   const updateVisitDateMutation = trpc.medical.updateVisitDate.useMutation();
+  const deleteVisitMutation = trpc.medical.deleteVisitWithAllData.useMutation();
   const updateExamDataMutation = trpc.medical.updateVisitExamData.useMutation();
 
   const patient = patientQuery.data as any;
@@ -474,6 +476,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 e.stopPropagation();
                                 handleSaveDate(visit);
                               }}
+                              disabled={updateVisitDateMutation.isPending || !editDate}
                             >
                               <Check className="h-4 w-4" />
                             </Button>
@@ -495,6 +498,11 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                 {(visit as any).patientName || "مريض"} —{" "}
                                 {formatDateTime(visitDate)}
                               </span>
+                              {vType === "examination" && (
+                                <span className="text-xs font-normal text-muted-foreground">
+                                  تاريخ الفحص مرتبط بتاريخ الزيارة
+                                </span>
+                              )}
                               {vType && visitTypeLabels[vType] ? (
                                 <Badge
                                   variant="outline"
@@ -547,6 +555,45 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
+                        {!patientHubReadOnly &&
+                          String(user?.role ?? "").toLowerCase() === "admin" && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              aria-label="حذف الزيارة"
+                              title="حذف الزيارة وبياناتها الطبية"
+                              disabled={deleteVisitMutation.isPending}
+                              onClick={async (event) => {
+                                event.stopPropagation();
+                                if (
+                                  !window.confirm(
+                                    "سيتم حذف الزيارة وكل بياناتها الطبية المرتبطة بها. هل تريد المتابعة؟",
+                                  )
+                                )
+                                  return;
+                                try {
+                                  await deleteVisitMutation.mutateAsync({
+                                    visitId: vid,
+                                  });
+                                  await Promise.all([
+                                    patientVisitsQuery.refetch(),
+                                    allVisitsQuery.refetch(),
+                                  ]);
+                                  setExpandedVisitId(null);
+                                  toast.success("تم حذف الزيارة وبياناتها");
+                                } catch (error) {
+                                  toast.error(
+                                    error instanceof Error
+                                      ? error.message
+                                      : "تعذر حذف الزيارة",
+                                  );
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         <Button variant="bare"
                           type="button"
                           aria-label={

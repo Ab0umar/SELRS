@@ -21,7 +21,7 @@ import {
 import { DateInput } from "@/components/ui/date-input";
 import { DiagnosisImagesPanel } from "@/components/patient-details/DiagnosisImagesPanel";
 import { toast } from "sonner";
-import { getTrpcErrorMessage } from "@/lib/utils";
+import { getTrpcErrorMessage, localISODate } from "@/lib/utils";
 import { Save } from "lucide-react";
 import { OP_TYPE_OPTIONS } from "@shared/opTypes";
 
@@ -62,15 +62,19 @@ export function FollowupFormDialog({
   patientId,
   patientName,
   serviceType,
+  visitId,
+  visitDate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patientId: number;
   patientName?: string | null;
   serviceType?: string | null;
+  visitId?: number;
+  visitDate?: string;
 }) {
   const [followupDate, setFollowupDate] = useState(
-    new Date().toISOString().slice(0, 10),
+    visitDate ?? localISODate(),
   );
   const [operationDate, setOperationDate] = useState("");
   const [operationType, setOperationType] = useState("");
@@ -81,14 +85,14 @@ export function FollowupFormDialog({
 
   useEffect(() => {
     if (open) {
-      setFollowupDate(new Date().toISOString().slice(0, 10));
+      setFollowupDate(visitDate ?? localISODate());
       setOperationDate("");
       setOperationType("");
       setOd(emptyEye());
       setOs(emptyEye());
       setNotes("");
     }
-  }, [open]);
+  }, [open, patientId, visitId, visitDate]);
 
   const saveMutation = trpc.medical.saveFollowupSheet.useMutation({
     onSuccess: () => {
@@ -120,7 +124,8 @@ export function FollowupFormDialog({
         followupItems: [
           {
             tableIndex: 0,
-            followupDate,
+            visitId,
+            followupDate: visitDate ?? followupDate,
             operationDate: operationDate || undefined,
             operationType: operationType || undefined,
             vaOD: od.ucva,
@@ -178,6 +183,7 @@ export function FollowupFormDialog({
               <Label className="text-sm shrink-0">تاريخ المتابعة:</Label>
               <DateInput
                 value={followupDate}
+                disabled={Boolean(visitDate)}
                 onChange={(e) => setFollowupDate(e.target.value)}
                 className="h-7 w-36 text-xs"
                 dir="ltr"
