@@ -417,6 +417,7 @@ function CatalogSearchSelect({
   errorText,
   selectedEmptyText = "No selected items",
   selectedItemsLast = false,
+  inline = false,
 }: {
   label: string;
   placeholder: string;
@@ -430,6 +431,7 @@ function CatalogSearchSelect({
   errorText: string;
   selectedEmptyText?: string;
   selectedItemsLast?: boolean;
+  inline?: boolean;
 }) {
   const normalizedSearch = searchText.trim().toLowerCase();
   const filteredItems = items.filter((item) =>
@@ -439,12 +441,18 @@ function CatalogSearchSelect({
   );
 
   return (
-    <div className="space-y-2">
-      <span className="block text-xs font-semibold text-slate-600">
+    <div
+      className={
+        inline ? "flex flex-wrap items-center gap-2" : "space-y-2"
+      }
+    >
+      <span
+        className={`${inline ? "shrink-0" : "block"} text-xs font-semibold text-slate-600`}
+      >
         {label}
       </span>
       {!selectedItemsLast && selectedIds.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className={`flex flex-wrap gap-1.5 ${inline ? "basis-full" : ""}`}>
           {selectedIds.map((selectedId) => {
             const item = items.find(
               (candidate) => String(candidate.id) === String(selectedId),
@@ -470,7 +478,7 @@ function CatalogSearchSelect({
           })}
         </div>
       ) : null}
-      <div className="relative">
+      <div className={`relative ${inline ? "w-[320px] max-w-full" : ""}`}>
         <Search className="absolute end-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           dir="ltr"
@@ -486,7 +494,9 @@ function CatalogSearchSelect({
         ) : isError ? (
           <p className="text-xs text-destructive">{errorText}</p>
         ) : (
-          <div className="max-h-[160px] space-y-1 overflow-y-auto rounded-md border border-slate-200 p-1.5">
+          <div
+            className={`max-h-[160px] space-y-1 overflow-y-auto rounded-md border border-slate-200 p-1.5 ${inline ? "basis-full" : ""}`}
+          >
             {filteredItems.length === 0 ? (
               <p className="px-1.5 text-xs text-muted-foreground">
                 {selectedEmptyText.replace("عناصر مختارة", "نتائج")}
@@ -514,7 +524,7 @@ function CatalogSearchSelect({
         )
       ) : null}
       {selectedItemsLast && selectedIds.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className={`flex flex-wrap gap-1.5 ${inline ? "basis-full" : ""}`}>
           {selectedIds.map((selectedId) => {
             const item = items.find(
               (candidate) => String(candidate.id) === String(selectedId),
@@ -612,6 +622,7 @@ function Panel({
   children,
   active = false,
   hideHeader = false,
+  contentClassName = "space-y-4 p-4",
 }: {
   title: string;
   subtitle?: string;
@@ -619,9 +630,11 @@ function Panel({
   children: ReactNode;
   active?: boolean;
   hideHeader?: boolean;
+  contentClassName?: string;
 }) {
   return (
     <Card
+      dir={hideHeader ? "rtl" : undefined}
       className={`overflow-hidden border-slate-200 shadow-sm ${active ? "ring-2 ring-ring/20" : ""}`}
     >
       {hideHeader ? null : (
@@ -648,7 +661,7 @@ function Panel({
         </div>
       </CardHeader>
       )}
-      <CardContent className="space-y-4 p-4">{children}</CardContent>
+      <CardContent className={contentClassName}>{children}</CardContent>
     </Card>
   );
 }
@@ -3104,9 +3117,9 @@ export default function WorkflowPrototypeLive() {
     ) => {
       if (!templateData || Object.keys(templateData).length === 0) return null;
       return (
-        <div className="mt-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[13px]"} text-muted-foreground`}
+            className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[13px]"} shrink-0 text-muted-foreground`}
           >
             {kind === "tests" ? "قوالب:" : "وصفات جاهزة:"}
           </span>
@@ -3761,6 +3774,7 @@ export default function WorkflowPrototypeLive() {
           icon={FileText}
           active
           hideHeader
+          contentClassName="flex flex-wrap items-center gap-x-4 gap-y-3 p-4"
         >
           <div className="flex justify-end">
             <Button
@@ -3776,6 +3790,7 @@ export default function WorkflowPrototypeLive() {
           </div>
       <ConfirmedItems tests={manualTests} removeTest={name=>setManualTests(previous=>previous.filter(item=>item.testName!==name))} />
           <CatalogSearchSelect
+            inline
             label="Tests & Rays"
             placeholder="Search tests and rays…"
             searchText={testSearchText}
@@ -3801,6 +3816,7 @@ export default function WorkflowPrototypeLive() {
           icon={ClipboardList}
           active
           hideHeader
+          contentClassName="flex flex-wrap items-center gap-x-4 gap-y-3 p-4"
         >
           {assistantPrescriptionBinding}
           <div className="flex justify-end">
@@ -3816,6 +3832,7 @@ export default function WorkflowPrototypeLive() {
             </Button>
           </div>
           <CatalogSearchSelect
+            inline
             label="Prescription"
             placeholder="Search medications…"
             searchText={medicationSearchText}
