@@ -399,7 +399,7 @@ export default function WorkflowMeasurements({
       className="flex min-h-0 w-full flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm"
       dir="rtl"
     >
-      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-b border-border/50 px-4 py-3">
+      <div className="flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 self-center border-b border-border/50 px-6 py-1.5">
         <h2 className="min-w-0 truncate text-sm font-semibold">
           {patientName || "بدون اسم"}
         </h2>
