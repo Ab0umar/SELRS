@@ -361,12 +361,12 @@ export default function MedicalFilePanel({
   const examinations = examinationsQuery.data || [];
 
   useEffect(() => {
-    if (!embedded || !hubVisitDate) return;
+    if (!hubVisitDate) return;
     setVisitDate(hubVisitDate);
   }, [embedded, hubVisitDate]);
 
   useEffect(() => {
-    if (!embedded || !examinations.length) return;
+    if (!examinations.length) return;
     if (hubVisitId != null && hubVisitId > 0) {
       const matchByVisit = examinations.find(
         (e: any) => Number((e as { visitId?: unknown }).visitId) === hubVisitId,

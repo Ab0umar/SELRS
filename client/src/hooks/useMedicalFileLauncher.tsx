@@ -16,13 +16,15 @@ const MedicalFilePanel = lazy(() => import("@/components/MedicalFilePanel"));
 export function useMedicalFileLauncher() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [patientId, setPatientId] = useState<number | null>(null);
+  const [visitContext, setVisitContext] = useState<{ visitId?: number; visitDate?: string }>({});
 
   const openMedicalFilePicker = useCallback(() => {
     setPickerOpen(true);
   }, []);
 
-  const openMedicalFileForPatient = useCallback((id: number) => {
+  const openMedicalFileForPatient = useCallback((id: number, context?: { visitId?: number; visitDate?: string }) => {
     if (Number.isFinite(id) && id > 0) {
+      setVisitContext(context ?? {});
       setPatientId(id);
     }
   }, []);
@@ -32,6 +34,7 @@ export function useMedicalFileLauncher() {
   }, []);
 
   const onPatientChosenFromPicker = useCallback((id: number) => {
+    setVisitContext({});
     setPickerOpen(false);
     if (Number.isFinite(id) && id > 0) {
       setPatientId(id);
@@ -59,7 +62,10 @@ export function useMedicalFileLauncher() {
       {patientId != null && patientId > 0 ? (
         <Suspense fallback={null}>
           <MedicalFilePanel
+            key={`${patientId}-${visitContext.visitId ?? visitContext.visitDate ?? "default"}`}
             patientId={patientId}
+            hubVisitId={visitContext.visitId}
+            hubVisitDate={visitContext.visitDate}
             onClose={closeMedicalFilePanel}
           />
         </Suspense>

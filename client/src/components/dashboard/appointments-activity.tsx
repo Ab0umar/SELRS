@@ -141,7 +141,7 @@ export function AppointmentsSection({
   selectedDate: controlledSelectedDate,
   onSelectedDateChange,
 }: {
-  onOpenMeasurementsMedicalFile?: (patientId: number) => void;
+  onOpenMeasurementsMedicalFile?: (patientId: number, context?: { visitId?: number; visitDate?: string }) => void;
   selectedDate?: string;
   onSelectedDateChange?: (date: string) => void;
 } = {}) {
@@ -458,7 +458,11 @@ export function AppointmentsSection({
         }}
         patientId={shortcutPatient?.id ?? 0}
         patientName={shortcutPatient?.fullName}
-        onOpenMeasurementsMedicalFile={onOpenMeasurementsMedicalFile}
+        onOpenMeasurementsMedicalFile={onOpenMeasurementsMedicalFile ? (patientId) =>
+          onOpenMeasurementsMedicalFile(patientId, {
+            visitId: shortcutPatient?.visitId,
+            visitDate: selectedDate,
+          }) : undefined}
       />
       <FollowupFormDialog
         open={followupPatient != null}
