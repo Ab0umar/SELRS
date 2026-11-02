@@ -443,7 +443,7 @@ function CatalogSearchSelect({
   return (
     <div
       className={
-        inline ? "flex flex-wrap items-center gap-2" : "space-y-2"
+        inline ? "order-3 flex flex-wrap items-center gap-2" : "space-y-2"
       }
     >
       <span
@@ -3117,7 +3117,7 @@ export default function WorkflowPrototypeLive() {
     ) => {
       if (!templateData || Object.keys(templateData).length === 0) return null;
       return (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="order-1 flex flex-wrap items-center gap-2">
           <span
             className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[13px]"} shrink-0 text-muted-foreground`}
           >
@@ -3774,9 +3774,9 @@ export default function WorkflowPrototypeLive() {
           icon={FileText}
           active
           hideHeader
-          contentClassName="flex flex-wrap items-center gap-x-4 gap-y-3 p-4"
+          contentClassName="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4"
         >
-          <div className="flex justify-end">
+          <div className="order-2 flex justify-end">
             <Button
               type="button"
               variant="outline"
@@ -3816,10 +3816,10 @@ export default function WorkflowPrototypeLive() {
           icon={ClipboardList}
           active
           hideHeader
-          contentClassName="flex flex-wrap items-center gap-x-4 gap-y-3 p-4"
+          contentClassName="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4"
         >
           {assistantPrescriptionBinding}
-          <div className="flex justify-end">
+          <div className="order-2 flex justify-end">
             <Button
               type="button"
               variant="outline"
