@@ -255,9 +255,9 @@
   }
 
   html.dark .selrs-app-content .medical-report-page .report-sheet-body {
-    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 24px !important;
-    background: rgba(255, 255, 255, 0.5) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
     box-shadow: 0 8px 30px rgba(0, 61, 130, 0.10) !important;
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
@@ -278,8 +278,8 @@
   }
 
   html.dark .selrs-app-content header.sticky:not([data-app-top-nav]) {
-    background: rgba(255, 255, 255, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
@@ -296,9 +296,9 @@
   }
 
   html.dark .selrs-app-content .printable-report-sheet {
-    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 24px !important;
-    background: rgba(255, 255, 255, 0.55) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
     box-shadow: 0 8px 30px rgba(0, 61, 130, 0.10) !important;
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
@@ -310,9 +310,9 @@
 
   html.dark .selrs-app-content div[class*="max-w-[210mm]"][class*="space-y-3"][class*="print:hidden"] {
     padding: 12px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.07);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
   }
@@ -327,8 +327,8 @@
   html.dark .selrs-app-content .specialist-sheet,
   html.dark .selrs-app-content .followup-print-page .sheet-followup-body,
   html.dark .selrs-app-content .medical-report-page {
-    border: 1px solid rgba(255, 255, 255, 0.75) !important;
-    background: rgba(255, 255, 255, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
     box-shadow: 0 8px 30px rgba(0, 61, 130, 0.10) !important;
@@ -353,7 +353,7 @@
 
   /* The reports hub header is a single glass bar, like the tab strip below it. */
   html.dark .selrs-app-content [data-report-header] {
-    background: rgba(255, 255, 255, 0.5) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
     border: 1px solid transparent !important;
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
@@ -411,8 +411,8 @@
 
   /* The day-path (مسار اليوم) content keeps one glass frame around the whole list. */
   html.dark .selrs-app-content .queue-patient-frame {
-    background: rgba(255, 255, 255, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 24px !important;
     box-shadow: 0 8px 30px rgba(0, 61, 130, 0.10) !important;
     -webkit-backdrop-filter: blur(14px);
@@ -825,7 +825,7 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] :is(#ledger-receipt, .accounting-current-balance output, .accounting-revenue-totals output) {
-      border: 2px solid rgba(41, 53, 130, 0.35) !important;
+      border: 2px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
       padding-inline: 12px !important;
     }
@@ -843,7 +843,7 @@
     }
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-personal-totals .grid > div {
       background-color: transparent !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage {
@@ -889,7 +889,7 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage #module-content .attendance-workspace.min-h-dvh {
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 22px !important;
     }
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage #module-content .attendance-workspace.min-h-dvh {
@@ -900,7 +900,7 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-workspace :is(.attendance-personal-pending, .attendance-personal-summary, .max-w-6xl > .grid > [class*="bg-card"], .max-w-6xl > header, header.max-w-6xl) {
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
     }
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-workspace header.max-w-6xl {
@@ -932,7 +932,7 @@
   @media screen {
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage :is(div[class*="bg-card"][class*="border"], div[data-slot="card"], div[class*="bg-muted"][class*="rounded-xl"][class*="border"]) {
       background-color: transparent !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
     }
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage div[data-slot="card-header"] {
@@ -946,7 +946,7 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage .attendance-shift-definition {
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       padding: 20px !important;
     }
@@ -958,7 +958,7 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage :is(.attendance-workspace.min-h-dvh, .attendance-personal-pending, .attendance-personal-summary, .attendance-personal-totals .grid > div, .max-w-6xl > .grid > [class*="bg-card"], header.max-w-6xl, div[class*="bg-card"][class*="border"], div[data-slot="card"], div[class*="bg-muted"][class*="rounded-xl"][class*="border"], .attendance-shift-definition, .roster-week-grid > .roster-day-card) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
@@ -991,10 +991,10 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] div[class*="rounded-xl"]:has(> div[class*="bg-muted/50"][class*="border-b"]) {
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       overflow: hidden !important;
-      background-color: rgba(255, 255, 255, 0.4) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
@@ -1030,7 +1030,7 @@
       background-color: transparent !important;
     }
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] section[class*="overflow-hidden"]:has(> div[class*="bg-muted"]) {
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
     }
   }
@@ -1055,8 +1055,8 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content :is(div[class*="rounded-xl"][class*="border"], div[class*="rounded-lg"][class*="border"], section[class*="rounded-xl"], div[data-slot="card"], .salary-penalty-tabs, div[class*="bg-muted"][class*="rounded"], div[class*="bg-muted"][class*="w-fit"], .salary-funds-page aside, .salary-funds-page section) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1065,7 +1065,7 @@
       background-color: transparent !important;
     }
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content button[class*="bg-background"]:not([data-slot="tabs-trigger"]) {
-      background-color: rgba(255, 255, 255, 0.75) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       border-radius: 14px !important;
     }
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
@@ -1111,8 +1111,8 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content :is(.salary-payroll-subtabs, .salary-compact-payroll div[role="group"], .salary-compact-payroll [role="tablist"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 16px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1123,7 +1123,7 @@
       background-color: transparent !important;
     }
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content .salary-compact-payroll div[role="group"] > button[class*="bg-background"], html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content .salary-payroll-subtabs > button[class*="bg-background"] {
-      background-color: rgba(255, 255, 255, 0.75) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       border-radius: 12px !important;
     }
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content .salary-compact-payroll div[role="group"] > button[class*="bg-primary"] {
@@ -1138,8 +1138,8 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] #module-content button[data-slot][class*="border-input"][class*="bg-transparent"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 14px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1153,8 +1153,8 @@
 @layer base {
   @media screen {
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage :is(.attendance-panel, .attendance-today-register, .attendance-home-pane, .attendance-home-ledger, .attendance-register-shell, .roster-calendar-panel, .roster-day-card) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1163,7 +1163,7 @@
       background-color: transparent !important;
     }
     html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-stage .roster-toolbar button[data-slot="button"]:not([aria-pressed="true"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       border-radius: 14px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1177,8 +1177,8 @@
 @layer base {
   @media screen {
     html.dark [id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"] section[class*="rounded-2xl"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       overflow: hidden !important;
       -webkit-backdrop-filter: blur(14px) !important;
@@ -1188,16 +1188,16 @@
       background-color: transparent !important;
     }
     html.dark [id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"] :is(input[data-slot="input"], button[class*="rounded-full"][class*="bg-card"], span[data-slot="badge"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
     html.dark [id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"] input[data-slot="input"] {
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 14px !important;
     }
     html.dark [id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"] span[data-slot="badge"] {
-      border-color: rgba(41, 53, 130, 0.25) !important;
+      border-color: rgba(255, 255, 255, 0.28) !important;
       border-radius: 10px !important;
     }
     html.dark [id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"][id$="-content-autoref"] section[class*="rounded-2xl"] {
@@ -1224,8 +1224,8 @@
 @layer base {
   @media screen {
     html.dark .clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace [data-slot="tabs-content"] :is(div, section)[class*="bg-card"], html.dark .clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace [data-slot="tabs-content"] div.overflow-x-auto:has(> table), html.dark .clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace [data-slot="tabs-content"] section[class*="rounded-2xl"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1236,8 +1236,8 @@
       -webkit-backdrop-filter: none !important;
     }
     html.dark .clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace.clinical-workspace [data-slot="tabs-content"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, button[class*="rounded-full"][class*="bg-card"], span[data-slot="badge"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
@@ -1306,8 +1306,8 @@
 @layer base {
   @media screen {
     html.dark .archive-patients.archive-patients.archive-patients.archive-patients.archive-patients.archive-patients.archive-patients.archive-patients.archive-patients.archive-patients [data-slot="table-container"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       overflow-x: auto !important;
       -webkit-backdrop-filter: blur(14px) !important;
@@ -1331,8 +1331,8 @@
 @layer base {
   @media screen {
     html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference section.overflow-hidden {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1341,20 +1341,20 @@
       background-color: transparent !important;
     }
     html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference .archive-reference-modes div[class*="bg-background"][class*="rounded"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       border-radius: 14px !important;
     }
     html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference .archive-reference-modes button[aria-pressed="false"], html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference .archive-reference-presets button, html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference .archive-reference-save button[class*="border-input"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference .archive-reference-modes button[aria-pressed="true"] {
       border-radius: 12px !important;
     }
     html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference :is(select, input[data-slot="input"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 14px !important;
     }
     html.dark .archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference.archive-reference section.overflow-hidden {
@@ -1381,13 +1381,13 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6 > div.flex.w-full.flex-col :is(div[class*="bg-muted"], div[class*="bg-card"], div[class*="bg-background"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
     html.dark body .selrs-app-content div.p-3.pb-6 > div.flex.w-full.flex-col :is(button[data-slot="select-trigger"], input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1429,8 +1429,8 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 > div.flex.w-full.flex-col :is(button[data-slot="select-trigger"], input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark html body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 > div.flex.w-full.flex-col :is(button[data-slot="select-trigger"], input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
@@ -1442,8 +1442,8 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 > div.flex.w-full.flex-col > div[class*="bg-muted"], html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 > div.flex.w-full.flex-col > div[class*="border-b"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 16px !important;
       margin: 8px 16px !important;
       -webkit-backdrop-filter: blur(14px) !important;
@@ -1454,7 +1454,7 @@
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 > div.flex.w-full.flex-col div[class*="rounded-lg"][class*="border"]:has(> table) {
       border-radius: 16px !important;
-      background-color: rgba(255, 255, 255, 0.4) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
@@ -1470,15 +1470,15 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 :is(div, section)[class*="bg-[#f8f9fb]"], html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 :is(div, section)[class*="bg-[#fff"], html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 section[data-purpose] div[class*="rounded-lg"][class*="border"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 16px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 :is(textarea, input:not([type="checkbox"]):not([type="radio"]), select, button[data-slot="select-trigger"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 table :is(th, td, tr, tbody) {
@@ -1514,8 +1514,8 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 section[class*="rounded-xl"][class*="bg-white"], html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div[class*="min-h-[300px]"][class*="overflow-hid"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1559,8 +1559,8 @@
       border-spacing: 6px !important;
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 section[data-purpose="clinical-refraction"] table tbody td {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1589,8 +1589,8 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 section[data-purpose="clinical-refraction"] div:has(> table) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       padding: 6px !important;
       -webkit-backdrop-filter: blur(14px) !important;
@@ -1608,8 +1608,8 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-5 div:has(> table) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       padding: 6px !important;
       overflow: hidden !important;
@@ -1622,7 +1622,7 @@
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-5 div:has(> table) > table tbody td {
       background-color: rgba(255, 255, 255, 0.3) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-5 div:has(> table) > table thead th {
@@ -1649,8 +1649,8 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-4 div:has(> table) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       padding: 6px !important;
       overflow: hidden !important;
@@ -1663,7 +1663,7 @@
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-4 div:has(> table) > table tbody td {
       background-color: rgba(255, 255, 255, 0.3) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-4 div:has(> table) > table thead th {
@@ -1692,22 +1692,22 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content main.min-w-0 div.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 [data-slot="card-content"] span[class*="bg-muted"][class*="rounded"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
     html.dark body .selrs-app-content main.min-w-0 div.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 [data-slot="card-content"] button[data-slot]:not([class*="bg-primary"]):not([class*="rounded-full"]):not([aria-label^="Remove"]):not([class*=" size-11"]):not([class*=" size-9"]):is([class*="border"], [class*="rounded"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
     html.dark body .selrs-app-content main.min-w-0 div.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 [data-slot="card-content"] :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark html body .selrs-app-content main.min-w-0 div.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 [data-slot="card-content"] :is(span[class*="bg-muted"][class*="rounded"], button[data-slot]:not([class*="bg-primary"]), input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
@@ -1719,8 +1719,8 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content main.min-w-0 div.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 > [data-slot="card"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1744,20 +1744,20 @@
 @layer base {
   @media screen {
     html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet :is(section, div)[class*="border-slate-300"][class*="rounded-xl"] {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 20px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
     }
     html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
     }
     html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet :is(button[data-slot="dropdown-menu-trigger"], span[class*="bg-white"], span[class*="bg-muted"][class*="rounded"], span[class*="rounded-md"][class*="border"]) {
-      background-color: rgba(255, 255, 255, 0.4) !important;
-      border: 1px solid rgba(41, 53, 130, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      border: 1px solid rgba(255, 255, 255, 0.28) !important;
       border-radius: 12px !important;
       -webkit-backdrop-filter: blur(14px) !important;
       backdrop-filter: blur(14px) !important;
@@ -1776,8 +1776,8 @@
 /* salary home: glass panes, curved */
 @layer base { @media screen {
   html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] :is(.salary-home-pane, .salary-home-payroll) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] .salary-home-entries > div { border-radius: 12px !important; }
@@ -1789,8 +1789,8 @@
 /* salary: date-input wrappers as glass fields */
 @layer base { @media screen {
   html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] div.inline-flex[class*="focus-within:ring-1"] {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 12px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"][data-operational-module="salary"] div.inline-flex[class*="focus-within:ring-1"] {
@@ -1808,8 +1808,8 @@
 /* app-wide: date-input wrappers as glass fields */
 @layer base { @media screen {
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content div.inline-flex[class*="focus-within:ring-1"] {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 12px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content div.inline-flex[class*="focus-within:ring-1"] :is(input, button) {
@@ -1823,8 +1823,8 @@
 /* accounting report blocks on screen: glass */
 @layer base { @media screen {
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is([class*="_reportBlock_"], [class*="_printMeta_"]) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is([class*="_reportBlock_"], [class*="_printMeta_"]) {
@@ -1839,7 +1839,7 @@
 /* queue patient cards: glass fill */
 @layer base { @media screen {
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-queue-patient-card] {
-    background-color: rgba(255,255,255,0.4) !important; border-radius: 20px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important; border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-queue-patient-card] { background-color: rgba(255,255,255,0.07) !important; }
 }}
@@ -1847,8 +1847,8 @@
 /* attendance tab bars and toolbars: glass */
 @layer base { @media screen {
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.attendance-tabs, .attendance-employee-toolbar, div.flex.gap-1.bg-muted.p-0\.5) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.attendance-tabs, .attendance-employee-toolbar, div.flex.gap-1.bg-muted.p-0\.5) {
@@ -1858,8 +1858,8 @@
 /* attendance tab bars: higher specificity */
 @layer base { @media screen {
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] :is(.attendance-tabs, .attendance-employee-toolbar, div.flex.gap-1.bg-muted.p-0\.5) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] :is(.attendance-tabs, .attendance-employee-toolbar, div.flex.gap-1.bg-muted.p-0\.5) {
@@ -1869,8 +1869,8 @@
 /* admin: user cards and print-settings panels as glass */
 @layer base { @media screen {
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(article[class*="bg-background"], .print-settings-preview, .print-settings-save) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(article[class*="bg-background"], .print-settings-preview, .print-settings-save) {
@@ -1880,8 +1880,8 @@
 /* admin pentacam linking and AI nav: glass, curved */
 @layer base { @media screen {
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.exports-actions, .ai-workspace-nav) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content :is(.exports-actions, .ai-workspace-nav) {
@@ -1910,8 +1910,8 @@
 /* attendance today register timeline: glass */
 @layer base { @media screen {
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-register-timeline {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .attendance-register-timeline {
@@ -1921,8 +1921,8 @@
 /* attendance user-mappings panel: glass */
 @layer base { @media screen {
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-employees-panel-mappings {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-employees-panel-mappings {
@@ -1937,8 +1937,8 @@
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-employees-panel-mappings .attendance-flat-register { display: grid !important; gap: 10px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-employees-panel-mappings .attendance-flat-record {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important; padding: 12px 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-employees-panel-mappings .attendance-flat-record {
@@ -1957,7 +1957,7 @@
 /* roster day cards: border only */
 @layer base { @media screen {
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .roster-day-card {
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 20px !important; }
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .roster-day-card { border: 1px solid rgba(255,255,255,0.28) !important; }
 }}
 
@@ -1973,8 +1973,8 @@
 /* roster day cards: glass fill */
 @layer base { @media screen {
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .roster-day-card {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 20px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .roster-day-card {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
@@ -1984,8 +1984,8 @@
 @layer base { @media screen {
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .roster-calendar-panel > .roster-week-grid:first-child { gap: 8px !important; padding-bottom: 8px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .roster-calendar-panel > .roster-week-grid:first-child > div:not(:empty) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 16px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] .roster-calendar-panel > .roster-week-grid:first-child > div:not(:empty) {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
@@ -1999,8 +1999,8 @@
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-daily .attendance-flat-register { display: grid !important; gap: 10px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-daily .attendance-flat-record {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important; padding: 12px 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-daily .attendance-flat-record {
@@ -2010,8 +2010,8 @@
 /* attendance reports: employee field and export button glass */
 @layer base { @media screen {
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] :is(#attendance-report-toolbar input:not([type="date"]), #attendance-report-toolbar select, [id^="attendance-reports-panel-"] [data-slot="card-header"] button) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 12px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] :is(#attendance-report-toolbar input:not([type="date"]), #attendance-report-toolbar select, [id^="attendance-reports-panel-"] [data-slot="card-header"] button) {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
@@ -2025,13 +2025,13 @@
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-monthly .attendance-flat-register { display: grid !important; gap: 10px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-monthly .attendance-flat-record {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important; padding: 12px 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-monthly .attendance-flat-record [class*="bg-muted/40"] {
-    background-color: rgba(255,255,255,0.35) !important;
-    border: 1px solid rgba(41,53,130,0.18) !important; border-radius: 12px !important; }
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-monthly .attendance-flat-record {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-monthly .attendance-flat-record [class*="bg-muted/40"] {
@@ -2046,8 +2046,8 @@
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-perms .attendance-flat-register { display: grid !important; gap: 10px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-perms .attendance-flat-record {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important; padding: 12px 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-perms .attendance-flat-record {
@@ -2070,8 +2070,8 @@
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] :is(#attendance-reports-panel-balance, #attendance-reports-panel-logs) .attendance-flat-register { display: grid !important; gap: 10px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] :is(#attendance-reports-panel-balance, #attendance-reports-panel-logs) .attendance-flat-record {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 20px !important; padding: 12px 16px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] :is(#attendance-reports-panel-balance, #attendance-reports-panel-logs) .attendance-flat-record {
@@ -2082,8 +2082,8 @@
     border: 0 !important; box-shadow: none !important;
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints [data-slot="card"]:has(table) > [data-slot="card-content"] {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 20px !important; overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important; overflow: hidden;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints [data-slot="card"]:has(table) > [data-slot="card-content"] {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
@@ -2097,12 +2097,12 @@
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints table { border-collapse: separate !important; border-spacing: 6px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints tbody td {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 12px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints tbody tr { border: 0 !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints tbody td [class*="bg-background"] {
-    background-color: rgba(255,255,255,0.35) !important; border-radius: 12px !important; }
+    background-color: rgba(255, 255, 255, 0.07) !important; border-radius: 12px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints tbody td {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints tbody td [class*="bg-background"] { background-color: rgba(255,255,255,0.07) !important; }
@@ -2113,7 +2113,7 @@
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints table { border-spacing: 0 8px !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints tbody td {
     border: 0 !important; border-radius: 0 !important;
-    border-top: 1px solid rgba(41,53,130,0.25) !important; border-bottom: 1px solid rgba(41,53,130,0.25) !important; }
+    border-top: 1px solid rgba(255, 255, 255, 0.28) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.28) !important; }
   html.dark [data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"][data-operational-module="attendance"] #attendance-reports-panel-fingerprints tbody td:first-child {
     border-inline-start: 1px solid rgba(41,53,130,0.25) !important;
     border-start-start-radius: 16px !important; border-end-start-radius: 16px !important; }
@@ -2138,8 +2138,8 @@
 /* accounting entry panel: glass */
 @layer base { @media screen {
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-entry-workspace [data-slot="tabs-content"] {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 20px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-entry-workspace [data-slot="tabs-content"] {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
@@ -2159,8 +2159,8 @@
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table { border-collapse: separate !important; border-spacing: 0 8px !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table tbody tr { border: 0 !important; background: transparent !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table tbody td {
-    background-color: rgba(255,255,255,0.4) !important; border: 0 !important;
-    border-top: 1px solid rgba(41,53,130,0.25) !important; border-bottom: 1px solid rgba(41,53,130,0.25) !important; border-radius: 0 !important;
+    background-color: rgba(255, 255, 255, 0.07) !important; border: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.28) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 0 !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table tbody td:first-child {
     border-inline-start: 1px solid rgba(41,53,130,0.25) !important;
@@ -2178,10 +2178,10 @@
 /* movements table: physical sides (rtl table, cells are dir=ltr) */
 @layer base { @media screen {
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table tbody td:first-child {
-    border-left: 0 !important; border-right: 1px solid rgba(41,53,130,0.25) !important;
+    border-left: 0 !important; border-right: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 0 16px 16px 0 !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table tbody td:last-child {
-    border-right: 0 !important; border-left: 1px solid rgba(41,53,130,0.25) !important;
+    border-right: 0 !important; border-left: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 16px 0 0 16px !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table tbody td:first-child { border-right-color: rgba(255,255,255,0.28) !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] .accounting-home-workspace > .grid > section table tbody td:last-child { border-left-color: rgba(255,255,255,0.28) !important; }
@@ -2204,13 +2204,13 @@
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table { border-collapse: separate !important; border-spacing: 0 8px !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table :is(tbody, tfoot) tr { border: 0 !important; background: transparent !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table :is(tbody, tfoot) td {
-    background-color: rgba(255,255,255,0.4) !important; border: 0 !important;
-    border-top: 1px solid rgba(41,53,130,0.25) !important; border-bottom: 1px solid rgba(41,53,130,0.25) !important; border-radius: 0 !important;
+    background-color: rgba(255, 255, 255, 0.07) !important; border: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.28) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 0 !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table :is(tbody, tfoot) td:first-child {
-    border-right: 1px solid rgba(41,53,130,0.25) !important; border-radius: 0 16px 16px 0 !important; }
+    border-right: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 0 16px 16px 0 !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table :is(tbody, tfoot) td:last-child {
-    border-left: 1px solid rgba(41,53,130,0.25) !important; border-radius: 16px 0 0 16px !important; }
+    border-left: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 16px 0 0 16px !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table thead th { border-radius: 0 !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table thead th:first-child { border-radius: 0 16px 16px 0 !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content table thead th:last-child { border-radius: 16px 0 0 16px !important; }
@@ -2243,8 +2243,8 @@
 /* accounting: every section has its own glass background and border */
 @layer base { @media screen {
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content :is([data-slot="card"]:has(table), [class*="_reportBlock_"]:has(table), [class*="_printMeta_"], .accounting-home-workspace > .grid > section) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 20px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
   html.dark [data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"][data-operational-module="accounting"] #module-content :is([data-slot="card"]:has(table), [class*="_reportBlock_"]:has(table), [class*="_printMeta_"], .accounting-home-workspace > .grid > section) {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
@@ -2274,8 +2274,8 @@
     border-radius: 12px !important; }
   /* 2) every section card has its own single glass fill and border */
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"]:not([class*="paper"]):not([class*="sheet"]):not([class*="print"]) {
-    background-color: rgba(255,255,255,0.4) !important;
-    border: 1px solid rgba(41,53,130,0.25) !important; border-radius: 20px !important;
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; box-shadow: none !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"]:not([class*="paper"]):not([class*="sheet"]):not([class*="print"]) {
     background-color: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.28) !important; }
@@ -2287,11 +2287,11 @@
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table { background: transparent !important; border: 0 !important; border-collapse: separate !important; border-spacing: 0 8px !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] :is(tbody, tfoot) td {
     background: transparent !important; background-color: transparent !important;
-    border: 0 !important; border-top: 1px solid rgba(41,53,130,0.25) !important; border-bottom: 1px solid rgba(41,53,130,0.25) !important; border-radius: 0 !important; }
-  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(rtl) :is(tbody, tfoot) td:first-child { border-right: 1px solid rgba(41,53,130,0.25) !important; border-radius: 0 16px 16px 0 !important; }
-  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(rtl) :is(tbody, tfoot) td:last-child { border-left: 1px solid rgba(41,53,130,0.25) !important; border-radius: 16px 0 0 16px !important; }
-  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(ltr) :is(tbody, tfoot) td:first-child { border-left: 1px solid rgba(41,53,130,0.25) !important; border-radius: 16px 0 0 16px !important; }
-  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(ltr) :is(tbody, tfoot) td:last-child { border-right: 1px solid rgba(41,53,130,0.25) !important; border-radius: 0 16px 16px 0 !important; }
+    border: 0 !important; border-top: 1px solid rgba(255, 255, 255, 0.28) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 0 !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(rtl) :is(tbody, tfoot) td:first-child { border-right: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 0 16px 16px 0 !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(rtl) :is(tbody, tfoot) td:last-child { border-left: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 16px 0 0 16px !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(ltr) :is(tbody, tfoot) td:first-child { border-left: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 16px 0 0 16px !important; }
+  html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(ltr) :is(tbody, tfoot) td:last-child { border-right: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 0 16px 16px 0 !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(rtl) thead th:first-child { border-radius: 0 16px 16px 0 !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(rtl) thead th:last-child { border-radius: 16px 0 0 16px !important; }
   html.dark body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content [data-slot="card"] table:dir(ltr) thead th:first-child { border-radius: 16px 0 0 16px !important; }
@@ -2472,4 +2472,18 @@
     color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
   html.dark body [data-app-top-nav][data-app-top-nav][data-app-top-nav] svg :is(path, circle, rect, line, polyline),
   html.dark body [data-app-bottom-nav][data-app-bottom-nav][data-app-bottom-nav] svg :is(path, circle, rect, line, polyline) { stroke: #ffffff; }
+}}
+
+/* Dark: day workflow tabs with hard-coded light-theme colors read as light text on glass */
+@layer base { @media screen {
+  html.dark body .workflow-day-workspace main :is([class*="text-[#003d9b]"], [class*="text-[#1e3a66]"], [class*="text-gray-"], [class*="text-slate-"], [class*="text-neutral-"], [class*="text-zinc-"], [class*="text-black"]):not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *) { color: #edf3fb !important; }
+  html.dark body .workflow-day-workspace main :is(td, th, div, span, label)[class*="bg-[#f3f4f6]"], html.dark body .workflow-day-workspace main :is(td, div)[class*="bg-gray-"]:not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *) { background-color: rgba(255, 255, 255, 0.07) !important; }
+  html.dark body .workflow-day-workspace main [class*="border-[#c3c6d6]"], html.dark body .workflow-day-workspace main [class*="border-gray-"] { border-color: rgba(255, 255, 255, 0.28) !important; }
+  html.dark body .workflow-day-workspace main div[class*="sticky"][class*="top-0"][class*="z-30"] { background-color: rgba(255, 255, 255, 0.07) !important; border-color: rgba(255, 255, 255, 0.28) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+}}
+
+/* Dark: arbitrary hex text colors in the workflow tabs are light, arbitrary light fills are glass */
+@layer base { @media screen {
+  html.dark body .workflow-day-workspace main [class*="text-[#"]:not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *, [class*="text-white"]) { color: #edf3fb !important; }
+  html.dark body .workflow-day-workspace main [class*="bg-[#f"]:not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *, [class*="text-white"]), html.dark body .workflow-day-workspace main [class*="bg-[#e"]:not(.final-report-sheet *, [class*="paper"] *, [class*="a4"] *, button[class*="bg-primary"] *, [class*="text-white"]) { background-color: rgba(255, 255, 255, 0.07) !important; }
 }}
