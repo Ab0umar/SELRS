@@ -2738,3 +2738,11 @@
   html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-tabs[role="tablist"] { display: inline-grid !important; grid-template-columns: repeat(2, max-content) !important; }
   html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-date { width: fit-content !important; max-width: 100%; }
 }}
+
+/* Dashboard patients header: date, status chips and the "show discharged" toggle on one RTL line */
+@layer base { @media screen {
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-patients { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; column-gap: 16px; row-gap: 12px; direction: rtl; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-patients > div:nth-child(2) { display: contents !important; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-patients > div:nth-child(2) > label { margin-inline-start: auto; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-patients > div:nth-child(n+3) { flex-basis: 100% !important; }
+}}
