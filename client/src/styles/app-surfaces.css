@@ -2493,3 +2493,8 @@
   html.dark body .workflow-day-workspace main [class*="border-slate-900"] { border-color: #ffffff !important; }
   html.dark body .workflow-day-workspace main div[class*="aspect-square"][class*="rounded-full"][class*="border-4"] { border-color: rgba(255, 255, 255, 0.35) !important; }
 }}
+
+/* Dark sheets: round elements (fundus circles, dots) stay round despite the soft-box radius rule */
+@layer base { @media screen {
+  html.dark .selrs-app-content :is(.a4-page-card, .lasik-sheet, .specialist-sheet, .sheet-followup-body, .medical-report-page, .printable-report-sheet, .report-sheet-body) [class*="rounded-full"] { border-radius: 9999px !important; }
+}}

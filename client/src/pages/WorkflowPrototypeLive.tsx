@@ -611,17 +611,20 @@ function Panel({
   icon: Icon,
   children,
   active = false,
+  hideHeader = false,
 }: {
   title: string;
   subtitle?: string;
   icon: typeof UserRound;
   children: ReactNode;
   active?: boolean;
+  hideHeader?: boolean;
 }) {
   return (
     <Card
       className={`overflow-hidden border-slate-200 shadow-sm ${active ? "ring-2 ring-ring/20" : ""}`}
     >
+      {hideHeader ? null : (
       <CardHeader className="border-b border-slate-100 bg-white pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -644,6 +647,7 @@ function Panel({
           ) : null}
         </div>
       </CardHeader>
+      )}
       <CardContent className="space-y-4 p-4">{children}</CardContent>
     </Card>
   );
@@ -3751,7 +3755,13 @@ export default function WorkflowPrototypeLive() {
         />
       ),
       tests: () => (
-        <Panel title="Tests & Rays" subtitle="Optional" icon={FileText} active>
+        <Panel
+          title="Tests & Rays"
+          subtitle="Optional"
+          icon={FileText}
+          active
+          hideHeader
+        >
           <div className="flex justify-end">
             <Button
               type="button"
@@ -3790,6 +3800,7 @@ export default function WorkflowPrototypeLive() {
           subtitle="Optional"
           icon={ClipboardList}
           active
+          hideHeader
         >
           {assistantPrescriptionBinding}
           <div className="flex justify-end">
