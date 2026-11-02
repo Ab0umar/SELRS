@@ -53,7 +53,7 @@
 
 @media screen {
   [data-admin-hub].exact-admin-hub:has(.admin-directory) {
-    background: #f5f8fc !important;
+    background: #ffffff !important;
     color: #0f2440;
   }
   .dark [data-admin-hub].exact-admin-hub:has(.admin-directory) {

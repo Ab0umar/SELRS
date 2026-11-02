@@ -64,7 +64,7 @@
 }
 
 @media screen {
-  .main-home-library.main-home-library { background: #f5f8fc; color: #0f2440; }
+  .main-home-library.main-home-library { background: #ffffff; color: #0f2440; }
   .dark .main-home-library.main-home-library { background: #0a1a2f; color: #fff; }
   .main-home-library .home-library-content { width: 100%; max-width: none; margin-inline: 0; padding: 32px 40px 24px; }
   .main-home-library .home-library-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; }

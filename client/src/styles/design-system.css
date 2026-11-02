@@ -8,14 +8,14 @@
   }
   :root {
     --radius: 1rem;
-    --background: #f5f8fc;
-    --canvas: #f5f8fc;
+    --background: #ffffff;
+    --canvas: #ffffff;
     --foreground: #0f2440;
     --card: #ffffff;
     --card-foreground: #0f2440;
     --popover: #ffffff;
     --popover-foreground: #0f2440;
-    --field-surface: #f5f8fc;
+    --field-surface: #ffffff;
     --surface-shadow: 0 1px 3px #24314304;
     --primary: #293582;
     --primary-foreground: #ffffff;
