@@ -442,6 +442,7 @@ function CatalogSearchSelect({
 
   return (
     <div
+      dir={inline ? "ltr" : undefined}
       className={
         inline ? "order-3 flex flex-wrap items-center gap-2" : "space-y-2"
       }
