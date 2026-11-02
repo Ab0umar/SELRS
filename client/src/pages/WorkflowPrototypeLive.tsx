@@ -447,11 +447,11 @@ function CatalogSearchSelect({
         inline ? "order-3 flex flex-wrap items-center gap-2" : "space-y-2"
       }
     >
-      <span
-        className={`${inline ? "shrink-0" : "block"} text-xs font-semibold text-slate-600`}
-      >
-        {label}
-      </span>
+      {inline ? null : (
+        <span className="block text-xs font-semibold text-slate-600">
+          {label}
+        </span>
+      )}
       {!selectedItemsLast && selectedIds.length > 0 ? (
         <div className={`flex flex-wrap gap-1.5 ${inline ? "basis-full" : ""}`}>
           {selectedIds.map((selectedId) => {
