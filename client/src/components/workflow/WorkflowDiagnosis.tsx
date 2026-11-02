@@ -194,7 +194,7 @@ export default function WorkflowDiagnosis({
               className={`min-h-[48px] ${textField}`}
               rows={2}
             />
-            <div className="relative w-full basis-full">
+            <div className="relative min-w-[200px] flex-1">
               <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="ابحث عن التشخيص…"
@@ -206,11 +206,11 @@ export default function WorkflowDiagnosis({
             </div>
             {search ? (
               diseasesQuery.isLoading ? (
-                <p className="mt-1 text-xs text-muted-foreground">جاري التحميل...</p>
+                <p className="basis-full mt-1 text-xs text-muted-foreground">جاري التحميل...</p>
               ) : diseasesQuery.isError ? (
-                <p className="mt-1 text-xs text-destructive">خطأ في تحميل الأمراض</p>
+                <p className="basis-full mt-1 text-xs text-destructive">خطأ في تحميل الأمراض</p>
               ) : (
-                <div className="mt-2 max-h-[160px] space-y-1 overflow-y-auto rounded-md border p-1.5">
+                <div className="max-h-[160px] basis-full space-y-1 overflow-y-auto rounded-md border p-1.5">
                   {matches.length === 0 ? (
                     <p className="px-1.5 text-xs text-muted-foreground">لا توجد نتائج</p>
                   ) : (
