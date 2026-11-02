@@ -2464,3 +2464,12 @@
   html.dark .selrs-page-bg, html.dark .selrs-app-content, html.dark .selrs-mobile-brand-canvas {
     background-color: transparent !important; background-image: none !important; }
 }}
+
+/* Dark: top and bottom navigation text and icons are pure white */
+@layer base { @media screen {
+  html.dark body [data-app-top-nav][data-app-top-nav][data-app-top-nav] :is(a, button, span, p, div, svg, svg *),
+  html.dark body [data-app-bottom-nav][data-app-bottom-nav][data-app-bottom-nav] :is(a, button, span, p, div, svg, svg *) {
+    color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+  html.dark body [data-app-top-nav][data-app-top-nav][data-app-top-nav] svg :is(path, circle, rect, line, polyline),
+  html.dark body [data-app-bottom-nav][data-app-bottom-nav][data-app-bottom-nav] svg :is(path, circle, rect, line, polyline) { stroke: #ffffff; }
+}}
