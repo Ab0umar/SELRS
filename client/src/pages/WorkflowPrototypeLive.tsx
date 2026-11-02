@@ -2624,7 +2624,7 @@ export default function WorkflowPrototypeLive() {
               );
               selectLivePatient(patient?.id ?? null, visitId);
             }}
-            className="h-8 w-[220px] max-w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            className="h-8 w-auto min-w-[220px] max-w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             aria-label="المريض"
             disabled={isSavingFinalReport}
           >
