@@ -2729,3 +2729,12 @@
     border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; }
   html.dark body div[role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"] :is(textarea, input)::placeholder { color: rgba(237, 243, 251, 0.6) !important; -webkit-text-fill-color: rgba(237, 243, 251, 0.6) !important; }
 }}
+
+/* Dashboard today panel: tab bars and the date row fit their content */
+@layer base { @media screen {
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content #dashboard-panel-today div[role="tablist"][aria-label="أقسام لوحة اليوم"],
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-tabs[role="tablist"] {
+    width: fit-content !important; max-width: 100%; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-tabs[role="tablist"] { display: inline-grid !important; grid-template-columns: repeat(2, max-content) !important; }
+  html body .selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content.selrs-app-content .queue-workspace-date { width: fit-content !important; max-width: 100%; }
+}}
