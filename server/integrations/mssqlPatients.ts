@@ -1869,6 +1869,7 @@ async function applyPajrnrHeaderTotals(
   targetTable: string,
   patientCode: string,
   trNo?: number | null,
+  receiptScope?: {sectionCode: number; trTy: number},
 ): Promise<void> {
   const cols = await getTableColumns(pool, targetTable);
   if (!(cols.has("TOTL") || cols.has("DISC") || cols.has("PA_VL"))) return;
@@ -1878,11 +1879,16 @@ async function applyPajrnrHeaderTotals(
       ? "tr_noNew"
       : "";
   const hasScopedTrNo = Boolean(trNoCol) && Number.isFinite(Number(trNo));
-  const whereClause = hasScopedTrNo
+  const baseWhereClause = hasScopedTrNo
     ? `PAT_CD = @PAT_CD AND ${trNoCol} = @TR_NO`
     : "PAT_CD = @PAT_CD";
 
+  const whereClause = baseWhereClause + (receiptScope ? " AND SEC_CD = @SEC_CD AND TR_TY = @TR_TY" : "");
   const aggReq = pool.request();
+  if (receiptScope) {
+    aggReq.input("SEC_CD", receiptScope.sectionCode);
+    aggReq.input("TR_TY", receiptScope.trTy);
+  }
   aggReq.input("PAT_CD", patientCode);
   if (hasScopedTrNo) aggReq.input("TR_NO", Math.trunc(Number(trNo)));
   const agg = await aggReq.query(`
@@ -1897,6 +1903,7 @@ async function applyPajrnrHeaderTotals(
       SUM(CASE WHEN ISNUMERIC(CONVERT(varchar(50), DISC_VL)) = 1 THEN CAST(CONVERT(varchar(50), DISC_VL) AS decimal(18,2)) ELSE 0 END) AS totalDisc
     FROM ${mssqlDbName()}.dbo.PAPAT_SRV
     WHERE ${whereClause}
+      AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')
   `);
   const row =
     Array.isArray(agg?.recordset) && agg.recordset.length > 0
@@ -1911,6 +1918,10 @@ async function applyPajrnrHeaderTotals(
 
   const setClauses: string[] = [];
   const req = pool.request();
+  if (receiptScope) {
+    req.input("SEC_CD", receiptScope.sectionCode);
+    req.input("TR_TY", receiptScope.trTy);
+  }
   req.input("PAT_CD", patientCode);
   if (hasScopedTrNo) req.input("TR_NO", Math.trunc(Number(trNo)));
   if (cols.has("PA_VL")) {
@@ -4216,6 +4227,70 @@ export async function ensurePatientServiceInMssql(
  * original's VST_NO/DT/FRMTIM/doctor/company fields, so nothing is silently
  * overwritten with no trace. Recomputes header totals afterward.
  */
+async function refreshReceiptPrimaryService(pool: any, input: {patientCode: string; sectionCode: number; trTy: number; trNo: number}) {
+  const header = getAllowedMssqlPatientTable();
+  const columns = await getTableColumns(pool, header);
+  if (!columns.has("SRV_CD")) return;
+  const request = pool.request();
+  request.input("PAT_CD", input.patientCode);
+  request.input("SEC_CD", input.sectionCode);
+  request.input("TR_TY", input.trTy);
+  request.input("TR_NO", input.trNo);
+  await request.query(`UPDATE h SET SRV_CD = (
+    SELECT TOP 1 s.SRV_CD FROM ${mssqlDbName()}.dbo.PAPAT_SRV s
+    WHERE s.PAT_CD=h.PAT_CD AND s.SEC_CD=h.SEC_CD AND s.TR_TY=h.TR_TY AND s.TR_NO=h.TR_NO
+      AND ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0') ORDER BY s.LN_NO), UPDATEDATE = GETDATE()
+    FROM ${header} h WHERE h.PAT_CD=@PAT_CD AND h.SEC_CD=@SEC_CD AND h.TR_TY=@TR_TY AND h.TR_NO=@TR_NO
+      AND ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')`);
+}
+
+export async function removeReceiptFromMssql(input: {
+  patientCode: string; sectionCode: number; trTy: number; trNo: number; lineNo?: number;
+}): Promise<void> {
+  assertMssqlWritable();
+  const pool = await createMssqlPool();
+  await pool.connect();
+  const windowsAuth = String(process.env.MSSQL_AUTH_MODE ?? "").toLowerCase() === "windows" ||
+    /trusted_connection\s*=\s*yes|integrated security\s*=\s*sspi/i.test(String(process.env.MSSQL_CONNECTION_STRING ?? ""));
+  const driver = windowsAuth ? await loadMssqlMsNodeSqlV8Module() : await loadMssqlModule();
+  const tx = new driver.Transaction(pool);
+  await tx.begin();
+  try {
+    const request = tx.request();
+    request.input("PAT_CD", input.patientCode);
+    request.input("SEC_CD", input.sectionCode);
+    request.input("TR_TY", input.trTy);
+    request.input("TR_NO", input.trNo);
+    if (input.lineNo !== undefined) request.input("LN_NO", input.lineNo);
+    const scope = "PAT_CD = @PAT_CD AND SEC_CD = @SEC_CD AND TR_TY = @TR_TY AND TR_NO = @TR_NO";
+    const header = getAllowedMssqlPatientTable();
+    const found = await request.query(`SELECT TOP 1 PAT_CD FROM ${header} WITH (UPDLOCK, HOLDLOCK)
+      WHERE ${scope} AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')`);
+    if (!found.recordset?.length) throw new Error("الإيصال غير موجود أو تم حذفه");
+    const result = await request.query(`UPDATE ${mssqlDbName()}.dbo.PAPAT_SRV SET CNCL = '*', UPDATEDATE = GETDATE()
+      WHERE ${scope} ${input.lineNo !== undefined ? "AND LN_NO = @LN_NO" : ""}
+      AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')`);
+    if (input.lineNo !== undefined && !(result.rowsAffected ?? []).some((count: number) => count > 0)) {
+      throw new Error("الخدمة غير موجودة أو تم حذفها");
+    }
+    if (input.lineNo === undefined) {
+      await request.query(`UPDATE ${header} SET CNCL = '*', UPDATEDATE = GETDATE() WHERE ${scope}`);
+    } else {
+      await applyPajrnrHeaderTotals(tx, header, input.patientCode, input.trNo, input);
+      const remaining = await request.query(`SELECT COUNT(*) AS count FROM ${mssqlDbName()}.dbo.PAPAT_SRV
+        WHERE ${scope} AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')`);
+      if (Number(remaining.recordset?.[0]?.count ?? 0) === 0) {
+        await request.query(`UPDATE ${header} SET CNCL = '*', UPDATEDATE = GETDATE() WHERE ${scope}`);
+      }
+    }
+    await refreshReceiptPrimaryService(tx, input);
+    await tx.commit();
+  } catch (error) {
+    await tx.rollback().catch(() => {});
+    throw error;
+  }
+}
+
 export async function editReceiptServiceLine(input: {
   patientCode: string;
   sectionCode: number;
@@ -4278,7 +4353,7 @@ export async function editReceiptServiceLine(input: {
     oldReq.input("TR_NO", input.trNo);
     const oldRs = await oldReq.query(`
       SELECT TOP 1 *
-      FROM ${mssqlDbName()}.dbo.PAPAT_SRV
+      FROM ${mssqlDbName()}.dbo.PAPAT_SRV WITH (UPDLOCK, HOLDLOCK)
       WHERE PAT_CD = @PAT_CD AND LN_NO = @LN_NO AND SEC_CD = @SEC_CD
         AND TR_TY = @TR_TY AND TR_NO = @TR_NO
         AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')
@@ -4305,10 +4380,13 @@ export async function editReceiptServiceLine(input: {
     const voidReq = pool.request();
     voidReq.input("PAT_CD", patientCode);
     voidReq.input("LN_NO", lineNo);
+    voidReq.input("SEC_CD", input.sectionCode);
+    voidReq.input("TR_TY", input.trTy);
+    voidReq.input("TR_NO", input.trNo);
     await voidReq.query(`
       UPDATE ${mssqlDbName()}.dbo.PAPAT_SRV
       SET CNCL = '*', UPDATEDATE = GETDATE()
-      WHERE PAT_CD = @PAT_CD AND LN_NO = @LN_NO
+      WHERE PAT_CD = @PAT_CD AND LN_NO = @LN_NO AND SEC_CD = @SEC_CD AND TR_TY = @TR_TY AND TR_NO = @TR_NO
     `);
 
     const paValue = Math.max(0, price * quantity);
@@ -4365,8 +4443,9 @@ export async function editReceiptServiceLine(input: {
     );
 
     const targetTable = getAllowedMssqlPatientTable();
-    await applyPajrnrHeaderTotals(pool, targetTable, patientCode, input.trNo);
+    await applyPajrnrHeaderTotals(pool, targetTable, patientCode, input.trNo, input);
 
+    await refreshReceiptPrimaryService(tx, input);
     await tx.commit();
     return { updated: true };
   } catch (err) {
@@ -5533,6 +5612,7 @@ function getSyncQuery(
         ) AS changedAt
       FROM ${mssqlDbName()}.dbo.PAJRNRCVH
       WHERE ISNULL(PAT_CD, '') <> ''
+        AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')
         ${
           sinceLiteral
             ? `AND COALESCE(
@@ -5643,6 +5723,7 @@ function getSyncQuery(
         s.PA_VL
       FROM ${mssqlDbName()}.dbo.PAPAT_SRV s
       WHERE s.PAT_CD = l.PAT_CD
+        AND ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')
         AND ISNULL(s.SRV_CD, '') <> ''
         ${includeServiceCode ? "AND (ISNULL(l.SRV_CD, '') = '' OR s.SRV_CD = l.SRV_CD)" : ""}
         AND (
@@ -5663,6 +5744,7 @@ function getSyncQuery(
             SELECT DISTINCT s2.SRV_CD
             FROM ${mssqlDbName()}.dbo.PAPAT_SRV s2
             WHERE s2.PAT_CD = l.PAT_CD
+              AND ISNULL(CONVERT(varchar(10), s2.CNCL), '0') IN ('', '0')
               AND ISNULL(s2.SRV_CD, '') <> ''
           ) x
           FOR XML PATH(''), TYPE
@@ -6766,6 +6848,7 @@ async function syncPatientsFromMssqlImpl(
           FROM ${mssqlDbName()}.dbo.PAPAT_SRV
           WHERE ISNULL(PAT_CD, '') <> ''
             AND ISNULL(SRV_CD, '') <> ''
+            ${papatSrvCols.has("CNCL") ? "AND ISNULL(CONVERT(varchar(10), CNCL), '0') IN ('', '0')" : ""}
           ORDER BY PAT_CD ASC, ${serviceDateExpr} DESC, ${trNoExpr} DESC
         `;
         const serviceRowsResult = await pool.request().query(servicesQuery);

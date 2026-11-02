@@ -506,6 +506,7 @@ LEFT JOIN APPCODES a
 WHERE h.SEC_CD = @secCd
   AND h.TR_TY = @trTy
   AND h.TR_NO = @trNo
+  AND ISNULL(CONVERT(varchar(10), h.CNCL), '0') IN ('', '0')
   AND ISNULL(CONVERT(varchar(10), s.CNCL), '0') IN ('', '0')
 ORDER BY s.SRV_CD`.trim();
 

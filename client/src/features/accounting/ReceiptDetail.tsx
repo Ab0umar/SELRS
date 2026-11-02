@@ -24,6 +24,7 @@ import {
   RefreshCw,
   Share2,
   X,
+  Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useLocation, useRoute } from "wouter";
@@ -71,11 +72,13 @@ type AccountingTrpc = typeof trpc & {
         retry?: boolean;
         onSuccess?: (result: {
           updated: boolean;
+          mysqlSynced?: boolean;
           note?: string | null;
         }) => void;
       }) => {
         mutateAsync: (input: EditLineInput) => Promise<{
           updated: boolean;
+          mysqlSynced?: boolean;
           note?: string | null;
         }>;
         isPending: boolean;
@@ -154,6 +157,46 @@ export default function ReceiptDetail() {
     },
   );
 
+  const utils = trpc.useUtils();
+  const [pendingSyncPatientCode, setPendingSyncPatientCode] = useState("");
+  const deleteMutation = trpc.accounting.deleteReceipt.useMutation({retry: false});
+  const syncMutation = trpc.accounting.syncReceiptPatient.useMutation({retry: false});
+  const refreshAccounting = async () => {
+    await Promise.all([utils.accounting.invalidate(), utils.medical.invalidate()]);
+  };
+  const removeReceipt = async (lineNo?: number) => {
+    if (!header || deleteMutation.isPending || editLineMut.isPending) return;
+    if (!window.confirm(lineNo === undefined ? "حذف الإيصال بالكامل وجميع خدماته؟" : "حذف هذه الخدمة من الإيصال وإعادة حساب الإجماليات؟")) return;
+    const patientCode = header.patientCode;
+    try {
+      const result = await deleteMutation.mutateAsync({patientCode, sectionCode: header.sectionCode,
+        trTy: header.trTy, trNo: Number(header.trNo), lineNo});
+      if (!result.mysqlSynced) {
+        setPendingSyncPatientCode(patientCode);
+        toast.error(result.note ?? "تم الحذف؛ أعد مزامنة MySQL", {duration: 15000});
+      } else {
+        toast.success("تم الحذف ومزامنة MySQL");
+      }
+      setEditingLineNo(null);
+      await refreshAccounting();
+      if (result.mysqlSynced && (lineNo === undefined || lines.length <= 1)) setLocation("/accounting/receipts");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حذف الإيصال أو الخدمة");
+    }
+  };
+  const retrySync = async () => {
+    const patientCode = pendingSyncPatientCode || header?.patientCode;
+    if (!patientCode) return;
+    try {
+      await syncMutation.mutateAsync({patientCode});
+      setPendingSyncPatientCode("");
+      await refreshAccounting();
+      toast.success("تمت مزامنة MySQL");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذرت المزامنة");
+    }
+  };
+
   const [editingLineNo, setEditingLineNo] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState({
     serviceCode: "",
@@ -170,13 +213,19 @@ export default function ReceiptDetail() {
           toast.error(result.note ?? "فشل تعديل السطر", { duration: 15000 });
           return;
         }
-        toast.success("تم تعديل السطر");
+        if (result.mysqlSynced === false) {
+          setPendingSyncPatientCode(header?.patientCode ?? "");
+          toast.error(result.note ?? "تم التعديل؛ أعد مزامنة MySQL", {duration: 15000});
+        } else {
+          toast.success("تم تعديل السطر ومزامنة MySQL");
+        }
         setEditingLineNo(null);
-        void detailQuery.refetch();
+        void refreshAccounting();
       },
     });
 
   const startEdit = (line: ReceiptDetailOutput["lines"][number]) => {
+    if (deleteMutation.isPending || syncMutation.isPending) return;
     if (line.lineNo == null) {
       toast.error("لا يمكن تعديل هذا السطر (لا يوجد رقم سطر)");
       return;
@@ -191,7 +240,7 @@ export default function ReceiptDetail() {
   };
 
   const saveEdit = async () => {
-    if (editLineMut.isPending) return;
+    if (editLineMut.isPending || deleteMutation.isPending || syncMutation.isPending) return;
     if (!header || editingLineNo == null) return;
     const quantity = Math.max(1, Math.trunc(Number(editDraft.quantity) || 1));
     const price = Math.max(0, Number(editDraft.price) || 0);
@@ -320,6 +369,12 @@ export default function ReceiptDetail() {
               الإيصالات
             </Button>
             <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" disabled={(!header && !pendingSyncPatientCode) || syncMutation.isPending || deleteMutation.isPending || editLineMut.isPending} onClick={() => void retrySync()}>
+                <RefreshCw className="me-1.5 h-4 w-4" /> {pendingSyncPatientCode ? "إعادة مزامنة MySQL" : "مزامنة MySQL"}
+              </Button>
+              <Button type="button" variant="destructive" size="sm" disabled={!header || deleteMutation.isPending || editLineMut.isPending} onClick={() => void removeReceipt()}>
+                <Trash2 className="me-1.5 h-4 w-4" /> حذف الإيصال
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -662,6 +717,8 @@ export default function ReceiptDetail() {
                               </div>
                             </div>
                           ) : (
+                            <div className="flex flex-wrap gap-2">
+                            <Button type="button" variant="destructive" className="mt-3 min-h-11" disabled={line.lineNo == null || deleteMutation.isPending || editLineMut.isPending} onClick={() => void removeReceipt(line.lineNo)}><Trash2 className="me-1.5 h-4 w-4" /> حذف الخدمة</Button>
                             <Button
                               type="button"
                               variant="outline"
@@ -675,6 +732,7 @@ export default function ReceiptDetail() {
                               />
                               تعديل البند
                             </Button>
+                            </div>
                           )}
                         </AccountingCompactRecord>
                       ))
@@ -899,6 +957,8 @@ export default function ReceiptDetail() {
                                           </Button>
                                         </div>
                                       ) : (
+                                        <div className="flex items-center gap-1">
+                                        <Button type="button" size="icon" variant="ghost" aria-label="حذف الخدمة" title="حذف الخدمة" disabled={line.lineNo == null || deleteMutation.isPending || editLineMut.isPending} onClick={() => void removeReceipt(line.lineNo)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         <Button
                                           type="button"
                                           size="icon"
@@ -908,6 +968,7 @@ export default function ReceiptDetail() {
                                         >
                                           <Pencil className="h-4 w-4" />
                                         </Button>
+                                        </div>
                                       )}
                                     </td>
                                   </tr>

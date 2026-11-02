@@ -50,6 +50,12 @@ describe("accounting SQL builders: cancelled-transaction policy", () => {
     expect(buildReceiptsInquirySql({}).sql).toContain(CANCELLED_HEADER);
   });
 
+  it("receipt detail hides cancelled headers and services", () => {
+    const {sql} = buildReceiptDetailSql({sectionCode: 15, trTy: 1, trNo: "100"});
+    expect(sql).toContain(CANCELLED_HEADER);
+    expect(sql).toContain(CANCELLED_LINE);
+  });
+
   // PAJRNRCVH holds NULL (2372), '0' (2647) and '*' cancelled (6): the app
   // writes '0' on live receipts, so `IS NULL` would hide over half of them.
   it("patient LASIK summary keeps receipts and lines with CNCL '0' or empty", () => {

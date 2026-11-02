@@ -41,6 +41,7 @@ describe("MSSQL write entry points check the year first", () => {
     "upsertPatientToMssql",
     "ensurePatientServiceInMssql",
     "editReceiptServiceLine",
+    "removeReceiptFromMssql",
     "addServiceReceiptInMssql",
     "addMultiServiceReceiptInMssql",
     "deletePatientFromMssqlByCode",

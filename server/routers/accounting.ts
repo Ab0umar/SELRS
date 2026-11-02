@@ -11,6 +11,7 @@ import {
   addMultiServiceReceiptInMssql,
   createMssqlPool,
   editReceiptServiceLine,
+  removeReceiptFromMssql,
 } from "../integrations/mssqlPatients";
 import {
   dailyRevenueInputSchema,
@@ -57,6 +58,7 @@ import { getLasikServices } from "../services/accounting/lasikServices.service";
 import { getPatientLasikSummary } from "../services/accounting/lasikPatientAccounting.service";
 import {
   getReceiptDetail,
+  syncAccountingPatientServices,
   getReceiptsInquiry,
 } from "../services/accounting/receiptsInquiry.service";
 import { mssqlQuery } from "../services/accounting/mssqlAccounting";
@@ -418,45 +420,26 @@ export const accountingRouter = router({
       };
     }),
 
+  syncReceiptPatient: makeAccWriteProcedure("/accounting/receipts")
+    .input(z.object({ patientCode: z.string().trim().min(1) }))
+    .mutation(async ({input}) => {
+      await syncAccountingPatientServices(input.patientCode);
+      return {synced: true};
+    }),
+
   deleteReceipt: makeAccWriteProcedure("/accounting/receipts")
-    .input(
-      z.object({
-        patientCode: z.string().min(1),
-        trNo: z.number().int(),
-      }),
-    )
-    .mutation(async ({ input }) => {
+    .input(z.object({ patientCode: z.string().trim().min(1), sectionCode: z.number().int(),
+      trTy: z.number().int(), trNo: z.number().int().positive(), lineNo: z.number().int().nonnegative().optional() }))
+    .mutation(async ({ input, ctx }) => {
       assertMssqlWritable();
-      const targetTable = getMssqlPatientsTable();
-      const pool = await createMssqlPool();
+      await removeReceiptFromMssql(input);
       try {
-        await pool.connect();
-        const vstReq = pool.request();
-        vstReq.input("PAT_CD", input.patientCode);
-        vstReq.input("TR_NO", input.trNo);
-        const vstRs = await vstReq.query(
-          `SELECT TOP 1 VST_NO FROM ${targetTable} WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), TR_NO), '0') AS INT) = @TR_NO`,
-        );
-        const vstNo = vstRs?.recordset?.[0]?.VST_NO;
-
-        const delReq = pool.request();
-        delReq.input("PAT_CD", input.patientCode);
-        delReq.input("TR_NO", input.trNo);
-        await delReq.query(
-          `DELETE FROM ${targetTable} WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), TR_NO), '0') AS INT) = @TR_NO`,
-        );
-
-        if (vstNo != null) {
-          const delSrvReq = pool.request();
-          delSrvReq.input("PAT_CD", input.patientCode);
-          delSrvReq.input("VST_NO", vstNo);
-          await delSrvReq.query(
-            `DELETE FROM ${mssqlDbName()}.dbo.PAPAT_SRV WHERE PAT_CD = @PAT_CD AND CAST(ISNULL(CONVERT(varchar(20), VST_NO), '0') AS INT) = CAST(ISNULL(CONVERT(varchar(20), @VST_NO), '0') AS INT)`,
-          );
-        }
-        return { deleted: true };
-      } finally {
-        // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
+        await (await import("../db")).logAuditEvent(ctx.user.id,
+          input.lineNo === undefined ? "DELETE_RECEIPT" : "DELETE_RECEIPT_SERVICE", "receipt", input.trNo, input);
+        await syncAccountingPatientServices(input.patientCode);
+        return {deleted: true, mysqlSynced: true, note: null};
+      } catch {
+        return {deleted: true, mysqlSynced: false, note: "تم الحذف في MSSQL؛ تعذرت مزامنة MySQL. أعد المزامنة"};
       }
     }),
 
@@ -500,7 +483,12 @@ export const accountingRouter = router({
             note: `لم يتم العثور على إيصال مطابق (PAT_CD=${input.patientCode}, TR_NO=${input.trNo})`,
           };
         }
-        return { updated: true };
+        try {
+          await syncAccountingPatientServices(input.patientCode);
+          return { updated: true, mysqlSynced: true };
+        } catch {
+          return { updated: true, mysqlSynced: false, note: "تم التعديل في MSSQL؛ أعد مزامنة MySQL" };
+        }
       } finally {
         // Pool is shared/cached across calls (see createMssqlPool) — don't close it here.
       }
@@ -520,8 +508,16 @@ export const accountingRouter = router({
         discount: z.number().min(0),
       }),
     )
-    .mutation(async ({ input }) => {
-      return editReceiptServiceLine(input);
+    .mutation(async ({ input, ctx }) => {
+      const result = await editReceiptServiceLine(input);
+      if (!result.updated) return {...result, mysqlSynced: false};
+      try {
+        await (await import("../db")).logAuditEvent(ctx.user.id, "EDIT_RECEIPT_SERVICE", "receipt", input.trNo, input);
+        await syncAccountingPatientServices(input.patientCode);
+        return {...result, mysqlSynced: true};
+      } catch {
+        return {...result, mysqlSynced: false, note: "تم التعديل في MSSQL؛ تعذرت مزامنة MySQL. أعد المزامنة"};
+      }
     }),
 
   // ── Access DB (الخزنه) ────────────────────────────────────────────────────
