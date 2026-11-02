@@ -2859,27 +2859,27 @@ export default function LasikExamSheet({
         <footer className="pt-6 border-t-2 border-[#003d9b] space-y-6 print-lasik-compact-footer">
           <div className="print-lasik-footer-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-4">
-              <div>
+              <div className="flex items-start gap-2">
                 <label
                   id="lasik-diagnosis-label"
                   htmlFor="lasik-diagnosis"
-                  className="font-bold text-[#003d9b] text-sm"
+                  className="mt-2 shrink-0 whitespace-nowrap font-bold text-[#003d9b] text-sm"
                 >
                   Diagnosis / التشخيص:
                 </label>
                 <textarea
                   id="lasik-diagnosis"
                   aria-labelledby="lasik-diagnosis-label"
-                  className="mt-1 min-h-14 w-full resize-none border-0 border-b border-[#c3c6d6] bg-transparent p-1 outline-none focus:border-[#003d9b]"
+                  className="min-h-14 min-w-0 flex-1 resize-none border-0 border-b border-[#c3c6d6] bg-transparent p-1 outline-none focus:border-[#003d9b]"
                   value={diagnosisText}
                   onChange={(event) => setDiagnosisText(event.target.value)}
                 />
               </div>
-              <div>
+              <div className="flex items-start gap-2">
                 <label
                   id="lasik-final-decision-label"
                   htmlFor="lasik-final-decision"
-                  className="font-bold text-[#003d9b] text-sm"
+                  className="mt-2 shrink-0 whitespace-nowrap font-bold text-[#003d9b] text-sm"
                 >
                   Final Decision / القرار النهائي:
                 </label>
