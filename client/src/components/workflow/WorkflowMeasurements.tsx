@@ -399,15 +399,12 @@ export default function WorkflowMeasurements({
       className="flex min-h-0 w-full flex-col rounded-lg border border-border/50 bg-background text-foreground shadow-sm"
       dir="rtl"
     >
-      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-        <h2 className="truncate text-sm font-semibold">
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-b border-border/50 px-4 py-3">
+        <h2 className="min-w-0 truncate text-sm font-semibold">
           {patientName || "بدون اسم"}
         </h2>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 border-b border-border/40 bg-muted/20 px-4 py-2">
         {exams.length > 0 ? (
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex shrink-0 items-center gap-2 text-xs">
             <span className="text-muted-foreground">الفحص:</span>
             <Select
               value={String(selectedId ?? "")}
