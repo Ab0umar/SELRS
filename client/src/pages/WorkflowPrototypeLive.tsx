@@ -2571,10 +2571,10 @@ export default function WorkflowPrototypeLive() {
   };
 
   const renderLivePatientPicker = () => (
-    <div className="w-[320px] max-w-full min-w-0 shrink-0" dir="rtl">
-      <div className="flex items-end gap-2">
-        <label className="block w-[135px] shrink-0">
-          <span className="mb-0.5 block text-[13px] font-semibold text-slate-600">
+    <div className="w-fit max-w-full min-w-0 shrink-0" dir="rtl">
+      <div className="flex items-center gap-3">
+        <label className="flex shrink-0 items-center gap-1.5">
+          <span className="shrink-0 whitespace-nowrap text-[13px] font-semibold text-slate-600">
             تاريخ الزيارة
           </span>
           <DateInput
@@ -2585,12 +2585,12 @@ export default function WorkflowPrototypeLive() {
               setSelectedLiveVisitId(null);
             }}
             aria-label="تاريخ الزيارة"
-            className="h-8 w-full text-xs"
+            className="h-8 w-[180px] text-xs"
             inputClassName="h-7 w-full text-xs"
           />
         </label>
-        <label className="block min-w-0 flex-1">
-          <span className="mb-0.5 block text-[13px] font-semibold text-slate-600">
+        <label className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="shrink-0 whitespace-nowrap text-[13px] font-semibold text-slate-600">
             المريض
           </span>
           <select
@@ -2604,7 +2604,7 @@ export default function WorkflowPrototypeLive() {
               );
               selectLivePatient(patient?.id ?? null, visitId);
             }}
-            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            className="h-8 w-[220px] max-w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             aria-label="المريض"
             disabled={isSavingFinalReport}
           >
