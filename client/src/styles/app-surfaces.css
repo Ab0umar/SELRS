@@ -2620,3 +2620,12 @@
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
     border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; }
 }}
+
+/* Dark lasik signatures row: glass section, no inner lines */
+@layer base { @media screen {
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 .lasik-sheet .print-lasik-signatures {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important; padding: 16px !important; }
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 .lasik-sheet .print-lasik-signatures div[class*="border-b-2"] { border-color: transparent !important; }
+}}
