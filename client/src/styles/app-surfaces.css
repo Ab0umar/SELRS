@@ -2707,3 +2707,25 @@
 @layer base { @media screen {
   html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-4 > div.flex-col[class*="text-[#191c1e]"] div.mb-3.flex-wrap { width: fit-content !important; max-width: 100%; }
 }}
+
+/* Dark medical assistant bar: same glass as the rest of the site */
+@layer base { @media screen {
+  html.dark body div[role="dialog"][aria-label="المساعد الطبي"] > div, html.dark body div[role="dialog"][aria-label="المساعد الطبي"] > div[data-drag-handle] {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; }
+  html.dark body div[role="dialog"][aria-label="المساعد الطبي"] > div:first-child { border-radius: 20px !important; }
+  html.dark body div[role="dialog"][aria-label="المساعد الطبي"] > div:last-child { border-radius: 9999px !important; }
+  html.dark body div[role="dialog"][aria-label="المساعد الطبي"] :is(textarea, input, select) {
+    background-color: rgba(8, 18, 38, 0.6) !important; color: #edf3fb !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; }
+  html.dark body div[role="dialog"][aria-label="المساعد الطبي"] div[class*="border-dashed"] { background: transparent !important; border-color: rgba(255, 255, 255, 0.28) !important; }
+}}
+
+/* assistant bar fields: beat the global dark field rules */
+@layer base { @media screen {
+  html.dark body div[role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"] :is(textarea, input, select) {
+    background-color: rgba(8, 18, 38, 0.45) !important; color: #edf3fb !important; -webkit-text-fill-color: #edf3fb !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; }
+  html.dark body div[role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"][role="dialog"][aria-label="المساعد الطبي"] :is(textarea, input)::placeholder { color: rgba(237, 243, 251, 0.6) !important; -webkit-text-fill-color: rgba(237, 243, 251, 0.6) !important; }
+}}
