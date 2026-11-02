@@ -3119,11 +3119,6 @@ export default function WorkflowPrototypeLive() {
       if (!templateData || Object.keys(templateData).length === 0) return null;
       return (
         <div className="order-1 flex flex-wrap items-center gap-2">
-          <span
-            className={`${kind === "prescription" ? "text-sm font-semibold" : "text-[13px]"} shrink-0 text-muted-foreground`}
-          >
-            {kind === "tests" ? "قوالب:" : "وصفات جاهزة:"}
-          </span>
           <div className="flex flex-wrap items-center gap-1.5">
             {tabsToShow.map((tab) => {
               const templatesInTab = Object.entries(templateData).filter(

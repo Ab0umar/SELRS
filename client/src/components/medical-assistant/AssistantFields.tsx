@@ -163,7 +163,7 @@ export function AssistantField({
         type="button"
         variant="ghost"
         size="icon"
-        className="h-9 w-9 shrink-0 print:hidden"
+        className="h-9 min-h-9 w-9 shrink-0 print:hidden"
         aria-label={`Dictate ${label}`}
         title={`Dictate ${label}`}
         onClick={(event) => {
