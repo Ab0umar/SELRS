@@ -2642,3 +2642,35 @@
     background-color: rgba(8, 18, 38, 0.45) !important; border-radius: 12px !important; }
   html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet :is(input, textarea)::placeholder { color: rgba(237, 243, 251, 0.6) !important; -webkit-text-fill-color: rgba(237, 243, 251, 0.6) !important; }
 }}
+
+/* Dark workflow examination tab: same glass as the file tab (boxes 0.07, fields and eyes block darker) */
+@layer base { @media screen {
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 section[class*="border-[#c3c6d6]"] > div[class*="bg-[#f8f9fb]"] {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 16px !important; }
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 section[class*="border-[#c3c6d6]"] :is(div[class*="bg-[#f8f9fb]"], div.flex-col) :is(input:not([type="checkbox"], [type="radio"]), textarea, select) {
+    background-color: rgba(8, 18, 38, 0.45) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; color: #edf3fb !important; }
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 section[class*="border-[#c3c6d6]"] > div.relative[class*="min-h-[300px]"] {
+    background-color: rgba(8, 18, 38, 0.45) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 16px !important; }
+}}
+
+/* Dark workflow examination tab (round 2): glass boxes at any depth, glass table cells, dark glass fields */
+@layer base { @media screen {
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-4 > div.flex-col[class*="text-[#191c1e]"] div[class*="bg-[#f8f9fb]"] {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 16px !important; }
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-4 > div.flex-col[class*="text-[#191c1e]"] table td {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; }
+  html.dark body .selrs-app-content div.p-3.pb-6.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3.p-3 div.space-y-4 > div.flex-col[class*="text-[#191c1e]"] :is(button[data-slot="select-trigger"], input:not([type="checkbox"], [type="radio"]), textarea, select) {
+    background-color: rgba(8, 18, 38, 0.45) !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 12px !important; color: #edf3fb !important; }
+}}

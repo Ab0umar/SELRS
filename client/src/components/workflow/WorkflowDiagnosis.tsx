@@ -178,10 +178,10 @@ export default function WorkflowDiagnosis({
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <div
-            className="flex flex-col rounded-lg border border-border/60 bg-muted/30 px-3 pb-3 pt-0 text-left text-foreground"
+            className="flex flex-row flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-left text-foreground"
             dir="ltr"
           >
-            <p className="mb-2 !text-[13px] font-bold text-primary">Diagnosis:</p>
+            <p className="mt-2 shrink-0 whitespace-nowrap !text-[13px] font-bold text-primary">Diagnosis:</p>
             <Textarea
               aria-label="اكتب التشخيص يدويًا أو ابحث بالأسفل…"
               data-medical-proposals="diagnosis"
@@ -194,7 +194,7 @@ export default function WorkflowDiagnosis({
               className={`min-h-[48px] ${textField}`}
               rows={2}
             />
-            <div className="relative mt-2 w-full">
+            <div className="relative w-full basis-full">
               <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="ابحث عن التشخيص…"
@@ -232,10 +232,10 @@ export default function WorkflowDiagnosis({
           </div>
 
           <div
-            className="flex flex-col rounded-lg border border-border/60 bg-muted/30 px-3 pb-3 pt-0 text-left text-foreground"
+            className="flex flex-row flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-left text-foreground"
             dir="ltr"
           >
-            <p className="mb-2 !text-[13px] font-bold text-primary">
+            <p className="mt-2 shrink-0 whitespace-nowrap !text-[13px] font-bold text-primary">
               Recommendations:
             </p>
             <Textarea
