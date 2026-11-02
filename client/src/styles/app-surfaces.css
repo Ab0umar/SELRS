@@ -2541,3 +2541,19 @@
     background-color: rgba(255, 255, 255, 0.07) !important;
     -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important; }
 }}
+
+/* Dark final report: glass sheet with light text instead of white paper (print stays white) */
+@layer base { @media screen {
+  html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important; border-radius: 20px !important;
+    -webkit-backdrop-filter: blur(14px) !important; backdrop-filter: blur(14px) !important;
+    box-shadow: none !important; color: #edf3fb !important; }
+  html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet :is(h1, h2, h3, h4, p, span, div, label, li, td, th, dt, dd, strong):not(button *, [class*="text-primary"], [class*="text-destructive"], [class*="text-red"], [class*="text-green"], [class*="text-emerald"]) {
+    color: #edf3fb !important; }
+  html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet [class*="border-blue-900"], html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet [class*="border-slate"] {
+    border-color: rgba(255, 255, 255, 0.28) !important; }
+  html.dark body .selrs-app-content .final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet.final-report-sheet :is(input:not([type="checkbox"], [type="radio"]), textarea, select) {
+    background-color: rgba(255, 255, 255, 0.07) !important; border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    border-radius: 12px !important; color: #edf3fb !important; }
+}}
