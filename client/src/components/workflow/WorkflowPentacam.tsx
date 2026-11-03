@@ -186,7 +186,7 @@ export default function WorkflowPentacam({
         </p>
       ) : (
         <>
-          <div className="mx-auto hidden max-w-4xl overflow-hidden rounded-lg border md:block">
+          <div className="measurement-glass-block mx-auto hidden max-w-4xl overflow-hidden rounded-lg border md:block">
             <table
               className="w-full border-collapse text-center text-base"
               dir="ltr"
@@ -224,7 +224,7 @@ export default function WorkflowPentacam({
               </tbody>
             </table>
           </div>
-          <div className="space-y-2 md:hidden" dir="ltr">
+          <div className="measurement-glass-block space-y-2 md:hidden" dir="ltr">
             {(["od", "os"] as const).map((eye) => (
               <div key={eye} className="rounded-lg border p-2">
                 <div className="mb-1.5 text-xs font-semibold">
