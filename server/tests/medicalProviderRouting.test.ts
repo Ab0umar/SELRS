@@ -60,8 +60,29 @@ describe("medical provider routing", () => {
       "gemini",
       "current",
       "gemini-selected",
+      { patientId: undefined, visitId: undefined },
     );
   });
+  it.each(["reception", "technician", "manager"])(
+    "rejects %s from the medical assistant",
+    async (role) => {
+      await expect(
+        medicalAssistantRouter
+          .createCaller(makeCallerAs(role))
+          .startProposals(input),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(mocks.start).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["admin", "doctor", "nurse"])(
+    "allows %s to use the medical assistant",
+    async (role) => {
+      await medicalAssistantRouter
+        .createCaller(makeCallerAs(role))
+        .startProposals(input);
+      expect(mocks.start).toHaveBeenCalledTimes(1);
+    },
+  );
   it("rejects a stale consent/provider selection before sending a transcript", async () => {
     await expect(
       medicalAssistantRouter

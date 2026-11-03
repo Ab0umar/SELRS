@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { TRPCError } from "@trpc/server";
 import { getDbConnection } from "../../db";
 import { AiManagementStore, AiManagementError } from "./managementStore";
@@ -43,6 +44,121 @@ type Job = {
 const jobs = new Map<string, Job>();
 const retentionMs = 10 * 60 * 1000;
 
+// Jobs are stored with their transcript and result, linked to the patient, so a
+// server restart or a closed browser does not lose a paid result. Rows are readable
+// only by the user who started them and are purged after dbRetentionMs.
+const dbRetentionMs = 24 * 60 * 60 * 1000;
+const geminiInflightMs = 130_000;
+type JobMeta = { patientId?: number; visitId?: number | null };
+
+async function withJobStore<T>(work: (connection: PoolConnection) => Promise<T>) {
+  try {
+    const connection = await getDbConnection();
+    try {
+      return await work(connection);
+    } finally {
+      connection.release();
+    }
+  } catch {
+    console.warn("[medical-ai] Job store unavailable");
+    return undefined;
+  }
+}
+
+function persistJob(id: string, job: Job, meta: JobMeta) {
+  return withJobStore(async (connection) => {
+    const now = Date.now();
+    await connection.execute("DELETE FROM medical_ai_jobs WHERE expires_ms<?", [now]);
+    await connection.execute(
+      "INSERT INTO medical_ai_jobs (job_id,owner_id,patient_id,visit_id,provider,engine,model,task_id,input_json,created_ms,expires_ms) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+      [
+        id,
+        job.owner,
+        meta.patientId ?? null,
+        meta.visitId ?? null,
+        job.provider,
+        job.engine,
+        job.model ?? null,
+        job.taskId ?? null,
+        JSON.stringify(job.input),
+        now,
+        now + dbRetentionMs,
+      ],
+    );
+  });
+}
+
+function saveJobOutcome(id: string, job: Job) {
+  if (!job.result && !job.failed) return Promise.resolve();
+  return withJobStore((connection) =>
+    connection.execute(
+      "UPDATE medical_ai_jobs SET state=?,result_json=?,failure_message=? WHERE job_id=?",
+      [
+        job.result ? "complete" : "failed",
+        job.result ? JSON.stringify(job.result) : null,
+        job.failureMessage?.slice(0, 500) ?? null,
+        id,
+      ],
+    ),
+  );
+}
+
+async function recoverJob(owner: number, id: string) {
+  const row = await withJobStore(async (connection) => {
+    const [rows] = await connection.execute<RowDataPacket[]>(
+      "SELECT provider,engine,model,task_id,state,input_json,result_json,failure_message,created_ms FROM medical_ai_jobs WHERE job_id=? AND owner_id=? AND expires_ms>?",
+      [id, owner, Date.now()],
+    );
+    return rows[0];
+  });
+  if (!row) return undefined;
+  let input: MedicalTranscript;
+  try {
+    input = JSON.parse(String(row.input_json));
+  } catch {
+    return undefined;
+  }
+  const provider = row.provider === "gemini" ? "gemini" : "manus";
+  const engine = row.engine === "central" ? "central" : "current";
+  const job: Job = {
+    owner,
+    input,
+    provider,
+    engine,
+    model: row.model ?? undefined,
+    taskId: row.task_id ?? undefined,
+    failed: false,
+    expires: Date.now() + retentionMs,
+  };
+  if (row.state === "complete") {
+    try {
+      job.result = validateMedicalProposals(JSON.parse(String(row.result_json)), input);
+    } catch {
+      job.failed = true;
+      job.failureMessage = "تعذر استرجاع النتيجة المحفوظة. لم يُطبّق أي تعديل.";
+    }
+  } else if (row.state === "failed") {
+    job.failed = true;
+    job.failureMessage = row.failure_message ?? undefined;
+  } else if (provider === "manus") {
+    if (engine === "central") job.accounting = { requestId: id, credits: null };
+  } else if (Date.now() - Number(row.created_ms) < geminiInflightMs) {
+    // Possibly still running on another server instance: report running, do not cache.
+    return job;
+  } else {
+    job.failed = true;
+    job.failureMessage =
+      "قُطعت معالجة Gemini بإعادة تشغيل الخادم. أعد المحاولة بعد مراجعة النص.";
+    void saveJobOutcome(id, job);
+    if (engine === "central")
+      void new AiManagementStore(getDbConnection).markUncertain(id).catch(() => {});
+  }
+  jobs.set(id, job);
+  setTimeout(() => jobs.delete(id), retentionMs).unref();
+  return job;
+}
+
+const maxCatalogEntries = 1500;
 type VocabularyEntry = { kind: string; name: string; abbreviation: string };
 
 export function promptFor(
@@ -51,7 +167,7 @@ export function promptFor(
   provider: "manus" | "gemini" = "manus",
 ) {
   const catalog: Record<string, Array<string | [string, string]>> = {};
-  for (const entry of vocabulary) {
+  for (const entry of vocabulary.slice(0, maxCatalogEntries)) {
     (catalog[entry.kind] ??= []).push(
       entry.abbreviation ? [entry.name, entry.abbreviation] : entry.name,
     );
@@ -87,6 +203,7 @@ export async function startMedicalProposals(
   provider: "manus" | "gemini" = "manus",
   engine: "current" | "central" = "current",
   selectedModel?: string,
+  meta: JobMeta = {},
 ) {
   if (process.env.AI_CORE_MANAGEMENT_ENABLED === "true") engine = "central";
   if (engine === "central" && process.env.AI_CORE_MANAGEMENT_ENABLED !== "true")
@@ -108,13 +225,13 @@ export async function startMedicalProposals(
     throw new TRPCError({
       code: "CONFLICT",
       message:
-        "A medical AI task is already running. Check that task before starting another.",
+        "توجد مهمة ذكاء اصطناعي طبي قيد التنفيذ. تابع المهمة الحالية قبل بدء مهمة أخرى.",
     });
   }
   if (jobs.size >= 200)
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
-      message: "Medical AI is busy. Try again later.",
+      message: "المساعد الطبي مشغول الآن. حاول لاحقًا.",
     });
   const id = randomUUID();
   const job: Job = {
@@ -169,6 +286,7 @@ export async function startMedicalProposals(
     }
   }
   if (provider === "gemini") {
+    await persistJob(id, job, meta);
     void extractGeminiProposals(
       promptFor(input, vocabulary, provider),
       model,
@@ -188,6 +306,7 @@ export async function startMedicalProposals(
         console.warn("[medical-ai] Gemini extraction failed", {reason:failure.code});
       })
       .finally(() => {
+        void saveJobOutcome(id, job);
         if (job.accounting) queueMedicalSettlement(job.accounting);
       });
     return { jobId: id };
@@ -207,6 +326,7 @@ export async function startMedicalProposals(
       }
       watchMedicalAccounting(owner, id);
     }
+    await persistJob(id, job, meta);
     return { jobId: id };
   } catch (error) {
     if (job.accounting)
@@ -216,14 +336,14 @@ export async function startMedicalProposals(
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message:
-          "Manus rejected task creation. Check the provider configuration before retrying.",
+          "رفض Manus إنشاء المهمة. راجع إعدادات المزوّد قبل إعادة المحاولة.",
       });
     }
     // An ambiguous create failure must not automatically create a second billed task.
     throw new TRPCError({
       code: "BAD_GATEWAY",
       message:
-        "Manus could not confirm task creation. Do not resubmit immediately; the task may still run and consume credits.",
+        "تعذر على Manus تأكيد إنشاء المهمة. لا تعد الإرسال فورًا؛ قد تكون المهمة تعمل وتستهلك رصيدًا.",
     });
   }
 }
@@ -306,12 +426,13 @@ export async function readMedicalProposals(
   | { status: "complete"; result: MedicalProposals }
   | { status: "failed"; message: string }
 > {
-  const job = jobs.get(id);
+  let job = jobs.get(id);
+  if (!job) job = await recoverJob(owner, id);
   if (!job || job.owner !== owner || job.expires <= Date.now())
     throw new TRPCError({
       code: "NOT_FOUND",
       message:
-        "Medical AI task unavailable or expired. No clinical data was saved.",
+        "مهمة الذكاء الاصطناعي الطبي غير متاحة أو انتهت. لم يُحفظ أي بيان سريري.",
     });
   await settleMedicalUsage(job);
   if (job.result) return { status: "complete", result: job.result };
@@ -320,7 +441,7 @@ export async function readMedicalProposals(
       status: "failed",
       message:
         job.failureMessage ??
-        "AI output failed validation. No correction applied.",
+        "فشل التحقق من مخرجات الذكاء الاصطناعي. لم يُطبّق أي تعديل.",
     };
   if (!job.taskId) return { status: "running" };
   try {
@@ -335,7 +456,8 @@ export async function readMedicalProposals(
         await settleMedicalUsage(job);
       }
       job.failed = true;
-      job.failureMessage = "Manus task failed. No correction applied.";
+      job.failureMessage = "فشلت مهمة Manus. لم يُطبّق أي تعديل.";
+      void saveJobOutcome(id, job);
       return {
         status: "failed",
         message: job.failureMessage,
@@ -346,24 +468,25 @@ export async function readMedicalProposals(
       state.has_running_background_jobs !== false
     )
       return { status: "running" };
-    let failureReason = "Manus did not return medical-proposals.json";
+    let failureReason = "لم يُرجع Manus ملف medical-proposals.json";
     try {
       const attachment = state.attachments.find(
         (file) => file.filename === "medical-proposals.json",
       );
       if (!attachment) throw new Error("Missing result file");
-      failureReason = "The Manus result file could not be downloaded";
+      failureReason = "تعذر تنزيل ملف نتيجة Manus";
       const file = await downloadManusFile(attachment.url, 128 * 1024);
-      failureReason = "The Manus result file is not valid JSON";
+      failureReason = "ملف نتيجة Manus ليس JSON صالحًا";
       const raw: unknown = JSON.parse(file.toString("utf8"));
       failureReason =
-        "The Manus result does not match the required proposal structure";
+        "نتيجة Manus لا تطابق بنية الاقتراحات المطلوبة";
       job.result = validateMedicalProposals(raw, job.input);
       if (job.accounting) {
         job.accounting.status = "success";
         job.accounting.credits = state.credit_usage ?? null;
       }
       await settleMedicalUsage(job);
+      void saveJobOutcome(id, job);
       return { status: "complete", result: job.result };
     } catch (error) {
       if (job.result) throw error;
@@ -371,12 +494,13 @@ export async function readMedicalProposals(
       if (error instanceof MedicalProposalValidationError) {
         const reasons = {
           duplicate_field:
-            "Manus returned more than one proposal for the same field",
+            "أعاد Manus أكثر من اقتراح للحقل نفسه",
           scope:
-            "Manus returned a proposal outside the selected recording scope",
+            "أعاد Manus اقتراحًا خارج نطاق التسجيل المحدد",
           source:
-            "A Manus supporting quote does not exactly match the transcript",
-          speaker: "A Manus clinical decision is not attributed to the doctor",
+            "اقتباس داعم من Manus لا يطابق النص حرفيًا",
+          speaker: "قرار سريري من Manus غير منسوب إلى الطبيب",
+          medication: "دواء من Manus بلا دليل صالح في النص",
         } as const;
         failureReason = reasons[error.reason];
       }
@@ -386,7 +510,8 @@ export async function readMedicalProposals(
         job.accounting.credits = state.credit_usage ?? null;
         await settleMedicalUsage(job);
       }
-      job.failureMessage = `${failureReason}. No correction applied.`;
+      job.failureMessage = `${failureReason}. لم يُطبّق أي تعديل.`;
+      void saveJobOutcome(id, job);
       return {
         status: "failed",
         message: job.failureMessage,
@@ -396,7 +521,7 @@ export async function readMedicalProposals(
     throw new TRPCError({
       code: "BAD_GATEWAY",
       message:
-        "Could not check Manus. Retry checking the same task; do not create another.",
+        "تعذر فحص Manus. أعد فحص المهمة نفسها ولا تنشئ مهمة جديدة.",
     });
   }
 }

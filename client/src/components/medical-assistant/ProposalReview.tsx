@@ -14,6 +14,7 @@ import {
 } from "./form-application";
 import {
   medicalProposalLabels,
+  medicalTranscriptMaxChars,
   type MedicalTranscript,
   type MedicalProposals,
 } from "@shared/medical-assistant";
@@ -24,6 +25,7 @@ export default function ProposalReview({
   reviewOnly = false,
   modelChoice,
   autoStart = false,
+  context,
 }: {
   input: MedicalTranscript;
   onApplyField?: (text: string | undefined) => void;
@@ -31,6 +33,8 @@ export default function ProposalReview({
   modelChoice?: string;
   /** Starts without a click; the caller has already confirmed patient consent. */
   autoStart?: boolean;
+  /** Patient and visit the transcript belongs to, recorded in the audit trail. */
+  context?: { patientId?: number; visitId?: number | null };
 }) {
   const start = trpc.medicalAssistant.startProposals.useMutation({
     retry: false,
@@ -48,7 +52,9 @@ export default function ProposalReview({
   const managed =
     options.data?.managementEnabled || options.data?.central != null;
   const engine = managed ? "central" : "current";
+  const tooLong = input.transcript.trim().length > medicalTranscriptMaxChars;
   const available =
+    !tooLong &&
     settings.isSuccess &&
     options.isSuccess &&
     (!managed || options.data?.central?.enabled === true);
@@ -153,6 +159,8 @@ export default function ProposalReview({
       const response = await start.mutateAsync({
         recording: input,
         consentConfirmed: true,
+        patientId: context?.patientId,
+        visitId: context?.visitId,
         engine,
         model,
         provider,
@@ -257,7 +265,9 @@ export default function ProposalReview({
                 ? "تعذر التحقق من إعدادات المساعد. أعد فتح الشريط للمحاولة."
                 : options.isPending
                   ? "جارٍ التحقق من إعدادات المساعد…"
-                  : "المساعد الطبي معطّل من المزوّدين والحدود."}
+                  : tooLong
+                    ? `النص أطول من ${medicalTranscriptMaxChars} حرف. قصّر التسجيل أو قسّمه.`
+                    : "المساعد الطبي معطّل من المزوّدين والحدود."}
             </p>
           )}
         </>
@@ -302,7 +312,9 @@ export default function ProposalReview({
                 ? "تعذر التحقق من إعدادات المساعد. أعد فتح المراجعة للمحاولة."
                 : options.isPending
                   ? "جارٍ التحقق من إعدادات المساعد…"
-                  : "المساعد الطبي معطّل من المزوّدين والحدود."}
+                  : tooLong
+                    ? `النص أطول من ${medicalTranscriptMaxChars} حرف. قصّر التسجيل أو قسّمه.`
+                    : "المساعد الطبي معطّل من المزوّدين والحدود."}
             </p>
           )}
         </>
