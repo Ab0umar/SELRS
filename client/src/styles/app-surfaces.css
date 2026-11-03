@@ -79,6 +79,10 @@
     background: var(--background) !important;
   }
 
+  html:not(.dark) .selrs-app-content .workflow-day-workspace main.min-w-0 {
+    background: transparent !important;
+  }
+
   .dark .selrs-app-content .workflow-day-workspace :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-slate-500):not(.final-report-sheet, .final-report-sheet *) {
     color: var(--foreground);
   }

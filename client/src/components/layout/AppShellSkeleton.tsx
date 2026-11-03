@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import "./app-shell-skeleton.css";
 
 function SidebarItemSkeleton({ active = false }: { active?: boolean }) {
   return (
@@ -25,7 +26,7 @@ function SidebarItemSkeleton({ active = false }: { active?: boolean }) {
 export function AppShellSkeleton() {
   return (
     <div
-      className="min-h-screen bg-background"
+      className="app-shell-loading min-h-screen bg-background"
       aria-busy="true"
       aria-label="جاري تحميل واجهة النظام"
       dir="rtl"

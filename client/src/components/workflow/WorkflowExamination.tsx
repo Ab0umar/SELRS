@@ -12,6 +12,7 @@ import {
 } from "@/lib/refractionOptions";
 import { trpc } from "@/lib/trpc";
 import { FundusDrawingCanvas } from "./FundusDrawingCanvas";
+import { FundusDiagram } from "./FundusDiagram";
 import { WorkflowCard } from "./workflowShared";
 
 type Eye = "od" | "os";
@@ -503,23 +504,7 @@ export default function WorkflowExamination({
                   key={eye}
                   className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-1"
                 >
-                  <div
-                    className={`relative flex aspect-square w-full max-w-[150px] items-center justify-center rounded-full border-4 bg-white ${
-                      eye === "od" ? "border-[#003d9b]/30" : "border-slate-300"
-                    }`}
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                      <div className="w-full border-t border-slate-900" />
-                      <div className="absolute top-0 h-full border-l border-slate-900" />
-                    </div>
-                    <div
-                      className={`absolute flex h-9 w-9 -translate-y-1 items-center justify-center rounded-full border border-[#c98f4a]/60 bg-[#f4c98a] ${
-                        eye === "od" ? "translate-x-3" : "-translate-x-3"
-                      }`}
-                    >
-                      <div className="h-4 w-4 rounded-full border border-[#c98f4a]/50 bg-white" />
-                    </div>
-                  </div>
+                  <FundusDiagram eye={eye} />
                   <span
                     className={`select-none text-xs font-bold ${
                       eye === "od" ? "text-[#003d9b]/70" : "text-slate-500"

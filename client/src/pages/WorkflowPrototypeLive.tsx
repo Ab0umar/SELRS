@@ -30,6 +30,7 @@ const ConsultantSheet = lazy(importConsultantSheet);
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
 import { localISODate } from "@/lib/utils";
 import { workflowVisits } from "@/lib/workflow-visits";
+import { resolveWorkflowReportPatient } from "@/lib/workflow-report-patient";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -99,17 +100,6 @@ const displayDateValue = (value: unknown): string => {
   return value == null ? "" : String(value);
 };
 
-const calculateAgeAtDate = (birthValue: unknown, atValue: unknown): string => {
-  const birth = new Date(displayDateValue(birthValue));
-  const at = new Date(displayDateValue(atValue));
-  if (Number.isNaN(birth.getTime()) || Number.isNaN(at.getTime())) return "";
-  let age = at.getFullYear() - birth.getFullYear();
-  const beforeBirthday =
-    at.getMonth() < birth.getMonth() ||
-    (at.getMonth() === birth.getMonth() && at.getDate() < birth.getDate());
-  if (beforeBirthday) age -= 1;
-  return age >= 0 ? String(age) : "";
-};
 
 type Refraction = { s: string; c: string; a: string };
 type WorkflowData = {
@@ -3012,10 +3002,12 @@ export default function WorkflowPrototypeLive() {
     ]
       .filter(Boolean)
       .join("، ");
-    const patientDateOfBirth = displayDateValue(
-      finalPatient?.dateOfBirth ?? finalPatient?.birthDate,
+    const reportPatient = resolveWorkflowReportPatient(
+      finalPatient,
+      finalSheet?.patientData,
+      selectedDate,
+      selectedLivePatient.fullName,
     );
-    const patientAge = calculateAgeAtDate(patientDateOfBirth, selectedDate);
     const finalExaminationRecord = (
       (finalExaminationsQuery.data as any[]) ?? []
     ).find((item) => Number(item.visitId) === Number(activeWorkflowVisitId));
@@ -3264,15 +3256,21 @@ export default function WorkflowPrototypeLive() {
             <h3 className="mb-3 border-b-2 border-slate-200 pb-2 text-xl font-black text-blue-950">
               Report Information
             </h3>
+            {finalPatientQuery.isError ? (
+              <div role="alert" className="mb-3 text-sm text-destructive print:hidden">
+                تعذر تحميل ملف المريض؛ قد تكون بيانات التقرير غير مكتملة.
+                <Button variant="link" size="sm" onClick={() => void finalPatientQuery.refetch()}>
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : null}
             <div className="space-y-2 text-sm">
               <div className="flex items-baseline gap-2">
                 <span className="shrink-0 font-bold text-slate-500">
                   Patient Name:
                 </span>
                 <p className="min-w-0 text-base font-black" dir="rtl">
-                  {finalPatient?.fullName ??
-                    selectedLivePatient.fullName ??
-                    "—"}
+                  {reportPatient.fullName || "—"}
                 </p>
               </div>
               <div className="flex items-baseline gap-2">
@@ -3280,13 +3278,13 @@ export default function WorkflowPrototypeLive() {
                   Date of Birth:
                 </span>
                 <p className="min-w-0 font-semibold" dir="ltr">
-                  {patientDateOfBirth || "—"}
+                  {reportPatient.dateOfBirth || "—"}
                 </p>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="shrink-0 font-bold text-slate-500">Age:</span>
                 <p className="min-w-0 font-semibold" dir="ltr">
-                  {patientAge || "—"}
+                  {reportPatient.age || "—"}
                 </p>
               </div>
               <div className="flex items-baseline gap-2">
@@ -3294,7 +3292,7 @@ export default function WorkflowPrototypeLive() {
                   Occupation:
                 </span>
                 <p className="min-w-0 font-semibold" dir="rtl">
-                  {finalPatient?.occupation || "—"}
+                  {reportPatient.occupation || "—"}
                 </p>
               </div>
             </div>

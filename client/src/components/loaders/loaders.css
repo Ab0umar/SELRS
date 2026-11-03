@@ -1,8 +1,33 @@
 .organic-loader-stage {
+  box-sizing: border-box;
   display: grid;
   place-items: center;
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 24%;
+  background: rgba(207, 225, 248, 0.18);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 30px rgba(0, 61, 130, 0.08), inset 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.organic-loader-stage:has(.organic-loader-label) {
+  padding-bottom: 24px;
+}
+
+html.dark .organic-loader-stage {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.12);
+}
+
+html.dark .organic-loader-logo {
+  background-color: transparent;
+}
+
+html.dark .organic-loader-label {
+  color: #edf3fb;
 }
 
 .organic-loader-logo {
@@ -31,12 +56,12 @@
 
 .organic-loader-label {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
   font-size: 13px;
   text-align: center;
-  color: rgba(12, 31, 74, 0.65);
+  color: #293582;
 }
 
 .organic-loader-a4 .organic-loader-logo,
@@ -98,7 +123,17 @@
   min-height: 240px;
   display: grid;
   place-items: center;
-  background: transparent;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(6, 62, 148, 0.24), transparent 65%),
+    radial-gradient(circle at 100% 100%, rgba(214, 98, 22, 0.2), transparent 65%);
+  border-radius: 24px;
+}
+
+html.dark .organic-loader-overlay {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(6, 62, 148, 0.35), transparent 65%),
+    radial-gradient(circle at 100% 100%, rgba(128, 62, 26, 0.24), transparent 65%),
+    #0a1426;
 }
 
 @media (prefers-reduced-motion: reduce) {

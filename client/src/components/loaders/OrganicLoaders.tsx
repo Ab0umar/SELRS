@@ -18,10 +18,13 @@ function LoaderStage({
     <div
       className={`organic-loader-stage ${className}`}
       style={{ width: size, height: size }}
+      role="status"
+      aria-label={label ?? "جاري التحميل"}
+      aria-busy="true"
     >
       {children}
-      <div className={`organic-loader-logo ${logo}`} />
-      {label ? <div className="organic-loader-label">{label}</div> : null}
+      <div className={`organic-loader-logo ${logo}`} aria-hidden="true" />
+      {label ? <div className="organic-loader-label" aria-hidden="true">{label}</div> : null}
     </div>
   );
 }
