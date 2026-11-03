@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMedicalAssistantAccess } from "./useMedicalAssistantAccess";
+import { medicalTranscriptMaxChars } from "@shared/medical-assistant";
 
 interface MedicalAssistantPreviewProps {
   patientId: number;
@@ -49,6 +50,7 @@ function MedicalAssistantDialog({
   const [expanded, setExpanded] = useState(true);
   const [recording, setRecording] = useState(false);
   const [reviewRun, setReviewRun] = useState(0);
+  const [draft, setDraft] = useState("");
   const [result, setResult] = useState<Extract<
     RoutedTranscript,
     { kind: "conversation" }
@@ -62,6 +64,14 @@ function MedicalAssistantDialog({
     onOpenChange?.(value);
   };
 
+  const draftText = draft.trim();
+  const tooLong = draftText.length > medicalTranscriptMaxChars;
+  const processDraft = () => {
+    if (!draftText || tooLong || recording || disabled) return;
+    setResult({ kind: "conversation", mode, transcript: draftText });
+    setReviewRun((value) => value + 1);
+    setExpanded(true);
+  };
   const isOpen = open ?? localOpen;
   const patientLabel = patientName || `مريض #${patientId}`;
   const visitLabel = `${visitId ? `زيارة #${visitId}` : "زيارة جديدة"}${
@@ -107,19 +117,43 @@ function MedicalAssistantDialog({
                 </Label>
                 <Textarea
                   id={`assistant-transcript-${patientId}`}
-                  readOnly={!result || recording}
-                  value={result?.transcript ?? ""}
-                  onChange={(event) =>
-                    setResult((previous) =>
-                      previous
-                        ? { ...previous, transcript: event.target.value }
-                        : null,
-                    )
-                  }
+                  readOnly={recording || Boolean(result)}
+                  value={result ? result.transcript : draft}
+                  onChange={(event) => setDraft(event.target.value)}
                   dir="auto"
                   className="min-h-16 max-h-32 resize-none"
-                  placeholder="يظهر هنا نص الزيارة بعد التسجيل."
+                  placeholder="اكتب أو الصق كلام الزيارة هنا، أو اضغط «تسجيل»."
                 />
+                {tooLong && (
+                  <p role="alert" className="text-xs">
+                    النص أطول من {medicalTranscriptMaxChars} حرف. قصّره أو قسّمه.
+                  </p>
+                )}
+                {result ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={recording}
+                    onClick={() => {
+                      setResult(null);
+                      setDraft("");
+                    }}
+                  >
+                    نص جديد
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      disabled || recording || !draftText || tooLong
+                    }
+                    onClick={processDraft}
+                  >
+                    معالجة النص
+                  </Button>
+                )}
               </section>
               <section
                 aria-labelledby={`assistant-changes-${patientId}`}
@@ -134,8 +168,8 @@ function MedicalAssistantDialog({
                 <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
                   <ClipboardList className="mb-1 h-4 w-4" aria-hidden="true" />
                   {result
-                    ? "تم تسجيل نص الزيارة. تبدأ المراجعة بالذكاء الاصطناعي تلقائيًا."
-                    : "سجّل الزيارة لتجهيز الشكوى والتاريخ والتشخيص والعلاج والفحوصات والقرار النهائي للمراجعة."}
+                    ? "أُرسل النص وصار ثابتًا لهذه المهمة. راجع الاقتراحات وعدّلها قبل الحفظ."
+                    : "اكتب أو الصق أو سجّل الزيارة ثم اضغط «معالجة النص» لتجهيز الشكوى والتاريخ والتشخيص والعلاج والفحوصات والقرار النهائي للمراجعة."}
                 </div>
                 {result && (
                   <ProposalReview
@@ -233,8 +267,8 @@ function MedicalAssistantDialog({
           patientName={patientName}
           onClose={() => setRecording(false)}
           onTranscript={(transcript) => {
-            setResult(transcript);
-            setReviewRun((value) => value + 1);
+            setResult(null);
+            setDraft(transcript.transcript);
             setRecording(false);
             setExpanded(true);
           }}
