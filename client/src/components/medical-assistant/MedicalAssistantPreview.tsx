@@ -7,6 +7,7 @@ import ProposalReview from "./ProposalReview";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useMedicalAssistantAccess } from "./useMedicalAssistantAccess";
 
 interface MedicalAssistantPreviewProps {
   patientId: number;
@@ -22,6 +23,7 @@ interface MedicalAssistantPreviewProps {
 export default function MedicalAssistantPreview(
   props: MedicalAssistantPreviewProps,
 ) {
+  if (!useMedicalAssistantAccess()) return null;
   return (
     <MedicalAssistantDialog
       key={`${props.patientId}:${props.visitId ?? "new"}:${props.visitDate ?? ""}`}
@@ -136,7 +138,11 @@ function MedicalAssistantDialog({
                     : "سجّل الزيارة لتجهيز الشكوى والتاريخ والتشخيص والعلاج والفحوصات والقرار النهائي للمراجعة."}
                 </div>
                 {result && (
-                  <ProposalReview key={reviewRun} autoStart input={result} />
+                  <ProposalReview
+                    key={reviewRun}
+                    input={result}
+                    context={{ patientId, visitId }}
+                  />
                 )}
               </section>
             </>

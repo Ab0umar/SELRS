@@ -35,6 +35,8 @@ type RecordingProps = {
   maxRecordingMinutes?: number;
   showDiagnostics?: boolean;
   patientName?: string;
+  patientId?: number;
+  visitId?: number | null;
   onClose: () => void;
 } & (
   | { kind?: "field"; target: DictationTarget }
@@ -719,7 +721,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
           {target && reviewText !== undefined && (
             <div hidden={applied}>
               <ProposalReview
-                autoStart
+                context={{ patientId: props.patientId, visitId: props.visitId }}
                 input={{
                   kind: "field",
                   label: target.label,

@@ -1,6 +1,6 @@
 # Medical voice assistant architecture
 
-Status: proposed architecture, reviewed against current working-tree sources on 2026-10-10. Model selection, application implementation, schema changes, and deployment are later steps.
+Status: proposed architecture, reviewed against current working-tree sources on 2026-10-10; sections 9 updated 2026-11-03 to match the implemented role gate, job storage and audit. Model selection, application implementation, schema changes, and deployment are later steps.
 
 ## 1. Purpose and scope
 
@@ -121,13 +121,13 @@ No automatic fallback to a clinically unevaluated model. Preserve the transcript
 
 ## 9. Permissions and data lifecycle
 
-- Initial clinical extraction is clinician-only: doctor/admin/manager authorization plus the same page/patient/branch restrictions required by its host workflow. Existing `medicalStaffProcedure` alone is broader and does not establish the intended new gate. Wider staff field dictation is a separately mapped capability.
+- Implemented gate: every medical assistant procedure (settings, provider options, speech tokens, proposal start/read) uses `medicalAssistantProcedure`, which allows only `admin`, `doctor` and `nurse` (`medicalAssistantRoles` in `shared/medical-assistant.ts`, mirrored in the client by `useMedicalAssistantAccess`, which hides the entry points). Reception, technician and manager are rejected with FORBIDDEN. Saving settings and the synthetic Gemini test stay admin-only. Page/patient/branch restrictions of the host workflow still apply on top.
 - External portal authentication and KF patient IDs remain separate from medical staff sessions. Reject unsupported domains and targets.
 - Record only after an explicit user action; use the appropriate recording consent flow for conversations. Keep a clear recording indicator.
 - Credentials and provider calls stay on the backend. Clinical text is treated as input data, including spoken instructions that attempt to alter the extraction task.
-- Proposed initial retention: audio stays in browser memory until processing/discard and server memory during processing. Transcript/suggestions stay in the active assistant session. Reload loses that session. No new audio archive, transcript table, S3 upload, or database migration for the first slice.
+- Retention (implemented, supersedes the earlier in-memory-only proposal): audio stays in browser memory until processing/discard and is never stored on the server. The transcript sent for extraction and the resulting proposals are stored, unencrypted, in `medical_ai_jobs` (migration `00090`), linked to `patient_id`, `visit_id` and the starting user, so a server restart or closed browser does not lose a paid result. Only the user who started a job can read it. Rows expire after 24 hours (`dbRetentionMs` in `server/services/ai/medical.ts`) and are purged when a new job starts. A Manus task in progress resumes by its task id; a Gemini request cut off by a restart is reported as failed and its usage marked uncertain. No audio archive and no S3 upload.
 - Provider retention/data-use terms are a model-selection check; local deletion does not establish provider deletion. Persistent transcript/audio retention requires a separate explicit product policy.
-- Operational logs contain stage, request identifier, duration, result code, and actual usage when available; no audio, transcript, patient names, or medication content. Existing medical saves retain their established audit behavior. Draft/transcript provenance is not promised as a durable audit feature until its storage contract is designed.
+- Operational logs contain stage, request identifier, duration, result code, and actual usage when available; no audio, transcript, patient names, or medication content. Each processing start is also written to the audit log as `MEDICAL_AI_PROCESS` (user, patient, visit, provider, model, kind, transcript length; never clinical text). Existing medical saves retain their established audit behavior.
 
 ## 10. Proposed code placement
 

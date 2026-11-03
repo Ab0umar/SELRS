@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+export const medicalAssistantRoles = ["admin", "doctor", "nurse"] as const;
 export const medicalProposalFields = [
   "complaints",
   "symptoms",
@@ -25,7 +26,8 @@ export const medicalProposalLabels: Record<
   decision: "Final decision",
   field: "Selected field",
 };
-const transcript = z.string().trim().min(1).max(8000);
+export const medicalTranscriptMaxChars = 8000;
+const transcript = z.string().trim().min(1).max(medicalTranscriptMaxChars);
 export const medicalTranscriptSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -47,6 +49,8 @@ export const medicalProposalRequestSchema = z
   .object({
     recording: medicalTranscriptSchema,
     consentConfirmed: z.literal(true),
+    patientId: z.number().int().positive().optional(),
+    visitId: z.number().int().positive().nullish(),
     provider: z.enum(["manus", "gemini"]).default("manus"),
     engine: z.enum(["current", "central"]).default("current"),
     model: z.string().max(100).optional(),
@@ -99,7 +103,7 @@ export type MedicalProposals = z.infer<typeof medicalProposalSchema>;
 
 export class MedicalProposalValidationError extends Error {
   constructor(
-    readonly reason: "duplicate_field" | "scope" | "source" | "speaker",
+    readonly reason: "duplicate_field" | "scope" | "source" | "speaker" | "medication",
     message: string,
   ) {
     super(message);
@@ -126,7 +130,8 @@ export function validateMedicalProposals(
           (item) => !input.transcript.includes(item.source),
         ))
     )
-      throw new Error(
+      throw new MedicalProposalValidationError(
+        "medication",
         "Medicine extraction is outside treatment scope or lacks transcript evidence",
       );
     if ((input.kind === "field") !== (proposal.field === "field"))
