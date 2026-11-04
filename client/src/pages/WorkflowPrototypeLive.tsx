@@ -3194,7 +3194,7 @@ export default function WorkflowPrototypeLive() {
         className="final-report-sheet mx-auto w-full max-w-none space-y-5 bg-white p-[8mm] text-[15px] leading-7 text-slate-900 shadow-[0_4px_24px_rgba(0,0,0,0.14)] print:w-[190mm] print:max-w-[190mm] print:space-y-2 print:text-[13px] print:leading-4 print:p-0 print:shadow-none"
         dir="ltr"
       >
-        <header className="border-b-4 border-blue-900 pb-5" dir="rtl">
+        <header className="border-b-4 border-primary pb-5" dir="rtl">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div className="hidden print:block" dir="ltr">
               <p className="text-sm font-black text-blue-900">
