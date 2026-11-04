@@ -149,7 +149,7 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await page.getByRole("checkbox").check();
   await page
-    .getByRole("button", { name: "Generate proposals", exact: true })
+    .getByRole("button", { name: "إنشاء اقتراحات للمراجعة", exact: true })
     .click();
   await expect(page.getByLabel("Draft values")).toContainText("موجود\\nصداع");
   await expect(page.getByLabel("Draft values")).toContainText("Cataract");
@@ -160,18 +160,7 @@ try {
   await expect(
     page.getByRole("button", { name: "Append to open form" }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", {
-      name: "اختيار TOBRIN 0.3% EYE DROPS 5 ML",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", {
-      name: "اختيار TOBRIN 0.3% EYE DROPS 5 ML",
-      exact: true,
-    })
-    .click();
+  // TOBRIN is the only catalog match, so it is added without a click.
   await expect(page.getByLabel("Draft prescription")).toContainText(
     '"ids":[10]',
   );
@@ -244,10 +233,7 @@ try {
     page.getByRole("button", { name: "حفظ الزيارة بعد المراجعة", exact: true }),
   ).toBeDisabled();
   await page
-    .getByRole("button", {
-      name: "تأكيد التشخيص وإضافته للمسودة بدون إضافته للكتالوج",
-      exact: true,
-    })
+    .getByRole("button", { name: "نقل التعديلات إلى الحقول", exact: true })
     .click();
   await expect(page.getByLabel("Draft values")).toContainText(
     "Cataract reviewed",
@@ -269,7 +255,7 @@ try {
   await page.reload();
   await page.getByRole("checkbox").check();
   await page
-    .getByRole("button", { name: "Generate proposals", exact: true })
+    .getByRole("button", { name: "إنشاء اقتراحات للمراجعة", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("Synthetic timeout");
   assert.equal(starts, 2);
@@ -281,12 +267,12 @@ try {
     .click();
   await expect(page.getByRole("checkbox")).not.toBeChecked();
   await expect(
-    page.getByRole("button", { name: "Generate proposals", exact: true }),
+    page.getByRole("button", { name: "إنشاء اقتراحات للمراجعة", exact: true }),
   ).toBeDisabled();
   assert.equal(starts, 2);
   await page.getByRole("checkbox").check();
   await page
-    .getByRole("button", { name: "Generate proposals", exact: true })
+    .getByRole("button", { name: "إنشاء اقتراحات للمراجعة", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("Synthetic timeout");
   assert.equal(starts, 3);
@@ -298,22 +284,19 @@ try {
     await page.reload();
     await page.getByRole("checkbox").check();
     await page
-      .getByRole("button", { name: "Generate proposals", exact: true })
+      .getByRole("button", { name: "إنشاء اقتراحات للمراجعة", exact: true })
       .click();
-    const confirm = page.getByRole("button", {
-      name: "تأكيد التشخيص وإضافته للمسودة بدون إضافته للكتالوج",
-      exact: true,
-    });
-    await expect(confirm).toBeEnabled();
-    await expect(page.getByLabel("Draft values")).not.toContainText("Cataract");
+    // An uncatalogued diagnosis is filled for review, with a note, and can be saved.
+    await expect(
+      page.getByText("التشخيص غير مطابق للكتالوج، وأُضيف للحقل كنص. راجعه قبل الحفظ."),
+    ).toBeVisible();
+    await expect(page.getByLabel("Draft values")).toContainText("Cataract");
     await expect(
       page.getByRole("button", {
         name: "حفظ الزيارة بعد المراجعة",
         exact: true,
       }),
-    ).toBeDisabled();
-    await confirm.click();
-    await expect(page.getByLabel("Draft values")).toContainText("Cataract");
+    ).toBeEnabled();
     await expect(page.getByLabel("Saved visit")).toHaveText("null");
   }
   console.log(

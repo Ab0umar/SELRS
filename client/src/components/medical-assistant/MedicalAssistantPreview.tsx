@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, ClipboardList, Mic, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Mic, X } from "lucide-react";
 import FieldDictation from "./FieldDictation";
 import FloatingBar from "./FloatingBar";
 import type { RoutedTranscript } from "./transcript-routing";
@@ -7,6 +7,8 @@ import ProposalReview from "./ProposalReview";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useMedicalAssistantAccess } from "./useMedicalAssistantAccess";
+import { medicalTranscriptMaxChars } from "@shared/medical-assistant";
 
 interface MedicalAssistantPreviewProps {
   patientId: number;
@@ -22,6 +24,7 @@ interface MedicalAssistantPreviewProps {
 export default function MedicalAssistantPreview(
   props: MedicalAssistantPreviewProps,
 ) {
+  if (!useMedicalAssistantAccess()) return null;
   return (
     <MedicalAssistantDialog
       key={`${props.patientId}:${props.visitId ?? "new"}:${props.visitDate ?? ""}`}
@@ -47,6 +50,11 @@ function MedicalAssistantDialog({
   const [expanded, setExpanded] = useState(true);
   const [recording, setRecording] = useState(false);
   const [reviewRun, setReviewRun] = useState(0);
+  const [draft, setDraft] = useState("");
+  // A recorded visit was consented to before recording, so its review starts on its own.
+  const [autoStart, setAutoStart] = useState(false);
+  // While a review runs, a new recording or text would orphan its paid result.
+  const [aiRunning, setAiRunning] = useState(false);
   const [result, setResult] = useState<Extract<
     RoutedTranscript,
     { kind: "conversation" }
@@ -60,6 +68,15 @@ function MedicalAssistantDialog({
     onOpenChange?.(value);
   };
 
+  const draftText = draft.trim();
+  const tooLong = draftText.length > medicalTranscriptMaxChars;
+  const processDraft = () => {
+    if (!draftText || tooLong || recording || disabled) return;
+    setAutoStart(false);
+    setResult({ kind: "conversation", mode, transcript: draftText });
+    setReviewRun((value) => value + 1);
+    setExpanded(true);
+  };
   const isOpen = open ?? localOpen;
   const patientLabel = patientName || `مريض #${patientId}`;
   const visitLabel = `${visitId ? `زيارة #${visitId}` : "زيارة جديدة"}${
@@ -76,67 +93,97 @@ function MedicalAssistantDialog({
           disabled={disabled}
           aria-expanded={isOpen}
           onClick={() => handleOpenChange(!isOpen)}
-          className="gap-2 print:hidden"
+          aria-label="المساعد الطبي"
+          className="gap-2 print:hidden max-sm:w-11 max-sm:px-0"
         >
           <Mic className="h-4 w-4" aria-hidden="true" />
-          المساعد الطبي
+          <span className="max-sm:sr-only">المساعد الطبي</span>
         </Button>
       )}
-      {isOpen && (
+      {/* With a review in progress or done, closing the bar only hides it: the
+          job keeps polling and filling, the lock holds, and reopening shows the
+          same review instead of starting it again. */}
+      {(isOpen || result !== null) && (
         <FloatingBar
           label="المساعد الطبي"
           storageKey="medical-assistant-bar-position"
           expanded={expanded}
-          hidden={recording}
+          hidden={recording || !isOpen}
           onEscape={() => handleOpenChange(false)}
           sheetTitle={
-            <>
-              <h2 className="text-sm font-semibold">المساعد الطبي</h2>
-              <p className="text-xs text-muted-foreground" dir="auto">
+            <div className="flex min-w-0 items-baseline gap-x-2">
+              <h2 className="shrink-0 text-sm font-semibold">المساعد الطبي</h2>
+              <p
+                className="min-w-0 truncate text-xs text-muted-foreground"
+                dir="auto"
+              >
                 {patientLabel} · {visitLabel}
               </p>
-            </>
+            </div>
           }
           sheet={
             <>
               <section className="space-y-1">
-                <Label htmlFor={`assistant-transcript-${patientId}`}>
+                <Label className="sr-only" htmlFor={`assistant-transcript-${patientId}`}>
                   النص الحي
                 </Label>
                 <Textarea
                   id={`assistant-transcript-${patientId}`}
-                  readOnly={!result || recording}
-                  value={result?.transcript ?? ""}
-                  onChange={(event) =>
-                    setResult((previous) =>
-                      previous
-                        ? { ...previous, transcript: event.target.value }
-                        : null,
-                    )
-                  }
+                  readOnly={recording || Boolean(result)}
+                  value={result ? result.transcript : draft}
+                  onChange={(event) => setDraft(event.target.value)}
                   dir="auto"
                   className="min-h-16 max-h-32 resize-none"
-                  placeholder="يظهر هنا نص الزيارة بعد التسجيل."
+                  placeholder="اكتب أو الصق كلام الزيارة هنا، أو اضغط «تسجيل»."
                 />
+                {tooLong && (
+                  <p role="alert" className="text-xs">
+                    النص أطول من {medicalTranscriptMaxChars} حرف. قصّره أو قسّمه.
+                  </p>
+                )}
+                {aiRunning && (
+                  <p role="status" className="text-xs">
+                    انتظر انتهاء المراجعة الحالية قبل تسجيل أو نص جديد.
+                  </p>
+                )}
+                {result ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={recording || aiRunning}
+                    onClick={() => {
+                      setResult(null);
+                      setDraft("");
+                    }}
+                  >
+                    نص جديد
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      disabled || recording || !draftText || tooLong
+                    }
+                    onClick={processDraft}
+                  >
+                    معالجة النص
+                  </Button>
+                )}
               </section>
               <section
-                aria-labelledby={`assistant-changes-${patientId}`}
+                aria-label="التعديلات المقترحة على الحقول"
                 className="space-y-2"
               >
-                <h3
-                  id={`assistant-changes-${patientId}`}
-                  className="text-xs font-medium"
-                >
-                  التعديلات المقترحة على الحقول
-                </h3>
-                <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-                  <ClipboardList className="mb-1 h-4 w-4" aria-hidden="true" />
-                  {result
-                    ? "تم تسجيل نص الزيارة. تبدأ المراجعة بالذكاء الاصطناعي تلقائيًا."
-                    : "سجّل الزيارة لتجهيز الشكوى والتاريخ والتشخيص والعلاج والفحوصات والقرار النهائي للمراجعة."}
-                </div>
                 {result && (
-                  <ProposalReview key={reviewRun} autoStart input={result} />
+                  <ProposalReview
+                    key={reviewRun}
+                    input={result}
+                    autoStart={autoStart}
+                    context={{ patientId, visitId }}
+                    onRunningChange={setAiRunning}
+                  />
                 )}
               </section>
             </>
@@ -185,7 +232,7 @@ function MedicalAssistantDialog({
                 type="button"
                 size="sm"
                 className="shrink-0 gap-1.5"
-                disabled={disabled || recording}
+                disabled={disabled || recording || aiRunning}
                 onClick={() => setRecording(true)}
               >
                 <Mic className="h-4 w-4" aria-hidden="true" />
@@ -225,12 +272,21 @@ function MedicalAssistantDialog({
           kind="conversation"
           mode={mode}
           patientName={patientName}
+          patientId={patientId}
+          visitId={visitId}
           onClose={() => setRecording(false)}
           onTranscript={(transcript) => {
-            setResult(transcript);
-            setReviewRun((value) => value + 1);
+            setDraft(transcript.transcript);
             setRecording(false);
             setExpanded(true);
+            const text = transcript.transcript.trim();
+            if (!text || text.length > medicalTranscriptMaxChars) {
+              setResult(null);
+              return;
+            }
+            setAutoStart(true);
+            setResult({ kind: "conversation", mode, transcript: text });
+            setReviewRun((value) => value + 1);
           }}
         />
       )}

@@ -20,12 +20,12 @@ export function applyProposal(
   );
   if (candidates.length !== 1)
     throw new Error(
-      "Open the matching form section first. This proposal has no unique destination here.",
+      "افتح قسم النموذج المطابق أولًا؛ لا يوجد حقل وحيد لهذا الاقتراح هنا.",
     );
   const element = candidates[0];
   if (!element.isConnected || element.disabled || element.readOnly)
-    throw new Error("This field is not editable.");
-  if (!text.trim()) throw new Error("The proposal is empty.");
+    throw new Error("هذا الحقل غير قابل للتعديل.");
+  if (!text.trim()) throw new Error("الاقتراح فارغ.");
   const before = element.value;
   const after = before ? `${before}\n${text.trim()}` : text.trim();
   write(element, after);
@@ -42,7 +42,7 @@ export function undoProposal(root: HTMLElement, applied: AppliedText) {
     element.value !== after
   )
     throw new Error(
-      "The field changed or closed. Undo cannot overwrite newer edits.",
+      "تغيّر الحقل أو أُغلق. التراجع لن يمسح التعديلات الأحدث.",
     );
   write(element, before);
 }

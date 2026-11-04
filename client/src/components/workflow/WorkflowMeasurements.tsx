@@ -97,7 +97,7 @@ function RefractionTable({
   onChange: (eye: Eye, field: keyof Refraction, next: string) => void;
 }) {
   return (
-    <div>
+    <div className="measurement-glass-block">
       <h3 className="mb-3 text-xs font-semibold uppercase text-muted-foreground">
         {title}
       </h3>
@@ -439,12 +439,12 @@ export default function WorkflowMeasurements({
           </p>
         ) : (
           <>
-            <div>
+            <div className="measurement-glass-block">
               <h3 className="mb-3 text-xs font-semibold uppercase text-muted-foreground">
                 AutoRef | IOP
               </h3>
               <div
-                className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2"
+                className="grid grid-cols-1 gap-2 sm:grid-cols-2"
                 dir="ltr"
               >
                 <PairRow
@@ -473,20 +473,20 @@ export default function WorkflowMeasurements({
                   }
                 />
               </div>
-              <RefractionTable
-                title="AutoRef"
-                value={form.autoref}
-                onChange={(eye, field, next) =>
-                  edit((current) => ({
-                    ...current,
-                    autoref: {
-                      ...current.autoref,
-                      [eye]: { ...current.autoref[eye], [field]: next },
-                    },
-                  }))
-                }
-              />
             </div>
+            <RefractionTable
+              title="AutoRef"
+              value={form.autoref}
+              onChange={(eye, field, next) =>
+                edit((current) => ({
+                  ...current,
+                  autoref: {
+                    ...current.autoref,
+                    [eye]: { ...current.autoref[eye], [field]: next },
+                  },
+                }))
+              }
+            />
             <RefractionTable
               title="After Refraction"
               value={form.after}
@@ -504,7 +504,7 @@ export default function WorkflowMeasurements({
         )}
       </div>
 
-      <div className="flex w-fit max-w-full flex-wrap items-center justify-center gap-2 self-center border-t border-border/50 px-4 py-1.5">
+      <div className="measurement-glass-block flex w-fit max-w-full flex-wrap items-center justify-center gap-2 self-center border-t border-border/50 px-4 py-1.5">
         <Button
           size="sm"
           className="gap-1.5 text-xs"

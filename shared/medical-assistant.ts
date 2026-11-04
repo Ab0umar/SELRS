@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+export const medicalAssistantRoles = ["admin", "doctor", "nurse"] as const;
 export const medicalProposalFields = [
   "complaints",
   "symptoms",
@@ -25,7 +26,8 @@ export const medicalProposalLabels: Record<
   decision: "Final decision",
   field: "Selected field",
 };
-const transcript = z.string().trim().min(1).max(8000);
+export const medicalTranscriptMaxChars = 8000;
+const transcript = z.string().trim().min(1).max(medicalTranscriptMaxChars);
 export const medicalTranscriptSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -47,6 +49,13 @@ export const medicalProposalRequestSchema = z
   .object({
     recording: medicalTranscriptSchema,
     consentConfirmed: z.literal(true),
+    // Negative ids are patients from the legacy year databases.
+    patientId: z
+      .number()
+      .int()
+      .refine((id) => id !== 0)
+      .optional(),
+    visitId: z.number().int().positive().nullish(),
     provider: z.enum(["manus", "gemini"]).default("manus"),
     engine: z.enum(["current", "central"]).default("current"),
     model: z.string().max(100).optional(),
@@ -99,11 +108,24 @@ export type MedicalProposals = z.infer<typeof medicalProposalSchema>;
 
 export class MedicalProposalValidationError extends Error {
   constructor(
-    readonly reason: "duplicate_field" | "scope" | "source" | "speaker",
+    readonly reason: "duplicate_field" | "scope" | "source" | "speaker" | "medication",
     message: string,
   ) {
     super(message);
   }
+}
+
+// Overlapping four-word sequences, used to tell verbatim copying from rewording.
+function phrases(text: string) {
+  const words = text
+    .normalize("NFKC")
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+  const result = new Set<string>();
+  for (let index = 0; index + 4 <= words.length; index++)
+    result.add(words.slice(index, index + 4).join(" "));
+  return result;
 }
 
 export function validateMedicalProposals(
@@ -126,7 +148,8 @@ export function validateMedicalProposals(
           (item) => !input.transcript.includes(item.source),
         ))
     )
-      throw new Error(
+      throw new MedicalProposalValidationError(
+        "medication",
         "Medicine extraction is outside treatment scope or lacks transcript evidence",
       );
     if ((input.kind === "field") !== (proposal.field === "field"))
@@ -150,5 +173,35 @@ export function validateMedicalProposals(
         "Clinical decision requires an explicit doctor statement",
       );
   }
-  return output;
+  // In a recorded conversation, a field that repeats most of the transcript word
+  // for word is the raw conversation rather than an extracted value; drop it so it
+  // never fills a field. Length alone is not evidence: a condensed summary can be
+  // long, and in doctor dictation the whole transcript may be one field's value.
+  if (
+    input.kind !== "conversation" ||
+    input.mode !== "conversation" ||
+    input.transcript.length < 200
+  )
+    return output;
+  const transcriptPhrases = phrases(input.transcript);
+  if (transcriptPhrases.size < 10) return output;
+  const rawCopies = output.proposals.filter((proposal) => {
+    let repeated = 0;
+    for (const phrase of phrases(proposal.text))
+      if (transcriptPhrases.has(phrase)) repeated++;
+    return repeated / transcriptPhrases.size >= 0.6;
+  });
+  if (!rawCopies.length) return output;
+  return {
+    proposals: output.proposals.filter(
+      (proposal) => !rawCopies.includes(proposal),
+    ),
+    warnings: [
+      ...output.warnings,
+      ...rawCopies.map(
+        (proposal) =>
+          `حُذف اقتراح «${medicalProposalLabels[proposal.field]}» لأنه نسخ معظم المحادثة بدل استخراج المعلومة. راجع هذا الحقل يدويًا.`,
+      ),
+    ].slice(0, 12),
+  };
 }

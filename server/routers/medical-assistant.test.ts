@@ -3,7 +3,7 @@ import { initTRPC } from "@trpc/server";
 
 vi.mock("../_core/trpc", () => ({ router: initTRPC.create().router }));
 vi.mock("../_core/procedures", () => ({
-  medicalStaffProcedure: initTRPC.create().procedure,
+  medicalAssistantProcedure: initTRPC.create().procedure,
   adminProcedure: initTRPC.create().procedure,
 }));
 import { medicalAssistantRouter } from "./medical-assistant";
@@ -18,7 +18,7 @@ describe("medical assistant Azure token exchange", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     await expect(
-      medicalAssistantRouter.createCaller({}).speechToken(),
+      medicalAssistantRouter.createCaller({}).speechToken({ consentConfirmed: true }),
     ).rejects.toThrow("Configure AZURE");
     expect(fetcher).not.toHaveBeenCalled();
   });
@@ -29,7 +29,7 @@ describe("medical assistant Azure token exchange", () => {
       "fetch",
       vi.fn().mockResolvedValue(new Response("temporary-token")),
     );
-    expect(await medicalAssistantRouter.createCaller({}).speechToken()).toEqual(
+    expect(await medicalAssistantRouter.createCaller({}).speechToken({ consentConfirmed: true })).toEqual(
       { token: "temporary-token", region: "westeurope" },
     );
   });
@@ -43,7 +43,7 @@ describe("medical assistant Azure token exchange", () => {
         .mockResolvedValue(new Response("private details", { status: 401 })),
     );
     await expect(
-      medicalAssistantRouter.createCaller({}).speechToken(),
+      medicalAssistantRouter.createCaller({}).speechToken({ consentConfirmed: true }),
     ).rejects.toThrow("Azure Speech could not connect");
   });
 });

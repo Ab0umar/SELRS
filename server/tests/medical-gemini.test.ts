@@ -87,7 +87,7 @@ describe("optional Gemini documentation provider", () => {
       const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
       expect(() => assertMedicalGeminiAvailable()).toThrow(
-        "disabled pending confirmation",
+        "معطّل لحين تأكيد الشروط",
       );
       expect(fetchMock).not.toHaveBeenCalled();
     },
