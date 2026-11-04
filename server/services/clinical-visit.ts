@@ -40,17 +40,28 @@ export function saveClinicalVisit(
     if (input.appointmentId !== undefined)
       header.appointmentId = input.appointmentId;
     if (input.visitDate !== undefined) {
-      const [conflictingVisit] = await transaction
-        .select({ id: visits.id })
+      const day = input.visitDate.toISOString().slice(0, 10);
+      const [current] = await transaction
+        .select({ day: sql<string>`DATE_FORMAT(${visits.visitDate}, '%Y-%m-%d')` })
         .from(visits)
-        .where(
-          and(
-            eq(visits.patientId, input.patientId),
-            ne(visits.id, saved.visitId),
-            sql`DATE(${visits.visitDate}) = ${input.visitDate.toISOString().slice(0, 10)}`,
-          ),
-        )
+        .where(eq(visits.id, saved.visitId))
         .limit(1);
+      // Only moving the visit to another day can collide; a patient may have
+      // two visits on the same day and either one must still save.
+      const [conflictingVisit] =
+        current?.day === day
+          ? []
+          : await transaction
+              .select({ id: visits.id })
+              .from(visits)
+              .where(
+                and(
+                  eq(visits.patientId, input.patientId),
+                  ne(visits.id, saved.visitId),
+                  sql`DATE(${visits.visitDate}) = ${day}`,
+                ),
+              )
+              .limit(1);
       if (conflictingVisit)
         throw new TRPCError({
           code: "CONFLICT",

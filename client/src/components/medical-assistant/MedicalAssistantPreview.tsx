@@ -51,6 +51,8 @@ function MedicalAssistantDialog({
   const [recording, setRecording] = useState(false);
   const [reviewRun, setReviewRun] = useState(0);
   const [draft, setDraft] = useState("");
+  // A recorded visit was consented to before recording, so its review starts on its own.
+  const [autoStart, setAutoStart] = useState(false);
   const [result, setResult] = useState<Extract<
     RoutedTranscript,
     { kind: "conversation" }
@@ -68,6 +70,7 @@ function MedicalAssistantDialog({
   const tooLong = draftText.length > medicalTranscriptMaxChars;
   const processDraft = () => {
     if (!draftText || tooLong || recording || disabled) return;
+    setAutoStart(false);
     setResult({ kind: "conversation", mode, transcript: draftText });
     setReviewRun((value) => value + 1);
     setExpanded(true);
@@ -167,6 +170,7 @@ function MedicalAssistantDialog({
                   <ProposalReview
                     key={reviewRun}
                     input={result}
+                    autoStart={autoStart}
                     context={{ patientId, visitId }}
                   />
                 )}
@@ -257,12 +261,21 @@ function MedicalAssistantDialog({
           kind="conversation"
           mode={mode}
           patientName={patientName}
+          patientId={patientId}
+          visitId={visitId}
           onClose={() => setRecording(false)}
           onTranscript={(transcript) => {
-            setResult(null);
             setDraft(transcript.transcript);
             setRecording(false);
             setExpanded(true);
+            const text = transcript.transcript.trim();
+            if (!text || text.length > medicalTranscriptMaxChars) {
+              setResult(null);
+              return;
+            }
+            setAutoStart(true);
+            setResult({ kind: "conversation", mode, transcript: text });
+            setReviewRun((value) => value + 1);
           }}
         />
       )}

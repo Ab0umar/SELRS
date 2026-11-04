@@ -21,11 +21,14 @@ export function prepareDraftAdditions(
       skipped.push(proposal.field);
       continue;
     }
-    before[destination] ??= binding.values[destination];
     const current = after[destination] ?? binding.values[destination];
     const text = proposal.text.trim();
-    if (text && !current.split("\n").includes(text))
+    if (text && !current.split("\n").includes(text)) {
+      // Undo restores only destinations this fill changed, so later doctor
+      // edits to untouched fields are never reverted.
+      before[destination] ??= binding.values[destination];
       after[destination] = [current, text].filter(Boolean).join("\n");
+    }
   }
   return { before, after, skipped };
 }
