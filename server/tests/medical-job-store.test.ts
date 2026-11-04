@@ -17,7 +17,10 @@ vi.mock("../services/marketing/manusClient", () => ({
   downloadManusFile: vi.fn(),
   ManusRequestError: class extends Error {},
 }));
-import { readMedicalProposals } from "../services/ai/medical";
+import {
+  maintainMedicalJobs,
+  readMedicalProposals,
+} from "../services/ai/medical";
 
 const input = {
   kind: "field" as const,
@@ -81,6 +84,25 @@ describe("medical AI job store", () => {
     mocks.rows = [stored({ state: "running" })];
     const response = await readMedicalProposals(7, jobId);
     expect(response.status).toBe("failed");
+  });
+
+  it("purges expired transcripts and resumes jobs left running by a restart", async () => {
+    const jobId = randomUUID();
+    mocks.execute.mockImplementation(async (sql: string) => {
+      if (sql.startsWith("SELECT job_id,owner_id"))
+        return [[{ job_id: jobId, owner_id: 7 }], []];
+      if (sql.startsWith("SELECT")) return [[stored({ state: "running" })], []];
+      return [[], []];
+    });
+    await maintainMedicalJobs();
+    const statements = mocks.execute.mock.calls.map(([sql]) => String(sql));
+    expect(statements[0]).toMatch(/^DELETE FROM medical_ai_jobs WHERE expires_ms</);
+    await vi.waitFor(() =>
+      expect(mocks.execute).toHaveBeenCalledWith(
+        expect.stringMatching(/^UPDATE medical_ai_jobs SET state/),
+        ["failed", null, expect.any(String), jobId],
+      ),
+    );
   });
 
   it("reports a recent Gemini job as still running", async () => {

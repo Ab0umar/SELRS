@@ -8,7 +8,7 @@ import {
 } from "../services/ai/medicalSettings";
 import { availableGeminiModels } from "../services/auto-reply/ai-configuration";
 import { AiManagementStore } from "../services/ai/managementStore";
-import { getDbConnection, logAuditEvent } from "../db";
+import { getDbConnection, getPatientById, logAuditEvent } from "../db";
 import { router } from "../_core/trpc";
 import {
   medicalAssistantProcedure,
@@ -30,6 +30,10 @@ import {
   startMedicalProposals,
   readMedicalProposals,
 } from "../services/ai/medical";
+
+const speechConsentSchema = z
+  .object({ consentConfirmed: z.literal(true) })
+  .strict();
 
 let geminiModelsFailedUntil = 0;
 let geminiModelsCache: { until: number; models: Array<{ id: string; label: string }> } | undefined;
@@ -121,18 +125,9 @@ export const medicalAssistantRouter = router({
   startProposals: medicalAssistantProcedure
     .input(medicalProposalRequestSchema)
     .mutation(async ({ ctx, input }) => {
+      // Already reflects the central profile when AI management is enabled.
       const settings = await readMedicalAssistantSettings();
-      const profile =
-        process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
-          ? (await new AiManagementStore(getDbConnection).listProfiles()).find(
-              (profile) => profile.workload === "medical.documentation",
-            )
-          : undefined;
-      const [provider, ...model] = (
-        profile
-          ? `${profile.provider}:${profile.model}`
-          : settings.processingModel
-      ).split(":");
+      const [provider, ...model] = settings.processingModel.split(":");
       if (
         input.provider !== provider ||
         (input.model && input.model !== model.join(":"))
@@ -141,6 +136,15 @@ export const medicalAssistantRouter = router({
           code: "CONFLICT",
           message:
             "تغيّر مزوّد المعالجة المركزي. حدّث الصفحة وراجع الموافقة قبل الإرسال.",
+        });
+      // The job row and audit entry are linked to this patient, so it must exist.
+      if (
+        input.patientId !== undefined &&
+        !(await getPatientById(input.patientId).catch(() => undefined))
+      )
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "المريض غير موجود. لم يُرسل النص للمعالجة.",
         });
       const started = await startMedicalProposals(
         ctx.user.id,
@@ -175,12 +179,17 @@ export const medicalAssistantRouter = router({
     .mutation(({ ctx, input }) =>
       readMedicalProposals(ctx.user.id, input.jobId),
     ),
-  speechToken: medicalAssistantProcedure.mutation(async () => {
-    await assertSelectedSpeechProvider("azure");
-    return medicalSpeechToken();
-  }),
-  geminiSpeechToken: medicalAssistantProcedure.mutation(async () => {
-    await assertSelectedSpeechProvider("gemini");
-    return medicalGeminiSpeechToken();
-  }),
+  // Recording streams patient audio to the speech provider, so consent comes first.
+  speechToken: medicalAssistantProcedure
+    .input(speechConsentSchema)
+    .mutation(async () => {
+      await assertSelectedSpeechProvider("azure");
+      return medicalSpeechToken();
+    }),
+  geminiSpeechToken: medicalAssistantProcedure
+    .input(speechConsentSchema)
+    .mutation(async () => {
+      await assertSelectedSpeechProvider("gemini");
+      return medicalGeminiSpeechToken();
+    }),
 });

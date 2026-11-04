@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickTopic } from "../services/marketing/topicRotation";
+import { pickTopic, TOPICS_BY_DAY } from "../services/marketing/topicRotation";
 
 describe("marketing topic rotation", () => {
   it("keeps the center moving forward", () => {
@@ -8,7 +8,9 @@ describe("marketing topic rotation", () => {
   });
 
   it("starts the doctor at the opposite end of the same day bank", () => {
-    expect(pickTopic("saturday", 0, "reverse")).toBe("تقنيات تصحيح الإبصار");
-    expect(pickTopic("saturday", 1, "reverse")).toBe("الفحص قبل الليزك");
+    // Derived from the bank so adding topics does not break the rule under test.
+    const bank = TOPICS_BY_DAY.saturday;
+    expect(pickTopic("saturday", 0, "reverse")).toBe(bank[bank.length - 1]);
+    expect(pickTopic("saturday", 1, "reverse")).toBe(bank[bank.length - 2]);
   });
 });

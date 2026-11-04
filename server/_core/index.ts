@@ -44,6 +44,7 @@ import { startAttendanceSyncScheduler } from "./attendanceSyncScheduler";
 import { initMarketingScheduler } from "../services/marketing/scheduler.service";
 import { initManusGenerationWorker } from "../services/marketing/manusGeneration.service";
 import { initManusAccountingReconciler } from "../services/ai/reconcileManus";
+import { initMedicalJobMaintenance } from "../services/ai/medical";
 import { startOpReminderScheduler } from "./opReminderScheduler";
 import { startPunchReception } from "../services/attendance/punchReception.service";
 import { DeviceSettingsService } from "../services/attendance/deviceSettings.service";
@@ -2702,6 +2703,7 @@ async function startServer() {
   initMarketingScheduler();
   initManusGenerationWorker();
   initManusAccountingReconciler();
+  initMedicalJobMaintenance();
   startAutoReplyWorker();
   startCoexistenceWorker();
   // Pentacam/Srv100 import+OCR loops now run as a standalone service
