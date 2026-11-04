@@ -4,7 +4,10 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerAutoReplyWebhook } from "../_core/autoReplyWebhook";
-import { autoReplySettingsSchema } from "../../shared/auto-reply";
+import {
+  autoReplySettingsSchema,
+  settingsForTarget,
+} from "../../shared/auto-reply";
 import { parseMetaEvents } from "../services/auto-reply/events";
 import {
   inWorkingHours,
@@ -21,6 +24,69 @@ import {
   sendCommentPrivateReply,
 } from "../services/auto-reply/providers";
 import { autoReplyRouter } from "../routers/autoReply";
+
+describe("independent reply settings", () => {
+  it("uses the selected page style and history limit in the generated reply request", async () => {
+    const generator = vi.fn(
+      async (_request: { instruction: string; input: string }) => ({
+        reply: { text: "وعليكم السلام", handoff: false, sourceIds: [] },
+        usage: { inputTokens: 0, outputTokens: 0, model: "fixture" },
+      }),
+    );
+    const config = autoReplySettingsSchema.parse({
+      style: "shared style",
+      targets: { "456": { style: "center style", historyMessageLimit: 0 } },
+    });
+    const args = {
+      channel: "messenger" as const,
+      accountId: "456",
+      text: "سلام عليكم",
+      context: [{ direction: "inbound", body: "old message" }],
+      knowledge: [],
+      settings: config,
+    };
+    await proposeReply(args, generator);
+    expect(generator.mock.calls[0][0].instruction).toContain("center style");
+    expect(JSON.parse(generator.mock.calls[0][0].input).history).toEqual([]);
+    await proposeReply({ ...args, accountId: "654" }, generator);
+    expect(generator.mock.calls[1][0].instruction).toContain("shared style");
+    expect(JSON.parse(generator.mock.calls[1][0].input).history).toHaveLength(
+      1,
+    );
+  });
+  it("inherits existing defaults until a target is customized without leaking to other targets", () => {
+    const base = autoReplySettingsSchema.parse({
+      style: "shared",
+      targets: {
+        "456": { style: "center", historyMessageLimit: 3 },
+        whatsapp: {
+          hoursEnabled: true,
+          hours: [{ day: 1, start: "09:00", end: "10:00" }],
+          outsideMessage: "WA closed",
+        },
+      },
+    });
+    expect(settingsForTarget(base, "messenger", "456")).toMatchObject({
+      style: "center",
+      historyMessageLimit: 3,
+      hoursEnabled: false,
+    });
+    expect(settingsForTarget(base, "facebook_comment", "456").style).toBe(
+      "center",
+    );
+    expect(settingsForTarget(base, "messenger", "654")).toMatchObject({
+      style: "shared",
+      historyMessageLimit: 12,
+      hoursEnabled: false,
+    });
+    expect(settingsForTarget(base, "whatsapp", "789")).toMatchObject({
+      style: "shared",
+      hoursEnabled: true,
+      outsideMessage: "WA closed",
+    });
+    expect(base.style).toBe("shared");
+  });
+});
 import { makeCallerAs } from "./helpers/auth";
 
 const settings = autoReplySettingsSchema.parse({});

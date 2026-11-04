@@ -16,6 +16,7 @@ import {
   channelLabels,
   autoReplySettingsSchema,
   supportsGeminiSampling,
+  settingsForTarget,
   type AutoReplyChannel,
   type AutoReplySettings,
 } from "../../../../shared/auto-reply";
@@ -25,7 +26,83 @@ import "./AutoReply.css";
 import { WhatsAppCoexistence } from "./WhatsAppCoexistence";
 import AssistantModelSelect from "@/features/ai/AssistantModelSelect";
 
-type Tab = "inbox" | "knowledge" | "settings" | "test" | "activity";
+type Tab =
+  | "inbox"
+  | "knowledge"
+  | "settings"
+  | "sending"
+  | "instructions"
+  | "memory"
+  | "test"
+  | "activity";
+
+function ChannelTabs({
+  value,
+  onChange,
+  pageOnly = false,
+}: {
+  value: string;
+  onChange: (value: AutoReplyChannel) => void;
+  pageOnly?: boolean;
+}) {
+  return (
+    <nav className="ar-subtabs" aria-label="القنوات">
+      {[
+        ["whatsapp", "واتساب"],
+        ["messenger", "مسنجر"],
+        ["facebook_comment", "كومينت"],
+      ]
+        .filter(([id]) => !pageOnly || id !== "whatsapp")
+        .map(([id, label]) => (
+          <Button
+            key={id}
+            type="button"
+            variant={value === id ? "default" : "ghost"}
+            aria-pressed={value === id}
+            onClick={() => onChange(id as AutoReplyChannel)}
+          >
+            {label}
+          </Button>
+        ))}
+    </nav>
+  );
+}
+function TargetTabs({
+  value,
+  onChange,
+  pages,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  pages: FacebookPages;
+}) {
+  return (
+    <nav className="ar-subtabs" aria-label="جهة المحتوى">
+      {[
+        { id: "whatsapp", label: "واتساب" },
+        ...pages.slice(0, 2).map((page, index) => ({
+          id: page.accountId,
+          label: index === 0 ? "المركز" : "العيادة",
+        })),
+        { id: "all", label: "الكل" },
+      ].map(({ id, label }) => (
+        <Button
+          key={id}
+          type="button"
+          variant={value === id ? "default" : "ghost"}
+          aria-pressed={value === id}
+          onClick={() => onChange(id)}
+        >
+          {label}
+        </Button>
+      ))}
+    </nav>
+  );
+}
+const belongsToTarget = (value: string | undefined, target: string) =>
+  target === "all"
+    ? !value || value === "all" || value === "facebook" || value.includes(",")
+    : value === target;
 type AutoReplyOutputs = inferRouterOutputs<typeof autoReplyRouter>;
 type FacebookPages = AutoReplyOutputs["settings"]["pages"];
 const pageLabel = (accountId: string, pages: FacebookPages) =>
@@ -230,6 +307,15 @@ function ChannelSelect({
 
 export default function AutoReply() {
   const [tab, setTab] = useState<Tab>("inbox");
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const canLeaveSettings = () =>
+    !settingsDirty || window.confirm("عندك تعديلات لم تُحفظ. تسيبها وتكمل؟");
+  const [scope, setScope] = useState(() => {
+    const pending = restoredPreview();
+    return pending && pending.channel !== "whatsapp"
+      ? pending.accountId || "whatsapp"
+      : "whatsapp";
+  });
   const [previewPending, setPreviewPending] = useState(() => {
     try {
       return Boolean(sessionStorage.getItem("selrs.ai.reply.preview"));
@@ -275,31 +361,79 @@ export default function AutoReply() {
         )}
       </header>
       {settings.data && (
-        <ReplyAssistantSelect
-          key={`${settings.data.config.model}:${settings.data.config.engine}`}
-          data={settings.data}
-          disabled={previewPending}
-        />
+        <nav className="ar-scope-tabs" aria-label="جهة الرد الآلي">
+          {[
+            { id: "whatsapp", label: "واتساب" },
+            ...settings.data.pages.slice(0, 2).map((page, index) => ({
+              id: page.accountId,
+              label: index === 0 ? "صفحة المركز" : "صفحة العيادة",
+            })),
+            { id: "all", label: "المشترك" },
+          ].map(({ id, label }) => (
+            <Button
+              key={id}
+              variant={scope === id ? "default" : "outline"}
+              aria-pressed={scope === id}
+              disabled={previewPending}
+              onClick={() => {
+                if (scope === id || !canLeaveSettings()) return;
+                setSettingsDirty(false);
+                setScope(id);
+                setTab(id === "all" ? "knowledge" : "inbox");
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </nav>
+      )}
+      {settings.data && scope === "all" && (
+        <details className="ar-assistant-disclosure">
+          <summary>المساعد والموديل الحالي</summary>
+          <ReplyAssistantSelect
+            key={`${settings.data.config.model}:${settings.data.config.engine}`}
+            data={settings.data}
+            disabled={previewPending}
+          />
+        </details>
       )}
       <nav className="ar-tabs" aria-label="أقسام الرد الآلي">
         {(
           [
             ["inbox", "المحادثات"],
             ["knowledge", "Teach AI"],
-            ["settings", "الربط والإعدادات"],
+            ["settings", "الربط والفحص"],
+            ["sending", "التشغيل والمواعيد"],
+            ["instructions", "الرد والتعليمات"],
+            ["memory", "ذاكرة وحدود الرد"],
             ["test", "اختبار داخلي"],
-            ["activity", "سجل الإرسال"],
+            ["activity", "السجل"],
           ] as [Tab, string][]
-        ).map(([id, label]) => (
-          <Button
-            key={id}
-            variant={tab === id ? "default" : "outline"}
-            aria-pressed={tab === id}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </Button>
-        ))}
+        )
+          .filter(
+            ([id]) =>
+              scope !== "all" ||
+              ["knowledge", "instructions", "memory", "sending"].includes(id),
+          )
+          .map(([id, label]) => (
+            <Button
+              key={id}
+              variant={tab === id ? "default" : "outline"}
+              aria-pressed={tab === id}
+              onClick={() => {
+                if (
+                  !["settings", "sending", "instructions", "memory"].includes(
+                    id,
+                  ) &&
+                  !canLeaveSettings()
+                )
+                  return;
+                setTab(id);
+              }}
+            >
+              {label}
+            </Button>
+          ))}
       </nav>
       {settings.isLoading ? (
         <p role="status">جارٍ تحميل إعدادات الرد الآلي…</p>
@@ -319,25 +453,42 @@ export default function AutoReply() {
             )}
             {tab === "inbox" && (
               <Inbox
+                key={scope}
+                scope={scope}
                 sendingEnabled={settings.data.config.sendingEnabled}
                 pages={settings.data.pages}
               />
             )}
-            {tab === "knowledge" && <Knowledge pages={settings.data.pages} />}
-            {tab === "settings" && (
+            {tab === "knowledge" && (
+              <Knowledge
+                key={scope}
+                pages={settings.data.pages}
+                scope={scope}
+              />
+            )}
+            {["settings", "sending", "instructions", "memory"].includes(
+              tab,
+            ) && (
               <Settings
-                key={`${settings.data.config.model}:${settings.data.config.engine}`}
+                key={`${scope}:${settings.data.config.model}:${settings.data.config.engine}`}
                 data={settings.data}
+                scope={scope}
+                onDirtyChange={setSettingsDirty}
+                view={tab as "settings" | "sending" | "instructions" | "memory"}
               />
             )}
             {tab === "test" && (
               <InternalTest
+                key={scope}
+                scope={scope}
                 pages={settings.data.pages}
                 activeEngine={settings.data.config.engine}
                 onPendingChange={setPreviewPending}
               />
             )}
-            {tab === "activity" && <Activity pages={settings.data.pages} />}
+            {tab === "activity" && (
+              <Activity key={scope} pages={settings.data.pages} scope={scope} />
+            )}
           </>
         )
       )}
@@ -473,12 +624,16 @@ function ReplyAssistantSelect({
 function Inbox({
   sendingEnabled,
   pages,
+  scope,
 }: {
   sendingEnabled: boolean;
   pages: FacebookPages;
+  scope: string;
 }) {
-  const [channel, setChannel] = useState("");
-  const [accountId, setAccountId] = useState("");
+  const [channel, setChannel] = useState(
+    scope === "whatsapp" ? "whatsapp" : "messenger",
+  );
+  const accountId = scope === "whatsapp" ? "" : scope;
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number | null>(null);
@@ -492,58 +647,55 @@ function Inbox({
     { refetchInterval: 10_000 },
   );
   return (
-    <section aria-label="صندوق المحادثات">
-      <div className="ar-toolbar">
-        <ChannelSelect
-          all
+    <section
+      aria-label="صندوق المحادثات"
+      className={`ar-inbox-workspace ${selected ? "ar-has-selection" : ""}`}
+    >
+      <div className="ar-section-heading">
+        <div>
+          <h2>صندوق المحادثات</h2>
+          <p className="ar-muted">تابع الرسائل حسب القناة وحالة المتابعة.</p>
+        </div>
+      </div>
+      {scope !== "whatsapp" && (
+        <ChannelTabs
+          pageOnly
           value={channel}
-          onChange={(v) => {
-            setChannel(v);
-            if (v === "whatsapp") setAccountId("");
+          onChange={(value) => {
+            setChannel(value);
             setSelected(null);
             setPage(1);
           }}
         />
-        <select
-          className="ar-select"
-          aria-label="صفحة فيسبوك"
-          value={accountId}
-          disabled={channel === "whatsapp"}
-          onChange={(e) => {
-            setAccountId(e.target.value);
-            setPage(1);
-            setSelected(null);
-          }}
-        >
-          <option value="">كل صفحات فيسبوك</option>
-          {pages
-            .filter((p) => p.accountId)
-            .map((p) => (
-              <option key={p.accountId} value={p.accountId}>
-                {p.label}
-              </option>
-            ))}
-        </select>
-        <select
-          className="ar-select"
-          aria-label="حالة المحادثة"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">كل الحالات</option>
-          <option value="open">رد آلي</option>
-          <option value="human">مع موظف</option>
-          <option value="closed">مغلقة</option>
-        </select>
-        <Button variant="outline" onClick={() => void query.refetch()}>
-          تحديث المحادثات
-        </Button>
-      </div>
+      )}
+      <details className="ar-filter-disclosure">
+        <summary>تصفية المحادثات</summary>
+        <div className="ar-toolbar ar-inbox-filters">
+          <select
+            className="ar-select"
+            aria-label="حالة المحادثة"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">كل الحالات</option>
+            <option value="open">رد آلي</option>
+            <option value="human">مع موظف</option>
+            <option value="closed">مغلقة</option>
+          </select>
+          <Button variant="outline" onClick={() => void query.refetch()}>
+            تحديث المحادثات
+          </Button>
+        </div>
+      </details>
       <div className="ar-inbox">
         <aside className="ar-panel" aria-label="قائمة المحادثات">
+          <div className="ar-list-heading">
+            <h3>المحادثات</h3>
+            <span className="ar-muted">تحديث تلقائي كل ١٠ ثوانٍ</span>
+          </div>
           {query.isLoading && <p role="status">جارٍ تحميل المحادثات…</p>}
           {query.error && (
             <ErrorState
@@ -569,19 +721,12 @@ function Inbox({
                 {channelLabels[c.channel]} · <bdi>{c.participantId}</bdi>
               </strong>
               {c.channel !== "whatsapp" && (
-                <span>
-                  {pageLabel(c.accountId, pages)} · <bdi>{c.accountId}</bdi>
-                </span>
+                <span>{pageLabel(c.accountId, pages)}</span>
               )}
               <span>
                 {statusLabels[c.status]} · #{c.id}
               </span>
               <small>{time(c.lastActivityAt)}</small>
-              {c.channel === "facebook_comment" && (
-                <small>
-                  سياق التعليق: <bdi>{c.threadId}</bdi>
-                </small>
-              )}
             </button>
           ))}
           <div className="ar-toolbar">
@@ -602,18 +747,34 @@ function Inbox({
             </Button>
           </div>
         </aside>
-        <div className="ar-panel ar-thread">
-          {selected ? (
-            <Conversation
-              key={selected}
-              id={selected}
-              sendingEnabled={sendingEnabled}
-              pages={pages}
-            />
-          ) : (
-            <p>اختر محادثة لعرض سياقها والرد عليها.</p>
-          )}
-        </div>
+        {selected && (
+          <Dialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setSelected(null);
+            }}
+          >
+            <DialogContent
+              className="auto-reply ar-conversation-dialog"
+              dir="rtl"
+            >
+              <DialogHeader>
+                <DialogTitle>المحادثة</DialogTitle>
+                <DialogDescription>
+                  قراءة الرسائل والرد على العميل
+                </DialogDescription>
+              </DialogHeader>
+              <div className="ar-thread">
+                <Conversation
+                  key={selected}
+                  id={selected}
+                  sendingEnabled={sendingEnabled}
+                  pages={pages}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </section>
   );
@@ -672,14 +833,17 @@ function Conversation({
           {c.channel !== "whatsapp"
             ? `${pageLabel(c.accountId, pages)} · `
             : ""}
-          #{c.id}
+          <bdi>{c.participantId}</bdi>
         </h2>
         <span>{statusLabels[c.status]}</span>
       </div>
       {c.humanReason && (
-        <p>
-          سبب التحويل أو الإيقاف: <bdi>{c.humanReason}</bdi>
-        </p>
+        <details>
+          <summary>سبب حالة المحادثة</summary>
+          <p>
+            سبب التحويل أو الإيقاف: <bdi>{c.humanReason}</bdi>
+          </p>
+        </details>
       )}
       {c.channel === "facebook_comment" && (
         <p className="ar-notice">
@@ -693,29 +857,32 @@ function Conversation({
           </a>
         </p>
       )}
-      <div className="ar-toolbar">
-        <Button
-          variant="outline"
-          disabled={status.isPending || c.status === "human"}
-          onClick={() => status.mutate({ id, status: "human" })}
-        >
-          تحويل لموظف وإيقاف البوت
-        </Button>
-        <Button
-          variant="outline"
-          disabled={status.isPending || c.status === "open"}
-          onClick={() => status.mutate({ id, status: "open" })}
-        >
-          تفعيل البوت للرسائل الجديدة
-        </Button>
-        <Button
-          variant="outline"
-          disabled={status.isPending || c.status === "closed"}
-          onClick={() => status.mutate({ id, status: "closed" })}
-        >
-          إغلاق المحادثة
-        </Button>
-      </div>
+      <details className="ar-thread-actions">
+        <summary>إدارة المحادثة</summary>
+        <div className="ar-toolbar">
+          <Button
+            variant="outline"
+            disabled={status.isPending || c.status === "human"}
+            onClick={() => status.mutate({ id, status: "human" })}
+          >
+            تحويل لموظف وإيقاف البوت
+          </Button>
+          <Button
+            variant="outline"
+            disabled={status.isPending || c.status === "open"}
+            onClick={() => status.mutate({ id, status: "open" })}
+          >
+            تفعيل البوت للرسائل الجديدة
+          </Button>
+          <Button
+            variant="outline"
+            disabled={status.isPending || c.status === "closed"}
+            onClick={() => status.mutate({ id, status: "closed" })}
+          >
+            إغلاق المحادثة
+          </Button>
+        </div>
+      </details>
       <p className="ar-muted">
         آخر 20 رسالة ·{" "}
         {new Date(c.lastInboundAt).getTime() === 0
@@ -825,10 +992,12 @@ function Conversation({
 }
 
 type KnowledgeRow = AutoReplyOutputs["teaching"][number];
-function Knowledge({ pages }: { pages: FacebookPages }) {
+function Knowledge({ pages, scope }: { pages: FacebookPages; scope: string }) {
+  const target = scope;
   const query = trpc.autoReply.teaching.useQuery();
   const [editing, setEditing] = useState<KnowledgeRow | "new" | null>(null);
   const [search, setSearch] = useState("");
+  const [contentStatus, setContentStatus] = useState("all");
   const utils = trpc.useUtils();
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [websiteDraft, setWebsiteDraft] = useState<
@@ -846,9 +1015,14 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
     onError: (e) => toast.error(e.message),
   });
   return (
-    <section className="ar-panel">
-      <div className="ar-toolbar">
-        <h2>Teach AI</h2>
+    <section className="ar-panel ar-teaching">
+      <div className="ar-section-heading">
+        <div>
+          <h2>Teach AI</h2>
+          <p className="ar-muted">
+            مكتبة المعلومات التي يعتمد عليها المساعد في الرد.
+          </p>
+        </div>
         <Button
           onClick={() => {
             setWebsiteDraft(null);
@@ -859,8 +1033,9 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
         </Button>
       </div>
       <p>
-        اكتب المعلومات وطريقة الرد بحرية. تقدر تضيف كذا نص، وتحدد الصفحة لكل
-        واحد. المساعد يقرأ النصوص المفعّلة معًا ويرد منها بشكل طبيعي.
+        {scope === "all"
+          ? "المحتوى المشترك يُستخدم في الجهات المحددة له. تقدر تختار أكثر من جهة لكل نص."
+          : "هنا المحتوى الخاص بهذه الجهة. المساعد يستخدمه مع المحتوى المشترك المفعّل لها."}
       </p>
       {editing !== null && (
         <Dialog
@@ -889,6 +1064,7 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
               row={editing === "new" ? undefined : editing}
               pages={pages}
               websiteDraft={websiteDraft}
+              target={target}
               close={() => setEditing(null)}
             />
           </DialogContent>
@@ -923,9 +1099,22 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
           </Button>
         </form>
       </details>
-      <Field label="بحث في Teach AI">
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} />
-      </Field>
+      <div className="ar-library-filters">
+        <Field label="بحث في Teach AI">
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} />
+        </Field>
+        <Field label="حالة المحتوى">
+          <select
+            className="ar-select"
+            value={contentStatus}
+            onChange={(event) => setContentStatus(event.target.value)}
+          >
+            <option value="all">كل النصوص ({query.data?.length ?? 0})</option>
+            <option value="active">المفعّلة</option>
+            <option value="paused">المتوقفة</option>
+          </select>
+        </Field>
+      </div>
       {query.isLoading && <p role="status">جارٍ تحميل محتوى Teach AI…</p>}
       {query.error && (
         <ErrorState
@@ -941,12 +1130,18 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
       )}
       <div className="ar-knowledge-list">
         {query.data
-          ?.filter((k) => `${k.title} ${k.content}`.includes(search))
+          ?.filter(
+            (k) =>
+              belongsToTarget(k.targetPage, target) &&
+              `${k.title} ${k.content}`.includes(search) &&
+              (contentStatus === "all" ||
+                (contentStatus === "active" ? k.approved : !k.approved)),
+          )
           .map((k) => (
-            <article key={k.id} className="ar-knowledge-row">
+            <article key={k.id} className="ar-knowledge-row ar-teaching-card">
               <div>
                 <strong>{k.title}</strong>
-                <p>
+                <p className="ar-content-status">
                   {k.kind === "website" ? "محتوى موقع" : "نص تعليمي"} ·{" "}
                   {k.approved ? "مفعّل" : "متوقف"}
                 </p>
@@ -1005,6 +1200,18 @@ function Knowledge({ pages }: { pages: FacebookPages }) {
             </article>
           ))}
       </div>
+      {!!query.data?.length &&
+        !query.data.some(
+          (k) =>
+            belongsToTarget(k.targetPage, target) &&
+            `${k.title} ${k.content}`.includes(search) &&
+            (contentStatus === "all" ||
+              (contentStatus === "active" ? k.approved : !k.approved)),
+        ) && (
+          <p role="status" className="ar-notice">
+            لا توجد نصوص مطابقة. غيّر البحث أو حالة المحتوى.
+          </p>
+        )}
     </section>
   );
 }
@@ -1013,13 +1220,15 @@ function KnowledgeEditor({
   close,
   pages,
   websiteDraft,
+  target,
 }: {
   row?: KnowledgeRow;
   close: () => void;
   pages: FacebookPages;
   websiteDraft: AutoReplyOutputs["previewWebsite"] | null;
+  target: string;
 }) {
-  const [targetPage, setTargetPage] = useState(row?.targetPage ?? "all");
+  const [targetPage, setTargetPage] = useState(row?.targetPage ?? target);
   const [title, setTitle] = useState(row?.title ?? websiteDraft?.title ?? "");
   const [content, setContent] = useState(
     row?.content ?? websiteDraft?.content ?? "",
@@ -1099,10 +1308,89 @@ function KnowledgeEditor({
   );
 }
 
-function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
-  const [config, setConfig] = useState<AutoReplySettings>(() =>
+function Settings({
+  data,
+  view,
+  scope,
+  onDirtyChange,
+}: {
+  data: AutoReplyOutputs["settings"];
+  view: "settings" | "sending" | "instructions" | "memory";
+  scope: string;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  const section = view === "settings" ? "connections" : view;
+  const target = scope;
+  const [storedConfig, setStoredConfig] = useState<AutoReplySettings>(() =>
     autoReplySettingsSchema.parse(data.config),
   );
+  useEffect(() => {
+    onDirtyChange(
+      JSON.stringify(storedConfig) !==
+        JSON.stringify(autoReplySettingsSchema.parse(data.config)),
+    );
+  }, [storedConfig, data.config, onDirtyChange]);
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
+  const config =
+    scope === "all"
+      ? storedConfig
+      : settingsForTarget(
+          storedConfig,
+          scope === "whatsapp" ? "whatsapp" : "messenger",
+          scope,
+        );
+  const setConfig = (
+    change: (current: AutoReplySettings) => AutoReplySettings,
+  ) =>
+    setStoredConfig((base) => {
+      const next = change(
+        scope === "all"
+          ? base
+          : settingsForTarget(
+              base,
+              scope === "whatsapp" ? "whatsapp" : "messenger",
+              scope,
+            ),
+      );
+      if (scope === "all") return next;
+      const {
+        style,
+        maxReplyChars,
+        historyMessageLimit,
+        temperature,
+        topP,
+        topK,
+        maxOutputTokens,
+        stopSequences,
+        hoursEnabled,
+        hours,
+        outsideMessage,
+        outsideMessageEn,
+      } = next;
+      return {
+        ...base,
+        instructions: next.instructions,
+        channels: next.channels,
+        facebookPages: next.facebookPages,
+        targets: {
+          ...base.targets,
+          [scope]: {
+            style,
+            maxReplyChars,
+            historyMessageLimit,
+            temperature,
+            topP,
+            topK,
+            maxOutputTokens,
+            stopSequences,
+            hoursEnabled,
+            hours,
+            outsideMessage,
+            outsideMessageEn,
+          },
+        },
+      };
+    });
   const [stopDraft, setStopDraft] = useState(config.stopSequences.join("\n"));
   const utils = trpc.useUtils();
   const models = trpc.autoReply.models.useQuery(undefined, {
@@ -1137,525 +1425,659 @@ function Settings({ data }: { data: AutoReplyOutputs["settings"] }) {
     value: AutoReplySettings[K],
   ) => setConfig((c) => ({ ...c, [key]: value }));
   return (
-    <section className="ar-panel">
-      <h2>الربط الرسمي بالقنوات</h2>
-      <p>
-        أضف الأسرار في بيئة السيرفر. هذه الشاشة لا تستقبل المفاتيح ولا تعرض
-        قيمها. نجاح فحص الوصول لا يثبت اكتمال مراجعة التطبيق أو صلاحية إرسال كل
-        أنواع الرسائل.
-      </p>
-      <p className="ar-notice">
-        رقم تأكيد الحجوزات منفصل ويستمر بالربط الحالي. رقم خدمة العملاء يحتاج
-        WhatsApp Business App Coexistence عبر Embedded Signup حتى يستمر على
-        الموبايل. يجب التحقق من أهلية الرقم واستقبال حدث رد من الهاتف قبل تشغيل
-        الرد الآلي.
-      </p>
-      <div className="ar-connection-list">
-        <WhatsAppCoexistence />
-        {data.channels.map((c) => (
-          <article
-            key={`${c.channel}:${c.accountId}:${c.label}`}
-            className="ar-knowledge-row"
-          >
-            <div>
-              <h3>
-                {channelLabels[c.channel]} · {c.label}
-              </h3>
-              <p>
-                {c.configured
-                  ? "متغيرات الربط مضبوطة"
-                  : "إعداد السيرفر غير مكتمل"}{" "}
-                ·{" "}
-                {c.checkFresh
-                  ? "نجح فحص الوصول خلال آخر 24 ساعة"
-                  : "يحتاج فحص وصول حديثًا"}
-              </p>
-              <p>
-                معرّف الأصل: <bdi>{c.accountId || "غير مضبوط"}</bdi>
-              </p>
-              <p>
-                آخر فحص: {time(c.checkedAt)} · آخر Webhook مطابق:{" "}
-                {time(c.lastWebhookAt)}
-              </p>
-              {c.channel === "whatsapp" && (
-                <p>
-                  آخر رد مرصود من الموبايل: {time(c.lastMobileEchoAt)}. رد
-                  الموظف يوقف البوت على المحادثة.
-                </p>
-              )}
-              {c.errorCode && (
-                <p role="status">
-                  نتيجة الفحص: <bdi>{c.errorCode}</bdi>
-                </p>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              disabled={!c.configured || check.isPending}
-              onClick={() =>
-                check.mutate({ channel: c.channel, accountId: c.accountId })
-              }
-            >
-              فحص الوصول لدى Meta
-            </Button>
-          </article>
-        ))}
+    <section className="ar-panel ar-settings" data-view={view}>
+      <div hidden={section !== "connections"}>
+        <h2>الربط الرسمي بالقنوات</h2>
+        <p className="ar-muted">
+          راجع اتصال كل قناة، ثم حدد أين يعمل الرد الآلي.
+        </p>
+        <details className="ar-connection-help">
+          <summary>تعليمات الربط ومتطلبات واتساب</summary>
+          <p>
+            أضف الأسرار في بيئة السيرفر. هذه الشاشة لا تستقبل المفاتيح ولا تعرض
+            قيمها. نجاح فحص الوصول لا يثبت اكتمال مراجعة التطبيق أو صلاحية إرسال
+            كل أنواع الرسائل.
+          </p>
+          <p className="ar-notice">
+            رقم تأكيد الحجوزات منفصل ويستمر بالربط الحالي. رقم خدمة العملاء
+            يحتاج WhatsApp Business App Coexistence عبر Embedded Signup حتى
+            يستمر على الموبايل. يجب التحقق من أهلية الرقم واستقبال حدث رد من
+            الهاتف قبل تشغيل الرد الآلي.
+          </p>
+        </details>
+        <div className="ar-connection-list">
+          {data.channels
+            .filter((c) =>
+              scope === "whatsapp"
+                ? c.channel === "whatsapp"
+                : c.accountId === scope,
+            )
+            .map((c) => (
+              <article
+                key={`${c.channel}:${c.accountId}:${c.label}`}
+                className="ar-knowledge-row ar-connection-card"
+              >
+                <div>
+                  <h3>
+                    {channelLabels[c.channel]} · {c.label}
+                  </h3>
+                  <p>
+                    {c.configured
+                      ? "متغيرات الربط مضبوطة"
+                      : "إعداد السيرفر غير مكتمل"}{" "}
+                    ·{" "}
+                    {c.checkFresh
+                      ? "نجح فحص الوصول خلال آخر 24 ساعة"
+                      : "يحتاج فحص وصول حديثًا"}
+                  </p>
+                  <details className="ar-connection-diagnostics">
+                    <summary>تفاصيل الاتصال</summary>
+                    <p>
+                      معرّف الأصل: <bdi>{c.accountId || "غير مضبوط"}</bdi>
+                    </p>
+                    <p>
+                      آخر فحص: {time(c.checkedAt)} · آخر Webhook مطابق:{" "}
+                      {time(c.lastWebhookAt)}
+                    </p>
+                    {c.channel === "whatsapp" && (
+                      <p>
+                        آخر رد مرصود من الموبايل: {time(c.lastMobileEchoAt)}. رد
+                        الموظف يوقف البوت على المحادثة.
+                      </p>
+                    )}
+                  </details>
+                  {c.errorCode && (
+                    <p role="status">
+                      نتيجة الفحص: <bdi>{c.errorCode}</bdi>
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={!c.configured || check.isPending}
+                  onClick={() =>
+                    check.mutate({ channel: c.channel, accountId: c.accountId })
+                  }
+                >
+                  فحص الوصول لدى Meta
+                </Button>
+              </article>
+            ))}
+        </div>
+        <details className="ar-settings-group" hidden={scope !== "whatsapp"}>
+          <summary>إدارة ربط واتساب مع الموبايل</summary>
+          <WhatsAppCoexistence />
+        </details>
+        <details>
+          <summary>مسار Webhook والصلاحيات المطلوبة</summary>
+          <p dir="ltr" className="ar-prewrap">
+            {window.location.origin}/webhook/auto-reply/meta
+          </p>
+          <p>
+            WhatsApp: whatsapp_business_messaging وwhatsapp_business_management.
+            ماسنجر: pages_messaging. التعليقات: pages_read_engagement
+            وpages_read_user_content وpages_manage_engagement. الاشتراك:
+            pages_manage_metadata. راجع Advanced Access وApp Review وBusiness
+            Verification حسب استخدام التطبيق والأصول.
+          </p>
+          <p>
+            اشترك في messages وsmb_message_echoes لواتساب، وmessages
+            وmessage_echoes وfeed للصفحة. دليل الإعداد داخل المستودع:
+            docs/auto-reply-setup.md.
+          </p>
+        </details>
       </div>
-      <details>
-        <summary>مسار Webhook والصلاحيات المطلوبة</summary>
-        <p dir="ltr" className="ar-prewrap">
-          {window.location.origin}/webhook/auto-reply/meta
-        </p>
-        <p>
-          WhatsApp: whatsapp_business_messaging وwhatsapp_business_management.
-          ماسنجر: pages_messaging. التعليقات: pages_read_engagement
-          وpages_read_user_content وpages_manage_engagement. الاشتراك:
-          pages_manage_metadata. راجع Advanced Access وApp Review وBusiness
-          Verification حسب استخدام التطبيق والأصول.
-        </p>
-        <p>
-          اشترك في messages وsmb_message_echoes لواتساب، وmessages
-          وmessage_echoes وfeed للصفحة. دليل الإعداد داخل المستودع:
-          docs/auto-reply-setup.md.
-        </p>
-      </details>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate(config);
+          save.mutate(storedConfig);
         }}
       >
-        <h2>الإرسال وأسلوب الرد</h2>
-        <Check
-          label="السماح بالإرسال العام (يشمل الرد اليدوي)"
-          checked={config.sendingEnabled}
-          onChange={(v) => update("sendingEnabled", v)}
-        />
-        {autoReplyChannels.map((c) => (
-          <Check
-            key={c}
-            label={`تشغيل الرد الآلي على ${channelLabels[c]}`}
-            checked={config.channels[c]}
-            onChange={(v) => update("channels", { ...config.channels, [c]: v })}
-          />
-        ))}
-        <h3>تشغيل الرد لكل صفحة</h3>
-        <p>
-          مفتاح القناة العام يتحكم في الصفحتين. فعّل ماسنجر والتعليقات لكل صفحة
-          على حدة بعد فحص اتصالها.
-        </p>
-        {data.pages.map((p, i) => (
-          <fieldset key={`${p.accountId}:${i}`} className="ar-editor">
-            <legend>{p.label}</legend>
-            <p>
-              معرّف الصفحة: <bdi>{p.accountId || "غير مضبوط على السيرفر"}</bdi>
-            </p>
-            {(["messenger", "facebook_comment"] as const).map((channel) => (
-              <Check
-                key={channel}
-                label={`الرد الآلي على ${channelLabels[channel]} · ${p.label}`}
-                disabled={!p.accountId || save.isPending}
-                checked={config.facebookPages[p.accountId]?.[channel] ?? false}
-                onChange={(value) =>
-                  update("facebookPages", {
-                    ...config.facebookPages,
-                    [p.accountId]: {
-                      ...(config.facebookPages[p.accountId] ?? {
-                        messenger: false,
-                        facebook_comment: false,
-                      }),
-                      [channel]: value,
-                    },
-                  })
-                }
-              />
-            ))}
-          </fieldset>
-        ))}
-        <div className="ar-form-grid">
-          <Field label="أقصى طول للرد بالحروف">
-            <Input
-              type="number"
-              min={100}
-              max={2000}
-              value={config.maxReplyChars}
-              onChange={(e) => update("maxReplyChars", Number(e.target.value))}
-            />
-          </Field>
-          <Field label="الاحتفاظ بالمحادثات بالأيام (7–365)">
-            <Input
-              type="number"
-              min={7}
-              max={365}
-              value={config.retentionDays}
-              onChange={(e) => update("retentionDays", Number(e.target.value))}
-            />
-          </Field>
-        </div>
-        {models.isLoading && (
-          <p role="status">جارٍ تحميل الموديلات المتاحة لحسابك…</p>
-        )}
-        {models.error && (
-          <ErrorState
-            message={models.error.message}
-            retry={() => void models.refetch()}
-          />
-        )}
-        <p>
-          Gemini:{" "}
-          {data.geminiConfigured
-            ? "المفتاح مضبوط على السيرفر، استخدم الاختبار الداخلي للتحقق من الموديل"
-            : "المفتاح غير مضبوط على السيرفر"}
-          . لا يتاح للبوت تعديل بيانات المرضى أو الحجوزات.
-        </p>
-        <h2>AI Settings · ذاكرة المحادثة</h2>
-        <Field label="عدد الرسائل التي يتذكرها المساعد">
-          <Input
-            type="number"
-            min={0}
-            max={50}
-            value={config.historyMessageLimit}
-            onChange={(event) =>
-              update("historyMessageLimit", Number(event.target.value))
-            }
-          />
-        </Field>
-        <p>
-          من ٠ إلى ٥٠ رسالة لكل محادثة. اختيار ٠ يوقف إرسال التاريخ للموديل، مع
-          بقاء الرسالة الجديدة.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={clearHistory.isPending}
-          onClick={() => {
-            if (
-              window.confirm(
-                "بدء سياق جديد لكل المحادثات؟ سجل الرسائل سيظل محفوظًا، ولن يتغير وضع الموظف أو تشغيل البوت.",
-              )
-            )
-              clearHistory.mutate({});
-          }}
+        <details
+          className="ar-settings-group"
+          open
+          hidden={section !== "sending"}
         >
-          مسح سياق الذكاء الاصطناعي
-        </Button>
-        <details>
-          <summary>AI Parameters · إعدادات التوليد</summary>
-          <p>
-            {samplingSupported
-              ? "غيّر القيم عند الحاجة؛ الإعدادات الافتراضية مناسبة للبدء."
-              : "الموديل الحالي لا يطبق temperature وtopP وtopK؛ يمكن ضبط حد المخرجات وعبارات التوقف."}
-          </p>
-          <div className="ar-form-grid">
-            <Field label="Temperature">
-              <Input
-                type="number"
-                min={0}
-                max={2}
-                step={0.1}
-                disabled={!samplingSupported}
-                value={config.temperature}
-                onChange={(event) =>
-                  update("temperature", Number(event.target.value))
+          <summary>تشغيل القنوات والصفحات</summary>
+          <h2>الإرسال وأسلوب الرد</h2>
+          <Check
+            label="السماح بالإرسال العام (يشمل الرد اليدوي)"
+            disabled={scope !== "all"}
+            checked={config.sendingEnabled}
+            onChange={(v) => update("sendingEnabled", v)}
+          />
+          {scope !== "all" && (
+            <p className="ar-muted">
+              المفتاح العام يُضبط من «المشترك». الاختيارات التالية تخص هذه الجهة
+              فقط.
+            </p>
+          )}
+          {autoReplyChannels
+            .filter((c) =>
+              scope === "whatsapp"
+                ? c === "whatsapp"
+                : scope === "all"
+                  ? false
+                  : c !== "whatsapp",
+            )
+            .map((c) => (
+              <Check
+                key={c}
+                label={`تشغيل الرد الآلي على ${channelLabels[c]}`}
+                checked={
+                  scope === "whatsapp"
+                    ? config.channels[c]
+                    : (config.facebookPages[scope]?.[
+                        c as "messenger" | "facebook_comment"
+                      ] ?? false)
                 }
-              />
-            </Field>
-            <Field label="topP">
-              <Input
-                type="number"
-                min={0.01}
-                max={1}
-                step={0.05}
-                disabled={!samplingSupported}
-                value={config.topP}
-                onChange={(event) => update("topP", Number(event.target.value))}
-              />
-            </Field>
-            <Field label="topK (اختياري)">
-              <Input
-                type="number"
-                min={1}
-                max={100}
-                disabled={
-                  !samplingSupported ||
-                  !models.data?.find((model) => model.id === config.model)?.topK
-                }
-                value={config.topK ?? ""}
-                placeholder="افتراضي الموديل"
-                onChange={(event) =>
-                  update(
-                    "topK",
-                    event.target.value ? Number(event.target.value) : null,
+                onChange={(v) =>
+                  setStoredConfig((base) =>
+                    scope === "whatsapp"
+                      ? { ...base, channels: { ...base.channels, whatsapp: v } }
+                      : {
+                          ...base,
+                          channels: {
+                            ...base.channels,
+                            [c]:
+                              v ||
+                              Object.entries(base.facebookPages).some(
+                                ([id, flags]) =>
+                                  id !== scope &&
+                                  flags[c as "messenger" | "facebook_comment"],
+                              ),
+                          },
+                          facebookPages: {
+                            ...base.facebookPages,
+                            [scope]: {
+                              ...(base.facebookPages[scope] ?? {
+                                messenger: false,
+                                facebook_comment: false,
+                              }),
+                              [c]: v,
+                            },
+                          },
+                        },
                   )
                 }
               />
-            </Field>
-            <Field label="maxOutputTokens">
+            ))}
+          <details className="ar-page-options" hidden>
+            <summary>تخصيص الرد لكل صفحة</summary>
+            <h3>تشغيل الرد لكل صفحة</h3>
+            <p>
+              مفتاح القناة العام يتحكم في الصفحتين. فعّل ماسنجر والتعليقات لكل
+              صفحة على حدة بعد فحص اتصالها.
+            </p>
+            {data.pages.map((p, i) => (
+              <fieldset key={`${p.accountId}:${i}`} className="ar-editor">
+                <legend>{p.label}</legend>
+                <p>
+                  معرّف الصفحة:{" "}
+                  <bdi>{p.accountId || "غير مضبوط على السيرفر"}</bdi>
+                </p>
+                {(["messenger", "facebook_comment"] as const).map((channel) => (
+                  <Check
+                    key={channel}
+                    label={`الرد الآلي على ${channelLabels[channel]} · ${p.label}`}
+                    disabled={!p.accountId || save.isPending}
+                    checked={
+                      config.facebookPages[p.accountId]?.[channel] ?? false
+                    }
+                    onChange={(value) =>
+                      update("facebookPages", {
+                        ...config.facebookPages,
+                        [p.accountId]: {
+                          ...(config.facebookPages[p.accountId] ?? {
+                            messenger: false,
+                            facebook_comment: false,
+                          }),
+                          [channel]: value,
+                        },
+                      })
+                    }
+                  />
+                ))}
+              </fieldset>
+            ))}
+          </details>
+        </details>
+        <details
+          className="ar-settings-group"
+          open
+          hidden={section !== "memory"}
+        >
+          <summary>المساعد والذاكرة وحدود الرد</summary>
+          <div className="ar-form-grid">
+            <Field label="أقصى طول للرد بالحروف">
               <Input
                 type="number"
-                min={500}
-                max={Math.min(
-                  8192,
-                  models.data?.find((model) => model.id === config.model)
-                    ?.outputTokenLimit ?? 8192,
-                )}
-                value={config.maxOutputTokens}
-                onChange={(event) =>
-                  update("maxOutputTokens", Number(event.target.value))
+                min={100}
+                max={2000}
+                value={config.maxReplyChars}
+                onChange={(e) =>
+                  update("maxReplyChars", Number(e.target.value))
                 }
               />
             </Field>
+            {scope === "all" && (
+              <Field label="الاحتفاظ بالمحادثات بالأيام (7–365)">
+                <Input
+                  type="number"
+                  min={7}
+                  max={365}
+                  value={config.retentionDays}
+                  onChange={(e) =>
+                    update("retentionDays", Number(e.target.value))
+                  }
+                />
+              </Field>
+            )}
           </div>
-          <Field label="stopSequences (كل عبارة في سطر)">
-            <Textarea
-              aria-label="stopSequences (كل عبارة في سطر)"
-              rows={3}
-              value={stopDraft}
-              onChange={(event) => {
-                setStopDraft(event.target.value);
-                update(
-                  "stopSequences",
-                  event.target.value.split("\n").filter(Boolean),
-                );
-              }}
+          {models.isLoading && (
+            <p role="status">جارٍ تحميل الموديلات المتاحة لحسابك…</p>
+          )}
+          {models.error && (
+            <ErrorState
+              message={models.error.message}
+              retry={() => void models.refetch()}
+            />
+          )}
+          <p>
+            Gemini:{" "}
+            {data.geminiConfigured
+              ? "المفتاح مضبوط على السيرفر، استخدم الاختبار الداخلي للتحقق من الموديل"
+              : "المفتاح غير مضبوط على السيرفر"}
+            . لا يتاح للبوت تعديل بيانات المرضى أو الحجوزات.
+          </p>
+          <h2>AI Settings · ذاكرة المحادثة</h2>
+          <Field label="عدد الرسائل التي يتذكرها المساعد">
+            <Input
+              type="number"
+              min={0}
+              max={50}
+              value={config.historyMessageLimit}
+              onChange={(event) =>
+                update("historyMessageLimit", Number(event.target.value))
+              }
             />
           </Field>
           <p>
-            حتى ٥ عبارات توقف، و٤٠ حرفًا للعبارة. حد المخرجات يشمل توليد JSON
-            وقد يشمل التفكير؛ حد قليل جدًا قد يقطع الرد.
+            من ٠ إلى ٥٠ رسالة لكل محادثة. اختيار ٠ يوقف إرسال التاريخ للموديل،
+            مع بقاء الرسالة الجديدة.
           </p>
           <Button
             type="button"
             variant="outline"
+            disabled={clearHistory.isPending}
             onClick={() => {
-              setStopDraft("");
-              setConfig((current) => ({
-                ...current,
-                temperature: 0.2,
-                topP: 0.95,
-                topK: null,
-                maxOutputTokens: 4096,
-                stopSequences: [],
-              }));
+              if (
+                window.confirm(
+                  scope === "all"
+                    ? "بدء سياق جديد لكل المحادثات؟ سجل الرسائل سيظل محفوظًا."
+                    : "بدء سياق جديد لمحادثات هذه الجهة فقط؟ سجل الرسائل سيظل محفوظًا.",
+                )
+              )
+                clearHistory.mutate({ targetPage: scope });
             }}
           >
-            استعادة إعدادات التوليد
+            مسح سياق الذكاء الاصطناعي
           </Button>
-        </details>
-        <Field label="تعليمات أسلوب الرد">
-          <Textarea
-            rows={3}
-            maxLength={3000}
-            value={config.style}
-            onChange={(e) => update("style", e.target.value)}
-          />
-        </Field>
-        <h2>تعليمات إضافية للرد</h2>
-        <p>
-          أضف كل تعليمة في خانة مستقلة. تُطبّق التعليمات المفعّلة معًا، ولا
-          تتجاوز قواعد الخصوصية أو التحويل لموظف أو حظر التشخيص والعلاج.
-        </p>
-        {config.instructions.map((instruction, index) => (
-          <fieldset className="ar-editor" key={index}>
-            <legend>تعليمة {index + 1}</legend>
-            <ReplyTargetSelect
-              label={`تطبيق التعليمة ${index + 1} على`}
-              value={instruction.targetPage ?? "all"}
-              pages={data.pages}
-              disabled={save.isPending}
-              onChange={(targetPage) =>
-                update(
-                  "instructions",
-                  config.instructions.map((item, i) =>
-                    i === index ? { ...item, targetPage } : item,
-                  ),
-                )
-              }
-            />
-            <Field label={`نص التعليمة ${index + 1}`}>
-              <Textarea
-                aria-label={`نص التعليمة ${index + 1}`}
-                rows={3}
-                maxLength={1000}
-                required
-                value={instruction.text}
-                disabled={save.isPending}
-                onChange={(e) =>
-                  update(
-                    "instructions",
-                    config.instructions.map((item, i) =>
-                      i === index ? { ...item, text: e.target.value } : item,
-                    ),
-                  )
-                }
-              />
-            </Field>
-            <div className="ar-toolbar">
-              <Check
-                label={`تفعيل التعليمة ${index + 1}`}
-                checked={instruction.enabled}
-                disabled={save.isPending}
-                onChange={(enabled) =>
-                  update(
-                    "instructions",
-                    config.instructions.map((item, i) =>
-                      i === index ? { ...item, enabled } : item,
-                    ),
-                  )
-                }
-              />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={save.isPending}
-                aria-label={`حذف التعليمة ${index + 1}`}
-                onClick={() =>
-                  update(
-                    "instructions",
-                    config.instructions.filter((_, i) => i !== index),
-                  )
-                }
-              >
-                حذف التعليمة
-              </Button>
+          <details>
+            <summary>AI Parameters · إعدادات التوليد</summary>
+            <p>
+              {samplingSupported
+                ? "غيّر القيم عند الحاجة؛ الإعدادات الافتراضية مناسبة للبدء."
+                : "الموديل الحالي لا يطبق temperature وtopP وtopK؛ يمكن ضبط حد المخرجات وعبارات التوقف."}
+            </p>
+            <div className="ar-form-grid">
+              <Field label="Temperature">
+                <Input
+                  type="number"
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  disabled={!samplingSupported}
+                  value={config.temperature}
+                  onChange={(event) =>
+                    update("temperature", Number(event.target.value))
+                  }
+                />
+              </Field>
+              <Field label="topP">
+                <Input
+                  type="number"
+                  min={0.01}
+                  max={1}
+                  step={0.01}
+                  disabled={!samplingSupported}
+                  value={config.topP}
+                  onChange={(event) =>
+                    update("topP", Number(event.target.value))
+                  }
+                />
+              </Field>
+              <Field label="topK (اختياري)">
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  disabled={
+                    !samplingSupported ||
+                    !models.data?.find((model) => model.id === config.model)
+                      ?.topK
+                  }
+                  value={config.topK ?? ""}
+                  placeholder="افتراضي الموديل"
+                  onChange={(event) =>
+                    update(
+                      "topK",
+                      event.target.value ? Number(event.target.value) : null,
+                    )
+                  }
+                />
+              </Field>
+              <Field label="maxOutputTokens">
+                <Input
+                  type="number"
+                  min={500}
+                  max={Math.min(
+                    8192,
+                    models.data?.find((model) => model.id === config.model)
+                      ?.outputTokenLimit ?? 8192,
+                  )}
+                  value={config.maxOutputTokens}
+                  onChange={(event) =>
+                    update("maxOutputTokens", Number(event.target.value))
+                  }
+                />
+              </Field>
             </div>
-          </fieldset>
-        ))}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={save.isPending || config.instructions.length >= 30}
-          onClick={() =>
-            update("instructions", [
-              ...config.instructions,
-              { text: "", enabled: true, targetPage: "all" },
-            ])
-          }
-        >
-          إضافة تعليمة
-        </Button>
-        <p>
-          حتى 30 تعليمة، و1000 حرف للواحدة وبحد أقصى 12000 حرف إجمالًا. اضغط حفظ
-          الإعدادات لتطبيق التغييرات.
-        </p>
-        <h2>ساعات العمل بتوقيت القاهرة</h2>
-        <Check
-          label="إرسال رسالة خارج المواعيد"
-          checked={config.hoursEnabled}
-          onChange={(v) => update("hoursEnabled", v)}
-        />
-        {config.hours.map((h, i) => (
-          <div className="ar-hours" key={i}>
-            <Field label="اليوم">
-              <select
-                className="ar-select"
-                value={h.day}
-                onChange={(e) =>
+            <Field label="stopSequences (كل عبارة في سطر)">
+              <Textarea
+                aria-label="stopSequences (كل عبارة في سطر)"
+                rows={3}
+                value={stopDraft}
+                onChange={(event) => {
+                  setStopDraft(event.target.value);
                   update(
-                    "hours",
-                    config.hours.map((item, n) =>
-                      n === i ? { ...item, day: Number(e.target.value) } : item,
-                    ),
-                  )
-                }
-              >
-                {[
-                  "الأحد",
-                  "الاثنين",
-                  "الثلاثاء",
-                  "الأربعاء",
-                  "الخميس",
-                  "الجمعة",
-                  "السبت",
-                ].map((d, n) => (
-                  <option key={n} value={n}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="من">
-              <Input
-                type="time"
-                value={h.start}
-                onChange={(e) =>
-                  update(
-                    "hours",
-                    config.hours.map((item, n) =>
-                      n === i ? { ...item, start: e.target.value } : item,
-                    ),
-                  )
-                }
+                    "stopSequences",
+                    event.target.value.split("\n").filter(Boolean),
+                  );
+                }}
               />
             </Field>
-            <Field label="إلى">
-              <Input
-                type="time"
-                value={h.end}
-                onChange={(e) =>
-                  update(
-                    "hours",
-                    config.hours.map((item, n) =>
-                      n === i ? { ...item, end: e.target.value } : item,
-                    ),
-                  )
-                }
-              />
-            </Field>
+            <p>
+              حتى ٥ عبارات توقف، و٤٠ حرفًا للعبارة. حد المخرجات يشمل توليد JSON
+              وقد يشمل التفكير؛ حد قليل جدًا قد يقطع الرد.
+            </p>
             <Button
               type="button"
               variant="outline"
-              onClick={() =>
-                update(
-                  "hours",
-                  config.hours.filter((_, n) => n !== i),
-                )
-              }
+              onClick={() => {
+                setStopDraft("");
+                setConfig((current) => ({
+                  ...current,
+                  temperature: 0.2,
+                  topP: 0.95,
+                  topK: null,
+                  maxOutputTokens: 4096,
+                  stopSequences: [],
+                }));
+              }}
             >
-              حذف الفترة {i + 1}
+              استعادة إعدادات التوليد
             </Button>
-          </div>
-        ))}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={config.hours.length >= 28}
-          onClick={() =>
-            update("hours", [
-              ...config.hours,
-              { day: 0, start: "09:00", end: "17:00" },
-            ])
-          }
+          </details>
+        </details>
+        <details
+          className="ar-settings-group"
+          open
+          hidden={section !== "instructions"}
         >
-          إضافة فترة عمل للمراجعة
-        </Button>
-        <p className="ar-muted">
-          الفترات التي تنتهي قبل بدايتها تمتد لليوم التالي. لا تُرسل هذه
-          المواعيد للعميل إلا إذا كتبتها في محتوى Teach AI المفعّل.
-        </p>
-        <Field label="رسالة خارج المواعيد بالعربية">
-          <Textarea
-            value={config.outsideMessage}
-            maxLength={1000}
-            onChange={(e) => update("outsideMessage", e.target.value)}
+          <summary>أسلوب الرد والتعليمات الإضافية</summary>
+          <Field
+            label={
+              scope === "all" ? "أسلوب الرد الافتراضي" : "أسلوب الرد لهذه الجهة"
+            }
+          >
+            <Textarea
+              rows={3}
+              maxLength={3000}
+              value={config.style}
+              onChange={(e) => update("style", e.target.value)}
+            />
+          </Field>
+          <h2>تعليمات إضافية للرد</h2>
+          <p>
+            أضف كل تعليمة في خانة مستقلة. تُطبّق التعليمات المفعّلة معًا، ولا
+            تتجاوز قواعد الخصوصية أو التحويل لموظف أو حظر التشخيص والعلاج.
+          </p>
+          <div className="ar-instruction-grid">
+            {config.instructions.map((instruction, index) => (
+              <fieldset
+                className="ar-editor"
+                key={index}
+                hidden={!belongsToTarget(instruction.targetPage, target)}
+              >
+                <legend>تعليمة {index + 1}</legend>
+                <ReplyTargetSelect
+                  label={`تطبيق التعليمة ${index + 1} على`}
+                  value={instruction.targetPage ?? "all"}
+                  pages={data.pages}
+                  disabled={save.isPending}
+                  onChange={(targetPage) =>
+                    update(
+                      "instructions",
+                      config.instructions.map((item, i) =>
+                        i === index ? { ...item, targetPage } : item,
+                      ),
+                    )
+                  }
+                />
+                <Field label={`نص التعليمة ${index + 1}`}>
+                  <Textarea
+                    aria-label={`نص التعليمة ${index + 1}`}
+                    rows={3}
+                    maxLength={1000}
+                    required
+                    value={instruction.text}
+                    disabled={save.isPending}
+                    onChange={(e) =>
+                      update(
+                        "instructions",
+                        config.instructions.map((item, i) =>
+                          i === index
+                            ? { ...item, text: e.target.value }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                </Field>
+                <div className="ar-toolbar">
+                  <Check
+                    label={`تفعيل التعليمة ${index + 1}`}
+                    checked={instruction.enabled}
+                    disabled={save.isPending}
+                    onChange={(enabled) =>
+                      update(
+                        "instructions",
+                        config.instructions.map((item, i) =>
+                          i === index ? { ...item, enabled } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={save.isPending}
+                    aria-label={`حذف التعليمة ${index + 1}`}
+                    onClick={() =>
+                      update(
+                        "instructions",
+                        config.instructions.filter((_, i) => i !== index),
+                      )
+                    }
+                  >
+                    حذف التعليمة
+                  </Button>
+                </div>
+              </fieldset>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={save.isPending || config.instructions.length >= 30}
+            onClick={() =>
+              update("instructions", [
+                ...config.instructions,
+                { text: "", enabled: true, targetPage: target },
+              ])
+            }
+          >
+            إضافة تعليمة
+          </Button>
+          <p>
+            حتى 30 تعليمة، و1000 حرف للواحدة وبحد أقصى 12000 حرف إجمالًا. اضغط
+            حفظ الإعدادات لتطبيق التغييرات.
+          </p>
+        </details>
+        <details
+          className="ar-settings-group"
+          open
+          hidden={section !== "sending"}
+        >
+          <summary>ساعات العمل والرد خارج المواعيد</summary>
+          <h2>ساعات العمل بتوقيت القاهرة</h2>
+          <Check
+            label="إرسال رسالة خارج المواعيد"
+            checked={config.hoursEnabled}
+            onChange={(v) => update("hoursEnabled", v)}
           />
-        </Field>
-        <Field label="رسالة خارج المواعيد بالإنجليزية">
-          <Textarea
-            dir="ltr"
-            value={config.outsideMessageEn}
-            maxLength={1000}
-            onChange={(e) => update("outsideMessageEn", e.target.value)}
-          />
-        </Field>
-        <p>
-          حفظ الإعدادات يلغي الردود المنتظرة حتى لا تُرسل وفق تعليمات قديمة.
-          الاحتفاظ يحذف المحتوى دوريًا؛ تبقى بصمات أحداث غير نصية 90 يومًا لمنع
-          التكرار.
-        </p>
-        <Button disabled={save.isPending}>
-          {save.isPending ? "جارٍ الحفظ…" : "حفظ إعدادات الرد الآلي"}
-        </Button>
+          {config.hours.map((h, i) => (
+            <div className="ar-hours" key={i}>
+              <Field label="اليوم">
+                <select
+                  className="ar-select"
+                  value={h.day}
+                  onChange={(e) =>
+                    update(
+                      "hours",
+                      config.hours.map((item, n) =>
+                        n === i
+                          ? { ...item, day: Number(e.target.value) }
+                          : item,
+                      ),
+                    )
+                  }
+                >
+                  {[
+                    "الأحد",
+                    "الاثنين",
+                    "الثلاثاء",
+                    "الأربعاء",
+                    "الخميس",
+                    "الجمعة",
+                    "السبت",
+                  ].map((d, n) => (
+                    <option key={n} value={n}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="من">
+                <Input
+                  type="time"
+                  value={h.start}
+                  onChange={(e) =>
+                    update(
+                      "hours",
+                      config.hours.map((item, n) =>
+                        n === i ? { ...item, start: e.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </Field>
+              <Field label="إلى">
+                <Input
+                  type="time"
+                  value={h.end}
+                  onChange={(e) =>
+                    update(
+                      "hours",
+                      config.hours.map((item, n) =>
+                        n === i ? { ...item, end: e.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </Field>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  update(
+                    "hours",
+                    config.hours.filter((_, n) => n !== i),
+                  )
+                }
+              >
+                حذف الفترة {i + 1}
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={config.hours.length >= 28}
+            onClick={() =>
+              update("hours", [
+                ...config.hours,
+                { day: 0, start: "09:00", end: "17:00" },
+              ])
+            }
+          >
+            إضافة فترة عمل للمراجعة
+          </Button>
+          <p className="ar-muted">
+            الفترات التي تنتهي قبل بدايتها تمتد لليوم التالي. لا تُرسل هذه
+            المواعيد للعميل إلا إذا كتبتها في محتوى Teach AI المفعّل.
+          </p>
+          <Field label="رسالة خارج المواعيد بالعربية">
+            <Textarea
+              value={config.outsideMessage}
+              maxLength={1000}
+              onChange={(e) => update("outsideMessage", e.target.value)}
+            />
+          </Field>
+          <Field label="رسالة خارج المواعيد بالإنجليزية">
+            <Textarea
+              dir="ltr"
+              value={config.outsideMessageEn}
+              maxLength={1000}
+              onChange={(e) => update("outsideMessageEn", e.target.value)}
+            />
+          </Field>
+        </details>
+        <details hidden={section === "connections"}>
+          <summary>ملاحظات الحفظ والاحتفاظ بالرسائل</summary>
+          <p>
+            حفظ الإعدادات يلغي الردود المنتظرة حتى لا تُرسل وفق تعليمات قديمة.
+            الاحتفاظ يحذف المحتوى دوريًا؛ تبقى بصمات أحداث غير نصية 90 يومًا
+            لمنع التكرار.
+          </p>
+        </details>
+        <div className="ar-save-bar" hidden={section === "connections"}>
+          <span className="ar-muted">تُطبّق التغييرات بعد الحفظ.</span>
+          <Button disabled={save.isPending}>
+            {save.isPending ? "جارٍ الحفظ…" : "حفظ إعدادات الرد الآلي"}
+          </Button>
+        </div>
       </form>
     </section>
   );
@@ -1693,10 +2115,12 @@ function InternalTest({
   pages,
   activeEngine,
   onPendingChange,
+  scope,
 }: {
   pages: FacebookPages;
   activeEngine: "current" | "central";
   onPendingChange: (pending: boolean) => void;
+  scope: string;
 }) {
   const capabilities = trpc.aiManagement.status.useQuery(undefined, {
     retry: false,
@@ -1710,9 +2134,9 @@ function InternalTest({
   const engine =
     requestId || activeEngine === "central" ? "central_live" : "current";
   const sending = useRef(false);
-  const [accountId, setAccountId] = useState(restored?.accountId ?? "");
+  const [accountId, setAccountId] = useState(scope === "whatsapp" ? "" : scope);
   const [channel, setChannel] = useState<AutoReplyChannel>(
-    restored?.channel ?? "whatsapp",
+    scope === "whatsapp" ? "whatsapp" : "messenger",
   );
   const [text, setText] = useState(restored?.text ?? "");
   const test = trpc.autoReply.test.useMutation({ retry: false });
@@ -1780,20 +2204,8 @@ function InternalTest({
           });
         }}
       >
-        <ChannelSelect
-          value={channel}
-          disabled={Boolean(requestId)}
-          onChange={(v) => setChannel(v as AutoReplyChannel)}
-        />
-        {channel !== "whatsapp" && (
-          <ReplyTargetSelect
-            label="صفحة الاختبار"
-            disabled={Boolean(requestId)}
-            value={accountId}
-            onChange={setAccountId}
-            pages={pages}
-            includeAll={false}
-          />
+        {scope !== "whatsapp" && !requestId && (
+          <ChannelTabs pageOnly value={channel} onChange={setChannel} />
         )}
         <Field label="رسالة العميل للاختبار">
           <Textarea
@@ -1887,12 +2299,21 @@ function InternalTest({
     </section>
   );
 }
-function Activity({ pages }: { pages: FacebookPages }) {
-  const query = trpc.autoReply.activity.useQuery(undefined, {
-    refetchInterval: 10_000,
-  });
+function Activity({ pages, scope }: { pages: FacebookPages; scope: string }) {
+  const [channel, setChannel] = useState<AutoReplyChannel>(
+    scope === "whatsapp" ? "whatsapp" : "messenger",
+  );
+  const query = trpc.autoReply.activity.useQuery(
+    { channel, accountId: scope === "whatsapp" ? undefined : scope },
+    {
+      refetchInterval: 10_000,
+    },
+  );
   return (
     <section className="ar-panel">
+      {scope !== "whatsapp" && (
+        <ChannelTabs pageOnly value={channel} onChange={setChannel} />
+      )}
       <h2>آخر 100 مهمة إرسال</h2>
       <p>
         يعرض الحالات وأكواد الأخطاء واستهلاك Gemini دون نصوص العملاء أو
