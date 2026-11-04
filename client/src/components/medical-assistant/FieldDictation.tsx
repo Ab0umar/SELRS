@@ -49,28 +49,7 @@ type RecordingProps = {
     }
 );
 
-// Recording consent is remembered per saved visit until the page reloads. A
-// visit without an id is asked again in each new recording, since "new" would
-// match any later unsaved visit of the same patient.
-const consentedVisits = new Set<string>();
-
 export default function FieldDictation(props: RecordingProps) {
-  const visitKey =
-    props.patientId !== undefined && props.visitId
-      ? `${props.patientId}:${props.visitId}`
-      : undefined;
-  // Consent given in this recording holds for its patient, so saving the visit
-  // mid-recording (which gives it an id) does not interrupt the capture.
-  const patientKey = String(props.patientId ?? "none");
-  const [consentedFor, setConsentedFor] = useState<string>();
-  const consented =
-    (visitKey !== undefined && consentedVisits.has(visitKey)) ||
-    consentedFor === patientKey;
-  useEffect(() => {
-    if (consentedFor === patientKey && visitKey !== undefined)
-      consentedVisits.add(visitKey);
-  }, [consentedFor, patientKey, visitKey]);
-  const [consentChecked, setConsentChecked] = useState(false);
   const settings = trpc.medicalAssistant.settings.useQuery(undefined, {
     retry: false,
     staleTime: 0,
@@ -108,49 +87,6 @@ export default function FieldDictation(props: RecordingProps) {
         </DialogContent>
       </Dialog>
     );
-  if (!consented)
-    return (
-      <Dialog
-        open
-        onOpenChange={(open) => {
-          if (!open) props.onClose();
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>موافقة المريض على التسجيل</DialogTitle>
-            <DialogDescription>
-              سيُرسل صوت الزيارة إلى{" "}
-              {snapshot.speechProvider === "gemini" ? "Gemini" : "Azure"}{" "}
-              لتحويله إلى نص، ثم يُرسل النص للذكاء الاصطناعي لتعبئة الحقول
-              للمراجعة. لا يبدأ التسجيل قبل تأكيد موافقة المريض.
-            </DialogDescription>
-          </DialogHeader>
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={consentChecked}
-              onChange={(event) => setConsentChecked(event.target.checked)}
-            />
-            حصلت على موافقة المريض على تسجيل الصوت ومعالجته بالذكاء الاصطناعي.
-          </label>
-          <div className="flex gap-2">
-            <Button
-              disabled={!consentChecked}
-              onClick={() => {
-                if (visitKey !== undefined) consentedVisits.add(visitKey);
-                setConsentedFor(patientKey);
-              }}
-            >
-              بدء التسجيل
-            </Button>
-            <Button variant="outline" onClick={props.onClose}>
-              إلغاء
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
   return (
     <ConfiguredFieldDictation
       {...props}
@@ -176,6 +112,8 @@ function ConfiguredFieldDictation(props: RecordingProps) {
   const [status, setStatus] = useState("جارٍ تشغيل الميكروفون…");
   const [active, setActive] = useState(true);
   const [error, setError] = useState("");
+  // A recovered interruption: shown to the doctor, but the recording goes on.
+  const [notice, setNotice] = useState("");
   const [applied, setApplied] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [reviewText, setReviewText] = useState<string>();
@@ -212,6 +150,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
       | Awaited<ReturnType<typeof import("./gemini-live").connectGeminiLive>>
       | undefined;
     let finishTimer: ReturnType<typeof setTimeout> | undefined;
+    let finishing: (() => void) | undefined;
     let session: ReturnType<typeof maintainContinuousSpeech> | undefined;
     let limit: ReturnType<typeof setTimeout> | undefined;
     let meterTimer: ReturnType<typeof setInterval> | undefined;
@@ -289,6 +228,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
         release();
       };
       if (gemini) {
+        finishing = finish;
         stopPcm?.();
         stopPcm = undefined;
         try {
@@ -395,10 +335,18 @@ function ConfiguredFieldDictation(props: RecordingProps) {
                 setPartial(value);
               }
             },
-            error: () =>
+            error: () => {
+              // Gemini may close the socket once it has the end of the audio;
+              // after «إيقاف» that is the normal end, not a failure.
+              if (stopping && finishing) {
+                clearTimeout(finishTimer);
+                finishing();
+                return;
+              }
               fail(
                 "Gemini Live disconnected. Finalized text is preserved; some speech may be missing. Try Azure or start a new recording.",
-              ),
+              );
+            },
           });
           gemini = connected;
           if (disposed || stopping) {
@@ -564,7 +512,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
               );
               return;
             }
-            setError(
+            setNotice(
               "توقف إرسال الصوت. قد يكون الكلام أثناء التوقف ناقصًا؛ أعده بعد استئناف التسجيل.",
             );
             setPartial("");
@@ -782,6 +730,11 @@ function ConfiguredFieldDictation(props: RecordingProps) {
           {error && (
             <p role="alert" className="text-destructive">
               {error}
+            </p>
+          )}
+          {notice && !error && (
+            <p role="status" className="text-muted-foreground">
+              {notice}
             </p>
           )}
           <Textarea

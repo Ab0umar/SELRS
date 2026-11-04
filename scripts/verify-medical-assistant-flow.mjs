@@ -80,7 +80,8 @@ const fakeRecorder = {
     build.onLoad({ filter: /.*/, namespace: "fake" }, () => ({
       loader: "tsx",
       resolveDir: process.cwd(),
-      contents: `import{useEffect}from'react';export default function FakeRecorder(props){useEffect(()=>{props.onTranscript({kind:'conversation',mode:props.mode,transcript:${JSON.stringify(transcript)}});},[]);return null;}`,
+      // With window.__typed the doctor closes the recorder (✕) to type instead.
+      contents: `import{useEffect}from'react';export default function FakeRecorder(props){useEffect(()=>{window.__recordings=(window.__recordings??0)+1;if(window.__typed)props.onClose();else props.onTranscript({kind:'conversation',mode:props.mode,transcript:${JSON.stringify(transcript)}});},[]);return null;}`,
     }));
   },
 };
@@ -117,6 +118,7 @@ try {
     const sent = [];
     let reads = 0;
     page.on("pageerror", (error) => errors.push(error.message));
+    if (width !== 1280) await page.addInitScript(() => { window.__typed = true; });
     await page.route("**/api/trpc/**", async (route) => {
       const url = new URL(route.request().url());
       const methods = url.pathname.split("/api/trpc/")[1].split(",");
@@ -145,8 +147,8 @@ try {
     await page.getByRole("button", { name: "المساعد الطبي", exact: true }).click();
     const review = page.getByRole("region", { name: "AI proposal review" });
     if (width === 1280) {
-      // Recording path: the review starts and fills the fields with no clicks.
-      await page.getByRole("button", { name: "تسجيل", exact: true }).click();
+      // Recording path: opening the assistant records; the review starts and
+      // fills the fields with no other clicks.
       // While the job runs, a new recording or text cannot orphan it.
       await expect(page.getByText("انتظر انتهاء المراجعة الحالية قبل تسجيل أو نص جديد.")).toBeVisible();
       await expect(page.getByRole("button", { name: "تسجيل جديد", exact: true })).toBeDisabled();
@@ -156,6 +158,8 @@ try {
       await page.getByRole("button", { name: "إغلاق", exact: true }).click();
       await expect(page.getByLabel("التوصيات")).toHaveValue(text("decision"), { timeout: 10000 });
       await page.getByRole("button", { name: "المساعد الطبي", exact: true }).click();
+      // Reopening shows the running review instead of a new recording.
+      assert.equal(await page.evaluate(() => window.__recordings), 1, "one recording");
     } else {
       // Typed or pasted text still asks for consent before it is sent.
       await page.getByPlaceholder("اكتب أو الصق كلام الزيارة هنا، أو اضغط «تسجيل».").fill(transcript);
