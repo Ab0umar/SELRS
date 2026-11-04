@@ -50,6 +50,9 @@ export default function Profile({
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const { pref, setPref } = useTheme();
+  const serverSwitchAvailable = canSwitchServer();
+  const currentServer =
+    typeof window === "undefined" ? "" : window.location.host;
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -487,18 +490,33 @@ export default function Profile({
                 })}
               </div>
 
-              {canSwitchServer() && (
-                <div className="pt-5 border-t border-border/60 space-y-3">
+              <div className="pt-5 border-t border-border/60 space-y-3">
                   <div>
                     <h4 className="text-sm font-black text-foreground">
                       السيرفر والاتصال المحلي
                     </h4>
                     <p className="text-xs font-semibold text-muted-foreground mt-0.5">
-                      إمكانية التبديل بين السيرفر المحلي والشبكة المركزية
+                      {serverSwitchAvailable
+                        ? "التبديل بين السيرفر المحلي والشبكة المركزية"
+                        : "معلومات الاتصال الحالية لهذا الجهاز"}
                     </p>
                   </div>
 
-                  <div>
+                  {currentServer && (
+                    <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+                      <div className="text-xs font-bold text-foreground">
+                        السيرفر الحالي
+                      </div>
+                      <div
+                        className="mt-1 break-all font-mono text-xs text-muted-foreground"
+                        dir="ltr"
+                      >
+                        {currentServer}
+                      </div>
+                    </div>
+                  )}
+
+                  {serverSwitchAvailable ? (
                     <Button
                       variant="outline"
                       onClick={() => openServerSwitcher()}
@@ -507,9 +525,12 @@ export default function Profile({
                       <Server className="size-4 text-primary" />
                       <span>تبديل السيرفر النشط</span>
                     </Button>
-                  </div>
+                  ) : (
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      يتم تحديد السيرفر من رابط الدخول. تبديل السيرفر المحلي متاح من تطبيق أندرويد.
+                    </p>
+                  )}
                 </div>
-              )}
             </div>
           </TabsContent>
         </Tabs>

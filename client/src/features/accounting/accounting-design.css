@@ -149,11 +149,3 @@
   div[data-operational-module="accounting"][data-ledger] { padding: 20px; }
   div[data-operational-module="accounting"][data-ledger] #module-content { padding: 24px; }
 }
-
-/* Light theme imported from glass-design; main dark theme is preserved. */
-
-@media screen {
-  :where(html:not(.dark)) div[data-operational-module="accounting"][data-ledger] {
-    background: transparent !important;
-  }
-}

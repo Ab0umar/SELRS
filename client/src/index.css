@@ -460,8 +460,8 @@
     background-image: none;
   }
   .dark body {
-    background-image: radial-gradient(circle at 0% 0%, rgba(11, 92, 194, 0.45), transparent 46%);
-    background-color: #0c1a33;
+    background-image: none;
+    background-color: #0a1a2f;
   }
   body * {
     unicode-bidi: plaintext;
@@ -519,13 +519,13 @@
 
   .dark html,
   .dark body {
-    background-color: #0c1a33 !important;
-    background-image: radial-gradient(circle at 0% 0%, rgba(11, 92, 194, 0.45), transparent 46%) !important;
+    background-color: #0a1a2f !important;
+    background-image: none !important;
     background-attachment: scroll !important;
   }
 
   .dark .selrs-page-bg {
-    background-color: #0c1a33 !important;
+    background-color: #0a1a2f !important;
     background-image: none !important;
     background-attachment: scroll !important;
   }
@@ -638,22 +638,22 @@ img {
   }
 
   .dark [class~="bg-white"] {
-    background-color: rgba(255, 255, 255, 0.07) !important;
+    background-color: rgba(18, 48, 79, 0.96) !important;
   }
 
   .dark [class*="bg-white/"] {
-    background-color: rgba(255, 255, 255, 0.07) !important;
+    background-color: rgba(18, 48, 79, 0.92) !important;
   }
 
   .dark [class*="bg-slate-50"],
   .dark [class*="bg-slate-100"] {
-    background-color: rgba(255, 255, 255, 0.09) !important;
+    background-color: rgba(15, 39, 66, 0.85) !important;
   }
 
   .dark [class*="border-slate-100"],
   .dark [class*="border-slate-200"],
   .dark [class*="border-white/80"] {
-    border-color: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(31, 68, 104, 0.9) !important;
   }
 
   .dark [class*="text-slate-950"],
@@ -676,7 +676,7 @@ img {
         rgba(56, 189, 248, 0.06),
         transparent 34%
       ),
-      linear-gradient(135deg, rgba(12, 26, 51, 0.97), rgba(21, 37, 64, 0.8)) !important;
+      linear-gradient(135deg, rgba(10, 26, 47, 0.97), rgba(18, 48, 79, 0.8)) !important;
   }
 
   .dark [class*="shadow-sm"],
@@ -906,7 +906,7 @@ img {
   }
 
   .dark .selrs-page-bg {
-    background-color: #0c1a33;
+    background-color: #0a1a2f;
     background-image: none;
   }
 
@@ -916,7 +916,7 @@ img {
   }
 
   .dark .selrs-sidebar-bg {
-    background: #0a1630;
+    background: #071426;
   }
 
   .selrs-login-bg {
@@ -931,7 +931,7 @@ img {
     --border: #dbe4ef;
     --input: #dbe4ef;
     --primary: #003d82;
-    --primary-foreground: #0c1a33;
+    --primary-foreground: #ffffff;
     --secondary: #ff9500;
     --secondary-foreground: #001f47;
     --accent: #ff9500;
@@ -983,7 +983,7 @@ img {
     --border: #dbe4ef;
     --input: #dbe4ef;
     --primary: #003d82;
-    --primary-foreground: #0c1a33;
+    --primary-foreground: #ffffff;
     --secondary: #ff9500;
     --secondary-foreground: #001f47;
     --accent: #ff9500;
@@ -1019,10 +1019,10 @@ img {
   }
 
   .dark .selrs-glass-card {
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.07);
-    box-shadow: none;
-    backdrop-filter: blur(8px);
+    border: 1px solid rgba(31, 68, 104, 0.8);
+    background: rgba(18, 48, 79, 0.95);
+    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.3);
+    backdrop-filter: none;
   }
 
   .selrs-active-nav {
@@ -1052,19 +1052,6 @@ img {
     border-radius: 1.25rem;
     background: var(--card);
     box-shadow: var(--bento-shadow-soft);
-  }
-
-  .dark .page-layout [data-slot="card"],
-  .dark .page-layout .rounded-lg.border.bg-card,
-  .dark .page-layout .rounded-xl.border.bg-card,
-  .dark .page-layout .rounded-2xl.border.bg-card,
-  .dark .page-layout .rounded-lg.border.border-border.bg-card,
-  .dark .page-layout .rounded-xl.border.border-border.bg-card {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.14);
-    box-shadow: none;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
   }
 
   .page-layout [data-slot="card-header"] {
@@ -3477,51 +3464,4 @@ body:has(.print-view-active) [data-app-scroll-container]::-webkit-scrollbar,
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
   opacity: 0 !important;
-}
-/* Light theme imported from glass-design; main dark theme is preserved. */
-@media screen{
-
-:root:where(:not(.dark)) {
-  /* Bento One clinical redesign: calm blue structure with warm orange action. */
-
-  --background: #f5f8fc;
-}
-}
-@layer components {
-
-  @media screen{
-
-  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-rail-link.is-active {
-    background: rgba(255, 255, 255, 0.5);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-  }
-
-  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-page-switcher {
-    background: rgba(255, 255, 255, 0.5);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-  }
-
-  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-health-strip {
-    background: rgba(255, 255, 255, 0.5);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-  }
-
-  :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-section-block {
-    background: rgba(255, 255, 255, 0.5);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-  }
-  }
-
-  @media screen and (max-width: 767px) {
-
-    :where(html:not(.dark)) [data-admin-hub].admin-hub-redesign-v3 .admin-hub-v3-menu-button {
-      background: rgba(255, 255, 255, 0.5);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    }
-  }
 }

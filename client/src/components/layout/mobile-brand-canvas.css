@@ -261,13 +261,3 @@
     box-shadow: inset 0 -2px 0 var(--primary) !important;
   }
 }
-/* Light theme imported from glass-design; main dark theme is preserved. */
-@media screen and (max-width: 767px) {
-  html:not(.dark) .selrs-mobile-brand-canvas .selrs-app-content :is([data-slot="card"], section.bg-card, div.bg-card.border, div:has(> [data-admin-page-header]), .clinical-workspace [role="tabpanel"] > div):not([data-medical-file-surface], [role="dialog"], [role="dialog"] *, [data-print-document], [data-print-document] *, .medical-report-brand, .medical-report-brand *, .prescription-root, .prescription-root *) {
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-  }
-  :where(html:not(.dark)) .selrs-mobile-brand-canvas {
-    background: transparent !important;
-  }
-}

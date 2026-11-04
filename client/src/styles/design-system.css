@@ -10,24 +10,24 @@
     --radius: 1rem;
     --background: #ffffff;
     --canvas: #ffffff;
-    --foreground: #0f2440;
+    --foreground: #0b2a52;
     --card: #ffffff;
-    --card-foreground: #0f2440;
+    --card-foreground: #0b2a52;
     --popover: #ffffff;
-    --popover-foreground: #0f2440;
-    --field-surface: #ffffff;
+    --popover-foreground: #0b2a52;
+    --field-surface: #f4f8fd;
     --surface-shadow: 0 1px 3px #24314304;
-    --primary: #293582;
+    --primary: #0b4a8f;
     --primary-foreground: #ffffff;
-    --secondary: #eeedf8;
-    --secondary-foreground: #293582;
-    --muted: #e9f0f8;
-    --muted-foreground: #626264;
-    --accent: #eeedf8;
-    --accent-foreground: #293582;
+    --secondary: #f7941d;
+    --secondary-foreground: #2b1500;
+    --muted: #eef4fb;
+    --muted-foreground: #4a6283;
+    --accent: #e3eef9;
+    --accent-foreground: #08366b;
     --border: #d5dfeb;
-    --input: #d6d6de;
-    --ring: #293582;
+    --input: #7591b5;
+    --ring: #0b4a8f;
     --destructive: #b91c1c;
     --destructive-foreground: #ffffff;
     --destructive-text: #b91c1c;
@@ -54,26 +54,26 @@
   }
 
   .dark {
-    --background: #0c1a33;
-    --canvas: #0c1a33;
-    --foreground: #edf3fb;
-    --card: rgba(255, 255, 255, 0.07);
-    --card-foreground: #edf3fb;
-    --popover: #1a2c4d;
-    --popover-foreground: #edf3fb;
-    --field-surface: #12233f;
+    --background: #0a1a2f;
+    --canvas: #0a1a2f;
+    --foreground: #ffffff;
+    --card: #12304f;
+    --card-foreground: #ffffff;
+    --popover: #12304f;
+    --popover-foreground: #ffffff;
+    --field-surface: #0f2742;
     --surface-shadow: 0 3px 12px #00000017;
-    --primary: #f2873a;
-    --primary-foreground: #0c1a33;
-    --secondary: #f2873a;
-    --secondary-foreground: #0c1a33;
-    --muted: #12233f;
-    --muted-foreground: #aab9cb;
-    --accent: #1e3358;
-    --accent-foreground: #c1d9ff;
-    --border: #2b3d5e;
-    --input: #8794a4;
-    --ring: #f2873a;
+    --primary: #f7941d;
+    --primary-foreground: #2b1500;
+    --secondary: #9cc4ee;
+    --secondary-foreground: #0a1a2f;
+    --muted: #0f2742;
+    --muted-foreground: #9cc4ee;
+    --accent: #1f4468;
+    --accent-foreground: #ffffff;
+    --border: #1f4468;
+    --input: #3d6a96;
+    --ring: #f7941d;
     --destructive: #fca5a5;
     --destructive-foreground: #491515;
     --destructive-text: #fca5a5;
@@ -87,21 +87,6 @@
     --warning: #ffcf70;
     --warning-foreground: #452c00;
     --warning-text: #ffcf70;
-  }
-
-  .dark body {
-    background:
-      radial-gradient(circle at 0% 0%, rgba(11, 92, 194, 0.55), transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(242, 135, 58, 0.22), transparent 50%),
-      radial-gradient(circle at 100% 0%, rgba(11, 92, 194, 0.25), transparent 45%),
-      var(--background);
-    background-attachment: scroll;
-  }
-  .dark .selrs-app-content,
-  .dark .selrs-page-bg,
-  .dark .selrs-page-bg > main,
-  .dark .page-layout {
-    background-color: transparent !important;
   }
 
   body {
@@ -406,30 +391,5 @@
     --error: #b91c1c;
     --warning-text: #795000;
     --info: #0058a8;
-  }
-}
-/* Light theme imported from glass-design; main dark theme is preserved. */
-@media screen {
-  :root:where(:not(.dark)) {
-    --background: #f5f8fc;
-    --canvas: #f5f8fc;
-    --card: rgba(255, 255, 255, 0.55);
-    --field-surface: #f5f8fc;
-  }
-  html:not(.dark) body {
-    background:
-      radial-gradient(circle at 0% 0%, rgba(6, 62, 148, 0.72), transparent 55%),
-      radial-gradient(circle at 100% 0%, rgba(44, 94, 205, 0.45), transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(214, 98, 22, 0.62), transparent 55%),
-      radial-gradient(circle at 0% 100%, rgba(16, 128, 196, 0.4), transparent 50%),
-      var(--canvas);
-    background-attachment: fixed;
-  }
-  html:not(.dark) .selrs-app-content,
-  html:not(.dark) .selrs-page-bg,
-  html:not(.dark) .selrs-page-bg > main,
-  html:not(.dark) .page-layout,
-  html:not(.dark) [data-app-scroll-container] {
-    background-color: transparent !important;
   }
 }

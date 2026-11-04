@@ -306,11 +306,3 @@
     justify-content: space-between;
   }
 }
-
-/* Light theme imported from glass-design; main dark theme is preserved. */
-
-@media screen {
-  :where(html:not(.dark)) .attendance-studio[data-operational-module="attendance"] {
-    background: transparent !important;
-  }
-}
