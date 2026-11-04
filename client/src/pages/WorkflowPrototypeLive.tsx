@@ -47,7 +47,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Search,
   Plus,
   X,
   ClipboardList,
@@ -73,6 +72,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AssistantInput as Input, AssistantTextarea as Textarea, AssistantFieldsProvider } from "@/components/medical-assistant/AssistantFields";
 import { DateInput } from "@/components/ui/date-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 type StageId =
@@ -470,15 +476,12 @@ function CatalogSearchSelect({
         </div>
       ) : null}
       <div className={`relative ${inline ? "w-[320px] max-w-full" : ""}`}>
-        <Search
-          className={`absolute top-2 h-3.5 w-3.5 text-muted-foreground ${inline ? "left-2.5" : "end-2.5"}`}
-        />
         <Input
           dir="ltr"
           placeholder={placeholder}
           value={searchText}
           onChange={(event) => onSearchTextChange(event.target.value)}
-          className="h-8 pl-8 text-xs"
+          className="h-8 text-xs"
         />
       </div>
       {searchText ? (
@@ -2603,32 +2606,51 @@ export default function WorkflowPrototypeLive() {
           <span className="shrink-0 whitespace-nowrap text-[13px] font-semibold text-slate-600">
             المريض
           </span>
-          <select
-            value={selectedLivePatient?.visitId ?? ""}
-            onChange={(event) => {
-              const visitId = event.target.value
-                ? Number(event.target.value)
-                : null;
-              const patient = livePatients.find(
-                (item) => Number(item.visitId) === visitId,
+          <Select
+            value={
+              selectedLivePatient
+                ? selectedLivePatient.visitId != null
+                  ? String(selectedLivePatient.visitId)
+                  : `patient-${selectedLivePatient.id}`
+                : undefined
+            }
+            onValueChange={(value) => {
+              const patient = value.startsWith("patient-")
+                ? livePatients.find(
+                    (item) => `patient-${item.id}` === value,
+                  )
+                : livePatients.find(
+                    (item) => String(item.visitId) === value,
+                  );
+              selectLivePatient(
+                patient?.id ?? null,
+                patient?.visitId != null ? Number(patient.visitId) : null,
               );
-              selectLivePatient(patient?.id ?? null, visitId);
             }}
-            className="h-8 min-w-0 flex-1 max-w-full rounded-md sm:w-auto sm:min-w-[220px] sm:flex-none border border-slate-200 bg-white px-2 text-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-            aria-label="المريض"
             disabled={isSavingFinalReport}
           >
-            <option value="">اختر الزيارة</option>
-            {livePatients.map((patient) => (
-              <option
-                key={`${patient.id}-${patient.visitId ?? "visit"}`}
-                value={patient.visitId ?? ""}
-              >
-                {patient.fullName ?? "مريض غير مسمى"}
-                {patient.queueStatus === "treated" ? " — معالج" : ""}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              aria-label="المريض"
+              className="h-8 min-w-0 flex-1 max-w-full px-2 text-xs sm:w-auto sm:min-w-[220px] sm:flex-none"
+            >
+              <SelectValue placeholder="اختر الزيارة" />
+            </SelectTrigger>
+            <SelectContent>
+              {livePatients.map((patient) => (
+                <SelectItem
+                  key={`${patient.id}-${patient.visitId ?? "visit"}`}
+                  value={
+                    patient.visitId != null
+                      ? String(patient.visitId)
+                      : `patient-${patient.id}`
+                  }
+                >
+                  {patient.fullName ?? "مريض غير مسمى"}
+                  {patient.queueStatus === "treated" ? " — معالج" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
       </div>
       {liveQueue.isLoading ? (
@@ -3172,9 +3194,9 @@ export default function WorkflowPrototypeLive() {
         className="final-report-sheet mx-auto w-full max-w-none space-y-5 bg-white p-[8mm] text-[15px] leading-7 text-slate-900 shadow-[0_4px_24px_rgba(0,0,0,0.14)] print:w-[190mm] print:max-w-[190mm] print:space-y-2 print:text-[13px] print:leading-4 print:p-0 print:shadow-none"
         dir="ltr"
       >
-        <header className="border-b-4 border-blue-900 pb-5">
+        <header className="border-b-4 border-blue-900 pb-5" dir="rtl">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-            <div>
+            <div className="hidden print:block" dir="ltr">
               <p className="text-sm font-black text-blue-900">
                 SELRS EYE CENTER
               </p>
@@ -3185,14 +3207,15 @@ export default function WorkflowPrototypeLive() {
                 {subtitle}
               </p>
             </div>
-            <div className="flex gap-2 print:hidden">
+            <div className="flex w-full items-center justify-between gap-2 print:hidden">
+              <div className="flex gap-2">
               <Button
                 type="button"
                 onClick={() => saveFinalReportEdits()}
                 disabled={isSavingFinalReport}
               >
-                <Save className="mr-2 h-4 w-4" />
-                {isSavingFinalReport ? "جاري الحفظ" : "حفظ التقرير"}
+                <Save className="h-4 w-4 sm:me-2" />
+                <span className="max-sm:sr-only">{isSavingFinalReport ? "جاري الحفظ" : "حفظ التقرير"}</span>
               </Button>
               <Button
                 type="button"
@@ -3200,12 +3223,18 @@ export default function WorkflowPrototypeLive() {
                 onClick={() => saveFinalReportEdits(true)}
                 disabled={isSavingFinalReport || !selectedLivePatient}
               >
-                <Save className="mr-2 h-4 w-4" />
-                حفظ وإنهاء الزيارة
+                <Save className="h-4 w-4 sm:me-2" />
+                <span className="max-sm:sr-only">حفظ وإنهاء الزيارة</span>
               </Button>
-              <Button type="button" variant="outline" onClick={printSheet}>
-                <Printer className="mr-2 h-4 w-4" />
-                Print Report
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                dir="ltr"
+                onClick={printSheet}
+              >
+                <Printer className="h-4 w-4 sm:mr-2" />
+                <span className="max-sm:sr-only">Print Report</span>
               </Button>
             </div>
           </div>
@@ -3391,7 +3420,30 @@ export default function WorkflowPrototypeLive() {
                 </div>
               </div>
               <div className="min-w-0 space-y-5 print:flex print:h-full print:flex-col print:gap-3 print:space-y-0">
-                <div className="min-w-0 overflow-hidden rounded-xl border-2 border-slate-300 bg-white print:flex-[3]">
+                <div className="grid gap-2 sm:hidden print:hidden" dir="ltr">
+                  {eyeOrder.map((eye) => (
+                    <div key={eye} className="report-mobile-card rounded-xl border p-2">
+                      <div className="mb-1 text-sm font-black">
+                        {eye === "od" ? "OD (Right)" : "OS (Left)"}
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 text-center font-mono text-sm">
+                        {(["s", "c", "a"] as const).map((k) => (
+                          <div key={k} className="rounded-lg border px-1 py-1">
+                            <div className="text-[11px] font-bold uppercase">{k}</div>
+                            {data.specialist.distance[eye][k] || "—"}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="report-mobile-card flex items-center gap-2 rounded-xl border p-2 text-sm">
+                    <span className="font-bold">Reading Add +</span>
+                    <span className="flex-1 rounded-lg border px-2 py-1 text-center font-mono">
+                      {data.specialist.reading || "—"}
+                    </span>
+                  </div>
+                </div>
+                <div className="min-w-0 max-sm:hidden overflow-hidden rounded-xl border-2 border-slate-300 bg-white print:flex-[3]">
                   <table
                     data-mobile-fit
                     className="w-full max-w-full table-fixed border-collapse text-center text-[14px] font-semibold print:h-full print:text-[16px] [&_td]:!px-1 [&_th]:!px-1"
@@ -3405,7 +3457,7 @@ export default function WorkflowPrototypeLive() {
                     </colgroup>
                     <thead className="bg-muted text-sm font-bold uppercase text-slate-800">
                       <tr>
-                        <th className="break-words border border-slate-300 px-1 py-3 text-xs sm:text-sm">
+                        <th rowSpan={2} className="break-words border border-slate-300 px-1 py-3 text-xs sm:text-sm">
                           Refraction
                         </th>
                         <th
@@ -3422,9 +3474,6 @@ export default function WorkflowPrototypeLive() {
                         </th>
                       </tr>
                       <tr>
-                        <th className="whitespace-nowrap border border-slate-300 bg-muted/50 px-1 py-3 text-[13px] sm:text-sm">
-                          Distance
-                        </th>
                         <th className="border border-slate-300 px-3 py-3">S</th>
                         <th className="border border-slate-300 px-3 py-3">C</th>
                         <th className="border border-slate-300 px-3 py-3">A</th>
@@ -3435,8 +3484,8 @@ export default function WorkflowPrototypeLive() {
                     </thead>
                     <tbody className="font-mono">
                       <tr>
-                        <td className="border border-slate-300 bg-muted/50 px-3 py-3">
-                          &nbsp;
+                        <td className="border border-slate-300 bg-muted/50 px-3 py-3 font-bold">
+                          Distance
                         </td>
                         <td className="border border-slate-300 px-3 py-3">
                           {data.specialist.distance.od.s || "—"}
@@ -3476,7 +3525,30 @@ export default function WorkflowPrototypeLive() {
                   </table>
                 </div>
                 {hasPentacam ? (
-                  <div className="overflow-visible rounded-xl border-2 border-slate-300 bg-white print:flex-[2]">
+                  <div className="grid gap-2 sm:hidden print:hidden" dir="ltr">
+                    {eyeOrder.map((eye) => (
+                      <div key={eye} className="report-mobile-card rounded-xl border p-2">
+                        <div className="mb-1 text-sm font-black">
+                          Pentacam {eye.toUpperCase()}
+                        </div>
+                        <div className="grid grid-cols-3 gap-1 text-center text-sm">
+                          {([["K1", "k1"], ["K2", "k2"], ["Axis", "axis"]] as const).map(([label, k]) => (
+                            <div key={k} className="rounded-lg border px-1 py-1">
+                              <div className="text-[11px] font-bold">{label}</div>
+                              {data.pentacam[eye][k] || "—"}
+                            </div>
+                          ))}
+                          <div className="col-span-3 rounded-lg border px-1 py-1">
+                            <div className="text-[11px] font-bold">Thinnest Location</div>
+                            {data.pentacam[eye].thinnestLocation || "—"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {hasPentacam ? (
+                  <div className="overflow-visible max-sm:hidden rounded-xl border-2 border-slate-300 bg-white print:flex-[2]">
                     <table
                     data-mobile-fit
                       className="h-full w-full max-w-full table-auto border-collapse text-center text-[14px] print:text-[16px]"
@@ -3706,7 +3778,7 @@ export default function WorkflowPrototypeLive() {
             {data.consultant.finalDecision || finalDecisionSummary || "—"}
           </p>
         </section>
-        <footer className="flex flex-col justify-between gap-2 border-t-2 border-slate-200 pt-4 text-sm font-semibold text-slate-500 sm:flex-row">
+        <footer className="hidden flex-col justify-between gap-2 border-t-2 border-slate-200 pt-4 text-sm font-semibold text-slate-500 print:flex sm:flex-row">
           <span>Report Date: {selectedDate}</span>
           <span>SELRS — Digital Medical Workflow</span>
         </footer>
@@ -3770,7 +3842,7 @@ export default function WorkflowPrototypeLive() {
           icon={FileText}
           active
           hideHeader
-          contentClassName="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4"
+          contentClassName="measurement-glass-block flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4"
         >
           <div className="order-2 flex justify-end">
             <Button
@@ -3812,7 +3884,7 @@ export default function WorkflowPrototypeLive() {
           icon={ClipboardList}
           active
           hideHeader
-          contentClassName="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4"
+          contentClassName="measurement-glass-block flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4"
         >
           {assistantPrescriptionBinding}
           <div className="order-2 flex justify-end">

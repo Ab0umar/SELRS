@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, ClipboardList, Mic, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Mic, X } from "lucide-react";
 import FieldDictation from "./FieldDictation";
 import FloatingBar from "./FloatingBar";
 import type { RoutedTranscript } from "./transcript-routing";
@@ -88,10 +88,11 @@ function MedicalAssistantDialog({
           disabled={disabled}
           aria-expanded={isOpen}
           onClick={() => handleOpenChange(!isOpen)}
-          className="gap-2 print:hidden"
+          aria-label="المساعد الطبي"
+          className="gap-2 print:hidden max-sm:w-11 max-sm:px-0"
         >
           <Mic className="h-4 w-4" aria-hidden="true" />
-          المساعد الطبي
+          <span className="max-sm:sr-only">المساعد الطبي</span>
         </Button>
       )}
       {isOpen && (
@@ -102,17 +103,20 @@ function MedicalAssistantDialog({
           hidden={recording}
           onEscape={() => handleOpenChange(false)}
           sheetTitle={
-            <>
-              <h2 className="text-sm font-semibold">المساعد الطبي</h2>
-              <p className="text-xs text-muted-foreground" dir="auto">
+            <div className="flex min-w-0 items-baseline gap-x-2">
+              <h2 className="shrink-0 text-sm font-semibold">المساعد الطبي</h2>
+              <p
+                className="min-w-0 truncate text-xs text-muted-foreground"
+                dir="auto"
+              >
                 {patientLabel} · {visitLabel}
               </p>
-            </>
+            </div>
           }
           sheet={
             <>
               <section className="space-y-1">
-                <Label htmlFor={`assistant-transcript-${patientId}`}>
+                <Label className="sr-only" htmlFor={`assistant-transcript-${patientId}`}>
                   النص الحي
                 </Label>
                 <Textarea
@@ -156,21 +160,9 @@ function MedicalAssistantDialog({
                 )}
               </section>
               <section
-                aria-labelledby={`assistant-changes-${patientId}`}
+                aria-label="التعديلات المقترحة على الحقول"
                 className="space-y-2"
               >
-                <h3
-                  id={`assistant-changes-${patientId}`}
-                  className="text-xs font-medium"
-                >
-                  التعديلات المقترحة على الحقول
-                </h3>
-                <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-                  <ClipboardList className="mb-1 h-4 w-4" aria-hidden="true" />
-                  {result
-                    ? "أُرسل النص وصار ثابتًا لهذه المهمة. راجع الاقتراحات وعدّلها قبل الحفظ."
-                    : "اكتب أو الصق أو سجّل الزيارة ثم اضغط «معالجة النص» لتجهيز الشكوى والتاريخ والتشخيص والعلاج والفحوصات والقرار النهائي للمراجعة."}
-                </div>
                 {result && (
                   <ProposalReview
                     key={reviewRun}

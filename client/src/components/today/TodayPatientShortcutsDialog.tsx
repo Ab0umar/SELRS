@@ -283,7 +283,7 @@ export function TodayPatientShortcutsDialog({
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                         {groupLabels[groupKey]}
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {groupItems.map((item) => {
                           const Icon = item.icon;
                           const colors = semanticColors[item.semantic];
@@ -293,7 +293,7 @@ export function TodayPatientShortcutsDialog({
                               type="button"
                               variant="outline"
                               className={cn(
-                                "h-auto py-3 px-3 gap-2.5 justify-start text-xs font-medium transition-colors border",
+                                "h-auto min-w-0 flex-col py-3 px-2 gap-1.5 justify-center text-center text-xs font-medium transition-colors border whitespace-normal sm:flex-row sm:justify-start sm:text-start",
                                 colors.text,
                                 colors.bg,
                                 colors.border,
