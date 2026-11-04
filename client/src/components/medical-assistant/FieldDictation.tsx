@@ -666,11 +666,19 @@ function ConfiguredFieldDictation(props: RecordingProps) {
       setApplied(true);
     }
   };
-  // A full-visit recording goes to review as soon as it stops cleanly; after an
-  // error the captured text waits for the doctor to send it.
+  // A full-visit recording goes to review once the doctor presses «إيقاف» and
+  // the recording finishes cleanly. After the time limit or an error, the
+  // captured text waits for the doctor to send it.
+  const stoppedByDoctor = useRef(false);
   const autoSent = useRef(false);
   useEffect(() => {
-    if (props.kind !== "conversation" || active || error || autoSent.current)
+    if (
+      props.kind !== "conversation" ||
+      active ||
+      error ||
+      !stoppedByDoctor.current ||
+      autoSent.current
+    )
       return;
     if (!text.trim()) return;
     autoSent.current = true;
@@ -827,7 +835,13 @@ function ConfiguredFieldDictation(props: RecordingProps) {
             {error || partial || status}
           </p>
           {active ? (
-            <Button size="sm" onClick={() => end.current()}>
+            <Button
+              size="sm"
+              onClick={() => {
+                stoppedByDoctor.current = true;
+                end.current();
+              }}
+            >
               إيقاف
             </Button>
           ) : (
