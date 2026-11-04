@@ -115,6 +115,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     const errors = [];
     const sent = [];
+    let reads = 0;
     page.on("pageerror", (error) => errors.push(error.message));
     await page.route("**/api/trpc/**", async (route) => {
       const url = new URL(route.request().url());
@@ -132,7 +133,9 @@ try {
           data = { managementEnabled: true, defaultProvider: "gemini", gemini: { configured: true, clinicalEnabled: true, models: [] }, central: { enabled: true, provider: "gemini", model: "gemini-3.8-flash" } };
         else if (method === "medical.getAllDiseases") data = [{ name: "Glaucoma", abbrev: null }];
         else if (method === "medicalAssistant.startProposals") { sent.push(input); data = { jobId: "00000000-0000-4000-8000-000000000001" }; }
-        else if (method === "medicalAssistant.readProposals") data = { status: "complete", result: aiResult };
+        // The first check reports the job as still running.
+        else if (method === "medicalAssistant.readProposals")
+          data = ++reads === 1 ? { status: "running" } : { status: "complete", result: aiResult };
         else throw new Error(`Unexpected API ${method}`);
         return { result: { data: { json: data } } };
       });
@@ -144,6 +147,10 @@ try {
     if (width === 1280) {
       // Recording path: the review starts and fills the fields with no clicks.
       await page.getByRole("button", { name: "تسجيل", exact: true }).click();
+      // While the job runs, a new recording or text cannot orphan it.
+      await expect(page.getByText("انتظر انتهاء المراجعة الحالية قبل تسجيل أو نص جديد.")).toBeVisible();
+      await expect(page.getByRole("button", { name: "تسجيل جديد", exact: true })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "نص جديد", exact: true })).toBeDisabled();
     } else {
       // Typed or pasted text still asks for consent before it is sent.
       await page.getByPlaceholder("اكتب أو الصق كلام الزيارة هنا، أو اضغط «تسجيل».").fill(transcript);

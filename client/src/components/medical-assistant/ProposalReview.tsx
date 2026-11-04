@@ -32,6 +32,7 @@ export default function ProposalReview({
   modelChoice,
   autoStart = false,
   context,
+  onRunningChange,
 }: {
   input: MedicalTranscript;
   onApplyField?: (text: string | undefined) => void;
@@ -41,6 +42,8 @@ export default function ProposalReview({
   autoStart?: boolean;
   /** Patient and visit the transcript belongs to, recorded in the audit trail. */
   context?: { patientId?: number; visitId?: number | null };
+  /** Reports whether an AI job is starting or running, so the caller can hold off a new one. */
+  onRunningChange?: (running: boolean) => void;
 }) {
   const start = trpc.medicalAssistant.startProposals.useMutation({
     retry: false,
@@ -90,6 +93,14 @@ export default function ProposalReview({
   const [paused, setPaused] = useState(false);
   const [terminalFailure, setTerminalFailure] = useState(false);
   const [result, setResult] = useState<MedicalProposals>();
+  // A job that is still running on the server blocks another one for the same
+  // visit, so the caller must not start a new review until it ends.
+  const running =
+    start.isPending || (Boolean(jobId) && !result && !terminalFailure);
+  useEffect(() => {
+    onRunningChange?.(running);
+  }, [running, onRunningChange]);
+  useEffect(() => () => onRunningChange?.(false), [onRunningChange]);
   const [error, setError] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
   const [savingDraft, setSavingDraft] = useState(false);
@@ -122,6 +133,7 @@ export default function ProposalReview({
   // Filled like every other field; the doctor reviews it there before saving.
   const diagnosisUnmatched =
     Boolean(diagnosisText.trim()) && diseases.isSuccess && !knownDiagnosis;
+  const diagnosisUnchecked = Boolean(diagnosisText.trim()) && diseases.isError;
   const [applied, setApplied] = useState<Record<string, AppliedText>>({});
   const autoApplied = useRef(false);
   const draftSignature = useRef("");
@@ -467,10 +479,11 @@ export default function ProposalReview({
               {!reviewOnly &&
                 input.kind === "conversation" &&
                 proposal.field === "diagnosis" &&
-                diagnosisUnmatched && (
+                (diagnosisUnmatched || diagnosisUnchecked) && (
                   <p role="note">
-                    التشخيص غير مطابق للكتالوج، وأُضيف للحقل كنص. راجعه قبل
-                    الحفظ.
+                    {diagnosisUnchecked
+                      ? "تعذر التحقق من الكتالوج، وأُضيف التشخيص للحقل كنص. راجعه قبل الحفظ."
+                      : "التشخيص غير مطابق للكتالوج، وأُضيف للحقل كنص. راجعه قبل الحفظ."}
                   </p>
                 )}
               <Textarea

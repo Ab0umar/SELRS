@@ -49,17 +49,21 @@ type RecordingProps = {
     }
 );
 
-// Recording consent is asked once per patient visit and kept until the page reloads.
+// Recording consent is asked once per saved visit and kept until the page
+// reloads. A visit without an id is asked every time, since "new" would match
+// any later unsaved visit of the same patient.
 const consentedVisits = new Set<string>();
 
 export default function FieldDictation(props: RecordingProps) {
   const visitKey =
-    props.patientId === undefined
-      ? undefined
-      : `${props.patientId}:${props.visitId ?? "new"}`;
-  const [consented, setConsented] = useState(
-    visitKey !== undefined && consentedVisits.has(visitKey),
-  );
+    props.patientId !== undefined && props.visitId
+      ? `${props.patientId}:${props.visitId}`
+      : undefined;
+  // Consent given in this recording is tied to the visit it was given for.
+  const [consentedFor, setConsentedFor] = useState<string>();
+  const consented =
+    (visitKey !== undefined && consentedVisits.has(visitKey)) ||
+    (consentedFor !== undefined && consentedFor === (visitKey ?? "unsaved"));
   const [consentChecked, setConsentChecked] = useState(false);
   const settings = trpc.medicalAssistant.settings.useQuery(undefined, {
     retry: false,
@@ -129,7 +133,7 @@ export default function FieldDictation(props: RecordingProps) {
               disabled={!consentChecked}
               onClick={() => {
                 if (visitKey !== undefined) consentedVisits.add(visitKey);
-                setConsented(true);
+                setConsentedFor(visitKey ?? "unsaved");
               }}
             >
               بدء التسجيل

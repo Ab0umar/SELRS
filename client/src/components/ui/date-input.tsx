@@ -165,7 +165,9 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             name={name}
             type="text"
             inputMode="numeric"
-            dir="rtl"
+            // LTR keeps day/month/year in order without inserting direction
+            // marks into the value, so backspace and the caret stay on digits.
+            dir="ltr"
             disabled={isDisabled}
             autoFocus={autoFocus}
             aria-required={required}
@@ -173,7 +175,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             placeholder={placeholder || "يوم/شهر/سنة"}
             // Keep the default wide enough for the full date. Dense layouts
             // can opt into a smaller input through inputClassName.
-            value={toArabicDigits(text).split("/").join("/‏")}
+            value={toArabicDigits(text)}
             onChange={(e) => setText(formatTyped(e.target.value))}
             onBlur={() => {
               commitText(text);

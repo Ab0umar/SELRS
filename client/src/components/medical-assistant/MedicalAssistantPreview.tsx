@@ -53,6 +53,8 @@ function MedicalAssistantDialog({
   const [draft, setDraft] = useState("");
   // A recorded visit was consented to before recording, so its review starts on its own.
   const [autoStart, setAutoStart] = useState(false);
+  // While a review runs, a new recording or text would orphan its paid result.
+  const [aiRunning, setAiRunning] = useState(false);
   const [result, setResult] = useState<Extract<
     RoutedTranscript,
     { kind: "conversation" }
@@ -136,12 +138,17 @@ function MedicalAssistantDialog({
                     النص أطول من {medicalTranscriptMaxChars} حرف. قصّره أو قسّمه.
                   </p>
                 )}
+                {aiRunning && (
+                  <p role="status" className="text-xs">
+                    انتظر انتهاء المراجعة الحالية قبل تسجيل أو نص جديد.
+                  </p>
+                )}
                 {result ? (
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={recording}
+                    disabled={recording || aiRunning}
                     onClick={() => {
                       setResult(null);
                       setDraft("");
@@ -172,6 +179,7 @@ function MedicalAssistantDialog({
                     input={result}
                     autoStart={autoStart}
                     context={{ patientId, visitId }}
+                    onRunningChange={setAiRunning}
                   />
                 )}
               </section>
@@ -221,7 +229,7 @@ function MedicalAssistantDialog({
                 type="button"
                 size="sm"
                 className="shrink-0 gap-1.5"
-                disabled={disabled || recording}
+                disabled={disabled || recording || aiRunning}
                 onClick={() => setRecording(true)}
               >
                 <Mic className="h-4 w-4" aria-hidden="true" />
