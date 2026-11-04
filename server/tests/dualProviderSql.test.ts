@@ -1,10 +1,4 @@
 import "dotenv/config";
-// Topic planning makes its own AI call (covered in topicPlanner.test.ts); these
-// tests exercise scheduling and accounting, so it returns a fixed topic.
-vi.mock("../services/marketing/topicPlanner", async (original) => ({
-  ...(await original<typeof import("../services/marketing/topicPlanner")>()),
-  planMarketingTopic: vi.fn().mockResolvedValue("LASIK"),
-}));
 vi.mock("../services/marketing/equipmentAssets", async (original) => ({
   ...(await original<typeof import("../services/marketing/equipmentAssets")>()),
   readEquipmentPhoto: vi.fn().mockResolvedValue(null),

@@ -34,14 +34,6 @@ describe("state-bound medical draft filling", () => {
       assertDraftUndo(binding, { complaint: "موجود\nصداع" }),
     ).toThrow();
   });
-  it("leaves fields the fill did not change out of the undo", () => {
-    const receipt = prepareDraftAdditions(binding, [
-      { field: "complaints", text: "موجود" },
-      { field: "diagnosis", text: "Cataract" },
-    ]);
-    expect(receipt.before).toEqual({ diagnosis: "" });
-    expect(receipt.after).toEqual({ diagnosis: "Cataract" });
-  });
   it("uses unique exact test names only", () => {
     const tests = [
       { id: 1, name: "OCT Macula", type: "imaging" },

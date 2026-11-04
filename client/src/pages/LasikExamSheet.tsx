@@ -1625,11 +1625,7 @@ export default function LasikExamSheet({
             <span className="inline-flex items-center gap-1 whitespace-nowrap font-bold min-w-0 shrink">
               <span className="text-[#434654] shrink-0">تاريخ الميلاد:</span>
               <span className="px-1 border-b border-[#c3c6d6] text-right min-w-0 truncate">
-                {displaySheetDate(formData.dateOfBirth)
-                  .replace(/\d/g, (digit) => "٠١٢٣٤٥٦٧٨٩"[Number(digit)])
-                  .split("/")
-                  .reverse()
-                  .join("/")}
+                {displaySheetDate(formData.dateOfBirth)}
               </span>
             </span>
             <label className="inline-flex items-center gap-1 whitespace-nowrap font-bold min-w-0 shrink">
@@ -2081,7 +2077,7 @@ export default function LasikExamSheet({
               />
             </div>
           ) : null}
-          {true ? (
+          {embeddedMode === "examination" ? (
             <div className="mb-3 grid grid-cols-1 gap-2 sm:hidden" dir="ltr">
               {(["od", "os"] as const).map((eye) => (
                 <div
@@ -2156,7 +2152,7 @@ export default function LasikExamSheet({
           >
             <table
               className={`sheet-refraction-table clinical-refraction-desktop-table w-full table-fixed border-collapse text-center ${
-                "hidden sm:table"
+                embeddedMode === "examination" ? "hidden sm:table" : ""
               }`}
             >
               <colgroup>
@@ -2170,9 +2166,7 @@ export default function LasikExamSheet({
               </colgroup>
               <thead className="bg-muted text-xs uppercase font-bold">
                 <tr>
-                  <th className={ctd} rowSpan={2}>
-                    Refraction
-                  </th>
+                  <th className={ctd}>Refraction</th>
                   <th className={`${ctd} text-[#003d9b]`} colSpan={3}>
                     OD (Right)
                   </th>
@@ -2181,6 +2175,7 @@ export default function LasikExamSheet({
                   </th>
                 </tr>
                 <tr>
+                  <th className={ctd}>Distance</th>
                   <th className={ctd}>S</th>
                   <th className={ctd}>C</th>
                   <th className={ctd}>A</th>
@@ -2191,7 +2186,7 @@ export default function LasikExamSheet({
               </thead>
               <tbody className="font-mono">
                 <tr>
-                  <td className={`${ctd} bg-muted/50 font-bold`}>Distance</td>
+                  <td className={`${ctd} bg-muted/50`}>&nbsp;</td>
                   <td className={ctd}>
                     <RefractionValueSelect
                       value={clinicalRefraction.od.s}

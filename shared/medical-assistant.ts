@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-export const medicalAssistantRoles = ["admin", "doctor", "nurse"] as const;
 export const medicalProposalFields = [
   "complaints",
   "symptoms",
@@ -26,8 +25,7 @@ export const medicalProposalLabels: Record<
   decision: "Final decision",
   field: "Selected field",
 };
-export const medicalTranscriptMaxChars = 8000;
-const transcript = z.string().trim().min(1).max(medicalTranscriptMaxChars);
+const transcript = z.string().trim().min(1).max(8000);
 export const medicalTranscriptSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -49,13 +47,6 @@ export const medicalProposalRequestSchema = z
   .object({
     recording: medicalTranscriptSchema,
     consentConfirmed: z.literal(true),
-    // Negative ids are patients from the legacy year databases.
-    patientId: z
-      .number()
-      .int()
-      .refine((id) => id !== 0)
-      .optional(),
-    visitId: z.number().int().positive().nullish(),
     provider: z.enum(["manus", "gemini"]).default("manus"),
     engine: z.enum(["current", "central"]).default("current"),
     model: z.string().max(100).optional(),
@@ -108,7 +99,7 @@ export type MedicalProposals = z.infer<typeof medicalProposalSchema>;
 
 export class MedicalProposalValidationError extends Error {
   constructor(
-    readonly reason: "duplicate_field" | "scope" | "source" | "speaker" | "medication",
+    readonly reason: "duplicate_field" | "scope" | "source" | "speaker",
     message: string,
   ) {
     super(message);
@@ -135,8 +126,7 @@ export function validateMedicalProposals(
           (item) => !input.transcript.includes(item.source),
         ))
     )
-      throw new MedicalProposalValidationError(
-        "medication",
+      throw new Error(
         "Medicine extraction is outside treatment scope or lacks transcript evidence",
       );
     if ((input.kind === "field") !== (proposal.field === "field"))
@@ -160,24 +150,5 @@ export function validateMedicalProposals(
         "Clinical decision requires an explicit doctor statement",
       );
   }
-  // In a full-visit recording, a field holding most of the transcript is the raw
-  // conversation rather than an extracted value; drop it so it never fills a field.
-  if (input.kind !== "conversation" || input.transcript.length < 200)
-    return output;
-  const rawCopies = output.proposals.filter(
-    (proposal) => proposal.text.length >= input.transcript.length * 0.6,
-  );
-  if (!rawCopies.length) return output;
-  return {
-    proposals: output.proposals.filter(
-      (proposal) => !rawCopies.includes(proposal),
-    ),
-    warnings: [
-      ...output.warnings,
-      ...rawCopies.map(
-        (proposal) =>
-          `حُذف اقتراح «${medicalProposalLabels[proposal.field]}» لأنه نسخ معظم المحادثة بدل استخراج المعلومة. راجع هذا الحقل يدويًا.`,
-      ),
-    ].slice(0, 12),
-  };
+  return output;
 }

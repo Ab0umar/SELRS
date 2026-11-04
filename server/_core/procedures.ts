@@ -4,7 +4,6 @@ import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import * as db from "../db";
 import { auditEntityId, summarizeAuditInput } from "./auditSummary";
-import { medicalAssistantRoles } from "@shared/medical-assistant";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -850,29 +849,6 @@ export const medicalStaffProcedure = t.procedure.use(
         user: ctx.user,
       },
     });
-  }),
-);
-
-// Medical assistant procedure - المساعد الطبي (admin, doctor, nurse)
-export const medicalAssistantProcedure = t.procedure.use(
-  t.middleware(async (opts) => {
-    const { ctx, next } = opts;
-
-    if (!ctx.user) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "User not authenticated",
-      });
-    }
-
-    if (!(medicalAssistantRoles as readonly string[]).includes(ctx.user.role)) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "المساعد الطبي متاح للأطباء والتمريض والأدمن فقط.",
-      });
-    }
-
-    return next({ ctx: { ...ctx, user: ctx.user } });
   }),
 );
 

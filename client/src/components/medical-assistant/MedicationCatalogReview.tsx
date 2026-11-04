@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/button";
 import { useAssistantForm } from "./AssistantFields";
 import {
   appendPrescriptionTemplate,
-  isAutoCatalogMedication,
-  matchCatalogMedications,
   normalizeTemplateName,
   type PrescriptionDraft,
 } from "./prescription-template";
@@ -35,8 +33,21 @@ export default function MedicationCatalogReview({
       throw new Error("كتالوج الأدوية أو مسودة الروشتة غير متاحين حاليًا.");
     return value;
   };
-  const matches = (name: string) =>
-    matchCatalogMedications(form?.getPrescription?.()?.medications ?? [], name);
+  const matches = (name: string) => {
+    const catalog = form?.getPrescription?.()?.medications ?? [];
+    const query = normalizeTemplateName(name);
+    if (!query) return [];
+    const exact = catalog.filter(
+      (item) => normalizeTemplateName(item.name) === query,
+    );
+    return exact.length
+      ? exact
+      : catalog.filter(
+          (item) =>
+            query.length >= 3 &&
+            ` ${normalizeTemplateName(item.name)} `.includes(` ${query} `),
+        );
+  };
   const add = (index: number, name: string, manual = false) => {
     try {
       const current = binding();
@@ -89,7 +100,8 @@ export default function MedicationCatalogReview({
       const found = matches(medicine.name);
       if (
         found.length !== 1 ||
-        !isAutoCatalogMedication(found[0], medicine.name)
+        normalizeTemplateName(found[0].name) !==
+          normalizeTemplateName(medicine.name)
       )
         continue;
       try {

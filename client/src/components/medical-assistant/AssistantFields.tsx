@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import FieldDictation, { type DictationTarget } from "./FieldDictation";
-import { useMedicalAssistantAccess } from "./useMedicalAssistantAccess";
 import type { PrescriptionBinding } from "./prescription-template";
 import type { ConfirmedInvestigation } from "@shared/clinical-catalog-items";
 import {
@@ -137,8 +136,6 @@ export function AssistantFieldsProvider({
         <FieldDictation
           target={target}
           patientName={scope.patientName}
-          patientId={scope.patientId}
-          visitId={scope.visitId}
           onClose={() => setTarget(null)}
         />
       )}
@@ -158,9 +155,7 @@ export function AssistantField({
   order?: string;
 }) {
   const assistant = useContext(AssistantContext);
-  const allowed = useMedicalAssistantAccess();
-  if (!assistant || !allowed || disabled || assistant.disabled)
-    return <>{children}</>;
+  if (!assistant || disabled || assistant.disabled) return <>{children}</>;
   return (
     <span className={`flex min-w-0 flex-1 items-start gap-1 ${order}`}>
       <span className="min-w-0 flex-1">{children}</span>

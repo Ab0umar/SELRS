@@ -4,26 +4,6 @@ import { Label } from "@/components/ui/label";
 import { OPERATION_LABELS } from "@/lib/operationsPricing";
 import { DateInput } from "@/components/ui/date-input";
 import { useIsMobile } from "@/hooks/useMobile";
-import SearchableCombobox from "@/components/SearchableCombobox";
-import { trpc } from "@/lib/trpc";
-import { useMemo } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const WEEKDAY_OPTIONS = [
-  "السبت",
-  "الأحد",
-  "الاثنين",
-  "الثلاثاء",
-  "الأربعاء",
-  "الخميس",
-  "الجمعة",
-];
 
 export type OperationsBookingFormContentProps = {
   draft: {
@@ -56,25 +36,6 @@ export function OperationsBookingFormContent({
   // byte-correct on the server, so this pairing uses an inline style to
   // bypass the cascade entirely.
   const isMobile = useIsMobile();
-  const doctorsQuery = trpc.medical.getDoctorDirectory.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
-  });
-  const doctorOptions = useMemo(
-    () => [
-      { value: "none", label: "— اختر الطبيب" },
-      ...((doctorsQuery.data ?? []) as any[]).map((doctor) => {
-        const code = String(doctor?.code ?? "").trim();
-        const name = String(doctor?.name ?? "").trim();
-        return {
-          value: name,
-          label: code ? `${code} - ${name}` : name,
-          keywords: `${code} ${name}`,
-        };
-      }),
-    ],
-    [doctorsQuery.data],
-  );
   const topRowStyle = isMobile
     ? { display: "flex" as const, flexWrap: "wrap" as const, gap: "0.65rem" }
     : undefined;
@@ -104,15 +65,14 @@ export function OperationsBookingFormContent({
               >
                 الطبيب المعالج
               </Label>
-              <SearchableCombobox
-                value={draft.doctorName || ""}
-                onChange={(value) =>
-                  onChange("doctorName", value === "none" ? "" : value)
+              <Input
+                id="operation-booking-doctor"
+                value={draft.doctorName}
+                onChange={(event) =>
+                  onChange("doctorName", event.target.value)
                 }
-                options={doctorOptions}
-                placeholder="ابحث باسم الطبيب أو الكود"
-                searchPlaceholder="ابحث بالاسم أو الكود…"
-                className="h-9 text-sm font-medium"
+                placeholder="اسم الطبيب…"
+                className="h-9 text-sm font-medium bg-background"
               />
             </div>
             <div style={topFieldStyle}>
@@ -139,27 +99,13 @@ export function OperationsBookingFormContent({
             >
               اليوم (اختياري)
             </Label>
-            <Select
-              value={draft.weekdayLabel ? draft.weekdayLabel : "__none__"}
-              onValueChange={(value) =>
-                onChange("weekdayLabel", value === "__none__" ? "" : value)
-              }
-            >
-              <SelectTrigger
-                id="operation-booking-weekday"
-                className="h-9 w-full text-sm"
-              >
-                <SelectValue placeholder="اختر اليوم" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">بدون تحديد</SelectItem>
-                {WEEKDAY_OPTIONS.map((day) => (
-                  <SelectItem key={day} value={day}>
-                    {day}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="operation-booking-weekday"
+              value={draft.weekdayLabel ?? ""}
+              onChange={(event) => onChange("weekdayLabel", event.target.value)}
+              placeholder="السبت، الأحد…"
+              className="h-9 text-sm bg-background"
+            />
           </div>
         </div>
 

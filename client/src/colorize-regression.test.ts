@@ -37,21 +37,17 @@ describe("color token regressions", () => {
     expect(source).not.toContain(
       "bg-primary text-sm font-bold text-card-foreground",
     );
-    expect(source).toMatch(/<Button\s+type="submit"/);
+    expect(source).toMatch(/<Button type="submit"/);
     const button = readClientFile("src/components/ui/button.tsx");
     expect(button).toContain("bg-primary text-primary-foreground");
   });
 
-  it("offers a light/dark toggle in Arabic with light as the default theme", () => {
-    const nav = readClientFile("src/components/layout/AppTopNav.tsx");
-    const app = readClientFile("src/App.tsx");
+  it("does not render a theme toggle when the product is light-theme only", () => {
+    const source = readClientFile("src/components/layout/AppTopNav.tsx");
 
-    expect(app).toContain('<ThemeProvider defaultTheme="light" switchable={true}>');
-    expect(nav).toContain("toggleTheme");
-    expect(nav).toContain("الوضع الداكن");
-    expect(nav).toContain("الوضع الفاتح");
-    expect(nav).not.toContain("Dark mode");
-    expect(nav).not.toContain("Light mode");
+    expect(source).not.toContain("toggleTheme");
+    expect(source).not.toContain("Dark mode");
+    expect(source).not.toContain("Light mode");
   });
 
   it("does not pair dark action backgrounds with card foreground text", () => {

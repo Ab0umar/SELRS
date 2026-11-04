@@ -20,8 +20,7 @@ vi.mock("../services/marketing/manusClient", async (original) => ({
   createManusTask: mocks.create,
   downloadManusFile: mocks.download,
 }));
-vi.mock("../services/ai/medicalGemini", async (original) => ({
-  ...(await original<typeof import("../services/ai/medicalGemini")>()),
+vi.mock("../services/ai/medicalGemini", () => ({
   assertMedicalGeminiAvailable: vi.fn(),
   medicalGeminiOptions: () => ({ model: "gemini-review" }),
   extractGeminiProposals: mocks.extract,
@@ -37,17 +36,7 @@ import {
 } from "../services/ai/managementStore";
 import { readAiManagementProbe } from "../services/ai/management";
 import { startMedicalProposals } from "../services/ai/medical";
-import { GeminiDocumentationError } from "../services/ai/medicalGemini";
 let owner = 990000;
-const medicalProfile = {
-  workload: "medical.documentation" as const,
-  provider: "gemini" as const,
-  model: "gemini-review",
-  enabled: true,
-  dailyRequests: 10,
-  dailyTokens: 100000,
-  maxConcurrent: 5,
-};
 beforeEach(() => {
   owner++;
   vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "true");
@@ -239,53 +228,5 @@ describe("AI module review regressions", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-  it.each([
-    ["an HTTP rejection as failed", new GeminiDocumentationError("request", 429), true],
-    ["a timeout as uncertain", new GeminiDocumentationError("timeout"), false],
-  ])("settles %s", async (_name, error, usageKnown) => {
-    vi.spyOn(AiManagementStore.prototype, "reserve").mockResolvedValue(
-      medicalProfile,
-    );
-    const complete = vi
-      .spyOn(AiManagementStore.prototype, "complete")
-      .mockResolvedValue(undefined);
-    mocks.extract.mockRejectedValue(error);
-    const { jobId } = await startMedicalProposals(
-      owner,
-      { kind: "field", label: "Complaints", transcript: "مثال فشل خيالي" },
-      [],
-      "gemini",
-      "central",
-      "gemini-review",
-    );
-    await vi.waitFor(() => expect(complete).toHaveBeenCalled());
-    expect(complete).toHaveBeenCalledWith(
-      jobId,
-      { inputTokens: 0, outputTokens: 0, status: "failed", usageKnown },
-      null,
-    );
-  });
-  it("allows running jobs for different patients but not a second job for the same visit", async () => {
-    vi.spyOn(AiManagementStore.prototype, "reserve").mockResolvedValue(
-      medicalProfile,
-    );
-    mocks.extract.mockReturnValue(new Promise(() => {}));
-    const start = (transcript: string, patientId: number) =>
-      startMedicalProposals(
-        owner,
-        { kind: "field", label: "Complaints", transcript },
-        [],
-        "gemini",
-        "central",
-        "gemini-review",
-        { patientId, visitId: 1 },
-      );
-    const first = await start("مريض أول خيالي", 1);
-    await expect(start("مريض أول خيالي", 1)).resolves.toEqual(first);
-    await expect(start("مريض ثان خيالي", 2)).resolves.toHaveProperty("jobId");
-    await expect(start("نص آخر للمريض الأول", 1)).rejects.toMatchObject({
-      code: "CONFLICT",
-    });
   });
 });

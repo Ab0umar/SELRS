@@ -135,7 +135,7 @@ try {
       await expect(selector).toHaveValue("manus:lite");
       const consent = panel.getByRole("checkbox");
       const generate = panel.getByRole("button", {
-        name: "إنشاء اقتراحات للمراجعة",
+        name: "Generate proposals",
         exact: true,
       });
       await expect(generate).toBeDisabled();
@@ -145,10 +145,10 @@ try {
       await consent.check();
       await generate.click();
       await expect(
-        panel.getByRole("button", { name: "متابعة نفس المهمة" }),
+        panel.getByRole("button", { name: "Check same task again" }),
       ).toBeVisible();
       await panel
-        .getByRole("button", { name: "متابعة نفس المهمة" })
+        .getByRole("button", { name: "Check same task again" })
         .click();
       await expect(panel.getByLabel("Proposal: field")).toBeVisible();
       assert.equal(starts, 1);
