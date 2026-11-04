@@ -42,6 +42,23 @@ describe("state-bound medical draft filling", () => {
     expect(receipt.before).toEqual({ diagnosis: "" });
     expect(receipt.after).toEqual({ diagnosis: "Cataract" });
   });
+  it("adds nothing when the same multi-line proposal is filled again", () => {
+    const filled: DraftBinding = {
+      ...binding,
+      values: { complaint: "", diagnosis: "VIGAMOX 4 مرات\nSystane عند اللزوم" },
+    };
+    const receipt = prepareDraftAdditions(filled, [
+      { field: "diagnosis", text: "VIGAMOX 4 مرات\nSystane عند اللزوم\nTERRAMYCIN بالليل" },
+    ]);
+    expect(receipt.after).toEqual({
+      diagnosis: "VIGAMOX 4 مرات\nSystane عند اللزوم\nTERRAMYCIN بالليل",
+    });
+    expect(
+      prepareDraftAdditions(filled, [
+        { field: "diagnosis", text: "VIGAMOX 4 مرات\nSystane عند اللزوم" },
+      ]).after,
+    ).toEqual({});
+  });
   it("uses unique exact test names only", () => {
     const tests = [
       { id: 1, name: "OCT Macula", type: "imaging" },

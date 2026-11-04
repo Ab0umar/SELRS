@@ -151,6 +151,11 @@ try {
       await expect(page.getByText("انتظر انتهاء المراجعة الحالية قبل تسجيل أو نص جديد.")).toBeVisible();
       await expect(page.getByRole("button", { name: "تسجيل جديد", exact: true })).toBeDisabled();
       await expect(page.getByRole("button", { name: "نص جديد", exact: true })).toBeDisabled();
+      // Closing the bar mid-review only hides it: the review still fills the
+      // fields, and reopening shows the same review.
+      await page.getByRole("button", { name: "إغلاق", exact: true }).click();
+      await expect(page.getByLabel("التوصيات")).toHaveValue(text("decision"), { timeout: 10000 });
+      await page.getByRole("button", { name: "المساعد الطبي", exact: true }).click();
     } else {
       // Typed or pasted text still asks for consent before it is sent.
       await page.getByPlaceholder("اكتب أو الصق كلام الزيارة هنا، أو اضغط «تسجيل».").fill(transcript);

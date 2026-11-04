@@ -49,9 +49,9 @@ type RecordingProps = {
     }
 );
 
-// Recording consent is asked once per saved visit and kept until the page
-// reloads. A visit without an id is asked every time, since "new" would match
-// any later unsaved visit of the same patient.
+// Recording consent is remembered per saved visit until the page reloads. A
+// visit without an id is asked again in each new recording, since "new" would
+// match any later unsaved visit of the same patient.
 const consentedVisits = new Set<string>();
 
 export default function FieldDictation(props: RecordingProps) {
@@ -59,11 +59,17 @@ export default function FieldDictation(props: RecordingProps) {
     props.patientId !== undefined && props.visitId
       ? `${props.patientId}:${props.visitId}`
       : undefined;
-  // Consent given in this recording is tied to the visit it was given for.
+  // Consent given in this recording holds for its patient, so saving the visit
+  // mid-recording (which gives it an id) does not interrupt the capture.
+  const patientKey = String(props.patientId ?? "none");
   const [consentedFor, setConsentedFor] = useState<string>();
   const consented =
     (visitKey !== undefined && consentedVisits.has(visitKey)) ||
-    (consentedFor !== undefined && consentedFor === (visitKey ?? "unsaved"));
+    consentedFor === patientKey;
+  useEffect(() => {
+    if (consentedFor === patientKey && visitKey !== undefined)
+      consentedVisits.add(visitKey);
+  }, [consentedFor, patientKey, visitKey]);
   const [consentChecked, setConsentChecked] = useState(false);
   const settings = trpc.medicalAssistant.settings.useQuery(undefined, {
     retry: false,
@@ -133,7 +139,7 @@ export default function FieldDictation(props: RecordingProps) {
               disabled={!consentChecked}
               onClick={() => {
                 if (visitKey !== undefined) consentedVisits.add(visitKey);
-                setConsentedFor(visitKey ?? "unsaved");
+                setConsentedFor(patientKey);
               }}
             >
               بدء التسجيل

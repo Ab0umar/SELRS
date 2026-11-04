@@ -100,12 +100,15 @@ function MedicalAssistantDialog({
           <span className="max-sm:sr-only">المساعد الطبي</span>
         </Button>
       )}
-      {isOpen && (
+      {/* With a review in progress or done, closing the bar only hides it: the
+          job keeps polling and filling, the lock holds, and reopening shows the
+          same review instead of starting it again. */}
+      {(isOpen || result !== null) && (
         <FloatingBar
           label="المساعد الطبي"
           storageKey="medical-assistant-bar-position"
           expanded={expanded}
-          hidden={recording}
+          hidden={recording || !isOpen}
           onEscape={() => handleOpenChange(false)}
           sheetTitle={
             <div className="flex min-w-0 items-baseline gap-x-2">

@@ -93,15 +93,23 @@ export default function ProposalReview({
   const [paused, setPaused] = useState(false);
   const [terminalFailure, setTerminalFailure] = useState(false);
   const [result, setResult] = useState<MedicalProposals>();
+  const [error, setError] = useState("");
   // A job that is still running on the server blocks another one for the same
-  // visit, so the caller must not start a new review until it ends.
+  // visit, so the caller must not start a new review until it ends. An
+  // automatic review that is still loading its settings counts as running.
+  const awaitingAutoStart =
+    autoStart &&
+    !jobId &&
+    !error &&
+    (settings.isPending || options.isPending);
   const running =
-    start.isPending || (Boolean(jobId) && !result && !terminalFailure);
+    awaitingAutoStart ||
+    start.isPending ||
+    (Boolean(jobId) && !result && !terminalFailure);
   useEffect(() => {
     onRunningChange?.(running);
   }, [running, onRunningChange]);
   useEffect(() => () => onRunningChange?.(false), [onRunningChange]);
-  const [error, setError] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
   const [savingDraft, setSavingDraft] = useState(false);
   const form = useAssistantForm();

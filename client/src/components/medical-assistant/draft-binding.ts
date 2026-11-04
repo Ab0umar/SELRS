@@ -22,12 +22,17 @@ export function prepareDraftAdditions(
       continue;
     }
     const current = after[destination] ?? binding.values[destination];
-    const text = proposal.text.trim();
-    if (text && !current.split("\n").includes(text)) {
+    // Line by line, so filling the same multi-line proposal again adds nothing.
+    const present = new Set(current.split("\n").map((line) => line.trim()));
+    const missing = proposal.text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !present.has(line));
+    if (missing.length) {
       // Undo restores only destinations this fill changed, so later doctor
       // edits to untouched fields are never reverted.
       before[destination] ??= binding.values[destination];
-      after[destination] = [current, text].filter(Boolean).join("\n");
+      after[destination] = [current, ...missing].filter(Boolean).join("\n");
     }
   }
   return { before, after, skipped };
