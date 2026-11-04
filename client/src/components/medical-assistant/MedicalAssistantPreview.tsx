@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Mic, X } from "lucide-react";
 import FieldDictation from "./FieldDictation";
 import FloatingBar from "./FloatingBar";
@@ -51,7 +51,7 @@ function MedicalAssistantDialog({
   const [recording, setRecording] = useState(false);
   const [reviewRun, setReviewRun] = useState(0);
   const [draft, setDraft] = useState("");
-  // A recorded visit was consented to before recording, so its review starts on its own.
+  // A finished recording goes to review on its own; typed text waits for the doctor.
   const [autoStart, setAutoStart] = useState(false);
   // While a review runs, a new recording or text would orphan its paid result.
   const [aiRunning, setAiRunning] = useState(false);
@@ -78,6 +78,14 @@ function MedicalAssistantDialog({
     setExpanded(true);
   };
   const isOpen = open ?? localOpen;
+  // Opening the assistant starts recording, unless a review is already there
+  // (reopening after closing mid-review shows that review instead).
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (isOpen && !wasOpen.current && !disabled && result === null)
+      setRecording(true);
+    wasOpen.current = isOpen;
+  }, [isOpen, disabled, result]);
   const patientLabel = patientName || `مريض #${patientId}`;
   const visitLabel = `${visitId ? `زيارة #${visitId}` : "زيارة جديدة"}${
     visitDate ? ` · ${visitDate}` : ""
