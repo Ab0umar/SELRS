@@ -38,7 +38,7 @@ export function WorkflowSaveBar({
   const { user } = useAuth();
   const canFinish = FINISH_ROLES.includes(String(user?.role ?? ""));
   return (
-    <div className="measurement-glass-block flex w-fit max-w-full flex-wrap items-center justify-center gap-2 self-center border-t border-border/50 px-4 py-1.5">
+    <div className="flex w-fit max-w-full flex-wrap items-center justify-center gap-2 self-center border-t border-border/50 px-4 py-1.5">
       <Button
         size="sm"
         className="gap-1.5 text-xs"

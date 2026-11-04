@@ -42,7 +42,6 @@ export function geminiDocumentationFailure(error: unknown) {
       scope: "اقتراح Gemini خارج نطاق الحقل أو الزيارة المحددة.",
       speaker: "لم يتأكد أن القرار الطبي صادر عن الطبيب.",
       duplicate_field: "أعاد Gemini أكثر من اقتراح للحقل نفسه.",
-      medication: "أدوية Gemini المقترحة بلا استشهاد صالح من التسجيل.",
     };
     message = reasons[error.reason];
   } else if (error instanceof z.ZodError) {
@@ -69,12 +68,12 @@ export function assertMedicalGeminiAvailable() {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message:
-        "توثيق Gemini الطبي معطّل لحين تأكيد الشروط ومراجعة الخصوصية. Manus لم يتغير.",
+        "Gemini medical documentation is disabled pending confirmation of applicable terms and privacy review. Manus remains unchanged.",
     });
   if (!options.configured)
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
-      message: "مفتاح GEMINI_API_KEY غير مُعدّ.",
+      message: "GEMINI_API_KEY is not configured.",
     });
 }
 

@@ -14,16 +14,9 @@ import {
 } from "./form-application";
 import {
   medicalProposalLabels,
-  medicalTranscriptMaxChars,
   type MedicalTranscript,
   type MedicalProposals,
 } from "@shared/medical-assistant";
-
-const speakerLabels = {
-  doctor: "الطبيب",
-  patient: "المريض",
-  uncertain: "غير مؤكد",
-} as const;
 
 export default function ProposalReview({
   input,
@@ -31,7 +24,6 @@ export default function ProposalReview({
   reviewOnly = false,
   modelChoice,
   autoStart = false,
-  context,
 }: {
   input: MedicalTranscript;
   onApplyField?: (text: string | undefined) => void;
@@ -39,8 +31,6 @@ export default function ProposalReview({
   modelChoice?: string;
   /** Starts without a click; the caller has already confirmed patient consent. */
   autoStart?: boolean;
-  /** Patient and visit the transcript belongs to, recorded in the audit trail. */
-  context?: { patientId?: number; visitId?: number | null };
 }) {
   const start = trpc.medicalAssistant.startProposals.useMutation({
     retry: false,
@@ -58,9 +48,7 @@ export default function ProposalReview({
   const managed =
     options.data?.managementEnabled || options.data?.central != null;
   const engine = managed ? "central" : "current";
-  const tooLong = input.transcript.trim().length > medicalTranscriptMaxChars;
   const available =
-    !tooLong &&
     settings.isSuccess &&
     options.isSuccess &&
     (!managed || options.data?.central?.enabled === true);
@@ -94,6 +82,7 @@ export default function ProposalReview({
   const [copyMessage, setCopyMessage] = useState("");
   const [savingDraft, setSavingDraft] = useState(false);
   const form = useAssistantForm();
+  const [confirmedDiagnosis, setConfirmedDiagnosis] = useState("");
   const diagnosisText =
     result?.proposals.find((item) => item.field === "diagnosis")?.text ?? "";
   const diseases = trpc.medical.getAllDiseases.useQuery(undefined, {
@@ -101,27 +90,21 @@ export default function ProposalReview({
       !reviewOnly && input.kind === "conversation" && Boolean(diagnosisText),
     refetchOnWindowFocus: false,
   });
-  // The model returns one diagnosis per line; each line must match one catalog entry.
-  const diagnosisLines = diagnosisText
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
   const knownDiagnosis =
-    diagnosisLines.length > 0 &&
-    diagnosisLines.every(
-      (line) =>
-        (diseases.data ?? []).filter(
-          (item: { name: string; abbrev?: string | null }) =>
-            [item.name, item.abbrev].some(
-              (name) =>
-                name &&
-                normalizeTemplateName(name) === normalizeTemplateName(line),
-            ),
-        ).length === 1,
-    );
-  // Filled like every other field; the doctor reviews it there before saving.
-  const diagnosisUnmatched =
-    Boolean(diagnosisText.trim()) && diseases.isSuccess && !knownDiagnosis;
+    Boolean(diagnosisText.trim()) &&
+    (diseases.data ?? []).filter(
+      (item: { name: string; abbrev?: string | null }) =>
+        [item.name, item.abbrev].some(
+          (name) =>
+            name &&
+            normalizeTemplateName(name) ===
+              normalizeTemplateName(diagnosisText),
+        ),
+    ).length === 1;
+  const diagnosisPending =
+    Boolean(diagnosisText.trim()) &&
+    !knownDiagnosis &&
+    confirmedDiagnosis !== diagnosisText;
   const [applied, setApplied] = useState<Record<string, AppliedText>>({});
   const autoApplied = useRef(false);
   const draftSignature = useRef("");
@@ -132,7 +115,8 @@ export default function ProposalReview({
   const narrativeProposals = (proposals: MedicalProposals["proposals"]) =>
     proposals.filter(
       (item) =>
-        !form?.getTests?.() || !["labs", "imaging"].includes(item.field),
+        !(item.field === "diagnosis" && diagnosisPending) &&
+        (!form?.getTests?.() || !["labs", "imaging"].includes(item.field)),
     );
   useEffect(() => {
     if (
@@ -141,7 +125,8 @@ export default function ProposalReview({
       reviewOnly ||
       input.kind !== "conversation" ||
       !form?.fillDraft ||
-      form.disabled
+      form.disabled ||
+      (Boolean(diagnosisText) && diseases.isLoading)
     )
       return;
     autoApplied.current = true;
@@ -153,7 +138,14 @@ export default function ProposalReview({
         cause instanceof Error ? cause.message : "تعذّرت تعبئة المسودة.",
       );
     }
-  }, [result, reviewOnly, input.kind, form]);
+  }, [
+    result,
+    reviewOnly,
+    input.kind,
+    form,
+    diseases.isLoading,
+    diagnosisPending,
+  ]);
   const autoStarted = useRef(false);
   const begin = async () => {
     setError("");
@@ -161,8 +153,6 @@ export default function ProposalReview({
       const response = await start.mutateAsync({
         recording: input,
         consentConfirmed: true,
-        patientId: context?.patientId,
-        visitId: context?.visitId,
         engine,
         model,
         provider,
@@ -218,7 +208,7 @@ export default function ProposalReview({
           setError(
             cause instanceof Error
               ? cause.message
-              : "تعذر فحص مهمة الذكاء الاصطناعي.",
+              : "Could not check the AI task.",
           );
           if (
             (cause as { data?: { code?: string } })?.data?.code === "NOT_FOUND"
@@ -267,9 +257,7 @@ export default function ProposalReview({
                 ? "تعذر التحقق من إعدادات المساعد. أعد فتح الشريط للمحاولة."
                 : options.isPending
                   ? "جارٍ التحقق من إعدادات المساعد…"
-                  : tooLong
-                    ? `النص أطول من ${medicalTranscriptMaxChars} حرف. قصّر التسجيل أو قسّمه.`
-                    : "المساعد الطبي معطّل من المزوّدين والحدود."}
+                  : "المساعد الطبي معطّل من المزوّدين والحدود."}
             </p>
           )}
         </>
@@ -288,7 +276,7 @@ export default function ProposalReview({
             />
             {reviewOnly
               ? `حصلت على موافقة صاحب البيانات، وراجعت النص قبل إرساله إلى ${providerName}. قد تستهلك المعالجة رصيد المزوّد.`
-              : `حصلت على موافقة المريض، وراجعت النص قبل إرساله إلى ${providerName}. قد تستهلك المعالجة رصيد المزوّد.`}
+              : `Patient consent obtained. Send this reviewed transcript to ${providerName} for AI processing; provider credits may be consumed.`}
           </label>
           <Button
             type="button"
@@ -300,7 +288,13 @@ export default function ProposalReview({
             }
             onClick={() => void begin()}
           >
-            {start.isPending ? "جارٍ بدء المعالجة…" : "إنشاء اقتراحات للمراجعة"}
+            {reviewOnly
+              ? start.isPending
+                ? "جارٍ بدء المعالجة…"
+                : "إنشاء اقتراحات للمراجعة"
+              : start.isPending
+                ? `Starting ${providerName}…`
+                : "Generate proposals"}
           </Button>
           {!available && (
             <p role="status">
@@ -308,9 +302,7 @@ export default function ProposalReview({
                 ? "تعذر التحقق من إعدادات المساعد. أعد فتح المراجعة للمحاولة."
                 : options.isPending
                   ? "جارٍ التحقق من إعدادات المساعد…"
-                  : tooLong
-                    ? `النص أطول من ${medicalTranscriptMaxChars} حرف. قصّر التسجيل أو قسّمه.`
-                    : "المساعد الطبي معطّل من المزوّدين والحدود."}
+                  : "المساعد الطبي معطّل من المزوّدين والحدود."}
             </p>
           )}
         </>
@@ -318,8 +310,8 @@ export default function ProposalReview({
       {jobId && !result && !paused && (
         <p role="status">
           {providerName} يعالج النص الآن. إغلاق الشريط لا يلغي المهمة ولا
-          تكلفتها. لن يُطبّق شيء تلقائيًا. تبقى النتيجة محفوظة 24 ساعة لمن بدأ
-          المهمة.
+          تكلفتها. لن يُطبّق شيء تلقائيًا. المتابعة متاحة لمدة عشر دقائق أو حتى
+          إعادة تشغيل الخادم.
         </p>
       )}
       {error && <p role="alert">{error}</p>}
@@ -341,7 +333,9 @@ export default function ProposalReview({
         >
           {terminalFailure
             ? "تجهيز محاولة جديدة (قد تُحتسب تكلفة جديدة)"
-            : "متابعة نفس المهمة"}
+            : reviewOnly
+              ? "متابعة نفس المهمة"
+              : "Check same task again"}
         </Button>
       )}
       {result && (
@@ -357,6 +351,7 @@ export default function ProposalReview({
                   form.disabled ||
                   form.saving ||
                   savingDraft ||
+                  diagnosisPending ||
                   (Boolean(form.fillDraft) && !draftReceipt) ||
                   (Boolean(draftReceipt) &&
                     draftSignature.current !== JSON.stringify(result.proposals))
@@ -461,17 +456,57 @@ export default function ProposalReview({
                   : medicalProposalLabels[proposal.field]}
               </p>
               <p className="text-sm">
-                المتحدث: {speakerLabels[proposal.speaker]} · مراجعة الطبيب
-                مطلوبة
+                المتحدث المُبلَّغ: {proposal.speaker} · مراجعة الطبيب مطلوبة
               </p>
               {!reviewOnly &&
                 input.kind === "conversation" &&
                 proposal.field === "diagnosis" &&
-                diagnosisUnmatched && (
-                  <p role="note">
-                    التشخيص غير مطابق للكتالوج، وأُضيف للحقل كنص. راجعه قبل
-                    الحفظ.
-                  </p>
+                diagnosisPending && (
+                  <div className="space-y-2">
+                    <p>
+                      {diseases.isError
+                        ? "تعذر التحقق من الكتالوج. راجع التشخيص وأكده كنص."
+                        : "التشخيص غير مطابق بشكل وحيد للكتالوج. راجع النص قبل نقله للمسودة."}
+                    </p>
+                    <Button
+                      className="h-auto max-w-full whitespace-normal text-start"
+                      type="button"
+                      variant="outline"
+                      disabled={form?.disabled || diseases.isLoading}
+                      onClick={() => {
+                        try {
+                          if (!form?.fillDraft) {
+                            setConfirmedDiagnosis(diagnosisText);
+                            return;
+                          }
+                          if (draftReceipt)
+                            flushSync(() => draftReceipt.undo());
+                          setDraftReceipt(
+                            form.fillDraft(
+                              result.proposals.filter(
+                                (item) =>
+                                  !form.getTests?.() ||
+                                  !["labs", "imaging"].includes(item.field),
+                              ),
+                            ),
+                          );
+                          setConfirmedDiagnosis(diagnosisText);
+                          draftSignature.current = JSON.stringify(
+                            result.proposals,
+                          );
+                          setError("");
+                        } catch (cause) {
+                          setError(
+                            cause instanceof Error
+                              ? cause.message
+                              : "تعذر نقل التشخيص للمسودة.",
+                          );
+                        }
+                      }}
+                    >
+                      تأكيد التشخيص وإضافته للمسودة بدون إضافته للكتالوج
+                    </Button>
+                  </div>
                 )}
               <Textarea
                 aria-label={`Proposal: ${proposal.field}`}
@@ -562,7 +597,8 @@ export default function ProposalReview({
                     variant="outline"
                     disabled={
                       form?.disabled ||
-                      !proposal.text.trim()
+                      !proposal.text.trim() ||
+                      (proposal.field === "diagnosis" && diagnosisPending)
                     }
                     onClick={() => {
                       try {
@@ -592,7 +628,7 @@ export default function ProposalReview({
                         setError(
                           cause instanceof Error
                             ? cause.message
-                            : "تعذر تحديث المسودة.",
+                            : "Could not update the draft.",
                         );
                       }
                     }}

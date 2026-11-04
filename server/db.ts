@@ -5169,7 +5169,7 @@ export async function getPrescriptionsWithItemsByVisit(visitId: number) {
     )
     .leftJoin(medications, eq(prescriptionItems.medicationId, medications.id))
     .where(eq(prescriptions.visitId, visitId))
-    .orderBy(desc(prescriptions.prescriptionDate), asc(prescriptionItems.id));
+    .orderBy(desc(prescriptions.prescriptionDate));
 
   const grouped: Record<number, any> = {};
   for (const row of rows) {
@@ -5223,8 +5223,7 @@ export async function getPrescriptionsWithItemsByPatient(patientId: number) {
     )
     .leftJoin(medications, eq(prescriptionItems.medicationId, medications.id))
     .where(eq(prescriptions.patientId, patientId))
-    // Item id keeps medicines in the order the doctor prescribed them.
-    .orderBy(desc(prescriptions.prescriptionDate), asc(prescriptionItems.id));
+    .orderBy(desc(prescriptions.prescriptionDate));
 
   const grouped: Record<number, any> = {};
   for (const row of rows) {
@@ -5807,8 +5806,7 @@ export async function getTestRequestsByVisit(visitId: number) {
         })
         .from(testRequestItems)
         .leftJoin(tests, eq(testRequestItems.testId, tests.id))
-        .where(eq(testRequestItems.testRequestId, req.id))
-        .orderBy(asc(testRequestItems.id));
+        .where(eq(testRequestItems.testRequestId, req.id));
       return { ...req, items };
     }),
   );
@@ -5863,8 +5861,7 @@ export async function getTestRequestsByPatient(patientId: number) {
         })
         .from(testRequestItems)
         .leftJoin(tests, eq(testRequestItems.testId, tests.id))
-        .where(eq(testRequestItems.testRequestId, req.id))
-        .orderBy(asc(testRequestItems.id));
+        .where(eq(testRequestItems.testRequestId, req.id));
       return { ...req, items };
     }),
   );

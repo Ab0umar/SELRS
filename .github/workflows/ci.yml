@@ -51,13 +51,6 @@ jobs:
           node -v
           pnpm -v
 
-      # msnodesqlv8 is the Windows-auth MSSQL driver, loaded only on the clinic's
-      # Windows server; compiling it here needs Microsoft's ODBC driver headers.
-      - name: Skip building the Windows-only MSSQL driver
-        run: |
-          sed -i 's/^  msnodesqlv8: true/  msnodesqlv8: false/' pnpm-workspace.yaml
-          grep -q "^  msnodesqlv8: false" pnpm-workspace.yaml
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

@@ -51,12 +51,6 @@ function parseIso(value: string | null | undefined): Date | undefined {
 // dd/mm/yyyy regardless of the browser/OS locale (native date inputs render
 // per-locale, which caused dates to be misread). Value/onChange keep the
 // same ISO yyyy-MM-dd contract as before.
-const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
-const toArabicDigits = (value: string) =>
-  value.replace(/\d/g, (digit) => ARABIC_DIGITS[Number(digit)]);
-const toLatinDigits = (value: string) =>
-  value.replace(/[٠-٩]/g, (digit) => String(ARABIC_DIGITS.indexOf(digit)));
-
 export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
   (
     {
@@ -110,7 +104,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
     // Auto-inserts "/" as the user types digits, so entering a date is just
     // typing 8 digits (ddmmyyyy) without needing to hit "/" manually.
     const formatTyped = (raw: string): string => {
-      const digits = toLatinDigits(raw).replace(/\D/g, "").slice(0, 8);
+      const digits = raw.replace(/\D/g, "").slice(0, 8);
       const parts = [
         digits.slice(0, 2),
         digits.slice(2, 4),
@@ -165,7 +159,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             name={name}
             type="text"
             inputMode="numeric"
-            dir="rtl"
+            dir="ltr"
             disabled={isDisabled}
             autoFocus={autoFocus}
             aria-required={required}
@@ -173,7 +167,7 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
             placeholder={placeholder || "يوم/شهر/سنة"}
             // Keep the default wide enough for the full date. Dense layouts
             // can opt into a smaller input through inputClassName.
-            value={toArabicDigits(text).split("/").join("/‏")}
+            value={text}
             onChange={(e) => setText(formatTyped(e.target.value))}
             onBlur={() => {
               commitText(text);

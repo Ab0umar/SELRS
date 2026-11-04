@@ -178,10 +178,10 @@ export default function WorkflowDiagnosis({
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <div
-            className="measurement-glass-block flex flex-row flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-left text-foreground"
+            className="flex flex-row flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-left text-foreground"
             dir="ltr"
           >
-            <p className="mt-2 shrink-0 whitespace-nowrap !text-[13px] font-bold text-primary max-sm:basis-full">Diagnosis:</p>
+            <p className="mt-2 shrink-0 whitespace-nowrap !text-[13px] font-bold text-primary">Diagnosis:</p>
             <Textarea
               aria-label="اكتب التشخيص يدويًا أو ابحث بالأسفل…"
               data-medical-proposals="diagnosis"
@@ -232,10 +232,10 @@ export default function WorkflowDiagnosis({
           </div>
 
           <div
-            className="measurement-glass-block flex flex-row flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-left text-foreground"
+            className="flex flex-row flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-left text-foreground"
             dir="ltr"
           >
-            <p className="mt-2 shrink-0 whitespace-nowrap !text-[13px] font-bold text-primary max-sm:basis-full">
+            <p className="mt-2 shrink-0 whitespace-nowrap !text-[13px] font-bold text-primary">
               Recommendations:
             </p>
             <Textarea
@@ -254,7 +254,7 @@ export default function WorkflowDiagnosis({
         </div>
       )}
 
-      <div className="measurement-glass-block rounded-md border border-border/60 p-3">
+      <div className="rounded-md border border-border/60 p-3">
         <p className="mb-3 block text-sm font-semibold">صور التشخيص</p>
         <DiagnosisImagesPanel patientId={patientId} />
       </div>

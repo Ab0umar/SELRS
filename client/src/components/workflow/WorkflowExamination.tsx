@@ -335,7 +335,7 @@ export default function WorkflowExamination({
       ) : (
         <div className="flex flex-col gap-4 text-[#191c1e]" dir="ltr">
           <section
-            className="measurement-glass-block mx-auto w-full max-w-4xl"
+            className="mx-auto w-full max-w-4xl"
             data-purpose="clinical-refraction"
           >
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -382,7 +382,7 @@ export default function WorkflowExamination({
               <table className="w-full min-w-[480px] table-fixed border-collapse text-center">
                 <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
                   <tr>
-                    <th className={cell} rowSpan={2}>Refraction</th>
+                    <th className={cell}>Refraction</th>
                     <th className={`${cell} text-[#003d9b]`} colSpan={3}>
                       OD (Right)
                     </th>
@@ -391,6 +391,7 @@ export default function WorkflowExamination({
                     </th>
                   </tr>
                   <tr>
+                    <th className={cell}>Distance</th>
                     {["S", "C", "A", "S", "C", "A"].map((heading, index) => (
                       <th key={index} className={cell}>
                         {heading}
@@ -400,9 +401,7 @@ export default function WorkflowExamination({
                 </thead>
                 <tbody className="font-mono">
                   <tr>
-                    <td className={`${cell} bg-[#f3f4f6] font-bold text-[#003d9b]`}>
-                      Distance
-                    </td>
+                    <td className={`${cell} bg-[#f3f4f6]`}>&nbsp;</td>
                     {(["od", "os"] as const).map((eye) => (
                       <FragmentCells
                         key={eye}
@@ -496,7 +495,7 @@ export default function WorkflowExamination({
           </section>
 
           <section
-            className="measurement-glass-block flex flex-wrap items-stretch gap-2 rounded-xl border border-[#c3c6d6] bg-white p-4"
+            className="flex flex-wrap items-stretch gap-2 rounded-xl border border-[#c3c6d6] bg-white p-4"
             data-purpose="clinical-diagrams"
           >
             <div className="relative flex min-h-[300px] w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-lg sm:w-1/4">
@@ -604,11 +603,11 @@ export default function WorkflowExamination({
                       onChange={(event) => setExamField("muscleAbnormalNote", event.target.value)}
                     />
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <span className="font-semibold">3. Other abnormalities:</span>
                     <input
                       aria-label="Other abnormalities"
-                      className={`${underline} min-w-0 basis-full sm:basis-0`}
+                      className={underline}
                       value={exam.otherAbnormalities}
                       onChange={(event) => setExamField("otherAbnormalities", event.target.value)}
                     />

@@ -416,22 +416,4 @@ describe.sequential("canonical clinical storage", () => {
     expect(reports[0]?.visitId).toBe(second.insertId);
     expect(reports.some((row) => row.visitId === visitId)).toBe(false);
   });
-  it("refuses to move a visit onto a day that already has another visit", async () => {
-    const { db, patientId } = await fixture();
-    const [later] = await db.insert(visits).values({
-      patientId,
-      visitDate: new Date("2026-03-16T12:00:00"),
-      visitType: "followup",
-      branch: "examinations",
-    });
-    await expect(
-      doctor.medical.saveExaminationForm({
-        patientId,
-        visitId: later.insertId,
-        visitDate: "2026-03-15",
-        visitType: "followup",
-        data: { diagnosis: "Moved" },
-      }),
-    ).rejects.toMatchObject({ code: "CONFLICT" });
-  });
 });

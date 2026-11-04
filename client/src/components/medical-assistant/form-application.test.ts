@@ -42,7 +42,7 @@ it("appends to the mapped draft and restores existing text on undo", () => {
 it("does not route patient history into the complaints field", () => {
   const { root, field } = fixture();
   expect(() => applyProposal(root, "history", "Diabetes")).toThrow(
-    "لا يوجد حقل وحيد",
+    "no unique destination",
   );
   expect(field.value).toBe("Existing complaint");
 });
@@ -51,7 +51,7 @@ it("does not undo over newer manual edits", () => {
   const { root, field } = fixture();
   const applied = applyProposal(root, "complaints", "Headache");
   field.value = "Doctor edited this";
-  expect(() => undoProposal(root, applied)).toThrow("التعديلات الأحدث");
+  expect(() => undoProposal(root, applied)).toThrow("newer edits");
   expect(field.value).toBe("Doctor edited this");
 });
 
@@ -59,12 +59,12 @@ it("rejects locked or detached fields", () => {
   const { root, field } = fixture();
   field.readOnly = true;
   expect(() => applyProposal(root, "complaints", "Headache")).toThrow(
-    "غير قابل للتعديل",
+    "not editable",
   );
   field.readOnly = false;
   field.isConnected = false;
   expect(() => applyProposal(root, "complaints", "Headache")).toThrow(
-    "غير قابل للتعديل",
+    "not editable",
   );
 });
 
@@ -75,6 +75,6 @@ it("rejects ambiguous destinations", () => {
     field,
   ]) as unknown as typeof root.querySelectorAll;
   expect(() => applyProposal(root, "complaints", "Headache")).toThrow(
-    "لا يوجد حقل وحيد",
+    "no unique destination",
   );
 });
