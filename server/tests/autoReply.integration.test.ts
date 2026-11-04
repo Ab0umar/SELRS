@@ -331,6 +331,42 @@ describe.skipIf(!testUrl)(
         providerId: "same-message",
       };
     }
+    it("filters the sending log by channel before applying its result limit", async () => {
+      await enablePages();
+      await ingestEvents([
+        event("log-whatsapp"),
+        pageEvent("456"),
+        pageEvent("654"),
+        pageEvent("456", "facebook_comment"),
+      ]);
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      expect(await caller.activity()).toHaveLength(4);
+      for (const channel of [
+        "whatsapp",
+        "messenger",
+        "facebook_comment",
+      ] as const) {
+        const rows = await caller.activity({ channel });
+        expect(rows).toHaveLength(channel === "messenger" ? 2 : 1);
+        expect(rows[0].channel).toBe(channel);
+      }
+      expect(
+        await caller.activity({ channel: "messenger", accountId: "456" }),
+      ).toHaveLength(1);
+      const reset = await caller.clearAIHistory({ targetPage: "456" });
+      expect(reset.count).toBe(2);
+      const stored = await db.select().from(conversations);
+      expect(
+        stored
+          .filter((c) => c.contextResetAt !== null)
+          .every((c) => c.accountId === "456"),
+      ).toBe(true);
+      expect(
+        stored
+          .filter((c) => c.accountId !== "456")
+          .every((c) => c.contextResetAt === null),
+      ).toBe(true);
+    });
     it.each(["messenger", "facebook_comment"] as const)(
       "isolates both pages in the %s worker and inbox",
       async (channel) => {

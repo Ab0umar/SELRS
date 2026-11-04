@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { readCoexistenceCredentials } from "./coexistence-credentials";
-import { supportsGeminiSampling } from "../../../shared/auto-reply";
+import {
+  supportsGeminiSampling,
+  settingsForTarget,
+} from "../../../shared/auto-reply";
 import type {
   AutoReplyChannel,
   AutoReplySettings,
@@ -354,6 +357,10 @@ export async function proposeReply(
   generator?: ReplyGenerator,
 ) {
   const publicComment = args.channel === "facebook_comment";
+  args = {
+    ...args,
+    settings: settingsForTarget(args.settings, args.channel, args.accountId),
+  };
   const english = englishFirst(
     publicComment || args.settings.historyMessageLimit === 0
       ? args.text

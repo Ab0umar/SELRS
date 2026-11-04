@@ -22,6 +22,42 @@ export const replyTargetSchema = z
   ])
   .default("all");
 export const autoReplySettingsSchema = z.object({
+  targets: z
+    .record(
+      z.string(),
+      z
+        .object({
+          style: z.string().trim().max(3000).optional(),
+          maxReplyChars: z.number().int().min(100).max(2000).optional(),
+          historyMessageLimit: z.number().int().min(0).max(50).optional(),
+          temperature: z.number().min(0).max(2).optional(),
+          topP: z.number().min(0.01).max(1).optional(),
+          topK: z.number().int().min(1).max(100).nullable().optional(),
+          maxOutputTokens: z.number().int().min(500).max(8192).optional(),
+          stopSequences: z
+            .array(z.string().trim().min(1).max(40))
+            .max(5)
+            .optional(),
+          hoursEnabled: z.boolean().optional(),
+          hours: z
+            .array(
+              z.object({
+                day: z.number().int().min(0).max(6),
+                start: clock,
+                end: clock,
+              }),
+            )
+            .max(28)
+            .optional(),
+          outsideMessage: z.string().trim().min(1).max(1000).optional(),
+          outsideMessageEn: z.string().trim().min(1).max(1000).optional(),
+        })
+        .refine(
+          (value) => !value.hoursEnabled || !!value.hours?.length,
+          "أضف فترة عمل للجهة أو عطّل رسالة خارج المواعيد",
+        ),
+    )
+    .default({}),
   engine: z.enum(["current", "central"]).default("current"),
   knowledgeMode: z.enum(["legacy", "teach_ai"]).default("legacy"),
   historyMessageLimit: z.number().int().min(0).max(50).default(12),
@@ -99,6 +135,18 @@ export const autoReplySettingsSchema = z.object({
     ),
 });
 export type AutoReplySettings = z.infer<typeof autoReplySettingsSchema>;
+export function settingsForTarget(
+  settings: AutoReplySettings,
+  channel: AutoReplyChannel,
+  accountId?: string,
+): AutoReplySettings {
+  return {
+    ...settings,
+    ...settings.targets[
+      channel === "whatsapp" ? "whatsapp" : (accountId ?? "")
+    ],
+  };
+}
 export function isAutoReplyEnabled(
   settings: AutoReplySettings,
   channel: AutoReplyChannel,

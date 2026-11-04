@@ -4,6 +4,7 @@ import { and, eq, inArray, lt, lte, sql } from "drizzle-orm";
 import {
   autoReplySettingsSchema,
   isAutoReplyEnabled,
+  settingsForTarget,
 } from "../../../shared/auto-reply";
 import {
   autoReplySettings as settingsTable,
@@ -44,10 +45,12 @@ export function jobFailure(error: unknown, attempts: number) {
     error instanceof ProviderError
       ? error
       : new ProviderError("INTERNAL_ERROR");
-  if (safe.code === "CENTRAL_AI_PENDING") return {
-    state: attempts < 40 ? "retry" : "unknown", errorCode: safe.code,
-    availableAt: new Date(Date.now() + 15_000),
-  };
+  if (safe.code === "CENTRAL_AI_PENDING")
+    return {
+      state: attempts < 40 ? "retry" : "unknown",
+      errorCode: safe.code,
+      availableAt: new Date(Date.now() + 15_000),
+    };
   return {
     state: safe.uncertain
       ? "unknown"
@@ -160,7 +163,10 @@ export async function runAutoReplyTick() {
       .select()
       .from(settingsTable)
       .where(eq(settingsTable.id, 1));
-    const config = autoReplySettingsSchema.parse(settingsRow.config);
+    const baseConfig = autoReplySettingsSchema.parse(settingsRow.config);
+    const config = c
+      ? settingsForTarget(baseConfig, c.channel, c.accountId)
+      : baseConfig;
     if (
       !c ||
       c.revision !== job.revision ||

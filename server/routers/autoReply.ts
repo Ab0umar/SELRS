@@ -25,6 +25,7 @@ import { adminProcedure, router } from "../_core/procedures";
 import {
   autoReplyChannels,
   autoReplySettingsSchema,
+  settingsForTarget,
   knowledgeSchema,
   isAutoReplyEnabled,
   supportsGeminiSampling,
@@ -173,12 +174,30 @@ export const autoReplyRouter = router({
       return { ok: true };
     }),
   clearAIHistory: autoReplyAdminProcedure
-    .input(z.object({ conversationId: recordId.optional() }))
+    .input(
+      z.object({
+        conversationId: recordId.optional(),
+        targetPage: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const db = await getAutoReplyDb();
-      const filter = input.conversationId
-        ? eq(conversations.id, input.conversationId)
-        : undefined;
+      const filter = and(
+        input.conversationId
+          ? eq(conversations.id, input.conversationId)
+          : undefined,
+        !input.targetPage || input.targetPage === "all"
+          ? undefined
+          : input.targetPage === "whatsapp"
+            ? eq(conversations.channel, "whatsapp")
+            : and(
+                eq(conversations.accountId, input.targetPage),
+                inArray(conversations.channel, [
+                  "messenger",
+                  "facebook_comment",
+                ]),
+              ),
+      );
       const count = await db.transaction(async (tx) => {
         const selected = await tx
           .select({ id: conversations.id })
@@ -720,7 +739,9 @@ export const autoReplyRouter = router({
           testOnly: true as const,
           engine: input.engine,
           requestId: input.engine !== "current" ? input.requestId : undefined,
-          inWorkingHours: inWorkingHours(config),
+          inWorkingHours: inWorkingHours(
+            settingsForTarget(config, input.channel, accountId),
+          ),
         };
       } catch (error) {
         throw new TRPCError({
@@ -740,27 +761,46 @@ export const autoReplyRouter = router({
         });
       }
     }),
-  activity: autoReplyAdminProcedure.query(async () => {
-    const db = await getAutoReplyDb();
-    return db
-      .select({
-        id: jobs.id,
-        channel: conversations.channel,
-        accountId: conversations.accountId,
-        conversationId: jobs.conversationId,
-        state: jobs.state,
-        kind: jobs.kind,
-        attempts: jobs.attempts,
-        errorCode: jobs.errorCode,
-        model: jobs.model,
-        inputTokens: jobs.inputTokens,
-        outputTokens: jobs.outputTokens,
-        createdAt: jobs.createdAt,
-        updatedAt: jobs.updatedAt,
-      })
-      .from(jobs)
-      .innerJoin(conversations, eq(conversations.id, jobs.conversationId))
-      .orderBy(desc(jobs.id))
-      .limit(100);
-  }),
+  activity: autoReplyAdminProcedure
+    .input(
+      z
+        .object({
+          channel: z.enum(autoReplyChannels),
+          accountId: z.string().optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ input }) => {
+      const db = await getAutoReplyDb();
+      return db
+        .select({
+          id: jobs.id,
+          channel: conversations.channel,
+          accountId: conversations.accountId,
+          conversationId: jobs.conversationId,
+          state: jobs.state,
+          kind: jobs.kind,
+          attempts: jobs.attempts,
+          errorCode: jobs.errorCode,
+          model: jobs.model,
+          inputTokens: jobs.inputTokens,
+          outputTokens: jobs.outputTokens,
+          createdAt: jobs.createdAt,
+          updatedAt: jobs.updatedAt,
+        })
+        .from(jobs)
+        .innerJoin(conversations, eq(conversations.id, jobs.conversationId))
+        .where(
+          and(
+            input?.channel
+              ? eq(conversations.channel, input.channel)
+              : undefined,
+            input?.accountId
+              ? eq(conversations.accountId, input.accountId)
+              : undefined,
+          ),
+        )
+        .orderBy(desc(jobs.id))
+        .limit(100);
+    }),
 });
