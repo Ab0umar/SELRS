@@ -115,6 +115,19 @@ export class MedicalProposalValidationError extends Error {
   }
 }
 
+// Overlapping four-word sequences, used to tell verbatim copying from rewording.
+function phrases(text: string) {
+  const words = text
+    .normalize("NFKC")
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+  const result = new Set<string>();
+  for (let index = 0; index + 4 <= words.length; index++)
+    result.add(words.slice(index, index + 4).join(" "));
+  return result;
+}
+
 export function validateMedicalProposals(
   raw: unknown,
   input: MedicalTranscript,
@@ -160,13 +173,24 @@ export function validateMedicalProposals(
         "Clinical decision requires an explicit doctor statement",
       );
   }
-  // In a full-visit recording, a field holding most of the transcript is the raw
-  // conversation rather than an extracted value; drop it so it never fills a field.
-  if (input.kind !== "conversation" || input.transcript.length < 200)
+  // In a recorded conversation, a field that repeats most of the transcript word
+  // for word is the raw conversation rather than an extracted value; drop it so it
+  // never fills a field. Length alone is not evidence: a condensed summary can be
+  // long, and in doctor dictation the whole transcript may be one field's value.
+  if (
+    input.kind !== "conversation" ||
+    input.mode !== "conversation" ||
+    input.transcript.length < 200
+  )
     return output;
-  const rawCopies = output.proposals.filter(
-    (proposal) => proposal.text.length >= input.transcript.length * 0.6,
-  );
+  const transcriptPhrases = phrases(input.transcript);
+  if (transcriptPhrases.size < 10) return output;
+  const rawCopies = output.proposals.filter((proposal) => {
+    let repeated = 0;
+    for (const phrase of phrases(proposal.text))
+      if (transcriptPhrases.has(phrase)) repeated++;
+    return repeated / transcriptPhrases.size >= 0.6;
+  });
   if (!rawCopies.length) return output;
   return {
     proposals: output.proposals.filter(

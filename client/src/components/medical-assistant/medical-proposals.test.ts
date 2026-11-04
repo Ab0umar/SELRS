@@ -55,6 +55,33 @@ describe("medical AI proposal boundary", () => {
     expect(result.warnings).toHaveLength(1);
     expect(result.warnings[0]).toContain("Final decision");
   });
+  const history =
+    "يا دكتور أنا عندي سكر من عشر سنين وباخد أنسولين الصبح وبالليل، وعملت عملية مياه بيضاء في العين اليمين من سنتين، وعندي ضغط بقاله خمس سنين وباخد كونكور، ومفيش عندي حساسية من أي دوا، وأبويا الله يرحمه كان عنده مياه زرقاء.";
+  it("keeps a long reworded summary that does not copy the conversation", () => {
+    const summary =
+      "سكري منذ 10 سنوات على الأنسولين صباحًا ومساءً، وارتفاع ضغط منذ 5 سنوات على كونكور. جراحة مياه بيضاء بالعين اليمنى منذ عامين. لا حساسية دوائية. تاريخ عائلي للمياه الزرقاء (الأب).";
+    expect(summary.length).toBeGreaterThan(history.length * 0.6);
+    const result = validateMedicalProposals(
+      {
+        proposals: [{ field: "history", text: summary, sources: ["عندي سكر من عشر سنين"], speaker: "patient" }],
+        warnings: [],
+      },
+      { kind: "conversation", mode: "conversation", transcript: history },
+    );
+    expect(result.proposals).toHaveLength(1);
+    expect(result.warnings).toEqual([]);
+  });
+  it("keeps a dictated field even when it is the whole transcript", () => {
+    const result = validateMedicalProposals(
+      {
+        proposals: [{ field: "history", text: history, sources: ["عندي سكر من عشر سنين"], speaker: "doctor" }],
+        warnings: [],
+      },
+      { kind: "conversation", mode: "dictation", transcript: history },
+    );
+    expect(result.proposals).toHaveLength(1);
+    expect(result.warnings).toEqual([]);
+  });
   it("accepts a cited selected-field proposal", () => {
     expect(
       validateMedicalProposals(
