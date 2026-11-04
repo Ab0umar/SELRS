@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../db", async (original) => ({
   ...(await original<typeof import("../db")>()),
   getSystemSetting: async () => null,
+  getPatientById: async (id: number) => (id === 404 ? undefined : { id }),
+  logAuditEvent: async () => undefined,
 }));
 vi.mock("../services/ai/medical", () => ({
   startMedicalProposals: mocks.start,
@@ -60,8 +62,29 @@ describe("medical provider routing", () => {
       "gemini",
       "current",
       "gemini-selected",
+      { patientId: undefined, visitId: undefined },
     );
   });
+  it.each(["reception", "technician", "manager"])(
+    "rejects %s from the medical assistant",
+    async (role) => {
+      await expect(
+        medicalAssistantRouter
+          .createCaller(makeCallerAs(role))
+          .startProposals(input),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(mocks.start).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["admin", "doctor", "nurse"])(
+    "allows %s to use the medical assistant",
+    async (role) => {
+      await medicalAssistantRouter
+        .createCaller(makeCallerAs(role))
+        .startProposals(input);
+      expect(mocks.start).toHaveBeenCalledTimes(1);
+    },
+  );
   it("rejects a stale consent/provider selection before sending a transcript", async () => {
     await expect(
       medicalAssistantRouter
@@ -70,6 +93,26 @@ describe("medical provider routing", () => {
     ).rejects.toMatchObject({ code: "CONFLICT" });
     expect(mocks.start).not.toHaveBeenCalled();
   });
+  it("accepts legacy (negative) patient ids and rejects unknown patients", async () => {
+    const caller = medicalAssistantRouter.createCaller(makeCallerAs("doctor"));
+    await caller.startProposals({ ...input, patientId: -12 });
+    expect(mocks.start).toHaveBeenCalledTimes(1);
+    await expect(
+      caller.startProposals({ ...input, patientId: 404 }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(mocks.start).toHaveBeenCalledTimes(1);
+  });
+  it.each(["speechToken", "geminiSpeechToken"] as const)(
+    "refuses %s without recording consent",
+    async (method) => {
+      await expect(
+        medicalAssistantRouter
+          .createCaller(makeCallerAs("doctor"))
+          // @ts-expect-error consent is required by the input schema
+          [method]({}),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    },
+  );
   it("uses the saved provider for the medical synthetic route rather than hard-coded Manus", async () => {
     await aiManagementRouter
       .createCaller(makeCallerAs("admin"))

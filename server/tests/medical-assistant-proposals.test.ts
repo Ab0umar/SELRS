@@ -77,7 +77,7 @@ describe("private medical Manus tasks", () => {
       new ManusRequestError("temporary CDN failure", true),
     );
     await expect(readMedicalProposals(owner, jobId)).rejects.toThrow(
-      "Retry checking",
+      "أعد فحص المهمة نفسها",
     );
     expect((await readMedicalProposals(owner, jobId)).status).toBe("complete");
     expect(createManusTask).toHaveBeenCalledTimes(1);
@@ -133,7 +133,7 @@ describe("private medical Manus tasks", () => {
       });
       expect(createManusTask).not.toHaveBeenCalled();
       await expect(readMedicalProposals(owner + 5000, jobId)).rejects.toThrow(
-        "unavailable or expired",
+        "غير متاحة أو انتهت",
       );
     } finally {
       vi.unstubAllGlobals();
@@ -145,7 +145,7 @@ describe("private medical Manus tasks", () => {
     try {
       await expect(
         startMedicalProposals(owner, input, [], "gemini"),
-      ).rejects.toThrow("disabled pending confirmation");
+      ).rejects.toThrow("معطّل لحين تأكيد الشروط");
       expect(createManusTask).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllEnvs();
@@ -183,7 +183,7 @@ describe("private medical Manus tasks", () => {
   it("does not allow another user to read the task", async () => {
     const { jobId } = await startMedicalProposals(owner, input);
     await expect(readMedicalProposals(owner + 10000, jobId)).rejects.toThrow(
-      "unavailable",
+      "غير متاحة أو انتهت",
     );
     expect(readManusTask).not.toHaveBeenCalled();
   });
@@ -229,23 +229,23 @@ describe("private medical Manus tasks", () => {
     expect(await readMedicalProposals(owner, jobId)).toEqual({
       status: "failed",
       message:
-        "Manus returned a proposal outside the selected recording scope. No correction applied.",
+        "أعاد Manus اقتراحًا خارج نطاق التسجيل المحدد. لم يُطبّق أي تعديل.",
     });
   });
   it.each([
-    ["missing file", "Manus did not return medical-proposals.json"],
-    ["download", "The Manus result file could not be downloaded"],
-    ["json", "The Manus result file is not valid JSON"],
+    ["missing file", "لم يُرجع Manus ملف medical-proposals.json"],
+    ["download", "تعذر تنزيل ملف نتيجة Manus"],
+    ["json", "ملف نتيجة Manus ليس JSON صالحًا"],
     [
       "structure",
-      "The Manus result does not match the required proposal structure",
+      "نتيجة Manus لا تطابق بنية الاقتراحات المطلوبة",
     ],
     [
       "source",
-      "A Manus supporting quote does not exactly match the transcript",
+      "اقتباس داعم من Manus لا يطابق النص حرفيًا",
     ],
-    ["duplicate", "Manus returned more than one proposal for the same field"],
-    ["speaker", "A Manus clinical decision is not attributed to the doctor"],
+    ["duplicate", "أعاد Manus أكثر من اقتراح للحقل نفسه"],
+    ["speaker", "قرار سريري من Manus غير منسوب إلى الطبيب"],
   ])(
     "reports and caches a private-safe reason for %s",
     async (failure, reason) => {
@@ -303,7 +303,7 @@ describe("private medical Manus tasks", () => {
       const { jobId } = await startMedicalProposals(owner, recording);
       const expected = {
         status: "failed",
-        message: `${reason}. No correction applied.`,
+        message: `${reason}. لم يُطبّق أي تعديل.`,
       };
       expect(await readMedicalProposals(owner, jobId)).toEqual(expected);
       expect(await readMedicalProposals(owner, jobId)).toEqual(expected);
@@ -315,7 +315,7 @@ describe("private medical Manus tasks", () => {
     await startMedicalProposals(owner, input);
     await expect(
       startMedicalProposals(owner, { ...input, transcript: "different" }),
-    ).rejects.toThrow("already running");
+    ).rejects.toThrow("قيد التنفيذ");
     expect(createManusTask).toHaveBeenCalledTimes(1);
   });
   it("does not repeat an ambiguous billed creation request", async () => {
@@ -323,7 +323,7 @@ describe("private medical Manus tasks", () => {
       new Error("provider secret"),
     );
     await expect(startMedicalProposals(owner, input)).rejects.toThrow(
-      "could not confirm",
+      "تعذر على Manus تأكيد",
     );
     await startMedicalProposals(owner, input);
     expect(createManusTask).toHaveBeenCalledTimes(1);
@@ -334,7 +334,7 @@ describe("private medical Manus tasks", () => {
       new Error("private provider details"),
     );
     await expect(readMedicalProposals(owner, jobId)).rejects.toThrow(
-      "Retry checking",
+      "أعد فحص المهمة نفسها",
     );
     expect((await readMedicalProposals(owner, jobId)).status).toBe("complete");
     expect(createManusTask).toHaveBeenCalledTimes(1);

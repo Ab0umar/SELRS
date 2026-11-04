@@ -35,6 +35,8 @@ type RecordingProps = {
   maxRecordingMinutes?: number;
   showDiagnostics?: boolean;
   patientName?: string;
+  patientId?: number;
+  visitId?: number | null;
   onClose: () => void;
 } & (
   | { kind?: "field"; target: DictationTarget }
@@ -47,7 +49,18 @@ type RecordingProps = {
     }
 );
 
+// Recording consent is asked once per patient visit and kept until the page reloads.
+const consentedVisits = new Set<string>();
+
 export default function FieldDictation(props: RecordingProps) {
+  const visitKey =
+    props.patientId === undefined
+      ? undefined
+      : `${props.patientId}:${props.visitId ?? "new"}`;
+  const [consented, setConsented] = useState(
+    visitKey !== undefined && consentedVisits.has(visitKey),
+  );
+  const [consentChecked, setConsentChecked] = useState(false);
   const settings = trpc.medicalAssistant.settings.useQuery(undefined, {
     retry: false,
     staleTime: 0,
@@ -82,6 +95,49 @@ export default function FieldDictation(props: RecordingProps) {
             </Button>
           )}
           <Button onClick={props.onClose}>إغلاق</Button>
+        </DialogContent>
+      </Dialog>
+    );
+  if (!consented)
+    return (
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) props.onClose();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>موافقة المريض على التسجيل</DialogTitle>
+            <DialogDescription>
+              سيُرسل صوت الزيارة إلى{" "}
+              {snapshot.speechProvider === "gemini" ? "Gemini" : "Azure"}{" "}
+              لتحويله إلى نص، ثم يُرسل النص للذكاء الاصطناعي لتعبئة الحقول
+              للمراجعة. لا يبدأ التسجيل قبل تأكيد موافقة المريض.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={consentChecked}
+              onChange={(event) => setConsentChecked(event.target.checked)}
+            />
+            حصلت على موافقة المريض على تسجيل الصوت ومعالجته بالذكاء الاصطناعي.
+          </label>
+          <div className="flex gap-2">
+            <Button
+              disabled={!consentChecked}
+              onClick={() => {
+                if (visitKey !== undefined) consentedVisits.add(visitKey);
+                setConsented(true);
+              }}
+            >
+              بدء التسجيل
+            </Button>
+            <Button variant="outline" onClick={props.onClose}>
+              إلغاء
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -308,7 +364,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
           });
         }, 250);
         if (provider === "gemini") {
-          const credentials = await geminiToken.mutateAsync();
+          const credentials = await geminiToken.mutateAsync({ consentConfirmed: true });
           if (disposed || stopping) return;
           if (!meterContext || !meterSource || meterContext.state !== "running")
             throw new Error("Browser audio capture is unavailable.");
@@ -370,7 +426,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
             );
           return;
         }
-        const credentials = await token.mutateAsync();
+        const credentials = await token.mutateAsync({ consentConfirmed: true });
         if (disposed) return;
         const sdk = await import("microsoft-cognitiveservices-speech-sdk");
         if (disposed) return;
@@ -606,6 +662,16 @@ function ConfiguredFieldDictation(props: RecordingProps) {
       setApplied(true);
     }
   };
+  // A full-visit recording goes to review as soon as it stops cleanly; after an
+  // error the captured text waits for the doctor to send it.
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (props.kind !== "conversation" || active || error || autoSent.current)
+      return;
+    if (!text.trim()) return;
+    autoSent.current = true;
+    applyTranscript();
+  });
   const undoApplied = () => {
     if (!target) return;
     if (target.element.value !== lastApplied.current) {
@@ -719,7 +785,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
           {target && reviewText !== undefined && (
             <div hidden={applied}>
               <ProposalReview
-                autoStart
+                context={{ patientId: props.patientId, visitId: props.visitId }}
                 input={{
                   kind: "field",
                   label: target.label,

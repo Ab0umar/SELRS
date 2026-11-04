@@ -84,3 +84,20 @@ export function confirmedInvestigationsFromRecords(
       notes: item.result ?? "",
     }));
 }
+
+// Route and unit words the drug database appends to the Arabic trade name.
+const arabicNoiseWords = new Set(["ايي", "اار", "اورال", "مل"]);
+/**
+ * Arabic trade name from an Egyptian Drug Database description, which starts
+ * with it: "فيجاموكس 0.5% إيي | Route: …" gives "فيجاموكس".
+ */
+export function medicationArabicName(description?: string | null) {
+  const words: string[] = [];
+  for (const word of String(description ?? "").split("|")[0].trim().split(/\s+/)) {
+    if (/\d/.test(word)) break;
+    words.push(...word.split(/[^ء-ي]+/u).filter(Boolean));
+  }
+  return words
+    .filter((word) => !arabicNoiseWords.has(word.replace(/[أإآ]/g, "ا")))
+    .join(" ");
+}

@@ -34,6 +34,27 @@ describe("medical AI proposal boundary", () => {
       }).success,
     ).toBe(true);
   });
+  it("drops a full-visit proposal that copies most of the conversation and warns", () => {
+    const visit = {
+      kind: "conversation",
+      mode: "conversation",
+      transcript:
+        "عندي صداع جامد من أسبوعين وعيني اليمين بتنبض. الدكتور قال لازم نظارة وهنعمل أشعة عيون ونشوف بعدها لو محتاجين عملية. ".repeat(3),
+    } as const;
+    const result = validateMedicalProposals(
+      {
+        proposals: [
+          { field: "complaints", text: "صداع جامد من أسبوعين", sources: ["عندي صداع جامد من أسبوعين"], speaker: "patient" },
+          { field: "decision", text: visit.transcript, sources: ["لازم نظارة"], speaker: "doctor" },
+        ],
+        warnings: [],
+      },
+      visit,
+    );
+    expect(result.proposals.map((item) => item.field)).toEqual(["complaints"]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain("Final decision");
+  });
   it("accepts a cited selected-field proposal", () => {
     expect(
       validateMedicalProposals(
