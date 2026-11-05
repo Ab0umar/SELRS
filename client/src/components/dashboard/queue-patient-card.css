@@ -81,6 +81,17 @@
   }
   [data-queue-patient-card][data-has-clinic="true"] .queue-patient-heading { min-height: 52px; }
   [data-queue-patient-card] .queue-patient-summary { min-width: 0; }
+  [data-queue-patient-card] .queue-patient-mark-treated {
+    position: absolute; top: 0; inset-inline-end: 0;
+    width: 28px; height: 28px; min-width: 28px; padding: 0 !important;
+  }
+  [data-queue-patient-card] .queue-patient-mark-label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  [data-queue-patient-card] .queue-patient-heading:has(.queue-patient-mark-treated) .queue-patient-name-row {
+    padding-inline-end: 34px;
+  }
   [data-queue-patient-card] .queue-patient-name-row {
     display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 24px;
   }

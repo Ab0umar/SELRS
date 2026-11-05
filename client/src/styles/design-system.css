@@ -393,3 +393,22 @@
     --info: #0058a8;
   }
 }
+
+/* Printing from the dark theme keeps paper-light surfaces and text. */
+@media print {
+  .dark {
+    --background: #ffffff;
+    --canvas: #ffffff;
+    --foreground: #0b2a52;
+    --card: #ffffff;
+    --card-foreground: #0b2a52;
+    --popover: #ffffff;
+    --popover-foreground: #0b2a52;
+    --field-surface: #ffffff;
+    --muted: #eef4fb;
+    --muted-foreground: #4a6283;
+    --border: #d5dfeb;
+    --primary: #0b4a8f;
+    --primary-foreground: #ffffff;
+  }
+}
