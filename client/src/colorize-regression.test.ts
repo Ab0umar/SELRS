@@ -22,11 +22,11 @@ function readClientTsxFiles(dir = resolve(clientRoot, "src")): string {
 }
 
 describe("color token regressions", () => {
-  it("uses navy and soft lavender for screens while preserving the clinical print palette", () => {
+  it("uses the blue and orange brand for screens while preserving the clinical print palette", () => {
     const source = readClientFile("src/styles/design-system.css").toLowerCase();
 
-    expect(source).toContain("--primary: #293582;");
-    expect(source).toContain("--secondary: #eeedf8;");
+    expect(source).toContain("--primary: #0b4a8f;");
+    expect(source).toContain("--secondary: #f7941d;");
     expect(source).toMatch(/\.lasik-print-root[\s\S]*--primary: #003d82;/);
     expect(source).not.toContain("--primary: #ff9500;");
   });

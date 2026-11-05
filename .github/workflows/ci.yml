@@ -61,8 +61,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Built straight from drizzle/schema.ts. The migration snapshots stop at
+      # 0040, so generate-and-migrate re-creates tables that 0041+ already made.
       - name: Initialize disposable test database
-        run: pnpm db:push
+        run: pnpm exec drizzle-kit push --force
 
       - name: Run TypeScript Check
         run: pnpm check
