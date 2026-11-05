@@ -10,15 +10,10 @@ vi.mock("@google/genai", () => ({
 vi.mock("../services/ai/medicalGemini", () => ({
   assertMedicalGeminiAvailable: mocks.available,
 }));
-vi.mock("../services/medical-vocabulary", () => ({
-  readMedicalVocabulary: async () => ({
-    phrases: ["Cataract", "TOBRIN", "OCT Macula"],
-  }),
-}));
 import { medicalGeminiSpeechToken } from "../services/ai/geminiSpeech";
 afterEach(() => vi.resetAllMocks());
 describe("Gemini medical speech credentials", () => {
-  it("issues a single-use token locked to verbatim transcription and catalog vocabulary", async () => {
+  it("issues a single-use token locked to verbatim transcription without catalog hints", async () => {
     mocks.create.mockResolvedValue({ name: "auth_tokens/temporary" });
     const result = await medicalGeminiSpeechToken();
     expect(result.token).toBe("auth_tokens/temporary");
@@ -35,7 +30,6 @@ describe("Gemini medical speech credentials", () => {
     expect(result.config.inputAudioTranscription).toEqual({
       mode: "VERBATIM",
       languageCodes: [],
-      customVocabulary: ["Cataract", "TOBRIN", "OCT Macula"],
     });
     expect(result).not.toHaveProperty("apiKey");
   });
