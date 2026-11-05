@@ -193,7 +193,7 @@
   /* SELRS Brand Colors */
   --selrs-navy: #101a86;
   --selrs-orange: #ff9500;
-  --selrs-dark-blue: #111754;
+  --selrs-dark-blue: #08366b;
   --selrs-light-blue: #f1f3ff;
   --selrs-light-orange: #ffe8cc;
 
@@ -201,17 +201,17 @@
   --bento-shadow-soft: 0 1px 2px rgba(17, 23, 84, 0.07);
 
   /* Primary Colors - deep utility blue */
-  --primary: #12178a;
+  --primary: #0b4a8f;
   --primary-foreground: #fbfbff;
-  --sidebar-primary: #12178a;
+  --sidebar-primary: #0b4a8f;
   --sidebar-primary-foreground: #fbfbff;
 
   /* Charts - deep blue to orange gradient */
-  --chart-1: #12178a;
-  --chart-2: #2930a8;
+  --chart-1: #0b4a8f;
+  --chart-2: #2f6fb5;
   --chart-3: #ff9500;
   --chart-4: #ffb84d;
-  --chart-5: #eff2ff;
+  --chart-5: #eef4fb;
 
   --radius: 0.75rem;
 
@@ -222,11 +222,11 @@
   --card-foreground: #23252d;
   --popover: #ffffff;
   --popover-foreground: #23252d;
-  --secondary: #eef2ff;
-  --secondary-foreground: #111754;
+  --secondary: #e3eef9;
+  --secondary-foreground: #08366b;
   --muted: #e9f0f8;
   --muted-foreground: #747481;
-  --accent: #12178a;
+  --accent: #0b4a8f;
   --accent-foreground: #fbfbff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
@@ -240,28 +240,28 @@
   --error-foreground: #ffffff;
   --border: #d5dfeb;
   --input: #e5e5ef;
-  --ring: #12178a;
+  --ring: #0b4a8f;
 
   --sidebar: #eef3fa;
   --sidebar-foreground: #23252d;
   --sidebar-accent: #f1f3ff;
-  --sidebar-accent-foreground: #111754;
+  --sidebar-accent-foreground: #08366b;
   --sidebar-border: #d5dfeb;
-  --sidebar-ring: #12178a;
+  --sidebar-ring: #0b4a8f;
 }
 
 .dark {
-  --background: #000000;
+  --background: #0a1a2f;
   --foreground: #f5f5f5;
-  --card: #000000;
+  --card: #12304f;
   --card-foreground: #f5f5f5;
-  --popover: #000000;
+  --popover: #12304f;
   --popover-foreground: #f5f5f5;
   --primary: #0084ff;
   --primary-foreground: #ffffff;
   --secondary: #1f8fff;
   --secondary-foreground: #000000;
-  --muted: #000000;
+  --muted: #0f2742;
   --muted-foreground: #b0b3b8;
   --accent: #1f8fff;
   --accent-foreground: #000000;
@@ -285,7 +285,7 @@
   --chart-4: #ffb84d;
   --chart-5: #ffd699;
 
-  --sidebar: #000000;
+  --sidebar: #0a1a2f;
   --sidebar-foreground: #f5f5f5;
   --sidebar-primary: #0084ff;
   --sidebar-primary-foreground: #ffffff;
@@ -906,7 +906,7 @@
   .dark [class*="bg-[#F8F9FB]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
   .dark [class*="bg-[#f7f9fc]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *),
   .dark [class*="bg-[#F7F9FC]"]:not(.lasik-sheet *, .a4-page-card *, .sheet-followup-body *, .specialist-sheet *) {
-    background-color: #000000 !important;
+    background-color: #0a1a2f !important;
   }
 
   .dark [class*="border-[#dbe7f4]"],
@@ -1744,7 +1744,7 @@ select {
 }
 
 .dark .selrs-page-bg {
-  background-color: #000000;
+  background-color: #0a1a2f;
   background-image: none;
 }
 
@@ -1760,7 +1760,7 @@ select {
   }
 
   .dark .selrs-page-bg {
-    background-color: #000000 !important;
+    background-color: #0a1a2f !important;
     background-image: none !important;
     background-attachment: scroll !important;
   }
@@ -1780,7 +1780,7 @@ select {
 
 .dark .selrs-login-bg {
   background-image: none;
-  background-color: #000000;
+  background-color: #0a1a2f;
   background-attachment: scroll;
 }
 
@@ -1793,7 +1793,7 @@ select {
 
 .dark .selrs-glass-card {
   border: 1px solid transparent;
-  background: #000000;
+  background: #12304f;
   box-shadow: none;
   backdrop-filter: none;
 }

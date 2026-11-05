@@ -37,22 +37,22 @@ export const LOGIN_PALETTE = {
     field: "border-white/80 bg-[rgba(255,255,255,0.60)] backdrop-blur-sm",
   },
   dark: {
-    page: "bg-[#0c1a33] text-white",
+    page: "bg-[#0a1a2f] text-white",
     title: "text-white",
     muted: "text-[#9fb3d6]",
-    accent: "text-[#f2873a]",
+    accent: "text-[#f7941d]",
     heading: "text-white",
     label: "text-[#cfdcf5]",
     panel:
       "border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.07)] backdrop-blur-md",
     seg: "border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.08)]",
-    tabOn: "bg-[#f2873a] text-[#0c1a33]",
+    tabOn: "bg-[#f7941d] text-[#0a1a2f]",
     tabOff: "text-[#9fb3d6] hover:text-white",
     list: "border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.06)]",
     tile: "border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] text-white",
-    tileIcon: "bg-[rgba(255,255,255,0.10)] text-[#f2873a]",
+    tileIcon: "bg-[rgba(255,255,255,0.10)] text-[#f7941d]",
     chip: "border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] text-[#cfdcf5]",
-    cta: "bg-[#f2873a] text-[#0c1a33] hover:bg-[#f2873a]/90",
+    cta: "bg-[#f7941d] text-[#0a1a2f] hover:bg-[#f7941d]/90",
     toggle: "text-[#cfdcf5] hover:bg-[rgba(255,255,255,0.10)]",
     footStrong: "text-white",
     field: "placeholder:text-[#8aa0c8]",
@@ -115,7 +115,7 @@ export function LoginShell({
       {!isDark && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 -right-20 size-64 rounded-full bg-[#f2873a] opacity-50 blur-[80px]"
+          className="pointer-events-none absolute -bottom-24 -right-20 size-64 rounded-full bg-[#f7941d] opacity-50 blur-[80px]"
         />
       )}
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[460px] flex-col px-4 py-5 sm:py-8">

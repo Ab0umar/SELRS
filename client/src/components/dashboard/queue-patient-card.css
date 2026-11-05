@@ -4,13 +4,13 @@
 /* Service colors identify the visit type; status labels remain independent. */
 @media screen {
   [data-queue-workspace] .queue-workspace-list { align-items: start; }
-  [data-queue-patient-card] { --queue-service: #335886; --queue-wash: #eaf0f7; }
-  [data-queue-patient-card][data-service-type="specialist"] { --queue-service: #397c65; --queue-wash: #e9f3ee; }
-  [data-queue-patient-card][data-service-type="lasik"] { --queue-service: #826021; --queue-wash: #f7f0e2; }
+  [data-queue-patient-card] { --queue-service: #0b4a8f; --queue-wash: #e3eef9; }
+  [data-queue-patient-card][data-service-type="specialist"] { --queue-service: #4a6283; --queue-wash: #e9f0f8; }
+  [data-queue-patient-card][data-service-type="lasik"] { --queue-service: #9a5204; --queue-wash: #fdeedb; }
   [data-queue-patient-card][data-service-type="external"],
   [data-queue-patient-card][data-service-type="pentacam_ex"],
   [data-queue-patient-card][data-service-type="pentacam_external"],
-  [data-queue-patient-card][data-service-type="surgery_external"] { --queue-service: #805777; --queue-wash: #f4edf2; }
+  [data-queue-patient-card][data-service-type="surgery_external"] { --queue-service: #33486a; --queue-wash: #eef1f5; }
   html [data-queue-patient-card] {
     background: color-mix(in srgb, var(--queue-wash) 50%, white);
     border-color: color-mix(in srgb, var(--queue-service) 28%, white);

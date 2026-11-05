@@ -95,7 +95,7 @@ export default function SalaryDashboard() {
               <h2 id={headingId} className="salary-home-eyebrow">
                 {label} · صافي الرواتب
               </h2>
-              <p className="salary-home-net">{figure(data?.totalPay)}</p>
+              <p className={`salary-home-net${data?.totalPay === undefined ? " is-unavailable" : ""}`}>{figure(data?.totalPay)}</p>
               {!summaryQ.isLoading && !summaryQ.isError && staff > 0 && (
                 <div className="salary-home-approval">
                   <div

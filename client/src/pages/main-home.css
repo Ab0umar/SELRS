@@ -67,7 +67,7 @@
   .main-home-library.main-home-library { background: #ffffff; color: #0f2440; }
   .dark .main-home-library.main-home-library { background: #0a1a2f; color: #fff; }
   .main-home-library .home-library-content { width: 100%; max-width: none; margin-inline: 0; padding: 32px 40px 24px; }
-  .main-home-library .home-library-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+  .main-home-library .home-library-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 16px; margin-bottom: 20px; }
   .main-home-library .home-library-heading > div { display: flex; flex-direction: column-reverse; }
   .main-home-library h1 { font-size: 20px; line-height: 1.5; font-weight: 700; color: #4b5f78; }
   .dark .main-home-library h1 { color: #a9bed6; }
@@ -95,6 +95,7 @@
   .main-home-library .home-bento-block svg { width: 34px; height: 34px; flex-shrink: 0; }
   .main-home-library .home-bento-block[data-block="0"] { background: #0b4a8f; color: #fff; }
   .main-home-library .home-bento-block[data-block="1"] { background: #e3eef9; color: #08366b; }
+  .dark .main-home-library .home-bento-block[data-block="1"] { background: #1a3f66; color: #ffffff; }
   .main-home-library .home-bento-block[data-block="2"] { background: #08366b; border-color: #1f4468; color: #fff; }
   .main-home-library .home-bento-hero:focus-visible,
   .main-home-library .home-bento-block:focus-visible,

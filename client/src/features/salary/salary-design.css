@@ -204,6 +204,10 @@
     font-weight: 700;
     color: var(--primary);
   }
+  [data-operational-module="salary"] .salary-home-net.is-unavailable {
+    color: var(--muted-foreground);
+    font-weight: 600;
+  }
   [data-operational-module="salary"] .salary-home-entries {
     grid-column: 1 / -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
