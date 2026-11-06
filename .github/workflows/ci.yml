@@ -104,7 +104,7 @@ jobs:
         run: pnpm build
 
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install --with-deps chromium
 
       # Fixed credentials: CI seeds them into the disposable test database above.
       - name: Seed E2E admin user
