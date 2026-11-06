@@ -5,18 +5,19 @@ import {
 } from "@google/genai";
 import { TRPCError } from "@trpc/server";
 import { assertMedicalGeminiAvailable } from "./medicalGemini";
-import { readMedicalVocabulary } from "../medical-vocabulary";
 
 export async function medicalGeminiSpeechToken() {
   assertMedicalGeminiAvailable();
-  const { phrases } = await readMedicalVocabulary();
   const model = "gemini-3.5-transcribe-live";
   const config = {
     responseModalities: [Modality.TEXT],
     inputAudioTranscription: {
       languageCodes: [],
       mode: AudioTranscriptionConfigMode.VERBATIM,
-      customVocabulary: phrases.slice(0, 1000),
+      // No catalog hints: with them, live transcription inserted catalog text
+      // nobody said and swapped spoken medicines for similar-sounding different
+      // drugs (تيرامايسين came back as Tobramycin). The review maps what was
+      // said to the catalog, with the whole sentence and the Arabic trade names.
     },
   };
   try {

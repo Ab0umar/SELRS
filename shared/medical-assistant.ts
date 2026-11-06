@@ -26,7 +26,9 @@ export const medicalProposalLabels: Record<
   decision: "Final decision",
   field: "Selected field",
 };
-export const medicalTranscriptMaxChars = 8000;
+// Eight minutes of fast two-person Arabic speech stays well under this, so a
+// full recording always reaches the automatic review.
+export const medicalTranscriptMaxChars = 16000;
 const transcript = z.string().trim().min(1).max(medicalTranscriptMaxChars);
 export const medicalTranscriptSchema = z.discriminatedUnion("kind", [
   z
