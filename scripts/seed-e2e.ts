@@ -31,7 +31,10 @@ async function main() {
   console.log(`Created E2E user: ${username}`);
 }
 
-main().catch((error) => {
+// getDb() keeps a connection pool open, so exit explicitly once the seed is done.
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
   console.error("[seed-e2e] Failed:", error);
   process.exit(1);
 });
