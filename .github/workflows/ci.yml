@@ -104,15 +104,15 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      # Fixed credentials: CI seeds them into the disposable test database above.
       - name: Seed E2E admin user
         env:
-          E2E_USER: ${{ secrets.E2E_USER }}
-          E2E_PASS: ${{ secrets.E2E_PASS }}
+          E2E_USER: e2e-ci-admin
+          E2E_PASS: "E2e-Ci-Disposable-2026!"
         run: pnpm e2e:seed
 
       - name: Run Playwright tests
         env:
-          BASE_URL: ${{ secrets.E2E_BASE_URL }}
-          E2E_USER: ${{ secrets.E2E_USER }}
-          E2E_PASS: ${{ secrets.E2E_PASS }}
+          E2E_USER: e2e-ci-admin
+          E2E_PASS: "E2e-Ci-Disposable-2026!"
         run: pnpm test:ui
