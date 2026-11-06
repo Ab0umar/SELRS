@@ -169,9 +169,14 @@ export function WhatsAppCoexistence() {
           config_id: attempt.configId,
           response_type: "code",
           override_default_response_type: true,
+          // Meta's onboarding doc example sends setup + sessionInfoVersion
+          // (session logging) alongside featureType; the v4-only extras did
+          // not surface the existing-number option in the live flow.
           extras: {
+            setup: {},
             version: "v4",
             featureType: "whatsapp_business_app_onboarding",
+            sessionInfoVersion: "3",
           },
         },
       );
