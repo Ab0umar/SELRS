@@ -15,6 +15,8 @@ jobs:
     env:
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/selrs_test
       DATABASE_TEST_URL: mysql://root:root@127.0.0.1:3306/selrs_test
+      # Throwaway signing key for the CI-only server; never used outside this job.
+      JWT_SECRET: ci-only-jwt-secret-for-disposable-test-runs-0001
 
     services:
       mysql:
