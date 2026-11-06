@@ -29,6 +29,7 @@ import {
   autoReplyConnections as connections,
 } from "../../../drizzle/autoReply";
 import { hash, safetyDecision } from "./policy";
+import { isRecipientAllowed } from "./recipients";
 import type { InboundEvent, DeliveryReceipt } from "./events";
 
 export async function getAutoReplyDb(): Promise<MySql2Database> {
@@ -242,7 +243,8 @@ export async function ingestEvents(batch: InboundEvent[]) {
         (!pause || Boolean(requestedReason)) &&
         (current.status === "open" || resumeAutomation) &&
         config.sendingEnabled &&
-        isAutoReplyEnabled(config, event.channel, event.accountId)
+        isAutoReplyEnabled(config, event.channel, event.accountId) &&
+        (await isRecipientAllowed(tx, config, event))
       ) {
         await tx.insert(jobs).values({
           conversationId,

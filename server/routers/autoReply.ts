@@ -59,6 +59,7 @@ import {
   connectionTargets,
 } from "../services/auto-reply/providers";
 import { inWorkingHours } from "../services/auto-reply/policy";
+import { whatsappContactAudience } from "../services/auto-reply/recipients";
 import { logAuditEvent, getDbConnection } from "../db";
 import {
   availableGeminiModels,
@@ -276,6 +277,18 @@ export const autoReplyRouter = router({
         onboardingSession(ctx.req.headers.cookie),
       );
     }),
+  whatsappContactAudience: autoReplyAdminProcedure.query(async () => {
+    const db = await getAutoReplyDb();
+    const accountId =
+      connectionTargets().find((target) => target.channel === "whatsapp")
+        ?.accountId ?? "";
+    const audience = await whatsappContactAudience(db, accountId);
+    return {
+      available: audience.available,
+      syncId: audience.syncId,
+      count: audience.phones.size,
+    };
+  }),
   settings: autoReplyAdminProcedure.query(async () => {
     const db = await getAutoReplyDb();
     const checks = await db.select().from(connections);

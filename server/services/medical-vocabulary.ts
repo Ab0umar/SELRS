@@ -24,12 +24,5 @@ export async function readMedicalVocabulary() {
       .filter((row: Test) => row.isActive)
       .map((row: Test) => ({ kind: row.type, name: row.name, abbreviation: "" })),
   ];
-  const phrases = [
-    ...new Set(
-      entries
-        .flatMap((row) => [row.name.trim(), row.abbreviation.trim()])
-        .filter(Boolean),
-    ),
-  ].slice(0, 500);
-  return { entries, phrases };
+  return { entries };
 }

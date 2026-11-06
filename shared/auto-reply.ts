@@ -21,7 +21,39 @@ export const replyTargetSchema = z
     z.string().regex(/^\d{1,32}$/),
   ])
   .default("all");
+export function normalizeAutoReplyPhone(value: string) {
+  const digits = value
+    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x660))
+    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x6f0))
+    .replace(/[\s()+.-]/g, "")
+    .replace(/^00/, "");
+  return /^01[0125]\d{8}$/.test(digits) ? `2${digits}` : digits;
+}
+export const whatsappRecipientsSchema = z.object({
+  mode: z.enum(["all", "include", "exclude", "except_contacts"]).default("all"),
+  confirmedContactSync: z.string().uuid().nullable().default(null),
+  phones: z
+    .array(
+      z
+        .string()
+        .max(64)
+        .transform(normalizeAutoReplyPhone)
+        .pipe(
+          z
+            .string()
+            .regex(/^[1-9]\d{7,14}$/, "أدخل رقم واتساب صحيحًا بكود الدولة"),
+        ),
+    )
+    .max(500, "الحد الأقصى 500 رقم")
+    .transform((phones) => [...new Set(phones)])
+    .default([]),
+});
 export const autoReplySettingsSchema = z.object({
+  whatsappRecipients: whatsappRecipientsSchema.default({
+    mode: "all",
+    phones: [],
+    confirmedContactSync: null,
+  }),
   targets: z
     .record(
       z.string(),
@@ -159,6 +191,19 @@ export function isAutoReplyEnabled(
   );
 }
 export const defaultAutoReplySettings = autoReplySettingsSchema.parse({});
+export function isAutoReplyRecipientAllowed(
+  settings: AutoReplySettings,
+  channel: AutoReplyChannel,
+  participantId: string,
+) {
+  if (channel !== "whatsapp" || settings.whatsappRecipients.mode === "all")
+    return true;
+  if (settings.whatsappRecipients.mode === "except_contacts") return false;
+  const phone = normalizeAutoReplyPhone(participantId);
+  if (!/^[1-9]\d{7,14}$/.test(phone)) return false;
+  const listed = settings.whatsappRecipients.phones.includes(phone);
+  return settings.whatsappRecipients.mode === "include" ? listed : !listed;
+}
 export function supportsGeminiSampling(model: string) {
   return /^gemini-(?:[12]\.|3\.[0-5](?:\D|$))/.test(model);
 }

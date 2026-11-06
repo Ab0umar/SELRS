@@ -1,4 +1,4 @@
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, lt, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   autoReplyContacts as contacts,
@@ -330,7 +330,6 @@ export async function processCoexistenceQueue() {
           for (const item of contactsSchema.parse(payload).state_sync) {
             if (item.type !== "contact") continue;
             const sourceAt = historyTimestamp(item.metadata.timestamp);
-            if (sourceAt < cutoff) continue;
             const contactId = hash(
               `${credentials.phoneId}:${item.contact.phone_number}`,
             );
@@ -437,8 +436,14 @@ export async function processCoexistenceQueue() {
       break;
     }
   }
-  await db.delete(contacts).where(lt(contacts.updatedAt, cutoff));
-  await db.delete(queue).where(lt(queue.createdAt, cutoff));
+  await db
+    .delete(queue)
+    .where(
+      and(
+        lt(queue.createdAt, cutoff),
+        or(ne(queue.field, "smb_app_state_sync"), eq(queue.state, "processed")),
+      ),
+    );
   await db
     .update(attempts)
     .set({ tokenCipher: null })

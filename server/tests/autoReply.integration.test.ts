@@ -13,6 +13,7 @@ import {
 import {
   readCoexistenceCredentials,
   saveCoexistenceCredentials,
+  sealCoexistence,
 } from "../services/auto-reply/coexistence-credentials";
 import {
   enqueueCoexistenceChanges,
@@ -64,6 +65,7 @@ import {
 import { hash } from "../services/auto-reply/policy";
 import { connectionFingerprint } from "../services/auto-reply/providers";
 import { runAutoReplyTick } from "../services/auto-reply/worker";
+import { whatsappContactAudience } from "../services/auto-reply/recipients";
 import type { InboundEvent } from "../services/auto-reply/events";
 import { autoReplyRouter } from "../routers/autoReply";
 import { makeCallerAs } from "./helpers/auth";
@@ -848,6 +850,37 @@ describe.skipIf(!testUrl)(
       expect(await db.select().from(jobs)).toHaveLength(0);
       expect((await db.select().from(messages))[0].direction).toBe("inbound");
     });
+    it.each(["include", "exclude"] as const)(
+      "keeps excluded inbound messages without scheduling a reply in %s mode",
+      async (mode) => {
+        const config = await enable();
+        await saveSettings(
+          {
+            ...config,
+            whatsappRecipients: {
+              mode,
+              confirmedContactSync: null,
+              phones: mode === "include" ? ["201111111111"] : ["201000000000"],
+            },
+          },
+          1,
+        );
+        await ingestEvents([event()]);
+        expect(await db.select().from(messages)).toHaveLength(1);
+        expect(await db.select().from(jobs)).toHaveLength(0);
+      },
+    );
+    it("blocks a previously queued automatic reply before calling providers", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const fetcher = mockNetwork();
+      await pool.query(
+        "UPDATE auto_reply_settings SET config = JSON_SET(config, '$.whatsappRecipients', JSON_OBJECT('mode', 'exclude', 'phones', JSON_ARRAY('201000000000'))) WHERE id = 1",
+      );
+      await runAutoReplyTick();
+      expect(fetcher).not.toHaveBeenCalled();
+      expect((await db.select().from(jobs))[0].state).toBe("cancelled");
+    });
     it("deduplicates concurrent redelivery in a real transaction", async () => {
       await enable();
       const inbound = event();
@@ -1365,6 +1398,212 @@ describe.skipIf(!testUrl)(
       });
       return attempt;
     }
+    async function enableContactExclusion() {
+      const attempt = await syncedAttempt();
+      const config = await enable();
+      await db
+        .update(onboarding)
+        .set({
+          details: {
+            phoneId: "789",
+            wabaId: "987",
+            contacts: "receiving",
+            history: "not_started",
+          },
+        })
+        .where(eq(onboarding.id, attempt.id));
+      await saveSettings(
+        {
+          ...config,
+          whatsappRecipients: {
+            mode: "except_contacts",
+            phones: [],
+            confirmedContactSync: attempt.id,
+          },
+        },
+        1,
+      );
+      return attempt;
+    }
+    async function addPhoneContact(
+      phone: string,
+      removed = false,
+      sourceAt = new Date(),
+    ) {
+      await db.insert(contacts).values({
+        id: hash(`789:${phone}`),
+        accountId: "789",
+        phone,
+        nameCipher: sealCoexistence(removed ? null : "اسم محفوظ"),
+        sourceAt,
+        updatedAt: new Date(),
+      });
+    }
+    it("excludes phone contacts while allowing new numbers without changing other channels", async () => {
+      await enableContactExclusion();
+      await addPhoneContact("+20 100 000 0000");
+      await ingestEvents([
+        event("saved"),
+        {
+          ...event("unknown"),
+          participantId: "201111111111",
+          threadId: "201111111111",
+        },
+      ]);
+      const stored = await db.select().from(conversations);
+      const queued = await db.select().from(jobs);
+      expect(queued).toHaveLength(1);
+      expect(
+        stored.find((row) => row.id === queued[0].conversationId)
+          ?.participantId,
+      ).toBe("201111111111");
+      expect(await db.select().from(messages)).toHaveLength(2);
+    });
+    it.each(["unconfirmed", "pending", "failed", "not_received"])(
+      "does not reply when phone contact sync is %s",
+      async (state) => {
+        const attempt = await enableContactExclusion();
+        if (state === "unconfirmed") {
+          const config = await readSettings();
+          await saveSettings(
+            {
+              ...config,
+              whatsappRecipients: {
+                ...config.whatsappRecipients,
+                confirmedContactSync: null,
+              },
+            },
+            1,
+          );
+        } else if (state === "not_received") {
+          await db
+            .update(onboarding)
+            .set({ details: { phoneId: "789", contacts: "accepted" } })
+            .where(eq(onboarding.id, attempt.id));
+        } else {
+          await db.insert(syncEvents).values({
+            id: hash(state),
+            attemptId: attempt.id,
+            field: "smb_app_state_sync",
+            state,
+            payloadCipher: sealCoexistence({}),
+            createdAt: new Date(),
+          });
+        }
+        await ingestEvents([event()]);
+        expect(await db.select().from(jobs)).toHaveLength(0);
+      },
+    );
+    it("does not use another account's contacts or an old pairing confirmation", async () => {
+      await enableContactExclusion();
+      expect(
+        (await whatsappContactAudience(db, "other-account")).available,
+      ).toBe(false);
+      const config = await readSettings();
+      await saveSettings(
+        {
+          ...config,
+          whatsappRecipients: {
+            ...config.whatsappRecipients,
+            confirmedContactSync: randomUUID(),
+          },
+        },
+        1,
+      );
+      await ingestEvents([event()]);
+      expect(await db.select().from(jobs)).toHaveLength(0);
+    });
+    it("honors the latest removal across equivalent phone formats", async () => {
+      await enableContactExclusion();
+      await addPhoneContact(
+        "+201000000000",
+        false,
+        new Date(Date.now() - 1000),
+      );
+      await addPhoneContact("201000000000", true);
+      await ingestEvents([event()]);
+      expect(await db.select().from(jobs)).toHaveLength(1);
+    });
+    it("rechecks phone contacts added while a reply is being generated", async () => {
+      await enableContactExclusion();
+      await ingestEvents([event()]);
+      const provider = mockNetwork();
+      vi.stubGlobal("fetch", async (url: string) => {
+        const response = await provider(url);
+        if (url.includes("generativelanguage"))
+          await addPhoneContact("201000000000");
+        return response;
+      });
+      await runAutoReplyTick();
+      expect(
+        provider.mock.calls.every(([url]) =>
+          url.includes("generativelanguage"),
+        ),
+      ).toBe(true);
+      expect((await db.select().from(jobs))[0].state).not.toBe("sent");
+    });
+    it("retains phone contacts beyond the message retention window", async () => {
+      await enableContactExclusion();
+      await addPhoneContact("201000000000");
+      await db
+        .update(contacts)
+        .set({ updatedAt: new Date(Date.now() - 90 * 86400_000) });
+      await processCoexistenceQueue();
+      await ingestEvents([event()]);
+      expect(await db.select().from(contacts)).toHaveLength(1);
+      expect(await db.select().from(jobs)).toHaveLength(0);
+    });
+    it("imports old phone contacts even when their change timestamp predates retained messages", async () => {
+      await enableContactExclusion();
+      await enqueueCoexistenceChanges({
+        object: "whatsapp_business_account",
+        entry: [
+          {
+            id: "987",
+            changes: [
+              {
+                field: "smb_app_state_sync",
+                value: {
+                  metadata: { phone_number_id: "789" },
+                  state_sync: [
+                    {
+                      type: "contact",
+                      action: "add",
+                      contact: {
+                        phone_number: "201000000000",
+                        full_name: "جهة قديمة",
+                      },
+                      metadata: {
+                        timestamp: String(
+                          Math.floor(Date.now() / 1000) - 90 * 86400,
+                        ),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+      await processCoexistenceQueue();
+      await ingestEvents([event()]);
+      expect(await db.select().from(contacts)).toHaveLength(1);
+      expect(await db.select().from(jobs)).toHaveLength(0);
+    });
+    it("permits an explicit staff reply to an excluded phone contact", async () => {
+      await enableContactExclusion();
+      await addPhoneContact("201000000000");
+      await ingestEvents([event()]);
+      const [conversation] = await db.select().from(conversations);
+      await queueManualReply(conversation.id, "رد موظف", randomUUID());
+      mockNetwork();
+      await runAutoReplyTick();
+      expect((await db.select().from(jobs))[0]).toMatchObject({
+        kind: "manual",
+        state: "sent",
+      });
+    });
     it("never repeats a synchronization POST after timeout, including on another tick", async () => {
       await syncedAttempt();
       const network = vi.fn(async () => {

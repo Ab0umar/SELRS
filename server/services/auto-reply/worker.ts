@@ -21,6 +21,7 @@ import {
   purgeExpiredConversations,
   currentKnowledgeSourceCondition,
 } from "./store";
+import { isRecipientAllowed } from "./recipients";
 import {
   channelCredentials,
   configured,
@@ -174,7 +175,8 @@ export async function runAutoReplyTick() {
       (job.kind === "auto" && !job.handoff && c.status !== "open") ||
       !config.sendingEnabled ||
       (job.kind === "auto" &&
-        !isAutoReplyEnabled(config, c.channel, c.accountId))
+        (!isAutoReplyEnabled(config, c.channel, c.accountId) ||
+          !(await isRecipientAllowed(db, config, c))))
     ) {
       await db
         .update(jobs)
@@ -303,7 +305,8 @@ export async function runAutoReplyTick() {
         s.revision !== settingsRow.revision ||
         !settings.sendingEnabled ||
         (job.kind === "auto" &&
-          !isAutoReplyEnabled(settings, c.channel, c.accountId))
+          (!isAutoReplyEnabled(settings, c.channel, c.accountId) ||
+            !(await isRecipientAllowed(tx, settings, c))))
       )
         return false;
       if (handoff)
@@ -350,7 +353,8 @@ export async function runAutoReplyTick() {
         s.revision !== settingsRow.revision ||
         !settings.sendingEnabled ||
         (job.kind === "auto" &&
-          !isAutoReplyEnabled(settings, c.channel, c.accountId))
+          (!isAutoReplyEnabled(settings, c.channel, c.accountId) ||
+            !(await isRecipientAllowed(tx, settings, c))))
       ) {
         await tx
           .update(jobs)
