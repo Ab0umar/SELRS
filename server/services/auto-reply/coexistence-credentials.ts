@@ -67,3 +67,9 @@ export function saveCoexistenceCredentials(value: CoexistenceCredentials) {
   writeFileSync(temp, encrypted, { mode: 0o600, flag: "wx" });
   renameSync(temp, path);
 }
+
+export function archiveCoexistenceCredentials(attemptId: string) {
+  if (readCoexistenceCredentials()?.attemptId !== attemptId) return;
+  const path = credentialPath();
+  renameSync(path, `${path}.cancelled-${randomBytes(8).toString("hex")}.bak`);
+}

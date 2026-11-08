@@ -199,18 +199,33 @@ export async function runAutoReplyTick() {
           eq(connections.accountId, c.accountId),
         ),
       );
-    if (
-      !configured(c.channel, c.accountId) ||
-      channelCredentials(c.channel, c.accountId).accountId !== c.accountId ||
-      !connection?.checkOk ||
-      connection.fingerprint !==
-        connectionFingerprint(c.channel, c.accountId) ||
-      !connection.checkedAt ||
-      Date.now() - connection.checkedAt.getTime() > 86400_000 ||
-      !connection.lastWebhookAt ||
-      (c.channel === "whatsapp" && !connection.lastMobileEchoAt)
-    )
-      throw new ProviderError("CONNECTION_NOT_VERIFIED");
+    const verificationFailure = !configured(c.channel, c.accountId)
+      ? "CONFIG_MISSING"
+      : channelCredentials(c.channel, c.accountId).accountId !== c.accountId
+        ? "ACCOUNT_MISMATCH"
+        : !connection?.checkOk
+          ? "CHECK_NOT_OK"
+          : connection.fingerprint !==
+              connectionFingerprint(c.channel, c.accountId)
+            ? "CREDENTIALS_CHANGED"
+            : !connection.checkedAt
+              ? "CHECK_MISSING"
+              : Date.now() - connection.checkedAt.getTime() > 86400_000
+                ? "CHECK_EXPIRED"
+                : !connection.lastWebhookAt
+                  ? "WEBHOOK_MISSING"
+                  : c.channel === "whatsapp" && !connection.lastMobileEchoAt
+                    ? "MOBILE_ECHO_MISSING"
+                    : null;
+    if (verificationFailure) {
+      console.warn("[auto-reply-connection]", {
+        pid: process.pid,
+        channel: c.channel,
+        accountId: c.accountId,
+        reason: verificationFailure,
+      });
+      throw new ProviderError(`CONNECTION_NOT_VERIFIED:${verificationFailure}`);
+    }
     if (!withinReplyWindow(c.channel, c.lastInboundAt))
       throw new ProviderError("REPLY_WINDOW_EXPIRED");
     let body = job.body;

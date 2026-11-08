@@ -191,6 +191,14 @@ export function historyTimestamp(seconds: string) {
     throw new Error("HISTORY_TIMESTAMP_INVALID");
   return new Date(ms);
 }
+export function contactTimestamp(timestamp: string) {
+  if (!/^\d+$/.test(timestamp)) throw new Error("CONTACT_TIMESTAMP_INVALID");
+  const value = Number(timestamp);
+  const ms = timestamp.length === 13 ? value : value * 1000;
+  if (!Number.isSafeInteger(ms) || ms <= 0 || ms > Date.now() + 300_000)
+    throw new Error("CONTACT_TIMESTAMP_INVALID");
+  return new Date(ms);
+}
 export async function processCoexistenceQueue() {
   const credentials = readCoexistenceCredentials();
   if (!credentials) return;
@@ -227,6 +235,7 @@ export async function processCoexistenceQueue() {
           .for("update");
         if (!attempt || !event.payloadCipher)
           throw new Error("SYNC_ATTEMPT_MISSING");
+        if (attempt.state === "cancelled") return false;
         const payload = openCoexistence(event.payloadCipher);
         const details = { ...attempt.details };
         if (event.field === "history") {
@@ -329,7 +338,7 @@ export async function processCoexistenceQueue() {
         } else if (event.field === "smb_app_state_sync") {
           for (const item of contactsSchema.parse(payload).state_sync) {
             if (item.type !== "contact") continue;
-            const sourceAt = historyTimestamp(item.metadata.timestamp);
+            const sourceAt = contactTimestamp(item.metadata.timestamp);
             const contactId = hash(
               `${credentials.phoneId}:${item.contact.phone_number}`,
             );

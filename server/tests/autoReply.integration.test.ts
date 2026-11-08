@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { AiManagementStore } from "../services/ai/managementStore";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -6,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   beginOnboarding,
+  cancelOnboarding,
   exchangeOnboardingCode,
   finishOnboarding,
   initiateCoexistenceSync,
@@ -710,7 +712,7 @@ describe.skipIf(!testUrl)(
       await runAutoReplyTick();
       expect((await db.select().from(jobs))[0]).toMatchObject({
         state: "failed",
-        errorCode: "CONNECTION_NOT_VERIFIED",
+        errorCode: "CONNECTION_NOT_VERIFIED:CHECK_NOT_OK",
       });
       expect(network).not.toHaveBeenCalled();
     });
@@ -906,6 +908,86 @@ describe.skipIf(!testUrl)(
         network.mock.calls.filter(([url]) => url.includes("graph.facebook")),
       ).toHaveLength(1);
     });
+    it.each([
+      {
+        workload: "marketing.text",
+        provider: "gemini",
+        old: true,
+        allowed: true,
+      },
+      {
+        workload: "marketing.image",
+        provider: "gemini",
+        old: true,
+        allowed: true,
+      },
+      {
+        workload: "marketing.text",
+        provider: "gemini",
+        old: false,
+        allowed: false,
+      },
+      {
+        workload: "marketing.text",
+        provider: "manus",
+        old: true,
+        allowed: false,
+      },
+      { workload: "reply.live", provider: "gemini", old: true, allowed: false },
+    ] as const)(
+      "releases only expired synchronous marketing capacity: %j",
+      async ({ workload, provider, old, allowed }) => {
+        await pool.execute(
+          "INSERT INTO ai_core_profiles (workload,provider,model,enabled,daily_requests,daily_tokens,max_concurrent) VALUES (?,?,?,1,20,1000000,1)",
+          [
+            workload,
+            provider,
+            provider === "manus" ? "lite" : "gemini-selected",
+          ],
+        );
+        const requestId = randomUUID();
+        const day = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Africa/Cairo",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date());
+        const at = Date.now() - (old ? 11 : 1) * 60_000;
+        await pool.execute(
+          "INSERT INTO ai_core_usage (request_id,workload,provider,model,budget_day,state,reserved_tokens,error_code,created_ms,updated_ms) VALUES (?,?,?,?,?,'uncertain',20000,'provider_or_persistence_uncertain',?,?)",
+          [
+            requestId,
+            workload,
+            provider,
+            provider === "manus" ? "lite" : "gemini-selected",
+            day,
+            at,
+            at,
+          ],
+        );
+        const store = new AiManagementStore(() => pool.getConnection());
+        const reserve = store.reserve(randomUUID(), workload, undefined, 1000);
+        if (allowed)
+          await expect(reserve).resolves.toHaveProperty("workload", workload);
+        else await expect(reserve).rejects.toThrow("AI management: capacity");
+        const [rows] = await pool.execute<mysql.RowDataPacket[]>(
+          "SELECT state,reserved_tokens FROM ai_core_usage WHERE request_id=?",
+          [requestId],
+        );
+        expect(rows[0]).toMatchObject({
+          state: "uncertain",
+          reserved_tokens: 20000,
+        });
+        await pool.execute(
+          "UPDATE ai_core_profiles SET daily_requests=1 WHERE workload=?",
+          [workload],
+        );
+        await expect(
+          store.reserve(randomUUID(), workload, undefined, 1000),
+        ).rejects.toThrow("AI management: budget");
+      },
+    );
+
     it("accepts either enabled central provider when saving without enabling delivery", async () => {
       vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "true");
       vi.stubEnv("AUTO_REPLY_GEMINI_KEY", "");
@@ -1235,6 +1317,30 @@ describe.skipIf(!testUrl)(
       });
       expect((await db.select().from(conversations))[0].status).toBe("human");
     });
+    it("cancels an expired syncing attempt for its owner and releases its vault", async () => {
+      const attempt = await beginOnboarding(1, "old-session");
+      await db
+        .update(onboarding)
+        .set({ state: "syncing", expiresAt: new Date(0) })
+        .where(eq(onboarding.id, attempt.id));
+      saveCoexistenceCredentials({
+        attemptId: attempt.id,
+        token: "test-token-long-enough-for-vault",
+        phoneId: "123456",
+        wabaId: "987654",
+      });
+      await expect(
+        cancelOnboarding(attempt.id, 2, "new-session"),
+      ).rejects.toThrow("COEXISTENCE_ATTEMPT_EXPIRED");
+      expect(readCoexistenceCredentials()).not.toBeNull();
+      await cancelOnboarding(attempt.id, 1, "new-session");
+      expect(readCoexistenceCredentials()).toBeNull();
+      expect((await db.select().from(onboarding))[0].state).toBe("cancelled");
+      await expect(beginOnboarding(1, "new-session")).resolves.toHaveProperty(
+        "id",
+      );
+    });
+
     it("claims onboarding once and binds it to the initiating admin session", async () => {
       const attempt = await beginOnboarding(1, "session-one");
       await expect(beginOnboarding(2, "session-two")).rejects.toThrow(

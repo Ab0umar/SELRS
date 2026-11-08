@@ -17,6 +17,7 @@ import {
   finishOnboarding,
   onboardingStatus,
   requireOnboardingOrigin,
+  requireCancellationOrigin,
   onboardingSession,
 } from "../services/auto-reply/coexistence";
 import { and, desc, eq, sql, inArray } from "drizzle-orm";
@@ -270,7 +271,7 @@ export const autoReplyRouter = router({
   cancelOnboarding: autoReplyAdminProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(({ ctx, input }) => {
-      requireOnboardingOrigin(ctx.req.headers.origin);
+      requireCancellationOrigin(ctx.req.headers.origin);
       return cancelOnboarding(
         input.id,
         ctx.user.id,

@@ -1,5 +1,7 @@
 import express from "express";
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -100,6 +102,10 @@ const knowledge = [
   },
 ];
 beforeEach(() => {
+  vi.stubEnv(
+    "AUTO_REPLY_CREDENTIAL_FILE",
+    join(tmpdir(), `selrs-auto-reply-${randomUUID()}.enc`),
+  );
   vi.stubEnv("AUTO_REPLY_WEBHOOK_DIAGNOSTICS", "false");
   vi.stubEnv("AUTO_REPLY_META_APP_SECRET", "fixture-secret");
   vi.stubEnv("AUTO_REPLY_META_APP_ID", "123");
@@ -252,6 +258,45 @@ describe("auto-reply webhook boundary", () => {
   });
 });
 describe("channel policy", () => {
+  it.each([undefined, ""])(
+    "keeps username-only WhatsApp messages for manual review when the phone is %s",
+    (from) => {
+      const events = parseMetaEvents({
+        object: "whatsapp_business_account",
+        entry: [
+          {
+            id: "987",
+            changes: [
+              {
+                field: "messages",
+                value: {
+                  metadata: { phone_number_id: "789" },
+                  messages: [
+                    {
+                      id: "username-message",
+                      from_user_id: "EG.user-123",
+                      from,
+                      timestamp: String(Math.floor(Date.now() / 1000)),
+                      type: "text",
+                      text: { body: "hello" },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        participantId: "EG.user-123",
+        threadId: "EG.user-123",
+        text: "hello",
+        unsupported: true,
+        humanEcho: false,
+      });
+    },
+  );
   it("accepts both pages while separating the same sender and message identifier", () => {
     const entries = ["456", "654"].map((id) => ({
       id,
