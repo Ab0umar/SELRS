@@ -177,8 +177,8 @@ export class AiManagementStore {
           [workload, day],
         );
         const [pending] = await connection.execute<RowDataPacket[]>(
-          "SELECT COUNT(*) AS pending FROM ai_core_usage WHERE workload=? AND state IN ('reserved','running','uncertain') AND COALESCE(error_code,'') NOT IN ('usage_metadata_missing','provider_finished_output_pending')",
-          [workload],
+          "SELECT COUNT(*) AS pending FROM ai_core_usage WHERE workload=? AND state IN ('reserved','running','uncertain') AND COALESCE(error_code,'') NOT IN ('usage_metadata_missing','provider_finished_output_pending') AND NOT (workload IN ('marketing.text','marketing.image') AND provider IN ('gemini','grok') AND state='uncertain' AND COALESCE(error_code,'')='provider_or_persistence_uncertain' AND task_id IS NULL AND updated_ms<=?)",
+          [workload, Date.now() - 10 * 60_000],
         );
         const tokens = profile.provider !== "manus" ? tokenReservation : 0;
         if (

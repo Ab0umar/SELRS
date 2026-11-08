@@ -9,7 +9,7 @@ This document specifies direction and acceptance criteria. It does not certify
 that every existing screen meets them.
 
 Reading this as: an Arabic RTL clinical and operational workspace for medical-center
-staff, using the approved white/gray screen palette with navy/lavender controls,
+staff, using the blue, orange, and white brand palette,
 ENERGY 1 / RHYTHM 1 / MOTION 1.
 
 ## Identity
@@ -21,7 +21,7 @@ ENERGY 1 / RHYTHM 1 / MOTION 1.
 | Motion | 1, interaction feedback | State changes need confirmation without continuous distraction. |
 | Focal point | Active record, task, or exception | Staff need to know what requires action. |
 | Motif | Arabic context headers and labelled data groups | Patient, employee, and account identity remain recognizable across modules. |
-| Accent | Navy actions and soft-lavender selection surfaces | Emphasis remains useful when concentrated on a key action. |
+| Accent | Blue actions and orange highlights | Emphasis remains useful when concentrated on a key action. |
 
 ## Implementation References
 
@@ -39,11 +39,22 @@ with a second hard-coded palette or certify route availability.
 ## Color and Themes
 
 Use shared primary, secondary, surface, foreground, border, and semantic tokens.
-The approved October 14 screen reference uses a white canvas, light-gray surfaces,
-navy primary actions, and soft-lavender secondary and selected controls. Main-home
-navigation uses compact gray tiles with distinct, muted icon colors. These colors
-identify destinations, not record states. The existing dark and clinical-print
-palettes remain separate and unchanged.
+The approved palette is blue, orange, and white only. Values live in
+`client/src/styles/design-system.css`; the platform sheets repeat them as fallbacks.
+
+| Token | Light | Dark |
+| --- | --- | --- |
+| background, card, popover | `#ffffff` | `#0a1a2f`, `#12304f`, `#12304f` |
+| foreground | `#0b2a52` | `#ffffff` |
+| primary (actions, links, active tab) | `#0b4a8f` | `#6fb1f5` |
+| secondary (accent, highlight) | `#f7941d` | `#f7941d` |
+| muted, border | `#eef4fb`, `#d5dfeb` | `#0f2742`, `#1f4468` |
+| muted-foreground | `#4a6283` | `#9cc4ee` |
+
+Primary stays blue in both themes and orange stays the accent. Text on orange is
+`#2b1500`; orange never carries small text on white (2.5:1). Field surfaces are
+white in light and `#0f2742` in dark. Main-home tiles use the primary blue, light
+blue, navy, and orange blocks. The clinical print palette stays separate.
 Semantic success, warning, and destructive colors communicate actual state;
 they are not a rotating category palette. Labels also communicate the state.
 

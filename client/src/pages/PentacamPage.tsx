@@ -284,7 +284,7 @@ export default function PentacamPage({
                   value="duplicates"
                   className="gap-2 px-3.5 py-2 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-amber-600 data-[state=active]:shadow-sm sm:text-sm"
                 >
-                  <Copy className="h-4 w-4 shrink-0 text-amber-600" />
+                  <Copy className="h-4 w-4 shrink-0 text-amber-700" />
                   <span>المكرر</span>
                   {dupsCount > 0 && (
                     <Badge

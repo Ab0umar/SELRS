@@ -187,6 +187,16 @@ export function WhatsAppCoexistence() {
     }
   };
   const data = status.data;
+  const cancellableId = attempt?.id ?? data?.attemptId;
+  const canCancel =
+    Boolean(attempt) ||
+    [
+      "created",
+      "token_ready",
+      "syncing",
+      "setup_failed",
+      "exchange_unknown",
+    ].includes(data?.state ?? "");
   return (
     <article className="ar-knowledge-row">
       <div>
@@ -208,7 +218,7 @@ export function WhatsAppCoexistence() {
         {data && !data.ready && (
           <p>إعداد Coexistence على السيرفر غير مكتمل أو غير مفعّل.</p>
         )}
-        {data?.details.contacts && (
+        {data?.state !== "cancelled" && data?.details.contacts && (
           <p>
             جهات الاتصال:{" "}
             {states[
@@ -219,7 +229,7 @@ export function WhatsAppCoexistence() {
             . وصول بيانات لا يثبت اكتمال كل جهات الاتصال.
           </p>
         )}
-        {data?.details.history && (
+        {data?.state !== "cancelled" && data?.details.history && (
           <p>
             السجل:{" "}
             {states[
@@ -233,12 +243,12 @@ export function WhatsAppCoexistence() {
             . الرسائل القديمة لا يُرسل عليها رد آلي.
           </p>
         )}
-        {data?.details.errorCode && (
+        {data?.state !== "cancelled" && data?.details.errorCode && (
           <p role="alert">
             <bdi>{data.details.errorCode}</bdi>
           </p>
         )}
-        {data?.syncQueue && (
+        {data?.state !== "cancelled" && data?.syncQueue && (
           <p>
             أجزاء البيانات: قيد المعالجة {data.syncQueue.pending ?? 0} · عولجت{" "}
             {data.syncQueue.processed ?? 0} · فشلت {data.syncQueue.failed ?? 0}
@@ -275,20 +285,43 @@ export function WhatsAppCoexistence() {
               >
                 فتح Meta لربط رقم خدمة العملاء
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  cleanup.current?.();
-                  active.current = false;
-                  void cancel.mutateAsync({ id: attempt.id }).catch(() => {});
-                  setAttempt(null);
-                  void status.refetch();
-                }}
-              >
-                إلغاء المحاولة
-              </Button>
             </>
+          )}
+          {canCancel && cancellableId && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                cancel.isPending || exchange.isPending || finish.isPending
+              }
+              onClick={async () => {
+                if (
+                  data?.state === "syncing" &&
+                  !window.confirm(
+                    "إلغاء المحاولة وإيقاف مزامنتها داخل SELRS؟ ربط الرقم لدى Meta سيظل قائمًا.",
+                  )
+                )
+                  return;
+                active.current = false;
+                cleanup.current?.();
+                try {
+                  await cancel.mutateAsync({ id: cancellableId });
+                  setAttempt(null);
+                  setMessage(
+                    "أُلغيت المحاولة داخل SELRS. ربط الرقم لدى Meta لم يتغير.",
+                  );
+                  await utils.autoReply.invalidate();
+                } catch (error) {
+                  setMessage(
+                    error instanceof Error
+                      ? error.message
+                      : "تعذر إلغاء المحاولة",
+                  );
+                }
+              }}
+            >
+              {cancel.isPending ? "جارٍ الإلغاء…" : "إلغاء المحاولة"}
+            </Button>
           )}
         </div>
       </div>

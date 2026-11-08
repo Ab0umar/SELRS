@@ -205,7 +205,7 @@ export default function Profile({
                   </span>
                 </div>
                 <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border/60 bg-card text-xs font-bold text-foreground shadow-2xs">
-                  <Clock className="size-3.5 text-amber-600" />
+                  <Clock className="size-3.5 text-amber-700" />
                   <span>وردية {userShift}</span>
                 </div>
               </div>

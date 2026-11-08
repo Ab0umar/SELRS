@@ -269,7 +269,7 @@ function ErrorState({
     <div role="alert" className="ar-notice">
       <p>{message}</p>
       {retry && (
-        <Button variant="outline" onClick={retry}>
+        <Button type="button" variant="outline" onClick={retry}>
           إعادة المحاولة
         </Button>
       )}
@@ -1324,12 +1324,16 @@ function Settings({
   const [storedConfig, setStoredConfig] = useState<AutoReplySettings>(() =>
     autoReplySettingsSchema.parse(data.config),
   );
+  const [recipientDraft, setRecipientDraft] = useState(
+    storedConfig.whatsappRecipients.phones.join("\n"),
+  );
   useEffect(() => {
     onDirtyChange(
       JSON.stringify(storedConfig) !==
-        JSON.stringify(autoReplySettingsSchema.parse(data.config)),
+        JSON.stringify(autoReplySettingsSchema.parse(data.config)) ||
+        recipientDraft !== storedConfig.whatsappRecipients.phones.join("\n"),
     );
-  }, [storedConfig, data.config, onDirtyChange]);
+  }, [storedConfig, recipientDraft, data.config, onDirtyChange]);
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
   const config =
     scope === "all"
@@ -1372,6 +1376,7 @@ function Settings({
         instructions: next.instructions,
         channels: next.channels,
         facebookPages: next.facebookPages,
+        whatsappRecipients: next.whatsappRecipients,
         targets: {
           ...base.targets,
           [scope]: {
@@ -1392,6 +1397,14 @@ function Settings({
       };
     });
   const [stopDraft, setStopDraft] = useState(config.stopSequences.join("\n"));
+  const phoneContacts = trpc.autoReply.whatsappContactAudience.useQuery(
+    undefined,
+    {
+      enabled: scope === "whatsapp" && view === "sending",
+      refetchInterval: 5000,
+      retry: false,
+    },
+  );
   const utils = trpc.useUtils();
   const models = trpc.autoReply.models.useQuery(undefined, {
     retry: false,
@@ -1530,7 +1543,27 @@ function Settings({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate(storedConfig);
+          const parsed = autoReplySettingsSchema.safeParse({
+            ...storedConfig,
+            whatsappRecipients: {
+              ...storedConfig.whatsappRecipients,
+              phones: ["include", "exclude"].includes(
+                storedConfig.whatsappRecipients.mode,
+              )
+                ? recipientDraft
+                    .split(/[\n,،;؛]+/)
+                    .map((phone) => phone.trim())
+                    .filter(Boolean)
+                : storedConfig.whatsappRecipients.phones,
+            },
+          });
+          if (!parsed.success) {
+            toast.error(parsed.error.issues[0].message);
+            return;
+          }
+          setStoredConfig(parsed.data);
+          setRecipientDraft(parsed.data.whatsappRecipients.phones.join("\n"));
+          save.mutate(parsed.data);
         }}
       >
         <details
@@ -1602,6 +1635,126 @@ function Settings({
                 }
               />
             ))}
+          {scope === "whatsapp" && (
+            <fieldset className="ar-editor" disabled={save.isPending}>
+              <legend>مين يوصله الرد الآلي؟</legend>
+              <p className="ar-muted">
+                الاختيار يخص الرد الآلي على واتساب. احفظ الإعدادات لتطبيقه على
+                الرسائل الجديدة.
+              </p>
+              {(
+                [
+                  ["all", "الجميع"],
+                  ["except_contacts", "الجميع باستثناء جهات اتصال هاتفي"],
+                  ["include", "أرقام محددة فقط"],
+                  ["exclude", "الجميع باستثناء أرقام محددة"],
+                ] as const
+              ).map(([mode, label]) => (
+                <label className="ar-check" key={mode}>
+                  <input
+                    type="radio"
+                    name="whatsapp-recipients"
+                    value={mode}
+                    checked={config.whatsappRecipients.mode === mode}
+                    onChange={() =>
+                      update("whatsappRecipients", {
+                        ...config.whatsappRecipients,
+                        mode,
+                      })
+                    }
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+              {config.whatsappRecipients.mode === "except_contacts" && (
+                <div className="space-y-3">
+                  <p>
+                    يستثني جهات اتصال WhatsApp Business المُزامنة من الهاتف
+                    المرتبط بهذا الرقم. لا يعتمد على سجل المحادثات أو قائمة
+                    المرضى.
+                  </p>
+                  {phoneContacts.isLoading ? (
+                    <p role="status">جارٍ التحقق من مزامنة جهات الاتصال…</p>
+                  ) : phoneContacts.isError ? (
+                    <ErrorState
+                      message="تعذر تحديث حالة جهات الاتصال. أعد المحاولة قبل تأكيد اكتمال المزامنة."
+                      retry={() => void phoneContacts.refetch()}
+                    />
+                  ) : phoneContacts.data?.available ? (
+                    <>
+                      <p role="status">
+                        جهات الاتصال المُزامنة: {phoneContacts.data.count}.
+                      </p>
+                      <Check
+                        label="راجعت عدد جهات الاتصال وأؤكد اكتمال مشاركتها من الهاتف"
+                        checked={
+                          config.whatsappRecipients.confirmedContactSync ===
+                          phoneContacts.data.syncId
+                        }
+                        onChange={(confirmed) =>
+                          update("whatsappRecipients", {
+                            ...config.whatsappRecipients,
+                            confirmedContactSync: confirmed
+                              ? phoneContacts.data!.syncId
+                              : null,
+                          })
+                        }
+                      />
+                    </>
+                  ) : (
+                    <p role="status">
+                      جهات الاتصال غير جاهزة أو المزامنة لم تنتهِ. راجع «الربط
+                      والفحص ← إدارة ربط واتساب مع الموبايل».
+                    </p>
+                  )}
+                  <p className="ar-muted">
+                    يتوقف الرد الآلي بهذا الاختيار حتى تصل جهات الاتصال وتؤكد
+                    اكتمالها وتحفظ الإعدادات. عند وصول تحديثات لجهات الاتصال،
+                    ينتظر معالجتها قبل الرد.
+                  </p>
+                </div>
+              )}
+              {["include", "exclude"].includes(
+                config.whatsappRecipients.mode,
+              ) && (
+                <>
+                  <Field
+                    label={
+                      config.whatsappRecipients.mode === "include"
+                        ? "الأرقام المسموح لها بالرد"
+                        : "الأرقام المستثناة من الرد"
+                    }
+                  >
+                    <Textarea
+                      dir="ltr"
+                      rows={5}
+                      maxLength={32500}
+                      className="ar-recipient-phones"
+                      value={recipientDraft}
+                      aria-describedby="whatsapp-recipients-help"
+                      onChange={(event) => {
+                        setRecipientDraft(event.target.value);
+                      }}
+                    />
+                  </Field>
+                  <p id="whatsapp-recipients-help" className="ar-muted">
+                    رقم في كل سطر أو افصل الأرقام بفاصلة، بحد أقصى 500 رقم.
+                    استخدم كود الدولة؛ الأرقام المصرية التي تبدأ بـ 01 تُحوّل
+                    تلقائيًا إلى 20.
+                  </p>
+                  {!recipientDraft
+                    .split(/[\n,،;؛]+/)
+                    .some((phone) => phone.trim()) && (
+                    <p role="status">
+                      {config.whatsappRecipients.mode === "include"
+                        ? "القائمة فارغة: لن يُرسل رد آلي لأي رقم."
+                        : "القائمة فارغة: الرد الآلي متاح للجميع."}
+                    </p>
+                  )}
+                </>
+              )}
+            </fieldset>
+          )}
           <details className="ar-page-options" hidden>
             <summary>تخصيص الرد لكل صفحة</summary>
             <h3>تشغيل الرد لكل صفحة</h3>

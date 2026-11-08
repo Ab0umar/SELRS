@@ -56,7 +56,8 @@ const whatsappValue = z.object({
     .array(
       z.object({
         id,
-        from: z.string().max(128),
+        from: z.string().max(128).optional(),
+        from_user_id: z.string().min(1).max(128).optional(),
         timestamp: z.string(),
         type: z.string(),
         text: z.object({ body: z.string().max(20_000) }).optional(),
@@ -71,7 +72,8 @@ const echoValue = z.object({
     .array(
       z.object({
         id,
-        to: z.string().max(128),
+        to: z.string().max(128).optional(),
+        to_user_id: z.string().min(1).max(128).optional(),
         timestamp: z.string(),
         type: z.string(),
         text: z.object({ body: z.string().max(20_000) }).optional(),
@@ -154,12 +156,14 @@ export function parseMetaEvents(
           value.data.metadata.phone_number_id ===
             channelCredentials("whatsapp").accountId
         ) {
-          for (const m of value.data.message_echoes ?? [])
+          for (const m of value.data.message_echoes ?? []) {
+            const participantId = m.to || m.to_user_id;
+            if (!participantId) continue;
             push({
               channel: "whatsapp",
               accountId: value.data.metadata.phone_number_id,
-              participantId: m.to,
-              threadId: m.to,
+              participantId,
+              threadId: participantId,
               providerId: m.id,
               text: m.text?.body ?? "[رد من تطبيق الهاتف]",
               at: new Date(Number(m.timestamp) * 1000),
@@ -167,6 +171,7 @@ export function parseMetaEvents(
               unsupported: false,
               deleted: false,
             });
+          }
         }
       }
       if (
@@ -184,17 +189,22 @@ export function parseMetaEvents(
         )
           continue;
         for (const m of value.data.messages ?? []) {
-          if (m.from === value.data.metadata.phone_number_id) continue;
+          const participantId = m.from || m.from_user_id;
+          if (
+            !participantId ||
+            participantId === value.data.metadata.phone_number_id
+          )
+            continue;
           push({
             channel: "whatsapp",
             accountId: value.data.metadata.phone_number_id,
-            participantId: m.from,
-            threadId: m.from,
+            participantId,
+            threadId: participantId,
             providerId: m.id,
             text: m.text?.body ?? "[رسالة غير نصية]",
             at: new Date(Number(m.timestamp) * 1000),
             humanEcho: false,
-            unsupported: m.type !== "text",
+            unsupported: m.type !== "text" || !m.from,
             deleted: false,
           });
         }

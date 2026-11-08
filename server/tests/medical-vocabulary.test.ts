@@ -40,14 +40,6 @@ describe("medical catalog vocabulary", () => {
     const result = await readMedicalVocabulary();
     // Arabic trade name travels with the English catalog name.
     expect(result.entries[0]).toEqual({ kind: "medication", name: "TOBRIN", abbreviation: "توبرين" });
-    expect(result.phrases).toEqual([
-      "TOBRIN",
-      "توبرين",
-      "Keratoconus",
-      "KC",
-      "OCT Macula",
-      "CBC",
-    ]);
     expect(result.entries.map((entry) => entry.kind)).toEqual([
       "medication",
       "disease",

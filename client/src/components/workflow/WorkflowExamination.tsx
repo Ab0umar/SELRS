@@ -53,10 +53,10 @@ const emptyRefraction = (): Refraction => ({
 
 const SHEET_TYPE = "consultant" as const;
 const underline =
-  "h-6 flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none focus:border-[#003d9b]";
+  "h-6 flex-1 border-0 border-b border-[#c3c6d6] bg-transparent px-1 outline-none focus:border-primary";
 const cell = "border border-[#c3c6d6] p-1";
 const axisInput =
-  "w-full border-0 border-b border-solid border-[#737685] bg-transparent py-1 text-center text-sm focus:border-[#003d9b] focus:outline-none";
+  "w-full border-0 border-b border-solid border-[#737685] bg-transparent py-1 text-center text-sm focus:border-primary focus:outline-none";
 
 const parseSheet = (raw: unknown): any => {
   try {
@@ -79,7 +79,7 @@ function Check({
     <label className="inline-flex items-center gap-1.5">
       <input
         type="checkbox"
-        className="h-3.5 w-3.5 accent-[#003d9b]"
+        className="h-3.5 w-3.5 accent-primary"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -360,7 +360,7 @@ export default function WorkflowExamination({
               <label className="flex items-center gap-2 text-xs font-medium">
                 PD
                 <input
-                  className="h-8 w-20 rounded border border-input bg-background px-2 text-center font-mono text-xs outline-none focus:border-[#003d9b]"
+                  className="h-8 w-20 rounded border border-input bg-background px-2 text-center font-mono text-xs outline-none focus:border-primary"
                   inputMode="decimal"
                   value={refraction.od.pd}
                   onChange={(event) => {
@@ -383,7 +383,7 @@ export default function WorkflowExamination({
                 <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
                   <tr>
                     <th className={cell} rowSpan={2}>Refraction</th>
-                    <th className={`${cell} text-[#003d9b]`} colSpan={3}>
+                    <th className={`${cell} text-primary`} colSpan={3}>
                       OD (Right)
                     </th>
                     <th className={`${cell} text-[#526069]`} colSpan={3}>
@@ -400,7 +400,7 @@ export default function WorkflowExamination({
                 </thead>
                 <tbody className="font-mono">
                   <tr>
-                    <td className={`${cell} bg-[#f3f4f6] font-bold text-[#003d9b]`}>
+                    <td className={`${cell} bg-[#f3f4f6] font-bold text-primary`}>
                       Distance
                     </td>
                     {(["od", "os"] as const).map((eye) => (
@@ -413,7 +413,7 @@ export default function WorkflowExamination({
                     ))}
                   </tr>
                   <tr>
-                    <td className={`${cell} bg-[#f3f4f6] font-bold text-[#003d9b]`}>
+                    <td className={`${cell} bg-[#f3f4f6] font-bold text-primary`}>
                       Reading
                     </td>
                     <td className={cell} colSpan={6}>
@@ -439,7 +439,7 @@ export default function WorkflowExamination({
                 <div key={eye} className="rounded-lg border border-[#c3c6d6] p-2">
                   <div
                     className={`mb-1.5 text-xs font-bold ${
-                      eye === "od" ? "text-[#003d9b]" : "text-[#526069]"
+                      eye === "od" ? "text-primary" : "text-[#526069]"
                     }`}
                   >
                     {eye === "od" ? "OD (Right)" : "OS (Left)"}
@@ -508,7 +508,7 @@ export default function WorkflowExamination({
                   <FundusDiagram eye={eye} />
                   <span
                     className={`select-none text-xs font-bold ${
-                      eye === "od" ? "text-[#003d9b]/70" : "text-slate-500"
+                      eye === "od" ? "text-primary/70" : "text-slate-500"
                     }`}
                   >
                     {eye.toUpperCase()}
@@ -526,12 +526,12 @@ export default function WorkflowExamination({
 
             <div className="flex w-full flex-col gap-2 sm:w-[calc(75%-0.5rem)]">
               <div className="flex-1 rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]">
-                <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Complains:</p>
+                <p className="mb-2 text-[13px] font-bold text-primary">Complains:</p>
                 <AssistantField label="Complaints">
                   <textarea
                     aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
                     data-medical-proposals="complaints symptoms"
-                    className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b]"
+                    className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-primary"
                     value={exam.complains}
                     onChange={(event) => setExamField("complains", event.target.value)}
                     placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
@@ -541,7 +541,7 @@ export default function WorkflowExamination({
                   <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     aria-label="ابحث عن الأعراض…"
-                    className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none focus:border-[#003d9b]"
+                    className="h-8 w-full rounded-md border border-[#c3c6d6] bg-white pl-7 pr-2 text-[12px] outline-none focus:border-primary"
                     placeholder="ابحث عن الأعراض…"
                     value={symptomSearch}
                     onChange={(event) => setSymptomSearch(event.target.value)}
@@ -563,7 +563,7 @@ export default function WorkflowExamination({
                           <button
                             type="button"
                             key={symptom.id}
-                            className="block w-full rounded px-2 py-1 text-left text-[12px] hover:bg-muted/60 focus-visible:border focus-visible:border-[#003d9b] focus:outline-none"
+                            className="block w-full rounded px-2 py-1 text-left text-[12px] hover:bg-muted/60 focus-visible:border focus-visible:border-primary focus:outline-none"
                             onMouseDown={(event) => {
                               event.preventDefault();
                               selectSymptom(String(symptom.name ?? ""));
@@ -579,7 +579,7 @@ export default function WorkflowExamination({
               </div>
 
               <div className="flex-[3] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]">
-                <p className="mb-2 text-[13px] font-bold text-[#003d9b]">Examination:</p>
+                <p className="mb-2 text-[13px] font-bold text-primary">Examination:</p>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-semibold">1. External Apperance:</span>

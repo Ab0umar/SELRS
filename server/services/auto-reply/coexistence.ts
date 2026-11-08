@@ -16,6 +16,7 @@ import {
   readCoexistenceCredentials,
   saveCoexistenceCredentials,
   sealCoexistence,
+  archiveCoexistenceCredentials,
 } from "./coexistence-credentials";
 
 export const coexistenceAssets = z.object({
@@ -79,6 +80,7 @@ export async function onboardingStatus() {
     : [];
   return {
     ready: Boolean(sdk),
+    attemptId: row?.id ?? null,
     sdk,
     state: row?.state ?? "not_started",
     details: row?.details ?? {},
@@ -94,6 +96,19 @@ export function requireOnboardingOrigin(origin: string | undefined) {
       code: "FORBIDDEN",
       message: "COEXISTENCE_ORIGIN_INVALID",
     });
+}
+export function requireCancellationOrigin(origin: string | undefined) {
+  const nativeOrigins = [
+    "http://localhost",
+    "https://localhost",
+    "capacitor://localhost",
+    "ionic://localhost",
+    "http://localhost:4000",
+    "http://192.168.1.100:4000",
+    "http://192.168.0.100:4000",
+  ];
+  if (origin && nativeOrigins.includes(origin)) return;
+  requireOnboardingOrigin(origin);
 }
 export async function beginOnboarding(userId: number, session: string) {
   const config = setup();
@@ -365,17 +380,32 @@ export async function cancelOnboarding(
   userId: number,
   session: string,
 ) {
-  await ownedAttempt(id, userId, session);
   const db = await getAutoReplyDb();
-  await db
-    .update(attempts)
-    .set({ state: "cancelled", tokenCipher: null, updatedAt: new Date() })
-    .where(
-      and(
-        eq(attempts.id, id),
-        inArray(attempts.state, ["created", "token_ready"]),
-      ),
-    );
+  if (!session) fail("COEXISTENCE_SESSION_REQUIRED");
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(attempts)
+      .where(eq(attempts.id, id))
+      .for("update");
+    if (!row || row.userId !== userId) fail("COEXISTENCE_ATTEMPT_EXPIRED");
+    if (row.state === "cancelled") return;
+    if (
+      ![
+        "created",
+        "token_ready",
+        "syncing",
+        "setup_failed",
+        "exchange_unknown",
+      ].includes(row.state)
+    )
+      fail("COEXISTENCE_ATTEMPT_BUSY");
+    await tx
+      .update(attempts)
+      .set({ state: "cancelled", tokenCipher: null, updatedAt: new Date() })
+      .where(eq(attempts.id, id));
+    archiveCoexistenceCredentials(id);
+  });
   return { ok: true };
 }
 

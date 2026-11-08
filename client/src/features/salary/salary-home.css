@@ -39,6 +39,14 @@
   .salary-home-payroll:hover {
     background: color-mix(in srgb, var(--secondary) 86%, black);
   }
+  .dark .salary-home-payroll {
+    border: 1px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+  }
+  .dark .salary-home-payroll:hover {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+  }
 
   /* Ruled lines echo a ledger page behind the net total. */
   .salary-home-ledger {
