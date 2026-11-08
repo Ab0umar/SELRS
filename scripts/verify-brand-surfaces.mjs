@@ -7,7 +7,24 @@ const browser = await chromium.launch({
     "C:/Users/SELRS/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe",
 });
 let cases = 0;
+const BRAND = {
+  light: {
+    primary: "#0b4a8f",
+    secondary: "#f7941d",
+    token: ["#fff", "#ffffff"],
+    surface: "rgb(255, 255, 255)",
+    nav: "rgb(255, 255, 255)",
+  },
+  dark: {
+    primary: "#6fb1f5",
+    secondary: "#f7941d",
+    token: ["#0a1a2f"],
+    surface: "rgb(10, 26, 47)",
+    nav: "rgb(18, 48, 79)",
+  },
+};
 try {
+  for (const theme of ["light", "dark"])
   for (const width of [360, 1440])
     for (const path of [
       "/records/medical?tab=linking",
@@ -18,7 +35,7 @@ try {
       const context = await browser.newContext({
         viewport: { width, height: 1000 },
       });
-      await context.addInitScript(() => localStorage.setItem("theme", "light"));
+      await context.addInitScript((t) => localStorage.setItem("theme", t), theme);
       const page = await context.newPage();
       await page.route("**/api/**", async (route) => {
         if (route.request().method() !== "GET") {
@@ -82,21 +99,23 @@ try {
           })),
         };
       });
-      assert.equal(surfaces.primary, "#003d82");
-      assert.equal(surfaces.secondary, "#ff9500");
-      assert.equal(await page.locator('[data-app-top-nav]').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(255, 255, 255)');
+      const brand = BRAND[theme];
+      assert.equal(surfaces.primary, brand.primary);
+      assert.equal(surfaces.secondary, brand.secondary);
+      assert.equal(await page.locator('[data-app-top-nav]').evaluate(node=>getComputedStyle(node).backgroundColor),brand.nav);
       if (width < 768) {
-        assert.equal(await page.locator('[data-app-bottom-nav]').evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(0, 61, 130)');
+        assert.equal(await page.locator('[data-app-bottom-nav]').evaluate(node => getComputedStyle(node).backgroundColor), brand.nav);
       }
       if(path.includes('/records/medical')) {
         assert.equal(await page.locator('.medical-records-sidebar').count(),0);
       }
       for (const surface of surfaces.surfaces) {
-        assert.ok(["#fff", "#ffffff"].includes(surface.token));
+        if (surface.background === "rgba(0, 0, 0, 0)") continue;
+        assert.ok(brand.token.includes(surface.token));
         assert.equal(
           surface.background,
-          "rgb(255, 255, 255)",
-          `${path} background`,
+          brand.surface,
+          `${theme} ${path} background`,
         );
       }
       assert.equal(
@@ -106,7 +125,7 @@ try {
         false,
       );
       await page.screenshot({
-        path: `outputs/brand-surfaces/${path.split("?")[0].replaceAll("/", "-")}-${width}.png`,
+        path: `outputs/brand-surfaces/${theme}-${path.split("?")[0].replaceAll("/", "-")}-${width}.png`,
       });
       cases++;
       await context.close();

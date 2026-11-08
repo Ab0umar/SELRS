@@ -11,9 +11,14 @@ import {
 import { parseSignupMessage } from "../../client/src/features/admin/whatsapp-signup";
 import {
   historyTimestamp,
+  contactTimestamp,
   parseCoexistenceChanges,
 } from "../services/auto-reply/coexistence-sync";
-import { assertCustomerServicePhone } from "../services/auto-reply/coexistence";
+import {
+  assertCustomerServicePhone,
+  requireCancellationOrigin,
+  requireOnboardingOrigin,
+} from "../services/auto-reply/coexistence";
 
 const directories: string[] = [];
 afterEach(() => {
@@ -30,6 +35,47 @@ const assets = {
   data: { phone_number_id: "123", waba_id: "456" },
 };
 describe("Coexistence trust boundaries", () => {
+  it("allows cancellation from native app origins but keeps Meta onboarding restricted to the website", () => {
+    key();
+    vi.stubEnv("AUTO_REPLY_COEXISTENCE_ENABLED", "true");
+    vi.stubEnv("AUTO_REPLY_META_APP_ID", "123");
+    vi.stubEnv("AUTO_REPLY_EMBEDDED_SIGNUP_CONFIG_ID", "456");
+    vi.stubEnv("AUTO_REPLY_PUBLIC_ORIGIN", "https://selrs.cc");
+    vi.stubEnv("AUTO_REPLY_META_GRAPH_VERSION", "v25.0");
+    vi.stubEnv("AUTO_REPLY_META_APP_SECRET", "fixture-secret");
+    for (const origin of [
+      "http://localhost",
+      "https://localhost",
+      "capacitor://localhost",
+      "ionic://localhost",
+      "http://localhost:4000",
+      "http://192.168.1.100:4000",
+      "http://192.168.0.100:4000",
+    ]) {
+      expect(() => requireCancellationOrigin(origin)).not.toThrow();
+      expect(() => requireOnboardingOrigin(origin)).toThrow(
+        "COEXISTENCE_ORIGIN_INVALID",
+      );
+    }
+    expect(() => requireCancellationOrigin("https://selrs.cc")).not.toThrow();
+    for (const origin of [
+      undefined,
+      "null",
+      "https://selrs.cc.evil.test",
+      "http://localhost.evil.test",
+      "http://localhost:1234",
+    ]) {
+      expect(() => requireCancellationOrigin(origin)).toThrow(
+        "COEXISTENCE_ORIGIN_INVALID",
+      );
+    }
+  });
+  it("reads contact timestamps in milliseconds and seconds without accepting future or invalid dates", () => {
+    expect(contactTimestamp("1700000000123").getTime()).toBe(1700000000123);
+    expect(contactTimestamp("1700000000").getTime()).toBe(1700000000000);
+    expect(() => contactTimestamp("NaN")).toThrow();
+    expect(() => contactTimestamp(String(Date.now() + 600000))).toThrow();
+  });
   it("accepts Meta assets and rejects suffix spoofing, wrong origin, other completion types and malformed ids", () => {
     expect(
       parseSignupMessage("https://www.facebook.com", JSON.stringify(assets)),

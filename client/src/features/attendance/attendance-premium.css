@@ -40,12 +40,12 @@
     background: var(--background);
   }
   .attendance-studio .attendance-home-focused {
-    --day-ink: #233a39;
-    --day-muted: #526765;
-    --day-surface: #f7f7f7;
-    --day-tray: #ececec;
-    --day-accent: #246354;
-    --day-line: #e5e5e5;
+    --day-ink: var(--foreground);
+    --day-muted: var(--muted-foreground);
+    --day-surface: var(--card);
+    --day-tray: var(--muted);
+    --day-accent: var(--primary);
+    --day-line: var(--border);
     font-family: var(--font-arabic);
     color: var(--day-ink);
     padding-block: 16px !important;
@@ -56,14 +56,6 @@
     .attendance-home-focused
     .attendance-today-register {
     background: var(--day-surface) !important;
-  }
-  .dark .attendance-studio .attendance-home-focused {
-    --day-ink: #edf4f1;
-    --day-muted: #b2c4bf;
-    --day-surface: #202d2a;
-    --day-tray: #15231f;
-    --day-accent: #a4d9c5;
-    --day-line: #3d5048;
   }
   .attendance-studio .attendance-home-focused .attendance-day-heading {
     display: flex;

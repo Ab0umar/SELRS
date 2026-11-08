@@ -92,7 +92,7 @@
   }
 }
 
-/* White field surfaces are shared by screen forms and portalled pickers, not paper. */
+/* Field surfaces (white in light, navy in dark) are shared by screen forms and portalled pickers, not paper. */
 @layer base {
 @media screen {
   html :is(
@@ -114,14 +114,62 @@
     --foreground: #28282a;
     --muted-foreground: #626264;
     --popover-foreground: #28282a;
-    --accent: #eeedf8;
-    --accent-foreground: #293582;
-    --ring: #293582;
+    --accent: #e3eef9;
+    --accent-foreground: #0b4a8f;
+    --ring: #0b4a8f;
     --destructive: #b91c1c;
     background-color: #ffffff !important;
     background-image: none !important;
     color: #28282a !important;
     color-scheme: light;
   }
+
+  /* Dark: the same fields use the navy field surface instead of white. */
+  html.dark :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+    textarea, select, [contenteditable="true"],
+    button[role="combobox"], [data-slot="select-trigger"],
+    [data-slot="select-content"], [data-field-surface],
+    [data-field-surface="date"] > button,
+    [data-field-surface="picker"] [data-slot="command"],
+    [data-field-surface="picker"] .rdp-root
+  ):not(:where(
+    [data-print-document] *, [data-accounting-print-root] *, [data-mobile-pdf-root] *,
+    .a4-page-card *, .lasik-sheet *, .specialist-sheet *, .sheet-followup-body *,
+    .prescription-root *, .clinical-report-root *, .medical-report-page *,
+    .patient-summary-print-root *, .final-report-sheet *, .refraction-print-card *,
+    .offdays-paper *, .offdays-en-paper *, .prepost-paper *, .mcr-paper *,
+    .medical-report-brand *, .request-tests-paper *
+  )) {
+    --foreground: #ffffff;
+    --muted-foreground: #9cc4ee;
+    --popover-foreground: #ffffff;
+    --accent: #1f4468;
+    --accent-foreground: #ffffff;
+    --ring: #f7941d;
+    --destructive: #fca5a5;
+    background-color: #0f2742 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    color-scheme: dark;
+  }
 }
+}
+
+/* Workflow on phones: text fields and note boxes size to what they hold. */
+@media screen and (max-width: 767px) {
+  .workflow-day-workspace :is(
+    input:not([type]), input[type="text"], input[type="search"],
+    input[type="number"], input[type="tel"]
+  ) {
+    field-sizing: content;
+    width: auto;
+    min-width: 4.5ch;
+    max-width: 100%;
+  }
+  .workflow-day-workspace textarea {
+    field-sizing: content;
+    height: auto;
+    min-height: 2.25rem;
+  }
 }

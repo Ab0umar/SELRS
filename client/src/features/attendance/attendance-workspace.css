@@ -1,21 +1,12 @@
 .attendance-workspace {
   min-width: 0;
   color: var(--foreground);
-  --attendance-present-bg: #e9f5ee;
-  --attendance-present-fg: #286849;
-  --attendance-absent-bg: #fcecec;
-  --attendance-absent-fg: #973b3b;
-  --attendance-late-bg: #fff4d8;
-  --attendance-late-fg: #79550e;
-}
-
-.dark .attendance-workspace {
-  --attendance-present-bg: #173b2c;
-  --attendance-present-fg: #9adbb8;
-  --attendance-absent-bg: #442526;
-  --attendance-absent-fg: #ffb4b4;
-  --attendance-late-bg: #3e341d;
-  --attendance-late-fg: #eed093;
+  --attendance-present-bg: color-mix(in srgb, var(--success) 14%, var(--card));
+  --attendance-present-fg: var(--success-text);
+  --attendance-absent-bg: color-mix(in srgb, var(--destructive) 12%, var(--card));
+  --attendance-absent-fg: var(--destructive-text);
+  --attendance-late-bg: color-mix(in srgb, var(--warning) 20%, var(--card));
+  --attendance-late-fg: var(--warning-text);
 }
 
 .attendance-workspace :is(button, a, input, select, textarea):focus-visible {

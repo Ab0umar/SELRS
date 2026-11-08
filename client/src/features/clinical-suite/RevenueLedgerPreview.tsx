@@ -228,9 +228,9 @@ export function RevenueLedgerPreview() {
             <span className="text-[13px] font-medium text-muted-foreground">
               إجمالي الخصومات
             </span>
-            <span className="text-[13px] text-amber-500 font-mono">-%</span>
+            <span className="text-[13px] text-amber-700 font-mono">-%</span>
           </div>
-          <div className="text-base sm:text-lg font-bold font-mono text-amber-500 mt-1">
+          <div className="text-base sm:text-lg font-bold font-mono text-amber-700 mt-1">
             -{totals.discount.toLocaleString()}{" "}
             <span className="text-xs font-normal">ج.م</span>
           </div>

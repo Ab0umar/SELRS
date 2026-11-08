@@ -265,7 +265,7 @@ export function OperationsHistoryDrawer({
                               className="flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 bg-amber-50/60 border border-amber-200/60 text-amber-900"
                             >
                               <div className="flex items-center gap-2">
-                                <CalendarClock className="h-4 w-4 shrink-0 text-amber-600" />
+                                <CalendarClock className="h-4 w-4 shrink-0 text-amber-700" />
                                 <div className="text-xs font-bold">
                                   {operationTypeLabel(bk.operationType)} — {bk.casesCount} حالة
                                 </div>
