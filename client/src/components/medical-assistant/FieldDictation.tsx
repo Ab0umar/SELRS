@@ -574,6 +574,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
     if (!active && reviewText === undefined && text.trim()) setReviewText(text);
   }, [active, text, reviewText]);
 
+  const manualEdit = useRef(false);
   const write = (value: string) => {
     if (!target) return false;
     const element = target.element;
@@ -602,6 +603,10 @@ function ConfiguredFieldDictation(props: RecordingProps) {
       return;
     }
     if (!target) return;
+    if (!approvedProposal && !manualEdit.current) {
+      setError("اعتمد اقتراح الذكاء الاصطناعي أولًا حتى لا تُكتب المحادثة كلها في الحقل.");
+      return;
+    }
     if (target.element.value !== initial.current) {
       setError(
         "تغيّر الحقل أثناء التسجيل. أغلق الشريط وأعد المحاولة حتى لا يُمسح تعديلك.",
@@ -744,6 +749,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
             readOnly={active || applied}
             onChange={(event) => {
               setText(event.target.value);
+              manualEdit.current = true;
               setApprovedProposal(undefined);
             }}
             className="min-h-16 max-h-32"
