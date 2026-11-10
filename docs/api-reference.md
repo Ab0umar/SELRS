@@ -507,6 +507,68 @@ Send notification to system owner.
 // Output: { success: true }
 ```
 
+#### Record lists
+
+Checked against `server/db.ts`, `server/routers/medical-examinations.ts`, `client/src/lib/recordsSearch.ts`, and `shared/refractionCompleteness.ts` on 2026-11-10. Pages: `/visits`, `/followups`, `/sheets/autorefs/dashboard`, `/sheets/refractions/dashboard`.
+
+| Procedure | Auth | Input | What it returns |
+|---|---|---|---|
+| `getVisitsByPatient` | `/patient-file` | `patientId: 0` plus optional `search` (max 100) and `date` (`YYYY-MM-DD`) lists visits; a positive `patientId` returns that patient's visits and ignores search | Up to 500 visits. Filters run before the cap, so a date or name is not stuck inside the newest 500 unfiltered rows. |
+| `getAllFollowupItems` | `clinicalStaffProcedure` | `{ limit? (1–1000, default 500), search?, date?, patientId? }` | Up to `limit` rows, hard-capped at 1000. Visit rows and legacy unlinked items are each capped, then merged and capped again, so a full visit page can crowd out a legacy item. |
+| `getRefractionsOverview` | `clinicalStaffProcedure` | `{ page?, pageSize? (1–200, default 50), search?, statusFilter?, locationType? }` | One row per visit: the latest examination. `pageSize` is also capped by `OVERVIEW_ROW_LIMIT` (5000). |
+| `getAutorefractometryOverview` | `clinicalStaffProcedure` | same shape as refractions | Latest autorefraction row of that same latest examination. |
+| `setExaminationRecordComplete` | `clinicalStaffProcedure` | `{ examinationId, complete }` | `{ success: true, complete }`. Writes `MARK_EXAM_RECORD_COMPLETE` or `UNMARK_EXAM_RECORD_COMPLETE`. |
+
+`/visits` and `/followups` send the search box through `toRecordsSearchFilters`. A value that parses as a date is sent as `date` and is not also sent as `search`. Anything else is `search`, with Arabic-Indic and Persian digits converted to Latin. Day comes first: `101126` and `10/11/26` are 2026-11-10, `10112026` and `10-11-2026` are the same day, and `2026-11-10` is accepted only with `-`, `/`, or `.` separators. A compact 6- or 8-digit string is never read as year-month-day. An impossible day (for example `320126`) parses as nothing, so the box is sent as text. When a patient is already selected, the box is not sent to the server; the page filters the loaded rows, and a parsed date still has to match that row's calendar date.
+
+**Follow-up rows.** `getAllFollowupItems` starts from visits, not from sheet items. A visit is included when `visitType` is `followup`, or when a `followupItems` row points at that visit and `followupSheets.patientId` equals `visits.patientId`. An examination visit with no follow-up sheet item stays off the list. A queue visit with no sheet is still listed: `followupSheetId` is null and `id` is `-visitId` (not a `followupItems` id).
+
+Sheet saves are why the second case exists. `persistClinicalSheet` (`server/services/clinical-sheet.ts`) attaches a follow-up sheet to the visit already on that day, and creates a missing visit as `visitType = "examination"`. `addFollowupToQueue` (`action/followup-queue`) is the path that inserts `visitType = "followup"`. Filtering the list on `visitType = "followup"` alone hides sheet follow-ups that were saved onto an examination visit. `server/tests/followupList.test.ts` covers both cases.
+
+Measurements on a visit-backed row come from that visit's clinical tables (`hydrateFollowupItems`): UCVA, refraction, IOP, flap, notes, treatment, and a single operation when the visit has exactly one. They are not read from the old columns on `followupItems`. Items with `visitId` null and `followupDate` set are the legacy tail: they are listed by that date and are not hydrated.
+
+**Completeness** (`classifyRecord` and `recordStatusConditions`; keep the two in step). A recorded value is non-blank and not `---` or `-`. An eye is full when it has sphere, cylinder, or axis, plus UCVA and BCVA. IOP alone is data, so the row is not empty, but it does not make the eye full.
+
+| Status | Rule | Dashboard label |
+|---|---|---|
+| `complete` | Both eyes full, or a row in `examinationRecordCompletions` and at least one eye full | كامل. The badge adds `(مؤكد)` when the row was confirmed. |
+| `partial` | Some data, and not complete | غير مكتمل |
+| `empty` | No sphere, cylinder, axis, UCVA, BCVA, or IOP on either eye | ناقص |
+
+On these two overviews, sphere, cylinder, axis, and UCVA come from the latest `autorefractometryData` row. BCVA comes from the latest `glassesRecords` row. IOP comes from `airPuffMeasurements`. `stats` counts complete / partial / empty before the status tab; `total` follows the selected tab. Search matches patient name (including the legacy encoding), patient code, and doctor name. `locationType` `center` or `external` uses `patientLocationExpr` in `server/db.ts`, which is not the patient-list rule in `attachTreatingDoctor`:
+
+1. Service-code location and doctor location both known: `external` only when both say external, otherwise `center`.
+2. Only one of those known: that one decides.
+3. Otherwise a non-blank `patients.serviceType` decides, using `EXTERNAL_SERVICE_TYPES` in `shared/serviceType.ts` (`external`, `pentacam_ex`, `pentacam_ex_c`, `pentacam_external`, `surgery_external`).
+4. Otherwise the stored `patients.locationType` column, and anything other than `external` is `center`.
+
+**Confirming a one-eye record.** `تحويل لكامل` calls `setExaminationRecordComplete` with `complete: true`. The server loads the examination, hydrates measurements, and rejects with `BAD_REQUEST` unless `hasFullEye` is true. A success inserts `examinationRecordCompletions` (`drizzle/0112_examination_record_completions.sql`, unique on `examinationId`) and stores `markedBy`. Sending `complete: false` deletes that row. The button is shown for a partial record with one full eye, and again as `إلغاء التأكيد` after a confirmation. Both eyes already full need no confirmation row.
+
+---
+
+### Follow-up sheets
+
+Checked against `server/routers/medical-examinations.ts`, `server/db.ts`, `server/services/followup-persistence.ts`, and `shared/clinical-record.ts` on 2026-11-10. Workflow and the examination-visit pitfall: [AI_CONTEXT.md](AI_CONTEXT.md#follow-up-records). These procedures are the medical follow-up list, separate from `kf.listFollowups` and from `createPostOpFollowup`.
+
+| Procedure | Type | Auth | Role |
+|---|---|---|---|
+| `getAllFollowupItems` | query | `clinicalStaffProcedure` | `/followups` list |
+| `getFollowupSheets` | query | `makePageProcedure("/patient-file")` | One patient's sheets |
+| `saveFollowupSheet` | mutation | `medicalStaffProcedure`, then `doctor` / `nurse` / `admin` / `manager` only | Sheet save |
+| `addFollowupToQueue` | mutation | `makePageProcedure("action/followup-queue")` | Queue visit, no sheet |
+
+`getAllFollowupItems` input is optional: `limit` (1–1000, default 500), `search` (max 100), `date` (`YYYY-MM-DD`), `patientId`. The DB helper clamps `limit` to 1–1000. A visit is included when `visits.visitType` is `followup`, or when a `followupItems` row points at that visit and `followupSheets.patientId` equals `visits.patientId`. Queue visits with no sheet return `id: -visitId` and `followupSheetId: null`. Several items on one visit return several rows. Legacy items (`visitId` null, `followupDate` set) are appended and sorted by date with the rest.
+
+Hydrated fields, for rows that have a visit belonging to the same patient: `followupDate` (`visits.visitDate`), `vaOD` / `vaOS`, `iopOD` / `iopOS`, `refracOD` / `refracOS` and `flapOD` / `flapOS` as JSON strings, `treatment`, `notes`, `operationType`, `operationDate`. Those values are read from the visit's examination tables.
+
+`saveFollowupSheet` input: `patientId`, optional `visitId`, `sheetType` (the 12 service types), optional `appendMode`, and `followupItems[]` (`itemId`, `visitId`, `clinicalContent`, `tableIndex`, `followupDate`, `operationDate`, `operationType`, `followupName`, VA / refraction / flap / IOP, `treatment`, `notes`, `rightEye`, `leftEye`). `appendMode` is on the schema and is not read by the handler. Output: `{ success: true, sheetId, version, items: [{ itemId, visitId }] }`. Audit: `SAVE_FOLLOWUP_SHEET`.
+
+Visit attachment uses `selectClinicalVisit`. An explicit id must belong to the patient. Otherwise the save uses the single visit on the item's calendar date, or inserts `visitType: "examination"` when that day is empty. Two visits on the date fail with `Multiple visits exist on this date. Select the visit explicitly.` A `followupDate` also updates `visits.visitDate` for that patient. A new item takes the first free `tableIndex` in 0–3 on the latest sheet version. When those four slots are full, the save starts a new version at index 0. Updates by `itemId` keep the stored index and reject an id that is not on this patient and sheet type.
+
+`getFollowupSheets` takes `patientId` and an optional `sheetType` of `consultant`, `specialist`, `lasik`, or `external`. Omitting `sheetType` returns every sheet for the patient, each with its items.
+
+`addFollowupToQueue` takes `patientId` and an optional `visitDate`. It inserts `visitType: "followup"` at noon (local noon when a date is passed, otherwise `cairoDateIso()` at `T12:00:00+02:00`) and checks the patient into the alternating clinic queue. Audit: `CREATE_FOLLOWUP_VISIT`.
+
 ---
 
 ### Prescriptions & Medications
@@ -1358,5 +1420,5 @@ Router file: `server/routers/doctorPortal.ts`
 
 ---
 
-**Last Updated:** 2026-06-14
+**Last Updated:** 2026-11-10
 **API Version:** 2.1.0
