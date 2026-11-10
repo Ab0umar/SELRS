@@ -72,7 +72,7 @@ export const PAGE_PERMISSION_DEFINITIONS = [
   },
   {
     id: "action/followup-queue",
-    label: "متابعة",
+    label: "إضافة متابعة للطابور",
     group: "إجراءات لوحة التحكم",
   },
   {

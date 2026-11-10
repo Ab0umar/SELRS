@@ -13,6 +13,9 @@ const password =
   "";
 
 async function loginAsAdmin(request: any) {
+  const session = await request.get(`${baseURL}/api/auth/me`);
+  if (session.ok() && (await session.json()).user?.username === username)
+    return;
   const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
     Boolean,
   );
@@ -67,7 +70,9 @@ test.describe("today operations board", () => {
     await expect(
       page.getByRole("button", { name: /تسجيل مريض/ }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /معالج/ })).toBeVisible();
+    const treatedFilter = page.getByRole("button", { name: /^معالج\s*\(/ });
+    await expect(treatedFilter).toBeVisible();
+    await treatedFilter.click();
     await expect(
       page.getByText(/لا يوجد مرضى في هذه الفئة|لا توجد حجوزات لهذا التاريخ/),
     ).toBeVisible();

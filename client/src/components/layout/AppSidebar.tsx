@@ -123,9 +123,7 @@ export function AppSidebar({
             normalizeNavPath(String(item.groupPath).split("?")[0]),
             allowedRoots,
           );
-        return items.length > 0 || groupPathAllowed
-          ? { ...item, items }
-          : null;
+        return items.length > 0 || groupPathAllowed ? { ...item, items } : null;
       })
       .filter((item): item is NavGroup => Boolean(item));
   }, [allowedRoots, isAdmin, permissionsQuery.isSuccess, userRole]);
@@ -189,7 +187,8 @@ export function AppSidebar({
     isActive: boolean,
     isMainItem?: boolean,
   ) => (
-    <Button variant="bare"
+    <Button
+      variant="bare"
       key={sub.path}
       type="button"
       title={collapsed && !isMobile ? sub.label : undefined}
@@ -318,7 +317,8 @@ export function AppSidebar({
                         className="flex w-full items-center gap-0.5 rounded-lg px-1 py-0.5"
                         role="group"
                       >
-                        <Button variant="bare"
+                        <Button
+                          variant="bare"
                           type="button"
                           disabled={headerNavDisabled}
                           onClick={() => {
@@ -345,7 +345,8 @@ export function AppSidebar({
                         >
                           <span className="min-w-0 truncate">{item.label}</span>
                         </Button>
-                        <Button variant="bare"
+                        <Button
+                          variant="bare"
                           type="button"
                           aria-expanded={sectionOpen}
                           aria-controls={sectionListId}
@@ -408,7 +409,8 @@ export function AppSidebar({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="bare"
+            <Button
+              variant="bare"
               type="button"
               className={cn(
                 "flex w-full items-center gap-2 rounded-2xl border border-border/80 bg-card/90 px-2 py-2 transition-colors hover:bg-muted/50",

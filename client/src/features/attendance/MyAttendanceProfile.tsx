@@ -348,7 +348,7 @@ export default function MyAttendanceProfile({
                     className="flex items-center gap-2 p-3 bg-card border border-border/60 rounded-xl text-xs font-bold text-foreground"
                   >
                     <span>
-                      طلب إجازة {l.type === "annual" ? "سنوية" : "مرضية"}:
+                      طلب إجازة {l.type === "paid" ? "مدفوعة" : l.type === "annual" ? "سنوية" : "مرضية"}:
                     </span>
                     <span className="font-mono text-muted-foreground">
                       {String(l.dateFrom).slice(0, 10)} ←{" "}

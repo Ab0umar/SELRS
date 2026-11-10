@@ -22,13 +22,33 @@ describe("classifyTrpcPath", () => {
     expect(classifyTrpcPath("/doctorPortal.login")).toMatchObject({
       kind: "credential",
     });
+    expect(classifyTrpcPath("/patientPortal.verifyLoginOtp")).toMatchObject({
+      kind: "credential",
+    });
+    expect(classifyTrpcPath("/patientPortal.selectLoginPatient")).toMatchObject(
+      {
+        kind: "credential",
+      },
+    );
   });
 
   it("refuses batches that contain a credential procedure", () => {
     expect(
-      classifyTrpcPath("/patientPortal.login,patientPortal.login,patientPortal.login"),
+      classifyTrpcPath(
+        "/patientPortal.login,patientPortal.login,patientPortal.login",
+      ),
     ).toEqual({ kind: "batched-credential" });
     expect(classifyTrpcPath("/auth.me,doctorPortal.login")).toEqual({
+      kind: "batched-credential",
+    });
+    expect(classifyTrpcPath("/auth.me,patientPortal.verifyLoginOtp")).toEqual({
+      kind: "batched-credential",
+    });
+    expect(
+      classifyTrpcPath(
+        "/patientPortal.selectLoginPatient,patientPortal.selectLoginPatient",
+      ),
+    ).toEqual({
       kind: "batched-credential",
     });
   });
@@ -37,7 +57,9 @@ describe("classifyTrpcPath", () => {
     expect(classifyTrpcPath("/patientPortal%2Elogin")).toMatchObject({
       kind: "credential",
     });
-    expect(classifyTrpcPath("/patientPortal.login%2CpatientPortal.login")).toEqual({
+    expect(
+      classifyTrpcPath("/patientPortal.login%2CpatientPortal.login"),
+    ).toEqual({
       kind: "batched-credential",
     });
   });
@@ -73,20 +95,24 @@ describe("buildConsumeRateLimitSql", () => {
 describe("createTrpcCredentialGuard (real Express)", () => {
   it("blocks batched logins and throttles a single login", async () => {
     const { default: express } = await import("express");
-    const { createTrpcCredentialGuard } = await import(
-      "../_core/trpcCredentialGuard"
-    );
+    const { createTrpcCredentialGuard } =
+      await import("../_core/trpcCredentialGuard");
     const app = express();
     app.use("/api/trpc", createTrpcCredentialGuard(2, 60_000));
     app.use("/api/trpc", (_req, res) => res.json({ reached: true }));
     const server = app.listen(0);
     try {
       const { port } = server.address() as { port: number };
-      const call = (path: string) => fetch(`http://127.0.0.1:${port}/api/trpc/${path}`);
+      const call = (path: string) =>
+        fetch(`http://127.0.0.1:${port}/api/trpc/${path}`);
 
       expect((await call("auth.me")).status).toBe(200);
       expect(
-        (await call("patientPortal.login,patientPortal.login,patientPortal.login")).status,
+        (
+          await call(
+            "patientPortal.login,patientPortal.login,patientPortal.login",
+          )
+        ).status,
       ).toBe(400);
       expect(
         (await call("patientPortal.login%2CpatientPortal.login")).status,

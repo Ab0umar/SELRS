@@ -17,7 +17,62 @@ const api = router({ add: medicalExaminationsRoutes.addFollowupToQueue });
 const input = { patientId: 7, visitDate: "2026-10-25" };
 
 describe("same-day followup queue", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(db.getEffectiveUserPermissions).mockResolvedValue([
+      "action/followup-queue",
+    ]);
+  });
+
+  it.each(["doctor", "nurse", "technician", "manager", "reception", "accountant"])(
+    "allows %s with the followup queue permission",
+    async (role) => {
+      await expect(api.createCaller(makeCallerAs(role)).add(input)).resolves.toEqual({
+        success: true,
+        visitId: 42,
+      });
+    },
+  );
+
+  it.each(["doctor", "nurse", "reception", "accountant", "manager"])(
+    "rejects %s without the followup queue permission",
+    async (role) => {
+      vi.mocked(db.getEffectiveUserPermissions).mockResolvedValue([]);
+      await expect(api.createCaller(makeCallerAs(role)).add(input)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      expect(db.createVisit).not.toHaveBeenCalled();
+      expect(db.updateVisit).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["action/followup-queue:r", "action/followup-queue:rw"])(
+    "accepts the permission token %s used by permission settings",
+    async (permission) => {
+      vi.mocked(db.getEffectiveUserPermissions).mockResolvedValue([permission]);
+      await expect(api.createCaller(makeCallerAs("doctor")).add(input)).resolves.toEqual({
+        success: true,
+        visitId: 42,
+      });
+    },
+  );
+
+  it("allows an administrator without an explicit permission", async () => {
+    vi.mocked(db.getEffectiveUserPermissions).mockResolvedValue([]);
+    await expect(api.createCaller(makeCallerAs("admin")).add(input)).resolves.toEqual({
+      success: true,
+      visitId: 42,
+    });
+  });
+
+  it("rejects an unauthenticated caller before touching the queue", async () => {
+    const context = makeCallerAs("doctor");
+    context.user = null;
+    await expect(api.createCaller(context).add(input)).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+    expect(db.createVisit).not.toHaveBeenCalled();
+  });
 
   it("requeues the returned same-day visit without replacing its clinical data", async () => {
     await expect(

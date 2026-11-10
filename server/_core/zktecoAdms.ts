@@ -418,9 +418,11 @@ export function registerZKTecoAdms(app: Express): void {
   app.get("/iclock/cdata", (req: Request, res: Response) => {
     const sn = String(req.query.SN ?? req.query.sn ?? "unknown");
     const options = String(req.query.options ?? req.query.Options ?? "");
-    console.log(
-      `[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`,
-    );
+    if (process.env.ADMS_HANDSHAKE_DEBUG === "1") {
+      console.debug(
+        `[ADMS] Handshake from SN=${sn} options=${options} ip=${req.ip}`,
+      );
+    }
 
     // Queue DATA QUERY ATTLOG once per session so device pushes its logs (pushver 2.x command-driven)
     if (!queriedDevices.has(sn)) {

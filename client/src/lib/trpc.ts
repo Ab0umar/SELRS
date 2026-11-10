@@ -31,7 +31,19 @@ type PortalProcedures = {
     useMutation: (opts?: {
       onSuccess?: (d: PortalOut["login"]) => void;
       onError?: (e: TRPCError) => void;
-    }) => UseMut<{ phone: string; patientCode: string }, PortalOut["login"]>;
+    }) => UseMut<PortalIn["login"], PortalOut["login"]>;
+  };
+  verifyLoginOtp: {
+    useMutation: (opts?: {
+      onSuccess?: (d: PortalOut["verifyLoginOtp"]) => void;
+      onError?: (e: TRPCError) => void;
+    }) => UseMut<PortalIn["verifyLoginOtp"], PortalOut["verifyLoginOtp"]>;
+  };
+  selectLoginPatient: {
+    useMutation: (opts?: {
+      onSuccess?: (d: PortalOut["selectLoginPatient"]) => void;
+      onError?: (e: TRPCError) => void;
+    }) => UseMut<PortalIn["selectLoginPatient"], PortalOut["selectLoginPatient"]>;
   };
   getMyProfile: {
     useQuery: (opts?: object) => UseQ<PortalOut["getMyProfile"]>;
@@ -63,6 +75,12 @@ type PortalProcedures = {
   };
   getNotifications: {
     useQuery: (opts?: object) => UseQ<PortalOut["getNotifications"]>;
+  };
+  bookingSummary: {
+    useQuery: (
+      input: PortalIn["bookingSummary"],
+      opts?: object,
+    ) => UseQ<PortalOut["bookingSummary"]>;
   };
   listBookings: {
     useQuery: (

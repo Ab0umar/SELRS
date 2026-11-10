@@ -126,7 +126,7 @@ export function useSubmitLeaveRequest() {
       empCd: string;
       dateFrom: string;
       dateTo: string;
-      type: "annual" | "sick" | "unpaid" | "other";
+      type: "annual" | "sick" | "salary" | "unpaid" | "other" | "paid";
       note?: string;
     }) => tRPC.attendance.createLeave.mutate(leaveData),
     onSuccess: () => {

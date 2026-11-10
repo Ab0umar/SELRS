@@ -33,7 +33,8 @@ import {saveClinicalSheet} from "./services/clinical-sheet";
 import {examinationInput} from "./services/examination-input";
 import {patientWorkflowState} from "./services/patient-workflow-state";
 import {saveClinicalVisit,type ClinicalVisitInput} from "./services/clinical-visit";
-import {airPuffMeasurements,examinationFindings,examinationProcedurePlans,fundusFindings,visitComplaints,visitSymptoms,visitDiagnoses,visitDiagnosisCodes,visitTreatmentPlans,visitDecisions,visitMedicalHistory,symptomCatalog,visitSymptomCodes} from "../drizzle/clinical";
+import { hasFullEye } from "../shared/refractionCompleteness";
+import {airPuffMeasurements,examinationRecordCompletions,examinationFindings,examinationProcedurePlans,fundusFindings,visitComplaints,visitSymptoms,visitDiagnoses,visitDiagnosisCodes,visitTreatmentPlans,visitDecisions,visitMedicalHistory,symptomCatalog,visitSymptomCodes} from "../drizzle/clinical";
 import mysql from "mysql2/promise";
 import { TRPCError } from "@trpc/server";
 import { getDbPoolOptions } from "./_core/dbPoolOptions";
@@ -258,7 +259,7 @@ export async function deleteReadyPrescriptionTemplate(templateKey: string) {
     .where(eq(readyPrescriptionTemplates.templateKey, templateKey));
 }
 import { PENTACAM_ALLOWED_SRV_CODES } from "../shared/pentacam";
-import { getServiceTypeFilterVariants } from "../shared/serviceType";
+import { EXTERNAL_SERVICE_TYPES, getServiceTypeFilterVariants } from "../shared/serviceType";
 import { OP_TYPES, resolveCanonicalOpType } from "../shared/opTypes";
 const exec = promisify(execCb);
 
@@ -275,6 +276,89 @@ const MOJIBAKE_HINT = /[ØÙÃÂ]/;
 
 function meaningfulValueCondition(column: any) {
   return sql`NULLIF(TRIM(COALESCE(CAST(${column} AS CHAR), '')), '') IS NOT NULL AND UPPER(TRIM(COALESCE(CAST(${column} AS CHAR), ''))) NOT IN ('0', '0.0', '0.00')`;
+}
+
+/**
+ * Medical-records tabs classify a patient as center/external by the patient's serviceType
+ * (the same EXTERNAL_SERVICE_TYPES that derive patients.locationType). The stored
+ * locationType column is only the fallback for patients with no serviceType, because it can
+ * be stale and then lists center patients under external and the reverse.
+ */
+function normalizedLocationSql(raw: any) {
+  return sql`(CASE LOWER(TRIM(COALESCE(${raw}, ''))) WHEN 'external' THEN 'external' WHEN 'خارجي' THEN 'external' WHEN 'center' THEN 'center' WHEN 'مركز' THEN 'center' END)`;
+}
+
+/** Location of the patient's service code (synced code, else the latest service entry), from the services catalog. */
+function serviceCodeLocationSql() {
+  return normalizedLocationSql(
+    sql`(SELECT ${services.locationType} FROM ${services} WHERE ${services.code} = COALESCE(NULLIF(TRIM(${patients.serviceCode}), ''), (SELECT ${patientServiceEntries.serviceCode} FROM ${patientServiceEntries} WHERE ${patientServiceEntries.patientId} = ${patients.id} ORDER BY ${patientServiceEntries.serviceDate} DESC, ${patientServiceEntries.id} DESC LIMIT 1)) LIMIT 1)`,
+  );
+}
+
+/** Location of the patient's doctor, from the doctors lookup. */
+function doctorLocationSql() {
+  return normalizedLocationSql(
+    sql`(SELECT ${doctorsLookup.locationType} FROM ${doctorsLookup} WHERE ${doctorsLookup.code} = ${patients.doctorCode} LIMIT 1)`,
+  );
+}
+
+function patientLocationExpr() {
+  const externals = [...EXTERNAL_SERVICE_TYPES].map((type) => sql`${type}`);
+  // Service code and doctor are read together: when both are known the patient is external
+  // only if both say external (so center patients never land under external). When only
+  // one is known it decides; with neither, fall back to serviceType, then the stored column.
+  return sql<"center" | "external">`(CASE
+    WHEN ${serviceCodeLocationSql()} IS NOT NULL AND ${doctorLocationSql()} IS NOT NULL
+      THEN (CASE WHEN ${serviceCodeLocationSql()} = 'external' AND ${doctorLocationSql()} = 'external' THEN 'external' ELSE 'center' END)
+    WHEN ${serviceCodeLocationSql()} IS NOT NULL THEN ${serviceCodeLocationSql()}
+    WHEN ${doctorLocationSql()} IS NOT NULL THEN ${doctorLocationSql()}
+    WHEN NULLIF(TRIM(COALESCE(${patients.serviceType}, '')), '') IS NOT NULL
+      THEN (CASE WHEN ${patients.serviceType} IN (${sql.join(externals, sql`, `)}) THEN 'external' ELSE 'center' END)
+    ELSE (CASE WHEN LOWER(TRIM(COALESCE(${patients.locationType}, ''))) = 'external' THEN 'external' ELSE 'center' END)
+  END)`;
+}
+
+function patientLocationEquals(location: string) {
+  return sql`${patientLocationExpr()} = ${location}`;
+}
+
+function recordedValueCondition(column: any) {
+  return sql`(NULLIF(TRIM(COALESCE(CAST(${column} AS CHAR), '')), '') IS NOT NULL AND TRIM(CAST(${column} AS CHAR)) NOT IN ('---', '-'))`;
+}
+
+type EyeColumns = { s: any; c: any; a: any; ucva: any; bcva: any; iop: any };
+
+/**
+ * Completeness of an Autoref / Refraction record. Mirrors classifyRecord in
+ * shared/refractionCompleteness.ts (keep the two in step).
+ * - complete: both eyes have a measurement with UCVA and BCVA, or a reviewer confirmed the
+ *   record (examinationRecordCompletions) and at least one eye is fully recorded.
+ * - empty: nothing recorded. partial: everything else.
+ */
+function recordStatusConditions(od: EyeColumns, os: EyeColumns, confirmedColumn: any) {
+  const measured = (e: EyeColumns) =>
+    or(recordedValueCondition(e.s), recordedValueCondition(e.c), recordedValueCondition(e.a));
+  const full = (e: EyeColumns) =>
+    and(measured(e), recordedValueCondition(e.ucva), recordedValueCondition(e.bcva));
+  const anyData = (e: EyeColumns) =>
+    or(measured(e), recordedValueCondition(e.ucva), recordedValueCondition(e.bcva), recordedValueCondition(e.iop));
+  const complete = or(
+    and(full(od), full(os)),
+    and(sql`${confirmedColumn} IS NOT NULL`, or(full(od), full(os))),
+  );
+  const empty = not(or(anyData(od), anyData(os)) as any);
+  const partial = and(not(complete as any), not(empty as any));
+  return { complete, empty, partial };
+}
+
+function recordStatusWhere(
+  status: string,
+  conditions: { complete: any; empty: any; partial: any },
+) {
+  if (status === "complete") return conditions.complete;
+  if (status === "partial") return conditions.partial;
+  if (status === "empty") return conditions.empty;
+  return undefined;
 }
 
 function anyMeaningfulValueCondition(columns: any[]) {
@@ -3259,7 +3343,35 @@ export async function hasActiveVisitForDate(
   return rows.length > 0;
 }
 
-export async function getAllVisits() {
+export type VisitListFilters = { search?: string; date?: string; patientId?: number };
+
+/** Server-side search for the visits/followups record lists so results are not limited to the newest 500 rows. */
+function buildVisitListClauses(filters: VisitListFilters = {}, dateColumn: any = visits.visitDate) {
+  const clauses: any[] = [];
+  if (filters.patientId && filters.patientId > 0) {
+    clauses.push(eq(patients.id, filters.patientId));
+  }
+  const date = String(filters.date ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    clauses.push(sql`DATE(${dateColumn}) = ${date}`);
+  }
+  const tokens = String(filters.search ?? "").trim().split(/\s+/).filter(Boolean);
+  for (const token of tokens) {
+    const t = likeContains(token);
+    const lt = likeContains(encodeForLegacySearch(token));
+    clauses.push(
+      or(
+        like(patients.fullName, t),
+        like(patients.fullName, lt),
+        like(patients.patientCode, t),
+        like(patients.phone, t),
+      ),
+    );
+  }
+  return clauses.length ? and(...clauses) : undefined;
+}
+
+export async function getAllVisits(filters: VisitListFilters = {}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -3276,38 +3388,39 @@ export async function getAllVisits() {
       createdAt: visits.createdAt,
       updatedAt: visits.updatedAt,
       patientName: patients.fullName,
-      examId: examinations.id,
-      examPatientId: examinations.patientId,
-      ucvaOD: examinations.ucvaOD,
-      ucvaOS: examinations.ucvaOS,
-      bcvaOD: examinations.bcvaOD,
-      bcvaOS: examinations.bcvaOS,
-      sphereOD: examinations.sphereOD,
-      sphereOS: examinations.sphereOS,
-      cylinderOD: examinations.cylinderOD,
-      cylinderOS: examinations.cylinderOS,
-      axisOD: examinations.axisOD,
-      axisOS: examinations.axisOS,
-      iopOD: examinations.iopOD,
-      iopOS: examinations.iopOS,
-      glassesData: examinations.glassesData,
-      radiologyLabsNotes: examinations.radiologyLabsNotes,
-      airPuffOD: examinations.airPuffOD,
-      airPuffOS: examinations.airPuffOS,
+      // Surgeries are not a visitType: an operation is recorded as a service (mapped to an
+      // operation type) or in the OP history, on the visit's day.
+      operationType: sql<string | null>`COALESCE(
+        (SELECT ${serviceCodeOpTypeMap.operationType} FROM ${patientServiceEntries}
+           INNER JOIN ${serviceCodeOpTypeMap} ON ${patientServiceEntries.serviceCode} = ${serviceCodeOpTypeMap.serviceCode}
+           WHERE ${patientServiceEntries.patientId} = ${visits.patientId}
+             AND DATE(${patientServiceEntries.serviceDate}) = DATE(${visits.visitDate}) LIMIT 1),
+        (SELECT ${patientOperations.operationType} FROM ${patientOperations}
+           WHERE ${patientOperations.patientId} = ${visits.patientId}
+             AND ${patientOperations.operationDate} = DATE(${visits.visitDate}) LIMIT 1)
+      )`,
     })
     .from(visits)
-    .leftJoin(examinations, and(eq(visits.id, examinations.visitId),eq(visits.patientId,examinations.patientId),sql`${examinations.id} = (SELECT MAX(e.id) FROM examinations e WHERE e.visitId = ${visits.id} AND e.patientId = ${visits.patientId})`))
     .leftJoin(patients, eq(visits.patientId, patients.id))
-    .orderBy(desc(visits.visitDate))
+    .where(buildVisitListClauses(filters))
+    .orderBy(desc(visits.visitDate),desc(visits.id))
     .limit(500);
 
-  const ids = result.map((row:{examId:number|null})=>row.examId).filter((id:number|null):id is number=>id !== null);
-  const sections=await readVisitSections(db,result.map((row:{id:number})=>row.id));
-  const examRows = ids.length ? await db.select().from(examinations).where(inArray(examinations.id,ids)) : [];
-  const clinicalRows = await hydrateExaminationMeasurements(examRows);
-  return result.map((row:{id:number;examId:number|null})=>{
-    const clinical = clinicalRows.find(exam=>exam.id===row.examId);
-    return {...row,chiefComplaint:String(sections.get(row.id)?.complaint ?? ""),symptoms:String(sections.get(row.id)?.symptoms ?? ""),...Object.fromEntries((["ucvaOD","ucvaOS","bcvaOD","bcvaOS","sphereOD","sphereOS","cylinderOD","cylinderOS","axisOD","axisOS","iopOD","iopOS","glassesData","radiologyLabsNotes","airPuffOD","airPuffOS"] as const).map(key=>[key,clinical?.[key] ?? null]))};
+  // Same single reader as the followups list and the patient file: the canonical exam of
+  // each visit, hydrated from its own tables, plus the visit's section tables.
+  const visitIds = result.map((row:{id:number})=>row.id);
+  const sections=await readVisitSections(db,visitIds);
+  const examRows = visitIds.length ? await db.select().from(examinations).where(inArray(examinations.visitId,visitIds)).orderBy(desc(examinations.id)) : [];
+  const clinicalRows = await hydrateExaminationMeasurements(canonicalVisitRecords<typeof examinations.$inferSelect>(examRows));
+  return result.map((row:{id:number;patientId:number})=>{
+    const clinical = clinicalRows.find(exam=>exam.visitId===row.id && exam.patientId===row.patientId);
+    const section = sections.get(row.id);
+    return {...row,examId:clinical?.id ?? null,
+      chiefComplaint:String(section?.complaint ?? ""),symptoms:String(section?.symptoms ?? ""),
+      diagnosis:String(section?.diagnosis ?? ""),treatment:String(section?.treatment ?? ""),
+      recommendations:String(section?.decision ?? ""),history:String(section?.history ?? ""),
+      clinicNotes:String(clinical?.findings?.clinicNotes ?? ""),
+      ...Object.fromEntries((["ucvaOD","ucvaOS","bcvaOD","bcvaOS","sphereOD","sphereOS","cylinderOD","cylinderOS","axisOD","axisOS","iopOD","iopOS","glassesData","radiologyLabsNotes","airPuffOD","airPuffOS"] as const).map(key=>[key,clinical?.[key] ?? null]))};
   });
 }
 
@@ -3460,6 +3573,17 @@ export async function getFollowupItemsBySheet(followupSheetId: number) {
   return hydrateFollowupItems(rows);
 }
 
+/** The patient's glasses (s/c/axis) from the glasses table, via the hydrated exam's glassesData JSON. */
+function glassesOf(exam:{glassesData?:string|null}|undefined,eye:"od"|"os") {
+  try {
+    const parsed=exam?.glassesData ? JSON.parse(exam.glassesData) : null;
+    const side=parsed?.[eye] ?? {};
+    return {s:side.s ?? "",c:side.c ?? "",axis:side.axis ?? ""};
+  } catch {
+    return {s:"",c:"",axis:""};
+  }
+}
+
 async function hydrateFollowupItems<T extends {visitId:number|null;patientId:number}>(rows:T[]) {
   const connection=await getDb();if(!connection) throw new Error("Database not available");
   const ids=[...new Set(rows.flatMap(row=>row.visitId ? [row.visitId] : []))];
@@ -3475,8 +3599,8 @@ async function hydrateFollowupItems<T extends {visitId:number|null;patientId:num
     const matchingOperations=visit ? operations.filter(operation=>operation.visitId===row.visitId && operation.patientId===row.patientId) : [];
     const operation=matchingOperations.length===1 ? matchingOperations[0] : undefined;
     return {...row,followupDate:visit?.visitDate ?? null,vaOD:exam?.ucvaOD ?? null,vaOS:exam?.ucvaOS ?? null,iopOD:exam?.iopOD ?? null,iopOS:exam?.iopOS ?? null,
-      refracOD:JSON.stringify({s:exam?.sphereOD ?? "",c:exam?.cylinderOD ?? "",axis:exam?.axisOD ?? ""}),
-      refracOS:JSON.stringify({s:exam?.sphereOS ?? "",c:exam?.cylinderOS ?? "",axis:exam?.axisOS ?? ""}),
+      refracOD:JSON.stringify({s:exam?.sphereOD ?? "",c:exam?.cylinderOD ?? "",axis:exam?.axisOD ?? "",bcva:exam?.bcvaOD ?? "",glasses:glassesOf(exam,"od")}),
+      refracOS:JSON.stringify({s:exam?.sphereOS ?? "",c:exam?.cylinderOS ?? "",axis:exam?.axisOS ?? "",bcva:exam?.bcvaOS ?? "",glasses:glassesOf(exam,"os")}),
       flapOD:JSON.stringify({edges:exam?.findings?.flapEdgesOD ?? "",bed:exam?.findings?.flapBedOD ?? ""}),
       flapOS:JSON.stringify({edges:exam?.findings?.flapEdgesOS ?? "",bed:exam?.findings?.flapBedOS ?? ""}),
       treatment:String(section?.treatment ?? ""),notes:exam?.findings?.clinicNotes ?? "",operationType:operation?.surgeryType ?? null,operationDate:operation?.surgeryDate ?? null};
@@ -3497,41 +3621,72 @@ export async function deleteFollowupSheet(sheetId: number) {
   await db.delete(followupSheets).where(eq(followupSheets.id, sheetId));
 }
 
-export async function getAllFollowupItems(limit = 500) {
+export async function getAllFollowupItems(limit = 500, filters: VisitListFilters = {}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const cap = Math.min(Math.max(limit, 1), 1000);
 
-  const rows=await db
+  // The followup record is the followup VISIT (queue / dialog create it); the sheet item is
+  // optional detail. Starting from items dropped followups that had no sheet yet.
+  const followupVisits=await db
+    .select({
+      visitId: visits.id,
+      patientId: visits.patientId,
+      patientFullName: patients.fullName,
+      patientCode: patients.patientCode,
+    })
+    .from(visits)
+    .innerJoin(patients, eq(visits.patientId, patients.id))
+    .where(and(eq(visits.visitType,"followup"),buildVisitListClauses(filters)))
+    .orderBy(desc(visits.visitDate),desc(visits.id))
+    .limit(cap);
+
+  const visitIds=followupVisits.map((row:{visitId:number})=>row.visitId);
+  const items=visitIds.length ? await db
     .select({
       id: followupItems.id,
-      visitId:followupItems.visitId,
+      visitId: followupItems.visitId,
       followupSheetId: followupItems.followupSheetId,
       tableIndex: followupItems.tableIndex,
-      followupDate: visits.visitDate,
       followupName: followupItems.followupName,
-      vaOD: followupItems.vaOD,
-      vaOS: followupItems.vaOS,
-      iopOD: followupItems.iopOD,
-      iopOS: followupItems.iopOS,
-      treatment: followupItems.treatment,
-      notes: followupItems.notes,
+      sheetType: followupSheets.sheetType,
+    })
+    .from(followupItems)
+    .innerJoin(followupSheets, eq(followupItems.followupSheetId, followupSheets.id))
+    .where(inArray(followupItems.visitId,visitIds)) : [];
+
+  const rows=followupVisits.flatMap((visit:{visitId:number;patientId:number;patientFullName:string|null;patientCode:string|null})=>{
+    const own=items.filter((item:{visitId:number|null})=>item.visitId===visit.visitId);
+    const base={visitId:visit.visitId,patientId:visit.patientId,patientFullName:visit.patientFullName,patientCode:visit.patientCode};
+    if(!own.length) return [{...base,id:-visit.visitId,followupSheetId:null,tableIndex:0,followupName:null,sheetType:null}];
+    return own.map((item:{id:number;followupSheetId:number;tableIndex:number;followupName:string|null;sheetType:string|null})=>({...base,id:item.id,followupSheetId:item.followupSheetId,tableIndex:item.tableIndex,followupName:item.followupName,sheetType:item.sheetType}));
+  });
+  const hydrated=await hydrateFollowupItems(rows);
+
+  // Legacy sheet items that were never linked to a visit are listed by date only: all
+  // measurements have a single source (the visit's clinical tables), never followupItems columns.
+  const legacy=await db
+    .select({
+      id: followupItems.id,
+      visitId: followupItems.visitId,
+      followupSheetId: followupItems.followupSheetId,
+      tableIndex: followupItems.tableIndex,
+      followupDate: followupItems.followupDate,
+      followupName: followupItems.followupName,
       sheetType: followupSheets.sheetType,
       patientId: followupSheets.patientId,
       patientFullName: patients.fullName,
       patientCode: patients.patientCode,
     })
     .from(followupItems)
-    .innerJoin(
-      followupSheets,
-      eq(followupItems.followupSheetId, followupSheets.id),
-    )
+    .innerJoin(followupSheets, eq(followupItems.followupSheetId, followupSheets.id))
     .innerJoin(patients, eq(followupSheets.patientId, patients.id))
-    .innerJoin(visits,and(eq(visits.id,followupItems.visitId),eq(visits.patientId,followupSheets.patientId)))
-
-    .orderBy(desc(visits.visitDate))
+    .where(and(isNull(followupItems.visitId),isNotNull(followupItems.followupDate),buildVisitListClauses(filters,followupItems.followupDate)))
+    .orderBy(desc(followupItems.followupDate))
     .limit(cap);
-  return hydrateFollowupItems(rows);
+
+  const time=(row:{followupDate?:unknown})=>row.followupDate ? new Date(String(row.followupDate)).getTime() : 0;
+  return [...hydrated,...legacy].sort((a,b)=>time(b)-time(a)).slice(0,cap);
 }
 
 // ============ EXAMINATION OPERATIONS ============
@@ -3647,7 +3802,7 @@ export async function getRefractionsOverviewRows(input: {
   pageSize?: number;
   locationType?: "center" | "external";
   search?: string;
-  statusFilter?: "all" | "complete" | "partial";
+  statusFilter?: "all" | "complete" | "partial" | "empty";
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -3668,50 +3823,44 @@ export async function getRefractionsOverviewRows(input: {
     .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
-      ? eq(patients.locationType, normalizedLocationType as any)
+      ? patientLocationEquals(normalizedLocationType)
       : undefined;
-  const dataWhere = anyMeaningfulValueCondition(Object.values(clinical));
-  const rightHas = anyMeaningfulValueCondition([
-    clinical.ucvaOD,clinical.bcvaOD,clinical.sphereOD,clinical.cylinderOD,clinical.axisOD,clinical.iopOD,
-  ]);
-  const leftHas = anyMeaningfulValueCondition([
-    clinical.ucvaOS,clinical.bcvaOS,clinical.sphereOS,clinical.cylinderOS,clinical.axisOS,clinical.iopOS,
-  ]);
-  const completeWhere = and(rightHas as any, leftHas as any);
   const status = String(input.statusFilter ?? "all")
     .trim()
     .toLowerCase();
-  const statusWhere =
-    status === "complete"
-      ? completeWhere
-      : status === "partial"
-        ? not(completeWhere as any)
-        : undefined;
+  const conditions = recordStatusConditions(
+    { s: clinical.sphereOD, c: clinical.cylinderOD, a: clinical.axisOD, ucva: clinical.ucvaOD, bcva: clinical.bcvaOD, iop: clinical.iopOD },
+    { s: clinical.sphereOS, c: clinical.cylinderOS, a: clinical.axisOS, ucva: clinical.ucvaOS, bcva: clinical.bcvaOS, iop: clinical.iopOS },
+    examinationRecordCompletions.id,
+  );
+  const statusWhere = recordStatusWhere(status, conditions);
   const searchWhere = overviewSearchClause(String(input.search ?? ""), [
     patients.fullName,
     patients.patientCode,
     doctorsLookup.name,
   ]);
-  const whereExpr = combineWhereClauses(
+  const baseWhere = combineWhereClauses(
     sql`${examinations.id} = (SELECT MAX(e.id) FROM examinations e WHERE e.visitId = ${examinations.visitId} AND e.patientId = ${examinations.patientId})`,
     locationWhere,
-    dataWhere,
     searchWhere,
-    statusWhere,
   );
+  const whereExpr = combineWhereClauses(baseWhere, statusWhere);
 
   const totalRows = await db
     .select({
       total: sql<number>`cast(count(*) as signed)`.mapWith(Number),
+      complete: sql<number>`cast(coalesce(sum(case when ${conditions.complete} then 1 else 0 end), 0) as signed)`.mapWith(Number),
+      empty: sql<number>`cast(coalesce(sum(case when ${conditions.empty} then 1 else 0 end), 0) as signed)`.mapWith(Number),
     })
     .from(examinations)
     .leftJoin(visits, eq(examinations.visitId, visits.id))
     .innerJoin(patients, eq(examinations.patientId, patients.id))
     .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
+    .leftJoin(examinationRecordCompletions, eq(examinationRecordCompletions.examinationId, examinations.id))
     .leftJoin(autorefractometryData,autoJoin)
     .leftJoin(glassesRecords,and(eq(glassesRecords.examinationId,examinations.id),sql`${glassesRecords.id} = (SELECT MAX(g.id) FROM glassesRecords g WHERE g.examinationId = ${examinations.id})`))
     .leftJoin(airPuffMeasurements,eq(airPuffMeasurements.examinationId,examinations.id))
-    .where(whereExpr as any);
+    .where(baseWhere as any);
 
   const rows = await db
     .select({
@@ -3721,16 +3870,18 @@ export async function getRefractionsOverviewRows(input: {
       visitDate: visits.visitDate,
       patientName: patients.fullName,
       patientCode: patients.patientCode,
-      locationType: patients.locationType,
+      locationType: patientLocationExpr(),
       doctorName: doctorsLookup.name,
       ...clinical,
       glassesData: sql<string|null>`CASE WHEN ${glassesRecords.id} IS NOT NULL THEN JSON_OBJECT('od',JSON_OBJECT('s',${glassesRecords.sOD},'c',${glassesRecords.cOD},'axis',${glassesRecords.axisOD},'bcva',${glassesRecords.bcvaOD}),'os',JSON_OBJECT('s',${glassesRecords.sOS},'c',${glassesRecords.cOS},'axis',${glassesRecords.axisOS},'bcva',${glassesRecords.bcvaOS})) ELSE NULL END`,
       airPuffOD: clinical.iopOD,
       airPuffOS: clinical.iopOS,
+      markedComplete: sql<number>`(${examinationRecordCompletions.id} IS NOT NULL)`.mapWith(Boolean),
       createdAt: examinations.createdAt,
       updatedAt: examinations.updatedAt,
     })
     .from(examinations)
+    .leftJoin(examinationRecordCompletions, eq(examinationRecordCompletions.examinationId, examinations.id))
     .leftJoin(autorefractometryData,autoJoin)
     .leftJoin(glassesRecords,and(eq(glassesRecords.examinationId,examinations.id),sql`${glassesRecords.id} = (SELECT MAX(g.id) FROM glassesRecords g WHERE g.examinationId = ${examinations.id})`))
     .leftJoin(airPuffMeasurements,eq(airPuffMeasurements.examinationId,examinations.id))
@@ -3750,7 +3901,7 @@ export async function getRefractionsOverviewRows(input: {
       patientName: decodeMojibake(String(row.patientName ?? "")),
       doctorName: decodeMojibake(String(row.doctorName ?? "")),
     })),
-    total: Number(totalRows[0]?.total ?? 0),
+    ...overviewTotals(totalRows[0], status),
     page,
     pageSize,
   };
@@ -3800,7 +3951,7 @@ export async function getAutorefractometryOverviewRows(input: {
   pageSize?: number;
   locationType?: "center" | "external";
   search?: string;
-  statusFilter?: "all" | "complete" | "partial";
+  statusFilter?: "all" | "complete" | "partial" | "empty";
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -3814,76 +3965,49 @@ export async function getAutorefractometryOverviewRows(input: {
     .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
-      ? eq(patients.locationType, normalizedLocationType as any)
+      ? patientLocationEquals(normalizedLocationType)
       : undefined;
-  const dataWhere = anyMeaningfulValueCondition([
-    autorefractometryData.sphereOD,
-    autorefractometryData.cylinderOD,
-    autorefractometryData.axisOD,
-    autorefractometryData.ucvaOD,
-    glassesRecords.bcvaOD,
-    airPuffMeasurements.iopOD,
-    autorefractometryData.sphereOS,
-    autorefractometryData.cylinderOS,
-    autorefractometryData.axisOS,
-    autorefractometryData.ucvaOS,
-    glassesRecords.bcvaOS,
-    airPuffMeasurements.iopOS,
-  ]);
-  const rightHas = anyMeaningfulValueCondition([
-    autorefractometryData.sphereOD,
-    autorefractometryData.cylinderOD,
-    autorefractometryData.axisOD,
-    autorefractometryData.ucvaOD,
-    glassesRecords.bcvaOD,
-    airPuffMeasurements.iopOD,
-  ]);
-  const leftHas = anyMeaningfulValueCondition([
-    autorefractometryData.sphereOS,
-    autorefractometryData.cylinderOS,
-    autorefractometryData.axisOS,
-    autorefractometryData.ucvaOS,
-    glassesRecords.bcvaOS,
-    airPuffMeasurements.iopOS,
-  ]);
-  const completeWhere = and(rightHas as any, leftHas as any);
   const status = String(input.statusFilter ?? "all")
     .trim()
     .toLowerCase();
-  const statusWhere =
-    status === "complete"
-      ? completeWhere
-      : status === "partial"
-        ? not(completeWhere as any)
-        : undefined;
+  const conditions = recordStatusConditions(
+    { s: autorefractometryData.sphereOD, c: autorefractometryData.cylinderOD, a: autorefractometryData.axisOD, ucva: autorefractometryData.ucvaOD, bcva: glassesRecords.bcvaOD, iop: airPuffMeasurements.iopOD },
+    { s: autorefractometryData.sphereOS, c: autorefractometryData.cylinderOS, a: autorefractometryData.axisOS, ucva: autorefractometryData.ucvaOS, bcva: glassesRecords.bcvaOS, iop: airPuffMeasurements.iopOS },
+    examinationRecordCompletions.id,
+  );
+  const statusWhere = recordStatusWhere(status, conditions);
   const searchWhere = overviewSearchClause(String(input.search ?? ""), [
     patients.fullName,
     patients.patientCode,
     doctorsLookup.name,
   ]);
-  const whereExpr = combineWhereClauses(
+  // Only the latest saved autorefraction of the visit's latest exam: older saves are history.
+  const baseWhere = combineWhereClauses(
     sql`${examinations.id} = (SELECT MAX(e.id) FROM examinations e WHERE e.visitId = ${examinations.visitId} AND e.patientId = ${examinations.patientId})`,
+    sql`${autorefractometryData.id} = (SELECT MAX(a.id) FROM autorefractometryData a WHERE a.examinationId = ${autorefractometryData.examinationId})`,
     locationWhere,
-    dataWhere,
     searchWhere,
-    statusWhere,
   );
+  const whereExpr = combineWhereClauses(baseWhere, statusWhere);
 
   const totalRows = await db
     .select({
       total: sql<number>`cast(count(*) as signed)`.mapWith(Number),
+      complete: sql<number>`cast(coalesce(sum(case when ${conditions.complete} then 1 else 0 end), 0) as signed)`.mapWith(Number),
+      empty: sql<number>`cast(coalesce(sum(case when ${conditions.empty} then 1 else 0 end), 0) as signed)`.mapWith(Number),
     })
     .from(autorefractometryData)
     .leftJoin(
       examinations,
       eq(autorefractometryData.examinationId, examinations.id),
     )
+    .leftJoin(examinationRecordCompletions, eq(examinationRecordCompletions.examinationId, autorefractometryData.examinationId))
     .leftJoin(visits, eq(examinations.visitId, visits.id))
     .leftJoin(glassesRecords,and(eq(glassesRecords.examinationId,examinations.id),sql`${glassesRecords.id} = (SELECT MAX(g.id) FROM glassesRecords g WHERE g.examinationId = ${examinations.id})`))
     .leftJoin(airPuffMeasurements,eq(airPuffMeasurements.examinationId,examinations.id))
     .innerJoin(patients, eq(autorefractometryData.patientId, patients.id))
     .leftJoin(doctorsLookup, eq(patients.doctorCode, doctorsLookup.code))
-    .where(whereExpr as any);
+    .where(baseWhere as any);
 
   const rows = await db
     .select({
@@ -3893,7 +4017,7 @@ export async function getAutorefractometryOverviewRows(input: {
       visitDate: visits.visitDate,
       patientName: patients.fullName,
       patientCode: patients.patientCode,
-      locationType: patients.locationType,
+      locationType: patientLocationExpr(),
       doctorName: doctorsLookup.name,
       sphereOD: autorefractometryData.sphereOD,
       cylinderOD: autorefractometryData.cylinderOD,
@@ -3907,6 +4031,7 @@ export async function getAutorefractometryOverviewRows(input: {
       ucvaOS: autorefractometryData.ucvaOS,
       bcvaOS: glassesRecords.bcvaOS,
       iopOS: airPuffMeasurements.iopOS,
+      markedComplete: sql<number>`(${examinationRecordCompletions.id} IS NOT NULL)`.mapWith(Boolean),
       createdAt: autorefractometryData.createdAt,
       updatedAt: autorefractometryData.updatedAt,
     })
@@ -3915,6 +4040,7 @@ export async function getAutorefractometryOverviewRows(input: {
       examinations,
       eq(autorefractometryData.examinationId, examinations.id),
     )
+    .leftJoin(examinationRecordCompletions, eq(examinationRecordCompletions.examinationId, autorefractometryData.examinationId))
     .leftJoin(visits, eq(examinations.visitId, visits.id))
     .leftJoin(glassesRecords,and(eq(glassesRecords.examinationId,examinations.id),sql`${glassesRecords.id} = (SELECT MAX(g.id) FROM glassesRecords g WHERE g.examinationId = ${examinations.id})`))
     .leftJoin(airPuffMeasurements,eq(airPuffMeasurements.examinationId,examinations.id))
@@ -3935,10 +4061,69 @@ export async function getAutorefractometryOverviewRows(input: {
       patientName: decodeMojibake(String(row.patientName ?? "")),
       doctorName: decodeMojibake(String(row.doctorName ?? "")),
     })),
-    total: Number(totalRows[0]?.total ?? 0),
+    ...overviewTotals(totalRows[0], status),
     page,
     pageSize,
   };
+}
+
+/** Totals for the whole filtered set (not the current page): `total` follows the status filter, `stats` does not. */
+function overviewTotals(
+  counts: { total?: number; complete?: number; empty?: number } | undefined,
+  status: string,
+) {
+  const all = Number(counts?.total ?? 0);
+  const complete = Number(counts?.complete ?? 0);
+  const empty = Number(counts?.empty ?? 0);
+  const partial = Math.max(0, all - complete - empty);
+  const byStatus: Record<string, number> = { complete, partial, empty };
+  return {
+    total: byStatus[status] ?? all,
+    stats: { total: all, complete, partial, empty },
+  };
+}
+
+/**
+ * Lets a reviewer confirm (or undo) that an exam is complete although only one eye was
+ * recorded. The measurements are read from their own tables and judged with the same rule
+ * as the lists (shared/refractionCompleteness.ts), so only "one full eye" records qualify.
+ */
+export async function setExaminationRecordComplete(input: {
+  examinationId: number;
+  complete: boolean;
+  userId: number;
+}) {
+  const connection = await getDb();
+  if (!connection) throw new Error("Database not available");
+  const [exam] = await connection
+    .select()
+    .from(examinations)
+    .where(eq(examinations.id, input.examinationId))
+    .limit(1);
+  if (!exam) throw new TRPCError({ code: "NOT_FOUND", message: "الفحص غير موجود" });
+  if (!input.complete) {
+    await connection
+      .delete(examinationRecordCompletions)
+      .where(eq(examinationRecordCompletions.examinationId, input.examinationId));
+    return { examinationId: input.examinationId, complete: false };
+  }
+  const [clinical] = await hydrateExaminationMeasurements([exam]);
+  if (!hasFullEye(clinical as unknown as Record<string, unknown>)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "لا يمكن التحويل لكامل: لا توجد عين مسجلة بالكامل (قياس + UCVA + BCVA)",
+    });
+  }
+  await connection
+    .insert(examinationRecordCompletions)
+    .values({
+      patientId: exam.patientId,
+      visitId: exam.visitId,
+      examinationId: exam.id,
+      markedBy: input.userId,
+    })
+    .onDuplicateKeyUpdate({ set: { markedBy: input.userId } });
+  return { examinationId: input.examinationId, complete: true, patientId: exam.patientId };
 }
 
 export async function getGlassesRecordsByPatient(patientId: number) {
@@ -4353,7 +4538,7 @@ export async function getPentacamResultsForDashboard(
     normalizedLocationType === "center" ||
     normalizedLocationType === "external"
   ) {
-    clauses.push(eq(patients.locationType, normalizedLocationType as any));
+    clauses.push(patientLocationEquals(normalizedLocationType));
   }
 
   const whereExpr = clauses.length > 0 ? and(...clauses) : undefined;
@@ -4394,7 +4579,7 @@ export async function getPentacamDashboardDayStats(
     .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
-      ? eq(patients.locationType, normalizedLocationType as any)
+      ? patientLocationEquals(normalizedLocationType)
       : undefined;
 
   const rows = await db
@@ -5273,7 +5458,7 @@ export async function getPrescriptionsOverviewRows(input: {
     .toLowerCase();
   const locationWhere =
     normalizedLocationType === "center" || normalizedLocationType === "external"
-      ? eq(patients.locationType, normalizedLocationType as any)
+      ? patientLocationEquals(normalizedLocationType)
       : undefined;
   const searchWhere = overviewSearchClause(String(input.search ?? ""), [
     patients.fullName,
@@ -5311,7 +5496,7 @@ export async function getPrescriptionsOverviewRows(input: {
       doctorName: users.name,
       patientName: patients.fullName,
       patientCode: patients.patientCode,
-      locationType: patients.locationType,
+      locationType: patientLocationExpr(),
     })
     .from(prescriptions)
     .leftJoin(patients, eq(prescriptions.patientId, patients.id))
@@ -8382,19 +8567,18 @@ export async function insertVisitScheduleRequest(
 }
 
 export async function getVisitScheduleRequestsByDate(
-  dateIso: string,
+  dateIso: string | undefined,
   branch?: string,
+  pagination?: { limit: number; offset: number },
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const conditions = [
-    eq(visitScheduleRequests.visitDate, dateIso as any),
-    eq(visitScheduleRequests.status, "scheduled"),
-  ];
+  const conditions = [eq(visitScheduleRequests.status, "scheduled")];
+  if (dateIso) conditions.push(eq(visitScheduleRequests.visitDate, dateIso as any));
   if (branch) conditions.push(eq(visitScheduleRequests.branch, branch));
 
-  return await db
+  const query = db
     .select()
     .from(visitScheduleRequests)
     .where(and(...conditions))
@@ -8402,6 +8586,9 @@ export async function getVisitScheduleRequestsByDate(
       asc(visitScheduleRequests.createdAt),
       asc(visitScheduleRequests.id),
     );
+  return pagination
+    ? await query.limit(pagination.limit).offset(pagination.offset)
+    : await query;
 }
 
 export async function getVisitScheduleRequestById(id: number) {

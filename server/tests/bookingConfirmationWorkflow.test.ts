@@ -72,10 +72,31 @@ beforeEach(() => {
   });
 });
 describe("booking WhatsApp workflow", () => {
+  it.each([
+    { guestName: "Ahmed Mohamed", guestPhone: "01000000000" },
+    { guestName: "أحمد Mohamed", guestPhone: "01000000000" },
+    { guestName: "أحمد ١٢", guestPhone: "01000000000" },
+    { guestName: "أحمد محمد", guestPhone: "" },
+    { guestName: "أحمد محمد", guestPhone: "12345678" },
+  ])(
+    "rejects invalid guest contact details before storing or messaging: %j",
+    async (contact) => {
+      await expect(
+        caller().createGuestBooking({
+          ...contact,
+          bookingType: "specialist",
+          requestedDate: "2026-11-10",
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(mocks.insert).not.toHaveBeenCalled();
+      expect(mocks.receipt).not.toHaveBeenCalled();
+    },
+  );
+
   it("acknowledges a guest request while keeping it pending", async () => {
     await caller().createGuestBooking({
-      guestName: "Synthetic guest",
-      guestPhone: "01000000000",
+      guestName: "أحمد محمد",
+      guestPhone: "٠١٠٠٠٠٠٠٠٠٠",
       bookingType: "specialist",
       requestedDate: "2026-10-29",
     });
@@ -91,7 +112,7 @@ describe("booking WhatsApp workflow", () => {
     mocks.rateLimit.mockResolvedValue(6);
     await expect(
       caller().createGuestBooking({
-        guestName: "Synthetic guest",
+        guestName: "أحمد محمد",
         guestPhone: "01000000000",
         bookingType: "specialist",
         requestedDate: "2026-10-29",
@@ -103,7 +124,7 @@ describe("booking WhatsApp workflow", () => {
   it("sends the guest receipt only for the first request per phone", async () => {
     mocks.rateLimit.mockResolvedValueOnce(1).mockResolvedValueOnce(2);
     await caller().createGuestBooking({
-      guestName: "Synthetic guest",
+      guestName: "أحمد محمد",
       guestPhone: "01000000000",
       bookingType: "specialist",
       requestedDate: "2026-10-29",
@@ -178,7 +199,11 @@ describe("booking WhatsApp workflow", () => {
     });
   it("does not message again when only notes change on an unchanged status", async () => {
     stubBooking("confirmed");
-    await caller().updateBooking({ id: 1, status: "confirmed", staffNotes: "x" });
+    await caller().updateBooking({
+      id: 1,
+      status: "confirmed",
+      staffNotes: "x",
+    });
     expect(mocks.status).not.toHaveBeenCalled();
   });
   it("messages when the status actually changes", async () => {

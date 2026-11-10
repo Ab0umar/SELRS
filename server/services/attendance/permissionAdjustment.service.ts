@@ -68,7 +68,8 @@ export class PermissionAdjustmentService {
           .set({
             status: "leave",
             leaveType: (leave as any).type ?? null,
-            leaveNotAffectCommission: (leave as any).notAffectCommission ?? false,
+            leaveNotAffectCommission:
+              leave.type === "paid" || (leave.notAffectCommission ?? false),
             lateMinutes: 0,
             earlyLeaveMin: 0,
           })

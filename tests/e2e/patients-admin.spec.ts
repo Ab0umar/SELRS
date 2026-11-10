@@ -34,6 +34,9 @@ async function trpcMutation(request: any, path: string, input: unknown) {
 }
 
 async function loginAsAdmin(request: any) {
+  const session = await request.get(`${baseURL}/api/auth/me`);
+  if (session.ok() && (await session.json()).user?.username === username)
+    return;
   const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
     Boolean,
   );
@@ -121,8 +124,14 @@ test.describe("patients/admin critical flows", () => {
       request,
       "filter",
     );
-    const suffix = Date.now();
-    const doctorName = `E2E Doctor ${suffix}`;
+    const me = await (await request.get(`${baseURL}/api/auth/me`)).json();
+    const doctorName = me.user.name || me.user.username;
+    const report = await trpcMutation(request, "medical.createMedicalReport", {
+      patientId,
+      visitDate: new Date().toISOString().slice(0, 10),
+      diagnosis: "E2E filter fixture",
+    });
+    expect(report.status).toBe(200);
     const serviceCode = "1513";
 
     const stateSaved = await trpcMutation(
@@ -143,6 +152,7 @@ test.describe("patients/admin critical flows", () => {
 
     const byDoctor = await trpcQuery(request, "medical.getAllPatients", {
       doctorName,
+      searchTerm: patientCode,
       limit: 200,
     });
     expect(byDoctor.status).toBe(200);
@@ -151,8 +161,17 @@ test.describe("patients/admin critical flows", () => {
       doctorRows.some((row) => String(row.patientCode) === patientCode),
     ).toBe(true);
 
+    const wrongDoctor = await trpcQuery(request, "medical.getAllPatients", {
+      doctorName: `unrelated-${randomUUID()}`,
+      searchTerm: patientCode,
+      limit: 200,
+    });
+    expect(wrongDoctor.status).toBe(200);
+    expect(extractRows(wrongDoctor.json)).toEqual([]);
+
     const byServiceType = await trpcQuery(request, "medical.getAllPatients", {
       serviceType: "consultant",
+      searchTerm: patientCode,
       limit: 500,
     });
     expect(byServiceType.status).toBe(200);
@@ -162,7 +181,9 @@ test.describe("patients/admin critical flows", () => {
     ).toBe(true);
   });
 
-  test("sheet move and save persistence are kept", async ({ request }) => {
+  test("sheet move preserves workflow state without storing clinical overrides", async ({
+    request,
+  }) => {
     await loginAsAdmin(request);
 
     const { patientId } = await createE2EPatient(request, "sheet");
@@ -172,6 +193,7 @@ test.describe("patients/admin critical flows", () => {
       patientId,
       page: "examination",
       data: {
+        sheetSelection: "pentacam_center",
         serviceSheetTypeByCode: {
           [serviceCode]: "pentacam_center",
         },
@@ -187,10 +209,9 @@ test.describe("patients/admin critical flows", () => {
     });
     expect(loaded.status).toBe(200);
     const data = loaded.json?.result?.data?.json?.data ?? {};
-    expect(String(data?.serviceSheetTypeByCode?.[serviceCode] ?? "")).toBe(
-      "pentacam_center",
-    );
-    expect(Boolean(data?.syncLockManual)).toBe(true);
+    expect(data.sheetSelection).toBe("pentacam_center");
+    expect(data).not.toHaveProperty("serviceSheetTypeByCode");
+    expect(data).not.toHaveProperty("syncLockManual");
 
     const moved = await trpcMutation(
       request,
@@ -220,10 +241,9 @@ test.describe("patients/admin critical flows", () => {
     );
     expect(loadedAgain.status).toBe(200);
     const dataAgain = loadedAgain.json?.result?.data?.json?.data ?? {};
-    expect(String(dataAgain?.serviceSheetTypeByCode?.[serviceCode] ?? "")).toBe(
-      "pentacam_center",
-    );
-    expect(Boolean(dataAgain?.syncLockManual)).toBe(true);
+    expect(dataAgain.sheetSelection).toBe("pentacam_center");
+    expect(dataAgain).not.toHaveProperty("serviceSheetTypeByCode");
+    expect(dataAgain).not.toHaveProperty("syncLockManual");
   });
 
   test("no-overwrite guard remains ON after sync run", async ({ request }) => {

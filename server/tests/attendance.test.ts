@@ -107,6 +107,84 @@ describe.sequential("attendance leave and permission mutations", () => {
     expect(rows[0]?.approved).toBe(true);
   });
 
+  it("creates and edits paid leave without charging balance or attendance penalties", async () => {
+    const db = await seedTestEmployee();
+    const workDate = new Date("2026-03-10T12:00:00");
+    const shiftId = insertedId(
+      await db.insert(attendanceShifts).values({
+        name: "paid-leave-test",
+        branch: "center",
+        deviceId: "zk",
+        startTime: "10:00",
+        endTime: "19:00",
+        weekdayMask: 127,
+      }),
+    );
+    await db.insert(attendanceShiftAssignments).values({
+      empCd: TEST_EMP_CD,
+      shiftId,
+      effectiveFrom: workDate,
+      weekdayMask: 127,
+    });
+    const caller = appRouter.createCaller(makeCallerAs("admin"));
+    await caller.attendance.createLeave({
+      empCd: TEST_EMP_CD,
+      dateFrom: "2026-03-10",
+      dateTo: "2026-03-10",
+      type: "paid",
+      notAffectCommission: false,
+    });
+    const leaveId = await getLeaveId(db);
+    const [leave] = await db
+      .select()
+      .from(attendanceLeaves)
+      .where(eq(attendanceLeaves.id, leaveId));
+    expect(leave).toMatchObject({
+      type: "paid",
+      approved: true,
+      notAffectCommission: true,
+    });
+    expect(
+      await caller.attendance.leaveBalance({ empCd: TEST_EMP_CD, year: 2026 }),
+    ).toMatchObject({ usedDays: 0, remainingDays: 21 });
+    const [day] = await db
+      .select()
+      .from(attendanceDaily)
+      .where(eq(attendanceDaily.empCd, TEST_EMP_CD));
+    expect(day).toMatchObject({
+      status: "leave",
+      leaveType: "paid",
+      leaveNotAffectCommission: true,
+      lateMinutes: 0,
+      earlyLeaveMin: 0,
+    });
+    await caller.attendance.updateLeave({
+      leaveId,
+      dateFrom: "2026-03-10",
+      dateTo: "2026-03-10",
+      type: "annual",
+      notAffectCommission: false,
+    });
+    expect(
+      await caller.attendance.leaveBalance({ empCd: TEST_EMP_CD, year: 2026 }),
+    ).toMatchObject({ usedDays: 1 });
+    await caller.attendance.updateLeave({
+      leaveId,
+      dateFrom: "2026-03-10",
+      dateTo: "2026-03-10",
+      type: "paid",
+      notAffectCommission: false,
+    });
+    const [updated] = await db
+      .select()
+      .from(attendanceLeaves)
+      .where(eq(attendanceLeaves.id, leaveId));
+    expect(updated).toMatchObject({ type: "paid", notAffectCommission: true });
+    expect(
+      await caller.attendance.leaveBalance({ empCd: TEST_EMP_CD, year: 2026 }),
+    ).toMatchObject({ usedDays: 0, remainingDays: 21 });
+  });
+
   it("createLeave with overlapping dates returns validation error", async () => {
     const db = await seedTestEmployee();
     const caller = appRouter.createCaller(makeCallerAs("admin"));

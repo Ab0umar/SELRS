@@ -2,9 +2,69 @@ import { describe, expect, it } from "vitest";
 import {
   accountLeaveDays,
   countCommissionAffectingLeaveDays,
+  countsAsPayrollWorkDay,
 } from "../../server/services/attendance/leaveAccounting";
 
 describe("attendance leave balance and salary accounting", () => {
+  it("does not change payroll day rates by adding paid leave over rest days or holidays", () => {
+    const holidays = new Set(["2026-01-07"]);
+    const days = [
+      { workDate: "2026-01-05", status: "present", scheduled: true },
+      {
+        workDate: "2026-01-06",
+        status: "leave",
+        leaveType: "paid",
+        scheduled: true,
+      },
+      {
+        workDate: "2026-01-07",
+        status: "leave",
+        leaveType: "paid",
+        scheduled: true,
+      },
+      {
+        workDate: "2026-01-09",
+        status: "leave",
+        leaveType: "paid",
+        scheduled: false,
+      },
+    ];
+    expect(
+      days
+        .filter((day) => countsAsPayrollWorkDay(day, holidays))
+        .map((day) => day.workDate),
+    ).toEqual(["2026-01-05", "2026-01-06"]);
+  });
+
+  it("never consumes balance, salary, or commission for paid leave even with no balance", () => {
+    const usage = accountLeaveDays(
+      [
+        {
+          dateFrom: "2026-01-01",
+          dateTo: "2026-01-15",
+          type: "paid",
+          notAffectCommission: false,
+        },
+      ],
+      0,
+      2026,
+    );
+    expect(usage.balanceDays).toBe(0);
+    expect(usage.salaryDays).toBe(0);
+    expect(usage.salaryDateKeys.size).toBe(0);
+    expect(usage.salaryCommissionDateKeys.size).toBe(0);
+    expect(
+      countCommissionAffectingLeaveDays([
+        { status: "leave", leaveType: "paid", leaveNotAffectCommission: false },
+        {
+          status: "leave",
+          leaveType: "annual",
+          leaveNotAffectCommission: false,
+        },
+      ]),
+    ).toBe(1);
+  });
+
   it("deducts annual and sick days from balance and sends excess other leave to payroll", () => {
     const usage = accountLeaveDays(
       [

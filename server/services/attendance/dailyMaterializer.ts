@@ -414,7 +414,8 @@ export class DailyMaterializer {
             status: result.status,
             leaveType: approvedLeave?.type ?? null,
             leaveNotAffectCommission:
-              approvedLeave?.notAffectCommission ?? false,
+              approvedLeave?.type === "paid" ||
+              (approvedLeave?.notAffectCommission ?? false),
             insideNow: result.insideNow,
             computedAt: now,
           };

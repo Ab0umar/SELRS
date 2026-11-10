@@ -37,12 +37,18 @@ describe("public portal login rate limiting", () => {
     {
       portal: "doctor",
       login: (caller: ReturnType<typeof createCaller>) =>
-        caller.doctorPortal.login({ username: "Doctor.One", password: "wrong" }),
+        caller.doctorPortal.login({
+          username: "Doctor.One",
+          password: "wrong",
+        }),
     },
     {
       portal: "patient",
       login: (caller: ReturnType<typeof createCaller>) =>
-        caller.patientPortal.login({ phone: "+201012345678", patientCode: "P-1" }),
+        caller.patientPortal.login({
+          phone: "+201012345678",
+          dateOfBirth: "1990-03-15",
+        }),
     },
   ])(
     "rejects the sixth $portal login attempt before credential lookup",
@@ -60,12 +66,18 @@ describe("public portal login rate limiting", () => {
     {
       portal: "doctor",
       login: (caller: ReturnType<typeof createCaller>) =>
-        caller.doctorPortal.login({ username: "doctor.one", password: "wrong" }),
+        caller.doctorPortal.login({
+          username: "doctor.one",
+          password: "wrong",
+        }),
     },
     {
       portal: "patient",
       login: (caller: ReturnType<typeof createCaller>) =>
-        caller.patientPortal.login({ phone: "01012345678", patientCode: "P-1" }),
+        caller.patientPortal.login({
+          phone: "01012345678",
+          dateOfBirth: "1990-03-15",
+        }),
     },
   ])(
     "allows the fifth $portal attempt to reach credential lookup",

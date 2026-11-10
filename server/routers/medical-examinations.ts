@@ -345,7 +345,7 @@ export const medicalExaminationsRoutes = {
           page: z.number().min(1).optional(),
           pageSize: z.number().min(1).max(200).optional(),
           search: z.string().optional(),
-          statusFilter: z.enum(["all", "complete", "partial"]).optional(),
+          statusFilter: z.enum(["all", "complete", "partial", "empty"]).optional(),
           locationType: z.enum(["center", "external"]).optional(),
         })
         .optional(),
@@ -400,7 +400,14 @@ export const medicalExaminationsRoutes = {
   getVisitsByPatient: makePageProcedure("/patient-file")
     .input(
       z
-        .union([z.number(), z.object({ patientId: z.number() })])
+        .union([
+          z.number(),
+          z.object({
+            patientId: z.number(),
+            search: z.string().max(100).optional(),
+            date: z.iso.date().optional(),
+          }),
+        ])
         .nullable()
         .optional(),
     )
@@ -412,7 +419,11 @@ export const medicalExaminationsRoutes = {
         patientId = input.patientId;
       }
       if (patientId === 0) {
-        return await db.getAllVisits();
+        const filters = typeof input === "object" && input ? input : {};
+        return await db.getAllVisits({
+          search: (filters as any).search,
+          date: (filters as any).date,
+        });
       }
       if (!patientId) return [];
       return await db.getVisitsByPatient(patientId);
@@ -647,11 +658,20 @@ export const medicalExaminationsRoutes = {
   getAllFollowupItems: clinicalStaffProcedure
     .input(
       z
-        .object({ limit: z.number().int().min(1).max(1000).default(500) })
+        .object({
+          limit: z.number().int().min(1).max(1000).default(500),
+          search: z.string().max(100).optional(),
+          date: z.iso.date().optional(),
+          patientId: z.number().int().positive().optional(),
+        })
         .optional(),
     )
     .query(async ({ input }) => {
-      return await db.getAllFollowupItems(input?.limit ?? 500);
+      return await db.getAllFollowupItems(input?.limit ?? 500, {
+        search: input?.search,
+        date: input?.date,
+        patientId: input?.patientId,
+      });
     }),
 
   getAllExaminations: clinicalStaffProcedure
@@ -671,7 +691,7 @@ export const medicalExaminationsRoutes = {
           page: z.number().min(1).optional(),
           pageSize: z.number().min(1).max(200).optional(),
           search: z.string().optional(),
-          statusFilter: z.enum(["all", "complete", "partial"]).optional(),
+          statusFilter: z.enum(["all", "complete", "partial", "empty"]).optional(),
           locationType: z.enum(["center", "external"]).optional(),
         })
         .optional(),
@@ -684,6 +704,30 @@ export const medicalExaminationsRoutes = {
         statusFilter: input?.statusFilter,
         locationType: input?.locationType,
       });
+    }),
+
+  // A reviewer confirms that a one-eye Autoref/Refraction record is complete (or undoes it).
+  setExaminationRecordComplete: clinicalStaffProcedure
+    .input(
+      z.object({
+        examinationId: z.number().int().positive(),
+        complete: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const result = await db.setExaminationRecordComplete({
+        examinationId: input.examinationId,
+        complete: input.complete,
+        userId: ctx.user.id,
+      });
+      await db.logAuditEvent(
+        ctx.user.id,
+        input.complete ? "MARK_EXAM_RECORD_COMPLETE" : "UNMARK_EXAM_RECORD_COMPLETE",
+        "examination",
+        input.examinationId,
+        { message: input.complete ? "Marked one-eye record as complete" : "Removed complete confirmation" },
+      );
+      return { success: true, complete: result.complete };
     }),
 
   getSheetEntry: makePageProcedure("/patient-file")
@@ -1634,7 +1678,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, queueStatus: result.queueStatus };
     }),
 
-  addFollowupToQueue: receptionProcedure
+  addFollowupToQueue: makePageProcedure("action/followup-queue")
     .input(
       z.object({
         patientId: z.number().int().positive(),
@@ -1642,22 +1686,6 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const permissions = await db.getEffectiveUserPermissions(
-        ctx.user.id,
-        ctx.user.role,
-      );
-      if (
-        !["admin", "accountant", "reception"].includes(
-          String(ctx.user.role ?? "").toLowerCase(),
-        ) &&
-        !permissions.includes("action/followup-queue")
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "غير مصرح لك بإضافة متابعة للطابور",
-        });
-      }
-
       let visitDate: Date;
       if (input.visitDate) {
         // Use noon so UTC conversion never rolls the date backward by a day

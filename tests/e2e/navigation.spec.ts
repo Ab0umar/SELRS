@@ -1,18 +1,28 @@
 import { expect, test } from "@playwright/test";
 
+test.use({ storageState: { cookies: [], origins: [] } });
+
 const baseURL = process.env.BASE_URL || "http://127.0.0.1:4000";
-const username =
+const sharedUsername =
   process.env.SMOKE_USER ||
   process.env.ADMIN_USER ||
   process.env.E2E_USER ||
   "";
+const username = process.env.E2E_LOGOUT_USER || sharedUsername;
 const password =
+  process.env.E2E_LOGOUT_PASS ||
   process.env.SMOKE_PASS ||
   process.env.ADMIN_PASS ||
   process.env.E2E_PASS ||
   "";
 
 async function getAuthenticatedContext(request: any, browser: any) {
+  const session = await request.get(`${baseURL}/api/auth/me`);
+  if (session.ok() && (await session.json()).user?.username === username)
+    return browser.newContext({
+      baseURL,
+      storageState: await request.storageState(),
+    });
   const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
     Boolean,
   );
@@ -76,7 +86,16 @@ test.describe("navigation reliability", () => {
     "Set SMOKE_USER/SMOKE_PASS (or ADMIN_USER/ADMIN_PASS)",
   );
 
-  test("home and sign-out buttons work", async ({ request, browser }) => {
+  test("home and sign-out buttons work", async ({
+    request,
+    browser,
+    playwright,
+  }) => {
+    test.skip(
+      !process.env.E2E_LOGOUT_USER || !process.env.E2E_LOGOUT_PASS,
+      "Logout requires a dedicated E2E account because it revokes every session for that user",
+    );
+    expect(username).not.toBe(sharedUsername);
     const context = await getAuthenticatedContext(request, browser);
     const page = await context.newPage();
     await page.goto("/patients");
@@ -104,6 +123,17 @@ test.describe("navigation reliability", () => {
     }
     await page.getByRole("menuitem", { name: /خروج|Sign Out/ }).click();
     await expect(page).toHaveURL(/\/login|\/$/);
+    const sharedSession = await playwright.request.newContext({
+      baseURL,
+      storageState: process.env.SELRS_E2E_AUTH_STATE,
+    });
+    try {
+      const me = await sharedSession.get("/api/auth/me");
+      expect(me.status()).toBe(200);
+      expect((await me.json()).user.username).toBe(sharedUsername);
+    } finally {
+      await sharedSession.dispose();
+    }
     await context.close();
   });
 

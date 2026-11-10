@@ -218,6 +218,24 @@ export async function sendOperationListWhatsApp(
     patientName: request.patientName,
     templateName,
     requestKey: request.requestKey,
+    buildText: () =>
+      [
+        `مرحبًا ${request.patientName?.trim() || "بك"}،`,
+        request.status === "cancelled"
+          ? `تم إلغاء حجز ${operationTypeLabelAr(request.operationName?.trim() || "العملية")}.`
+          : `تم تأكيد حجز ${operationTypeLabelAr(request.operationName?.trim() || "العملية")}.`,
+        `التاريخ: ${operationDate(request)}`,
+        ...(request.status === "cancelled"
+          ? []
+          : [
+              `موعد الحضور: ${operationTime(request.operationTime)}`,
+              `الطبيب: ${cleanDoctorName(request.doctorName)}`,
+            ]),
+        `المكان: ${operationBranchName(request)}`,
+        ...(request.status === "cancelled"
+          ? []
+          : [`الموقع: ${operationMapLocation(request)}`]),
+      ].join("\n"),
     buildTemplate: () => ({
       name: templateName,
       language: { code: ENV.whatsappTemplateLanguage },

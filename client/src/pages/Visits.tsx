@@ -25,21 +25,36 @@ import {
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { toast } from "sonner";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { parseFlexibleDate, toRecordsSearchFilters } from "@/lib/recordsSearch";
+
+function localIsoDate(d: Date): string {
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const visitKindTabs = [
   { value: "all", label: "الكل" },
-  { value: "examination", label: "فحص" },
+  { value: "exam", label: "كشف" },
   { value: "followup", label: "متابعة" },
-  { value: "consultation", label: "استشارة" },
   { value: "surgery", label: "عملية" },
 ];
 
+// فحص واستشارة نفس الشيء: كل مريض يمر بكشف.
 const visitTypeLabels: Record<string, string> = {
-  examination: "فحص",
+  examination: "كشف",
+  consultation: "كشف",
   followup: "متابعة",
-  consultation: "استشارة",
   surgery: "عملية",
 };
+
+function matchesVisitKind(row: Record<string, unknown>, kind: string): boolean {
+  if (kind === "all") return true;
+  const vt = String(row.visitType ?? "");
+  if (kind === "exam") return vt === "examination" || vt === "consultation";
+  if (kind === "surgery") return Boolean(row.operationType) || vt === "surgery";
+  return vt === kind;
+}
 
 const visitTypeStyles: Record<string, string> = {
   examination: "bg-primary text-primary-foreground",
@@ -51,6 +66,18 @@ const visitTypeStyles: Record<string, string> = {
 function visitRowId(row: Record<string, unknown>, fallback: number): number {
   const id = row?.id;
   return typeof id === "number" && Number.isFinite(id) ? id : fallback;
+}
+
+function visitTextSections(visit: any): { label: string; value: string }[] {
+  return [
+    { label: "الشكوى", value: visit.chiefComplaint },
+    { label: "التشخيص", value: visit.diagnosis },
+    { label: "العلاج", value: visit.treatment },
+    { label: "التوصيات", value: visit.recommendations },
+    { label: "ملاحظات العيادة", value: visit.clinicNotes },
+  ]
+    .map((section) => ({ ...section, value: String(section.value ?? "").trim() }))
+    .filter((section) => section.value);
 }
 
 function isInCurrentCalendarWeek(d: Date): boolean {
@@ -96,9 +123,15 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
     refetchOnWindowFocus: false,
   });
 
+  const debouncedSearch = useDebouncedValue(search, 350);
+  const searchFilters = useMemo(
+    () => toRecordsSearchFilters(debouncedSearch),
+    [debouncedSearch],
+  );
+
   const allVisitsQuery = trpc.medical.getVisitsByPatient.useQuery(
-    { patientId: 0 },
-    { refetchOnWindowFocus: false },
+    { patientId: 0, ...searchFilters },
+    { refetchOnWindowFocus: false, placeholderData: (prev: any) => prev },
   );
 
   const patientVisitsQuery = trpc.medical.getVisitsByPatient.useQuery(
@@ -192,16 +225,16 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
 
   const filteredVisits = useMemo(() => {
     const needle = search.trim().toLowerCase();
+    const needleDate = parseFlexibleDate(search);
     return visits.filter((visit, idx) => {
       const row = visit as Record<string, unknown>;
-      const vt = String(row.visitType ?? "");
-      if (activeVisitKind !== "all" && vt !== activeVisitKind) return false;
-      if (hubVisitDateFilter?.trim()) {
-        const vd = row.visitDate ?? row.createdAt;
-        const key = vd ? new Date(String(vd)).toISOString().split("T")[0] : "";
-        if (key !== hubVisitDateFilter) return false;
-      }
-      if (!needle) return true;
+      if (!matchesVisitKind(row, activeVisitKind)) return false;
+      const vd = row.visitDate ?? row.createdAt;
+      const dateKey = vd ? localIsoDate(new Date(String(vd))) : "";
+      if (hubVisitDateFilter?.trim() && dateKey !== hubVisitDateFilter) return false;
+      if (needleDate) return dateKey === needleDate;
+      // The all-patients list is already searched on the server.
+      if (!needle || patientId <= 0) return true;
       const nameLine =
         patientId > 0 && patient?.fullName
           ? String(patient.fullName)
@@ -348,7 +381,7 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="بحث باسم المريض، التاريخ، الشكوى…"
+            placeholder="بحث باسم المريض، الكود، التاريخ (101126)…"
           />
         </div>
         <FilterBar
@@ -512,6 +545,17 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                                   )}
                                 >
                                   {visitTypeLabels[vType]}
+                                </Badge>
+                              ) : null}
+                              {(visit as any).operationType ? (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "border-0 text-[13px] font-semibold",
+                                    visitTypeStyles.surgery,
+                                  )}
+                                >
+                                  عملية: {(visit as any).operationType}
                                 </Badge>
                               ) : null}
                               {visit.patientId ? (
@@ -697,6 +741,16 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                           </div>
                         </div>
                       )}
+                      {visitTextSections(visit).map((section) => (
+                        <div key={section.label}>
+                          <h4 className="mb-2 font-semibold text-foreground">
+                            {section.label}
+                          </h4>
+                          <p className="whitespace-pre-wrap rounded-lg border border-border/60 bg-card p-3 text-sm leading-relaxed text-foreground">
+                            {section.value}
+                          </p>
+                        </div>
+                      ))}
                       {/* Autorefraction Data */}
                       {visit.autorefraction && (
                         <div>
@@ -1143,7 +1197,10 @@ export default function Visits(props: Partial<VisitsProps> & object = {}) {
                       )}
 
                       {/* Empty State */}
-                      {!visit.autorefraction && !visit.pentacam && (
+                      {!visit.autorefraction &&
+                        !visit.pentacam &&
+                        examinationRows.length === 0 &&
+                        visitTextSections(visit).length === 0 && (
                         <div className="text-center text-muted-foreground py-4">
                           لا توجد بيانات مسجلة لهذه الزيارة
                         </div>

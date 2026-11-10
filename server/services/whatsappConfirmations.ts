@@ -247,12 +247,17 @@ export async function sendWhatsAppConfirmation(input: {
   patientName: string | null | undefined;
   templateName: string;
   buildTemplate: () => Record<string, unknown>;
+  buildText?: () => string;
   requestKey?: string;
 }): Promise<void> {
   const id = randomUUID(),
     recipient = confirmationPhone(input.recipientPhone);
+  const buildText = ENV.whatsappDirectSendEnabled ? input.buildText : undefined;
+  const directSend = Boolean(buildText);
   const configured = Boolean(
-    ENV.whatsappAccessToken && ENV.whatsappPhoneNumberId && input.templateName,
+    ENV.whatsappAccessToken &&
+    ENV.whatsappPhoneNumberId &&
+    (directSend || input.templateName),
   );
   const skipped = !configured
     ? "configuration_missing"
@@ -272,7 +277,7 @@ export async function sendWhatsAppConfirmation(input: {
         ENV.whatsappPhoneNumberId || "",
         recipient,
         input.patientName?.trim().slice(0, 255) || null,
-        input.templateName || "",
+        directSend ? `direct_send:${input.kind}` : input.templateName || "",
         ENV.whatsappTemplateLanguage,
         skipped ? "skipped" : "sending",
         skipped,
@@ -287,7 +292,13 @@ export async function sendWhatsAppConfirmation(input: {
     confirmed = false,
     recorded = false;
   try {
-    const template = input.buildTemplate();
+    const messagePayload = buildText
+      ? {
+          type: "text",
+          category: "utility",
+          text: { body: z.string().trim().min(1).max(4096).parse(buildText()) },
+        }
+      : { type: "template", template: input.buildTemplate() };
     requested = true;
     const response = await fetch(
       `https://graph.facebook.com/${ENV.whatsappApiVersion}/${ENV.whatsappPhoneNumberId}/messages`,
@@ -299,9 +310,9 @@ export async function sendWhatsAppConfirmation(input: {
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
+          recipient_type: "individual",
           to: recipient,
-          type: "template",
-          template,
+          ...messagePayload,
         }),
         signal: AbortSignal.timeout(15000),
       },

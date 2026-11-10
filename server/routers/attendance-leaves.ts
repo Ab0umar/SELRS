@@ -139,7 +139,7 @@ export const attendanceLeavesRoutes = {
         empCd: z.string(),
         dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        type: z.enum(["annual", "sick", "salary", "unpaid", "other"]),
+        type: z.enum(["annual", "sick", "salary", "unpaid", "other", "paid"]),
         note: z.string().optional(),
         notAffectCommission: z.boolean().optional(),
       }),
@@ -280,6 +280,7 @@ export const attendanceLeavesRoutes = {
             salary: "من الراتب",
             unpaid: "غير مدفوعة",
             other: "أخرى",
+            paid: "مدفوعة",
           };
           const typeAr = typeArByValue[String(leave[0].type ?? "")] ?? "إجازة";
           pushAppNotification({
@@ -336,7 +337,7 @@ export const attendanceLeavesRoutes = {
         leaveId: z.number().int(),
         dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        type: z.enum(["annual", "sick", "salary", "unpaid", "other"]),
+        type: z.enum(["annual", "sick", "salary", "unpaid", "other", "paid"]),
         note: z.string().optional(),
         notAffectCommission: z.boolean().optional(),
       }),
@@ -396,7 +397,8 @@ export const attendanceLeavesRoutes = {
           dateTo: input.dateTo as any,
           type: input.type,
           note: input.note ?? null,
-          notAffectCommission: input.notAffectCommission ?? false,
+          notAffectCommission:
+            input.type === "paid" || (input.notAffectCommission ?? false),
         })
         .where(eq(attendanceLeaves.id, input.leaveId));
 
