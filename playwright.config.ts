@@ -2,7 +2,10 @@ import { defineConfig } from "@playwright/test";
 import "dotenv/config";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-const authState = join(tmpdir(), `selrs-e2e-auth-${process.pid}.json`);
+const authState = (process.env.SELRS_E2E_AUTH_STATE ??= join(
+  tmpdir(),
+  `selrs-e2e-auth-${process.pid}.json`,
+));
 
 // Keep the browser cache in the checked-out workspace so service-account and
 // interactive test runs use the same downloaded revision.
