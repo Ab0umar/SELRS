@@ -111,10 +111,14 @@ jobs:
         env:
           E2E_USER: e2e-ci-admin
           E2E_PASS: "E2e-Ci-Disposable-2026!"
-        run: pnpm e2e:seed
+        run: |
+          pnpm e2e:seed
+          E2E_USER=e2e-ci-logout pnpm e2e:seed
 
       - name: Run Playwright tests
         env:
+          E2E_LOGOUT_USER: e2e-ci-logout
+          E2E_LOGOUT_PASS: "E2e-Ci-Disposable-2026!"
           E2E_USER: e2e-ci-admin
           E2E_PASS: "E2e-Ci-Disposable-2026!"
         run: pnpm test:ui

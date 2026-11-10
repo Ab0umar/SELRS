@@ -3,12 +3,14 @@ import { expect, test } from "@playwright/test";
 test.use({ storageState: { cookies: [], origins: [] } });
 
 const baseURL = process.env.BASE_URL || "http://127.0.0.1:4000";
-const username =
+const sharedUsername =
   process.env.SMOKE_USER ||
   process.env.ADMIN_USER ||
   process.env.E2E_USER ||
   "";
+const username = process.env.E2E_LOGOUT_USER || sharedUsername;
 const password =
+  process.env.E2E_LOGOUT_PASS ||
   process.env.SMOKE_PASS ||
   process.env.ADMIN_PASS ||
   process.env.E2E_PASS ||
@@ -89,6 +91,11 @@ test.describe("navigation reliability", () => {
     browser,
     playwright,
   }) => {
+    test.skip(
+      !process.env.E2E_LOGOUT_USER || !process.env.E2E_LOGOUT_PASS,
+      "Logout requires a dedicated E2E account because it revokes every session for that user",
+    );
+    expect(username).not.toBe(sharedUsername);
     const context = await getAuthenticatedContext(request, browser);
     const page = await context.newPage();
     await page.goto("/patients");
@@ -123,7 +130,7 @@ test.describe("navigation reliability", () => {
     try {
       const me = await sharedSession.get("/api/auth/me");
       expect(me.status()).toBe(200);
-      expect((await me.json()).user.username).toBe(username);
+      expect((await me.json()).user.username).toBe(sharedUsername);
     } finally {
       await sharedSession.dispose();
     }
