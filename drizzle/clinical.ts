@@ -101,6 +101,20 @@ export const airPuffMeasurements = mysqlTable(
   (table) => [uniqueIndex("uq_airpuff_examination").on(table.examinationId)],
 );
 
+/** A reviewer confirmed that this exam is complete even though only one eye was recorded. */
+export const examinationRecordCompletions = mysqlTable(
+  "examinationRecordCompletions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    patientId: int("patientId").notNull(),
+    visitId: int("visitId").notNull(),
+    examinationId: int("examinationId").notNull(),
+    markedBy: int("markedBy"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("uq_exam_record_completion").on(table.examinationId)],
+);
+
 export const examinationFindings = mysqlTable(
   "examinationFindings",
   {

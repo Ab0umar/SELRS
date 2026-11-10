@@ -19,8 +19,16 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatDateLabel } from "@/lib/utils";
 import { PaginationBar } from "@/components/shared/PaginationBar";
 
+import {
+  ConfirmCompleteButton,
+  getRecordStatus,
+  RecordStatusBadge,
+  recordStatusTabs,
+  type RecordStatusFilter,
+} from "@/components/records/RecordStatus";
+
 type LocationType = "all" | "center" | "external";
-type AutoStatus = "all" | "complete" | "partial";
+type AutoStatus = RecordStatusFilter;
 
 const locationTabs = [
   { value: "all", label: "الكل" },
@@ -28,13 +36,10 @@ const locationTabs = [
   { value: "external", label: "الخارجي" },
 ];
 
-const statusTabs = [
-  { value: "all", label: "الكل" },
-  { value: "complete", label: "مكتمل" },
-  { value: "partial", label: "ناقص" },
-];
+const statusTabs = recordStatusTabs;
 
 type AutoRow = {
+  markedComplete?: boolean;
   id: number;
   examinationId: number;
   patientId: number;
@@ -76,39 +81,8 @@ function toDateLabel(value: string | Date | null | undefined) {
   return formatDateLabel(normalized.split("T")[0] || normalized);
 }
 
-function formatStatus(row: AutoRow): AutoStatus {
-  const hasRight = [
-    row.sphereOD,
-    row.cylinderOD,
-    row.axisOD,
-    row.ucvaOD,
-    row.bcvaOD,
-    row.iopOD,
-  ].some(hasValue);
-  const hasLeft = [
-    row.sphereOS,
-    row.cylinderOS,
-    row.axisOS,
-    row.ucvaOS,
-    row.bcvaOS,
-    row.iopOS,
-  ].some(hasValue);
-  return hasRight && hasLeft ? "complete" : "partial";
-}
-
-function statusBadge(status: AutoStatus) {
-  if (status === "complete") {
-    return (
-      <span className="rounded-full bg-success/15 px-2.5 py-1 text-[13px] font-semibold text-success">
-        مكتمل
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-warning/20 px-2.5 py-1 text-[13px] font-semibold text-warning-text/90">
-      ناقص
-    </span>
-  );
+function formatStatus(row: AutoRow) {
+  return getRecordStatus(row);
 }
 
 export default function AutorefsDashboard() {
@@ -149,22 +123,15 @@ export default function AutorefsDashboard() {
   const total = overviewQuery.data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
-  const stats = useMemo(() => {
-    let complete = 0;
-    let partial = 0;
-    for (const row of rows) {
-      if (formatStatus(row) === "complete") complete += 1;
-      else partial += 1;
-    }
-    return { total: rows.length, complete, partial };
-  }, [rows]);
+  // Counts cover every record that matches the location and search, not just this page.
+  const stats = overviewQuery.data?.stats ?? { total: 0, complete: 0, partial: 0, empty: 0 };
 
   const reviewList = useMemo(
     () =>
       rows
         .filter(
           (row) =>
-            formatStatus(row) === "partial" && !dismissedReviews.has(row.id),
+            formatStatus(row) !== "complete" && !dismissedReviews.has(row.id),
         )
         .slice(0, 5),
     [rows, dismissedReviews],
@@ -207,7 +174,7 @@ export default function AutorefsDashboard() {
       <div
         className={cn(
           STAT_CARDS_MOBILE_ROW,
-          "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-3 sm:gap-4",
+          "mb-4 gap-2 sm:mb-6 sm:grid sm:grid-cols-4 sm:gap-4",
         )}
       >
         <StatCard
@@ -217,18 +184,25 @@ export default function AutorefsDashboard() {
           description="السجلات المتاحة"
         />
         <StatCard
-          title="مكتمل"
+          title="كامل"
           value={stats.complete}
           icon={ScanSearch}
-          description="RT و LT موجودان"
+          description="العينين: قياس + UCVA + BCVA"
           iconColor="bg-primary/10 text-primary"
         />
         <StatCard
-          title="ناقص"
+          title="غير مكتمل"
           value={stats.partial}
           icon={AlertTriangle}
-          description="يحتاج مراجعة"
+          description="عين واحدة أو بيانات ناقصة"
           iconColor="bg-warning/20 text-warning-text/90"
+        />
+        <StatCard
+          title="ناقص"
+          value={stats.empty}
+          icon={AlertTriangle}
+          description="لا توجد بيانات"
+          iconColor="bg-destructive/10 text-destructive"
         />
       </div>
 
@@ -392,7 +366,18 @@ export default function AutorefsDashboard() {
                           </div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          {statusBadge(status)}
+                          <RecordStatusBadge
+                            status={status}
+                            confirmed={row.markedComplete}
+                          />
+                          <div>
+                            <ConfirmCompleteButton
+                              row={row}
+                              status={status}
+                              examinationId={row.examinationId}
+                              onChanged={() => void overviewQuery.refetch()}
+                            />
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-center align-top">
                           <Button
@@ -459,9 +444,7 @@ export default function AutorefsDashboard() {
                         </div>
                       </Button>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[13px] font-semibold text-warning-foreground">
-                          ناقص
-                        </span>
+                        <RecordStatusBadge status={formatStatus(row)} />
                         <Button variant="bare"
                           type="button"
                           aria-label="تجاهل التنبيه"

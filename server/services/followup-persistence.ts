@@ -88,9 +88,22 @@ export async function savePatientFollowups(
       };
       const auto: Record<string, Record<string, unknown>> = { od: {}, os: {} };
       const findings: Record<string, unknown> = {};
+      const glassesByEye: Record<string, Record<string, unknown>> = {};
+      const filled = (value: unknown) => {
+        const text = String(value ?? "").trim();
+        return text !== "" && text !== "---";
+      };
       for (const eye of ["OD", "OS"] as const) {
         const refraction = parse(submittedFields[`refrac${eye}`]);
         const fields = auto[eye.toLowerCase()];
+        // The followup dialog also sends corrected vision and the patient's glasses.
+        if (filled(refraction.bcva)) fields.bcva = refraction.bcva;
+        const glasses = parse(refraction.glasses);
+        const glassFields: Record<string, unknown> = {};
+        for (const key of ["s", "c", "axis"])
+          if (filled(glasses[key])) glassFields[key] = glasses[key];
+        if (Object.keys(glassFields).length)
+          glassesByEye[eye.toLowerCase()] = glassFields;
         for (const [source, target] of Object.entries({
           s: "s",
           c: "c",
@@ -115,6 +128,7 @@ export async function savePatientFollowups(
       }
       content.examData = {
         autorefraction: auto,
+        ...(Object.keys(glassesByEye).length ? { glasses: glassesByEye } : {}),
         ...((clinicalContent?.examData as Record<string, unknown>) ?? {}),
       };
       if (submittedFields.treatment !== undefined)

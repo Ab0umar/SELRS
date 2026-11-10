@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { toast } from "sonner";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { parseFlexibleDate, toRecordsSearchFilters } from "@/lib/recordsSearch";
+import { FollowupQuickDialog } from "@/components/dashboard/FollowupQuickDialog";
 
 type FollowupStatus = "upcoming" | "completed" | "overdue" | "invalid-date";
 
@@ -42,6 +45,50 @@ function deriveStatus(item: any): FollowupStatus {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d < today ? "overdue" : "upcoming";
+}
+
+type RefractionSide = {
+  s?: string;
+  c?: string;
+  axis?: string;
+  bcva?: string;
+  glasses?: { s?: string; c?: string; axis?: string };
+};
+
+function parseRefraction(raw: unknown): RefractionSide {
+  if (!raw) return {};
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parsed && typeof parsed === "object" ? (parsed as RefractionSide) : {};
+  } catch {
+    return {};
+  }
+}
+
+const shown = (value: unknown) => {
+  const text = String(value ?? "").trim();
+  return text === "" || text === "---" ? "" : text;
+};
+
+function refractionRows(item: any) {
+  const od = parseRefraction(item.refracOD);
+  const os = parseRefraction(item.refracOS);
+  const rows = [
+    { label: "Sphere", od: shown(od.s), os: shown(os.s) },
+    { label: "Cylinder", od: shown(od.c), os: shown(os.c) },
+    { label: "Axis", od: shown(od.axis), os: shown(os.axis) },
+    { label: "BCVA", od: shown(od.bcva), os: shown(os.bcva) },
+    { label: "نظارة S", od: shown(od.glasses?.s), os: shown(os.glasses?.s) },
+    { label: "نظارة C", od: shown(od.glasses?.c), os: shown(os.glasses?.c) },
+    { label: "نظارة Axis", od: shown(od.glasses?.axis), os: shown(os.glasses?.axis) },
+  ];
+  return rows
+    .filter((row) => row.od || row.os)
+    .map((row) => ({ ...row, od: row.od || "-", os: row.os || "-" }));
+}
+
+function hasRefraction(item: any): boolean {
+  return refractionRows(item).length > 0;
 }
 
 function isInCurrentCalendarWeek(d: Date): boolean {
@@ -104,48 +151,37 @@ export default function Followups(
   });
 
   // All items (no patient filter)
-  const allItemsQuery = trpc.medical.getAllFollowupItems.useQuery(undefined, {
-    enabled: patientId <= 0,
-    refetchOnWindowFocus: false,
-  });
+  const debouncedSearch = useDebouncedValue(search, 350);
+  const searchFilters = useMemo(
+    () => toRecordsSearchFilters(debouncedSearch),
+    [debouncedSearch],
+  );
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
-  // Per-patient sheets (with items nested)
-  const patientSheetsQuery = trpc.medical.getFollowupSheets.useQuery(
-    { patientId: patientId ?? 0 },
-    { enabled: patientId > 0, refetchOnWindowFocus: false },
+  // One query for both views: all patients, or a single patient when one is picked.
+  const allItemsQuery = trpc.medical.getAllFollowupItems.useQuery(
+    {
+      limit: 1000,
+      ...(patientId > 0 ? { patientId } : searchFilters),
+    },
+    {
+      refetchOnWindowFocus: false,
+      placeholderData: (prev) => prev,
+    },
   );
 
   const patient = patientQuery.data as any;
 
-  // Flatten patient sheets → items
-  const patientItems = useMemo(() => {
-    if (patientId <= 0) return [];
-    const sheets = (patientSheetsQuery.data ?? []) as any[];
-    return sheets.flatMap((sheet: any) =>
-      (sheet.items ?? [])
-        .filter((item: any) => item.followupDate)
-        .map((item: any) => ({
-          ...item,
-          sheetType: sheet.sheetType,
-          patientId: sheet.patientId,
-          patientFullName: patient?.fullName ?? "",
-          patientCode: patient?.patientCode ?? "",
-        })),
-    );
-  }, [patientSheetsQuery.data, patientId, patient]);
-
-  const allItems =
-    patientId > 0 ? patientItems : ((allItemsQuery.data ?? []) as any[]);
-  const isLoading =
-    patientId > 0 ? patientSheetsQuery.isLoading : allItemsQuery.isLoading;
-  const followupsQuery = patientId > 0 ? patientSheetsQuery : allItemsQuery;
+  const allItems = (allItemsQuery.data ?? []) as any[];
+  const isLoading = allItemsQuery.isLoading;
+  const followupsQuery = allItemsQuery;
 
   const saveFollowupVisitDate = async (visitId: number) => {
     if (!editVisitDate) return;
     try {
       await updateVisitDateMutation.mutateAsync({ visitId, visitDate: editVisitDate });
       setEditingVisitId(null);
-      await Promise.all([patientSheetsQuery.refetch(), allItemsQuery.refetch()]);
+      await allItemsQuery.refetch();
       toast.success("تم تعديل تاريخ المتابعة");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر تعديل التاريخ");
@@ -157,7 +193,7 @@ export default function Followups(
     try {
       await deleteVisitMutation.mutateAsync({ visitId });
       setExpandedId(null);
-      await Promise.all([patientSheetsQuery.refetch(), allItemsQuery.refetch()]);
+      await allItemsQuery.refetch();
       toast.success("تم حذف الزيارة وبياناتها");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حذف الزيارة");
@@ -186,16 +222,19 @@ export default function Followups(
 
   const filteredItems = useMemo(() => {
     const needle = search.trim().toLowerCase();
+    const needleDate = parseFlexibleDate(search);
     return allItems.filter((item) => {
       const st = deriveStatus(item);
       if (activeStatus !== "all" && st !== activeStatus) return false;
-      if (hubVisitDateFilter?.trim()) {
-        const key = item.followupDate
-          ? new Date(String(item.followupDate)).toISOString().split("T")[0]
+      const fd = item.followupDate ? new Date(String(item.followupDate)) : null;
+      const key =
+        fd && !Number.isNaN(fd.getTime())
+          ? `${fd.getFullYear()}-${String(fd.getMonth() + 1).padStart(2, "0")}-${String(fd.getDate()).padStart(2, "0")}`
           : "";
-        if (key !== hubVisitDateFilter) return false;
-      }
-      if (!needle) return true;
+      if (hubVisitDateFilter?.trim() && key !== hubVisitDateFilter) return false;
+      if (needleDate) return key === needleDate;
+      // The all-patients list is already searched on the server.
+      if (!needle || patientId <= 0) return true;
       const hay = [
         item.patientFullName,
         item.patientCode,
@@ -211,7 +250,7 @@ export default function Followups(
         .toLowerCase();
       return hay.includes(needle);
     });
-  }, [allItems, search, activeStatus, hubVisitDateFilter]);
+  }, [allItems, search, activeStatus, hubVisitDateFilter, patientId]);
 
   if (!isAuthenticated) return null;
 
@@ -467,11 +506,18 @@ export default function Followups(
             <Button variant="bare"
               type="button"
               className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-all hover:opacity-90 active:scale-95"
-              onClick={() => setLocation("/followup/0")}
+              onClick={() => setQuickAddOpen(true)}
             >
               <Plus className="h-4 w-4" />
               متابعة جديدة
             </Button>
+            <FollowupQuickDialog
+              open={quickAddOpen}
+              onOpenChange={(next) => {
+                setQuickAddOpen(next);
+                if (!next) void allItemsQuery.refetch();
+              }}
+            />
             <div className="mx-1 h-5 w-px bg-border" />
             {filterOptions.map((f) => (
               <Button variant="bare"
@@ -493,7 +539,7 @@ export default function Followups(
               <Input bare
                 id="followups-search"
                 className="w-full rounded-lg border border-border/60 py-2 pe-4 ps-4 text-sm outline-none focus:ring-2 focus:ring-primary"
-                placeholder="بحث باسم المريض أو الكود أو الملاحظات…"
+                placeholder="بحث باسم المريض أو الكود أو التاريخ (101126)…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -677,8 +723,35 @@ export default function Followups(
                       </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {(item.vaOD || item.vaOS || item.iopOD || item.iopOS) && (
+                      {(item.vaOD || item.vaOS || item.iopOD || item.iopOS || hasRefraction(item)) && (
                         <div className="space-y-4">
+                          {hasRefraction(item) && (
+                            <div>
+                              <h5 className="font-bold text-primary mb-2 text-sm uppercase">
+                                الانكسار والنظارة
+                              </h5>
+                              <div role="region" aria-label="جدول الانكسار" tabIndex={0} className="overflow-x-auto rounded-lg border border-border/60 bg-card">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b border-border/60 text-muted-foreground">
+                                      <th className="px-2 py-2 text-start font-bold">القياس</th>
+                                      <th className="px-2 py-2 text-center font-bold">OD</th>
+                                      <th className="px-2 py-2 text-center font-bold">OS</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {refractionRows(item).map((row) => (
+                                      <tr key={row.label} className="border-b border-border/60 last:border-0">
+                                        <td className="px-2 py-2 text-start">{row.label}</td>
+                                        <td className="px-2 py-2 text-center" dir="ltr">{row.od}</td>
+                                        <td className="px-2 py-2 text-center" dir="ltr">{row.os}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
                           {(item.vaOD || item.vaOS) && (
                             <div>
                               <h5 className="font-bold text-primary mb-2 text-sm uppercase flex items-center gap-2">
@@ -770,6 +843,8 @@ export default function Followups(
                         {!item.vaOD &&
                           !item.vaOS &&
                           !item.iopOD &&
+                          !item.iopOS &&
+                          !hasRefraction(item) &&
                           !item.treatment &&
                           !item.notes && (
                             <div className="py-6 text-center text-muted-foreground text-sm">
