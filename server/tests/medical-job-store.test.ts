@@ -31,6 +31,7 @@ const input = {
   transcript: "صداع من أسبوعين",
 };
 const stored = (extra: Record<string, unknown>) => ({
+  owner_id: 7,
   provider: "gemini",
   engine: "current",
   model: "gemini-test",
@@ -46,8 +47,14 @@ beforeEach(() => {
   mocks.execute.mockReset();
   mocks.execute.mockImplementation(async (sql: string, params: unknown[]) => {
     if (!sql.startsWith("SELECT")) return [[], []];
-    const owner = params[1];
-    return [owner === 7 ? mocks.rows : [], []];
+    // Mirrors "owner_id=? OR visit_id IS NOT NULL" in recoverJob.
+    const requester = params[1];
+    return [
+      mocks.rows.filter(
+        (row) => row.owner_id === requester || row.visit_id != null,
+      ),
+      [],
+    ];
   });
 });
 
@@ -74,11 +81,21 @@ describe("medical AI job store", () => {
     });
   });
 
-  it("does not let another user read the stored job", async () => {
+  it("does not let another user read a job recorded before the visit was saved", async () => {
     const jobId = randomUUID();
     mocks.rows = [stored({ state: "failed", failure_message: "x" })];
     await expect(readMedicalProposals(8, jobId)).rejects.toMatchObject({
       code: "NOT_FOUND",
+    });
+  });
+
+  it("lets the doctor read the review a nurse recorded for a saved visit", async () => {
+    const jobId = randomUUID();
+    mocks.rows = [
+      stored({ state: "failed", failure_message: "x", visit_id: 11, patient_id: 5 }),
+    ];
+    await expect(readMedicalProposals(8, jobId)).resolves.toMatchObject({
+      status: "failed",
     });
   });
 
@@ -129,29 +146,32 @@ describe("latest medical AI job lookup", () => {
     input_json: JSON.stringify(visit),
     ...extra,
   });
-  // Rows per [owner, visit]; "null" is a job started before the visit was saved.
+  // Rows per "any:<visit>" (shared) or "<owner>:null" (started before the visit was saved).
   let table: Record<string, Array<Record<string, unknown>>>;
   beforeEach(() => {
     table = {};
     mocks.execute.mockImplementation(async (sql: string, params: unknown[]) => {
-      const [owner, , , extra] = params;
-      const visitKey = sql.includes("visit_id=?") ? String(extra) : "null";
-      return [table[`${owner}:${visitKey}`] ?? [], []];
+      // A saved visit's jobs are shared; the unsaved fallback is per owner.
+      const shared = !sql.includes("owner_id");
+      const key = shared ? `any:${params[1]}` : `${params[0]}:null`;
+      return [table[key] ?? [], []];
     });
   });
 
-  it("returns the newest full-visit job for the patient and visit, scoped to its owner", async () => {
+  it("returns the newest full-visit job for the patient and visit to any assistant user", async () => {
     const newest = row({ state: "running" });
-    table["7:11"] = [newest, row({})];
+    table["any:11"] = [newest, row({})];
     await expect(latestMedicalJob(7, 5, 11)).resolves.toEqual({
       jobId: newest.job_id,
       recording: visit,
       state: "running",
     });
     const [sql, params] = mocks.execute.mock.calls[0];
-    expect(sql).toMatch(/owner_id=\? AND patient_id=\? AND expires_ms>\? AND visit_id=\? ORDER BY created_ms DESC/);
-    expect(params).toEqual([7, 5, expect.any(Number), 11]);
-    await expect(latestMedicalJob(8, 5, 11)).resolves.toBeNull();
+    expect(sql).toMatch(/patient_id=\? AND visit_id=\? AND expires_ms>\? ORDER BY created_ms DESC/);
+    expect(sql).not.toContain("owner_id");
+    expect(params).toEqual([5, 11, expect.any(Number)]);
+    // The doctor opening the nurse's visit gets the same review.
+    await expect(latestMedicalJob(8, 5, 11)).resolves.toMatchObject({ jobId: newest.job_id });
   });
 
   it("falls back to a job from the last hour started before the visit had an id", async () => {
@@ -168,7 +188,7 @@ describe("latest medical AI job lookup", () => {
 
   it("restores the unsaved full-visit review when the saved visit only has field dictations", async () => {
     const unsaved = row({});
-    table["7:11"] = [row({ input_json: JSON.stringify(input) })];
+    table["any:11"] = [row({ input_json: JSON.stringify(input) })];
     table["7:null"] = [unsaved];
     await expect(latestMedicalJob(7, 5, 11)).resolves.toMatchObject({
       jobId: unsaved.job_id,
@@ -186,7 +206,7 @@ describe("latest medical AI job lookup", () => {
   });
 
   it("skips field dictations and recovers nothing from a failed job", async () => {
-    table["7:11"] = [
+    table["any:11"] = [
       row({ input_json: JSON.stringify(input) }),
       row({ state: "failed" }),
       row({}),
