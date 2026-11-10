@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { diseases, patients } from "../../drizzle/schema";
+import { afterRefractionData, autorefractometryData, examinations } from "../../drizzle/schema";
 import {
   visitComplaints,
   visitDecisions,
@@ -200,5 +201,60 @@ describe.sequential("مسار اليوم: every tab saves into the visit tables"
     expect(await column(visitSymptoms, visitId, "symptoms")).toEqual(["احمرار"]);
     expect(await column(visitMedicalHistory, visitId, "history")).toEqual(["سكر"]);
     expect(await column(visitDiagnoses, visitId, "diagnosis")).toEqual([]);
+  });
+
+  it("التمريض (القياسات): الحفظ الأول وتعديل الزيارة يصلان لجداول القياسات", async () => {
+    const conn = await getTestDb();
+    await conn.insert(patients).values({ patientCode: "DAY-004", fullName: "Day Measures" });
+    const [patient] = await conn.select().from(patients).where(eq(patients.patientCode, "DAY-004")).limit(1);
+    const patientId = Number(patient.id);
+    const nurse = appRouter.createCaller(makeCallerAs("nurse")).medical;
+    const opened: any = await nurse.saveMedicalVisit({
+      patientId,
+      visitDate: "2026-11-10",
+      autoref: { od: { s: "-1.00", c: "-0.50", axis: "90", ucva: "6/12" }, os: { s: "-2.00", c: "", axis: "", ucva: "6/18" } },
+      iop: { od: "14", os: "15" },
+      after: { od: { s: "-0.25", c: "", axis: "" }, os: { s: "", c: "", axis: "" } },
+    });
+    const visitId = Number(opened.visitId);
+    const [exam] = await conn.select().from(examinations).where(eq(examinations.visitId, visitId));
+    const read = async () => ({
+      auto: (await nurse.getAutorefractometryByPatient({ patientId })).find((row: any) => row.examinationId === exam.id),
+      after: (await nurse.getAfterRefractionByPatient({ patientId })).find((row: any) => row.examinationId === exam.id),
+    });
+    let saved: any = await read();
+    expect([saved.auto.sphereOD, saved.auto.cylinderOD, saved.auto.axisOD, saved.auto.ucvaOD, saved.auto.iopOD]).toEqual(["-1.00", "-0.50", "90", "6/12", "14"]);
+    expect([saved.auto.sphereOS, saved.auto.ucvaOS, saved.auto.iopOS]).toEqual(["-2.00", "6/18", "15"]);
+    expect(saved.after.sphereOD).toBe("-0.25");
+
+    // Editing the same visit, exactly as the tab saves it the second time.
+    await nurse.updateExamination({
+      examinationId: exam.id,
+      updates: { sphereOD: "-3.00", cylinderOD: null, axisOD: null, ucvaOD: "6/9", iopOD: "17", sphereOS: "-2.00", iopOS: "15" },
+    });
+    await nurse.saveAfterRefractionData({ examinationId: exam.id, patientId, od: { s: "-0.75", c: "", axis: "" }, os: { s: "", c: "", axis: "" } });
+    saved = await read();
+    expect([saved.auto.sphereOD, saved.auto.cylinderOD, saved.auto.ucvaOD, saved.auto.iopOD]).toEqual(["-3.00", null, "6/9", "17"]);
+    expect(saved.after.sphereOD).toBe("-0.75");
+    // One row per examination: an edit updates it instead of leaving a stale copy.
+    expect((await conn.select().from(autorefractometryData).where(eq(autorefractometryData.examinationId, exam.id))).length).toBe(1);
+    expect((await conn.select().from(afterRefractionData).where(eq(afterRefractionData.examinationId, exam.id))).length).toBe(1);
+
+    // The final sheet saves the same measurements again; the tables take the new values.
+    await nurse.saveExaminationForm({
+      patientId, visitId, visitDate: "2026-11-10", visitType: "examination",
+      data: {
+        autorefraction: {
+          od: { s: "-4.00", c: "-1.00", axis: "10", ucva: "6/6", bcva: "6/6", iop: "18", afterS: "-0.50", afterC: "", afterA: "" },
+          os: { s: "-2.00", c: "", axis: "", ucva: "6/18", bcva: "6/9", iop: "15", afterS: "", afterC: "", afterA: "" },
+        },
+        glasses: { od: { s: "-3.50", c: "", axis: "", bcva: "6/6" }, os: { s: "-2.00", c: "", axis: "", bcva: "6/9" } },
+      },
+    });
+    saved = await read();
+    expect([saved.auto.sphereOD, saved.auto.cylinderOD, saved.auto.axisOD, saved.auto.bcvaOD, saved.auto.iopOD]).toEqual(["-4.00", "-1.00", "10", "6/6", "18"]);
+    expect(saved.after.sphereOD).toBe("-0.50");
+    const glasses: any[] = await nurse.getGlassesRecordsByPatient({ patientId });
+    expect(glasses.find((row) => row.examinationId === exam.id)?.sOD).toBe("-3.50");
   });
 });
