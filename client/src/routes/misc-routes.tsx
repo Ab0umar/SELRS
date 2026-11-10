@@ -3,6 +3,7 @@ import { Redirect, Route } from "wouter";
 import ProtectedRoute from "../components/ProtectedRoute";
 import DoctorPortalRoute from "../components/DoctorPortalRoute";
 import PatientPortalRoute from "../components/PatientPortalRoute";
+import { RootRouteGate } from "./guards";
 import { ROUTES } from "../../../shared/routes";
 
 const DoctorLogin = lazy(() => import("../features/doctor-portal/DoctorLogin"));
@@ -185,7 +186,7 @@ export const MiscRoutes = (
         </ProtectedRoute>
       )}
     />
-    <Route path={ROUTES.root} component={() => <Redirect to={ROUTES.mainHome} />} />
+    <Route path={ROUTES.root} component={RootRouteGate} />
     <Route
       path={ROUTES.mainHome}
       component={() => (

@@ -1,4 +1,5 @@
-import { lazy, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Redirect, useLocation, useRoute } from "wouter";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
@@ -6,6 +7,25 @@ import { trpc } from "@/lib/trpc";
 import { ROUTES } from "../../../shared/routes";
 
 const Dashboard = lazy(() => import("../pages/Dashboard"));
+const LandingPage = lazy(() => import("../features/public-site/LandingPage"));
+
+function isAppShell() {
+  if (Capacitor.isNativePlatform()) return true;
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  return ua.includes("SELRSDesktop/1") || ua.includes("SELRS/1");
+}
+
+/** `/`: visitors get the public landing page; signed-in staff and the app shells keep going to `/home`. */
+export function RootRouteGate() {
+  const { isAuthenticated, loading } = useAuth();
+  if (isAppShell() || isAuthenticated) return <Redirect to={ROUTES.mainHome} />;
+  if (loading) return null;
+  return (
+    <Suspense fallback={null}>
+      <LandingPage />
+    </Suspense>
+  );
+}
 
 export function LegacySurgerySheetRedirect() {
   const [, setLocation] = useLocation();
