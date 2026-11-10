@@ -1,8 +1,8 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits.
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits, medical assistant review restore and treatment-medicine repair.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness, medical assistant review restore and treatment-medicine repair.
 
 ---
 
@@ -519,6 +519,20 @@ server/services/accounting/
 - Can trigger Pentacam device integration for corneal measurements
 - State persisted in JSON fields (exam page state)
 - Autoref and refraction dashboards classify each visit's latest exam as كامل / غير مكتمل / ناقص. A reviewer can confirm a one-eye record (`examinationRecordCompletions`, migration `0112`). Their center/external filter uses `patientLocationExpr` (service code and doctor first). That is separate from `attachTreatingDoctor`, where a non-blank `patients.locationType` column wins.
+
+## Medical assistant review
+
+Roles, retention, and consent: `docs/medical-voice-assistant.md` section 9. The review path has three constraints that are easy to get wrong.
+
+**Restore the review for the visit that was just saved.** `medicalAssistant.latestJob` calls `latestMedicalJob` in `server/services/ai/medical.ts`. It returns the newest unexpired job the caller started for that patient whose stored transcript has `kind: "conversation"` and whose state is `running` or `complete`. Field dictations (`kind: "field"`) and rows whose `input_json` does not parse are skipped. If that visit id has no full-visit job, the fallback is a job from the last hour with `visit_id` NULL, and only when the visit row was created at or after the job start, with one second of tolerance:
+
+`UNIX_TIMESTAMP(visits.createdAt)*1000 >= medical_ai_jobs.created_ms-1000`
+
+`visits.patientId` must match. An older examination of the same patient does not receive that review. A failed job is not restored. Regression: `server/tests/medical-job-store.test.ts`.
+
+**The daily cap counts work that is not stored yet.** Without `AI_CORE_MANAGEMENT_ENABLED=true`, `startMedicalProposals` allows 100 new reviews per owner per rolling 24 hours (`maxDailyJobsPerOwner`, window `dbRetentionMs`). The count is that owner's `medical_ai_jobs` rows plus in-memory jobs whose start time is at or after the count was read (`job.expires - retentionMs >= countedAt`). Concurrent submissions at the last free slot do not all pass: one starts, the rest throw `TOO_MANY_REQUESTS` and do not call the provider. Central AI management skips this local cap. An unavailable job store does not enforce it.
+
+**An unspoken medicine leaves the treatment text.** `validateMedicalProposals` in `shared/medical-assistant.ts` drops a treatment medication whose `source` is not a verbatim substring of the transcript. The treatment `text` fills the plan, so the same name is removed from that text. Lines are split on `\n`; any line that contains the medicine name (case-insensitive) is removed, including a line that also names a supported medicine. If every unsupported name is found on a line and some text remains, the proposal stays and each dropped medicine warns `حُذف الدواء «…» لأن مصدره غير موجود في نص التسجيل. راجعه يدويًا.` If an unsupported name appears on no line, or removing those lines leaves the text blank, the whole treatment proposal is dropped: `حُذف اقتراح «العلاج» لأن به دواء مصدره غير موجود في نص التسجيل. راجع هذا الحقل يدويًا.` Regression: `client/src/components/medical-assistant/medical-proposals.test.ts`.
 
 ## Follow-up records
 
