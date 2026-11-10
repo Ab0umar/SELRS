@@ -1449,6 +1449,48 @@ export default function WorkflowPrototypeLive() {
     }
   };
 
+  // The tests and prescription tabs have no other save: without this the picks
+  // stay in the page until the final sheet is saved.
+  const [savingSelection, setSavingSelection] = useState(false);
+  const saveWorkflowSelection = async (kind: "tests" | "prescription") => {
+    if (savingSelection) return;
+    if (!selectedLivePatient?.id || !activeWorkflowVisitId) {
+      toast.error("لا توجد زيارة محددة للحفظ");
+      return;
+    }
+    if (kind === "tests" ? testsQuery.isLoading || testsQuery.isError : medicationsQuery.isLoading || medicationsQuery.isError) {
+      toast.error("انتظر تحميل القائمة قبل الحفظ");
+      return;
+    }
+    setSavingSelection(true);
+    try {
+      await saveWorkflowDraftMutation.mutateAsync({
+        patientId: selectedLivePatient.id,
+        visitId: activeWorkflowVisitId,
+        visitDate: selectedDate,
+        visitType: selectedLivePatient.visitType ?? "examination",
+        data:
+          kind === "tests"
+            ? { tests: [...selectedTestIds.map(Number), ...manualTests] }
+            : {
+                treatment: [
+                  ...selectedMedicationIds.map((id) => ({
+                    medicationId: Number(id),
+                    ...(medicationDetailsById[String(id)] ?? {}),
+                  })),
+                  ...manualMedications,
+                ],
+              },
+      });
+      await trpcUtils.medical.invalidate();
+      toast.success(kind === "tests" ? "تم حفظ التحاليل والأشعة" : "تم حفظ الروشتة");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر الحفظ");
+    } finally {
+      setSavingSelection(false);
+    }
+  };
+
   const activeIndex = stageMeta.findIndex((item) => item.id === activeStage);
   const activeMeta = stageMeta[activeIndex];
   const nextMeta = stageMeta[activeIndex + 1];
@@ -3877,6 +3919,15 @@ export default function WorkflowPrototypeLive() {
           <div className="order-2 flex justify-end">
             <Button
               type="button"
+              size="sm"
+              className="me-2 gap-1.5"
+              disabled={savingSelection}
+              onClick={() => saveWorkflowSelection("tests")}
+            >
+              حفظ
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               size="sm"
               className="gap-1.5"
@@ -3918,6 +3969,15 @@ export default function WorkflowPrototypeLive() {
         >
           {assistantPrescriptionBinding}
           <div className="order-2 flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              className="me-2 gap-1.5"
+              disabled={savingSelection}
+              onClick={() => saveWorkflowSelection("prescription")}
+            >
+              حفظ
+            </Button>
             <Button
               type="button"
               variant="outline"

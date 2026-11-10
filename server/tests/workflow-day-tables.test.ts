@@ -147,4 +147,34 @@ describe.sequential("مسار اليوم: every tab saves into the visit tables"
       "زغللة",
     ]);
   });
+  it("تاب التحاليل وتاب الروشتة: حفظ الاختيارات وحدها لا يمس الشكوى والتشخيص", async () => {
+    const conn = await getTestDb();
+    await conn.insert(patients).values({ patientCode: "DAY-002", fullName: "Day Picks" });
+    const [patient] = await conn.select().from(patients).where(eq(patients.patientCode, "DAY-002")).limit(1);
+    const patientId = Number(patient.id);
+    const api = caller().medical;
+    const opened: any = await api.saveExaminationForm({
+      patientId, visitDate: "2026-11-10", visitType: "examination",
+      data: { chiefComplaint: "ألم", diagnosis: "التهاب", historyNotes: "ضغط" },
+    });
+    const visitId = Number(opened.visitId);
+
+    // Exactly the payloads of saveWorkflowSelection.
+    await api.saveExaminationForm({
+      patientId, visitId, visitDate: "2026-11-10", visitType: "examination",
+      data: { tests: [{ testName: "CBC", catalogConfirmed: true, testType: "lab" }] },
+    });
+    await api.saveExaminationForm({
+      patientId, visitId, visitDate: "2026-11-10", visitType: "examination",
+      data: { treatment: [{ medicationName: "Vigamox", catalogConfirmed: true, dosage: "", frequency: "4 مرات", duration: "أسبوع", instructions: "" }] },
+    });
+
+    const requests: any[] = await api.getTestRequestsByVisit({ visitId });
+    expect(requests.flatMap((item) => item.items ?? []).map((item) => item.testName)).toEqual(["CBC"]);
+    const prescriptions: any[] = await api.getPrescriptionsWithItemsByVisit({ visitId });
+    expect(prescriptions.flatMap((item) => item.items).map((item) => item.medicationName)).toEqual(["Vigamox"]);
+    expect(await column(visitComplaints, visitId, "complaint")).toEqual(["ألم"]);
+    expect(await column(visitDiagnoses, visitId, "diagnosis")).toEqual(["التهاب"]);
+    expect(await column(visitMedicalHistory, visitId, "history")).toEqual(["ضغط"]);
+  });
 });
