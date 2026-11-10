@@ -202,10 +202,30 @@ describe("medical AI proposal boundary", () => {
       visit,
     );
     expect(result.proposals[0].medications?.map((item) => item.name)).toEqual(["Vigamox"]);
+    // The unspoken medicine leaves the text that fills the treatment plan too.
+    expect(result.proposals[0].text).toBe("Vigamox");
     expect(result.proposals[1]).not.toHaveProperty("medications");
     expect(result.warnings).toEqual([
       "حُذف الدواء «Tobrex» لأن مصدره غير موجود في نص التسجيل. راجعه يدويًا.",
       "حُذفت الأدوية من اقتراح «القرار النهائي» لأنها تخص العلاج فقط. راجعها يدويًا.",
+    ]);
+  });
+  it("drops the treatment when an unspoken medicine cannot be cut out of its text", () => {
+    const result = validateMedicalProposals(
+      {
+        proposals: [
+          {
+            field: "treatment", text: "Vigamox مع قطرة مضاد حيوي", sources: ["هكتبلك Vigamox"], speaker: "doctor",
+            medications: [medicine("Vigamox", "Vigamox"), medicine("Tobrex", "Tobrex")],
+          },
+        ],
+        warnings: [],
+      },
+      visit,
+    );
+    expect(result.proposals).toEqual([]);
+    expect(result.warnings).toEqual([
+      "حُذف اقتراح «العلاج» لأن به دواء مصدره غير موجود في نص التسجيل. راجع هذا الحقل يدويًا.",
     ]);
   });
   it("returns its own output unchanged when validated again", () => {
