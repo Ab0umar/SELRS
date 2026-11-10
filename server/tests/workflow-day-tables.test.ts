@@ -177,4 +177,28 @@ describe.sequential("مسار اليوم: every tab saves into the visit tables"
     expect(await column(visitDiagnoses, visitId, "diagnosis")).toEqual(["التهاب"]);
     expect(await column(visitMedicalHistory, visitId, "history")).toEqual(["ضغط"]);
   });
+
+  it("التمريض يحفظ الشكوى والأعراض والتاريخ المرضي ولا يكتب التشخيص", async () => {
+    const conn = await getTestDb();
+    await conn.insert(patients).values({ patientCode: "DAY-003", fullName: "Day Nurse" });
+    const [patient] = await conn.select().from(patients).where(eq(patients.patientCode, "DAY-003")).limit(1);
+    const patientId = Number(patient.id);
+    const nurse = appRouter.createCaller(makeCallerAs("nurse")).medical;
+    const opened: any = await nurse.saveMedicalVisit({ patientId, visitDate: "2026-11-10", iop: { od: "14", os: "15" } });
+    const visitId = Number(opened.visitId);
+    await nurse.saveSheetEntry({
+      patientId, visitId, sheetType: "consultant",
+      content: JSON.stringify({
+        visitId,
+        consultantExam: { complains: "ألم" },
+        symptoms: "احمرار",
+        historyNotes: "سكر",
+        diagnosisText: "لا يكتبه التمريض",
+      }),
+    });
+    expect(await column(visitComplaints, visitId, "complaint")).toEqual(["ألم"]);
+    expect(await column(visitSymptoms, visitId, "symptoms")).toEqual(["احمرار"]);
+    expect(await column(visitMedicalHistory, visitId, "history")).toEqual(["سكر"]);
+    expect(await column(visitDiagnoses, visitId, "diagnosis")).toEqual([]);
+  });
 });

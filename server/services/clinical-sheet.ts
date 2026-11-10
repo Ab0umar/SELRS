@@ -404,6 +404,10 @@ export async function persistClinicalSheet(
     sections.symptoms = String(content.symptoms ?? "");
   if (Array.isArray(content.symptomIds))
     sections.symptomIds = content.symptomIds.map(String);
+  // Nurses take the history with the complaint and symptoms; diagnosis,
+  // treatment and decision stay with the doctor roles below.
+  if (role === "nurse" && Object.hasOwn(report, "additionalNotes"))
+    sections.history = String(report.additionalNotes ?? "");
   if (
     (Object.keys(report).length || Array.isArray(content.diseases)) &&
     ["doctor", "admin", "manager"].includes(role)
