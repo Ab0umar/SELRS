@@ -161,7 +161,8 @@ export default function WorkflowExamination({
     if (!savedForVisit) next.complains = String(visit?.chiefComplaint ?? "").trim();
     setExam(next);
     setDrawing(String(sheet?.consultantDrawing ?? ""));
-    setHistory(String(sheet?.historyNotes ?? ""));
+    // The visit's history table is the source; the sheet is only a fallback.
+    setHistory(String(visit ? visit.history ?? "" : sheet?.historyNotes ?? ""));
     setReading(String(sheet?.readingValue ?? ""));
 
     const glasses = ((glassesQuery.data ?? []) as any[]).find(
