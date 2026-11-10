@@ -13,6 +13,9 @@ const password =
   "";
 
 async function loginAsAdmin(request: any) {
+  const session = await request.get(`${baseURL}/api/auth/me`);
+  if (session.ok() && (await session.json()).user?.username === username)
+    return;
   const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
     Boolean,
   );

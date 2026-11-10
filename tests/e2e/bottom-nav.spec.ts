@@ -13,6 +13,12 @@ const password =
   "";
 
 async function getAuthenticatedContext(request: any, browser: any) {
+  const session = await request.get(`${baseURL}/api/auth/me`);
+  if (session.ok() && (await session.json()).user?.username === username)
+    return browser.newContext({
+      baseURL,
+      storageState: await request.storageState(),
+    });
   const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
     Boolean,
   );
@@ -137,14 +143,20 @@ test.describe("bottom nav mobile labels", () => {
     const viewportWidth = page.viewportSize()?.width ?? 360;
     const navBox = await nav.boundingBox();
     expect(navBox, "nav should have a bounding box").not.toBeNull();
-    expect(navBox!.x, "nav should start inside the viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      navBox!.x,
+      "nav should start inside the viewport",
+    ).toBeGreaterThanOrEqual(0);
     expect(
       navBox!.x + navBox!.width,
       "nav should end inside the viewport width",
     ).toBeLessThanOrEqual(viewportWidth);
 
     const firstTop = (await navButtons.first().boundingBox())?.y;
-    expect(firstTop, "first nav button should have a bounding box").toBeDefined();
+    expect(
+      firstTop,
+      "first nav button should have a bounding box",
+    ).toBeDefined();
     for (let i = 0; i < buttonCount; i += 1) {
       const box = await navButtons.nth(i).boundingBox();
       expect(box, `nav button ${i} should have a bounding box`).not.toBeNull();

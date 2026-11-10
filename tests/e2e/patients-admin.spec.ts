@@ -34,6 +34,9 @@ async function trpcMutation(request: any, path: string, input: unknown) {
 }
 
 async function loginAsAdmin(request: any) {
+  const session = await request.get(`${baseURL}/api/auth/me`);
+  if (session.ok() && (await session.json()).user?.username === username)
+    return;
   const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
     Boolean,
   );
@@ -122,7 +125,14 @@ test.describe("patients/admin critical flows", () => {
       "filter",
     );
     const suffix = Date.now();
-    const doctorName = `E2E Doctor ${suffix}`;
+    const me = await (await request.get(`${baseURL}/api/auth/me`)).json();
+    const doctorName = me.user.name || me.user.username;
+    const report = await trpcMutation(request, "medical.createMedicalReport", {
+      patientId,
+      visitDate: new Date().toISOString().slice(0, 10),
+      diagnosis: "E2E filter fixture",
+    });
+    expect(report.status).toBe(200);
     const serviceCode = "1513";
 
     const stateSaved = await trpcMutation(

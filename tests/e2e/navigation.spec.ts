@@ -13,6 +13,12 @@ const password =
   "";
 
 async function getAuthenticatedContext(request: any, browser: any) {
+  const session = await request.get(`${baseURL}/api/auth/me`);
+  if (session.ok() && (await session.json()).user?.username === username)
+    return browser.newContext({
+      baseURL,
+      storageState: await request.storageState(),
+    });
   const candidates = Array.from(new Set([password, `${password}_e2e`])).filter(
     Boolean,
   );
