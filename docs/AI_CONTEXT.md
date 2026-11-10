@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness.
 
 ---
 
@@ -508,7 +508,7 @@ server/services/accounting/
 2. **MSSQL Sync** → background job syncs patient data from MSSQL `PAPATMF` to MySQL
 3. **Examination** → doctor opens patient, examines, records findings in `medicalRouter`
 4. **Operations** → scheduled via `medicalRouter`, tracked in `operations` table
-5. **Follow-up** → post-op tracking, Pentacam integration, notifications
+5. **Follow-up** → queue visit (`visitType = followup`) or a follow-up sheet item on the visit already stored that day. The `/followups` list includes both. Contract: `docs/api-reference.md` (Record lists).
 
 ## Examination Workflow
 
@@ -516,6 +516,7 @@ server/services/accounting/
 - Records examination data (diagnosis, notes, measurements)
 - Can trigger Pentacam device integration for corneal measurements
 - State persisted in JSON fields (exam page state)
+- Autoref and refraction dashboards classify each visit's latest exam as كامل / غير مكتمل / ناقص. A reviewer can confirm a one-eye record (`examinationRecordCompletions`, migration `0112`). Their center/external filter uses `patientLocationExpr` (service code and doctor first). That is separate from `attachTreatingDoctor`, where a non-blank `patients.locationType` column wins.
 
 ## Registration Flow
 
