@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+test.use({ storageState: { cookies: [], origins: [] } });
+
 const baseURL = process.env.BASE_URL || "http://127.0.0.1:4000";
 const username =
   process.env.SMOKE_USER ||
@@ -82,7 +84,11 @@ test.describe("navigation reliability", () => {
     "Set SMOKE_USER/SMOKE_PASS (or ADMIN_USER/ADMIN_PASS)",
   );
 
-  test("home and sign-out buttons work", async ({ request, browser }) => {
+  test("home and sign-out buttons work", async ({
+    request,
+    browser,
+    playwright,
+  }) => {
     const context = await getAuthenticatedContext(request, browser);
     const page = await context.newPage();
     await page.goto("/patients");
@@ -110,6 +116,17 @@ test.describe("navigation reliability", () => {
     }
     await page.getByRole("menuitem", { name: /خروج|Sign Out/ }).click();
     await expect(page).toHaveURL(/\/login|\/$/);
+    const sharedSession = await playwright.request.newContext({
+      baseURL,
+      storageState: process.env.SELRS_E2E_AUTH_STATE,
+    });
+    try {
+      const me = await sharedSession.get("/api/auth/me");
+      expect(me.status()).toBe(200);
+      expect((await me.json()).user.username).toBe(username);
+    } finally {
+      await sharedSession.dispose();
+    }
     await context.close();
   });
 

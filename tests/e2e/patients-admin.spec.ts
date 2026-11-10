@@ -124,7 +124,6 @@ test.describe("patients/admin critical flows", () => {
       request,
       "filter",
     );
-    const suffix = Date.now();
     const me = await (await request.get(`${baseURL}/api/auth/me`)).json();
     const doctorName = me.user.name || me.user.username;
     const report = await trpcMutation(request, "medical.createMedicalReport", {
@@ -153,6 +152,7 @@ test.describe("patients/admin critical flows", () => {
 
     const byDoctor = await trpcQuery(request, "medical.getAllPatients", {
       doctorName,
+      searchTerm: patientCode,
       limit: 200,
     });
     expect(byDoctor.status).toBe(200);
@@ -161,8 +161,17 @@ test.describe("patients/admin critical flows", () => {
       doctorRows.some((row) => String(row.patientCode) === patientCode),
     ).toBe(true);
 
+    const wrongDoctor = await trpcQuery(request, "medical.getAllPatients", {
+      doctorName: `unrelated-${randomUUID()}`,
+      searchTerm: patientCode,
+      limit: 200,
+    });
+    expect(wrongDoctor.status).toBe(200);
+    expect(extractRows(wrongDoctor.json)).toEqual([]);
+
     const byServiceType = await trpcQuery(request, "medical.getAllPatients", {
       serviceType: "consultant",
+      searchTerm: patientCode,
       limit: 500,
     });
     expect(byServiceType.status).toBe(200);
