@@ -166,6 +166,25 @@ describe("latest medical AI job lookup", () => {
     expect(params[3]).toBeLessThanOrEqual(Date.now() - 60 * 60 * 1000);
   });
 
+  it("restores the unsaved full-visit review when the saved visit only has field dictations", async () => {
+    const unsaved = row({});
+    table["7:11"] = [row({ input_json: JSON.stringify(input) })];
+    table["7:null"] = [unsaved];
+    await expect(latestMedicalJob(7, 5, 11)).resolves.toMatchObject({
+      jobId: unsaved.job_id,
+    });
+  });
+
+  it("ties the unsaved fallback to a visit saved after the review started", async () => {
+    table["7:null"] = [row({})];
+    await latestMedicalJob(7, 5, 11);
+    const [sql, params] = mocks.execute.mock.calls[1];
+    expect(sql).toContain(
+      "EXISTS (SELECT 1 FROM visits v WHERE v.id=? AND v.patientId=? AND UNIX_TIMESTAMP(v.createdAt)*1000>=medical_ai_jobs.created_ms-1000)",
+    );
+    expect(params.slice(4)).toEqual([11, 5]);
+  });
+
   it("skips field dictations and recovers nothing from a failed job", async () => {
     table["7:11"] = [
       row({ input_json: JSON.stringify(input) }),
@@ -227,6 +246,18 @@ describe("daily medical AI review cap", () => {
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it("lets only one of several concurrent reviews through at the last free slot", async () => {
+    started = 99;
+    const before = vi.mocked(createManusTask).mock.calls.length;
+    const results = await Promise.allSettled(
+      [11, 12, 13].map((patientId) =>
+        startMedicalProposals(owner, recording(`مثال تدريبي خيالي. مريض ${patientId}`), [], "manus", "current", undefined, { patientId }),
+      ),
+    );
+    expect(results.filter((item) => item.status === "fulfilled")).toHaveLength(1);
+    expect(vi.mocked(createManusTask).mock.calls.length - before).toBe(1);
   });
 
   it("stores an unconfirmed Manus creation as failed so it survives a restart and counts", async () => {
