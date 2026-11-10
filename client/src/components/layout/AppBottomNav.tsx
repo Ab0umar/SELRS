@@ -314,8 +314,9 @@ export function AppBottomNav({
       if (allowedRoles?.length && !allowedRoles.includes(userRole))
         return false;
       if (isAdmin) return true;
-      if (!permissionsLoaded) return false;
       const cleanPath = normalizeNavPath(leaf.path.split("?")[0]);
+      if (userRole === "reception" && cleanPath === "/reception-inbox") return true;
+      if (!permissionsLoaded) return false;
       return pathGrantedByRoots(cleanPath, allowedRoots as any);
     },
     [allowedRoots, isAdmin, permissionsLoaded, userRole],
@@ -359,6 +360,9 @@ export function AppBottomNav({
 
   const moreGroups = useMemo(() => {
     const navGroups = isAdmin ? adminNavGroups : staffNavGroups;
+    const receptionItems = navGroups.filter(
+      (item): item is NavLeaf => !("items" in item) && item.path === "/reception-inbox" && leafVisible(item),
+    );
     const sections = navGroups.filter(
       (item): item is NavGroupSection => "items" in item,
     );
@@ -414,6 +418,7 @@ export function AppBottomNav({
         : [];
 
     return [
+      { label: "محادثات الاستقبال", navKey: "reception", items: receptionItems },
       {
         label: "سجل",
         navKey: "records",

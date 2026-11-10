@@ -143,6 +143,7 @@ export const autoReplyMessages = mysqlTable(
   (t) => [
     uniqueIndex("ar_message_event").on(t.eventKey),
     index("ar_message_conversation").on(t.conversationId, t.id),
+    index("ar_message_provider").on(t.providerId),
   ],
 );
 export const autoReplyJobs = mysqlTable(
@@ -180,6 +181,7 @@ export const autoReplyJobs = mysqlTable(
     uniqueIndex("ar_job_request").on(t.requestKey),
     index("ar_job_queue").on(t.state, t.availableAt),
     index("ar_job_conversation").on(t.conversationId),
+    index("ar_job_provider").on(t.providerId),
   ],
 );
 export const autoReplyConnections = mysqlTable(

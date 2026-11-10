@@ -335,6 +335,7 @@ export function AppTopNav({
         paths: ["/admin-hub/whatsapp-inbox"],
         checkPath: "/admin-hub/whatsapp-inbox",
       },
+      { icon: MessageCircle, label: "محادثات الاستقبال", path: "/reception-inbox", key: "reception-inbox", paths: ["/reception-inbox"], checkPath: "/reception-inbox", roles: ["reception"] },
     ],
     [],
   );
@@ -344,6 +345,7 @@ export function AppTopNav({
     if (!permissionsQuery.isSuccess) return [];
     return allNavTabs.filter((tab) => {
       if (tab.key === "more") return true;
+      if (userRole === "reception" && tab.key === "reception-inbox") return true;
       const allowedRoles = tab.roles?.map((role) => role.toLowerCase());
       if (allowedRoles?.length && !allowedRoles.includes(userRole)) {
         return false;

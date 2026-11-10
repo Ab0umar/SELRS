@@ -810,10 +810,25 @@ function Conversation({
     onError: (e) => toast.error(e.message),
   });
   const test = trpc.autoReply.test.useMutation({
+    retry: false,
     onSuccess: (r) =>
       setProposal(`${r.text}${r.handoff ? "\nالمقترح: تحويل لموظف" : ""}`),
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      if (e.message !== "AI_TASK_PENDING") toast.error(e.message);
+    },
   });
+  const suggestionInput = useRef<Parameters<typeof test.mutate>[0] | null>(
+    null,
+  );
+  const suggest = test.mutate;
+  useEffect(() => {
+    if (test.error?.message !== "AI_TASK_PENDING" || !suggestionInput.current)
+      return;
+    const timer = setTimeout(() => {
+      if (suggestionInput.current) suggest(suggestionInput.current);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [test.error, suggest]);
   if (query.isLoading) return <p role="status">جارٍ تحميل سياق المحادثة…</p>;
   if (query.error)
     return (
@@ -930,8 +945,8 @@ function Conversation({
           />
         </Field>
         <p className="ar-muted">
-          الرد اليدوي يُوقف البوت حتى تعيد تفعيله. الإرسال ملتزم بنافذة القناة
-          وبالمفتاح العام.
+          بعد نجاح رد الموظف، يرجع البوت تلقائيًا للرسائل الجديدة. الإرسال ملتزم
+          بنافذة القناة وبالمفتاح العام.
         </p>
         <div className="ar-toolbar">
           <Button
@@ -948,17 +963,25 @@ function Conversation({
           <Button
             type="button"
             variant="outline"
-            disabled={!latest || test.isPending}
-            onClick={() =>
-              latest &&
-              test.mutate({
+            disabled={
+              !latest ||
+              test.isPending ||
+              test.error?.message === "AI_TASK_PENDING"
+            }
+            onClick={() => {
+              if (!latest) return;
+              suggestionInput.current = {
                 channel: c.channel,
                 conversationId: id,
                 text: latest.body,
-              })
-            }
+                requestId: crypto.randomUUID(),
+              };
+              test.mutate(suggestionInput.current);
+            }}
           >
-            {test.isPending ? "جارٍ اقتراح الرد…" : "اقتراح رد دون إرسال"}
+            {test.isPending || test.error?.message === "AI_TASK_PENDING"
+              ? "جارٍ اقتراح الرد…"
+              : "اقتراح رد دون إرسال"}
           </Button>
         </div>
         {!sendingEnabled && <p role="status">الإرسال متوقف بالمفتاح العام.</p>}
