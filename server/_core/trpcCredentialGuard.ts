@@ -5,6 +5,8 @@ import { rateLimit } from "express-rate-limit";
 export const CREDENTIAL_PROCEDURES = [
   "doctorPortal.login",
   "patientPortal.login",
+  "patientPortal.verifyLoginOtp",
+  "patientPortal.selectLoginPatient",
 ] as const;
 
 export type TrpcPathClass =

@@ -235,6 +235,24 @@ export async function sendBookingStatusWhatsApp(
     patientName: request.patientName,
     templateName,
     buildTemplate: () => templatePayload(request, templateName),
+    buildText: () =>
+      [
+        `مرحبًا ${request.patientName?.trim() || "بك"}،`,
+        request.status === "confirmed"
+          ? `تم تأكيد حجز ${request.bookingTypeLabel} في مركز عيون الشروق.`
+          : `تم إلغاء حجز ${request.bookingTypeLabel} في مركز عيون الشروق.`,
+        `التاريخ: ${formattedBookingDate(request.bookingDate)}`,
+        ...(request.status === "confirmed"
+          ? [
+              `الطبيب: ${bookingDoctor(request)}`,
+              `موعد الحضور: ${bookingTime(request)}`,
+            ]
+          : []),
+        `العنوان: ${bookingBranch(request.branch)}`,
+        ...(request.status === "confirmed"
+          ? [`الموقع: ${bookingMapLocation(request.branch)}`]
+          : []),
+      ].join("\n"),
     requestKey: request.requestKey,
   });
 }
@@ -249,6 +267,8 @@ export async function sendBookingReceiptWhatsApp(request: {
     patientName: request.patientName,
     templateName: ENV.whatsappReceiptTemplate,
     requestKey: request.requestKey,
+    buildText: () =>
+      "تم استلام طلب الحجز في مركز عيون الشروق. الطلب قيد المراجعة لدى الاستقبال، وسنرسل لك تأكيد الموعد بعد مراجعته.",
     buildTemplate: () => ({
       name: ENV.whatsappReceiptTemplate,
       language: { code: ENV.whatsappTemplateLanguage },

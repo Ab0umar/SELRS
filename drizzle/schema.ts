@@ -2719,7 +2719,9 @@ export const patientPortalOtps = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     phone: varchar("phone", { length: 20 }).notNull(),
-    code: varchar("code", { length: 6 }).notNull(),
+    code: varchar("code", { length: 64 }).notNull(),
+    challengeId: varchar("challengeId", { length: 36 }),
+    patientId: int("patientId"),
     expiresAt: timestamp("expiresAt").notNull(),
     verified: boolean("verified").default(false).notNull(),
     attempts: int("attempts").default(0).notNull(),
@@ -2727,6 +2729,8 @@ export const patientPortalOtps = mysqlTable(
   },
   (table) => ({
     phoneIdx: index("idx_portal_otp_phone").on(table.phone),
+    challengeIdx: uniqueIndex("idx_portal_otp_challenge").on(table.challengeId),
+    patientIdx: index("idx_portal_otp_patient").on(table.patientId, table.verified),
   }),
 );
 

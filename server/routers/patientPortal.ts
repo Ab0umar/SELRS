@@ -1,6 +1,9 @@
+import { patientLoginInput, patientOtpInput, patientSelectionInput } from "../../shared/patient-login";
+import { requestPatientLoginOtp, verifyPatientLoginOtp, selectPatientLogin } from "../services/patientPortalAuth";
 import { closureApplies } from "../lib/bookingClosureMatch";
 import { z } from "zod";
 import { checkGuestBookingLimits } from "../lib/guestBookingLimits";
+import { guestBookingContactSchema } from "../../shared/guest-booking";
 import { TRPCError } from "@trpc/server";
 import {
   router,
@@ -15,8 +18,6 @@ import {
   getGlassesRecordsByPatient,
   getMedicalHistoryByPatient,
   getPrescriptionsWithItemsByPatient,
-  consumeLoginRateLimit,
-  clearLoginRateLimit,
 } from "../db";
 import {
   patientPortalSessions,
@@ -28,7 +29,6 @@ import {
   visitScheduleRequests,
 } from "../../drizzle/schema";
 import { eq, and, desc, ne, sql, lte, gte, count, type SQL } from "drizzle-orm";
-import jwt from "jsonwebtoken";
 import { notKfUploadSql } from "../lib/srv100Uploads";
 import { ENV } from "../_core/env";
 import {
@@ -45,7 +45,6 @@ import {
   sendBookingReceiptWhatsApp,
 } from "../services/bookingWhatsApp.service";
 
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function normalizePhone(raw: string): string {
   let p = raw.replace(/\s+/g, "").replace(/[^\d+]/g, "");
@@ -97,78 +96,22 @@ export const patientPortalRouter = router({
   // ── Public ────────────────────────────────────────────────────────────────
 
   login: publicProcedure
-    .input(
-      z.object({
-        phone: z.string().min(8).max(20),
-        patientCode: z.string().min(1).max(30),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const phone = normalizePhone(input.phone);
-      const clientIp = ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown";
-      const attemptKey = `patient-portal:${clientIp}:${phone}`;
-      const attempts = await consumeLoginRateLimit(
-        attemptKey,
-        new Date(),
-        15 * 60_000,
-      );
-      if (attempts !== null && attempts > 5) {
-        throw new TRPCError({
-          code: "TOO_MANY_REQUESTS",
-          message: "Too many login attempts, try again later",
-        });
-      }
+    .input(patientLoginInput)
+    .mutation(({ input, ctx }) => requestPatientLoginOtp(
+      input, ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown",
+    )),
 
-      const db = await getDb();
-      if (!db)
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "DB unavailable",
-        });
+  verifyLoginOtp: publicProcedure
+    .input(patientOtpInput)
+    .mutation(({ input, ctx }) => verifyPatientLoginOtp(
+      input, ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown",
+    )),
 
-      // Match phone and code together: several family members can share a phone,
-      // and one message for both failures keeps the endpoint from revealing which
-      // phone numbers belong to patients.
-      const inputCode = input.patientCode.trim().toLowerCase();
-      const [patient] = await db
-        .select({
-          id: patients.id,
-          fullName: patients.fullName,
-          patientCode: patients.patientCode,
-        })
-        .from(patients)
-        .where(
-          and(
-            eq(patients.phone, phone),
-            sql`LOWER(TRIM(${patients.patientCode})) = ${inputCode}`,
-          ),
-        )
-        .limit(1);
-
-      if (!patient || !inputCode) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "البيانات غير صحيحة — تواصل مع الاستقبال",
-        });
-      }
-
-      const token = jwt.sign(
-        { type: "patient", patientId: patient.id, phone },
-        ENV.JWT_SECRET,
-        { expiresIn: Math.floor(SESSION_TTL_MS / 1000) },
-      );
-
-      const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-      await db
-        .insert(patientPortalSessions)
-        .values({ patientId: patient.id, token, expiresAt });
-      await clearLoginRateLimit(attemptKey);
-
-      return {
-        token,
-        patient: { name: patient.fullName, patientCode: patient.patientCode },
-      };
-    }),
+  selectLoginPatient: publicProcedure
+    .input(patientSelectionInput)
+    .mutation(({ input, ctx }) => selectPatientLogin(
+      input, ctx.req.ip ?? ctx.req.socket.remoteAddress ?? "unknown",
+    )),
 
   // ── Patient-authenticated ─────────────────────────────────────────────────
 
@@ -459,8 +402,7 @@ export const patientPortalRouter = router({
   createGuestBooking: publicProcedure
     .input(
       z.object({
-        guestName: z.string().min(2).max(100),
-        guestPhone: z.string().min(8).max(20),
+        ...guestBookingContactSchema.shape,
         guestEmail: z.string().trim().email().max(320).optional(),
         bookingType: z.enum([
           "consultant",
@@ -614,15 +556,52 @@ export const patientPortalRouter = router({
       return { ok: true };
     }),
 
+  bookingSummary: receptionProcedure
+    .input(z.object({ appointmentDate: z.iso.date() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "DB unavailable",
+        });
+      const [requests, confirmed, reception] = await Promise.all([
+        db
+          .select({ total: count() })
+          .from(patientPortalBookings)
+          .where(eq(patientPortalBookings.status, "pending")),
+        db
+          .select({ total: count() })
+          .from(patientPortalBookings)
+          .where(
+            and(
+              eq(patientPortalBookings.status, "confirmed"),
+              sql`coalesce(${patientPortalBookings.confirmedDate}, date(${patientPortalBookings.requestedDate})) = ${input.appointmentDate}`,
+            ),
+          ),
+        db
+          .select({ total: count() })
+          .from(visitScheduleRequests)
+          .where(eq(visitScheduleRequests.status, "scheduled")),
+      ]);
+      return {
+        pending: Number(requests[0].total),
+        confirmed: Number(confirmed[0].total),
+        reception: Number(reception[0].total),
+      };
+    }),
+
   listBookings: receptionProcedure
     .input(
       z.object({
         date: z.string().optional(),
+        appointmentDate: z.iso.date().optional(),
         status: z
           .enum(["pending", "confirmed", "cancelled", "completed"])
           .optional(),
         branch: z.enum(["tanta", "kfs"]).optional(),
         limit: z.number().int().min(1).max(200).default(100),
+        offset: z.number().int().min(0).default(0),
       }),
     )
     .query(async ({ input }) => {
@@ -634,6 +613,11 @@ export const patientPortalRouter = router({
         });
 
       const conditions: SQL[] = [];
+      if (input.appointmentDate) {
+        conditions.push(
+          sql`coalesce(${patientPortalBookings.confirmedDate}, date(${patientPortalBookings.requestedDate})) = ${input.appointmentDate}`,
+        );
+      }
       if (input.date) {
         const dayStart = new Date(`${input.date}T00:00:00`);
         const dayEnd = new Date(`${input.date}T23:59:59.999`);
@@ -647,7 +631,13 @@ export const patientPortalRouter = router({
       if (input.branch)
         conditions.push(eq(patientPortalBookings.branch, input.branch));
 
-      const rows = await db
+      const rows: {
+        booking: typeof patientPortalBookings.$inferSelect;
+        patientName: string | null;
+        patientCode: string | null;
+        patientPhone: string | null;
+        patientEmail: string | null;
+      }[] = await db
         .select({
           booking: patientPortalBookings,
           patientName: patients.fullName,
@@ -658,10 +648,14 @@ export const patientPortalRouter = router({
         .from(patientPortalBookings)
         .leftJoin(patients, eq(patientPortalBookings.patientId, patients.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(patientPortalBookings.createdAt))
-        .limit(input.limit);
+        .orderBy(
+          desc(patientPortalBookings.createdAt),
+          desc(patientPortalBookings.id),
+        )
+        .limit(input.limit)
+        .offset(input.offset);
 
-      return rows.map((r: any) => ({
+      return rows.map((r) => ({
         ...r.booking,
         typeLabel:
           BOOKING_TYPE_LABELS[r.booking.bookingType] ?? r.booking.bookingType,
@@ -977,7 +971,8 @@ export const patientPortalRouter = router({
       }
       // A resend for an unchanged status needs an explicit request id from the
       // UI; a plain edit (notes, patient link) must not message the patient again.
-      const shouldSendWhatsApp = statusChanged || Boolean(input.confirmationRequestId);
+      const shouldSendWhatsApp =
+        statusChanged || Boolean(input.confirmationRequestId);
       if (
         shouldSendWhatsApp &&
         (input.status === "confirmed" || input.status === "cancelled")
