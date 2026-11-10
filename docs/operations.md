@@ -84,6 +84,81 @@ The system can run fully offline with a local MySQL.
   spike of HTTP 5xx.
 - Review PM2/service logs; check the browser console on critical pages after each deploy.
 
+## Public clinic site
+
+`/` is `RootRouteGate` in `client/src/routes/guards.tsx`. A signed-out browser renders
+`client/src/features/public-site/LandingPage.tsx`. A signed-in staff session, a Capacitor
+app, or a user agent containing `SELRSDesktop/1` or `SELRS/1` redirects to `/home`.
+Appointment links on the page go to `/my/login`. Styles stay under `.selrs-landing` in
+`landing.css`; tab, deep-link, and theme behavior is `setupLanding` in `landingBehavior.ts`.
+
+`PublicSiteShell.tsx` and `siteContent.ts` in the same folder are not imported by the
+route. Content rules, contacts, and open items (missing doctor photos, the operations
+phone) are in `docs/prototypes/landing-handoff.md`.
+
+## Patient login (WhatsApp OTP)
+
+Patients sign in at `/my/login`. `patientPortal.login` sends a 6-digit code by WhatsApp,
+`verifyLoginOtp` checks it, and a phone that matches more than one file continues with
+`selectLoginPatient`. The procedure contract, the privacy of the login response, and
+guest-booking limits are in `docs/api-reference.md` (Patient Portal Router).
+
+### Required environment
+
+All three must be non-empty or `patientOtpConfigured()` is false and `login` returns
+`SERVICE_UNAVAILABLE`:
+
+| Variable | Role |
+|---|---|
+| `WHATSAPP_ACCESS_TOKEN` | Graph API bearer token |
+| `WHATSAPP_PHONE_NUMBER_ID` | Sender phone number id |
+| `WHATSAPP_AUTHENTICATION_TEMPLATE` | Authentication template name. Empty default, so login stays off until this is set |
+
+`WHATSAPP_TEMPLATE_LANGUAGE` defaults to `ar`. `WHATSAPP_API_VERSION` defaults to `v25.0`.
+The send in `server/services/patientOtpWhatsApp.ts` is a template message with the code as
+the body parameter and again as the URL button parameter at index `0`.
+
+### Template
+
+`scripts/prepare-patient-login-template.ts` looks up the sender on WhatsApp business
+account `2034041873405896`. With no flag it prints the template status and refuses a
+template whose category is not `AUTHENTICATION`. `--apply` creates
+`selrs_patient_login_otp` (or `WHATSAPP_AUTHENTICATION_TEMPLATE` when that env var is set)
+with a 5-minute expiry footer and a copy-code OTP button.
+
+```bash
+pnpm exec tsx scripts/prepare-patient-login-template.ts
+pnpm exec tsx scripts/prepare-patient-login-template.ts --apply
+```
+
+The script needs `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`. It prints
+`NOT_CREATED` when the template is missing and `--apply` was not passed.
+
+Apply migration `drizzle/0111_patient_portal_otp_login.sql` before relying on login.
+It widens `patient_portal_otps.code` to 64 characters, adds `challengeId` and
+`patientId`, and marks older rows that have no `challengeId` as `verified` so a legacy
+code cannot be submitted.
+
+### When login looks successful and the code never arrives
+
+`login` returns `{ challengeId, expiresInSeconds: 300, resendAfterSeconds: 60 }` in
+each of these cases:
+
+- No patient has that phone and birth date (or a null birth date, when the form left it blank).
+- That phone already hit 3 sends in 15 minutes, or a send in the last 60 seconds.
+- WhatsApp did not accept the message. The challenge is marked `verified` and the log line is `[patient-portal] OTP_DELIVERY_FAILED`.
+
+`verifyLoginOtp` then answers `كود التحقق غير صحيح أو انتهت صلاحيته`. A birth date that
+differs from the one sent to `login` fails the same way, because the stored code is an
+HMAC over the challenge, patient, phone, digits, and birth date.
+
+These calls fail immediately instead: database down, the three WhatsApp settings above
+unset, more than 5 `login` calls per IP and phone in 15 minutes, or more than 20 OTP
+sends per IP in 15 minutes.
+
+Paid leave for attendance is a separate change. See `docs/ATTENDANCE_SYNC.md` (Paid leave).
+It needs `drizzle/0110_attendance_paid_leave.sql` so `attendance_leaves.type` accepts `paid`.
+
 ## Incident response
 
 An incident is any outage or severe degradation: application down, a critical feature
