@@ -107,6 +107,13 @@ const displayDateValue = (value: unknown): string => {
 };
 
 
+// Older diagnosis saves stored the selected disease ids in the history section;
+// that list is not history text.
+const visitHistoryText = (raw: unknown) => {
+  const text = String(raw ?? "").trim();
+  return /^\[[\d,\s]*\]$/.test(text) ? "" : text;
+};
+
 type Refraction = { s: string; c: string; a: string };
 type WorkflowData = {
   reception: {
@@ -1095,6 +1102,10 @@ export default function WorkflowPrototypeLive() {
     }
     setData((current) => ({
       ...current,
+      reception: {
+        ...current.reception,
+        medicalHistory: visitHistoryText(report.additionalNotes),
+      },
       specialist: {
         ...current.specialist,
         complains: String(
@@ -1143,7 +1154,8 @@ export default function WorkflowPrototypeLive() {
           address: patientData.address ?? current.reception.address,
           occupation: patientData.occupation ?? current.reception.occupation,
           medicalHistory:
-            sheet?.historyNotes ?? current.reception.medicalHistory,
+            current.reception.medicalHistory ||
+            visitHistoryText(sheet?.historyNotes),
           previousOperations:
             sheet?.formData?.previousOperations ??
             current.reception.previousOperations,
@@ -2968,8 +2980,17 @@ export default function WorkflowPrototypeLive() {
       data.specialist.reading,
     ].some(Boolean);
     const complaintSummary = String(
-      finalExam.complains || finalVisit?.chiefComplaint || "",
+      finalVisit?.chiefComplaint ||
+        finalReport?.clinicalOpinion ||
+        finalExam.complains ||
+        "",
     ).trim();
+    const symptomsSummary = String(
+      finalVisit?.symptoms || finalReport?.symptoms || "",
+    ).trim();
+    const visitHistorySummary = visitHistoryText(
+      finalVisit?.history ?? finalReport?.additionalNotes,
+    );
     const diagnosisSummary = String(finalReport?.diagnosis ?? "").trim();
     const hasDiagnosisSummary = Boolean(diagnosisSummary.trim());
     const finalDecisionSummary = String(
@@ -3013,6 +3034,7 @@ export default function WorkflowPrototypeLive() {
       window.setTimeout(() => frame.remove(), 60_000);
     };
     const medicalHistorySummary = [
+      visitHistorySummary,
       finalHistory?.diabetes && "سكر",
       finalHistory?.hypertension && "ضغط",
       finalHistory?.heartDisease && "أمراض قلب",
@@ -3277,6 +3299,12 @@ export default function WorkflowPrototypeLive() {
                 <span className="font-bold text-slate-500">Complaint:</span>
                 <p className="mt-1 text-base font-semibold" dir="rtl">
                   {complaintSummary || "—"}
+                </p>
+                <span className="mt-2 block font-bold text-slate-500">
+                  Symptoms:
+                </span>
+                <p className="mt-1 text-base font-semibold" dir="rtl">
+                  {symptomsSummary || "—"}
                 </p>
               </div>
             </div>

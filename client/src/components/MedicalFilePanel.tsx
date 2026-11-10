@@ -721,7 +721,8 @@ export default function MedicalFilePanel({
                 },
               }
             : prev.pentacam,
-          historyNotes: doctorReport?.additionalNotes ?? "",
+          // Older diagnosis saves left the disease id list in the history section.
+          historyNotes: /^\[[\d,\s]*\]$/.test(String(doctorReport?.additionalNotes ?? "").trim()) ? "" : doctorReport?.additionalNotes ?? "",
           treatmentPlan: doctorReport?.treatment ?? "",
           medicalHistory: doctorReport?.clinicalOpinion ?? (visitsQuery.data as any[])?.find((v:any)=>v.id===selectedExamination.visitId)?.chiefComplaint ?? "",
           symptoms:doctorReport?.symptoms ?? (visitsQuery.data as any[])?.find((v:any)=>v.id===selectedExamination.visitId)?.symptoms ?? "",
