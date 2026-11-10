@@ -1820,6 +1820,7 @@ export const attendanceLeaves = mysqlTable(
       "salary",
       "unpaid",
       "other",
+      "paid",
     ]).notNull(),
     approved: boolean("approved").default(false).notNull(),
     notAffectCommission: boolean("not_affect_commission")

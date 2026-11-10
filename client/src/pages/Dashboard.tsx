@@ -363,6 +363,7 @@ function MedicalTotals() {
 }
 
 const LEAVE_TYPE_AR: Record<string, string> = {
+  paid: "مدفوعة",
   annual: "سنوية",
   sick: "مرضية",
   unpaid: "بدون راتب",

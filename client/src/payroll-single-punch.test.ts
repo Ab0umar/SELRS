@@ -2,6 +2,17 @@ import { describe, expect, it } from "vitest";
 import { getSinglePunchDayKeys } from "../../server/services/salary/singlePunchDays";
 
 describe("payroll single-fingerprint days", () => {
+  it("does not deduct a single scan on a paid leave day and keeps other employees' scans", () => {
+    const days = getSinglePunchDayKeys(
+      [
+        { empCd: "10", punchAt: new Date(2026, 7, 3, 8, 0) },
+        { empCd: "11", punchAt: new Date(2026, 7, 3, 8, 0) },
+      ],
+      new Set(["10|2026-08-03"]),
+    );
+    expect(days).toEqual(new Set(["11|2026-08-03"]));
+  });
+
   it("includes a day with one raw scan regardless of its device direction", () => {
     const days = getSinglePunchDayKeys([
       {

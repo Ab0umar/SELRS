@@ -1,5 +1,5 @@
 export type AccountedLeaveType =
-  "annual" | "sick" | "other" | "salary" | "unpaid";
+  "annual" | "sick" | "other" | "salary" | "unpaid" | "paid";
 
 export interface LeaveAccountingRow {
   dateFrom: Date | string;
@@ -15,6 +15,24 @@ export interface LeaveYearUsage {
   salaryCommissionDateKeys: Set<string>;
 }
 
+export function countsAsPayrollWorkDay(
+  day: {
+    status: string;
+    leaveType?: string | null;
+    scheduled?: boolean;
+    workDate: Date | string;
+  },
+  holidays: ReadonlySet<string>,
+): boolean {
+  return (
+    day.status !== "holiday" &&
+    !(
+      day.leaveType === "paid" &&
+      (day.scheduled === false || holidays.has(dateKey(day.workDate)))
+    )
+  );
+}
+
 export function countCommissionAffectingLeaveDays(
   dailyDays: Array<{
     status: string;
@@ -27,6 +45,7 @@ export function countCommissionAffectingLeaveDays(
   return dailyDays.filter(
     (day) =>
       day.status === "leave" &&
+      day.leaveType !== "paid" &&
       day.scheduled !== false &&
       !day.leaveNotAffectCommission,
   ).length;
@@ -78,6 +97,7 @@ export function accountLeaveDays(
   const salaryCommissionDateKeys = new Set<string>();
 
   for (const leave of leaves) {
+    if (leave.type === "paid") continue;
     for (const key of leaveDateKeys(leave, year, skipDay)) {
       if (leave.type === "annual" || leave.type === "sick") {
         balanceLeaveDates.add(key);

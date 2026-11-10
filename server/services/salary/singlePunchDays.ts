@@ -18,11 +18,13 @@ function localDateKey(value: Date | string): string {
  */
 export function getSinglePunchDayKeys(
   punches: AttendancePunchForPayroll[],
+  excludedDays?: ReadonlySet<string>,
 ): Set<string> {
   const counts = new Map<string, number>();
 
   for (const punch of punches) {
     const key = `${punch.empCd}|${localDateKey(punch.punchAt)}`;
+    if (excludedDays?.has(key)) continue;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 

@@ -17,7 +17,8 @@ function fmtDate(d: Date | string | null | undefined): string {
   return `${y}-${m}-${day}`;
 }
 
-export type LeaveType = "annual" | "sick" | "salary" | "unpaid" | "other";
+export type LeaveType =
+  "annual" | "sick" | "salary" | "unpaid" | "other" | "paid";
 
 export interface LeaveRequest {
   empCd: string;
@@ -44,7 +45,8 @@ export class LeaveManagementService {
       type: req.type,
       note: req.note || null,
       approved: req.approved ?? false,
-      notAffectCommission: req.notAffectCommission ?? false,
+      notAffectCommission:
+        req.type === "paid" || (req.notAffectCommission ?? false),
     });
 
     return result;

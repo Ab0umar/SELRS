@@ -69,6 +69,7 @@ import {
 import {
   accountLeaveDays,
   countCommissionAffectingLeaveDays,
+  countsAsPayrollWorkDay,
 } from "../attendance/leaveAccounting";
 import {
   absenceDeduction as calculateAbsenceDeduction,
@@ -653,7 +654,15 @@ export class PayrollComputeService {
         return `${r.empCd}|${ds}`;
       }),
     );
-    const singlePunchDaySet = getSinglePunchDayKeys(rawPunchRows as any[]);
+    const paidLeaveDayKeys = new Set<string>();
+    for (const day of dailyRows) {
+      if (day.status === "leave" && day.leaveType === "paid")
+        paidLeaveDayKeys.add(`${day.empCd}|${fmtDate(day.workDate)}`);
+    }
+    const singlePunchDaySet = getSinglePunchDayKeys(
+      rawPunchRows as any[],
+      paidLeaveDayKeys,
+    );
 
     const leaveBalanceByEmp = new Map(
       (leaveBalanceRows as any[]).map((row) => [
@@ -844,7 +853,7 @@ export class PayrollComputeService {
       const empDailyRows = dailyRowsByEmp.get(emp.empCd) ?? [];
       const empAttendanceDays = aggregateAttendanceDays(empDailyRows as any[]);
       const wDays = empAttendanceDays.filter(
-        (day: any) => day.status !== "holiday",
+        (day: any) => countsAsPayrollWorkDay(day, holidayDates),
       ).length;
       let rawAbsent = 0,
         lateMins = 0,
@@ -1067,7 +1076,7 @@ export class PayrollComputeService {
           .map((day: any) => fmtDate(day.workDate)),
       ).size;
       const workingDays = empAttendanceDays.filter(
-        (day: any) => day.status !== "holiday",
+        (day: any) => countsAsPayrollWorkDay(day, holidayDates),
       ).length;
 
       // Official holidays count as paid non-working days — don't deduct absence for them

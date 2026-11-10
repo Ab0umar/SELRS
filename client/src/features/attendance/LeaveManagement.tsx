@@ -11,7 +11,7 @@ import { useLocalToday } from "@/hooks/useLocalToday";
 
 import { askConfirm } from "./askConfirm";
 import { Input } from "@/components/ui/input";
-type LeaveType = "annual" | "sick" | "salary" | "unpaid" | "other";
+type LeaveType = "annual" | "sick" | "salary" | "unpaid" | "other" | "paid";
 
 const TYPE_LABELS: Record<LeaveType, string> = {
   annual: "سنوية",
@@ -19,6 +19,7 @@ const TYPE_LABELS: Record<LeaveType, string> = {
   salary: "من الراتب",
   unpaid: "من الراتب",
   other: "أخرى",
+  paid: "مدفوعة",
 };
 
 interface NewLeave {
@@ -299,6 +300,12 @@ export default function LeaveManagement() {
                   الزائدة من الراتب.
                 </p>
               )}
+              {form.type === "paid" && (
+                <p className="md:col-span-2 text-sm text-muted-foreground">
+                  الإجازة المدفوعة لا تُخصم من الرصيد أو المرتب ولا تؤثر على
+                  النسب والحوافز.
+                </p>
+              )}
               <div className="md:col-span-2">
                 <label
                   htmlFor="attendance-leave-form-note"
@@ -325,7 +332,8 @@ export default function LeaveManagement() {
                 <input
                   id="attendance-leave-form-not-affect-commission"
                   type="checkbox"
-                  checked={form.notAffectCommission}
+                  checked={form.type === "paid" || form.notAffectCommission}
+                  disabled={form.type === "paid"}
                   onChange={(e) =>
                     setForm({ ...form, notAffectCommission: e.target.checked })
                   }
