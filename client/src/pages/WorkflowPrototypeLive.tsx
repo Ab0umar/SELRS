@@ -3672,7 +3672,7 @@ export default function WorkflowPrototypeLive() {
                 isError={diseasesQuery.isError}
                 errorText="تعذر تحميل التشخيصات"
               />
-              <Textarea aria-label="اكتب التشخيص…"
+              <Textarea aria-label="التشخيص"
                 data-medical-proposals="diagnosis"
                 value={data.consultant.diagnosis}
                 onChange={(event) =>
@@ -3759,9 +3759,11 @@ export default function WorkflowPrototypeLive() {
           </div>
         </section>
         <section className="rounded-xl border-2 border-slate-300 p-4 print:break-inside-avoid print:p-3">
+          <label className="mb-3 block">الأعراض<Textarea aria-label="الأعراض" data-medical-proposals="symptoms" value={data.specialist.symptoms} onChange={event=>update("specialist",{...data.specialist,symptoms:event.target.value})}/></label>
+          <label className="mb-3 block">التاريخ المرضي<Textarea aria-label="التاريخ المرضي" data-medical-proposals="history" value={data.reception.medicalHistory} onChange={event=>update("reception",{...data.reception,medicalHistory:event.target.value})}/></label>
           <label className="mb-3 block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={clinicalTreatmentPlan} onChange={event=>setClinicalTreatmentPlan(event.target.value)}/></label>
           <h3 className="text-lg font-black text-blue-950">Final Decision</h3>
-          <Textarea aria-label="اكتب القرار النهائي…"
+          <Textarea aria-label="القرار النهائي"
             data-medical-proposals="decision"
             value={data.consultant.finalDecision}
             onChange={(event) =>

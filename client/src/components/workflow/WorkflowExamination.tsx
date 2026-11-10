@@ -527,9 +527,9 @@ export default function WorkflowExamination({
             <div className="flex w-full flex-col gap-2 sm:w-[calc(75%-0.5rem)]">
               <div className="flex-1 rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]">
                 <p className="mb-2 text-[13px] font-bold text-primary">Complains:</p>
-                <AssistantField label="Complaints">
+                <AssistantField label="الشكوى والأعراض">
                   <textarea
-                    aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                    aria-label="الشكوى والأعراض"
                     data-medical-proposals="complaints symptoms"
                     className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-primary"
                     value={exam.complains}

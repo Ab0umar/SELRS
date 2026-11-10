@@ -147,7 +147,7 @@ export function appendPrescriptionTemplate(
   binding: PrescriptionBinding,
   template: PrescriptionTemplate,
 ): PrescriptionDraft {
-  if (binding.disabled) throw new Error("The prescription is not editable.");
+  if (binding.disabled) throw new Error("الروشتة غير قابلة للتعديل.");
   const next: PrescriptionDraft = {
     ...binding.draft,
     ids: [...binding.draft.ids],
@@ -162,18 +162,18 @@ export function appendPrescriptionTemplate(
     );
     if (matches.length !== 1)
       throw new Error(
-        `Missing or ambiguous catalog medicine: ${item.medicationName}. Nothing was added.`,
+        `الدواء غير موجود في القائمة أو مكرر: ${item.medicationName}. لم تتم إضافة أي شيء.`,
       );
     const id = matches[0].id;
     if (!Number.isSafeInteger(Number(id)) || Number(id) <= 0)
       throw new Error(
-        "This medicine cannot be saved through the current prescription path.",
+        "لا يمكن حفظ هذا الدواء من خلال الروشتة الحالية.",
       );
     const { medicationName: _, ...details } = item;
     const previous = seen.get(String(id));
     if (previous && JSON.stringify(previous) !== JSON.stringify(details))
       throw new Error(
-        `Conflicting instructions for ${item.medicationName} in the template. Nothing was added.`,
+        `تعليمات متعارضة للدواء ${item.medicationName} داخل القالب. لم تتم إضافة أي شيء.`,
       );
     seen.set(String(id), details);
     if (next.ids.some((existing) => String(existing) === String(id))) continue;

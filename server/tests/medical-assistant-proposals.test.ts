@@ -169,10 +169,14 @@ describe("private medical Manus tasks", () => {
       expect.stringContaining("ONLY the selected field"),
       { agentProfile: "lite" },
     );
+    const prompt = vi.mocked(createManusTask).mock.calls[0][0];
+    expect(prompt).toContain("The clinician is dictating this field");
+    expect(prompt).toContain("its field must be exactly 'field'");
+    expect(prompt).not.toContain("never patient talk");
   });
   it("starts a new task only after an explicit resubmission of a terminal failure", async () => {
     const first = await startMedicalProposals(owner,input);
-    vi.mocked(downloadManusFile).mockResolvedValueOnce(Buffer.from('{"proposals":[{"field":"diagnosis","text":"Unsupported","sources":["unrelated"],"speaker":"doctor"}],"warnings":[]}'));
+    vi.mocked(downloadManusFile).mockResolvedValueOnce(Buffer.from('{"proposals":[],"warnings":[],"save":true}'));
     expect(await readMedicalProposals(owner,first.jobId)).toMatchObject({status:"failed"});
     expect(await readMedicalProposals(owner,first.jobId)).toMatchObject({status:"failed"});
     expect(createManusTask).toHaveBeenCalledTimes(1);
@@ -209,17 +213,39 @@ describe("private medical Manus tasks", () => {
     });
     expect(downloadManusFile).not.toHaveBeenCalled();
   });
-  it("fails closed on an out-of-scope result without returning its content", async () => {
+  it("files a field dictation answered under a clinical field name instead of failing", async () => {
     vi.mocked(downloadManusFile).mockResolvedValue(
       Buffer.from(
         JSON.stringify({
           proposals: [
             {
-              field: "history",
-              text: "secret fabricated history",
+              field: "treatment",
+              text: "صداع من أسبوعين",
               sources: [input.transcript],
-              speaker: "patient",
+              speaker: "doctor",
+              medications: [{ name: "Vigamox", source: input.transcript, dosage: "", frequency: "", duration: "", instructions: "" }],
             },
+          ],
+          warnings: [],
+        }),
+      ),
+    );
+    const { jobId } = await startMedicalProposals(owner, input);
+    expect(await readMedicalProposals(owner, jobId)).toEqual({
+      status: "complete",
+      result: {
+        proposals: [{ field: "field", text: "صداع من أسبوعين", sources: [input.transcript], speaker: "doctor" }],
+        warnings: [],
+      },
+    });
+  });
+  it("fails closed when a field dictation returns several proposals, without returning their content", async () => {
+    vi.mocked(downloadManusFile).mockResolvedValue(
+      Buffer.from(
+        JSON.stringify({
+          proposals: [
+            { field: "field", text: "صداع", sources: [input.transcript], speaker: "patient" },
+            { field: "history", text: "secret fabricated history", sources: [input.transcript], speaker: "patient" },
           ],
           warnings: [],
         }),
@@ -232,6 +258,35 @@ describe("private medical Manus tasks", () => {
         "أعاد Manus اقتراحًا خارج نطاق التسجيل المحدد. لم يُطبّق أي تعديل.",
     });
   });
+  it("keeps the rest of a full-visit result when one proposal lacks evidence or a doctor statement", async () => {
+    const recording = { kind: "conversation", mode: "conversation", transcript: "صداع من أسبوعين. متابعة بعد شهر" } as const;
+    vi.mocked(downloadManusFile).mockResolvedValueOnce(
+      Buffer.from(
+        JSON.stringify({
+          proposals: [
+            { field: "complaints", text: "صداع", sources: ["صداع من أسبوعين"], speaker: "patient" },
+            { field: "diagnosis", text: "Migraine", sources: ["صداع من أسبوعين"], speaker: "patient" },
+            { field: "history", text: "private", sources: ["fabricated private quote"], speaker: "patient" },
+            { field: "decision", text: "متابعة بعد شهر", sources: ["متابعة بعد شهر"], speaker: "doctor" },
+          ],
+          warnings: [],
+        }),
+      ),
+    );
+    const { jobId } = await startMedicalProposals(owner, recording);
+    const response = await readMedicalProposals(owner, jobId);
+    expect(response).toMatchObject({
+      status: "complete",
+      result: {
+        proposals: [{ field: "complaints" }, { field: "decision" }],
+        warnings: [
+          expect.stringContaining("«التشخيص» لأنه غير منسوب صراحةً إلى الطبيب"),
+          expect.stringContaining("«التاريخ المرضي» لأن اقتباساته لا تطابق نص التسجيل"),
+        ],
+      },
+    });
+    expect(JSON.stringify(response)).not.toContain("fabricated private quote");
+  });
   it.each([
     ["missing file", "لم يُرجع Manus ملف medical-proposals.json"],
     ["download", "تعذر تنزيل ملف نتيجة Manus"],
@@ -240,12 +295,7 @@ describe("private medical Manus tasks", () => {
       "structure",
       "نتيجة Manus لا تطابق بنية الاقتراحات المطلوبة",
     ],
-    [
-      "source",
-      "اقتباس داعم من Manus لا يطابق النص حرفيًا",
-    ],
     ["duplicate", "أعاد Manus أكثر من اقتراح للحقل نفسه"],
-    ["speaker", "قرار سريري من Manus غير منسوب إلى الطبيب"],
   ])(
     "reports and caches a private-safe reason for %s",
     async (failure, reason) => {
@@ -276,10 +326,6 @@ describe("private medical Manus tasks", () => {
             : [
                 {
                   ...proposal,
-                  ...(failure === "source"
-                    ? { sources: ["fabricated private quote"] }
-                    : {}),
-                  ...(failure === "speaker" ? { field: "diagnosis" } : {}),
                 },
               ];
         vi.mocked(downloadManusFile).mockResolvedValueOnce(
@@ -292,15 +338,7 @@ describe("private medical Manus tasks", () => {
           ),
         );
       }
-      const recording =
-        failure === "speaker"
-          ? ({
-              kind: "conversation",
-              mode: "conversation",
-              transcript: input.transcript,
-            } as const)
-          : input;
-      const { jobId } = await startMedicalProposals(owner, recording);
+      const { jobId } = await startMedicalProposals(owner, input);
       const expected = {
         status: "failed",
         message: `${reason}. لم يُطبّق أي تعديل.`,
@@ -327,6 +365,23 @@ describe("private medical Manus tasks", () => {
     );
     await startMedicalProposals(owner, input);
     expect(createManusTask).toHaveBeenCalledTimes(1);
+  });
+  it("reports an unconfirmed Manus creation as failed instead of running", async () => {
+    vi.mocked(createManusTask).mockRejectedValueOnce(new Error("provider secret"));
+    await expect(startMedicalProposals(owner, input)).rejects.toMatchObject({
+      code: "BAD_GATEWAY",
+    });
+    const { jobId } = await startMedicalProposals(owner, input);
+    const response = await readMedicalProposals(owner, jobId);
+    expect(response).toEqual({
+      status: "failed",
+      message:
+        "تعذر على Manus تأكيد إنشاء المهمة. لا تعد الإرسال فورًا؛ قد تكون المهمة تعمل وتستهلك رصيدًا.",
+    });
+    expect(JSON.stringify(response)).not.toContain("provider secret");
+    // The failed job does not hold the visit's running slot.
+    await startMedicalProposals(owner, { ...input, transcript: "different" });
+    expect(createManusTask).toHaveBeenCalledTimes(2);
   });
   it("provides retryable status checking without starting another task", async () => {
     const { jobId } = await startMedicalProposals(owner, input);

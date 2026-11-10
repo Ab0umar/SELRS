@@ -3,6 +3,7 @@ import {
   varchar,
   text,
   mediumtext,
+  bigint,
   timestamp,
   date,
   double,
@@ -3408,3 +3409,34 @@ export {
   aiMarketingRecoveries,
   aiWhatsAppDrafts,
 } from "./aiCoreSchema";
+
+// Medical AI jobs with their transcript and result, readable only by the user
+// who started them. Matches drizzle/00090_medical_ai_jobs.sql.
+export const medicalAiJobs = mysqlTable(
+  "medical_ai_jobs",
+  {
+    jobId: varchar("job_id", { length: 36 }).primaryKey(),
+    ownerId: int("owner_id").notNull(),
+    patientId: int("patient_id"),
+    visitId: int("visit_id"),
+    provider: mysqlEnum("provider", ["manus", "gemini"]).notNull(),
+    engine: mysqlEnum("engine", ["current", "central"]).notNull(),
+    model: varchar("model", { length: 100 }),
+    taskId: varchar("task_id", { length: 100 }),
+    state: mysqlEnum("state", ["running", "complete", "failed"])
+      .default("running")
+      .notNull(),
+    inputJson: mediumtext("input_json").notNull(),
+    resultJson: mediumtext("result_json"),
+    failureMessage: varchar("failure_message", { length: 500 }),
+    createdMs: bigint("created_ms", { mode: "number" }).notNull(),
+    expiresMs: bigint("expires_ms", { mode: "number" }).notNull(),
+  },
+  (table) => ({
+    expiryIdx: index("medical_ai_jobs_expiry").on(table.expiresMs),
+    patientIdx: index("medical_ai_jobs_patient").on(
+      table.patientId,
+      table.createdMs,
+    ),
+  }),
+);

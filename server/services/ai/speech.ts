@@ -7,7 +7,7 @@ export async function medicalSpeechToken() {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message:
-        "Configure AZURE_SPEECH_KEY and AZURE_SPEECH_REGION on the server.",
+        "اضبط AZURE_SPEECH_KEY و AZURE_SPEECH_REGION على الخادم.",
     });
   }
   try {
@@ -30,7 +30,7 @@ export async function medicalSpeechToken() {
     throw new TRPCError({
       code: "BAD_GATEWAY",
       message:
-        "Azure Speech could not connect. Check the server Speech resource settings.",
+        "تعذر الاتصال بخدمة Azure Speech. راجع إعدادات مورد Speech على الخادم.",
     });
   }
 }

@@ -33,6 +33,7 @@ export default function ProposalReview({
   autoStart = false,
   context,
   onRunningChange,
+  existingJobId,
 }: {
   input: MedicalTranscript;
   onApplyField?: (text: string | undefined) => void;
@@ -44,6 +45,8 @@ export default function ProposalReview({
   context?: { patientId?: number; visitId?: number | null };
   /** Reports whether an AI job is starting or running, so the caller can hold off a new one. */
   onRunningChange?: (running: boolean) => void;
+  /** A job already started for this transcript: follow it instead of starting another. */
+  existingJobId?: string;
 }) {
   const start = trpc.medicalAssistant.startProposals.useMutation({
     retry: false,
@@ -89,7 +92,7 @@ export default function ProposalReview({
   useEffect(() => {
     setConsent(autoStart);
   }, [effectiveSelection, autoStart]);
-  const [jobId, setJobId] = useState<string>();
+  const [jobId, setJobId] = useState(existingJobId);
   const [paused, setPaused] = useState(false);
   const [terminalFailure, setTerminalFailure] = useState(false);
   const [result, setResult] = useState<MedicalProposals>();
@@ -174,7 +177,8 @@ export default function ProposalReview({
       );
     }
   }, [result, reviewOnly, input.kind, form]);
-  const autoStarted = useRef(false);
+  // A followed job was already started, so it never starts another.
+  const autoStarted = useRef(Boolean(existingJobId));
   const begin = async () => {
     setError("");
     try {

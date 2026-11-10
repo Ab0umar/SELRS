@@ -2986,7 +2986,7 @@ export default function MedicalFilePanel({
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                       الشكوى و الاعراض
                     </h3>
-                    <Textarea aria-label="اكتب الشكوى و الاعراض هنا…"
+                    <Textarea aria-label="الشكوى"
                       data-medical-proposals="complaints"
                       value={formData.medicalHistory}
                       onChange={(e) =>
@@ -3070,7 +3070,7 @@ export default function MedicalFilePanel({
                   <p className="mb-2 !text-[13px] font-bold text-primary">
                     Diagnosis:
                   </p>
-                  <Textarea aria-label="اكتب التشخيص يدويًا أو ابحث بالأسفل…"
+                  <Textarea aria-label="التشخيص"
                       data-medical-proposals="diagnosis"
                       value={formData.diagnosis}
                     onChange={(e) =>
@@ -3163,7 +3163,7 @@ export default function MedicalFilePanel({
                     <label className="block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={formData.treatmentPlan ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,treatmentPlan:event.target.value}))}/></label>
                     <label className="block">التاريخ المرضي<Textarea aria-label="التاريخ المرضي" data-medical-proposals="history" value={formData.historyNotes ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,historyNotes:event.target.value}))}/></label>
                   <label className="block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={formData.treatmentPlan ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,treatmentPlan:event.target.value}))}/></label>
-                  <Textarea aria-label="اكتب التوصيات هنا…"
+                  <Textarea aria-label="التوصيات"
                       data-medical-proposals="decision"
                       value={formData.recommendations}
                       onChange={(e) =>
@@ -3552,7 +3552,7 @@ export default function MedicalFilePanel({
                   </Label>
                   <label className="mb-3 block">التاريخ المرضي<Textarea aria-label="التاريخ المرضي" data-medical-proposals="history" value={formData.historyNotes ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,historyNotes:event.target.value}))}/></label>
                   <label className="mb-3 block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={formData.treatmentPlan ?? ""} onChange={event=>setFormData((previous:any)=>({...previous,treatmentPlan:event.target.value}))}/></label>
-                  <Textarea aria-label="أدخل التوصيات…"
+                  <Textarea aria-label="التوصيات"
                     data-medical-proposals="decision"
                     value={formData.recommendations}
                     onChange={(e) =>

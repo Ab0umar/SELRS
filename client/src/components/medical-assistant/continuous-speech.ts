@@ -31,7 +31,7 @@ export function maintainContinuousSpeech(
     if (ended || restarting) return;
     if (++retries > 2) {
       fail(
-        "Azure repeatedly ended the session. Captured text is preserved; close and try again.",
+        "أنهى Azure الجلسة أكثر من مرة. النص الملتقط محفوظ؛ أغلق الشريط وحاول مرة أخرى.",
       );
       return;
     }
@@ -44,7 +44,7 @@ export function maintainContinuousSpeech(
           restarting = false;
           if (!ended) callbacks.recording();
         },
-        () => fail("Azure could not reconnect. Captured text is preserved."),
+        () => fail("تعذّر إعادة اتصال Azure. النص الملتقط محفوظ."),
       );
     }, 500);
   };
@@ -52,7 +52,7 @@ export function maintainContinuousSpeech(
   recognizer.canceled = (_, event) => {
     if (event.reason === errorReason) {
       fail(
-        `Azure stopped recording (error ${event.errorCode}). Captured text is preserved.`,
+        `توقف تسجيل Azure (خطأ ${event.errorCode}). النص الملتقط محفوظ.`,
       );
     } else restart();
   };

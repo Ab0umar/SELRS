@@ -39,7 +39,7 @@ export async function medicalGeminiSpeechToken() {
     throw new TRPCError({
       code: "BAD_GATEWAY",
       message:
-        "Gemini Live could not connect. Check model access and API billing. Azure remains available.",
+        "تعذر الاتصال بـ Gemini Live. راجع صلاحية النموذج وفوترة الواجهة البرمجية. Azure ما زال متاحًا.",
     });
   }
 }

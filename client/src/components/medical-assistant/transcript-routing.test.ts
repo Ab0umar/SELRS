@@ -41,6 +41,6 @@ describe("medical recording scope", () => {
   it("rejects an empty transcript", () => {
     expect(() =>
       routeTranscript({ kind: "field", label: "Complaints" }, "  "),
-    ).toThrow("transcript first");
+    ).toThrow("النص أولًا");
   });
 });

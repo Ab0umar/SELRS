@@ -28,12 +28,12 @@ export default function PrescriptionTemplateReview({ text }: { text: string }) {
     );
     if (form?.disabled || entries.length !== 1)
       throw new Error(
-        "Open the prescription section first. No unique editable prescription is available.",
+        "افتح قسم الروشتة أولًا. لا توجد روشتة واحدة قابلة للتعديل.",
       );
     const [key, entry] = entries[0];
     const binding = entry.get();
     if (binding.disabled)
-      throw new Error("The prescription is not editable or is still loading.");
+      throw new Error("الروشتة غير قابلة للتعديل أو ما زالت قيد التحميل.");
     return { key, binding };
   };
   return (
@@ -42,8 +42,8 @@ export default function PrescriptionTemplateReview({ text }: { text: string }) {
       aria-label="Prescription template review"
     >
       <p>
-        Find a named prescription template. Review its saved instructions before
-        adding. Existing medicines are kept unchanged.
+        ابحث عن قالب روشتة بالاسم وراجع تعليماته المحفوظة قبل الإضافة. الأدوية
+        الموجودة تبقى كما هي.
       </p>
       <Input
         aria-label="Prescription template name"
@@ -81,19 +81,19 @@ export default function PrescriptionTemplateReview({ text }: { text: string }) {
             setSelected(undefined);
             setMessage(
               found.length
-                ? "Choose and review a template."
-                : "No matching template found. No replacement content was generated.",
+                ? "اختر قالبًا وراجعه."
+                : "لا يوجد قالب مطابق. لم يتم إنشاء أي محتوى بديل.",
             );
           } catch (error) {
             setMessage(
               error instanceof Error
                 ? error.message
-                : "Could not find templates.",
+                : "تعذّر البحث عن القوالب.",
             );
           }
         }}
       >
-        Find templates
+        بحث عن القوالب
       </Button>
       {matches.map((template) => (
         <Button
@@ -136,12 +136,12 @@ export default function PrescriptionTemplateReview({ text }: { text: string }) {
                   JSON.stringify(current) !== JSON.stringify(selected)
                 )
                   throw new Error(
-                    "The template changed. Find and review it again.",
+                    "تغيّر القالب. ابحث عنه وراجعه مرة أخرى.",
                   );
                 const after = appendPrescriptionTemplate(binding, current);
                 if (after.ids.length === binding.draft.ids.length) {
                   setMessage(
-                    "All medicines already exist. Their instructions were left unchanged.",
+                    "كل الأدوية موجودة بالفعل. لم تتغير تعليماتها.",
                   );
                   return;
                 }
@@ -149,18 +149,18 @@ export default function PrescriptionTemplateReview({ text }: { text: string }) {
                 binding.change(after);
                 setReceipt({ key, before, after });
                 setMessage(
-                  "Added to the draft only. Review and save using the form.",
+                  "أُضيف إلى المسودة فقط. راجع واحفظ من النموذج.",
                 );
               } catch (error) {
                 setMessage(
                   error instanceof Error
                     ? error.message
-                    : "Could not add the template.",
+                    : "تعذّرت إضافة القالب.",
                 );
               }
             }}
           >
-            Confirm and add template
+            تأكيد وإضافة القالب
           </Button>
         </>
       )}
@@ -176,19 +176,19 @@ export default function PrescriptionTemplateReview({ text }: { text: string }) {
                 JSON.stringify(binding.draft) !== JSON.stringify(receipt.after)
               )
                 throw new Error(
-                  "The prescription changed or closed. Undo cannot overwrite newer edits.",
+                  "تغيّرت الروشتة أو أُغلقت. لا يمكن للتراجع استبدال التعديلات الأحدث.",
                 );
               binding.change(receipt.before);
               setReceipt(undefined);
-              setMessage("Draft addition undone.");
+              setMessage("تم التراجع عن الإضافة إلى المسودة.");
             } catch (error) {
               setMessage(
-                error instanceof Error ? error.message : "Could not undo.",
+                error instanceof Error ? error.message : "تعذّر التراجع.",
               );
             }
           }}
         >
-          Undo template addition
+          تراجع عن إضافة القالب
         </Button>
       )}
       {message && <p role="status">{message}</p>}

@@ -234,13 +234,13 @@ function ConfiguredFieldDictation(props: RecordingProps) {
         try {
           gemini.finish();
         } catch {
-          fail("Unable to finish Gemini recording. Review captured text.");
+          fail("تعذر إنهاء تسجيل Gemini. راجع النص المسجَّل.");
           return;
         }
         finishTimer = setTimeout(finish, 2500);
       } else if (recognizer)
         recognizer.stopContinuousRecognitionAsync(finish, () =>
-          fail("Unable to finish recording. Review the captured text."),
+          fail("تعذر إنهاء التسجيل. راجع النص المسجَّل."),
         );
       else {
         disposed = true;
@@ -252,7 +252,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
     void (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia)
-          throw new Error("Microphone requires HTTPS and a supported browser.");
+          throw new Error("الميكروفون يحتاج اتصال HTTPS ومتصفحًا مدعومًا.");
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
         });
@@ -317,7 +317,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
           const credentials = await geminiToken.mutateAsync({ consentConfirmed: true });
           if (disposed || stopping) return;
           if (!meterContext || !meterSource || meterContext.state !== "running")
-            throw new Error("Browser audio capture is unavailable.");
+            throw new Error("التقاط الصوت غير متاح في المتصفح.");
           const { connectGeminiLive } = await import("./gemini-live");
           if (disposed || stopping) return;
           const connected = await connectGeminiLive(credentials, {
@@ -344,7 +344,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
                 return;
               }
               fail(
-                "Gemini Live disconnected. Finalized text is preserved; some speech may be missing. Try Azure or start a new recording.",
+                "انقطع اتصال Gemini Live. النص المكتمل محفوظ، وقد يكون بعض الكلام ناقصًا. جرّب Azure أو ابدأ تسجيلًا جديدًا.",
               );
             },
           });
@@ -367,13 +367,13 @@ function ConfiguredFieldDictation(props: RecordingProps) {
                 lastAudioSentAt = performance.now();
               } catch {
                 fail(
-                  "Gemini audio delivery failed. Finalized text is preserved.",
+                  "تعذر إرسال الصوت إلى Gemini. النص المكتمل محفوظ.",
                 );
               }
             },
             () =>
               fail(
-                "Browser audio capture stopped. Finalized text is preserved.",
+                "توقف التقاط الصوت في المتصفح. النص المكتمل محفوظ.",
               ),
           );
           if (disposed || stopping) release();
@@ -390,7 +390,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
         if (disposed) return;
         if (!meterContext || !meterSource || meterContext.state !== "running")
           throw new Error(
-            "Browser audio capture is unavailable. Close and try again.",
+            "التقاط الصوت غير متاح في المتصفح. أغلق الشريط وحاول مرة أخرى.",
           );
         const connectAzure = () => {
           const epoch = ++generation;
@@ -412,7 +412,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
           config.setProperty(sdk.PropertyId.WebWorkerLoadType, "off");
           if (!meterContext || !meterSource || meterContext.state !== "running")
             throw new Error(
-              "Browser audio capture is unavailable. Close and try again.",
+              "التقاط الصوت غير متاح في المتصفح. أغلق الشريط وحاول مرة أخرى.",
             );
           pushStream = sdk.AudioInputStream.createPushStream(
             sdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1),
@@ -491,7 +491,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
                 );
             },
             () => {
-              if (current()) fail("Could not start Azure recording.");
+              if (current()) fail("تعذر بدء التسجيل عبر Azure.");
             },
           );
           clearInterval(recoveryTimer);
@@ -508,7 +508,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
               return;
             if (++recoveries > 2) {
               fail(
-                "Azure audio delivery stalled repeatedly. Finalized text is preserved; speech during the interruptions may be missing. Close and try again.",
+                "توقف إرسال الصوت إلى Azure أكثر من مرة. النص المكتمل محفوظ، وقد يكون الكلام أثناء التوقف ناقصًا. أغلق الشريط وحاول مرة أخرى.",
               );
               return;
             }
@@ -520,7 +520,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
             try {
               connectAzure();
             } catch {
-              fail("Could not rebuild Azure. Finalized text is preserved.");
+              fail("تعذر إعادة اتصال Azure. النص المكتمل محفوظ.");
             }
           }, 1000);
         };
@@ -536,13 +536,13 @@ function ConfiguredFieldDictation(props: RecordingProps) {
               pushStream?.write(bytes);
             } catch {
               fail(
-                "Could not send microphone audio. Finalized text is preserved.",
+                "تعذر إرسال صوت الميكروفون. النص المكتمل محفوظ.",
               );
             }
           },
           () =>
             fail(
-              "Browser audio processor stopped. Captured text is preserved.",
+              "توقف معالج الصوت في المتصفح. النص المسجَّل محفوظ.",
             ),
         );
         if (disposed || stopping) release();
@@ -550,7 +550,7 @@ function ConfiguredFieldDictation(props: RecordingProps) {
         fail(
           cause instanceof Error
             ? cause.message
-            : "Could not access the microphone.",
+            : "تعذر الوصول إلى الميكروفون.",
         );
       }
     })();

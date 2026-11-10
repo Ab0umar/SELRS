@@ -16,15 +16,15 @@ export const medicalProposalLabels: Record<
   (typeof medicalProposalFields)[number],
   string
 > = {
-  complaints: "Complaints",
-  symptoms: "Symptoms",
-  history: "Medical history",
-  diagnosis: "Doctor-stated diagnosis",
-  treatment: "Doctor-stated treatment",
-  imaging: "Imaging requests",
-  labs: "Laboratory requests",
-  decision: "Final decision",
-  field: "Selected field",
+  complaints: "الشكوى",
+  symptoms: "الأعراض",
+  history: "التاريخ المرضي",
+  diagnosis: "التشخيص",
+  treatment: "العلاج",
+  imaging: "طلبات الأشعة",
+  labs: "طلبات التحاليل",
+  decision: "القرار النهائي",
+  field: "الحقل المحدد",
 };
 // Eight minutes of fast two-person Arabic speech stays well under this, so a
 // full recording always reaches the automatic review.
@@ -110,7 +110,7 @@ export type MedicalProposals = z.infer<typeof medicalProposalSchema>;
 
 export class MedicalProposalValidationError extends Error {
   constructor(
-    readonly reason: "duplicate_field" | "scope" | "source" | "speaker" | "medication",
+    readonly reason: "duplicate_field" | "scope",
     message: string,
   ) {
     super(message);
@@ -143,67 +143,94 @@ export function validateMedicalProposals(
         "Duplicate proposal field",
       );
     seen.add(proposal.field);
+  }
+  if (input.kind === "field" ? output.proposals.length > 1 : seen.has("field"))
+    throw new MedicalProposalValidationError(
+      "scope",
+      "Proposal outside recording scope",
+    );
+  // An answer that has already been paid for is repaired, not rejected: only
+  // the unsupported part is dropped, and the doctor is told what was dropped.
+  const notes: string[] = [];
+  const label = (field: MedicalProposals["proposals"][number]["field"]) =>
+    input.kind === "field" ? input.label : medicalProposalLabels[field];
+  const spoken = (text: string) => input.transcript.includes(text);
+  const proposals: MedicalProposals["proposals"] = [];
+  for (const proposal of output.proposals) {
+    const { medications, ...rest } = proposal;
+    // A field dictation has a single destination; the model sometimes names
+    // the clinical field it recognised (diagnosis, treatment) instead.
+    const item =
+      input.kind === "field" ? { ...rest, field: "field" as const } : rest;
     if (
-      proposal.medications?.length &&
-      (proposal.field !== "treatment" ||
-        proposal.medications.some(
-          (item) => !input.transcript.includes(item.source),
-        ))
-    )
-      throw new MedicalProposalValidationError(
-        "medication",
-        "Medicine extraction is outside treatment scope or lacks transcript evidence",
-      );
-    if ((input.kind === "field") !== (proposal.field === "field"))
-      throw new MedicalProposalValidationError(
-        "scope",
-        "Proposal outside recording scope",
-      );
-    if (proposal.sources.some((source) => !input.transcript.includes(source)))
-      throw new MedicalProposalValidationError(
-        "source",
-        "Proposal source is not in the transcript",
-      );
-    if (
+      input.kind === "conversation" &&
       ["diagnosis", "treatment", "imaging", "labs", "decision"].includes(
-        proposal.field,
+        item.field,
       ) &&
-      proposal.speaker !== "doctor"
-    )
-      throw new MedicalProposalValidationError(
-        "speaker",
-        "Clinical decision requires an explicit doctor statement",
+      item.speaker !== "doctor"
+    ) {
+      notes.push(
+        `حُذف اقتراح «${label(item.field)}» لأنه غير منسوب صراحةً إلى الطبيب. راجع هذا الحقل يدويًا.`,
       );
+      continue;
+    }
+    const sources = item.sources.filter(spoken);
+    if (!sources.length) {
+      notes.push(
+        `حُذف اقتراح «${label(item.field)}» لأن اقتباساته لا تطابق نص التسجيل. راجع هذا الحقل يدويًا.`,
+      );
+      continue;
+    }
+    const kept =
+      input.kind === "conversation" && item.field === "treatment"
+        ? medications?.filter((medication) => {
+            if (spoken(medication.source)) return true;
+            notes.push(
+              `حُذف الدواء «${medication.name}» لأن مصدره غير موجود في نص التسجيل. راجعه يدويًا.`,
+            );
+            return false;
+          })
+        : undefined;
+    if (
+      input.kind === "conversation" &&
+      item.field !== "treatment" &&
+      medications?.length
+    )
+      notes.push(
+        `حُذفت الأدوية من اقتراح «${label(item.field)}» لأنها تخص العلاج فقط. راجعها يدويًا.`,
+      );
+    proposals.push({
+      ...item,
+      sources,
+      ...(kept?.length ? { medications: kept } : {}),
+    });
   }
   // In a recorded conversation, a field that repeats most of the transcript word
   // for word is the raw conversation rather than an extracted value; drop it so it
   // never fills a field. Length alone is not evidence: a condensed summary can be
   // long, and in doctor dictation the whole transcript may be one field's value.
-  if (
-    input.kind !== "conversation" ||
-    input.mode !== "conversation" ||
-    input.transcript.length < 200
-  )
-    return output;
-  const transcriptPhrases = phrases(input.transcript);
-  if (transcriptPhrases.size < 10) return output;
-  const rawCopies = output.proposals.filter((proposal) => {
-    let repeated = 0;
-    for (const phrase of phrases(proposal.text))
-      if (transcriptPhrases.has(phrase)) repeated++;
-    return repeated / transcriptPhrases.size >= 0.6;
-  });
-  if (!rawCopies.length) return output;
+  const transcriptPhrases =
+    input.kind === "conversation" &&
+    input.mode === "conversation" &&
+    input.transcript.length >= 200
+      ? phrases(input.transcript)
+      : new Set<string>();
+  const rawCopies =
+    transcriptPhrases.size < 10
+      ? []
+      : proposals.filter((proposal) => {
+          let repeated = 0;
+          for (const phrase of phrases(proposal.text))
+            if (transcriptPhrases.has(phrase)) repeated++;
+          return repeated / transcriptPhrases.size >= 0.6;
+        });
+  for (const proposal of rawCopies)
+    notes.push(
+      `حُذف اقتراح «${medicalProposalLabels[proposal.field]}» لأنه نسخ معظم المحادثة بدل استخراج المعلومة. راجع هذا الحقل يدويًا.`,
+    );
   return {
-    proposals: output.proposals.filter(
-      (proposal) => !rawCopies.includes(proposal),
-    ),
-    warnings: [
-      ...output.warnings,
-      ...rawCopies.map(
-        (proposal) =>
-          `حُذف اقتراح «${medicalProposalLabels[proposal.field]}» لأنه نسخ معظم المحادثة بدل استخراج المعلومة. راجع هذا الحقل يدويًا.`,
-      ),
-    ].slice(0, 12),
+    proposals: proposals.filter((proposal) => !rawCopies.includes(proposal)),
+    // Repair notes first, so the cap never hides what was dropped.
+    warnings: [...notes, ...output.warnings].slice(0, 12),
   };
 }
