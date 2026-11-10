@@ -1,6 +1,8 @@
 # Public landing page: handoff
 
-State as of 2026-11-10. Nothing is committed or deployed yet.
+State as of 2026-11-10. The page is in the repo and is what `/` renders for a signed-out
+browser. Shipping it to the clinic server is still a normal release (`docs/operations.md`);
+this file does not record that a production restart has happened.
 
 ## What it is
 
@@ -15,7 +17,7 @@ Signed-in staff and the app shells (Capacitor, `SELRSDesktop/1`, `SELRS/1` user 
 | `client/src/features/public-site/landingBehavior.ts` | `setupLanding(root, navigate)`: tabs, sub-tabs, procedure selector, deep links (`#id`), theme toggle. Returns a cleanup. |
 | `client/src/features/public-site/landing.css` | All styles, scoped under `.selrs-landing`. Ends with overrides for Tailwind preflight and the app's global mobile `table` rules. |
 | `client/src/routes/guards.tsx` | `RootRouteGate`: landing for visitors, redirect for staff/app shells. |
-| `client/src/routes/misc-routes.tsx` | `ROUTES.root` now uses `RootRouteGate` (this file also holds unrelated uncommitted ReceptionInbox work). |
+| `client/src/routes/misc-routes.tsx` | `ROUTES.root` uses `RootRouteGate`. |
 | `client/public/marketing/site/*` | Page images (doctors, devices, eye photo, logo). |
 | `docs/prototypes/selrs-landing-a.src.html` | Single-file prototype source, kept in sync with the app by hand. |
 | `docs/prototypes/selrs-landing-a.html` | Built prototype with images embedded (open by double-click). |
@@ -30,7 +32,7 @@ Unused old drafts, not imported anywhere: `client/src/features/public-site/Publi
 - Hero «رؤية أوضح.. لحياة أفضل»: full-width banner. Eye photo on the left fading to the right, laser (`excimer-laser-cutout.webp`) and Pentacam (`pentacam.webp`, from oculus.de with the user's approval) in front. Text and buttons on the right. Services strip below it.
 - Main tabs: الخدمات، جهاز الليزر، الأطباء، الفروع والمواعيد، نصائح.
 - Services tab holds sub-tabs: كل الخدمات (titles and hints only), الليزك وتصحيح الإبصار، المياه البيضاء، زراعة العدسات، تثبيت القرنية، البنتاكام Pentacam، المياه الزرقاء، الحول والأطفال، الكشف والفحوصات.
-- Every «احجز» link goes to `/my/login`.
+- Every «احجز» link goes to `/my/login` (WhatsApp OTP, then the patient file; guest booking is the other tab). See `docs/operations.md` and the Patient Portal section of `docs/api-reference.md`.
 
 ## Content rules from the user
 

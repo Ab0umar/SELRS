@@ -22,7 +22,8 @@ them matter for a given question.
 6. [Concurrency and locking](#concurrency-and-locking)
 7. [Time zones and device clock offsets](#time-zones-and-device-clock-offsets)
 8. [Rules engine and materializer semantics](#rules-engine-and-materializer-semantics)
-9. [Troubleshooting](#troubleshooting)
+9. [Paid leave](#paid-leave)
+10. [Troubleshooting](#troubleshooting)
 
 ## Pipeline overview
 
@@ -212,7 +213,7 @@ Leave and permissions (inputs to compute):
 | File | Role |
 |---|---|
 | `leaveManagement.service.ts` | leave requests and balances |
-| `leaveAccounting.ts` | per-year leave day accounting |
+| `leaveAccounting.ts` | per-year leave day accounting; `paid` days stay out of the balance and salary-day sets |
 | `leaveDates.ts` | approved leave days intersecting a calendar year |
 | `leaveDayExclusions.ts` | predicate for days leave should not count on |
 | `permissionAdjustment.service.ts` | re-applies permission effects to daily rows |
@@ -635,6 +636,36 @@ When `options.recomputeMonthly` is set, `MonthlyComputeService.saveEmployeeMonth
 employee and per covered month after the daily transaction commits, still under the materializer
 lock (section 6).
 
+## Paid leave
+
+`attendance_leaves.type` accepts `paid` (`drizzle/0110_attendance_paid_leave.sql`).
+The attendance screen labels it «مدفوعة». Employees requesting leave for themselves
+(`attendance.myRequestLeave`) can still choose only `annual` or `sick`. A manager
+records a paid leave with `attendance.createLeave` or `attendance.updateLeave`
+(`makeAttWriteProcedure` on `/attendance` or `/attendance/employees`). `createLeave`
+stores the row already approved and recomputes that date range.
+
+| Step | Behavior |
+|---|---|
+| Balance and salary-day sets | `accountLeaveDays` skips `type === "paid"`. The day is absent from `balanceDays` and from `salaryDateKeys`. |
+| Commission flag | `LeaveManagementService.createLeave` and the `attendance.updateLeave` router both store `notAffectCommission: true` for `paid`, including when the caller sends `false`. |
+| Daily row | Approved leave returns from `rulesEngine.computeDay` before punch pairing, with `status: "leave"` and late/early minutes at 0. The materializer copies `leaveType: "paid"`. |
+| Payroll work days | `countsAsPayrollWorkDay` keeps a paid-leave day in the work-day count, so it is paid and is not an absence. A paid-leave day that is unscheduled (`scheduled === false`) or falls on a paid holiday is left out of that count. |
+| Commission leave days | `countCommissionAffectingLeaveDays` ignores `leaveType === "paid"`. |
+| Single raw scan | `payrollCompute` passes `empCd\|YYYY-MM-DD` keys for paid-leave days into `getSinglePunchDayKeys` as excluded days. A lone device scan on that day is not a missing-checkout deduction. |
+
+Changing the same row from `paid` to `annual` charges the annual balance; changing it
+back releases the charge. `server/tests/attendance.test.ts` covers that round trip.
+Approved leaves still cannot overlap (`توجد إجازة متداخلة مع هذه الفترة`).
+
+`loadLeaveDayExclusions` already drops paid official holidays and weekly rest days
+from every leave type before `accountLeaveDays` runs. That filter is separate from
+the payroll work-day rule in the table above.
+
+Raw punches stay in `attendance_punches`. The daily row shows leave with zero
+lateness, while payroll still reads the raw scans for missing checkout. The
+exclusion set is what keeps a scan on a paid-leave day from becoming a deduction.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Where to look | Fix |
@@ -646,6 +677,7 @@ lock (section 6).
 | Night-shift day shows `missing_checkout` | The checkout landed after midnight and was not attributed to the prior work date | The shift's `crossesMidnight` flag and `endTime`; next-day punch eligibility in `partitionPunchesForShifts` (punch minute must be within the shift's end) | Correct the shift definition; if the punch is beyond the shift end, the raw punches list is the source of truth |
 | No ADMS punches arrive | Allowlist rejection, ADMS disabled, or the ATTLOG query never queued | Server logs: `403 DENY` means `ZK_ADMS_DEVICE_ALLOWLIST` has no `serial@ip` pair matching the source IP (watch the `::ffff:` IPv6 prefix); `OK: 0` on ATTLOG with no rows means the toggle (`enabled` + `zk40Protocol=adms` + `admsEnabled`) or the one-per-session `DATA QUERY ATTLOG` is the problem | Fix the allowlist entry or the device settings; restart the server session to re-queue the ATTLOG query |
 | Daily rows stale after a shift change | Recompute not run, or run for a narrower range than the change affects | The shift router recomputes scoped to the employee; the nightly job covers 7 days | Run the admin rebuild for the affected range (up to 366 days per call) |
+| A «مدفوعة» day still reduces annual balance, or a single scan that day deducts pay | The row is not `type = paid`, the daily recompute has not run, or payroll is not excluding that `empCd\|date` | `attendance_leaves.type`, `attendance_daily.leaveType`, `accountLeaveDays`, `paidLeaveDayKeys` in `payrollCompute.service.ts` | Set the type to `paid` (this forces `notAffectCommission`) and let `createLeave` / `updateLeave` recompute the range |
 
 ### Known gaps
 

@@ -1,7 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
-> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed.
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type.
 
 ---
 
@@ -97,7 +97,7 @@ MySQL (selrs26)                    MSSQL (op2026)
 - Attendance routes: `/attendance/*` — gated by attendance permission
 - KF routes: `/kf/*` — gated by KF permission
 - Key renames done: `/txhub` → `/treatment`, `/today` → `/bookings`, `/admin-hub` → `/booking-triage` (redirects in place)
-- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, doctorPortal, ... }`
+- Backend: `server/routers/index.ts` composes `appRouter = { medical, patient, accounting, attendance, kf, doctorPortal, patientPortal, ... }`
 
 ## tRPC Structure
 
@@ -116,6 +116,7 @@ server/routers/
 ├── accounting.ts             → Accounting reports plus guarded production mutations
 ├── attendance.ts             → Attendance module (~3500 lines; shifts/leaves/holidays/sync/reports)
 ├── doctorPortal.ts           → External doctor portal (login, getMyPatients, getPatientImages)
+├── patientPortal.ts          → Patient portal: WhatsApp OTP login, guest booking, patient session queries
 └── kf.ts                     → KF clinical module
 
 server/_core/
@@ -132,6 +133,7 @@ server/_core/
 - `publicProcedure` — no auth
 - `protectedProcedure` — any authenticated user
 - `doctorPortalProcedure` — external doctor portal JWT auth (verifies `type: "externalDoctor"` JWT)
+- `patientPortalProcedure` — patient JWT from `x-patient-token` (`type: "patient"`) plus a matching unexpired row in `patient_portal_sessions`
 - `doctorProcedure` — doctor, admin, manager
 - `nurseProcedure` — nurse, admin, manager
 - `technicianProcedure` — technician, admin, manager
@@ -161,7 +163,8 @@ client/src/
 │   ├── stockroom/             → Stockroom pages
 │   ├── admin/                 → Admin pages
 │   ├── doctor-portal/         → Doctor portal pages; DoctorDashboard opens WS for real-time notifications
-│   └── patient-portal/        → Patient portal pages
+│   ├── patient-portal/        → Patient portal pages (`/my/login` OTP + guest booking)
+│   └── public-site/           → Clinic landing page served at `/` for signed-out browsers
 ├── components/
 │   ├── ProtectedRoute.tsx     → Frontend auth gate; uses ROUTES.* constants (UNTOUCHABLE)
 │   ├── ui/                    → shadcn/ui primitives
@@ -541,6 +544,12 @@ server/services/accounting/
 - Queries `srv100_uploads` where `patient_id IS NULL`, matches by patient code in file name, updates `patient_id`
 - Guarded by `busy` flag to prevent concurrent runs; logs only when `imported > 0`
 - **Do not add manual triggers or UI buttons** for Pentacam linking — the scheduler handles it
+
+## Patient portal and public site
+
+- `/` is `RootRouteGate`: signed-out browsers see `client/src/features/public-site/LandingPage.tsx`. Signed-in staff, Capacitor, and the `SELRSDesktop/1` / `SELRS/1` shells redirect to `/home`.
+- Patient login is `patientPortal.login` → `verifyLoginOtp` → optional `selectLoginPatient`. The code is a WhatsApp authentication template (`WHATSAPP_AUTHENTICATION_TEMPLATE`). Contract and failure modes: `docs/api-reference.md`, `docs/operations.md`.
+- Paid staff leave (`attendance_leaves.type = paid`) is outside the patient site. It skips annual-balance and salary-day accounting. See `docs/ATTENDANCE_SYNC.md`.
 
 ## Doctor Portal
 

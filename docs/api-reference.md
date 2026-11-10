@@ -1290,15 +1290,29 @@ Router file: `server/routers/salary.ts`
 
 ## 📱 Patient Portal Router (`patientPortal`)
 
-Self-service portal for patients. Uses `patientPortalProcedure` (patient OTP session). Public procedures include OTP request/verify.
+Self-service portal for patients. Checked against `server/routers/patientPortal.ts` and `server/services/patientPortalAuth.ts` on 2026-11-10. There is no `requestOtp` or `verifyOtp` procedure.
 
-### Key procedures
+Authenticated calls send the patient JWT in `x-patient-token` (the browser stores it as `patient_portal_token`). `patientPortalProcedure` accepts the token only when `type` is `patient`, `patientId` matches, and `patient_portal_sessions` still has that exact token with `expiresAt` in the future. Setup for the WhatsApp template is in `docs/operations.md`.
+
+### Login
+
+| Procedure | Auth | Input | Result |
+|---|---|---|---|
+| `login` | public | `{ phone, dateOfBirth? }` via `patientLoginInput` | `{ challengeId, expiresInSeconds: 300, resendAfterSeconds: 60 }` |
+| `verifyLoginOtp` | public | `{ challengeId, code, dateOfBirth? }` | One patient: `{ requiresPatientSelection: false, token, patient: { name, patientCode } }`. Several patients on the same phone and birth date: `{ requiresPatientSelection: true, selectionToken, patients: [{ id, name }] }`. |
+| `selectLoginPatient` | public | `{ selectionToken, patientId }` | `{ token, patient: { name, patientCode } }` |
+| `logout` | `patientPortalProcedure` | none | `{ ok: true }`. Deletes the current session row. |
+
+`phone` is normalized to an Egyptian mobile `01` plus 9 digits (Arabic-Indic digits are accepted). `dateOfBirth` is optional; an empty string is dropped. The same birth date has to be sent to `login` and `verifyLoginOtp`: it is part of the HMAC stored in `patient_portal_otps.code`. The code itself is that HMAC, not the six digits. A challenge lasts 5 minutes and allows 5 attempts. The session JWT lasts 30 days.
+
+`login` looks up `patients.phone` as `01…`, `201…`, or `+201…`. With a birth date, `patients.dateOfBirth` must equal it. With no birth date, the match is `dateOfBirth IS NULL`.
+
+`login` returns the same payload when no patient matches, when the per-phone send cap (3 per 15 minutes) or the 60-second cooldown trips, and when WhatsApp rejects the message. In the last case the challenge row is marked `verified` and the server logs `[patient-portal] OTP_DELIVERY_FAILED`, so a later `verifyLoginOtp` fails. These calls do surface a different error: database unavailable, WhatsApp OTP not configured (`SERVICE_UNAVAILABLE`, Arabic message telling the patient to contact reception), the IP+phone cap (5 per 15 minutes), and the IP send cap (20 per 15 minutes).
+
+### Other procedures
 
 | Procedure | Type | Auth |
 |---|---|---|
-| `requestOtp` | mutation | public |
-| `verifyOtp` | mutation | public |
-| `logout` | mutation | `patientPortalProcedure` |
 | `getMyProfile` | query | `patientPortalProcedure` |
 | `getMyScans` | query | `patientPortalProcedure` |
 | `getMyRefractions` | query | `patientPortalProcedure` |
@@ -1307,8 +1321,12 @@ Self-service portal for patients. Uses `patientPortalProcedure` (patient OTP ses
 | `getMyBookings` | query | `patientPortalProcedure` |
 | `getNotifications` | query | `patientPortalProcedure` |
 | `registerPatientPushToken` | mutation | `patientPortalProcedure` |
+| `getAvailableDates` | query | public |
+| `createGuestBooking` | mutation | public |
 
 `getMyProfile` returns the patient record plus a `visitCount` field (count of visit rows for that patient).
+
+`createGuestBooking` takes `guestBookingContactSchema` (Arabic full name, Egyptian mobile), an optional email, `bookingType` (`consultant`, `specialist`, `pentacam`, `external`, `followup`), an optional `branch` (`tanta` or `kfs`), `requestedDate` (`YYYY-MM-DD`), and optional notes. Limits in `server/lib/guestBookingLimits.ts`: 5 requests per IP per hour, 3 per phone per day, 300 per hour overall. The booking-received WhatsApp is sent when that phone's daily counter is 1. Over the cap, the procedure throws `TOO_MANY_REQUESTS`.
 
 Router file: `server/routers/patientPortal.ts`
 
