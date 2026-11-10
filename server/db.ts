@@ -3626,8 +3626,14 @@ export async function getAllFollowupItems(limit = 500, filters: VisitListFilters
   if (!db) throw new Error("Database not available");
   const cap = Math.min(Math.max(limit, 1), 1000);
 
-  // The followup record is the followup VISIT (queue / dialog create it); the sheet item is
-  // optional detail. Starting from items dropped followups that had no sheet yet.
+  // Queue followups are visits of type followup and may have no sheet yet. Sheet saves
+  // attach the item to whatever visit already exists that day, usually an examination.
+  const linkedSheet = sql`exists (
+    select 1 from ${followupItems}
+    inner join ${followupSheets} on ${followupSheets.id} = ${followupItems.followupSheetId}
+    where ${followupItems.visitId} = ${visits.id}
+      and ${followupSheets.patientId} = ${visits.patientId}
+  )`;
   const followupVisits=await db
     .select({
       visitId: visits.id,
@@ -3637,7 +3643,7 @@ export async function getAllFollowupItems(limit = 500, filters: VisitListFilters
     })
     .from(visits)
     .innerJoin(patients, eq(visits.patientId, patients.id))
-    .where(and(eq(visits.visitType,"followup"),buildVisitListClauses(filters)))
+    .where(and(or(eq(visits.visitType,"followup"), linkedSheet), buildVisitListClauses(filters)))
     .orderBy(desc(visits.visitDate),desc(visits.id))
     .limit(cap);
 
@@ -3650,13 +3656,14 @@ export async function getAllFollowupItems(limit = 500, filters: VisitListFilters
       tableIndex: followupItems.tableIndex,
       followupName: followupItems.followupName,
       sheetType: followupSheets.sheetType,
+      sheetPatientId: followupSheets.patientId,
     })
     .from(followupItems)
     .innerJoin(followupSheets, eq(followupItems.followupSheetId, followupSheets.id))
     .where(inArray(followupItems.visitId,visitIds)) : [];
 
   const rows=followupVisits.flatMap((visit:{visitId:number;patientId:number;patientFullName:string|null;patientCode:string|null})=>{
-    const own=items.filter((item:{visitId:number|null})=>item.visitId===visit.visitId);
+    const own=items.filter((item:{visitId:number|null;sheetPatientId:number})=>item.visitId===visit.visitId && item.sheetPatientId===visit.patientId);
     const base={visitId:visit.visitId,patientId:visit.patientId,patientFullName:visit.patientFullName,patientCode:visit.patientCode};
     if(!own.length) return [{...base,id:-visit.visitId,followupSheetId:null,tableIndex:0,followupName:null,sheetType:null}];
     return own.map((item:{id:number;followupSheetId:number;tableIndex:number;followupName:string|null;sheetType:string|null})=>({...base,id:item.id,followupSheetId:item.followupSheetId,tableIndex:item.tableIndex,followupName:item.followupName,sheetType:item.sheetType}));
