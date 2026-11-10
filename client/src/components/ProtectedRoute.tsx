@@ -236,6 +236,8 @@ export default function ProtectedRoute({
     if (cleanPath === ROUTES.attendanceShiftSchedule) return true;
     if (userRole === "reception" && cleanPath === ROUTES.examination)
       return true;
+    if (userRole === "reception" && cleanPath === ROUTES.receptionInbox)
+      return true;
     if (
       userRole === "reception" &&
       (cleanPath === ROUTES.portalBookings ||

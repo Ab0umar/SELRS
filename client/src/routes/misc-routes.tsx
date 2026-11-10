@@ -37,6 +37,7 @@ const PatientBookings = lazy(
   () => import("../features/patient-portal/PatientBookings"),
 );
 const Home = lazy(() => import("../pages/Home"));
+const ReceptionInbox = lazy(() => import("../features/admin/ReceptionInbox"));
 const MainHome = lazy(() => import("../pages/MainHome"));
 const ForcePasswordChange = lazy(() => import("../pages/ForcePasswordChange"));
 const Profile = lazy(() => import("../pages/Profile"));
@@ -61,6 +62,14 @@ const NotFound = lazy(() => import("../pages/NotFound"));
 
 export const MiscRoutes = (
   <>
+    <Route
+      path={ROUTES.receptionInbox}
+      component={() => (
+        <ProtectedRoute requiredRoles={["admin", "reception"]}>
+          <ReceptionInbox />
+        </ProtectedRoute>
+      )}
+    />
     <Route path={ROUTES.doctorPortalLogin} component={DoctorLogin} />
     <Route
       path={ROUTES.doctorPortalPatient}

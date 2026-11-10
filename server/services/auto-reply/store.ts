@@ -30,6 +30,10 @@ import {
 } from "../../../drizzle/autoReply";
 import { hash, safetyDecision } from "./policy";
 import { isRecipientAllowed } from "./recipients";
+import {
+  notifyAutoReply,
+  type AutoReplyNotificationKind,
+} from "./notifications";
 import type { InboundEvent, DeliveryReceipt } from "./events";
 
 export async function getAutoReplyDb(): Promise<MySql2Database> {
@@ -66,6 +70,11 @@ export async function ensureSettings() {
 }
 export async function ingestEvents(batch: InboundEvent[]) {
   if (!batch.length) return;
+  const notices: {
+    kind: AutoReplyNotificationKind;
+    id: number;
+    channel: InboundEvent["channel"];
+  }[] = [];
   await ensureSettings();
   const db = await getAutoReplyDb();
   await db.transaction(async (tx) => {
@@ -206,7 +215,18 @@ export async function ingestEvents(batch: InboundEvent[]) {
         (current.humanReason === "external_staff_reply" ||
           current.humanReason === "staff_reply");
       const resumeAutomation = !pause && staffReplyPause && !stale;
+      const staffCompleted =
+        event.humanEcho && !stale && current.status !== "closed";
       if (stale && !pause) continue;
+      let nextStatus = current.status;
+      let nextHumanReason = current.humanReason;
+      if (resumeAutomation || staffCompleted) {
+        nextStatus = "open";
+        nextHumanReason = null;
+      } else if (!event.humanEcho && pause && current.status !== "closed") {
+        nextStatus = "human";
+        nextHumanReason = requestedReason ?? "unsupported_message";
+      }
       const nextRevision = current.revision + 1;
       await tx
         .update(conversations)
@@ -214,17 +234,8 @@ export async function ingestEvents(batch: InboundEvent[]) {
           lastActivityAt: new Date(),
           ...(!event.humanEcho && !stale ? { lastInboundAt: event.at } : {}),
           revision: nextRevision,
-          ...(resumeAutomation ? { status: "open", humanReason: null } : {}),
-          ...(pause
-            ? {
-                status: "human",
-                humanReason: event.humanEcho
-                  ? current.status === "human" && !staffReplyPause
-                    ? current.humanReason
-                    : "external_staff_reply"
-                  : (requestedReason ?? "unsupported_message"),
-              }
-            : {}),
+          status: nextStatus,
+          humanReason: nextHumanReason,
         })
         .where(eq(conversations.id, conversationId));
       await tx
@@ -237,6 +248,17 @@ export async function ingestEvents(batch: InboundEvent[]) {
             inArray(jobs.state, ["pending", "retry", "generating"]),
           ),
         );
+      notices.push({
+        kind: event.humanEcho ? "reply" : "inbound",
+        id: conversationId,
+        channel: event.channel,
+      });
+      if (!event.humanEcho && pause && current.status !== "human")
+        notices.push({
+          kind: "handoff",
+          id: conversationId,
+          channel: event.channel,
+        });
       if (
         !stale &&
         !event.humanEcho &&
@@ -258,10 +280,13 @@ export async function ingestEvents(batch: InboundEvent[]) {
       }
     }
   });
+  for (const notice of notices)
+    await notifyAutoReply(notice.kind, notice.id, notice.channel);
 }
 export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
   if (!receipts.length) return;
   const db = await getAutoReplyDb();
+  const notices: { id: number; channel: DeliveryReceipt["channel"] }[] = [];
   await db.transaction(async (tx) => {
     await tx
       .select()
@@ -272,7 +297,18 @@ export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
       const [message] = await tx
         .select()
         .from(messages)
-        .where(eq(messages.providerId, receipt.providerId))
+        .where(
+          and(
+            eq(messages.providerId, receipt.providerId),
+            inArray(
+              messages.conversationId,
+              tx
+                .select({ id: conversations.id })
+                .from(conversations)
+                .where(eq(conversations.channel, receipt.channel)),
+            ),
+          ),
+        )
         .limit(1);
       if (!message) continue;
       const rank: Record<string, number> = {
@@ -287,10 +323,21 @@ export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
         .set({ state: receipt.state })
         .where(eq(messages.id, message.id));
       if (receipt.state === "failed") {
+        const [conversation] = await tx
+          .select()
+          .from(conversations)
+          .where(eq(conversations.id, message.conversationId))
+          .for("update");
         await tx
           .update(jobs)
           .set({ state: "failed", errorCode: "META_DELIVERY_FAILED" })
-          .where(eq(jobs.providerId, receipt.providerId));
+          .where(
+            and(
+              eq(jobs.providerId, receipt.providerId),
+              eq(jobs.conversationId, message.conversationId),
+            ),
+          );
+        if (!conversation || conversation.status === "closed") continue;
         await tx
           .update(conversations)
           .set({
@@ -299,9 +346,13 @@ export async function recordDeliveryReceipts(receipts: DeliveryReceipt[]) {
             revision: sql`${conversations.revision} + 1`,
           })
           .where(eq(conversations.id, message.conversationId));
+        if (conversation.status !== "human")
+          notices.push({ id: conversation.id, channel: conversation.channel });
       }
     }
   });
+  for (const notice of notices)
+    await notifyAutoReply("handoff", notice.id, notice.channel);
 }
 export async function saveSettings(config: AutoReplySettings, userId: number) {
   await ensureSettings();
@@ -364,7 +415,7 @@ export async function setConversationStatus(
 ) {
   await ensureSettings();
   const db = await getAutoReplyDb();
-  await db.transaction(async (tx) => {
+  const handoffChannel = await db.transaction(async (tx) => {
     await tx
       .select()
       .from(settingsTable)
@@ -397,12 +448,16 @@ export async function setConversationStatus(
           inArray(jobs.state, ["pending", "retry", "generating"]),
         ),
       );
+    return status === "human" && c.status !== "human" ? c.channel : null;
   });
+  if (handoffChannel)
+    await notifyAutoReply("handoff", conversationId, handoffChannel);
 }
 export async function queueManualReply(
   conversationId: number,
   body: string,
   requestId: string,
+  requireHuman = false,
 ) {
   await ensureSettings();
   const db = await getAutoReplyDb();
@@ -423,7 +478,7 @@ export async function queueManualReply(
       .select()
       .from(jobs)
       .where(eq(jobs.requestKey, key));
-    if (previous) return { id: previous.id };
+    if (previous && !requireHuman) return { id: previous.id };
     const [c] = await tx
       .select()
       .from(conversations)
@@ -434,6 +489,30 @@ export async function queueManualReply(
         code: "NOT_FOUND",
         message: "المحادثة غير موجودة",
       });
+    if (requireHuman && c.status !== "human")
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "المحادثة لم تعد محوّلة للاستقبال",
+      });
+    if (previous) return { id: previous.id };
+    {
+      const [pending] = await tx
+        .select({ id: jobs.id })
+        .from(jobs)
+        .where(
+          and(
+            eq(jobs.conversationId, conversationId),
+            eq(jobs.kind, "manual"),
+            inArray(jobs.state, ["pending", "retry", "generating", "sending"]),
+          ),
+        )
+        .limit(1);
+      if (pending)
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "يوجد رد موظف قيد الإرسال لهذه المحادثة",
+        });
+    }
     if (c.status === "closed")
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -454,7 +533,7 @@ export async function queueManualReply(
       .update(conversations)
       .set({
         status: "human",
-        humanReason: c.status === "human" ? c.humanReason : "staff_reply",
+        humanReason: "staff_reply_pending",
         revision: c.revision + 1,
       })
       .where(eq(conversations.id, c.id));
@@ -513,15 +592,19 @@ export async function purgeExpiredConversations() {
       );
   });
 }
-export async function conversationContext(conversationId: number) {
+export async function conversationContext(
+  conversationId: number,
+  modelContext = true,
+) {
   const db = await getAutoReplyDb();
   const [conversation] = await db
     .select({ resetAt: conversations.contextResetAt })
     .from(conversations)
     .where(eq(conversations.id, conversationId));
-  const sinceReset = conversation?.resetAt
-    ? gte(messages.createdAt, conversation.resetAt)
-    : undefined;
+  const sinceReset =
+    modelContext && conversation?.resetAt
+      ? gte(messages.createdAt, conversation.resetAt)
+      : undefined;
   const rows = await db
     .select()
     .from(messages)

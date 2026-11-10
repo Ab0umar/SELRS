@@ -17,6 +17,7 @@ import {
   withinReplyWindow,
   isPriceQuestion,
   replyTargetMatches,
+  selectKnowledgeContext,
 } from "../services/auto-reply/policy";
 import {
   checkMetaConnection,
@@ -101,6 +102,55 @@ const knowledge = [
     content: "العنوان المعتمد للاختبار",
   },
 ];
+describe("bounded approved knowledge", () => {
+  it("selects relevant text near the end of a 30000 character document while retaining its source and scope", async () => {
+    const content =
+      "general information ".repeat(1400) +
+      "\nbranch address: verified destination";
+    const entry = {
+      id: 77,
+      kind: "teach_ai",
+      title: "center",
+      keywords: "",
+      content,
+      targetPage: "whatsapp",
+    };
+    const result = selectKnowledgeContext("branch address", [entry], 12000);
+    expect(JSON.stringify(result[0]).length).toBeLessThanOrEqual(12000);
+    expect(result[0]).toMatchObject({ id: 77, targetPage: "whatsapp" });
+    expect(result[0].content).toContain("verified destination");
+    const generator = vi.fn(async (_input: { instruction: string }) => ({
+      reply: { text: "verified destination", handoff: false, sourceIds: [77] },
+      usage: { model: "fixture", inputTokens: 0, outputTokens: 0 },
+      finishReason: "STOP",
+    }));
+    await proposeReply(
+      {
+        channel: "whatsapp",
+        text: "branch address",
+        context: [],
+        settings: autoReplySettingsSchema.parse({ knowledgeMode: "teach_ai" }),
+        knowledge: [
+          entry,
+          {
+            ...entry,
+            id: 88,
+            targetPage: "654",
+            content: "other account secret",
+          },
+        ],
+      },
+      generator,
+    );
+    expect(generator).toHaveBeenCalledOnce();
+    expect(generator.mock.calls[0][0].instruction).toContain(
+      "verified destination",
+    );
+    expect(generator.mock.calls[0][0].instruction).not.toContain(
+      "other account secret",
+    );
+  });
+});
 beforeEach(() => {
   vi.stubEnv(
     "AUTO_REPLY_CREDENTIAL_FILE",

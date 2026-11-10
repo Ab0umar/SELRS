@@ -176,10 +176,49 @@ export function selectKnowledgeContext(
   for (const entry of candidates) {
     if (seen.has(entry.id)) continue;
     seen.add(entry.id);
-    const size = JSON.stringify(entry).length;
-    if (characters + size > maxCharacters) continue;
-    selected.push(entry);
-    characters += size;
+    const remaining = maxCharacters - characters;
+    const overhead = JSON.stringify({ ...entry, content: "" }).length;
+    if (remaining <= overhead + 100) continue;
+    let content = entry.content;
+    if (JSON.stringify(entry).length > remaining) {
+      const terms = [
+        ...new Set(normalize(query).match(/[\p{L}\p{N}]{2,}/gu) ?? []),
+      ];
+      const chunks: { start: number; text: string; score: number }[] = [];
+      for (let start = 0; start < content.length; start += 1650) {
+        const text = content.slice(start, start + 1800);
+        const normalized = normalize(text);
+        chunks.push({
+          start,
+          text,
+          score: terms.reduce(
+            (n, term) => n + (normalized.includes(term) ? 1 : 0),
+            0,
+          ),
+        });
+      }
+      const chosen: typeof chunks = [];
+      let used = overhead;
+      for (const chunk of chunks.sort(
+        (a, b) => b.score - a.score || a.start - b.start,
+      )) {
+        const available = remaining - used - 10;
+        if (available < 100) break;
+        const text = chunk.text.slice(0, Math.floor(available / 2));
+        chosen.push({ ...chunk, text });
+        used += JSON.stringify(text).length + 10;
+      }
+      content = chosen
+        .sort((a, b) => a.start - b.start)
+        .map((chunk) => chunk.text)
+        .join("\n[…]\n");
+    }
+    const excerpt = { ...entry, content };
+    const size = JSON.stringify(excerpt).length;
+    if (size <= remaining && content) {
+      selected.push(excerpt);
+      characters += size;
+    }
   }
   return selected;
 }

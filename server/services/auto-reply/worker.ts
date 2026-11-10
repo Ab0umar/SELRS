@@ -22,6 +22,7 @@ import {
   currentKnowledgeSourceCondition,
 } from "./store";
 import { isRecipientAllowed } from "./recipients";
+import { notifyAutoReply } from "./notifications";
 import {
   channelCredentials,
   configured,
@@ -170,7 +171,7 @@ export async function runAutoReplyTick() {
       : baseConfig;
     if (
       !c ||
-      c.revision !== job.revision ||
+      (job.kind === "auto" && c.revision !== job.revision) ||
       c.status === "closed" ||
       (job.kind === "auto" && !job.handoff && c.status !== "open") ||
       !config.sendingEnabled ||
@@ -314,7 +315,8 @@ export async function runAutoReplyTick() {
       const settings = autoReplySettingsSchema.parse(s.config);
       if (
         !fresh ||
-        fresh.revision !== job.revision ||
+        (job.kind === "auto" && fresh.revision !== job.revision) ||
+        fresh.status === "closed" ||
         freshJob.state !== "generating" ||
         freshJob.claim !== job.claim ||
         s.revision !== settingsRow.revision ||
@@ -342,6 +344,9 @@ export async function runAutoReplyTick() {
       return true;
     });
     if (!prepared) return;
+    if (handoff && c.status !== "human")
+      await notifyAutoReply("handoff", c.id, c.channel);
+    let replySent = false;
     await db.transaction(async (tx) => {
       const [s] = await tx
         .select()
@@ -361,7 +366,7 @@ export async function runAutoReplyTick() {
       const settings = autoReplySettingsSchema.parse(s.config);
       if (
         !fresh ||
-        fresh.revision !== job.revision ||
+        (job.kind === "auto" && fresh.revision !== job.revision) ||
         fresh.status === "closed" ||
         freshJob.state !== "sending" ||
         freshJob.claim !== job.claim ||
@@ -446,7 +451,12 @@ export async function runAutoReplyTick() {
       });
       await tx
         .update(conversations)
-        .set({ lastActivityAt: new Date() })
+        .set({
+          lastActivityAt: new Date(),
+          ...(job.kind === "manual"
+            ? { status: "open" as const, humanReason: null }
+            : {}),
+        })
         .where(eq(conversations.id, c.id));
       await tx
         .update(connections)
@@ -457,7 +467,9 @@ export async function runAutoReplyTick() {
             eq(connections.accountId, c.accountId),
           ),
         );
+      replySent = true;
     });
+    if (replySent) await notifyAutoReply("reply", c.id, c.channel);
   } catch (error) {
     // Log only safe codes; provider bodies and customer content never enter logs.
     const failure = jobFailure(
@@ -466,7 +478,7 @@ export async function runAutoReplyTick() {
         : error,
       job.attempts,
     );
-    await db.transaction(async (tx) => {
+    const failedHandoff = await db.transaction(async (tx) => {
       await tx
         .select()
         .from(settingsTable)
@@ -486,6 +498,10 @@ export async function runAutoReplyTick() {
           ),
         );
       if (["failed", "unknown"].includes(failure.state)) {
+        const [previous] = await tx
+          .select()
+          .from(conversations)
+          .where(eq(conversations.id, job.conversationId));
         await tx
           .update(conversations)
           .set({ status: "human", humanReason: failure.errorCode })
@@ -495,8 +511,17 @@ export async function runAutoReplyTick() {
               eq(conversations.revision, job.revision),
             ),
           );
+        if (
+          previous &&
+          previous.revision === job.revision &&
+          previous.status !== "human"
+        )
+          return { id: previous.id, channel: previous.channel };
       }
+      return null;
     });
+    if (failedHandoff)
+      await notifyAutoReply("handoff", failedHandoff.id, failedHandoff.channel);
   }
 }
 export function startAutoReplyWorker() {

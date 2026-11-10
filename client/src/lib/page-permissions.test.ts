@@ -107,7 +107,7 @@ describe("page permission registry", () => {
     }
   });
 
-  it("registers every protected page except universally available account routes and covered shell wildcards", () => {
+  it("registers every protected page except account routes, explicit role-only routes and covered shell wildcards", () => {
     const registered = new Set<string>(
       PAGE_PERMISSION_DEFINITIONS.map((entry) => entry.id),
     );
@@ -117,9 +117,14 @@ describe("page permission registry", () => {
       ROUTES.accountWildcard,
       ROUTES.forcePasswordChange,
     ]);
+    const roleOnly = new Set<string>([ROUTES.receptionInbox]);
     const missing = protectedPaths().filter((path) => {
       const permissionPath = normalizeNavPath(path);
-      if (registered.has(permissionPath) || alwaysAvailable.has(path))
+      if (
+        registered.has(permissionPath) ||
+        alwaysAvailable.has(path) ||
+        roleOnly.has(path)
+      )
         return false;
       const wildcardBase = path.replace(/\/\*\??$/, "");
       return !(wildcardBase !== path && registered.has(wildcardBase));

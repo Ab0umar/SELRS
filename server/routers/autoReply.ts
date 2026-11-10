@@ -22,7 +22,11 @@ import {
 } from "../services/auto-reply/coexistence";
 import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { adminProcedure, router } from "../_core/procedures";
+import {
+  adminProcedure,
+  protectedProcedure,
+  router,
+} from "../_core/procedures";
 import {
   autoReplyChannels,
   autoReplySettingsSchema,
@@ -36,6 +40,7 @@ import {
   autoReplyConnections as connections,
   autoReplyConversations as conversations,
   autoReplyJobs as jobs,
+  autoReplyMessages as messages,
   autoReplyKnowledge as knowledge,
   autoReplySettings as settingsTable,
 } from "../../drizzle/autoReply";
@@ -69,6 +74,14 @@ import {
 } from "../services/auto-reply/ai-configuration";
 
 const recordId = z.number().int().positive();
+const receptionInboxProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!["admin", "reception"].includes(ctx.user.role))
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "متاح للاستقبال والإدارة فقط",
+    });
+  return next({ ctx });
+});
 const autoReplyAdminProcedure = adminProcedure.use(async ({ next }) => {
   const result = await next();
   if (!result.ok && result.error.code === "INTERNAL_SERVER_ERROR") {
@@ -83,6 +96,101 @@ const autoReplyAdminProcedure = adminProcedure.use(async ({ next }) => {
   return result;
 });
 export const autoReplyRouter = router({
+  receptionInbox: receptionInboxProcedure
+    .input(z.object({ page: z.number().int().min(1).default(1) }))
+    .query(async ({ input }) => {
+      const db = await getAutoReplyDb();
+      const rows = await db
+        .select()
+        .from(conversations)
+        .where(eq(conversations.status, "human"))
+        .orderBy(desc(conversations.lastActivityAt))
+        .limit(31)
+        .offset((input.page - 1) * 30);
+      return {
+        rows: rows.slice(0, 30),
+        hasMore: rows.length > 30,
+        sendingEnabled: (await readSettings()).sendingEnabled,
+      };
+    }),
+  receptionConversation: receptionInboxProcedure
+    .input(recordId)
+    .query(async ({ input }) => {
+      const db = await getAutoReplyDb();
+      return db.transaction(async (tx) => {
+        const [conversation] = await tx
+          .select()
+          .from(conversations)
+          .where(
+            and(eq(conversations.id, input), eq(conversations.status, "human")),
+          )
+          .for("update");
+        if (!conversation) return null;
+        const rows = await tx
+          .select()
+          .from(messages)
+          .where(eq(messages.conversationId, input))
+          .orderBy(desc(messages.id))
+          .limit(50);
+        const [pending] = await tx
+          .select({ id: jobs.id })
+          .from(jobs)
+          .where(
+            and(
+              eq(jobs.conversationId, input),
+              eq(jobs.kind, "manual"),
+              inArray(jobs.state, [
+                "pending",
+                "retry",
+                "generating",
+                "sending",
+              ]),
+            ),
+          )
+          .limit(1);
+        const manualReplies = await tx
+          .select({
+            id: jobs.id,
+            body: jobs.body,
+            state: jobs.state,
+            errorCode: jobs.errorCode,
+          })
+          .from(jobs)
+          .where(and(eq(jobs.conversationId, input), eq(jobs.kind, "manual")))
+          .orderBy(desc(jobs.id))
+          .limit(10);
+        return {
+          conversation,
+          rows: rows.reverse(),
+          replyPending: Boolean(pending),
+          manualReplies,
+        };
+      });
+    }),
+  receptionReply: receptionInboxProcedure
+    .input(
+      z.object({
+        id: recordId,
+        text: z.string().trim().min(1).max(2000),
+        requestId: z.uuid(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const result = await queueManualReply(
+        input.id,
+        input.text,
+        input.requestId,
+        true,
+      );
+      await logAuditEvent(
+        ctx.user.id,
+        "AUTO_REPLY_RECEPTION_REPLY",
+        "auto_reply",
+        input.id,
+        { jobId: result.id },
+      );
+      return result;
+    }),
   models: autoReplyAdminProcedure.query(async () =>
     (await availableGeminiModels()).map((model) => ({
       id: model.name.replace(/^models\//, ""),
@@ -332,14 +440,14 @@ export const autoReplyRouter = router({
     .input(autoReplySettingsSchema)
     .mutation(async ({ input, ctx }) => {
       const profile =
-        input.engine === "central"
+        input.sendingEnabled && input.engine === "central"
           ? process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
             ? (
                 await new AiManagementStore(getDbConnection).listProfiles()
               ).find((profile) => profile.workload === "reply.live")
             : undefined
           : undefined;
-      if (input.engine === "central") {
+      if (input.sendingEnabled && input.engine === "central") {
         if (!profile?.enabled)
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
@@ -347,6 +455,7 @@ export const autoReplyRouter = router({
           });
       }
       if (
+        input.sendingEnabled &&
         profile?.provider !== "manus" &&
         input.topK !== null &&
         supportsGeminiSampling(input.model)
@@ -509,7 +618,7 @@ export const autoReplyRouter = router({
         });
       return {
         conversation,
-        ...(await conversationContext(input)),
+        ...(await conversationContext(input, false)),
         jobs: await db
           .select()
           .from(jobs)
@@ -758,6 +867,7 @@ export const autoReplyRouter = router({
           ),
         };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "BAD_GATEWAY",
           message:
