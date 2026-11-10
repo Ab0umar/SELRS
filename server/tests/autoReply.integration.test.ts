@@ -1,6 +1,10 @@
 import "dotenv/config";
+vi.mock("../_core/appNotifications", () => ({
+  pushAppNotification: vi.fn().mockResolvedValue({}),
+}));
+import { pushAppNotification } from "../_core/appNotifications";
 import { AiManagementStore } from "../services/ai/managementStore";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -135,6 +139,7 @@ describe.skipIf(!testUrl)(
         "0106_auto_reply_coexistence.sql",
         "0107_auto_reply_targets.sql",
         "0108_auto_reply_teaching.sql",
+        "0112_auto_reply_provider_indexes.sql",
       ]) {
         const migration = await readFile(
           new URL(`../../drizzle/${file}`, import.meta.url),
@@ -1245,7 +1250,11 @@ describe.skipIf(!testUrl)(
         const [c] = await db.select().from(conversations);
         if (mode === "echo")
           await ingestEvents([{ ...event("staff"), humanEcho: true }]);
-        else await queueManualReply(c.id, "رد موظف", "resume-request");
+        else {
+          await queueManualReply(c.id, "رد موظف", "resume-request");
+          mockNetwork();
+          await runAutoReplyTick();
+        }
         await ingestEvents([event("next-customer")]);
         expect((await db.select().from(conversations))[0]).toMatchObject({
           status: "open",
@@ -1258,7 +1267,7 @@ describe.skipIf(!testUrl)(
         ).toHaveLength(1);
       },
     );
-    it("preserves explicit takeover after a staff echo and a customer message", async () => {
+    it("returns explicit takeover to the bot after a staff echo", async () => {
       await enable();
       await ingestEvents([event()]);
       const [c] = await db.select().from(conversations);
@@ -1266,16 +1275,16 @@ describe.skipIf(!testUrl)(
       await ingestEvents([{ ...event("staff"), humanEcho: true }]);
       await ingestEvents([event("next-customer")]);
       expect((await db.select().from(conversations))[0]).toMatchObject({
-        status: "human",
-        humanReason: "staff_takeover",
+        status: "open",
+        humanReason: null,
       });
       expect(
         (await db.select().from(jobs)).filter(
           (job) => job.kind === "auto" && job.state === "pending",
         ),
-      ).toHaveLength(0);
+      ).toHaveLength(1);
     });
-    it("does not reopen or extend a reply window on a staff echo", async () => {
+    it("does not extend the provider reply window when returning to the bot", async () => {
       await enable();
       const inbound = event();
       inbound.at = new Date(Date.now() - 25 * 3600_000);
@@ -1283,12 +1292,149 @@ describe.skipIf(!testUrl)(
       const [c] = await db.select().from(conversations);
       await ingestEvents([{ ...event("staff"), humanEcho: true }]);
       const [current] = await db.select().from(conversations);
-      expect(current.status).toBe("human");
+      expect(current.status).toBe("open");
       expect(current.lastInboundAt.getTime()).toBe(c.lastInboundAt.getTime());
       await expect(
         queueManualReply(c.id, "reply", "request-2"),
       ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
     });
+    it("notifies inbound once without including customer text or identifiers", async () => {
+      await enable();
+      vi.mocked(pushAppNotification).mockClear();
+      const inbound = event();
+      await ingestEvents([inbound]);
+      await ingestEvents([inbound]);
+      expect(pushAppNotification).toHaveBeenCalledTimes(1);
+      const notification = vi.mocked(pushAppNotification).mock.calls[0][0];
+      expect(notification).toMatchObject({
+        title: "رسالة جديدة",
+        targetRoles: ["admin"],
+        channels: { inApp: true, push: true },
+      });
+      expect(notification.message).not.toContain(inbound.text);
+      expect(notification.message).not.toContain(inbound.participantId);
+    });
+    it("returns to the bot only after successful manual delivery and notifies handoff and reply", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      vi.mocked(pushAppNotification).mockClear();
+      await setConversationStatus(c.id, "human");
+      await queueManualReply(c.id, "رد الموظف", "manual-return");
+      expect((await db.select().from(conversations))[0].status).toBe("human");
+      mockNetwork();
+      await runAutoReplyTick();
+      expect((await db.select().from(conversations))[0]).toMatchObject({
+        status: "open",
+        humanReason: null,
+      });
+      expect(
+        vi.mocked(pushAppNotification).mock.calls.map(([input]) => input.title),
+      ).toEqual(["محادثة تحتاج موظفًا", "تم إرسال رد"]);
+    });
+    it("keeps closed conversations closed after a mobile staff reply", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      await setConversationStatus(c.id, "closed");
+      await ingestEvents([{ ...event("closed-staff"), humanEcho: true }]);
+      expect((await db.select().from(conversations))[0].status).toBe("closed");
+    });
+    it("does not resume the bot or announce a sent reply when manual delivery fails", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      await setConversationStatus(c.id, "human");
+      await queueManualReply(c.id, "رد الموظف", "manual-failed-return");
+      vi.mocked(pushAppNotification).mockClear();
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+      await runAutoReplyTick();
+      expect((await db.select().from(conversations))[0].status).toBe("human");
+      expect(
+        vi
+          .mocked(pushAppNotification)
+          .mock.calls.some(([input]) => input.title === "تم إرسال رد"),
+      ).toBe(false);
+    });
+    it("restricts reception inbox and replies to current human conversations, then hides successful replies", async () => {
+      await enable();
+      await ingestEvents(
+        [0, 1, 2].map((i) => ({
+          ...event(`reception-${i}`),
+          participantId: `customer-${i}`,
+          threadId: `customer-${i}`,
+        })),
+      );
+      const rows = await db
+        .select()
+        .from(conversations)
+        .orderBy(conversations.id);
+      await setConversationStatus(rows[1].id, "human");
+      await setConversationStatus(rows[2].id, "closed");
+      const caller = autoReplyRouter.createCaller(makeCallerAs("reception"));
+      expect(
+        (await caller.receptionInbox({ page: 1 })).rows.map((c) => c.id),
+      ).toEqual([rows[1].id]);
+      expect(await caller.receptionConversation(rows[0].id)).toBeNull();
+      expect(await caller.receptionConversation(rows[2].id)).toBeNull();
+      await expect(
+        caller.receptionReply({
+          id: rows[2].id,
+          text: "رد",
+          requestId: randomUUID(),
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await expect(caller.settings()).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      await expect(
+        caller.receptionReply({
+          id: rows[0].id,
+          text: "رد",
+          requestId: randomUUID(),
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await caller.receptionReply({
+        id: rows[1].id,
+        text: "رد الاستقبال",
+        requestId: randomUUID(),
+      });
+      expect(
+        (await caller.receptionConversation(rows[1].id))?.replyPending,
+      ).toBe(true);
+      await expect(
+        caller.receptionReply({
+          id: rows[1].id,
+          text: "رد آخر",
+          requestId: randomUUID(),
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      await setConversationStatus(rows[0].id, "closed");
+      mockNetwork();
+      await runAutoReplyTick();
+      expect(await caller.receptionConversation(rows[1].id)).toBeNull();
+      expect((await caller.receptionInbox({ page: 1 })).rows).toHaveLength(0);
+      expect(
+        (await db.select().from(messages)).some(
+          (m) => m.conversationId === rows[1].id && m.direction === "staff",
+        ),
+      ).toBe(true);
+    });
+    it.each(["doctor", "manager", "accountant", "nurse"])(
+      "rejects reception inbox access for %s",
+      async (role) => {
+        const caller = autoReplyRouter.createCaller(makeCallerAs(role));
+        await expect(caller.receptionInbox({ page: 1 })).rejects.toMatchObject({
+          code: "FORBIDDEN",
+        });
+        await expect(caller.receptionConversation(1)).rejects.toMatchObject({
+          code: "FORBIDDEN",
+        });
+        await expect(
+          caller.receptionReply({ id: 1, text: "رد", requestId: randomUUID() }),
+        ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      },
+    );
     it("preserves a newer pending response when an older message arrives", async () => {
       await enable();
       await ingestEvents([event()]);
@@ -1900,6 +2046,217 @@ describe.skipIf(!testUrl)(
       expect(result.text).toBe("العنوان المعتمد للاختبار");
       expect(await db.select().from(conversations)).toHaveLength(0);
       expect(await db.select().from(jobs)).toHaveLength(0);
+    });
+    it("preserves an accepted staff reply after new inbound and rejects concurrent staff sends", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      await setConversationStatus(c.id, "human");
+      const queued = await Promise.allSettled([
+        queueManualReply(c.id, "staff response", randomUUID(), true),
+        queueManualReply(c.id, "second response", randomUUID(), true),
+      ]);
+      expect(queued.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      await ingestEvents([event("new-customer", "thanks")]);
+      mockNetwork();
+      await runAutoReplyTick();
+      expect(
+        (await db.select().from(jobs)).filter((j) => j.kind === "manual"),
+      ).toMatchObject([{ state: "sent" }]);
+      expect(
+        (await db.select().from(messages)).filter(
+          (m) => m.direction === "staff",
+        ),
+      ).toHaveLength(1);
+    });
+    it("keeps visible history after AI context reset", async () => {
+      await enable();
+      const old = event();
+      old.at = new Date(Date.now() - 5000);
+      await ingestEvents([old]);
+      const [c] = await db.select().from(conversations);
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      await caller.clearAIHistory({ conversationId: c.id });
+      expect((await caller.conversation(c.id)).rows).toHaveLength(1);
+      expect((await conversationContext(c.id)).rows).toHaveLength(0);
+    });
+    it("rejects a second admin manual reply while preserving the accepted text", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      await queueManualReply(c.id, "accepted reply", randomUUID());
+      await expect(
+        queueManualReply(c.id, "duplicate", randomUUID()),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(
+        (await db.select().from(jobs)).filter((j) => j.kind === "manual"),
+      ).toMatchObject([{ body: "accepted reply", state: "pending" }]);
+    });
+    it("accepts a conversation central suggestion request id and prevents rebilling its replay", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, engine: "central" }, 1);
+      vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "true");
+      await pool.query(
+        "INSERT INTO ai_core_profiles (workload,provider,model,enabled) VALUES ('reply.live','gemini','gemini-3.8-flash',1)",
+      );
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      mockNetwork();
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      const input = {
+        channel: "whatsapp" as const,
+        conversationId: c.id,
+        text: "عنوان الفرع",
+        requestId: randomUUID(),
+      };
+      expect((await caller.test(input)).testOnly).toBe(true);
+      await expect(caller.test(input)).rejects.toMatchObject({
+        code: "BAD_GATEWAY",
+      });
+      const [usage] = await pool.query<mysql.RowDataPacket[]>(
+        "SELECT state FROM ai_core_usage",
+      );
+      expect(usage).toMatchObject([{ state: "completed" }]);
+    });
+    it("records failed delivery without reopening closed conversations or notifying reception", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      mockNetwork();
+      await runAutoReplyTick();
+      const [c] = await db.select().from(conversations);
+      await setConversationStatus(c.id, "closed");
+      vi.mocked(pushAppNotification).mockClear();
+      await recordDeliveryReceipts([
+        {
+          channel: "whatsapp",
+          providerId: "sent-1",
+          state: "failed",
+          at: new Date(),
+        },
+      ]);
+      expect((await db.select().from(conversations))[0].status).toBe("closed");
+      expect((await db.select().from(jobs))[0].state).toBe("failed");
+      expect(pushAppNotification).not.toHaveBeenCalled();
+    });
+    it("notifies reception once for committed failed delivery handoff and never automatically resends", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      mockNetwork();
+      await runAutoReplyTick();
+      vi.mocked(pushAppNotification).mockClear();
+      const receipt = {
+        channel: "whatsapp" as const,
+        providerId: "sent-1",
+        state: "failed" as const,
+        at: new Date(),
+      };
+      await recordDeliveryReceipts([receipt, receipt]);
+      const count = vi.mocked(pushAppNotification).mock.calls.length;
+      expect(count).toBeGreaterThan(0);
+      await recordDeliveryReceipts([receipt]);
+      await runAutoReplyTick();
+      expect(pushAppNotification).toHaveBeenCalledTimes(count);
+      expect((await db.select().from(conversations))[0].status).toBe("human");
+      expect((await db.select().from(jobs))[0].state).toBe("failed");
+    });
+    it("allows emergency stop with disabled central management and keeps enabling validated", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, engine: "central" }, 1);
+      vi.stubEnv("AI_CORE_MANAGEMENT_ENABLED", "false");
+      const caller = autoReplyRouter.createCaller(makeCallerAs("admin"));
+      await expect(
+        caller.saveSettings({
+          ...config,
+          engine: "central",
+          sendingEnabled: false,
+        }),
+      ).resolves.toMatchObject({ ok: true });
+      expect((await readSettings()).sendingEnabled).toBe(false);
+      await expect(
+        caller.saveSettings({
+          ...config,
+          engine: "central",
+          sendingEnabled: true,
+        }),
+      ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    });
+    it("preserves useful central preview request validation errors", async () => {
+      const config = await enable();
+      await saveSettings({ ...config, engine: "central" }, 1);
+      await expect(
+        autoReplyRouter
+          .createCaller(makeCallerAs("admin"))
+          .test({ channel: "whatsapp", text: "hello" }),
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "معرف طلب المعاينة مطلوب",
+      });
+    });
+    it("uses provider indexes on the isolated message and job tables", async () => {
+      await enable();
+      await ingestEvents([event()]);
+      const [c] = await db.select().from(conversations);
+      await pool.query(
+        "INSERT INTO auto_reply_messages (conversation_id,event_key,provider_id,direction,body,created_at) VALUES ?",
+        [
+          Array.from({ length: 1000 }, (_, i) => [
+            c.id,
+            hash(`plan-message-${i}`),
+            `plan-provider-${i}`,
+            "bot",
+            "fixture",
+            Date.now(),
+          ]),
+        ],
+      );
+      await pool.query(
+        "INSERT INTO auto_reply_jobs (conversation_id,request_key,kind,revision,provider_id,created_at,updated_at,available_at) VALUES ?",
+        [
+          Array.from({ length: 1000 }, (_, i) => [
+            c.id,
+            hash(`plan-job-${i}`),
+            "manual",
+            1,
+            `plan-provider-${i}`,
+            Date.now(),
+            Date.now(),
+            Date.now(),
+          ]),
+        ],
+      );
+      const evidence: Record<string, unknown> = {};
+      for (const table of ["auto_reply_messages", "auto_reply_jobs"]) {
+        const index =
+          table === "auto_reply_messages"
+            ? "ar_message_provider"
+            : "ar_job_provider";
+        await pool.query(`DROP INDEX ${index} ON ${table}`);
+        let before: unknown;
+        try {
+          [before] = await pool.query(
+            `EXPLAIN SELECT * FROM ${table} WHERE provider_id = 'plan-provider-999' LIMIT 1`,
+          );
+        } finally {
+          await pool.query(`CREATE INDEX ${index} ON ${table} (provider_id)`);
+        }
+        const [rows] = await pool.query(
+          `EXPLAIN SELECT * FROM ${table} WHERE provider_id = 'plan-provider-999' LIMIT 1`,
+        );
+        evidence[table] = { fixtureRows: 1000, before, after: rows };
+        expect(
+          (rows as { possible_keys: string }[])[0].possible_keys,
+        ).toContain(
+          table === "auto_reply_messages"
+            ? "ar_message_provider"
+            : "ar_job_provider",
+        );
+        expect((rows as { key: string }[])[0].key).toBe(index);
+      }
+      await mkdir("outputs/auto-reply", { recursive: true });
+      await writeFile(
+        "outputs/auto-reply/repair-query-plans.json",
+        JSON.stringify(evidence, null, 2),
+      );
     });
     it("purges expired conversation content but keeps event tombstones", async () => {
       await enable();

@@ -7,6 +7,7 @@ export const ROUTES = {
   login: "/login",
   dashboard: "/dashboard",
   profile: "/profile",
+  receptionInbox: "/reception-inbox",
   account: "/account",
   accountWildcard: "/account/*",
   forcePasswordChange: "/force-password-change",
