@@ -3759,7 +3759,7 @@ export default function WorkflowPrototypeLive() {
           </div>
         </section>
         <section className="rounded-xl border-2 border-slate-300 p-4 print:break-inside-avoid print:p-3">
-          <label className="mb-3 block">الأعراض<Textarea aria-label="الأعراض" data-medical-proposals="symptoms" value={data.specialist.symptoms} onChange={event=>update("specialist",{...data.specialist,symptoms:event.target.value})}/></label>
+          <label className="mb-3 block">الشكاوى والأعراض<Textarea aria-label="الشكاوى والأعراض" data-medical-proposals="complaints symptoms" value={data.specialist.complains} onChange={event=>update("specialist",{...data.specialist,complains:event.target.value})}/></label>
           <label className="mb-3 block">التاريخ المرضي<Textarea aria-label="التاريخ المرضي" data-medical-proposals="history" value={data.reception.medicalHistory} onChange={event=>update("reception",{...data.reception,medicalHistory:event.target.value})}/></label>
           <label className="mb-3 block">الخطة العلاجية<Textarea aria-label="الخطة العلاجية" data-medical-proposals="treatment" value={clinicalTreatmentPlan} onChange={event=>setClinicalTreatmentPlan(event.target.value)}/></label>
           <h3 className="text-lg font-black text-blue-950">Final Decision</h3>
@@ -4074,12 +4074,12 @@ export default function WorkflowPrototypeLive() {
         saving={isSavingFinalReport}
         onSaveDraft={async()=>{if(!await saveFinalReportEdits())throw new Error("تعذر حفظ الزيارة. راجع الرسالة الظاهرة وحاول مرة أخرى.");}}
         draftBinding={{
-          values:{treatment:clinicalTreatmentPlan,symptoms:data.specialist.symptoms,complaints:data.specialist.complains,history:data.reception.medicalHistory,diagnosis:data.consultant.diagnosis,decision:data.consultant.finalDecision,investigations:selectedTestIds.map(id=>testItems.find(item=>String(item.id)===String(id))?.name).filter(Boolean).join("\n")},
-          destinations:{treatment:"treatment",complaints:"complaints",symptoms:"symptoms",history:"history",diagnosis:"diagnosis",decision:"decision",labs:"investigations",imaging:"investigations"},
+          values:{treatment:clinicalTreatmentPlan,complaints:data.specialist.complains,history:data.reception.medicalHistory,diagnosis:data.consultant.diagnosis,decision:data.consultant.finalDecision,investigations:selectedTestIds.map(id=>testItems.find(item=>String(item.id)===String(id))?.name).filter(Boolean).join("\n")},
+          destinations:{treatment:"treatment",complaints:"complaints",symptoms:"complaints",history:"history",diagnosis:"diagnosis",decision:"decision",labs:"investigations",imaging:"investigations"},
           accept:(field,text)=>{if(field!=="labs"&&field!=="imaging")return true;try{if(testsQuery.isLoading||testsQuery.isError)return false;resolveTestNames(text,testsQuery.data ?? [],field);return true;}catch{return false;}},
           change:values=>{if("treatment" in values)setClinicalTreatmentPlan(values.treatment);if("investigations" in values)setSelectedTestIds(resolveTestNames(values.investigations,testsQuery.data ?? []));setData(previous=>({...previous,
             reception:{...previous.reception,...("history" in values?{medicalHistory:values.history}:{})},
-            specialist:{...previous.specialist,...("complaints" in values?{complains:values.complaints}:{}),...("symptoms" in values?{symptoms:values.symptoms}:{})},
+            specialist:{...previous.specialist,...("complaints" in values?{complains:values.complaints}:{})},
             consultant:{...previous.consultant,...("diagnosis" in values?{diagnosis:values.diagnosis}:{}),...("decision" in values?{finalDecision:values.decision}:{}),...("investigations" in values?{testsRays:values.investigations}:{})},
           }));},
         }}

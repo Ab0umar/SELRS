@@ -134,6 +134,7 @@ export default function WorkflowExamination({
 
   const [exam, setExam] = useState<ExamForm>(emptyExam);
   const [drawing, setDrawing] = useState("");
+  const [history, setHistory] = useState("");
   const [reading, setReading] = useState("");
   const [refraction, setRefraction] = useState<Refraction>(emptyRefraction);
   const [bcva, setBcva] = useState<Record<Eye, string>>({ od: "", os: "" });
@@ -160,6 +161,7 @@ export default function WorkflowExamination({
     if (!savedForVisit) next.complains = String(visit?.chiefComplaint ?? "").trim();
     setExam(next);
     setDrawing(String(sheet?.consultantDrawing ?? ""));
+    setHistory(String(sheet?.historyNotes ?? ""));
     setReading(String(sheet?.readingValue ?? ""));
 
     const glasses = ((glassesQuery.data ?? []) as any[]).find(
@@ -256,6 +258,7 @@ export default function WorkflowExamination({
           ...existing,
           visitId,
           consultantExam: exam,
+          historyNotes: history,
           consultantDrawing: drawing,
           readingValue: reading,
           examData: {
@@ -576,6 +579,20 @@ export default function WorkflowExamination({
                     </div>
                   ) : null}
                 </div>
+                <p className="mb-2 mt-3 text-[13px] font-bold text-primary">Medical history:</p>
+                <AssistantField label="التاريخ المرضي">
+                  <textarea
+                    aria-label="التاريخ المرضي"
+                    data-medical-proposals="history"
+                    className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-primary"
+                    value={history}
+                    onChange={(event) => {
+                      dirtyRef.current = true;
+                      setHistory(event.target.value);
+                    }}
+                    placeholder="اكتب التاريخ المرضي…"
+                  />
+                </AssistantField>
               </div>
 
               <div className="flex-[3] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]">
