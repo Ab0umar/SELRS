@@ -4,9 +4,24 @@
     {
       "name": "dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 4000,
       "autoPort": true
+    },
+    {
+      "name": "client-only",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5180",
+        "--strictPort"
+      ],
+      "port": 5180
     }
   ]
 }

@@ -644,7 +644,9 @@ export default function ProtectedRoute({
           </p>
           <Button
             variant="bare"
-            onClick={() => isAiMobileApp() ? void logout() : setLocation(ROUTES.home)}
+            onClick={() =>
+              isAiMobileApp() ? void logout() : setLocation(ROUTES.home)
+            }
             className="text-primary hover:underline"
           >
             {isAiMobileApp() ? "تسجيل الخروج" : "العودة للصفحة الرئيسية"}
