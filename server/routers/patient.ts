@@ -118,12 +118,26 @@ export const patientRouter = router({
   getVisitScheduleRequests: protectedProcedure
     .input(
       z.object({
-        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         branch: z.enum(["tanta", "kfs"]).optional(),
+        limit: z.number().int().min(1).max(200).default(200),
+        offset: z.number().int().min(0).default(0),
       }),
     )
-    .query(async ({ input }) => {
-      return await db.getVisitScheduleRequestsByDate(input.date, input.branch);
+    .query(async ({ input, ctx }) => {
+      if (
+        !input.date &&
+        !["admin", "manager", "reception", "accountant"].includes(ctx.user.role)
+      )
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "عرض كل طلبات الحجز متاح للاستقبال والإدارة",
+        });
+      return await db.getVisitScheduleRequestsByDate(
+        input.date,
+        input.branch,
+        input.date ? undefined : { limit: input.limit, offset: input.offset },
+      );
     }),
 
   removeVisitScheduleRequest: protectedProcedure

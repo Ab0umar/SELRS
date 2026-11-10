@@ -59,8 +59,9 @@ import { getLocalDateIso } from "@/hooks/operations/operationsShared";
 import { DateInput } from "@/components/ui/date-input";
 import { buildPrintUrl } from "@/lib/print";
 import { QuickPatientEntryDialog } from "@/components/dashboard/QuickPatientEntryDialog";
+import { cairoDateIso } from "@shared/visitSchedule";
 
-type QueueFilter = "bookings" | "confirmed" | "treated";
+type QueueFilter = "confirmed" | "treated";
 type BookingRegistrationTarget =
   { source: "schedule"; item: any } | { source: "portal"; item: any };
 
@@ -72,10 +73,56 @@ const PRINT_SHEET_TYPES = [
 ] as const;
 
 const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
-  { value: "bookings", label: "حجز" },
   { value: "confirmed", label: "مؤكد" },
   { value: "treated", label: "معالج" },
 ];
+
+const OPERATION_COLUMNS = [
+  {
+    id: "laser",
+    label: "PRK + LASIK",
+    matches: (operation: string) =>
+      operation.includes("prk") ||
+      operation.includes("lasik") ||
+      operation.includes("ليزك"),
+  },
+  {
+    id: "femto",
+    label: "F.S + F.L",
+    matches: (operation: string) =>
+      ["fs", "fl"].includes(operation.replace(/[.\s_-]/g, "")) ||
+      operation.includes("femto") ||
+      operation.includes("سمايل"),
+  },
+  {
+    id: "surgery",
+    label: "المياه البيضاء والزرقاء والحول والياج والعدسات",
+    matches: (operation: string) =>
+      [
+        "cataract",
+        "كتاراكت",
+        "كاتاراكت",
+        "مياه بيضاء",
+        "glaucoma",
+        "زرقاء",
+        "squint",
+        "حول",
+        "yag",
+        "ياج",
+        "iol",
+        "icl",
+      ].some((term) => operation.includes(term)),
+  },
+  { id: "other", label: "عمليات أخرى", matches: () => true },
+] as const;
+
+function getOperationColumnId(operation: string) {
+  const normalized = operation.toLowerCase().trim();
+  return (
+    OPERATION_COLUMNS.find((column) => column.matches(normalized))?.id ??
+    "other"
+  );
+}
 
 const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
@@ -141,7 +188,10 @@ export function AppointmentsSection({
   selectedDate: controlledSelectedDate,
   onSelectedDateChange,
 }: {
-  onOpenMeasurementsMedicalFile?: (patientId: number, context?: { visitId?: number; visitDate?: string }) => void;
+  onOpenMeasurementsMedicalFile?: (
+    patientId: number,
+    context?: { visitId?: number; visitDate?: string },
+  ) => void;
   selectedDate?: string;
   onSelectedDateChange?: (date: string) => void;
 } = {}) {
@@ -189,9 +239,12 @@ export function AppointmentsSection({
 
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("confirmed");
   const [showExternal, setShowExternal] = useState(true);
-  const [activeSection, setActiveSection] = useState<"patients" | "operations">(
-    "patients",
-  );
+  const [activeSection, setActiveSection] = useState<
+    "patients" | "operations" | "bookings"
+  >("patients");
+  const [bookingPage, setBookingPage] = useState(0);
+  const [confirmedBookingPage, setConfirmedBookingPage] = useState(0);
+  useEffect(() => setConfirmedBookingPage(0), [selectedDate]);
   const [registrationTarget, setRegistrationTarget] =
     useState<BookingRegistrationTarget | null>(null);
 
@@ -204,7 +257,12 @@ export function AppointmentsSection({
     [merged],
   );
   const medicalStatusQuery = trpc.medical.getPatientMedicalStatusBatch.useQuery(
-    { patientIds: todayPatientIds, visitIds: merged.map(p => Number(p.visitId)).filter(id => Number.isInteger(id) && id > 0) },
+    {
+      patientIds: todayPatientIds,
+      visitIds: merged
+        .map((p) => Number(p.visitId))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    },
     {
       enabled: todayPatientIds.length > 0,
       staleTime: 120_000,
@@ -214,7 +272,6 @@ export function AppointmentsSection({
   const medicalStatuses = medicalStatusQuery.data as
     Record<number, PatientMedicalStatus> | undefined;
 
-  // ── Portal bookings for the selected date ───────────────────────────────
   const isAdmin = String(user?.role ?? "").toLowerCase() === "admin";
   const myPermissionsQuery = trpc.medical.getMyPermissions.useQuery(undefined, {
     enabled: Boolean(user) && !isAdmin,
@@ -226,33 +283,85 @@ export function AppointmentsSection({
       ((myPermissionsQuery.data ?? []) as string[]).some(
         (perm) => perm.replace(/:r[w]?$/, "") === actionId,
       ));
-  const canSeePortalBookings = hasActionPermission("action/portal-bookings");
-  const bookingsQuery = (trpc as any).patientPortal.listBookings.useQuery(
-    { date: selectedDate, limit: 200 },
+  const canListBookings = [
+    "admin",
+    "manager",
+    "reception",
+    "accountant",
+  ].includes(userRole);
+  const canSeePortalBookings =
+    canListBookings && hasActionPermission("action/portal-bookings");
+  const bookingSummaryQuery = trpc.patientPortal.bookingSummary.useQuery(
+    { appointmentDate: selectedDate },
+    {
+      enabled: canListBookings,
+      refetchInterval: 15_000,
+      refetchOnWindowFocus: true,
+    },
+  );
+  const pendingBookingCount = canListBookings
+    ? (bookingSummaryQuery.data?.reception ?? 0) +
+      (canSeePortalBookings ? (bookingSummaryQuery.data?.pending ?? 0) : 0)
+    : 0;
+  const confirmedBookingCount = canSeePortalBookings
+    ? (bookingSummaryQuery.data?.confirmed ?? 0)
+    : 0;
+  const confirmedBookingsQuery = trpc.patientPortal.listBookings.useQuery(
+    {
+      status: "confirmed",
+      appointmentDate: selectedDate,
+      limit: 200,
+      offset: confirmedBookingPage * 200,
+    },
+    {
+      enabled: canSeePortalBookings && activeSection === "bookings",
+      staleTime: 60_000,
+      refetchOnWindowFocus: true,
+    },
+  );
+  const bookingsQuery = trpc.patientPortal.listBookings.useQuery(
+    { status: "pending", limit: 200, offset: bookingPage * 200 },
     {
       staleTime: 60_000,
       refetchOnWindowFocus: false,
-      enabled: canSeePortalBookings,
+      enabled: canSeePortalBookings && activeSection === "bookings",
     },
   );
-  const bookingsForDate = canSeePortalBookings
-    ? ((bookingsQuery.data ?? []) as any[])
+  const pendingBookings = canSeePortalBookings
+    ? (bookingsQuery.data ?? [])
     : [];
 
   // ── Schedule requests (from حجز موعد/كشف dialog) ────────────────────────
   const scheduleRequestsQuery = trpc.patient.getVisitScheduleRequests.useQuery(
-    { date: selectedDate },
-    { staleTime: 60_000, refetchOnWindowFocus: false },
+    { limit: 200, offset: bookingPage * 200 },
+    {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      enabled: activeSection === "bookings" && canListBookings,
+    },
   );
 
   useEffect(() => {
     const handler = () => {
-      void (bookingsQuery as any).refetch();
-      void scheduleRequestsQuery.refetch();
+      if (canListBookings) void bookingSummaryQuery.refetch();
+      if (activeSection !== "bookings") return;
+      if (canSeePortalBookings) {
+        void bookingsQuery.refetch();
+        void confirmedBookingsQuery.refetch();
+      }
+      if (canListBookings) void scheduleRequestsQuery.refetch();
     };
     window.addEventListener("booking-update", handler);
     return () => window.removeEventListener("booking-update", handler);
-  }, [bookingsQuery, scheduleRequestsQuery]);
+  }, [
+    bookingsQuery,
+    confirmedBookingsQuery,
+    scheduleRequestsQuery,
+    activeSection,
+    canSeePortalBookings,
+    canListBookings,
+    bookingSummaryQuery,
+  ]);
 
   const utils = trpc.useUtils();
   const removeRegisteredScheduleRequest =
@@ -288,6 +397,7 @@ export function AppointmentsSection({
     await Promise.all([
       utils.patient.getVisitScheduleRequests.invalidate(),
       (utils as any).patientPortal.listBookings.invalidate(),
+      utils.patientPortal.bookingSummary.invalidate(),
       utils.medical.getTodayPatientsByQueueStatus.invalidate(),
     ]);
     setRegistrationTarget(null);
@@ -420,6 +530,57 @@ export function AppointmentsSection({
     return out;
   }, [todayOperationListsQuery.data]);
 
+  const todayOperationsByDoctorAndType = useMemo(() => {
+    const grouped = new Map<
+      string,
+      Map<string, typeof todayOperationsFlat>
+    >();
+
+    for (const row of todayOperationsFlat) {
+      const rawDoctor = String(
+        row.item.doctor ?? row.listDoctorName ?? "",
+      ).trim();
+      const doctor =
+        doctorNameByCode.get(rawDoctor.toLowerCase()) ||
+        rawDoctor ||
+        "طبيب غير محدد";
+      const operation =
+        row.item.operation?.trim() ||
+        row.listOperationType?.trim() ||
+        "عملية";
+      const operationsByType = grouped.get(doctor) ?? new Map();
+      const rows = operationsByType.get(operation) ?? [];
+
+      rows.push(row);
+      operationsByType.set(operation, rows);
+      grouped.set(doctor, operationsByType);
+    }
+
+    return Array.from(grouped, ([doctor, operationsByType]) => {
+      const groupsByColumn = new Map<
+        string,
+        Array<{ operation: string; rows: typeof todayOperationsFlat }>
+      >();
+
+      for (const [operation, rows] of operationsByType) {
+        const columnId = getOperationColumnId(operation);
+        const groups = groupsByColumn.get(columnId) ?? [];
+        groups.push({ operation, rows });
+        groupsByColumn.set(columnId, groups);
+      }
+
+      return {
+        doctor,
+        columns: OPERATION_COLUMNS.flatMap((column) => {
+          const operationGroups = groupsByColumn.get(column.id) ?? [];
+          return operationGroups.length > 0
+            ? [{ ...column, operationGroups }]
+            : [];
+        }),
+      };
+    });
+  }, [doctorNameByCode, todayOperationsFlat]);
+
   const counts = useMemo(
     () => ({
       confirmed:
@@ -458,11 +619,15 @@ export function AppointmentsSection({
         }}
         patientId={shortcutPatient?.id ?? 0}
         patientName={shortcutPatient?.fullName}
-        onOpenMeasurementsMedicalFile={onOpenMeasurementsMedicalFile ? (patientId) =>
-          onOpenMeasurementsMedicalFile(patientId, {
-            visitId: shortcutPatient?.visitId,
-            visitDate: selectedDate,
-          }) : undefined}
+        onOpenMeasurementsMedicalFile={
+          onOpenMeasurementsMedicalFile
+            ? (patientId) =>
+                onOpenMeasurementsMedicalFile(patientId, {
+                  visitId: shortcutPatient?.visitId,
+                  visitDate: selectedDate,
+                })
+            : undefined
+        }
       />
       <FollowupFormDialog
         open={followupPatient != null}
@@ -524,14 +689,15 @@ export function AppointmentsSection({
         </DialogContent>
       </Dialog>
       <div
-        className="queue-workspace-tabs mb-5 grid grid-cols-2 gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
+        className="queue-workspace-tabs mb-5 grid grid-cols-3 gap-1 rounded-xl border border-border/60 bg-muted/30 p-1"
         role="tablist"
-        aria-label="مسار اليوم والعمليات"
+        aria-label="مسار اليوم والعمليات والحجز"
       >
         {(
           [
             { id: "patients", label: "مسار اليوم", icon: Users },
             { id: "operations", label: "العمليات", icon: Syringe },
+            { id: "bookings", label: "الحجز", icon: CalendarPlus },
           ] as const
         ).map((tab) => {
           const Icon = tab.icon;
@@ -545,14 +711,40 @@ export function AppointmentsSection({
               aria-selected={selected}
               onClick={() => setActiveSection(tab.id)}
               className={cn(
-                "flex min-h-11 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                selected
-                  ? "bg-background text-primary shadow-sm"
-                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                "flex min-h-11 flex-wrap items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                tab.id === "bookings" && pendingBookingCount > 0
+                  ? "bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/30"
+                  : tab.id === "bookings" && confirmedBookingCount > 0
+                    ? "bg-success/10 text-success ring-1 ring-inset ring-success/30"
+                    : selected
+                      ? "bg-background text-primary shadow-sm"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+                selected &&
+                  tab.id === "bookings" &&
+                  (pendingBookingCount > 0 || confirmedBookingCount > 0) &&
+                  "ring-2",
               )}
             >
               <Icon className="h-4 w-4" aria-hidden />
               <span>{tab.label}</span>
+              {tab.id === "bookings" && pendingBookingCount > 0 && (
+                <span
+                  aria-label={`${pendingBookingCount} طلب قيد المراجعة`}
+                  title="طلبات قيد المراجعة"
+                  className="rounded-full bg-destructive px-1.5 text-[13px] font-bold leading-5 text-destructive-foreground tabular-nums"
+                >
+                  {pendingBookingCount}
+                </span>
+              )}
+              {tab.id === "bookings" && confirmedBookingCount > 0 && (
+                <span
+                  aria-label={`${confirmedBookingCount} حجز مؤكد بتاريخ ${selectedDate}`}
+                  title={`حجوزات ${selectedDate} المؤكدة`}
+                  className="rounded-full bg-success px-1.5 text-[13px] font-bold leading-5 text-success-foreground tabular-nums"
+                >
+                  {confirmedBookingCount}
+                </span>
+              )}
               {tab.id === "operations" && todayOperationsFlat.length > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[13px] font-bold text-secondary-foreground tabular-nums">
                   {todayOperationsFlat.length}
@@ -596,11 +788,7 @@ export function AppointmentsSection({
             <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 {QUEUE_FILTERS.map(({ value, label }) => {
-                  const n =
-                    value === "bookings"
-                      ? bookingsForDate.length +
-                        (scheduleRequestsQuery.data?.length ?? 0)
-                      : ((counts as Record<string, number>)[value] ?? 0);
+                  const n = (counts as Record<string, number>)[value] ?? 0;
                   const active = queueFilter === value;
                   return (
                     <Button
@@ -626,7 +814,7 @@ export function AppointmentsSection({
               <label
                 className={cn(
                   "cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground",
-                  queueFilter === "bookings" ? "hidden" : "flex",
+                  "flex",
                 )}
               >
                 <Checkbox
@@ -639,7 +827,7 @@ export function AppointmentsSection({
               </label>
             </div>
 
-            {queueFilter === "bookings" ? null : isLoading ? (
+            {isLoading ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
                 جاري التحميل…
               </p>
@@ -690,31 +878,49 @@ export function AppointmentsSection({
           </div>
         )}
 
-        {activeSection === "patients" && queueFilter === "bookings" && (
-          <div className="xl:col-span-12 flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
+        {activeSection === "bookings" && (
+          <div className="xl:col-span-12 grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-2">
+            <section
+              className="flex min-w-0 flex-col gap-3"
+              aria-label="طلبات الحجز قيد المراجعة"
+            >
               <div className="flex h-9 items-center gap-2 text-sm font-semibold text-foreground">
                 <CalendarPlus className="h-4 w-4" />
-                حجز
-                {bookingsForDate.length +
+                طلبات الحجز — قيد المراجعة
+                {pendingBookings.length +
                   (scheduleRequestsQuery.data?.length ?? 0) >
                   0 && (
                   <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[13px] font-bold text-warning-foreground tabular-nums">
-                    {bookingsForDate.length +
+                    {pendingBookings.length +
                       (scheduleRequestsQuery.data?.length ?? 0)}
                   </span>
                 )}
               </div>
-              {bookingsQuery.isLoading || scheduleRequestsQuery.isLoading ? (
+              {(canSeePortalBookings && bookingsQuery.isError) ||
+              scheduleRequestsQuery.isError ? (
+                <p role="alert" className="text-sm text-destructive">
+                  تعذر تحميل طلبات الحجز.{" "}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      void bookingsQuery.refetch();
+                      void scheduleRequestsQuery.refetch();
+                    }}
+                  >
+                    إعادة المحاولة
+                  </Button>
+                </p>
+              ) : (canSeePortalBookings && bookingsQuery.isLoading) ||
+                scheduleRequestsQuery.isLoading ? (
                 <div className="grid gap-2">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <Skeleton key={i} className="h-20 rounded-xl" />
                   ))}
                 </div>
-              ) : bookingsForDate.length === 0 &&
+              ) : pendingBookings.length === 0 &&
                 (scheduleRequestsQuery.data?.length ?? 0) === 0 ? (
                 <div className="flex min-h-[120px] flex-col items-center justify-center px-4 py-8 text-center text-xs text-muted-foreground">
-                  لا توجد حجوزات لهذا اليوم
+                  لا توجد طلبات حجز في هذه الصفحة
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -724,7 +930,7 @@ export function AppointmentsSection({
                         مواعيد الاستقبال (
                         {scheduleRequestsQuery.data?.length ?? 0})
                       </p>
-                      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                      <div className="grid gap-2 2xl:grid-cols-2">
                         {(scheduleRequestsQuery.data ?? []).map((r: any) => (
                           <ScheduleRequestCard
                             key={r.id}
@@ -740,13 +946,13 @@ export function AppointmentsSection({
                       </div>
                     </div>
                   )}
-                  {bookingsForDate.length > 0 && (
+                  {pendingBookings.length > 0 && (
                     <div>
                       <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                        حجوزات البوابة ({bookingsForDate.length})
+                        حجوزات البوابة ({pendingBookings.length})
                       </p>
-                      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                        {bookingsForDate.map((booking) => (
+                      <div className="grid gap-2 2xl:grid-cols-2">
+                        {pendingBookings.map((booking) => (
                           <BookingCard
                             key={booking.id}
                             booking={booking}
@@ -764,7 +970,61 @@ export function AppointmentsSection({
                   )}
                 </div>
               )}
-            </div>
+              <BookingPagination
+                page={bookingPage}
+                onPageChange={setBookingPage}
+                hasNext={
+                  pendingBookings.length === 200 ||
+                  scheduleRequestsQuery.data?.length === 200
+                }
+                busy={
+                  bookingsQuery.isFetching || scheduleRequestsQuery.isFetching
+                }
+              />
+            </section>
+            {canSeePortalBookings && (
+              <section
+                className="flex min-w-0 flex-col gap-3"
+                aria-label="حجز اليوم"
+              >
+                <h3 className="text-sm font-semibold">
+                  حجز اليوم — المؤكد {selectedDate}
+                </h3>
+                {confirmedBookingsQuery.isError ? (
+                  <p role="alert" className="text-sm text-destructive">
+                    تعذر تحميل الحجوزات المؤكدة.{" "}
+                    <Button
+                      variant="outline"
+                      onClick={() => void confirmedBookingsQuery.refetch()}
+                    >
+                      إعادة المحاولة
+                    </Button>
+                  </p>
+                ) : confirmedBookingsQuery.isLoading ? (
+                  <Skeleton className="h-20 rounded-xl" />
+                ) : confirmedBookingsQuery.data?.length ? (
+                  <div className="grid gap-2 2xl:grid-cols-2">
+                    {confirmedBookingsQuery.data.map((booking) => (
+                      <BookingCard
+                        key={booking.id}
+                        booking={booking}
+                        visitDate={selectedDate}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    لا توجد حجوزات بوابة مؤكدة لهذا التاريخ
+                  </p>
+                )}
+                <BookingPagination
+                  page={confirmedBookingPage}
+                  onPageChange={setConfirmedBookingPage}
+                  hasNext={confirmedBookingsQuery.data?.length === 200}
+                  busy={confirmedBookingsQuery.isFetching}
+                />
+              </section>
+            )}
           </div>
         )}
 
@@ -796,14 +1056,58 @@ export function AppointmentsSection({
                   لا توجد عمليات مسجّلة لهذا اليوم
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-                  {todayOperationsFlat.map((row) => (
-                    <TodayOperationListItemCard
-                      key={row.key}
-                      row={row}
-                      doctorNameByCode={doctorNameByCode}
-                    />
-                  ))}
+                <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                  {todayOperationsByDoctorAndType.map(
+                    ({ doctor, columns }) => (
+                      <section
+                        key={doctor}
+                        className="rounded-xl border border-border/60 bg-card p-3 sm:p-4"
+                      >
+                        <h2 className="mb-3 text-sm font-semibold text-primary">
+                          {doctor}
+                        </h2>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                          {columns.map(({ id, label, operationGroups }) => (
+                            <section
+                              key={id}
+                              className="min-w-0 rounded-lg border border-border/50 bg-muted/20 p-2.5"
+                            >
+                              <div className="mb-2 flex items-center justify-between gap-2 border-b border-border/50 pb-1.5">
+                                <h3 className="text-xs font-semibold text-foreground">
+                                  {label}
+                                </h3>
+                                <span className="text-xs tabular-nums text-muted-foreground">
+                                  {operationGroups.reduce(
+                                    (count, group) => count + group.rows.length,
+                                    0,
+                                  )} {" "}
+                                  حالة
+                                </span>
+                              </div>
+                              <div className="space-y-3">
+                                {operationGroups.map(({ operation, rows }) => (
+                                  <div key={operation}>
+                                    <h4 className="mb-1.5 text-xs font-medium text-muted-foreground">
+                                      {operation}
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {rows.map((row) => (
+                                        <TodayOperationListItemCard
+                                          key={row.key}
+                                          row={row}
+                                          doctorNameByCode={doctorNameByCode}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          ))}
+                        </div>
+                      </section>
+                    ),
+                  )}
                 </div>
               )}
             </div>
@@ -868,6 +1172,43 @@ const BOOKING_TYPES_AR: Record<string, string> = {
   followup: "متابعة",
 };
 
+function bookingDateLabel(value: Date | string): string {
+  return typeof value === "string" ? value.slice(0, 10) : cairoDateIso(value);
+}
+
+function BookingPagination({
+  page,
+  onPageChange,
+  hasNext,
+  busy,
+}: {
+  page: number;
+  onPageChange: (page: number) => void;
+  hasNext: boolean;
+  busy: boolean;
+}) {
+  if (page === 0 && !hasNext) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+      <Button
+        variant="outline"
+        disabled={page === 0 || busy}
+        onClick={() => onPageChange(page - 1)}
+      >
+        السابق
+      </Button>
+      <span>صفحة {page + 1}</span>
+      <Button
+        variant="outline"
+        disabled={!hasNext || busy}
+        onClick={() => onPageChange(page + 1)}
+      >
+        التالي
+      </Button>
+    </div>
+  );
+}
+
 function ScheduleRequestCard({
   r,
   onRegister,
@@ -879,6 +1220,7 @@ function ScheduleRequestCard({
   const remove = trpc.patient.removeVisitScheduleRequest.useMutation({
     onSuccess: async () => {
       await utils.patient.getVisitScheduleRequests.invalidate();
+      await utils.patientPortal.bookingSummary.invalidate();
       toast.success("تم حذف الموعد");
     },
     onError: () => toast.error("تعذر الحذف"),
@@ -890,6 +1232,9 @@ function ScheduleRequestCard({
         <p className="truncate text-[13px] text-muted-foreground">
           {serviceTypeLabels[r.service as string] ?? r.service}
           {r.phone ? ` · ${r.phone}` : ""}
+        </p>
+        <p className="text-[13px] text-muted-foreground">
+          الموعد: {bookingDateLabel(r.visitDate)}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
@@ -923,13 +1268,14 @@ function BookingCard({
   visitDate,
 }: {
   booking: any;
-  onRegister: () => void;
+  onRegister?: () => void;
   visitDate: string;
 }) {
   const utils = trpc.useUtils();
   const del = (trpc as any).patientPortal.deleteBooking.useMutation({
     onSuccess: async () => {
       await (utils as any).patientPortal.listBookings.invalidate();
+      await utils.patientPortal.bookingSummary.invalidate();
       toast.success("تم حذف الحجز");
     },
     onError: () => toast.error("تعذر الحذف"),
@@ -960,17 +1306,23 @@ function BookingCard({
             {code} · {type}
             {branchLabel ? ` · ${branchLabel}` : ""}
           </p>
+          <p className="text-[13px] text-muted-foreground">
+            الموعد:{" "}
+            {bookingDateLabel(booking.confirmedDate ?? booking.requestedDate)}
+          </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-          <Button
-            type="button"
-            size="sm"
-            className="h-7 gap-1 px-2 text-[13px]"
-            onClick={onRegister}
-          >
-            <UserPlus className="h-3.5 w-3.5" aria-hidden />
-            تأكيد وتسجيل
-          </Button>
+          {onRegister && (
+            <Button
+              type="button"
+              size="sm"
+              className="h-7 gap-1 px-2 text-[13px]"
+              onClick={onRegister}
+            >
+              <UserPlus className="h-3.5 w-3.5" aria-hidden />
+              تأكيد وتسجيل
+            </Button>
+          )}
           <span
             className={cn(
               "rounded-full border px-1.5 py-0.5 text-[13px] font-medium",
@@ -1191,6 +1543,11 @@ function QueuePatientCard({
               ) : null}
             </div>
             <div className="queue-patient-meta mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] leading-4 text-muted-foreground">
+              <span>
+                الكود: <bdi className="font-medium tabular-nums">
+                  {patient.patientCode || "—"}
+                </bdi>
+              </span>
               <span className="queue-patient-doctor min-w-0 max-w-full truncate">
                 الطبيب: {doctorText}
               </span>
@@ -1203,7 +1560,6 @@ function QueuePatientCard({
               >
                 {serviceTypeText}
               </Badge>
-              <span className="queue-patient-desktop-visit">{visitLink}</span>
               {st === "treated" && patient.treatedByName ? (
                 <span className="min-w-0 max-w-full truncate font-medium text-success">
                   تم بواسطة: {patient.treatedByName}
@@ -1212,6 +1568,8 @@ function QueuePatientCard({
             </div>
           </div>
 
+          <div className="queue-patient-header-actions flex shrink-0 flex-col items-center gap-1">
+            {visitLink}
           {canMarkTreated ? (
             <Button
               type="button"
@@ -1231,10 +1589,12 @@ function QueuePatientCard({
           ) : st === "treated" && canUndoTreated && visitId != null ? (
             <Button
               type="button"
-              variant="outline"
+              variant="bare"
               size="sm"
               disabled={undoPending}
-              className="queue-patient-undo-treated h-7 shrink-0 gap-1 px-2 text-[13px]"
+              title="تراجع عن تحديد كمعالج"
+              aria-label="تراجع عن تحديد كمعالج"
+              className="queue-patient-undo-treated inline-flex h-7 w-7 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-foreground shadow-none"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -1242,7 +1602,6 @@ function QueuePatientCard({
               }}
             >
               <Undo2 className="h-3.5 w-3.5" aria-hidden />
-              <span>تراجع</span>
             </Button>
           ) : st === "treated" ? (
             <CheckCircle2
@@ -1250,6 +1609,7 @@ function QueuePatientCard({
               aria-hidden
             />
           ) : null}
+          </div>
         </div>
 
         <div className="queue-patient-actions mt-1.5 flex items-center justify-between gap-1.5">
@@ -1436,7 +1796,6 @@ function QueuePatientCard({
               </Button>
             ) : null}
           </div>
-          <span className="queue-patient-mobile-visit">{visitLink}</span>
         </div>
       </div>
     </div>

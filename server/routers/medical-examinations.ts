@@ -1634,7 +1634,7 @@ export const medicalExaminationsRoutes = {
       return { success: true, queueStatus: result.queueStatus };
     }),
 
-  addFollowupToQueue: receptionProcedure
+  addFollowupToQueue: makePageProcedure("action/followup-queue")
     .input(
       z.object({
         patientId: z.number().int().positive(),
@@ -1642,22 +1642,6 @@ export const medicalExaminationsRoutes = {
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const permissions = await db.getEffectiveUserPermissions(
-        ctx.user.id,
-        ctx.user.role,
-      );
-      if (
-        !["admin", "accountant", "reception"].includes(
-          String(ctx.user.role ?? "").toLowerCase(),
-        ) &&
-        !permissions.includes("action/followup-queue")
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "غير مصرح لك بإضافة متابعة للطابور",
-        });
-      }
-
       let visitDate: Date;
       if (input.visitDate) {
         // Use noon so UTC conversion never rolls the date backward by a day

@@ -8382,19 +8382,18 @@ export async function insertVisitScheduleRequest(
 }
 
 export async function getVisitScheduleRequestsByDate(
-  dateIso: string,
+  dateIso: string | undefined,
   branch?: string,
+  pagination?: { limit: number; offset: number },
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const conditions = [
-    eq(visitScheduleRequests.visitDate, dateIso as any),
-    eq(visitScheduleRequests.status, "scheduled"),
-  ];
+  const conditions = [eq(visitScheduleRequests.status, "scheduled")];
+  if (dateIso) conditions.push(eq(visitScheduleRequests.visitDate, dateIso as any));
   if (branch) conditions.push(eq(visitScheduleRequests.branch, branch));
 
-  return await db
+  const query = db
     .select()
     .from(visitScheduleRequests)
     .where(and(...conditions))
@@ -8402,6 +8401,9 @@ export async function getVisitScheduleRequestsByDate(
       asc(visitScheduleRequests.createdAt),
       asc(visitScheduleRequests.id),
     );
+  return pagination
+    ? await query.limit(pagination.limit).offset(pagination.offset)
+    : await query;
 }
 
 export async function getVisitScheduleRequestById(id: number) {
