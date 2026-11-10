@@ -1,6 +1,7 @@
 # SRV100 AI Context Document
 
 > Single "read this first" file for any AI model (Cursor, Codex, Claude, GPT, Gemini, GLM, Kimi).
+> Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list includes sheet items stored on examination visits.
 > Version: 2.3.0 — companion to `docs/PROJECT_PRINCIPLES.md`. Updated 2026-10-26: moved out of `specs/`, spec-driven workflow removed. Updated 2026-11-10: patient WhatsApp OTP login, public clinic landing at `/`, paid leave type, follow-up list membership, autoref/refraction completeness.
 
 ---
@@ -508,6 +509,7 @@ server/services/accounting/
 2. **MSSQL Sync** → background job syncs patient data from MSSQL `PAPATMF` to MySQL
 3. **Examination** → doctor opens patient, examines, records findings in `medicalRouter`
 4. **Operations** → scheduled via `medicalRouter`, tracked in `operations` table
+5. **Follow-up** → queue visits plus sheet rows on the day's visit. See [Follow-up records](#follow-up-records). KF post-op rows live in `kf_followups` and are a different list.
 5. **Follow-up** → queue visit (`visitType = followup`) or a follow-up sheet item on the visit already stored that day. The `/followups` list includes both. Contract: `docs/api-reference.md` (Record lists).
 
 ## Examination Workflow
@@ -517,6 +519,36 @@ server/services/accounting/
 - Can trigger Pentacam device integration for corneal measurements
 - State persisted in JSON fields (exam page state)
 - Autoref and refraction dashboards classify each visit's latest exam as كامل / غير مكتمل / ناقص. A reviewer can confirm a one-eye record (`examinationRecordCompletions`, migration `0112`). Their center/external filter uses `patientLocationExpr` (service code and doctor first). That is separate from `attachTreatingDoctor`, where a non-blank `patients.locationType` column wins.
+
+## Follow-up records
+
+`/followups` (`client/src/pages/Followups.tsx`) loads `medical.getAllFollowupItems`. Each row is a visit, expanded to one entry per sheet item on that visit. Procedure contract: [api-reference.md](api-reference.md#follow-up-sheets).
+
+`getAllFollowupItems` in `server/db.ts` keeps a visit when either of these is true:
+
+1. **Queue visit.** `visits.visitType` is `followup`. `medical.addFollowupToQueue` (page permission `action/followup-queue`) and `createPatientFromExamination` with `isFollowup` create this visit before any sheet exists. The list row is a placeholder: `id` is `-visitId` and `followupSheetId` is null.
+2. **Sheet item for the same patient.** A `followupItems` row points at `visits.id`, and `followupSheets.patientId` equals `visits.patientId`. The visit type is often `examination`.
+
+`medical.saveFollowupSheet` writes through `savePatientFollowups` (`server/services/followup-persistence.ts`) and `persistClinicalSheet`. Visit choice is `selectClinicalVisit` in `shared/clinical-record.ts`:
+
+- An explicit `visitId` must belong to the patient.
+- With no `visitId`, the save uses the only visit whose calendar date equals the item `followupDate`.
+- Two visits on that date throw `Multiple visits exist on this date. Select the visit explicitly.`
+- No visit that day inserts one with `visitType: "examination"`.
+
+A sheet saved on a day that already has an examination therefore stores `followupItems.visitId` on that examination. An examination with no linked sheet item stays off the list. A query that keeps only `visitType = 'followup'` drops the sheet rows, which is why those records vanished from `/followups` before the list matched on the linked item.
+
+Displayed measurements (VA, refraction, IOP, flap, notes, treatment, operation) come from the visit's examination tables in `hydrateFollowupItems`. `followupDate` on those rows is `visits.visitDate`. A save that sends `followupDate` also writes that date onto the linked visit, for that patient only. Legacy items with `visitId` null and `followupDate` set are listed by that date and are not hydrated.
+
+Other constraints:
+
+- Cap is `Math.min(Math.max(limit, 1), 1000)`. The procedure default is 500. `/followups` requests 1000.
+- Filters: `patientId`, `date` (`YYYY-MM-DD`), and `search` tokens against name (including legacy encoding), `patientCode`, and phone.
+- One patient and sheet type holds `tableIndex` 0–3 on the latest `followupSheets` version. A new item takes the first free slot. When 0–3 are full, the save starts a new version at index 0. An update by `itemId` keeps the stored index. The submitted `tableIndex` is not stored for a new item.
+- A submitted item with no `followupDate` and no `itemId` is skipped.
+- `saveFollowupSheet` is `medicalStaffProcedure`, then a second check that allows only `doctor`, `nurse`, `admin`, and `manager`. Audit action: `SAVE_FOLLOWUP_SHEET`.
+- `getFollowupSheets` is `makePageProcedure("/patient-file")` and returns one patient's sheets. Its optional `sheetType` filter is `consultant`, `specialist`, `lasik`, or `external`. The save accepts all 12 service types.
+- Regression: `server/tests/followupList.test.ts`.
 
 ## Registration Flow
 

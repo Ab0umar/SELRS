@@ -546,6 +546,31 @@ On these two overviews, sphere, cylinder, axis, and UCVA come from the latest `a
 
 ---
 
+### Follow-up sheets
+
+Checked against `server/routers/medical-examinations.ts`, `server/db.ts`, `server/services/followup-persistence.ts`, and `shared/clinical-record.ts` on 2026-11-10. Workflow and the examination-visit pitfall: [AI_CONTEXT.md](AI_CONTEXT.md#follow-up-records). These procedures are the medical follow-up list, separate from `kf.listFollowups` and from `createPostOpFollowup`.
+
+| Procedure | Type | Auth | Role |
+|---|---|---|---|
+| `getAllFollowupItems` | query | `clinicalStaffProcedure` | `/followups` list |
+| `getFollowupSheets` | query | `makePageProcedure("/patient-file")` | One patient's sheets |
+| `saveFollowupSheet` | mutation | `medicalStaffProcedure`, then `doctor` / `nurse` / `admin` / `manager` only | Sheet save |
+| `addFollowupToQueue` | mutation | `makePageProcedure("action/followup-queue")` | Queue visit, no sheet |
+
+`getAllFollowupItems` input is optional: `limit` (1–1000, default 500), `search` (max 100), `date` (`YYYY-MM-DD`), `patientId`. The DB helper clamps `limit` to 1–1000. A visit is included when `visits.visitType` is `followup`, or when a `followupItems` row points at that visit and `followupSheets.patientId` equals `visits.patientId`. Queue visits with no sheet return `id: -visitId` and `followupSheetId: null`. Several items on one visit return several rows. Legacy items (`visitId` null, `followupDate` set) are appended and sorted by date with the rest.
+
+Hydrated fields, for rows that have a visit belonging to the same patient: `followupDate` (`visits.visitDate`), `vaOD` / `vaOS`, `iopOD` / `iopOS`, `refracOD` / `refracOS` and `flapOD` / `flapOS` as JSON strings, `treatment`, `notes`, `operationType`, `operationDate`. Those values are read from the visit's examination tables.
+
+`saveFollowupSheet` input: `patientId`, optional `visitId`, `sheetType` (the 12 service types), optional `appendMode`, and `followupItems[]` (`itemId`, `visitId`, `clinicalContent`, `tableIndex`, `followupDate`, `operationDate`, `operationType`, `followupName`, VA / refraction / flap / IOP, `treatment`, `notes`, `rightEye`, `leftEye`). `appendMode` is on the schema and is not read by the handler. Output: `{ success: true, sheetId, version, items: [{ itemId, visitId }] }`. Audit: `SAVE_FOLLOWUP_SHEET`.
+
+Visit attachment uses `selectClinicalVisit`. An explicit id must belong to the patient. Otherwise the save uses the single visit on the item's calendar date, or inserts `visitType: "examination"` when that day is empty. Two visits on the date fail with `Multiple visits exist on this date. Select the visit explicitly.` A `followupDate` also updates `visits.visitDate` for that patient. A new item takes the first free `tableIndex` in 0–3 on the latest sheet version. When those four slots are full, the save starts a new version at index 0. Updates by `itemId` keep the stored index and reject an id that is not on this patient and sheet type.
+
+`getFollowupSheets` takes `patientId` and an optional `sheetType` of `consultant`, `specialist`, `lasik`, or `external`. Omitting `sheetType` returns every sheet for the patient, each with its items.
+
+`addFollowupToQueue` takes `patientId` and an optional `visitDate`. It inserts `visitType: "followup"` at noon (local noon when a date is passed, otherwise `cairoDateIso()` at `T12:00:00+02:00`) and checks the patient into the alternating clinic queue. Audit: `CREATE_FOLLOWUP_VISIT`.
+
+---
+
 ### Prescriptions & Medications
 
 #### `createPrescription` (Mutation, Doctor)
@@ -1395,5 +1420,5 @@ Router file: `server/routers/doctorPortal.ts`
 
 ---
 
-**Last Updated:** 2026-06-14
+**Last Updated:** 2026-11-10
 **API Version:** 2.1.0
