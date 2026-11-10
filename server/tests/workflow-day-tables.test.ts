@@ -179,7 +179,7 @@ describe.sequential("مسار اليوم: every tab saves into the visit tables"
     expect(await column(visitMedicalHistory, visitId, "history")).toEqual(["ضغط"]);
   });
 
-  it("التمريض يحفظ الشكوى والأعراض والتاريخ المرضي ولا يكتب التشخيص", async () => {
+  it("التمريض بصلاحيات الطبيب: يحفظ الشكوى والأعراض والتاريخ والتشخيص والعلاج والقرار", async () => {
     const conn = await getTestDb();
     await conn.insert(patients).values({ patientCode: "DAY-003", fullName: "Day Nurse" });
     const [patient] = await conn.select().from(patients).where(eq(patients.patientCode, "DAY-003")).limit(1);
@@ -194,13 +194,17 @@ describe.sequential("مسار اليوم: every tab saves into the visit tables"
         consultantExam: { complains: "ألم" },
         symptoms: "احمرار",
         historyNotes: "سكر",
-        diagnosisText: "لا يكتبه التمريض",
+        diagnosisText: "التهاب",
+        treatmentPlan: "قطرة",
+        finalDecisionText: "متابعة",
       }),
     });
     expect(await column(visitComplaints, visitId, "complaint")).toEqual(["ألم"]);
     expect(await column(visitSymptoms, visitId, "symptoms")).toEqual(["احمرار"]);
     expect(await column(visitMedicalHistory, visitId, "history")).toEqual(["سكر"]);
-    expect(await column(visitDiagnoses, visitId, "diagnosis")).toEqual([]);
+    expect(await column(visitDiagnoses, visitId, "diagnosis")).toEqual(["التهاب"]);
+    expect(await column(visitTreatmentPlans, visitId, "treatment")).toEqual(["قطرة"]);
+    expect(await column(visitDecisions, visitId, "decision")).toEqual(["متابعة"]);
   });
 
   it("التمريض (القياسات): الحفظ الأول وتعديل الزيارة يصلان لجداول القياسات", async () => {
@@ -256,5 +260,21 @@ describe.sequential("مسار اليوم: every tab saves into the visit tables"
     expect(saved.after.sphereOD).toBe("-0.50");
     const glasses: any[] = await nurse.getGlassesRecordsByPatient({ patientId });
     expect(glasses.find((row) => row.examinationId === exam.id)?.sOD).toBe("-3.50");
+  });
+
+  it("الفني والاستقبال لا يكتبون التشخيص", async () => {
+    const conn = await getTestDb();
+    await conn.insert(patients).values({ patientCode: "DAY-005", fullName: "Day Tech" });
+    const [patient] = await conn.select().from(patients).where(eq(patients.patientCode, "DAY-005")).limit(1);
+    const patientId = Number(patient.id);
+    const opened: any = await caller().medical.saveMedicalVisit({ patientId, visitDate: "2026-11-10", iop: { od: "14", os: "15" } });
+    const visitId = Number(opened.visitId);
+    for (const role of ["technician", "reception"]) {
+      await appRouter.createCaller(makeCallerAs(role)).medical.saveSheetEntry({
+        patientId, visitId, sheetType: "consultant",
+        content: JSON.stringify({ visitId, diagnosisText: "لا يكتبه " + role }),
+      });
+    }
+    expect(await column(visitDiagnoses, visitId, "diagnosis")).toEqual([]);
   });
 });
