@@ -36,10 +36,10 @@ export async function mssqlQuery<T>(
   const result = await request.query(sqlText);
   const elapsed = Date.now() - startedAt;
   const rowCount = Array.isArray(result.recordset) ? result.recordset.length : 0;
-  console.debug(`[accounting:mssql] ${debugLabel ?? "query"} ${elapsed}ms → ${rowCount} rows`);
-  if (rowCount === 0) {
-    console.debug(`[accounting:mssql] params: ${JSON.stringify(params)}`);
-    console.debug(`[accounting:mssql] sql: ${sqlText.replace(/\s+/g, " ").slice(0, 800)}`);
+  if (process.env.ACCOUNTING_SQL_DEBUG === "1") {
+    console.debug(
+      `[accounting:mssql] ${debugLabel ?? "query"} ${elapsed}ms → ${rowCount} rows`,
+    );
   }
 
   return Array.isArray(result.recordset) ? (result.recordset as T[]) : [];
