@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMedicalAssistantAccess } from "./useMedicalAssistantAccess";
+import { trpc } from "@/lib/trpc";
 import { medicalTranscriptMaxChars } from "@shared/medical-assistant";
 
 interface MedicalAssistantPreviewProps {
@@ -51,7 +52,7 @@ function MedicalAssistantDialog({
   const [recording, setRecording] = useState(false);
   const [reviewRun, setReviewRun] = useState(0);
   const [draft, setDraft] = useState("");
-  // A finished recording goes to review on its own; typed text waits for the doctor.
+  // A finished recording or processed text goes to review on its own.
   const [autoStart, setAutoStart] = useState(false);
   // While a review runs, a new recording or text would orphan its paid result.
   const [aiRunning, setAiRunning] = useState(false);
@@ -59,6 +60,10 @@ function MedicalAssistantDialog({
     RoutedTranscript,
     { kind: "conversation" }
   > | null>(null);
+  // A job this user already started for the visit (before a reload or a
+  // remount) is shown again, so its paid result is not lost or paid twice.
+  const [resumeJobId, setResumeJobId] = useState<string>();
+  const [restoreChecked, setRestoreChecked] = useState(false);
   useEffect(() => {
     if (open === false || disabled) setRecording(false);
   }, [open, disabled]);
@@ -72,20 +77,51 @@ function MedicalAssistantDialog({
   const tooLong = draftText.length > medicalTranscriptMaxChars;
   const processDraft = () => {
     if (!draftText || tooLong || recording || disabled) return;
-    setAutoStart(false);
+    setAutoStart(true);
+    setResumeJobId(undefined);
     setResult({ kind: "conversation", mode, transcript: draftText });
     setReviewRun((value) => value + 1);
     setExpanded(true);
   };
   const isOpen = open ?? localOpen;
+  const latest = trpc.medicalAssistant.latestJob.useQuery(
+    { patientId, visitId },
+    {
+      enabled: isOpen && !disabled && !restoreChecked,
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  );
+  useEffect(() => {
+    if (restoreChecked || !isOpen || disabled || latest.isFetching) return;
+    if (!latest.isSuccess && !latest.isError) return;
+    setRestoreChecked(true);
+    const job = latest.data;
+    if (!job || job.recording.kind !== "conversation" || result !== null)
+      return;
+    setMode(job.recording.mode);
+    setDraft(job.recording.transcript);
+    setAutoStart(true);
+    setResumeJobId(job.jobId);
+    setResult(job.recording);
+    setReviewRun((value) => value + 1);
+    setExpanded(true);
+  }, [restoreChecked, isOpen, disabled, latest, result]);
   // Opening the assistant starts recording, unless a review is already there
-  // (reopening after closing mid-review shows that review instead).
+  // (reopening after closing mid-review, or a job found for this visit, shows
+  // that review instead).
   const wasOpen = useRef(false);
+  const recordOnOpen = useRef(false);
   useEffect(() => {
     if (isOpen && !wasOpen.current && !disabled && result === null)
-      setRecording(true);
+      recordOnOpen.current = true;
+    if (!isOpen || disabled || result !== null) recordOnOpen.current = false;
     wasOpen.current = isOpen;
-  }, [isOpen, disabled, result]);
+    if (recordOnOpen.current && restoreChecked) {
+      recordOnOpen.current = false;
+      setRecording(true);
+    }
+  }, [isOpen, disabled, result, restoreChecked]);
   const patientLabel = patientName || `مريض #${patientId}`;
   const visitLabel = `${visitId ? `زيارة #${visitId}` : "زيارة جديدة"}${
     visitDate ? ` · ${visitDate}` : ""
@@ -188,6 +224,7 @@ function MedicalAssistantDialog({
                   <ProposalReview
                     key={reviewRun}
                     input={result}
+                    existingJobId={resumeJobId}
                     autoStart={autoStart}
                     context={{ patientId, visitId }}
                     onRunningChange={setAiRunning}
@@ -293,6 +330,7 @@ function MedicalAssistantDialog({
               return;
             }
             setAutoStart(true);
+            setResumeJobId(undefined);
             setResult({ kind: "conversation", mode, transcript: text });
             setReviewRun((value) => value + 1);
           }}

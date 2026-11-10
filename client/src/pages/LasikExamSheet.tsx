@@ -2345,9 +2345,9 @@ export default function LasikExamSheet({
                 <p className="mb-2 text-[13px] font-bold text-[#003d9b]">
                   Complains:
                 </p>
-                <AssistantField label="Complaints">
+                <AssistantField label="الشكوى والأعراض">
                   <textarea
-                    aria-label="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                    aria-label="الشكوى والأعراض"
                     className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b] print:placeholder-transparent"
                     data-medical-proposals="complaints symptoms"
                     value={consultantExam.complains}

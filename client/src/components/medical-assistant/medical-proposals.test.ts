@@ -53,7 +53,7 @@ describe("medical AI proposal boundary", () => {
     );
     expect(result.proposals.map((item) => item.field)).toEqual(["complaints"]);
     expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toContain("Final decision");
+    expect(result.warnings[0]).toContain("القرار النهائي");
   });
   const history =
     "يا دكتور أنا عندي سكر من عشر سنين وباخد أنسولين الصبح وبالليل، وعملت عملية مياه بيضاء في العين اليمين من سنتين، وعندي ضغط بقاله خمس سنين وباخد كونكور، ومفيش عندي حساسية من أي دوا، وأبويا الله يرحمه كان عنده مياه زرقاء.";
@@ -90,21 +90,66 @@ describe("medical AI proposal boundary", () => {
       ).proposals,
     ).toHaveLength(1);
   });
-  it("rejects a second field from a single-field recording", () => {
+  it("files a single field-dictation proposal under the field even when the model names a clinical field", () => {
+    const result = validateMedicalProposals(
+      {
+        proposals: [
+          {
+            ...proposal,
+            field: "treatment",
+            speaker: "doctor",
+            medications: [
+              { name: "Vigamox", source: "صداع", dosage: "", frequency: "", duration: "", instructions: "" },
+            ],
+          },
+        ],
+        warnings: [],
+      },
+      fieldInput,
+    );
+    expect(result.proposals).toEqual([
+      { field: "field", text: proposal.text, sources: proposal.sources, speaker: "doctor" },
+    ]);
+    expect(
+      validateMedicalProposals(
+        { proposals: [{ ...proposal, medications: [] }], warnings: [] },
+        fieldInput,
+      ).proposals[0],
+    ).not.toHaveProperty("medications");
+  });
+  it("rejects more than one proposal from a single-field recording", () => {
     expect(() =>
       validateMedicalProposals(
-        { proposals: [{ ...proposal, field: "history" }], warnings: [] },
+        { proposals: [proposal, { ...proposal, field: "history" }], warnings: [] },
         fieldInput,
       ),
     ).toThrow("scope");
   });
-  it("rejects sources that were not spoken", () => {
+  it("rejects a selected-field proposal from a full-visit recording", () => {
     expect(() =>
       validateMedicalProposals(
-        { proposals: [{ ...proposal, sources: ["مياه بيضاء"] }], warnings: [] },
-        fieldInput,
+        { proposals: [proposal], warnings: [] },
+        { kind: "conversation", mode: "conversation", transcript: fieldInput.transcript },
       ),
-    ).toThrow("source");
+    ).toThrow("scope");
+  });
+  it("drops only the sources that were not spoken", () => {
+    const result = validateMedicalProposals(
+      { proposals: [{ ...proposal, sources: ["مياه بيضاء", "صداع من أسبوعين"] }], warnings: [] },
+      fieldInput,
+    );
+    expect(result.proposals[0].sources).toEqual(["صداع من أسبوعين"]);
+    expect(result.warnings).toEqual([]);
+  });
+  it("drops a proposal with no spoken source and warns", () => {
+    const result = validateMedicalProposals(
+      { proposals: [{ ...proposal, sources: ["مياه بيضاء"] }], warnings: [] },
+      fieldInput,
+    );
+    expect(result.proposals).toEqual([]);
+    expect(result.warnings).toEqual([
+      "حُذف اقتراح «Complaints» لأن اقتباساته لا تطابق نص التسجيل. راجع هذا الحقل يدويًا.",
+    ]);
   });
   it("rejects duplicate destinations", () => {
     expect(() =>
@@ -114,17 +159,73 @@ describe("medical AI proposal boundary", () => {
       ),
     ).toThrow("Duplicate");
   });
-  it("requires a doctor statement for full-visit clinical decisions", () => {
-    expect(() =>
-      validateMedicalProposals(
-        { proposals: [{ ...proposal, field: "diagnosis" }], warnings: [] },
-        {
-          kind: "conversation",
-          mode: "conversation",
-          transcript: fieldInput.transcript,
-        },
-      ),
-    ).toThrow("doctor statement");
+  const visit = {
+    kind: "conversation",
+    mode: "conversation",
+    transcript: "صداع من أسبوعين. هكتبلك Vigamox. متابعة بعد شهر",
+  } as const;
+  const medicine = (name: string, source: string) => ({
+    name, source, dosage: "", frequency: "", duration: "", instructions: "",
+  });
+  it("drops a clinical decision the doctor did not state and keeps the rest", () => {
+    const result = validateMedicalProposals(
+      {
+        proposals: [
+          { ...proposal, field: "complaints" },
+          { field: "diagnosis", text: "Migraine", sources: ["صداع من أسبوعين"], speaker: "patient" },
+        ],
+        warnings: ["تحذير من النموذج"],
+      },
+      visit,
+    );
+    expect(result.proposals.map((item) => item.field)).toEqual(["complaints"]);
+    expect(result.warnings).toEqual([
+      "حُذف اقتراح «التشخيص» لأنه غير منسوب صراحةً إلى الطبيب. راجع هذا الحقل يدويًا.",
+      "تحذير من النموذج",
+    ]);
+  });
+  it("drops only an unspoken medicine and strips medicines outside treatment", () => {
+    const result = validateMedicalProposals(
+      {
+        proposals: [
+          {
+            field: "treatment", text: "Vigamox\nTobrex", sources: ["هكتبلك Vigamox"], speaker: "doctor",
+            medications: [medicine("Vigamox", "Vigamox"), medicine("Tobrex", "Tobrex")],
+          },
+          {
+            field: "decision", text: "متابعة بعد شهر", sources: ["متابعة بعد شهر"], speaker: "doctor",
+            medications: [medicine("Vigamox", "Vigamox")],
+          },
+        ],
+        warnings: [],
+      },
+      visit,
+    );
+    expect(result.proposals[0].medications?.map((item) => item.name)).toEqual(["Vigamox"]);
+    expect(result.proposals[1]).not.toHaveProperty("medications");
+    expect(result.warnings).toEqual([
+      "حُذف الدواء «Tobrex» لأن مصدره غير موجود في نص التسجيل. راجعه يدويًا.",
+      "حُذفت الأدوية من اقتراح «القرار النهائي» لأنها تخص العلاج فقط. راجعها يدويًا.",
+    ]);
+  });
+  it("returns its own output unchanged when validated again", () => {
+    const first = validateMedicalProposals(
+      {
+        proposals: [
+          { ...proposal, field: "complaints", sources: ["صداع من أسبوعين", "غير موجود"] },
+          { field: "diagnosis", text: "Migraine", sources: ["صداع"], speaker: "uncertain" },
+          { field: "treatment", text: "Vigamox", sources: ["Vigamox"], speaker: "doctor", medications: [medicine("Tobrex", "Tobrex")] },
+        ],
+        warnings: [],
+      },
+      visit,
+    );
+    expect(validateMedicalProposals(first, visit)).toEqual(first);
+    const field = validateMedicalProposals(
+      { proposals: [{ ...proposal, field: "diagnosis" }], warnings: [] },
+      fieldInput,
+    );
+    expect(validateMedicalProposals(field, fieldInput)).toEqual(field);
   });
   it("accepts full-visit supported fields and an explicit doctor decision", () => {
     const input = {

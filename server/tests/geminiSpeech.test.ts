@@ -45,7 +45,7 @@ describe("Gemini medical speech credentials", () => {
   it("does not expose provider errors or credentials", async () => {
     mocks.create.mockRejectedValue(new Error("secret-key private response"));
     await expect(medicalGeminiSpeechToken()).rejects.toThrow(
-      "Gemini Live could not connect",
+      "تعذر الاتصال بـ Gemini Live",
     );
   });
 });

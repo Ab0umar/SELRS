@@ -112,13 +112,14 @@ await mkdir(directory, { recursive: true });
 
 const browser = await chromium.launch({ channel: "msedge" });
 try {
-  for (const width of [1280, 390]) {
+  // "restore": a job this doctor already started for the visit is found on open.
+  for (const [scenario, width] of [["record", 1280], ["typed", 390], ["restore", 1280]]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     const errors = [];
     const sent = [];
     let reads = 0;
     page.on("pageerror", (error) => errors.push(error.message));
-    if (width !== 1280) await page.addInitScript(() => { window.__typed = true; });
+    if (scenario === "typed") await page.addInitScript(() => { window.__typed = true; });
     await page.route("**/api/trpc/**", async (route) => {
       const url = new URL(route.request().url());
       const methods = url.pathname.split("/api/trpc/")[1].split(",");
@@ -134,6 +135,10 @@ try {
         else if (method === "medicalAssistant.providerOptions")
           data = { managementEnabled: true, defaultProvider: "gemini", gemini: { configured: true, clinicalEnabled: true, models: [] }, central: { enabled: true, provider: "gemini", model: "gemini-3.8-flash" } };
         else if (method === "medical.getAllDiseases") data = [{ name: "Glaucoma", abbrev: null }];
+        else if (method === "medicalAssistant.latestJob")
+          data = scenario === "restore"
+            ? { jobId: "00000000-0000-4000-8000-000000000002", state: "running", recording: { kind: "conversation", mode: "conversation", transcript } }
+            : null;
         else if (method === "medicalAssistant.startProposals") { sent.push(input); data = { jobId: "00000000-0000-4000-8000-000000000001" }; }
         // The first check reports the job as still running.
         else if (method === "medicalAssistant.readProposals")
@@ -146,7 +151,7 @@ try {
     await page.goto(base);
     await page.getByRole("button", { name: "المساعد الطبي", exact: true }).click();
     const review = page.getByRole("region", { name: "AI proposal review" });
-    if (width === 1280) {
+    if (scenario === "record") {
       // Recording path: opening the assistant records; the review starts and
       // fills the fields with no other clicks.
       // While the job runs, a new recording or text cannot orphan it.
@@ -160,12 +165,17 @@ try {
       await page.getByRole("button", { name: "المساعد الطبي", exact: true }).click();
       // Reopening shows the running review instead of a new recording.
       assert.equal(await page.evaluate(() => window.__recordings), 1, "one recording");
+    } else if (scenario === "restore") {
+      // The found job is followed: no recording, no new paid request.
+      await expect(page.getByLabel("التوصيات")).toHaveValue(text("decision"), { timeout: 10000 });
+      await expect(page.locator("#assistant-transcript-7")).toHaveValue(transcript);
+      assert.equal(await page.evaluate(() => window.__recordings ?? 0), 0, "no recording");
+      await expect(page.getByRole("button", { name: "تسجيل جديد", exact: true })).toBeEnabled();
     } else {
-      // Typed or pasted text still asks for consent before it is sent.
+      // Typed or pasted text starts the review like a finished recording.
       await page.getByPlaceholder("اكتب أو الصق كلام الزيارة هنا، أو اضغط «تسجيل».").fill(transcript);
       await page.getByRole("button", { name: "معالجة النص" }).click();
-      await review.getByRole("checkbox").check();
-      await review.getByRole("button", { name: "إنشاء اقتراحات للمراجعة", exact: true }).click();
+      await expect(review.getByRole("checkbox")).toHaveCount(0);
     }
 
     // Diagnosis is filled even though it is not in the catalog, with a review note.
@@ -188,12 +198,15 @@ try {
     assert.deepEqual(form.manualMedications, [], "nothing saved as uncatalogued text");
     assert.deepEqual([...form.tests].sort(), [20, 21], "CBC + OCT Macula");
     assert.deepEqual(form.manualTests.map((item) => [item.testName, item.testType]), [["سكر صائم", "lab"]]);
-    assert.equal(sent.length, 1, "one AI request");
-    assert.equal(sent[0].recording.transcript, transcript);
-    assert.equal(sent[0].patientId, 7);
-    assert.equal(sent[0].consentConfirmed, true);
+    if (scenario === "restore") assert.equal(sent.length, 0, "no new AI request");
+    else {
+      assert.equal(sent.length, 1, "one AI request");
+      assert.equal(sent[0].recording.transcript, transcript);
+      assert.equal(sent[0].patientId, 7);
+      assert.equal(sent[0].consentConfirmed, true);
+    }
 
-    await page.screenshot({ path: `${directory}/review-${width}.png`, fullPage: true });
+    await page.screenshot({ path: `${directory}/review-${scenario}-${width}.png`, fullPage: true });
     await review.getByRole("button", { name: "حفظ الزيارة بعد المراجعة" }).click();
     await expect(review.getByText("تم حفظ الزيارة والحقول المعبأة بنجاح.")).toBeVisible();
     const saved = JSON.parse(await page.getByLabel("Saved visit").textContent());
@@ -204,7 +217,7 @@ try {
     assert.equal(saved.treatment[0].frequency, "أربع مرات في اليوم", "dictated frequency kept");
     assert.deepEqual(errors, []);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "no horizontal overflow");
-    console.log(`PASS ${width}px (${width === 1280 ? "recording, no clicks" : "typed text"}): 6 fields, 3 medicines said in Arabic saved by English catalog name, 3 tests filled correctly and saved; recommendations = decision only.`);
+    console.log(`PASS ${width}px (${{ record: "recording, no clicks", typed: "typed text", restore: "job found on open, followed without a new request" }[scenario]}): 6 fields, 3 medicines said in Arabic saved by English catalog name, 3 tests filled correctly and saved; recommendations = decision only.`);
     await page.close();
   }
 } finally {

@@ -15,7 +15,7 @@ export function routeTranscript(
   transcript: string,
 ): RoutedTranscript {
   const text = transcript.trim();
-  if (!text) throw new Error("Record or enter a transcript first.");
+  if (!text) throw new Error("سجّل أو اكتب النص أولًا.");
   return scope.kind === "conversation"
     ? { kind: "conversation", mode: scope.mode, transcript: text }
     : { kind: "field", label: scope.label, transcript: text };

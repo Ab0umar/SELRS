@@ -59,6 +59,25 @@ describe("state-bound medical draft filling", () => {
       ]).after,
     ).toEqual({});
   });
+  it("adds nothing when a review reopened after a reload fills the same result again", () => {
+    const result = [
+      { field: "complaints", text: "صداع" },
+      { field: "diagnosis", text: "Cataract\nDry eye" },
+    ];
+    const first = prepareDraftAdditions(binding, result);
+    // The doctor adds a line after the first fill; the reopened review fills again.
+    const reopened: DraftBinding = {
+      ...binding,
+      values: {
+        ...binding.values,
+        ...first.after,
+        diagnosis: `${first.after.diagnosis}\nGlaucoma suspect`,
+      },
+    };
+    const again = prepareDraftAdditions(reopened, result);
+    expect(again.after).toEqual({});
+    expect(again.before).toEqual({});
+  });
   it("uses unique exact test names only", () => {
     const tests = [
       { id: 1, name: "OCT Macula", type: "imaging" },

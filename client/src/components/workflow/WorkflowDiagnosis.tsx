@@ -183,7 +183,7 @@ export default function WorkflowDiagnosis({
           >
             <p className="mt-2 shrink-0 whitespace-nowrap !text-[13px] font-bold text-primary max-sm:basis-full">Diagnosis:</p>
             <Textarea
-              aria-label="اكتب التشخيص يدويًا أو ابحث بالأسفل…"
+              aria-label="التشخيص"
               data-medical-proposals="diagnosis"
               value={diagnosis}
               onChange={(event) => {
@@ -239,7 +239,7 @@ export default function WorkflowDiagnosis({
               Recommendations:
             </p>
             <Textarea
-              aria-label="اكتب التوصيات هنا…"
+              aria-label="التوصيات"
               data-medical-proposals="decision"
               value={recommendations}
               onChange={(event) => {

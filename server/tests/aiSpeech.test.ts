@@ -42,7 +42,7 @@ describe("central medical speech exchange", () => {
     await expect(medicalSpeechToken()).rejects.toMatchObject({
       code: "BAD_GATEWAY",
       message:
-        "Azure Speech could not connect. Check the server Speech resource settings.",
+        "تعذر الاتصال بخدمة Azure Speech. راجع إعدادات مورد Speech على الخادم.",
     });
   });
 });

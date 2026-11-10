@@ -146,16 +146,31 @@ export function AssistantFieldsProvider({
   );
 }
 
+// The visible <label> text, without the text of the controls inside it (a
+// textarea's text is the field's value, which must never become the label).
+function visibleLabel(element: HTMLInputElement | HTMLTextAreaElement) {
+  const label = element.labels?.[0] ?? element.closest("label");
+  if (!label) return "";
+  const copy = label.cloneNode(true) as HTMLElement;
+  copy
+    .querySelectorAll("input, textarea, select, button")
+    .forEach((control) => control.remove());
+  return copy.textContent?.replace(/\s+/g, " ").trim() ?? "";
+}
+
 export function AssistantField({
   children,
   label,
   disabled = false,
   order = "",
+  preferVisibleLabel = false,
 }: {
   children: ReactNode;
   label: string;
   disabled?: boolean;
   order?: string;
+  /** Name the dictation after the field's visible label when it has one. */
+  preferVisibleLabel?: boolean;
 }) {
   const assistant = useContext(AssistantContext);
   const allowed = useMedicalAssistantAccess();
@@ -169,24 +184,22 @@ export function AssistantField({
         variant="ghost"
         size="icon"
         className="h-9 min-h-9 w-9 shrink-0 print:hidden"
-        aria-label={`Dictate ${label}`}
-        title={`Dictate ${label}`}
+        aria-label={`إملاء: ${label}`}
+        title={`إملاء: ${label}`}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          const visibleLabel = event.currentTarget
-            .closest("label")
-            ?.textContent?.trim();
           const element =
             event.currentTarget.parentElement?.querySelector("input, textarea");
           if (
             element instanceof HTMLInputElement ||
             element instanceof HTMLTextAreaElement
           ) {
-            assistant.request({
-              label: label === "field" && visibleLabel ? visibleLabel : label,
-              element,
-            });
+            const shown =
+              preferVisibleLabel || label === "field"
+                ? visibleLabel(element)
+                : "";
+            assistant.request({ label: shown || label, element });
           }
         }}
       >
@@ -201,6 +214,7 @@ export function AssistantTextarea(props: ComponentProps<typeof Textarea>) {
   return (
     <AssistantField
       label={label}
+      preferVisibleLabel
       disabled={props.disabled || props.readOnly}
       order={props.className?.match(/\border-\S+/)?.[0]}
     >
@@ -217,6 +231,7 @@ export function AssistantInput(props: ComponentProps<typeof Input>) {
   return (
     <AssistantField
       label={label}
+      preferVisibleLabel
       disabled={
         props.disabled || props.readOnly || numeric || props.type === "date"
       }

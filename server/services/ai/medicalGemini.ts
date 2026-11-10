@@ -38,11 +38,8 @@ export function geminiDocumentationFailure(error: unknown) {
   } else if (error instanceof MedicalProposalValidationError) {
     code = `validation_${error.reason}`;
     const reasons = {
-      source: "الاستشهاد النصي في اقتراح Gemini لا يطابق التسجيل.",
       scope: "اقتراح Gemini خارج نطاق الحقل أو الزيارة المحددة.",
-      speaker: "لم يتأكد أن القرار الطبي صادر عن الطبيب.",
       duplicate_field: "أعاد Gemini أكثر من اقتراح للحقل نفسه.",
-      medication: "أدوية Gemini المقترحة بلا استشهاد صالح من التسجيل.",
     };
     message = reasons[error.reason];
   } else if (error instanceof z.ZodError) {

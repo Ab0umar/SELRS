@@ -29,11 +29,31 @@ import { readMedicalVocabulary } from "../services/medical-vocabulary";
 import {
   startMedicalProposals,
   readMedicalProposals,
+  latestMedicalJob,
 } from "../services/ai/medical";
 
 const speechConsentSchema = z
   .object({ consentConfirmed: z.literal(true) })
   .strict();
+
+// Each speech token opens a paid live session; a stuck page or script must not
+// mint them without limit. Per server process, shared by both providers.
+const speechTokensPerHour = 30;
+const speechTokenRequests = new Map<number, number[]>();
+function limitSpeechTokens(userId: number) {
+  const now = Date.now();
+  const recent = (speechTokenRequests.get(userId) ?? []).filter(
+    (time) => time > now - 60 * 60_000,
+  );
+  if (recent.length >= speechTokensPerHour) {
+    speechTokenRequests.set(userId, recent);
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `وصلت للحد الأقصى لبدء التسجيل (${speechTokensPerHour} مرة في الساعة). حاول بعد قليل.`,
+    });
+  }
+  speechTokenRequests.set(userId, [...recent, now]);
+}
 
 let geminiModelsFailedUntil = 0;
 let geminiModelsCache: { until: number; models: Array<{ id: string; label: string }> } | undefined;
@@ -179,16 +199,34 @@ export const medicalAssistantRouter = router({
     .mutation(({ ctx, input }) =>
       readMedicalProposals(ctx.user.id, input.jobId),
     ),
+  // Only the user who started a job can find it again.
+  latestJob: medicalAssistantProcedure
+    .input(
+      z
+        .object({
+          patientId: z
+            .number()
+            .int()
+            .refine((id) => id !== 0),
+          visitId: z.number().int().positive().nullish(),
+        })
+        .strict(),
+    )
+    .query(({ ctx, input }) =>
+      latestMedicalJob(ctx.user.id, input.patientId, input.visitId),
+    ),
   // Recording streams patient audio to the speech provider, so consent comes first.
   speechToken: medicalAssistantProcedure
     .input(speechConsentSchema)
-    .mutation(async () => {
+    .mutation(async ({ ctx }) => {
+      limitSpeechTokens(ctx.user.id);
       await assertSelectedSpeechProvider("azure");
       return medicalSpeechToken();
     }),
   geminiSpeechToken: medicalAssistantProcedure
     .input(speechConsentSchema)
-    .mutation(async () => {
+    .mutation(async ({ ctx }) => {
+      limitSpeechTokens(ctx.user.id);
       await assertSelectedSpeechProvider("gemini");
       return medicalGeminiSpeechToken();
     }),

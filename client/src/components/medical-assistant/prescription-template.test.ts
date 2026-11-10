@@ -51,7 +51,7 @@ it("rejects missing catalog medicines without mutating the draft", () => {
   const source = binding();
   source.medications.pop();
   expect(() => appendPrescriptionTemplate(source, template)).toThrow(
-    "Missing or ambiguous",
+    "غير موجود في القائمة أو مكرر",
   );
   expect(source.draft.ids).toEqual([1]);
 });
@@ -59,7 +59,7 @@ it("rejects ambiguous catalog names", () => {
   const source = binding();
   source.medications.push({ id: 3, name: "Medicine B" });
   expect(() => appendPrescriptionTemplate(source, template)).toThrow(
-    "Missing or ambiguous",
+    "غير موجود في القائمة أو مكرر",
   );
 });
 it("rejects conflicting repeated medicine instructions", () => {
@@ -68,19 +68,19 @@ it("rejects conflicting repeated medicine instructions", () => {
     items: [...template.items, { ...template.items[1], dosage: "different" }],
   };
   expect(() => appendPrescriptionTemplate(binding(), conflicting)).toThrow(
-    "Conflicting instructions",
+    "تعليمات متعارضة",
   );
 });
 it("rejects locked prescriptions and unsavable reference IDs", () => {
   const source = binding();
   source.disabled = true;
   expect(() => appendPrescriptionTemplate(source, template)).toThrow(
-    "not editable",
+    "غير قابلة للتعديل",
   );
   source.disabled = false;
   source.medications[1].id = "reference-2";
   expect(() => appendPrescriptionTemplate(source, template)).toThrow(
-    "cannot be saved",
+    "لا يمكن حفظ",
   );
 });
 it("accepts only structurally valid saved templates without inventing doses", () => {

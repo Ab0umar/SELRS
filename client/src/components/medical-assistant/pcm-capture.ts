@@ -5,7 +5,7 @@ export async function startPcmCapture(
   onError: () => void,
 ) {
   if (context.sampleRate !== 16000)
-    throw new Error("Browser could not provide 16 kHz audio.");
+    throw new Error("تعذّر على المتصفح توفير صوت بتردد 16 kHz.");
   await context.audioWorklet.addModule(
     `${import.meta.env.BASE_URL}medical-pcm-worklet.js`,
   );
