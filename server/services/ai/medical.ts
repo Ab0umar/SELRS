@@ -190,7 +190,19 @@ export async function latestMedicalJob(
   patientId: number,
   visitId?: number | null,
 ) {
-  const rows = await withJobStore(async (connection) => {
+  // Field dictations belong to their own field bar, not the full-visit review.
+  const fullVisit = (rows: RowDataPacket[]) => {
+    for (const row of rows) {
+      try {
+        const recording: MedicalTranscript = JSON.parse(String(row.input_json));
+        if (recording.kind === "conversation") return { row, recording };
+      } catch {
+        // An unreadable row is skipped like a field dictation.
+      }
+    }
+    return undefined;
+  };
+  const found = await withJobStore(async (connection) => {
     const now = Date.now();
     const select =
       "SELECT job_id,state,input_json FROM medical_ai_jobs WHERE owner_id=? AND patient_id=? AND expires_ms>? AND ";
@@ -198,28 +210,21 @@ export async function latestMedicalJob(
       `${select}${visitId ? "visit_id=?" : "visit_id IS NULL"} ORDER BY created_ms DESC LIMIT 20`,
       visitId ? [owner, patientId, now, visitId] : [owner, patientId, now],
     );
-    if (matching.length || !visitId) return matching;
+    const saved = fullVisit(matching);
+    if (saved || !visitId) return saved;
+    // Only a visit saved after the review started can be the visit that review
+    // was recorded for; an older examination of the same patient never is.
     const [unsaved] = await connection.execute<RowDataPacket[]>(
-      `${select}visit_id IS NULL AND created_ms>? ORDER BY created_ms DESC LIMIT 20`,
-      [owner, patientId, now, now - 60 * 60 * 1000],
+      `${select}visit_id IS NULL AND created_ms>? AND EXISTS (SELECT 1 FROM visits v WHERE v.id=? AND v.patientId=? AND UNIX_TIMESTAMP(v.createdAt)*1000>=medical_ai_jobs.created_ms-1000) ORDER BY created_ms DESC LIMIT 20`,
+      [owner, patientId, now, now - 60 * 60 * 1000, visitId, patientId],
     );
-    return unsaved;
+    return fullVisit(unsaved);
   });
-  for (const row of rows ?? []) {
-    let recording: MedicalTranscript;
-    try {
-      recording = JSON.parse(String(row.input_json));
-    } catch {
-      continue;
-    }
-    // Field dictations belong to their own field bar, not the full-visit review.
-    if (recording.kind !== "conversation") continue;
-    const state = String(row.state);
-    // A failed job holds no result to recover; the doctor records again.
-    if (state !== "running" && state !== "complete") return null;
-    return { jobId: String(row.job_id), recording, state };
-  }
-  return null;
+  if (!found) return null;
+  const state = String(found.row.state);
+  // A failed job holds no result to recover; the doctor records again.
+  if (state !== "running" && state !== "complete") return null;
+  return { jobId: String(found.row.job_id), recording: found.recording, state };
 }
 
 function expireJob(id: string, job: Job) {
@@ -330,17 +335,28 @@ export async function startMedicalProposals(
   // Counted before the checks below, which must run without a pause so two
   // identical submissions cannot both start a paid request. An unavailable job
   // store does not block the review.
-  const dailyLimitReached =
-    process.env.AI_CORE_MANAGEMENT_ENABLED !== "true" &&
-    ((await withJobStore(async (connection) => {
-      const [rows] = await connection.execute<RowDataPacket[]>(
-        "SELECT COUNT(*) AS started FROM medical_ai_jobs WHERE owner_id=? AND created_ms>?",
-        [owner, Date.now() - dbRetentionMs],
-      );
-      return Number(rows[0]?.started ?? 0);
-    })) ?? 0) >= maxDailyJobsPerOwner;
+  const countedAt = Date.now();
+  const storedToday =
+    process.env.AI_CORE_MANAGEMENT_ENABLED === "true"
+      ? undefined
+      : await withJobStore(async (connection) => {
+          const [rows] = await connection.execute<RowDataPacket[]>(
+            "SELECT COUNT(*) AS started FROM medical_ai_jobs WHERE owner_id=? AND created_ms>?",
+            [owner, countedAt - dbRetentionMs],
+          );
+          return Number(rows[0]?.started ?? 0);
+        });
   const now = Date.now();
   for (const [id, job] of jobs) if (job.expires <= now) jobs.delete(id);
+  // Jobs registered since the count was read may not be stored yet; counting
+  // them here keeps concurrent submissions from all passing on the same count.
+  let startedSinceCount = 0;
+  for (const job of jobs.values())
+    if (job.owner === owner && job.expires - retentionMs >= countedAt)
+      startedSinceCount++;
+  const dailyLimitReached =
+    storedToday !== undefined &&
+    storedToday + startedSinceCount >= maxDailyJobsPerOwner;
   let running = 0;
   for (const [id, job] of jobs) {
     if (job.owner !== owner) continue;

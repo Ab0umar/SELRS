@@ -181,16 +181,40 @@ export function validateMedicalProposals(
       );
       continue;
     }
-    const kept =
-      input.kind === "conversation" && item.field === "treatment"
-        ? medications?.filter((medication) => {
-            if (spoken(medication.source)) return true;
-            notes.push(
-              `حُذف الدواء «${medication.name}» لأن مصدره غير موجود في نص التسجيل. راجعه يدويًا.`,
-            );
-            return false;
-          })
-        : undefined;
+    const treatment =
+      input.kind === "conversation" && item.field === "treatment";
+    const kept = treatment ? medications?.filter((m) => spoken(m.source)) : undefined;
+    const unsupported = treatment
+      ? (medications ?? []).filter((m) => !spoken(m.source))
+      : [];
+    if (unsupported.length) {
+      // The treatment text fills the plan as it is, so a medicine without spoken
+      // evidence must leave the text too. Each medicine is on its own line; when
+      // a line cannot be attributed, the whole proposal goes instead.
+      const lines = item.text.split("\n");
+      const remaining = lines.filter(
+        (line) =>
+          !unsupported.some((m) =>
+            line.toLowerCase().includes(m.name.trim().toLowerCase()),
+          ),
+      );
+      const everyNameFound = unsupported.every((m) =>
+        lines.some((line) =>
+          line.toLowerCase().includes(m.name.trim().toLowerCase()),
+        ),
+      );
+      if (!everyNameFound || !remaining.join("\n").trim()) {
+        notes.push(
+          `حُذف اقتراح «${label(item.field)}» لأن به دواء مصدره غير موجود في نص التسجيل. راجع هذا الحقل يدويًا.`,
+        );
+        continue;
+      }
+      for (const m of unsupported)
+        notes.push(
+          `حُذف الدواء «${m.name}» لأن مصدره غير موجود في نص التسجيل. راجعه يدويًا.`,
+        );
+      item.text = remaining.join("\n").trim();
+    }
     if (
       input.kind === "conversation" &&
       item.field !== "treatment" &&
