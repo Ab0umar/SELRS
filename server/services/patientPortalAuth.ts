@@ -5,7 +5,7 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { TRPCError } from "@trpc/server";
 import type { MySql2Database } from "drizzle-orm/mysql2";
@@ -63,10 +63,7 @@ function patientMatches(phone: string, dateOfBirth?: string) {
   return and(
     phoneMatches(phone),
     dateOfBirth
-      ? or(
-          isNull(patients.dateOfBirth),
-          sql`${patients.dateOfBirth} = ${dateOfBirth}`,
-        )
+      ? sql`${patients.dateOfBirth} = ${dateOfBirth}`
       : isNull(patients.dateOfBirth),
   );
 }
@@ -135,8 +132,6 @@ export async function requestPatientLoginOtp(
       message: "دخول المرضى بكود واتساب غير متاح حاليًا، تواصل مع الاستقبال",
     });
   await limit(`patient-otp:send:ip:${clientIp}`, 20);
-  await limit(`patient-otp:send:phone:${phone}`, 3);
-  await limit(`patient-otp:cooldown:${phone}`, 1, 60_000);
 
   const challengeId = randomUUID();
   const code = String(randomInt(100000, 1000000));
@@ -150,6 +145,13 @@ export async function requestPatientLoginOtp(
       .limit(1)
       .for("update");
     if (!patient) return null;
+    try {
+      await limit(`patient-otp:send:phone:${phone}`, 3);
+      await limit(`patient-otp:cooldown:${phone}`, 1, 60_000);
+    } catch (error) {
+      if (error instanceof TRPCError && error.code === "TOO_MANY_REQUESTS") return null;
+      throw error;
+    }
     await tx
       .update(patientPortalOtps)
       .set({ verified: true })
@@ -176,10 +178,7 @@ export async function requestPatientLoginOtp(
         .update(patientPortalOtps)
         .set({ verified: true })
         .where(eq(patientPortalOtps.challengeId, challengeId));
-      throw new TRPCError({
-        code: "SERVICE_UNAVAILABLE",
-        message: "تعذر إرسال كود التحقق، حاول لاحقًا أو تواصل مع الاستقبال",
-      });
+      console.warn("[patient-portal] OTP_DELIVERY_FAILED");
     }
   }
   return {

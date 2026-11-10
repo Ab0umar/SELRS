@@ -1,3 +1,4 @@
+import { OPERATION_COLUMNS, getOperationColumnId } from "./operation-columns";
 import { QueueLoadStatus } from "@/components/today/QueueLoadStatus";
 import "./queue-patient-card.css";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -76,53 +77,6 @@ const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: "confirmed", label: "مؤكد" },
   { value: "treated", label: "معالج" },
 ];
-
-const OPERATION_COLUMNS = [
-  {
-    id: "laser",
-    label: "PRK + LASIK",
-    matches: (operation: string) =>
-      operation.includes("prk") ||
-      operation.includes("lasik") ||
-      operation.includes("ليزك"),
-  },
-  {
-    id: "femto",
-    label: "F.S + F.L",
-    matches: (operation: string) =>
-      ["fs", "fl"].includes(operation.replace(/[.\s_-]/g, "")) ||
-      operation.includes("femto") ||
-      operation.includes("سمايل"),
-  },
-  {
-    id: "surgery",
-    label: "المياه البيضاء والزرقاء والحول والياج والعدسات",
-    matches: (operation: string) =>
-      [
-        "cataract",
-        "كتاراكت",
-        "كاتاراكت",
-        "مياه بيضاء",
-        "glaucoma",
-        "زرقاء",
-        "squint",
-        "حول",
-        "yag",
-        "ياج",
-        "iol",
-        "icl",
-      ].some((term) => operation.includes(term)),
-  },
-  { id: "other", label: "عمليات أخرى", matches: () => true },
-] as const;
-
-function getOperationColumnId(operation: string) {
-  const normalized = operation.toLowerCase().trim();
-  return (
-    OPERATION_COLUMNS.find((column) => column.matches(normalized))?.id ??
-    "other"
-  );
-}
 
 const queueStatusStyles: Record<QueueStatus, string> = {
   checkedIn: "bg-info/10 text-info",
@@ -1009,6 +963,9 @@ export function AppointmentsSection({
                         key={booking.id}
                         booking={booking}
                         visitDate={selectedDate}
+                        onRegister={() =>
+                          setRegistrationTarget({ source: "portal", item: booking })
+                        }
                       />
                     ))}
                   </div>

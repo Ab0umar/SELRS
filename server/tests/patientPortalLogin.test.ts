@@ -43,7 +43,7 @@ async function sharedPhone() {
     await getTestDb()
   )
     .update(patients)
-    .set({ phone: input.phone })
+    .set({ phone: input.phone, dateOfBirth: new Date("1990-03-15T12:00:00") })
     .where(eq(patients.patientCode, "FAM-2"));
 }
 
@@ -127,16 +127,31 @@ describe.sequential(
       expect(result.patient.name).toBe("Child");
     });
 
-    it("allows an entered birthday when the record has no birthday", async () => {
-      const dateOfBirth = "2001-12-01";
-      const challenge = await caller().patientPortal.login({
-        phone: "01098765432",
-        dateOfBirth,
-      });
-      expect(
-        session(await verify(challenge.challengeId, lastCode(), dateOfBirth))
-          .patient.name,
-      ).toBe("Child");
+    it("excludes blank birthdates when a birthday is supplied on a shared phone", async () => {
+      await (
+        await getTestDb()
+      )
+        .update(patients)
+        .set({ phone: input.phone })
+        .where(eq(patients.patientCode, "FAM-2"));
+      const challenge = await caller().patientPortal.login(input);
+      expect(session(await verify(challenge.challengeId)).patient.name).toBe(
+        "Parent",
+      );
+    });
+
+    it("does not consume phone send quotas for mismatched birthdates", async () => {
+      for (let i = 0; i < 3; i++)
+        await caller().patientPortal.login({
+          ...input,
+          dateOfBirth: "2001-12-01",
+        });
+      expect(sendPatientLoginOtp).not.toHaveBeenCalled();
+      const challenge = await caller().patientPortal.login(input);
+      expect(sendPatientLoginOtp).toHaveBeenCalledTimes(1);
+      expect(session(await verify(challenge.challengeId)).patient.name).toBe(
+        "Parent",
+      );
     });
 
     it("returns names only after OTP verification and does not create a session before selection", async () => {
@@ -213,16 +228,12 @@ describe.sequential(
       await sharedPhone();
       const challenge = await caller().patientPortal.login(input);
       const result = choices(await verify(challenge.challengeId));
-      await (
-        await getTestDb()
-      )
-        .insert(patients)
-        .values({
-          patientCode: "OTHER",
-          fullName: "Other",
-          phone: "01011111111",
-          branch: "examinations",
-        });
+      await (await getTestDb()).insert(patients).values({
+        patientCode: "OTHER",
+        fullName: "Other",
+        phone: "01011111111",
+        branch: "examinations",
+      });
       const [other] = await (
         await getTestDb()
       )
@@ -349,8 +360,9 @@ describe.sequential(
     it("limits resending and invalidates the previous OTP", async () => {
       const first = await caller().patientPortal.login(input),
         code = lastCode();
-      await expect(caller().patientPortal.login(input)).rejects.toMatchObject({
-        code: "TOO_MANY_REQUESTS",
+      await expect(caller().patientPortal.login(input)).resolves.toMatchObject({
+        expiresInSeconds: 300,
+        resendAfterSeconds: 60,
       });
       expect(sendPatientLoginOtp).toHaveBeenCalledTimes(1);
       await cleanupTables(await getTestDb(), "login_rate_limits");
@@ -364,8 +376,15 @@ describe.sequential(
       vi.mocked(sendPatientLoginOtp).mockRejectedValueOnce(
         new Error("timeout"),
       );
-      await expect(caller().patientPortal.login(input)).rejects.toMatchObject({
-        code: "SERVICE_UNAVAILABLE",
+      const failed = await caller().patientPortal.login(input);
+      const unknown = await caller().patientPortal.login({
+        ...input,
+        phone: "01011111111",
+      });
+      expect(Object.keys(failed).sort()).toEqual(Object.keys(unknown).sort());
+      expect(failed).toMatchObject({
+        expiresInSeconds: unknown.expiresInSeconds,
+        resendAfterSeconds: unknown.resendAfterSeconds,
       });
       const [row] = await (await getTestDb()).select().from(patientPortalOtps);
       expect(row.verified).toBe(true);
