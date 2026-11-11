@@ -341,7 +341,7 @@ export default function WorkflowExamination({
           جارٍ تحميل بيانات الفحص...
         </p>
       ) : (
-        <div className="flex flex-col gap-4 text-[#191c1e]" dir="ltr">
+        <div className="flex flex-col gap-4 text-foreground" dir="ltr">
           <section
             className="measurement-glass-block mx-auto w-full max-w-4xl"
             data-purpose="clinical-refraction"
@@ -388,13 +388,13 @@ export default function WorkflowExamination({
               className="hidden overflow-x-auto md:block"
             >
               <table className="w-full min-w-[480px] table-fixed border-collapse text-center">
-                <thead className="bg-[#e7e8ea] text-xs font-bold uppercase">
+                <thead className="bg-muted text-xs font-bold uppercase text-foreground">
                   <tr>
                     <th className={cell} rowSpan={2}>Refraction</th>
                     <th className={`${cell} text-primary`} colSpan={3}>
                       OD (Right)
                     </th>
-                    <th className={`${cell} text-[#526069]`} colSpan={3}>
+                    <th className={`${cell} text-muted-foreground`} colSpan={3}>
                       OS (Left)
                     </th>
                   </tr>
@@ -408,7 +408,7 @@ export default function WorkflowExamination({
                 </thead>
                 <tbody className="font-mono">
                   <tr>
-                    <td className={`${cell} bg-[#f3f4f6] font-bold text-primary`}>
+                    <td className={`${cell} bg-muted font-bold text-primary`}>
                       Distance
                     </td>
                     {(["od", "os"] as const).map((eye) => (
@@ -421,7 +421,7 @@ export default function WorkflowExamination({
                     ))}
                   </tr>
                   <tr>
-                    <td className={`${cell} bg-[#f3f4f6] font-bold text-primary`}>
+                    <td className={`${cell} bg-muted font-bold text-primary`}>
                       Reading
                     </td>
                     <td className={cell} colSpan={6}>
@@ -447,7 +447,7 @@ export default function WorkflowExamination({
                 <div key={eye} className="rounded-lg border border-[#c3c6d6] p-2">
                   <div
                     className={`mb-1.5 text-xs font-bold ${
-                      eye === "od" ? "text-primary" : "text-[#526069]"
+                      eye === "od" ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
                     {eye === "od" ? "OD (Right)" : "OS (Left)"}
@@ -533,7 +533,7 @@ export default function WorkflowExamination({
             </div>
 
             <div className="flex w-full flex-col gap-2 sm:w-[calc(75%-0.5rem)]">
-              <div className="flex-1 rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]">
+              <div className="flex-1 rounded-lg border border-border bg-muted/40 px-3 pb-3 pt-0 text-left text-[12px] text-foreground">
                 <p className="mb-2 text-[13px] font-bold text-primary">Complains:</p>
                 <AssistantField label="الشكوى">
                   <textarea
@@ -614,7 +614,7 @@ export default function WorkflowExamination({
                 </AssistantField>
               </div>
 
-              <div className="flex-[3] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]">
+              <div className="flex-[3] rounded-lg border border-border bg-muted/40 p-3 text-left text-[12px] text-foreground">
                 <p className="mb-2 text-[13px] font-bold text-primary">Examination:</p>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

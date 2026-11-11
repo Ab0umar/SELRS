@@ -431,4 +431,41 @@
   html.dark :is(.final-summary-sheet, .file-summary-sheet) [class*="border-[#003d82]"] {
     border-color: #003d82 !important;
   }
+
+  /* Clinical paper in the dark theme keeps the light theme's table heads and
+     visible rules; the dark overrides above would otherwise hide them. */
+  html.dark .selrs-app-content :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) :is(table thead, table thead tr, table thead th) {
+    background: #003d82 !important;
+    color: #ffffff !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#c3c6d6]"] {
+    border-color: #c3c6d6 !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#c5cfdb]"] {
+    border-color: #c5cfdb !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#d5dbe5]"] {
+    border-color: #d5dbe5 !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#c98f4a]"] {
+    border-color: #c98f4a !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#9eabbc]"] {
+    border-color: #9eabbc !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#98a2b3]"] {
+    border-color: #98a2b3 !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#737685]"] {
+    border-color: #737685 !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#b9c4d4]"] {
+    border-color: #b9c4d4 !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#d9dce8]"] {
+    border-color: #d9dce8 !important;
+  }
+  html.dark :is(.lasik-sheet, .sheet-followup-body, .final-report-sheet, .final-summary-sheet, .file-summary-sheet) [class*="border-[#003d9b]"] {
+    border-color: #003d9b !important;
+  }
 }
