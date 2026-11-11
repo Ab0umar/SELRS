@@ -28,6 +28,7 @@ const PrescriptionBinding = lazy(
 const importConsultantSheet = () => import("@/pages/ConsultantSheet");
 const ConsultantSheet = lazy(importConsultantSheet);
 import { useTodayQueuePatientsMerged } from "@/hooks/useTodayQueuePatientsMerged";
+import { BrandLogo } from "@/components/BrandLogo";
 import { localISODate } from "@/lib/utils";
 import { workflowVisits } from "@/lib/workflow-visits";
 import { resolveWorkflowReportPatient } from "@/lib/workflow-report-patient";
@@ -1046,6 +1047,8 @@ export default function WorkflowPrototypeLive() {
   const [isSavingFinalReport, setIsSavingFinalReport] = useState(false);
   // The final sheet opens as a one-screen summary; editing shows the full form.
   const [finalEditing, setFinalEditing] = useState(false);
+  // «الملف» opens as a read-only summary; editing shows the file itself.
+  const [fileEditing, setFileEditing] = useState(false);
 
   useEffect(() => {
     setSelectedTestIds(
@@ -1106,6 +1109,24 @@ export default function WorkflowPrototypeLive() {
     if (codes.has("1589") || codes.has("1586")) return "consultant";
     return "consultant";
   }, [selectedDate, selectedLivePatient, selectedPatientServicesQuery.data]);
+  const fileSheetQuery = trpc.medical.getSheetEntry.useQuery(
+    {
+      patientId: selectedLivePatient?.id ?? 0,
+      visitId: activeWorkflowVisitId,
+      sheetType: selectedFileSheetType,
+    },
+    {
+      enabled: Boolean(selectedLivePatient?.id && activeWorkflowVisitId) && !fileEditing,
+      refetchOnWindowFocus: false,
+    },
+  );
+  const fileFollowupsQuery = trpc.medical.getFollowupSheets.useQuery(
+    { patientId: selectedLivePatient?.id ?? 0 },
+    {
+      enabled: Boolean(selectedLivePatient?.id) && !fileEditing,
+      refetchOnWindowFocus: false,
+    },
+  );
   const finalExaminationsQuery = trpc.medical.getExaminationsByPatient.useQuery(
     { patientId: selectedLivePatient?.id ?? 0 },
     { enabled: Boolean(selectedLivePatient?.id), refetchOnWindowFocus: false },
@@ -3596,6 +3617,266 @@ export default function WorkflowPrototypeLive() {
         </FinalSummaryFit>
       );
     };
+    const renderFileSummary = () => {
+      let sheet: any = {};
+      try {
+        sheet = fileSheetQuery.data ? JSON.parse(String(fileSheetQuery.data)) : {};
+      } catch {
+        sheet = {};
+      }
+      const exam = sheet?.consultantExam ?? {};
+      const complaint = String(finalVisit?.chiefComplaint || exam.complains || "").trim();
+      const symptoms = String(finalVisit?.symptoms || sheet?.symptoms || "").trim();
+      const history = visitHistoryText(finalVisit?.history ?? sheet?.historyNotes);
+      const sheetConditions = Object.entries((sheet?.medicalHistory ?? {}) as Record<string, string>)
+        .filter(([, answer]) => answer === "yes")
+        .map(([question]) => question.replace(/[؟?]\s*$/, "").trim());
+      const conditions = finalConditions.length ? finalConditions : sheetConditions;
+      const operations = String(finalHistory?.previousSurgeries ?? "").trim();
+      const drawing = String(sheet?.consultantDrawing ?? "");
+      const drawingNote = String(sheet?.consultantDrawingDescription ?? "").trim();
+      const diagnosis = String(finalReport?.diagnosis || sheet?.diagnosisText || "").trim();
+      const decision = String(finalReport?.recommendations || sheet?.finalDecisionText || "").trim();
+      const notes = String(sheet?.officeNotes ?? "").trim();
+      const signatures = (sheet?.signatures ?? {}) as Record<string, string>;
+      const examItems: Array<[string, string]> = (
+        [
+          ["External appearance", [exam.externalPtosis && "Ptosis", exam.externalSquint && "Squint", exam.externalOthers && (exam.externalOthersNote || "Others")].filter(Boolean).join(", ") || ""],
+          ["Muscle action", exam.muscleAbnormal ? `Abnormal${exam.muscleAbnormalNote ? `: ${exam.muscleAbnormalNote}` : ""}` : exam.muscleNormal ? "Normal" : ""],
+          ["Other abnormalities", String(exam.otherAbnormalities ?? "").trim()],
+          ["Fundus", exam.fundusAbnormal ? `Abnormal${exam.fundusAbnormalNote ? `: ${exam.fundusAbnormalNote}` : ""}` : exam.fundusNormal ? "Normal" : ""],
+        ] as Array<[string, string]>
+      ).filter(([, value]) => value);
+      const parseEye = (value: unknown): Record<string, string> => {
+        try {
+          return (typeof value === "string" ? JSON.parse(value) : value ?? {}) as Record<string, string>;
+        } catch {
+          return {};
+        }
+      };
+      // Follow-ups that hold data, oldest first, as the file shows them.
+      const followupRows = ((fileFollowupsQuery.data as any[]) ?? [])
+        .filter((item) => !item.sheetType || item.sheetType === selectedFileSheetType)
+        .flatMap((item) => item.items ?? [])
+        .filter((item: any) => item.followupDate)
+        .sort((a: any, b: any) => new Date(a.followupDate).getTime() - new Date(b.followupDate).getTime())
+        .slice(0, 4)
+        .map((item: any) => {
+          const od = parseEye(item.refracOD);
+          const os = parseEye(item.refracOS);
+          const refraction = (eye: Record<string, string>) =>
+            [eye.s, eye.c, eye.axis ? `x${eye.axis}` : ""].filter(Boolean).join(" ");
+          return {
+            id: String(item.id),
+            date: displayDateValue(item.followupDate).slice(0, 10),
+            rows: [
+              ["V.A", item.vaOD ?? "", item.vaOS ?? ""],
+              ["Refraction", refraction(od), refraction(os)],
+              ["I.O.P", item.iopOD ?? "", item.iopOS ?? ""],
+            ].filter(([, a, b]) => a || b) as Array<[string, string, string]>,
+            treatment: String(item.treatment ?? "").trim(),
+            comment: String(item.notes ?? "").trim(),
+          };
+        });
+      const fileBox = "rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-2.5 pb-2 pt-1.5";
+      const fileTitle = "m-0 mb-1 text-[13px] font-bold text-[#003d82]";
+      const fileLabel = "block text-[12.5px] font-semibold text-[#4a6283]";
+      const fileValue = "m-0 whitespace-pre-line text-sm font-semibold leading-snug";
+      const fileCell = "border border-[#c3c6d6] bg-white px-1 py-0.5 text-center font-mono text-[12.5px]";
+      const fileHead = "border border-[#c3c6d6] px-1 py-0.5 text-center text-[12px] font-bold";
+      const fileRowHead = "border border-[#c3c6d6] bg-[#f8f9fb] px-1 py-0.5 text-center text-[12px] font-bold";
+      return (
+        <FinalSummaryFit>
+          <article
+            aria-label="عرض الملف"
+            className="file-summary-sheet @container mx-auto max-w-[1400px] rounded-md border border-[#c3c6d6] bg-white px-4 pb-3 pt-2.5 text-[14px] leading-normal text-[#1b2430]"
+            dir="rtl"
+          >
+            <header className="grid grid-cols-[1fr_auto_1fr] items-center border-b-2 border-[#003d82] pb-1.5">
+              <div className="flex flex-col leading-tight">
+                <b className="text-lg font-bold text-[#003d82]">مركز عيون الشروق</b>
+                <span className="text-xs text-[#4a6283]">لليزك و تصحيح الابصار</span>
+              </div>
+              <div className="justify-self-center">
+                <BrandLogo className="h-9 w-9 shrink-0" imgClassName="p-0" />
+              </div>
+              <div className="flex items-center justify-end gap-2.5">
+                {selectedLivePatient.patientCode ? (
+                  <span className="text-sm font-semibold" dir="ltr">ID: {selectedLivePatient.patientCode}</span>
+                ) : null}
+                <Button type="button" size="sm" variant="outline" onClick={() => setFileEditing(true)}>
+                  تعديل الملف
+                </Button>
+              </div>
+            </header>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 border-b border-[#c3c6d6] py-1.5 text-[13.5px]">
+              <div className="flex items-baseline gap-1"><span className="text-[#4a6283]">الاسم:</span><b className="font-semibold">{reportPatient.fullName || selectedLivePatient.fullName}</b></div>
+              {finalPatientAge ? <div className="flex items-baseline gap-1"><span className="text-[#4a6283]">السن:</span><b className="font-mono font-semibold">{finalPatientAge}</b></div> : null}
+              {finalPatient?.phone || finalPatient?.mobile ? (
+                <div className="flex items-baseline gap-1"><span className="text-[#4a6283]">التليفون:</span><b className="font-mono font-semibold" dir="ltr">{finalPatient?.phone || finalPatient?.mobile}</b></div>
+              ) : null}
+              <div className="flex items-baseline gap-1"><span className="text-[#4a6283]">تاريخ الفحص:</span><b className="font-mono font-semibold" dir="ltr">{selectedDate}</b></div>
+              {signatures.doctor ? <div className="flex items-baseline gap-1"><span className="text-[#4a6283]">الطبيب:</span><b className="font-semibold">{signatures.doctor}</b></div> : null}
+            </div>
+            <div className="grid gap-3 pt-2.5 @min-[36rem]:grid-cols-2 @min-[56rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
+              <div className="flex min-w-0 flex-col gap-2.5">
+                <section aria-labelledby="file-summary-complaint" className={fileBox}>
+                  <h3 id="file-summary-complaint" className={fileTitle}>Complains / الشكوى</h3>
+                  <p className={fileValue}>{complaint || "لم تُسجَّل شكوى."}</p>
+                  {symptoms ? (
+                    <div className="mt-1"><span className={fileLabel}>Symptoms</span><p className={fileValue}>{symptoms}</p></div>
+                  ) : null}
+                  {history ? (
+                    <div className="mt-1"><span className={fileLabel}>Medical history</span><p className={fileValue}>{history}</p></div>
+                  ) : null}
+                </section>
+                <section aria-labelledby="file-summary-history" className={fileBox}>
+                  <h3 id="file-summary-history" className={fileTitle}>التاريخ المرضي</h3>
+                  {conditions.length ? (
+                    <div className="flex flex-wrap gap-1">
+                      {conditions.map((item) => (
+                        <span key={item} className="rounded-md bg-[#e7f0fa] px-2 text-[12.5px] font-semibold text-[#003d82]">{item}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="m-0 text-[12.5px] text-[#4a6283]">لا يوجد</p>
+                  )}
+                  {operations ? (
+                    <div className="mt-1"><span className={fileLabel}>عمليات سابقة</span><p className={fileValue}>{operations}</p></div>
+                  ) : null}
+                </section>
+                {drawing.startsWith("data:image") ? (
+                  <section aria-labelledby="file-summary-drawing" className={fileBox}>
+                    <h3 id="file-summary-drawing" className={fileTitle}>Fundus drawing / الرسم</h3>
+                    <img src={drawing} alt="رسم قاع العين المحفوظ في الملف" className="mx-auto block max-h-36 w-full object-contain" />
+                    {drawingNote ? <p className="m-0 mt-1 text-[13px]">{drawingNote}</p> : null}
+                  </section>
+                ) : null}
+              </div>
+              <div className="flex min-w-0 flex-col gap-2.5 @min-[36rem]:order-last @min-[36rem]:col-span-2 @min-[56rem]:order-none @min-[56rem]:col-span-1" dir="ltr">
+                <div className="grid grid-cols-2 gap-2">
+                  <table className="w-full border-collapse" aria-label="IOP">
+                    <thead><tr><th className={fileHead}>IOP</th><th className={fileHead}>OD</th><th className={fileHead}>OS</th></tr></thead>
+                    <tbody><tr><th scope="row" className={fileRowHead}>mmHg</th><td className={fileCell}>{data.nursing.iop.od || "-"}</td><td className={fileCell}>{data.nursing.iop.os || "-"}</td></tr></tbody>
+                  </table>
+                  <table className="w-full border-collapse" aria-label="UCVA و BCVA">
+                    <thead><tr><th className={fileHead}>Eye</th><th className={fileHead}>UCVA</th><th className={fileHead}>BCVA</th></tr></thead>
+                    <tbody>
+                      {eyeOrder.map((eye) => (
+                        <tr key={eye}>
+                          <th scope="row" className={fileRowHead}>{eye.toUpperCase()}</th>
+                          <td className={fileCell}>{data.nursing.ucva[eye] || "-"}</td>
+                          <td className={fileCell}>{data.specialist.bcva[eye] || data.nursing.bcva[eye] || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse" aria-label="Refraction">
+                    <thead>
+                      <tr>
+                        <th rowSpan={2} className={fileHead}>Refraction</th>
+                        <th colSpan={3} className={fileHead}>OD (Right)</th>
+                        <th colSpan={3} className={fileHead}>OS (Left)</th>
+                      </tr>
+                      <tr>{["S", "C", "A", "S", "C", "A"].map((label, index) => <th key={index} className={fileHead}>{label}</th>)}</tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th scope="row" className={fileRowHead}>Distance</th>
+                        {[data.specialist.distance.od.s, data.specialist.distance.od.c, data.specialist.distance.od.a, data.specialist.distance.os.s, data.specialist.distance.os.c, data.specialist.distance.os.a].map((value, index) => (
+                          <td key={index} className={fileCell}>{value || "-"}</td>
+                        ))}
+                      </tr>
+                      {data.specialist.reading ? (
+                        <tr>
+                          <th scope="row" className={fileRowHead}>Reading</th>
+                          <td colSpan={6} className={fileCell}>Add {data.specialist.reading}</td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+                {examItems.length ? (
+                  <section aria-labelledby="file-summary-exam" className={`${fileBox} text-left`}>
+                    <h3 id="file-summary-exam" className={fileTitle}>Examination</h3>
+                    <ul className="m-0 grid list-none gap-0.5 p-0 text-[13.5px]">
+                      {examItems.map(([label, value]) => (
+                        <li key={label}><b className="font-semibold text-[#4a6283]">{label}: </b><span dir="auto">{value}</span></li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </div>
+              <div className="flex min-w-0 flex-col gap-2.5">
+                <section aria-labelledby="file-summary-diagnosis" className="rounded-lg border border-[#003d82] bg-[#e7f0fa] px-2.5 pb-2 pt-1.5">
+                  <h3 id="file-summary-diagnosis" className={fileTitle}>Diagnosis / التشخيص</h3>
+                  <p className={fileValue} dir="auto">{diagnosis || "لم يُسجَّل تشخيص بعد."}</p>
+                </section>
+                {decision || notes ? (
+                  <section aria-labelledby="file-summary-decision" className={fileBox}>
+                    <h3 id="file-summary-decision" className={fileTitle}>Final Decision / القرار النهائي</h3>
+                    {decision ? <p className={fileValue}>{decision}</p> : null}
+                    {notes ? (
+                      <div className="mt-1"><span className={fileLabel}>Notes / ملاحظات</span><p className={fileValue}>{notes}</p></div>
+                    ) : null}
+                  </section>
+                ) : null}
+                <section aria-labelledby="file-summary-followups" className={fileBox}>
+                  <h3 id="file-summary-followups" className={fileTitle}>
+                    {selectedFileSheetType === "lasik" ? "متابعة الليزك" : "متابعة الاستشاري"}
+                  </h3>
+                  {fileFollowupsQuery.isError ? (
+                    <p role="alert" className="m-0 text-[12.5px] text-destructive">تعذر تحميل المتابعات.</p>
+                  ) : followupRows.length ? (
+                    followupRows.map((followup, index) => (
+                      <div key={followup.id} className="mt-1 first:mt-0">
+                        <p className="m-0 text-[13px]">
+                          <b>{["المتابعة الأولى", "المتابعة الثانية", "المتابعة الثالثة", "المتابعة الرابعة"][index]} </b>
+                          <span className="font-mono text-[#4a6283]" dir="ltr">{followup.date}</span>
+                        </p>
+                        {followup.rows.length ? (
+                          <div className="overflow-x-auto" dir="ltr">
+                          <table className="w-full border-collapse" aria-label={`متابعة ${index + 1}`}>
+                            <thead><tr><th className={fileHead} /><th className={fileHead}>OD</th><th className={fileHead}>OS</th></tr></thead>
+                            <tbody>
+                              {followup.rows.map(([label, od, os]) => (
+                                <tr key={label}>
+                                  <th scope="row" className={fileRowHead}>{label}</th>
+                                  <td className={`${fileCell} whitespace-nowrap`}>{od || "-"}</td>
+                                  <td className={`${fileCell} whitespace-nowrap`}>{os || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          </div>
+                        ) : null}
+                        {followup.treatment ? <div className="mt-0.5"><span className={fileLabel}>Treatment</span><p className={fileValue}>{followup.treatment}</p></div> : null}
+                        {followup.comment ? <div className="mt-0.5"><span className={fileLabel}>Comment</span><p className={fileValue}>{followup.comment}</p></div> : null}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="m-0 text-[12.5px] text-[#4a6283]">
+                      {fileFollowupsQuery.isLoading ? "جاري تحميل المتابعات..." : "لا توجد متابعات مسجلة لهذا الملف."}
+                    </p>
+                  )}
+                </section>
+              </div>
+            </div>
+            {Object.values(signatures).some((value) => String(value ?? "").trim()) ? (
+              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 border-t border-[#c3c6d6] pt-1.5 text-[12.5px] text-[#4a6283]">
+                {([["reception", "Reception / الاستقبال"], ["technician", "Optometrist / فني"], ["doctor", "Surgeon / الطبيب"], ["nurse", "Nursing / التمريض"]] as const).map(([key, label]) =>
+                  signatures[key] ? (
+                    <div key={key}>{label}: <b className="font-semibold text-[#1b2430]">{signatures[key]}</b></div>
+                  ) : null,
+                )}
+              </div>
+            ) : null}
+          </article>
+        </FinalSummaryFit>
+      );
+    };
     const renderDigitalFinal = () => (finalEditing ? renderFinalEditor() : renderFinalSummary());
     const renderFinalEditor = (
       title = "FINAL MEDICAL REPORT",
@@ -4240,14 +4521,24 @@ export default function WorkflowPrototypeLive() {
           onSaved={advanceLiveVisitAfterSave}
         />
       ),
-      consultantSheet: () => (
-        <ConsultantSheet
-          embedded
-          patientId={selectedLivePatient.id}
-          visitId={workflowVisitId ?? selectedLivePatient.visitId}
-          sheetType={selectedFileSheetType}
-        />
-      ),
+      consultantSheet: () =>
+        fileEditing ? (
+          <div className="space-y-2">
+            <div className="flex justify-end print:hidden">
+              <Button type="button" size="sm" variant="outline" onClick={() => setFileEditing(false)}>
+                عرض الملف
+              </Button>
+            </div>
+            <ConsultantSheet
+              embedded
+              patientId={selectedLivePatient.id}
+              visitId={workflowVisitId ?? selectedLivePatient.visitId}
+              sheetType={selectedFileSheetType}
+            />
+          </div>
+        ) : (
+          renderFileSummary()
+        ),
       pentacam: () => (
         <WorkflowPentacam
           key={selectedLivePatient.id}
