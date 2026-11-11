@@ -3683,7 +3683,7 @@ export default function WorkflowPrototypeLive() {
       const fileLabel = "block text-[12.5px] font-semibold text-[#4a6283]";
       const fileValue = "m-0 whitespace-pre-line text-sm font-semibold leading-snug";
       const fileCell = "border border-[#c3c6d6] bg-white px-1 py-0.5 text-center font-mono text-[12.5px]";
-      const fileHead = "border border-[#c3c6d6] px-1 py-0.5 text-center text-[12px] font-bold";
+      const fileHead = "border border-[#c3c6d6] bg-[#003d82] px-1 py-0.5 text-center text-[12px] font-bold text-white";
       const fileRowHead = "border border-[#c3c6d6] bg-[#f8f9fb] px-1 py-0.5 text-center text-[12px] font-bold";
       return (
         <FinalSummaryFit>
