@@ -695,10 +695,10 @@ function FinalSummaryFit({ children }: { children: ReactNode }) {
     const measure = () => {
       const natural = box.scrollHeight;
       const area = box.closest<HTMLElement>(".overflow-y-auto")?.clientHeight ?? window.innerHeight;
+      const needed = natural ? (area - 16) / natural : 1;
+      // Shrinking that still leaves a scroll only makes the text smaller.
       const scale =
-        window.innerWidth < 768 || !natural
-          ? 1
-          : Math.max(0.85, Math.min(1, (area - 16) / natural));
+        box.clientWidth < 544 || needed >= 1 || natural * 0.85 > area ? 1 : Math.max(0.85, needed);
       setFit((current) =>
         current.scale === scale && current.height === natural ? current : { scale, height: natural },
       );
@@ -3374,7 +3374,7 @@ export default function WorkflowPrototypeLive() {
         <FinalSummaryFit>
         <article
           aria-label="الشيت النهائي"
-          className="final-summary-sheet mx-auto max-w-[1400px] rounded-[10px] border border-[#d5dfeb] bg-white text-[14px] leading-normal text-[#0b2a52] shadow-sm print:border-0 print:shadow-none"
+          className="final-summary-sheet @container mx-auto max-w-[1400px] rounded-[10px] border border-[#d5dfeb] bg-white text-[14px] leading-normal text-[#0b2a52] shadow-sm print:border-0 print:shadow-none"
           dir="rtl"
         >
           <header className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b-2 border-primary px-3 py-2">
@@ -3410,7 +3410,9 @@ export default function WorkflowPrototypeLive() {
               </Button>
             </div>
           </header>
-          <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.1fr)] print:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.1fr)]">
+          {/* Columns follow the sheet width, not the window: display scaling and the side
+              panels decide how wide it really is. Two columns put the measurements last. */}
+          <div className="grid @min-[34rem]:grid-cols-2 @min-[52rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.1fr)] print:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.1fr)]">
             <section aria-labelledby="final-summary-history" className="min-w-0 px-3 pb-3 pt-2">
               <h3 id="final-summary-history" className="mb-1.5 text-[13px] font-bold text-primary">
                 الشكوى والتاريخ
@@ -3442,7 +3444,7 @@ export default function WorkflowPrototypeLive() {
             </section>
             <section
               aria-labelledby="final-summary-measurements"
-              className="min-w-0 border-t border-[#d5dfeb] px-3 pb-3 pt-2 md:border-s md:border-t-0 print:border-s print:border-t-0"
+              className="min-w-0 border-t border-[#d5dfeb] px-3 pb-3 pt-2 @min-[34rem]:order-last @min-[34rem]:col-span-2 @min-[52rem]:order-none @min-[52rem]:col-span-1 @min-[52rem]:border-s @min-[52rem]:border-t-0 print:order-none print:col-span-1 print:border-s print:border-t-0"
             >
               <div className="mb-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                 <h3 id="final-summary-measurements" className="m-0 text-[13px] font-bold text-primary">
@@ -3545,7 +3547,7 @@ export default function WorkflowPrototypeLive() {
             </section>
             <section
               aria-labelledby="final-summary-decision"
-              className="min-w-0 border-t border-[#d5dfeb] px-3 pb-3 pt-2 md:border-s md:border-t-0 print:border-s print:border-t-0"
+              className="min-w-0 border-t border-[#d5dfeb] px-3 pb-3 pt-2 @min-[34rem]:border-s @min-[34rem]:border-t-0 print:border-s print:border-t-0"
             >
               <h3 id="final-summary-decision" className="mb-1.5 text-[13px] font-bold text-primary">
                 التشخيص والقرار
