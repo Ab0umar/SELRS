@@ -3633,6 +3633,8 @@ export default function WorkflowPrototypeLive() {
         .map(([question]) => question.replace(/[؟?]\s*$/, "").trim());
       const conditions = finalConditions.length ? finalConditions : sheetConditions;
       const operations = String(finalHistory?.previousSurgeries ?? "").trim();
+      // The file's «أخرى؟» answer, kept apart from the checklist and the visit history.
+      const otherHistory = String(sheet?.medicalHistoryOther ?? "").trim();
       const drawing = String(sheet?.consultantDrawing ?? "");
       const drawingNote = String(sheet?.consultantDrawingDescription ?? "").trim();
       const diagnosis = String(finalReport?.diagnosis || sheet?.diagnosisText || "").trim();
@@ -3641,7 +3643,7 @@ export default function WorkflowPrototypeLive() {
       const signatures = (sheet?.signatures ?? {}) as Record<string, string>;
       const examItems: Array<[string, string]> = (
         [
-          ["External appearance", [exam.externalPtosis && "Ptosis", exam.externalSquint && "Squint", exam.externalOthers && (exam.externalOthersNote || "Others")].filter(Boolean).join(", ") || ""],
+          ["External appearance", [exam.externalPtosis && "Ptosis", exam.externalSquint && "Squint", (String(exam.externalOthersNote ?? "").trim() || (exam.externalOthers && "Others"))].filter(Boolean).join(", ") || ""],
           ["Muscle action", exam.muscleAbnormal ? `Abnormal${exam.muscleAbnormalNote ? `: ${exam.muscleAbnormalNote}` : ""}` : exam.muscleNormal ? "Normal" : ""],
           ["Other abnormalities", String(exam.otherAbnormalities ?? "").trim()],
           ["Fundus", exam.fundusAbnormal ? `Abnormal${exam.fundusAbnormalNote ? `: ${exam.fundusAbnormalNote}` : ""}` : exam.fundusNormal ? "Normal" : ""],
@@ -3738,9 +3740,12 @@ export default function WorkflowPrototypeLive() {
                         <span key={`${item}-${index}`} className="rounded-md bg-[#e7f0fa] px-2 text-[12.5px] font-semibold text-[#003d82]">{item}</span>
                       ))}
                     </div>
-                  ) : (
+                  ) : otherHistory ? null : (
                     <p className="m-0 text-[12.5px] text-[#4a6283]">لا يوجد</p>
                   )}
+                  {otherHistory ? (
+                    <div className="mt-1"><span className={fileLabel}>أخرى</span><p className={fileValue}>{otherHistory}</p></div>
+                  ) : null}
                   {operations ? (
                     <div className="mt-1"><span className={fileLabel}>عمليات سابقة</span><p className={fileValue}>{operations}</p></div>
                   ) : null}
@@ -4525,7 +4530,16 @@ export default function WorkflowPrototypeLive() {
         fileEditing ? (
           <div className="space-y-2">
             <div className="flex justify-end print:hidden">
-              <Button type="button" size="sm" variant="outline" onClick={() => setFileEditing(false)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  // Edits in the file save through other queries; reload what the view reads.
+                  void trpcUtils.medical.invalidate();
+                  setFileEditing(false);
+                }}
+              >
                 عرض الملف
               </Button>
             </div>
