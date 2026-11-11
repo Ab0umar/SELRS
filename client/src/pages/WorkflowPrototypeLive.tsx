@@ -3734,8 +3734,8 @@ export default function WorkflowPrototypeLive() {
                   <h3 id="file-summary-history" className={fileTitle}>التاريخ المرضي</h3>
                   {conditions.length ? (
                     <div className="flex flex-wrap gap-1">
-                      {conditions.map((item) => (
-                        <span key={item} className="rounded-md bg-[#e7f0fa] px-2 text-[12.5px] font-semibold text-[#003d82]">{item}</span>
+                      {conditions.map((item, index) => (
+                        <span key={`${item}-${index}`} className="rounded-md bg-[#e7f0fa] px-2 text-[12.5px] font-semibold text-[#003d82]">{item}</span>
                       ))}
                     </div>
                   ) : (
