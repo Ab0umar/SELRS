@@ -406,7 +406,7 @@ export async function persistClinicalSheet(
     sections.symptomIds = content.symptomIds.map(String);
   if (
     (Object.keys(report).length || Array.isArray(content.diseases)) &&
-    ["doctor", "admin", "manager"].includes(role)
+    ["doctor", "nurse", "admin", "manager"].includes(role)
   ) {
     for (const [source, target] of Object.entries({
       diagnosis: "diagnosis",

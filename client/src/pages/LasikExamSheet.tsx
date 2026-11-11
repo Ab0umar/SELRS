@@ -318,6 +318,11 @@ export default function LasikExamSheet({
     },
   });
   const [officeNotes, setOfficeNotes] = useState("");
+  // Symptoms and the visit's history text have their own tables (visitSymptoms,
+  // visitMedicalHistory); they load from the saved visit and save with the sheet.
+  const [symptomsText, setSymptomsText] = useState("");
+  const [historyText, setHistoryText] = useState("");
+  const visitTextEditedRef = useRef(false);
   const [consultantDrawingDescription, setConsultantDrawingDescription] =
     useState("");
   const [diagnosisText, setDiagnosisText] = useState("");
@@ -1122,6 +1127,18 @@ export default function LasikExamSheet({
   }, [autorefQuery.data, examinationsQuery.data, selectedVisitId]);
 
   useEffect(() => {
+    visitTextEditedRef.current = false;
+  }, [selectedVisitId]);
+  useEffect(() => {
+    if (visitTextEditedRef.current) return;
+    const row = ((visitsQuery.data as any[]) ?? []).find(
+      (item) => Number(item.id) === Number(selectedVisitId),
+    );
+    setSymptomsText(String(row?.symptoms ?? ""));
+    setHistoryText(String(row?.history ?? ""));
+  }, [visitsQuery.data, selectedVisitId]);
+
+  useEffect(() => {
     const latestExamination =
       ((examinationsQuery.data as any[]) ?? []).find(
         (row) => Number(row.visitId) === Number(selectedVisitId),
@@ -1375,6 +1392,12 @@ export default function LasikExamSheet({
           diabetesDuration,
           fundus: { od: fundusOd, os: fundusOs },
           treatmentPlan,
+          // Only for a saved visit whose text has loaded, so a save never blanks it.
+          ...(((visitsQuery.data as any[]) ?? []).some(
+            (row) => Number(row.id) === Number(selectedVisitId),
+          )
+            ? { symptoms: symptomsText, historyNotes: historyText }
+            : {}),
           medicalHistory,
           medicalHistoryOther,
           diagnosisText,
@@ -1455,12 +1478,8 @@ export default function LasikExamSheet({
     const inp =
       "w-full text-center bg-transparent border-0 border-b border-solid border-[#737685] focus:outline-none focus:border-[#003d9b] py-1 text-sm";
     const selectSymptom = (name: string) => {
-      setConsultantExamField(
-        "complains",
-        consultantExam.complains
-          ? `${consultantExam.complains}, ${name}`
-          : name,
-      );
+      visitTextEditedRef.current = true;
+      setSymptomsText((current) => (current ? `${current}, ${name}` : name));
       setComplainsSearchText("");
       setComplainsSearchOpen(false);
     };
@@ -2345,16 +2364,32 @@ export default function LasikExamSheet({
                 <p className="mb-2 text-[13px] font-bold text-[#003d9b]">
                   Complains:
                 </p>
-                <AssistantField label="الشكوى والأعراض">
+                <AssistantField label="الشكوى">
                   <textarea
-                    aria-label="الشكوى والأعراض"
+                    aria-label="الشكوى"
                     className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b] print:placeholder-transparent"
-                    data-medical-proposals="complaints symptoms"
+                    data-medical-proposals="complaints"
                     value={consultantExam.complains}
                     onChange={(e) =>
                       setConsultantExamField("complains", e.target.value)
                     }
-                    placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                    placeholder="اكتب الشكوى…"
+                  />
+                </AssistantField>
+                <p className="mb-2 mt-3 text-[13px] font-bold text-[#003d9b]">
+                  Symptoms:
+                </p>
+                <AssistantField label="الأعراض">
+                  <textarea
+                    aria-label="الأعراض"
+                    className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b] print:placeholder-transparent"
+                    data-medical-proposals="symptoms"
+                    value={symptomsText}
+                    onChange={(e) => {
+                      visitTextEditedRef.current = true;
+                      setSymptomsText(e.target.value);
+                    }}
+                    placeholder="اكتب الأعراض أو ابحث بالأسفل…"
                   />
                 </AssistantField>
                 <div className="relative mt-2 print:hidden">
@@ -2416,6 +2451,22 @@ export default function LasikExamSheet({
                     </div>
                   ) : null}
                 </div>
+                <p className="mb-2 mt-3 text-[13px] font-bold text-[#003d9b]">
+                  Medical history:
+                </p>
+                <AssistantField label="التاريخ المرضي">
+                  <textarea
+                    aria-label="التاريخ المرضي"
+                    className="w-full min-h-[48px] resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-[#003d9b] print:placeholder-transparent"
+                    data-medical-proposals="history"
+                    value={historyText}
+                    onChange={(e) => {
+                      visitTextEditedRef.current = true;
+                      setHistoryText(e.target.value);
+                    }}
+                    placeholder="اكتب التاريخ المرضي…"
+                  />
+                </AssistantField>
               </div>
               <div
                 className="consultant-examination-block flex-[3] rounded-lg border border-[#c3c6d6] bg-muted/50 p-3 text-left text-[12px] text-[#1f2937]"

@@ -107,6 +107,13 @@ const displayDateValue = (value: unknown): string => {
 };
 
 
+// Older diagnosis saves stored the selected disease ids in the history section;
+// that list is not history text.
+const visitHistoryText = (raw: unknown) => {
+  const text = String(raw ?? "").trim();
+  return /^\[[\d,\s]*\]$/.test(text) ? "" : text;
+};
+
 type Refraction = { s: string; c: string; a: string };
 type WorkflowData = {
   reception: {
@@ -1095,6 +1102,10 @@ export default function WorkflowPrototypeLive() {
     }
     setData((current) => ({
       ...current,
+      reception: {
+        ...current.reception,
+        medicalHistory: visitHistoryText(report.additionalNotes),
+      },
       specialist: {
         ...current.specialist,
         complains: String(
@@ -1143,7 +1154,8 @@ export default function WorkflowPrototypeLive() {
           address: patientData.address ?? current.reception.address,
           occupation: patientData.occupation ?? current.reception.occupation,
           medicalHistory:
-            sheet?.historyNotes ?? current.reception.medicalHistory,
+            current.reception.medicalHistory ||
+            visitHistoryText(sheet?.historyNotes),
           previousOperations:
             sheet?.formData?.previousOperations ??
             current.reception.previousOperations,
@@ -1434,6 +1446,48 @@ export default function WorkflowPrototypeLive() {
       return false;
     } finally {
       setIsSavingFinalReport(false);
+    }
+  };
+
+  // The tests and prescription tabs have no other save: without this the picks
+  // stay in the page until the final sheet is saved.
+  const [savingSelection, setSavingSelection] = useState(false);
+  const saveWorkflowSelection = async (kind: "tests" | "prescription") => {
+    if (savingSelection) return;
+    if (!selectedLivePatient?.id || !activeWorkflowVisitId) {
+      toast.error("لا توجد زيارة محددة للحفظ");
+      return;
+    }
+    if (kind === "tests" ? testsQuery.isLoading || testsQuery.isError : medicationsQuery.isLoading || medicationsQuery.isError) {
+      toast.error("انتظر تحميل القائمة قبل الحفظ");
+      return;
+    }
+    setSavingSelection(true);
+    try {
+      await saveWorkflowDraftMutation.mutateAsync({
+        patientId: selectedLivePatient.id,
+        visitId: activeWorkflowVisitId,
+        visitDate: selectedDate,
+        visitType: selectedLivePatient.visitType ?? "examination",
+        data:
+          kind === "tests"
+            ? { tests: [...selectedTestIds.map(Number), ...manualTests] }
+            : {
+                treatment: [
+                  ...selectedMedicationIds.map((id) => ({
+                    medicationId: Number(id),
+                    ...(medicationDetailsById[String(id)] ?? {}),
+                  })),
+                  ...manualMedications,
+                ],
+              },
+      });
+      await trpcUtils.medical.invalidate();
+      toast.success(kind === "tests" ? "تم حفظ التحاليل والأشعة" : "تم حفظ الروشتة");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر الحفظ");
+    } finally {
+      setSavingSelection(false);
     }
   };
 
@@ -2968,8 +3022,17 @@ export default function WorkflowPrototypeLive() {
       data.specialist.reading,
     ].some(Boolean);
     const complaintSummary = String(
-      finalExam.complains || finalVisit?.chiefComplaint || "",
+      finalVisit?.chiefComplaint ||
+        finalReport?.clinicalOpinion ||
+        finalExam.complains ||
+        "",
     ).trim();
+    const symptomsSummary = String(
+      finalVisit?.symptoms || finalReport?.symptoms || "",
+    ).trim();
+    const visitHistorySummary = visitHistoryText(
+      finalVisit?.history ?? finalReport?.additionalNotes,
+    );
     const diagnosisSummary = String(finalReport?.diagnosis ?? "").trim();
     const hasDiagnosisSummary = Boolean(diagnosisSummary.trim());
     const finalDecisionSummary = String(
@@ -3013,6 +3076,7 @@ export default function WorkflowPrototypeLive() {
       window.setTimeout(() => frame.remove(), 60_000);
     };
     const medicalHistorySummary = [
+      visitHistorySummary,
       finalHistory?.diabetes && "سكر",
       finalHistory?.hypertension && "ضغط",
       finalHistory?.heartDisease && "أمراض قلب",
@@ -3277,6 +3341,12 @@ export default function WorkflowPrototypeLive() {
                 <span className="font-bold text-slate-500">Complaint:</span>
                 <p className="mt-1 text-base font-semibold" dir="rtl">
                   {complaintSummary || "—"}
+                </p>
+                <span className="mt-2 block font-bold text-slate-500">
+                  Symptoms:
+                </span>
+                <p className="mt-1 text-base font-semibold" dir="rtl">
+                  {symptomsSummary || "—"}
                 </p>
               </div>
             </div>
@@ -3849,6 +3919,15 @@ export default function WorkflowPrototypeLive() {
           <div className="order-2 flex justify-end">
             <Button
               type="button"
+              size="sm"
+              className="me-2 gap-1.5"
+              disabled={savingSelection}
+              onClick={() => saveWorkflowSelection("tests")}
+            >
+              حفظ
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               size="sm"
               className="gap-1.5"
@@ -3890,6 +3969,15 @@ export default function WorkflowPrototypeLive() {
         >
           {assistantPrescriptionBinding}
           <div className="order-2 flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              className="me-2 gap-1.5"
+              disabled={savingSelection}
+              onClick={() => saveWorkflowSelection("prescription")}
+            >
+              حفظ
+            </Button>
             <Button
               type="button"
               variant="outline"

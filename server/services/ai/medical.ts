@@ -118,11 +118,14 @@ function saveJobOutcome(id: string, job: Job) {
   );
 }
 
-async function recoverJob(owner: number, id: string) {
+// A nurse records and the doctor reviews, so a job tied to a saved visit is
+// readable by any assistant user opening that visit. A job without a visit
+// (recorded before the first save) stays private to its owner.
+async function recoverJob(requester: number, id: string) {
   const row = await withJobStore(async (connection) => {
     const [rows] = await connection.execute<RowDataPacket[]>(
-      "SELECT provider,engine,model,task_id,state,input_json,result_json,failure_message,created_ms,patient_id,visit_id FROM medical_ai_jobs WHERE job_id=? AND owner_id=? AND expires_ms>?",
-      [id, owner, Date.now()],
+      "SELECT owner_id,provider,engine,model,task_id,state,input_json,result_json,failure_message,created_ms,patient_id,visit_id FROM medical_ai_jobs WHERE job_id=? AND (owner_id=? OR visit_id IS NOT NULL) AND expires_ms>?",
+      [id, requester, Date.now()],
     );
     return rows[0];
   });
@@ -136,7 +139,7 @@ async function recoverJob(owner: number, id: string) {
   const provider = row.provider === "gemini" ? "gemini" : "manus";
   const engine = row.engine === "central" ? "central" : "current";
   const job: Job = {
-    owner,
+    owner: Number(row.owner_id),
     input,
     provider,
     engine,
@@ -177,11 +180,11 @@ async function recoverJob(owner: number, id: string) {
   expireJob(id, job);
   // Nobody may be polling after a restart: keep checking the same Manus task so
   // its result is saved and its usage settles.
-  if (job.taskId && !job.result && !job.failed) watchMedicalJob(owner, id);
+  if (job.taskId && !job.result && !job.failed) watchMedicalJob(job.owner, id);
   return job;
 }
 
-// The newest full-visit job this user started for the patient and visit, so a
+// The newest full-visit job for the patient and visit, so a
 // reload or remount shows that review instead of paying for a new one. A new
 // visit gets its id on first save, so a job started just before that has no
 // visit id yet.
@@ -206,9 +209,12 @@ export async function latestMedicalJob(
     const now = Date.now();
     const select =
       "SELECT job_id,state,input_json FROM medical_ai_jobs WHERE owner_id=? AND patient_id=? AND expires_ms>? AND ";
+    // A saved visit's review is shared by everyone opening that visit.
     const [matching] = await connection.execute<RowDataPacket[]>(
-      `${select}${visitId ? "visit_id=?" : "visit_id IS NULL"} ORDER BY created_ms DESC LIMIT 20`,
-      visitId ? [owner, patientId, now, visitId] : [owner, patientId, now],
+      visitId
+        ? "SELECT job_id,state,input_json FROM medical_ai_jobs WHERE patient_id=? AND visit_id=? AND expires_ms>? ORDER BY created_ms DESC LIMIT 20"
+        : `${select}visit_id IS NULL ORDER BY created_ms DESC LIMIT 20`,
+      visitId ? [patientId, visitId, now] : [owner, patientId, now],
     );
     const saved = fullVisit(matching);
     if (saved || !visitId) return saved;
@@ -593,7 +599,11 @@ export async function readMedicalProposals(
 > {
   let job = jobs.get(id);
   if (!job) job = await recoverJob(owner, id);
-  if (!job || job.owner !== owner || job.expires <= Date.now())
+  if (
+    !job ||
+    (job.owner !== owner && job.meta.visitId == null) ||
+    job.expires <= Date.now()
+  )
     throw new TRPCError({
       code: "NOT_FOUND",
       message:

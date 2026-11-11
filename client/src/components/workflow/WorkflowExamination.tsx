@@ -134,6 +134,8 @@ export default function WorkflowExamination({
 
   const [exam, setExam] = useState<ExamForm>(emptyExam);
   const [drawing, setDrawing] = useState("");
+  const [history, setHistory] = useState("");
+  const [symptoms, setSymptoms] = useState("");
   const [reading, setReading] = useState("");
   const [refraction, setRefraction] = useState<Refraction>(emptyRefraction);
   const [bcva, setBcva] = useState<Record<Eye, string>>({ od: "", os: "" });
@@ -160,6 +162,9 @@ export default function WorkflowExamination({
     if (!savedForVisit) next.complains = String(visit?.chiefComplaint ?? "").trim();
     setExam(next);
     setDrawing(String(sheet?.consultantDrawing ?? ""));
+    // The visit's history table is the source; the sheet is only a fallback.
+    setHistory(String(visit ? visit.history ?? "" : sheet?.historyNotes ?? ""));
+    setSymptoms(String(visit ? visit.symptoms ?? "" : sheet?.symptoms ?? ""));
     setReading(String(sheet?.readingValue ?? ""));
 
     const glasses = ((glassesQuery.data ?? []) as any[]).find(
@@ -228,7 +233,8 @@ export default function WorkflowExamination({
         .slice(0, 50)
     : [];
   const selectSymptom = (name: string) => {
-    setExamField("complains", exam.complains ? `${exam.complains}, ${name}` : name);
+    dirtyRef.current = true;
+    setSymptoms((current) => (current ? `${current}, ${name}` : name));
     setSymptomSearch("");
     setSymptomOpen(false);
   };
@@ -256,6 +262,8 @@ export default function WorkflowExamination({
           ...existing,
           visitId,
           consultantExam: exam,
+          historyNotes: history,
+          symptoms,
           consultantDrawing: drawing,
           readingValue: reading,
           examData: {
@@ -527,14 +535,28 @@ export default function WorkflowExamination({
             <div className="flex w-full flex-col gap-2 sm:w-[calc(75%-0.5rem)]">
               <div className="flex-1 rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] px-3 pb-3 pt-0 text-left text-[12px] text-[#1f2937]">
                 <p className="mb-2 text-[13px] font-bold text-primary">Complains:</p>
-                <AssistantField label="الشكوى والأعراض">
+                <AssistantField label="الشكوى">
                   <textarea
-                    aria-label="الشكوى والأعراض"
-                    data-medical-proposals="complaints symptoms"
+                    aria-label="الشكوى"
+                    data-medical-proposals="complaints"
                     className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-primary"
                     value={exam.complains}
                     onChange={(event) => setExamField("complains", event.target.value)}
-                    placeholder="اكتب الشكوى يدويًا أو ابحث من الأعراض بالأسفل…"
+                    placeholder="اكتب الشكوى…"
+                  />
+                </AssistantField>
+                <p className="mb-2 mt-3 text-[13px] font-bold text-primary">Symptoms:</p>
+                <AssistantField label="الأعراض">
+                  <textarea
+                    aria-label="الأعراض"
+                    data-medical-proposals="symptoms"
+                    className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-primary"
+                    value={symptoms}
+                    onChange={(event) => {
+                      dirtyRef.current = true;
+                      setSymptoms(event.target.value);
+                    }}
+                    placeholder="اكتب الأعراض أو ابحث بالأسفل…"
                   />
                 </AssistantField>
                 <div className="relative mt-2">
@@ -576,6 +598,20 @@ export default function WorkflowExamination({
                     </div>
                   ) : null}
                 </div>
+                <p className="mb-2 mt-3 text-[13px] font-bold text-primary">Medical history:</p>
+                <AssistantField label="التاريخ المرضي">
+                  <textarea
+                    aria-label="التاريخ المرضي"
+                    data-medical-proposals="history"
+                    className="min-h-[48px] w-full resize-none rounded-md border border-[#c3c6d6] bg-white px-2 py-1 text-[12px] outline-none focus:border-primary"
+                    value={history}
+                    onChange={(event) => {
+                      dirtyRef.current = true;
+                      setHistory(event.target.value);
+                    }}
+                    placeholder="اكتب التاريخ المرضي…"
+                  />
+                </AssistantField>
               </div>
 
               <div className="flex-[3] rounded-lg border border-[#c3c6d6] bg-[#f8f9fb] p-3 text-left text-[12px] text-[#1f2937]">

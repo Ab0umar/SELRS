@@ -72,7 +72,7 @@ export default function WorkflowDiagnosis({
     if (dirtyRef.current) return;
     setDiagnosis(report?.diagnosis || "");
     setRecommendations(report?.recommendations || "");
-    setDiseaseIds(parseDiseaseIds(report?.additionalNotes));
+    setDiseaseIds(parseDiseaseIds(report?.diseases));
   }, [report]);
 
   const diseases = (diseasesQuery.data ?? []) as Disease[];
@@ -99,7 +99,6 @@ export default function WorkflowDiagnosis({
     setSaving(finish ? "finish" : "save");
     try {
       let visitId = hubVisitId;
-      const additionalNotes = JSON.stringify(diseaseIds);
       const hasContent = Boolean(
         diagnosis.trim() || recommendations.trim() || diseaseIds.length,
       );
@@ -108,7 +107,7 @@ export default function WorkflowDiagnosis({
           patientId,
           visitDate,
           diagnosis,
-          diseases: additionalNotes,
+          diseases: JSON.stringify(diseaseIds),
           recommendations,
         });
         visitId = result?.visitId ?? undefined;
@@ -120,7 +119,7 @@ export default function WorkflowDiagnosis({
         await updateReport.mutateAsync({
           reportId: report.id,
           diagnosis,
-          additionalNotes,
+          diseases: diseaseIds,
           recommendations,
         });
         toast.success("تم حفظ التقرير بنجاح");
@@ -128,8 +127,8 @@ export default function WorkflowDiagnosis({
         await createReport.mutateAsync({
           visitId,
           patientId,
-          diagnosis: diagnosis || "No diagnosis entered",
-          additionalNotes,
+          diagnosis,
+          diseases: diseaseIds,
           recommendations,
         });
         toast.success("تم حفظ التقرير بنجاح");
