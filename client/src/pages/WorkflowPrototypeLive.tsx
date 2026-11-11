@@ -1002,6 +1002,8 @@ export default function WorkflowPrototypeLive() {
     trpc.medical.replacePrescriptionWithItems.useMutation();
   const saveFinalClinicalSheetMutation = trpc.medical.saveSheetEntry.useMutation();
   const [isSavingFinalReport, setIsSavingFinalReport] = useState(false);
+  // The final sheet opens as a one-screen summary; editing shows the full form.
+  const [finalEditing, setFinalEditing] = useState(false);
 
   useEffect(() => {
     setSelectedTestIds(
@@ -3250,7 +3252,306 @@ export default function WorkflowPrototypeLive() {
       );
     };
 
-    const renderDigitalFinal = (
+    const finalConditions = [
+      finalHistory?.diabetes && "سكر",
+      finalHistory?.hypertension && "ضغط",
+      finalHistory?.heartDisease && "أمراض قلب",
+      finalHistory?.asthma && "ربو",
+      finalHistory?.thyroid && "الغدة الدرقية",
+      finalHistory?.autoimmune && "أمراض مناعية",
+      finalHistory?.glaucoma && "مياه زرقاء",
+      finalHistory?.familyKeratoconus && "تاريخ عائلي لقرنية مخروطية",
+    ].filter(Boolean) as string[];
+    const detailText = (values: unknown[]) =>
+      values.map((value) => String(value ?? "").trim()).filter(Boolean).join(" - ");
+    const summaryTests = [
+      ...selectedTestIds.map((id) => testItems.find((item) => String(item.id) === String(id))?.name ?? ""),
+      ...manualTests.map((item) => item.testName),
+    ]
+      .map((name) => String(name ?? "").trim())
+      .filter(Boolean);
+    const summaryMedications: Array<[string, string]> = [
+      ...selectedMedicationIds.map((id): [string, string] => {
+        const details: Record<string, unknown> = medicationDetailsById[String(id)] ?? {};
+        return [
+          String(medicationItems.find((item) => String(item.id) === String(id))?.name ?? id),
+          detailText([details.dosage, details.frequency, details.duration, details.instructions]),
+        ];
+      }),
+      ...manualMedications.map((item): [string, string] => [
+        item.medicationName,
+        detailText([item.dosage, item.frequency, item.duration, item.instructions]),
+      ]),
+    ];
+    const finalPatientAge = String(reportPatient.age ?? "").trim();
+    const summaryLabel = "block text-[13px] font-semibold text-[#4a6283]";
+    const summaryCell = "border border-[#d5dfeb] px-2 py-1 font-mono text-[13.5px]";
+    const summaryRowHead =
+      "whitespace-nowrap border border-[#d5dfeb] bg-[#f7fafd] px-2 py-1 text-left text-[12.5px] font-bold";
+    const eyeRow = (label: string, od: Refraction, os: Refraction) =>
+      [od.s, od.c, od.a, os.s, os.c, os.a].some(Boolean) ? (
+        <tr key={label}>
+          <th scope="row" className={summaryRowHead}>{label}</th>
+          {[od.s, od.c, od.a, os.s, os.c, os.a].map((value, index) => (
+            <td key={index} className={`${summaryCell} ${index === 0 ? "border-l-2 border-l-primary" : ""}`}>
+              {value || "-"}
+            </td>
+          ))}
+        </tr>
+      ) : null;
+    const summaryField = (label: string, value: string, big = false) =>
+      value ? (
+        <div className="mb-2.5">
+          <span className={summaryLabel}>{label}</span>
+          <p className={`m-0 whitespace-pre-line font-semibold ${big ? "text-base" : "text-[14.5px]"}`}>{value}</p>
+        </div>
+      ) : null;
+    const renderFinalSummary = () => {
+      const complaint = String(data.specialist.complains || complaintSummary || "").trim();
+      const symptoms = String(data.specialist.symptoms || symptomsSummary || "").trim();
+      const history = String(data.reception.medicalHistory || visitHistorySummary || "").trim();
+      const diagnosis = String(data.consultant.diagnosis || diagnosisSummary || "").trim();
+      const decision = String(data.consultant.finalDecision || finalDecisionSummary || "").trim();
+      const pentacamRows = eyeOrder.filter((eye) =>
+        [data.pentacam[eye].k1, data.pentacam[eye].k2, data.pentacam[eye].axis, data.pentacam[eye].thinnestLocation].some(Boolean),
+      );
+      const vitals: Array<[string, Record<Eye, string>]> = [
+        ["UCVA", data.nursing.ucva],
+        ["BCVA", data.nursing.bcva],
+        ["IOP", data.nursing.iop],
+      ];
+      const examItems: Array<[string, string]> = hasExaminationData
+        ? ([
+            ["External", `Ptosis: ${finalExam.externalPtosis ? "Present" : "Absent"}, Squint: ${finalExam.externalSquint ? "Present" : "Absent"}`],
+            ["Muscle action", finalExam.muscleAbnormal ? "Abnormal" : finalExam.muscleNormal ? "Normal" : ""],
+            ["Fundus", finalExam.fundusAbnormal ? "Abnormal" : finalExam.fundusNormal ? "Normal" : ""],
+            ["Other", String(finalExam.otherAbnormalities ?? "").trim()],
+          ] as Array<[string, string]>).filter(([, value]) => value)
+        : [];
+      return (
+        <article
+          aria-label="الشيت النهائي"
+          className="final-summary-sheet mx-auto max-w-[1400px] rounded-[10px] border border-[#d5dfeb] bg-white text-[14px] leading-normal text-[#0b2a52] shadow-sm print:border-0 print:shadow-none"
+          dir="rtl"
+        >
+          <header className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b-2 border-primary px-4 py-2.5">
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <h2 className="m-0 text-xl font-bold">{reportPatient.fullName || selectedLivePatient.fullName}</h2>
+              {selectedLivePatient.patientCode ? (
+                <span className="text-[13px] text-[#4a6283]">
+                  الكود <b className="font-mono text-[#0b2a52]" dir="ltr">{selectedLivePatient.patientCode}</b>
+                </span>
+              ) : null}
+              {finalPatientAge ? (
+                <span className="text-[13px] text-[#4a6283]">
+                  السن <b className="font-mono text-[#0b2a52]">{finalPatientAge}</b>
+                </span>
+              ) : null}
+              <span className="text-[13px] text-[#4a6283]">
+                تاريخ الزيارة <b className="font-mono text-[#0b2a52]" dir="ltr">{selectedDate}</b>
+              </span>
+            </div>
+            <div className="ms-auto flex flex-wrap gap-2 print:hidden">
+              <Button type="button" variant="outline" onClick={() => setFinalEditing(true)}>
+                تعديل
+              </Button>
+              <Button type="button" variant="outline" onClick={printSheet}>
+                <Printer className="h-4 w-4 sm:me-2" />
+                <span>طباعة</span>
+              </Button>
+              <Button type="button" variant="outline" onClick={() => saveFinalReportEdits()} disabled={isSavingFinalReport}>
+                {isSavingFinalReport ? "جاري الحفظ" : "حفظ التقرير"}
+              </Button>
+              <Button type="button" onClick={() => saveFinalReportEdits(true)} disabled={isSavingFinalReport || !selectedLivePatient}>
+                حفظ وإنهاء الزيارة
+              </Button>
+            </div>
+          </header>
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.1fr)] print:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.1fr)]">
+            <section aria-labelledby="final-summary-history" className="min-w-0 px-3.5 pb-3.5 pt-2.5">
+              <h3 id="final-summary-history" className="mb-2 text-[13px] font-bold text-primary">
+                الشكوى والتاريخ
+              </h3>
+              {summaryField("الشكوى", complaint, true)}
+              {summaryField("الأعراض", symptoms)}
+              {history || finalConditions.length ? (
+                <div className="mb-2.5">
+                  <span className={summaryLabel}>التاريخ المرضي</span>
+                  {history ? <p className="m-0 whitespace-pre-line text-[14.5px] font-semibold">{history}</p> : null}
+                  {finalConditions.length ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {finalConditions.map((item) => (
+                        <span key={item} className="rounded-md bg-[#e7f0fa] px-2 text-[12.5px] font-semibold text-primary">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="grid grid-cols-2 gap-x-3">
+                {summaryField("عمليات سابقة", String(finalHistory?.previousSurgeries ?? "").trim())}
+                {summaryField("حساسية", finalHistory?.allergies ? "نعم" : "")}
+              </div>
+              {!complaint && !symptoms && !history ? (
+                <p className="m-0 text-[13px] text-[#4a6283]">لم تُسجَّل شكوى أو تاريخ مرضي لهذه الزيارة.</p>
+              ) : null}
+            </section>
+            <section
+              aria-labelledby="final-summary-measurements"
+              className="min-w-0 border-t border-[#d5dfeb] px-3.5 pb-3.5 pt-2.5 lg:border-s lg:border-t-0 print:border-s print:border-t-0"
+            >
+              <div className="mb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <h3 id="final-summary-measurements" className="m-0 text-[13px] font-bold text-primary">
+                  القياسات
+                </h3>
+                <dl className="m-0 flex flex-wrap gap-x-3.5 gap-y-1" dir="ltr" aria-label="حدة الإبصار وضغط العين، يمين / يسار">
+                  {vitals
+                    .filter(([, value]) => value.od || value.os)
+                    .map(([label, value]) => (
+                      <div key={label} className="flex items-baseline gap-1.5">
+                        <dt className="text-[12.5px] font-bold text-[#4a6283]">{label}</dt>
+                        <dd className="m-0 font-mono text-sm font-semibold">
+                          {value.od || "-"} <span className="text-[#4a6283]">/</span> {value.os || "-"}
+                        </dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+              <div className="overflow-x-auto" dir="ltr">
+                <table className="w-full border-collapse text-center text-[13px]" aria-label="قياسات العينين">
+                  <thead className="bg-[#e7f0fa] text-[12.5px] font-bold text-primary">
+                    <tr>
+                      <th rowSpan={2} className="border border-[#d5dfeb]" />
+                      <th colSpan={3} className="border border-[#d5dfeb] border-l-2 border-l-primary">
+                        OD (Right)
+                      </th>
+                      <th colSpan={3} className="border border-[#d5dfeb]">
+                        OS (Left)
+                      </th>
+                    </tr>
+                    <tr>
+                      {["S", "C", "A", "S", "C", "A"].map((label, index) => (
+                        <th key={index} className={`border border-[#d5dfeb] ${index === 0 ? "border-l-2 border-l-primary" : ""}`}>
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eyeRow("AutoRef", data.nursing.autoref.od, data.nursing.autoref.os)}
+                    {eyeRow("After", data.nursing.after.od, data.nursing.after.os)}
+                    {eyeRow("Refraction", data.specialist.distance.od, data.specialist.distance.os)}
+                    {data.specialist.reading ? (
+                      <tr>
+                        <th scope="row" className={summaryRowHead}>Reading</th>
+                        <td colSpan={6} className={`${summaryCell} border-l-2 border-l-primary`}>
+                          Add {data.specialist.reading}
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+              {pdSummary ? (
+                <p className="mb-2.5 mt-1.5 text-[13px] font-semibold" dir="ltr">
+                  PD: <b className="font-mono">{pdSummary}</b>
+                </p>
+              ) : null}
+              {pentacamRows.length ? (
+                <div className="mt-2" dir="ltr">
+                  <p className="mb-1 text-left text-[12.5px] font-bold text-[#4a6283]">Pentacam</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-center text-[13px]" aria-label="Pentacam">
+                      <thead className="bg-[#e7f0fa] text-[12.5px] font-bold text-primary">
+                        <tr>
+                          {["", "K1", "K2", "Axis", "Thinnest"].map((label) => (
+                            <th key={label} className="border border-[#d5dfeb]">{label}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pentacamRows.map((eye) => (
+                          <tr key={eye}>
+                            <th scope="row" className={summaryRowHead}>{eye.toUpperCase()}</th>
+                            {[data.pentacam[eye].k1, data.pentacam[eye].k2, data.pentacam[eye].axis, data.pentacam[eye].thinnestLocation].map(
+                              (value, index) => (
+                                <td key={index} className={summaryCell}>{value || "-"}</td>
+                              ),
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
+              {examItems.length ? (
+                <div className="mt-3" dir="ltr">
+                  <p className="mb-1 text-left text-[12.5px] font-bold text-[#4a6283]">Examination</p>
+                  <dl className="m-0 grid grid-cols-2 gap-x-3 gap-y-1.5 text-left">
+                    {examItems.map(([label, value]) => (
+                      <div key={label}>
+                        <dt className="text-[13px] font-semibold text-[#4a6283]">{label}</dt>
+                        <dd className="m-0 text-sm font-semibold" dir="auto">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ) : null}
+            </section>
+            <section
+              aria-labelledby="final-summary-decision"
+              className="min-w-0 border-t border-[#d5dfeb] px-3.5 pb-3.5 pt-2.5 lg:border-s lg:border-t-0 print:border-s print:border-t-0"
+            >
+              <h3 id="final-summary-decision" className="mb-2 text-[13px] font-bold text-primary">
+                التشخيص والقرار
+              </h3>
+              <div className="mb-2.5 rounded-lg border border-primary bg-[#e7f0fa] px-2.5 py-2">
+                <span className={summaryLabel}>التشخيص</span>
+                <p className="m-0 whitespace-pre-line text-[15.5px] font-semibold" dir="auto">
+                  {diagnosis || "لم يُسجَّل تشخيص بعد."}
+                </p>
+              </div>
+              {summaryTests.length ? (
+                <div className="mb-2.5">
+                  <span className={summaryLabel}>تحاليل وأشعة</span>
+                  <div className="mt-1 flex flex-wrap gap-1" dir="ltr">
+                    {summaryTests.map((name) => (
+                      <span key={name} className="rounded-md bg-[#e7f0fa] px-2 text-[12.5px] font-semibold text-primary">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {summaryMedications.length ? (
+                <div className="mb-2.5">
+                  <span className={summaryLabel}>الروشتة</span>
+                  <ul className="m-0 list-none p-0">
+                    {summaryMedications.map(([name, details], index) => (
+                      <li key={`${name}-${index}`} className="flex flex-wrap-reverse items-baseline justify-between gap-x-3 border-b border-dashed border-[#d5dfeb] py-1 last:border-b-0">
+                        <span className="text-left text-[13px] font-bold" dir="ltr">{name}</span>
+                        {details ? <span className="text-[13px] text-[#4a6283]">{details}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {summaryField("الخطة العلاجية", clinicalTreatmentPlan.trim())}
+              {decision ? (
+                <div className="rounded-lg border border-secondary bg-[#fff4e6] px-2.5 py-2 text-[#2b1500]">
+                  <span className="block text-[13px] font-semibold">القرار النهائي</span>
+                  <p className="m-0 whitespace-pre-line font-semibold">{decision}</p>
+                </div>
+              ) : null}
+            </section>
+          </div>
+        </article>
+      );
+    };
+    const renderDigitalFinal = () => (finalEditing ? renderFinalEditor() : renderFinalSummary());
+    const renderFinalEditor = (
       title = "FINAL MEDICAL REPORT",
       subtitle = "Digital Visit Summary",
     ) => (
@@ -3291,6 +3592,10 @@ export default function WorkflowPrototypeLive() {
                 <span className="max-sm:sr-only">حفظ وإنهاء الزيارة</span>
               </Button>
               </div>
+              <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setFinalEditing(false)}>
+                عرض الملخص
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -3300,6 +3605,7 @@ export default function WorkflowPrototypeLive() {
                 <Printer className="h-4 w-4 sm:mr-2" />
                 <span className="max-sm:sr-only">Print Report</span>
               </Button>
+              </div>
             </div>
           </div>
         </header>
@@ -4009,7 +4315,7 @@ export default function WorkflowPrototypeLive() {
           )}
         </Panel>
       ),
-      final: renderDigitalFinal,
+      final: () => renderDigitalFinal(),
     };
 
     return (
