@@ -684,6 +684,48 @@ function ReadonlySummary({
   );
 }
 
+// Shrinks the final summary just enough to fit the scrolling area, never below
+// 85%: past that the text stops being readable, so the page scrolls instead.
+function FinalSummaryFit({ children }: { children: ReactNode }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState({ scale: 1, height: 0 });
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const measure = () => {
+      const natural = box.scrollHeight;
+      const area = box.closest<HTMLElement>(".overflow-y-auto")?.clientHeight ?? window.innerHeight;
+      const scale =
+        window.innerWidth < 768 || !natural
+          ? 1
+          : Math.max(0.85, Math.min(1, (area - 16) / natural));
+      setFit((current) =>
+        current.scale === scale && current.height === natural ? current : { scale, height: natural },
+      );
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    window.addEventListener("resize", measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+  const scaled = fit.scale < 1;
+  return (
+    <div style={scaled ? { height: Math.ceil(fit.height * fit.scale) } : undefined} className="print:!h-auto">
+      <div
+        ref={boxRef}
+        style={scaled ? { transform: `scale(${fit.scale})`, transformOrigin: "top center" } : undefined}
+        className="print:![transform:none]"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function WorkflowPrototypeLive() {
   const { user } = useAuth();
   const [activeStage, setActiveStage] = useState<StageId>("reception");
@@ -3285,9 +3327,9 @@ export default function WorkflowPrototypeLive() {
     ];
     const finalPatientAge = String(reportPatient.age ?? "").trim();
     const summaryLabel = "block text-[13px] font-semibold text-[#4a6283]";
-    const summaryCell = "border border-[#d5dfeb] px-2 py-1 font-mono text-[13.5px]";
+    const summaryCell = "border border-[#d5dfeb] px-1 py-0.5 font-mono text-[13px]";
     const summaryRowHead =
-      "whitespace-nowrap border border-[#d5dfeb] bg-[#f7fafd] px-2 py-1 text-left text-[12.5px] font-bold";
+      "whitespace-nowrap border border-[#d5dfeb] bg-[#f7fafd] px-1.5 py-0.5 text-left text-[12.5px] font-bold";
     const eyeRow = (label: string, od: Refraction, os: Refraction) =>
       [od.s, od.c, od.a, os.s, os.c, os.a].some(Boolean) ? (
         <tr key={label}>
@@ -3301,9 +3343,9 @@ export default function WorkflowPrototypeLive() {
       ) : null;
     const summaryField = (label: string, value: string, big = false) =>
       value ? (
-        <div className="mb-2.5">
+        <div className="mb-1.5">
           <span className={summaryLabel}>{label}</span>
-          <p className={`m-0 whitespace-pre-line font-semibold ${big ? "text-base" : "text-[14.5px]"}`}>{value}</p>
+          <p className={`m-0 whitespace-pre-line font-semibold leading-snug ${big ? "text-[15px]" : "text-sm"}`}>{value}</p>
         </div>
       ) : null;
     const renderFinalSummary = () => {
@@ -3329,14 +3371,15 @@ export default function WorkflowPrototypeLive() {
           ] as Array<[string, string]>).filter(([, value]) => value)
         : [];
       return (
+        <FinalSummaryFit>
         <article
           aria-label="الشيت النهائي"
           className="final-summary-sheet mx-auto max-w-[1400px] rounded-[10px] border border-[#d5dfeb] bg-white text-[14px] leading-normal text-[#0b2a52] shadow-sm print:border-0 print:shadow-none"
           dir="rtl"
         >
-          <header className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b-2 border-primary px-4 py-2.5">
+          <header className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b-2 border-primary px-3 py-2">
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <h2 className="m-0 text-xl font-bold">{reportPatient.fullName || selectedLivePatient.fullName}</h2>
+              <h2 className="m-0 text-lg font-bold">{reportPatient.fullName || selectedLivePatient.fullName}</h2>
               {selectedLivePatient.patientCode ? (
                 <span className="text-[13px] text-[#4a6283]">
                   الكود <b className="font-mono text-[#0b2a52]" dir="ltr">{selectedLivePatient.patientCode}</b>
@@ -3351,31 +3394,31 @@ export default function WorkflowPrototypeLive() {
                 تاريخ الزيارة <b className="font-mono text-[#0b2a52]" dir="ltr">{selectedDate}</b>
               </span>
             </div>
-            <div className="ms-auto flex flex-wrap gap-2 print:hidden">
-              <Button type="button" variant="outline" onClick={() => setFinalEditing(true)}>
+            <div className="ms-auto flex flex-wrap gap-1.5 print:hidden">
+              <Button type="button" size="sm" variant="outline" onClick={() => setFinalEditing(true)}>
                 تعديل
               </Button>
-              <Button type="button" variant="outline" onClick={printSheet}>
+              <Button type="button" size="sm" variant="outline" onClick={printSheet}>
                 <Printer className="h-4 w-4 sm:me-2" />
                 <span>طباعة</span>
               </Button>
-              <Button type="button" variant="outline" onClick={() => saveFinalReportEdits()} disabled={isSavingFinalReport}>
+              <Button type="button" size="sm" variant="outline" onClick={() => saveFinalReportEdits()} disabled={isSavingFinalReport}>
                 {isSavingFinalReport ? "جاري الحفظ" : "حفظ التقرير"}
               </Button>
-              <Button type="button" onClick={() => saveFinalReportEdits(true)} disabled={isSavingFinalReport || !selectedLivePatient}>
+              <Button type="button" size="sm" onClick={() => saveFinalReportEdits(true)} disabled={isSavingFinalReport || !selectedLivePatient}>
                 حفظ وإنهاء الزيارة
               </Button>
             </div>
           </header>
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.1fr)] print:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.1fr)]">
-            <section aria-labelledby="final-summary-history" className="min-w-0 px-3.5 pb-3.5 pt-2.5">
-              <h3 id="final-summary-history" className="mb-2 text-[13px] font-bold text-primary">
+          <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.1fr)] print:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.1fr)]">
+            <section aria-labelledby="final-summary-history" className="min-w-0 px-3 pb-3 pt-2">
+              <h3 id="final-summary-history" className="mb-1.5 text-[13px] font-bold text-primary">
                 الشكوى والتاريخ
               </h3>
               {summaryField("الشكوى", complaint, true)}
               {summaryField("الأعراض", symptoms)}
               {history || finalConditions.length ? (
-                <div className="mb-2.5">
+                <div className="mb-1.5">
                   <span className={summaryLabel}>التاريخ المرضي</span>
                   {history ? <p className="m-0 whitespace-pre-line text-[14.5px] font-semibold">{history}</p> : null}
                   {finalConditions.length ? (
@@ -3399,9 +3442,9 @@ export default function WorkflowPrototypeLive() {
             </section>
             <section
               aria-labelledby="final-summary-measurements"
-              className="min-w-0 border-t border-[#d5dfeb] px-3.5 pb-3.5 pt-2.5 lg:border-s lg:border-t-0 print:border-s print:border-t-0"
+              className="min-w-0 border-t border-[#d5dfeb] px-3 pb-3 pt-2 md:border-s md:border-t-0 print:border-s print:border-t-0"
             >
-              <div className="mb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <div className="mb-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                 <h3 id="final-summary-measurements" className="m-0 text-[13px] font-bold text-primary">
                   القياسات
                 </h3>
@@ -3454,13 +3497,13 @@ export default function WorkflowPrototypeLive() {
                 </table>
               </div>
               {pdSummary ? (
-                <p className="mb-2.5 mt-1.5 text-[13px] font-semibold" dir="ltr">
+                <p className="m-0 mt-1 text-[13px] font-semibold" dir="ltr">
                   PD: <b className="font-mono">{pdSummary}</b>
                 </p>
               ) : null}
               {pentacamRows.length ? (
-                <div className="mt-2" dir="ltr">
-                  <p className="mb-1 text-left text-[12.5px] font-bold text-[#4a6283]">Pentacam</p>
+                <div className="mt-1.5" dir="ltr">
+                  <p className="mb-0.5 text-left text-[12.5px] font-bold text-[#4a6283]">Pentacam</p>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-center text-[13px]" aria-label="Pentacam">
                       <thead className="bg-[#e7f0fa] text-[12.5px] font-bold text-primary">
@@ -3487,9 +3530,9 @@ export default function WorkflowPrototypeLive() {
                 </div>
               ) : null}
               {examItems.length ? (
-                <div className="mt-3" dir="ltr">
-                  <p className="mb-1 text-left text-[12.5px] font-bold text-[#4a6283]">Examination</p>
-                  <dl className="m-0 grid grid-cols-2 gap-x-3 gap-y-1.5 text-left">
+                <div className="mt-1.5" dir="ltr">
+                  <p className="mb-0.5 text-left text-[12.5px] font-bold text-[#4a6283]">Examination</p>
+                  <dl className="m-0 grid grid-cols-2 gap-x-3 gap-y-0.5 text-left">
                     {examItems.map(([label, value]) => (
                       <div key={label}>
                         <dt className="text-[13px] font-semibold text-[#4a6283]">{label}</dt>
@@ -3502,19 +3545,19 @@ export default function WorkflowPrototypeLive() {
             </section>
             <section
               aria-labelledby="final-summary-decision"
-              className="min-w-0 border-t border-[#d5dfeb] px-3.5 pb-3.5 pt-2.5 lg:border-s lg:border-t-0 print:border-s print:border-t-0"
+              className="min-w-0 border-t border-[#d5dfeb] px-3 pb-3 pt-2 md:border-s md:border-t-0 print:border-s print:border-t-0"
             >
-              <h3 id="final-summary-decision" className="mb-2 text-[13px] font-bold text-primary">
+              <h3 id="final-summary-decision" className="mb-1.5 text-[13px] font-bold text-primary">
                 التشخيص والقرار
               </h3>
-              <div className="mb-2.5 rounded-lg border border-primary bg-[#e7f0fa] px-2.5 py-2">
+              <div className="mb-1.5 rounded-lg border border-primary bg-[#e7f0fa] px-2.5 py-1.5">
                 <span className={summaryLabel}>التشخيص</span>
-                <p className="m-0 whitespace-pre-line text-[15.5px] font-semibold" dir="auto">
+                <p className="m-0 whitespace-pre-line text-[15px] font-semibold leading-snug" dir="auto">
                   {diagnosis || "لم يُسجَّل تشخيص بعد."}
                 </p>
               </div>
               {summaryTests.length ? (
-                <div className="mb-2.5">
+                <div className="mb-1.5">
                   <span className={summaryLabel}>تحاليل وأشعة</span>
                   <div className="mt-1 flex flex-wrap gap-1" dir="ltr">
                     {summaryTests.map((name) => (
@@ -3526,11 +3569,11 @@ export default function WorkflowPrototypeLive() {
                 </div>
               ) : null}
               {summaryMedications.length ? (
-                <div className="mb-2.5">
+                <div className="mb-1.5">
                   <span className={summaryLabel}>الروشتة</span>
                   <ul className="m-0 list-none p-0">
                     {summaryMedications.map(([name, details], index) => (
-                      <li key={`${name}-${index}`} className="flex flex-wrap-reverse items-baseline justify-between gap-x-3 border-b border-dashed border-[#d5dfeb] py-1 last:border-b-0">
+                      <li key={`${name}-${index}`} className="flex flex-wrap-reverse items-baseline justify-between gap-x-3 border-b border-dashed border-[#d5dfeb] py-0.5 last:border-b-0">
                         <span className="text-left text-[13px] font-bold" dir="ltr">{name}</span>
                         {details ? <span className="text-[13px] text-[#4a6283]">{details}</span> : null}
                       </li>
@@ -3540,14 +3583,15 @@ export default function WorkflowPrototypeLive() {
               ) : null}
               {summaryField("الخطة العلاجية", clinicalTreatmentPlan.trim())}
               {decision ? (
-                <div className="rounded-lg border border-secondary bg-[#fff4e6] px-2.5 py-2 text-[#2b1500]">
+                <div className="rounded-lg border border-secondary bg-[#fff4e6] px-2.5 py-1.5 text-[#2b1500]">
                   <span className="block text-[13px] font-semibold">القرار النهائي</span>
-                  <p className="m-0 whitespace-pre-line font-semibold">{decision}</p>
+                  <p className="m-0 whitespace-pre-line font-semibold leading-snug">{decision}</p>
                 </div>
               ) : null}
             </section>
           </div>
         </article>
+        </FinalSummaryFit>
       );
     };
     const renderDigitalFinal = () => (finalEditing ? renderFinalEditor() : renderFinalSummary());
