@@ -359,6 +359,8 @@
       .refraction-print-wrapper,
       .refraction-print-section,
       .final-report-sheet,
+      .final-summary-sheet,
+      .file-summary-sheet,
       .specialist-sheet,
       .mcr-paper,
       .prepost-paper,
@@ -410,5 +412,23 @@
     --border: #d5dfeb;
     --primary: #0b4a8f;
     --primary-foreground: #ffffff;
+  }
+}
+
+/* The day-workflow summaries are clinical paper. The dark theme darkens hex
+   backgrounds and hides arbitrary borders with !important rules inside cascade
+   layers; an !important rule in the earlier "base" layer is the one that wins. */
+@layer base {
+  html.dark :is(.final-summary-sheet, .file-summary-sheet) [class*="bg-[#f8f9fb]"] {
+    background-color: #f8f9fb !important;
+  }
+  html.dark :is(.final-summary-sheet, .file-summary-sheet) [class*="border-[#d5dfeb]"] {
+    border-color: #d5dfeb !important;
+  }
+  html.dark :is(.final-summary-sheet, .file-summary-sheet) [class*="border-[#c3c6d6]"] {
+    border-color: #c3c6d6 !important;
+  }
+  html.dark :is(.final-summary-sheet, .file-summary-sheet) [class*="border-[#003d82]"] {
+    border-color: #003d82 !important;
   }
 }

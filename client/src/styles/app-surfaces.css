@@ -35,7 +35,7 @@
     .specialist-sheet, .specialist-sheet *, .sheet-followup-body, .sheet-followup-body *,
     .prescription-root, .prescription-root *, .clinical-report-root, .clinical-report-root *,
     .medical-report-page, .medical-report-page *, .patient-summary-print-root, .patient-summary-print-root *,
-    .final-report-sheet, .final-report-sheet *, .refraction-print-card, .refraction-print-card *,
+    .final-report-sheet, .final-report-sheet *, .final-summary-sheet, .final-summary-sheet *, .file-summary-sheet, .file-summary-sheet *, .refraction-print-card, .refraction-print-card *,
     .offdays-paper, .offdays-paper *, .offdays-en-paper, .offdays-en-paper *,
     .prepost-paper, .prepost-paper *, .mcr-paper, .mcr-paper *,
     .medical-report-brand, .medical-report-brand *, .request-tests-paper, .request-tests-paper *
@@ -48,7 +48,7 @@
     [data-print-document] *, [data-accounting-print-root] *, [data-mobile-pdf-root] *,
     .a4-page-card *, .lasik-sheet *, .specialist-sheet *, .sheet-followup-body *,
     .prescription-root *, .clinical-report-root *, .medical-report-page *,
-    .patient-summary-print-root *, .final-report-sheet *, .refraction-print-card *,
+    .patient-summary-print-root *, .final-report-sheet *, .final-summary-sheet *, .file-summary-sheet *, .refraction-print-card *,
     .offdays-paper *, .offdays-en-paper *, .prepost-paper *, .mcr-paper *,
     .medical-report-brand *, .request-tests-paper *
   )) {
@@ -83,11 +83,11 @@
     background: var(--background) !important;
   }
 
-  .dark .selrs-app-content .workflow-day-workspace :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-slate-500):not(.final-report-sheet, .final-report-sheet *) {
+  .dark .selrs-app-content .workflow-day-workspace :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-slate-500):not(.final-report-sheet, .final-report-sheet *, .final-summary-sheet, .final-summary-sheet *, .file-summary-sheet, .file-summary-sheet *) {
     color: var(--foreground);
   }
 
-  .dark .selrs-app-content .workflow-day-workspace :is(.bg-slate-50, .bg-slate-100):not(.final-report-sheet, .final-report-sheet *) {
+  .dark .selrs-app-content .workflow-day-workspace :is(.bg-slate-50, .bg-slate-100):not(.final-report-sheet, .final-report-sheet *, .final-summary-sheet, .final-summary-sheet *, .file-summary-sheet, .file-summary-sheet *) {
     background-color: var(--muted);
   }
 }
@@ -107,7 +107,7 @@
     [data-print-document] *, [data-accounting-print-root] *, [data-mobile-pdf-root] *,
     .a4-page-card *, .lasik-sheet *, .specialist-sheet *, .sheet-followup-body *,
     .prescription-root *, .clinical-report-root *, .medical-report-page *,
-    .patient-summary-print-root *, .final-report-sheet *, .refraction-print-card *,
+    .patient-summary-print-root *, .final-report-sheet *, .final-summary-sheet *, .file-summary-sheet *, .refraction-print-card *,
     .offdays-paper *, .offdays-en-paper *, .prepost-paper *, .mcr-paper *,
     .medical-report-brand *, .request-tests-paper *
   )) {
@@ -137,7 +137,7 @@
     [data-print-document] *, [data-accounting-print-root] *, [data-mobile-pdf-root] *,
     .a4-page-card *, .lasik-sheet *, .specialist-sheet *, .sheet-followup-body *,
     .prescription-root *, .clinical-report-root *, .medical-report-page *,
-    .patient-summary-print-root *, .final-report-sheet *, .refraction-print-card *,
+    .patient-summary-print-root *, .final-report-sheet *, .final-summary-sheet *, .file-summary-sheet *, .refraction-print-card *,
     .offdays-paper *, .offdays-en-paper *, .prepost-paper *, .mcr-paper *,
     .medical-report-brand *, .request-tests-paper *
   )) {
