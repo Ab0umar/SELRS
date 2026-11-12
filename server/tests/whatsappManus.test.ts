@@ -150,3 +150,27 @@ describe("Manus WhatsApp drafting", () => {
     expect(createManusTask).not.toHaveBeenCalled();
   });
 });
+describe("WhatsApp message validation", () => {
+  it("rejects exam messages that widen eligibility, add days, or carry links", async () => {
+    vi.spyOn(AiManagementStore.prototype, "boundRequest").mockResolvedValue({
+      provider: "manus",
+      model: "max",
+      workload: "whatsapp.marketing",
+      state: "running",
+      task_id: "whatsapp-task",
+      created_ms: Date.now(),
+      input_hash: "x",
+    });
+    const { messagesSchemaForTest } = await import(
+      "../services/ai/whatsappCopy"
+    );
+    const schema = messagesSchemaForTest(input);
+    const ok = "كشف الأخصائي الأحد والخميس بـ200ج بدل 260ج.";
+    const parse = (bad: string) =>
+      schema.safeParse({ messages: [bad, ok, ok + " 👋"] }).success;
+    expect(parse(ok + "!")).toBe(true);
+    expect(parse("كشف الأخصائي والاستشاري الأحد والخميس بـ200ج بدل 260ج.")).toBe(false);
+    expect(parse("كشف الأخصائي الأحد والخميس والجمعة بـ200ج بدل 260ج.")).toBe(false);
+    expect(parse(ok + " زورنا example.org")).toBe(false);
+  });
+});

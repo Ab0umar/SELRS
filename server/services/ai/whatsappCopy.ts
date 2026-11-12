@@ -27,7 +27,7 @@ function offerRules(input: Input) {
 }
 function messageIssue(text: string, input: Input) {
   if (/[٠-٩۰-۹]/.test(text)) return "Use Western digits only";
-  if (/https?:|www\.|wa\.me|\.cc|\.com|@/i.test(text))
+  if (/https?:|www\.|@|[a-z0-9-]+\.[a-z]{2,}/i.test(text))
     return "Links are appended by the server";
   if (/إشراف|السعدني/.test(text)) return "Do not name a supervising doctor";
   const rules = offerRules(input);
@@ -38,6 +38,12 @@ function messageIssue(text: string, input: Input) {
     return "The offer facts must be stated exactly";
   if (rules.days.some((day) => !text.includes(day)))
     return "Every offer day must be stated";
+  if (input.kind === "exam") {
+    if (/استشار/.test(text)) return "The offer is for the specialist only";
+    const weekdays = ["السبت", "الأحد", "الاثنين", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
+    if (weekdays.some((day) => text.includes(day) && !rules.days.includes(day as never)))
+      return "Only the selected offer days are allowed";
+  }
   return null;
 }
 function messagesSchema(input: Input) {
@@ -254,3 +260,4 @@ export async function generateWhatsAppCopy(raw: unknown, owner: number) {
     throw failure;
   }
 }
+export const messagesSchemaForTest = messagesSchema;
