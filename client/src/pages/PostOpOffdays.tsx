@@ -13,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getTrpcErrorMessage } from "@/lib/utils";
 import { displaySheetDate } from "@/lib/sheetDates";
+import { ReportFact, ReportFacts, ReportSection } from "@/components/reports/ReportStationery";
 import { ReportHeader } from "@/components/reports/ReportHeader";
 
 function CertLabel({ children }: { children: string }) {
@@ -315,21 +316,21 @@ export default function PostOpOffdays({
             birthDate: patientDob,
             phone: patient?.phone,
             occupation: patient?.occupation,
+            doctor: doctorName,
           }}
           onPatientChange={{ name: setPatientName, code: setPatientCode, birthDate: setPatientDob }}
           signatureLabel="توقيع الطبيب المعالج"
         >
           <div className="flex flex-col">
-            <section className="mb-8 border border-[#c2c7d1] bg-muted p-5">
-              <h3 className="mb-3 text-lg font-bold text-[#00355f]">إفادة</h3>
+            <ReportSection title="إفادة طبية">
               <Textarea
                 aria-label="نص الإفادة"
                 value={certificateStatement}
                 onChange={(event) => setCertificateStatement(event.target.value)}
-                className="offdays-statement block print:hidden !w-full !max-w-none min-h-28 resize-none border-[#c2c7d1] bg-white px-3 py-2 text-lg font-bold leading-6 text-[#161d1f] shadow-none [field-sizing:fixed] focus-visible:ring-[#00355f]"
+                className="offdays-statement block print:hidden !w-full !max-w-none min-h-28 resize-none px-3 py-2 text-base leading-7 shadow-none [field-sizing:fixed]"
               />
-              <p className="hidden print:block whitespace-pre-wrap break-words">{certificateStatement}</p>
-            </section>
+              <p className="report-q-statement hidden print:block whitespace-pre-wrap break-words">{certificateStatement}</p>
+            </ReportSection>
 
             <section className="hidden">
               <label className="flex items-center justify-between gap-2 border-b border-[#c2c7d1] py-2">
@@ -366,6 +367,23 @@ export default function PostOpOffdays({
               </label>
             </section>
 
+            <ReportFacts>
+              <ReportFact label="بداية الإجازة">
+                <DateInput value={leaveStart} onChange={(event) => setLeaveStart(event.target.value)} className="h-9 w-full min-w-0 print:hidden" inputClassName="min-w-0 flex-1 basis-0 px-1" />
+                <span className="hidden print:inline">{leaveStart ? displaySheetDate(leaveStart) : "—"}</span>
+              </ReportFact>
+              <ReportFact label="نهاية الإجازة">
+                <DateInput value={returnDate} onChange={(event) => setReturnDate(event.target.value)} className="h-9 w-full min-w-0 print:hidden" inputClassName="min-w-0 flex-1 basis-0 px-1" />
+                <span className="hidden print:inline">{returnDate ? displaySheetDate(returnDate) : "—"}</span>
+              </ReportFact>
+              <ReportFact label="مدة الإجازة">
+                <span className="inline-flex items-center gap-2">
+                  <Input aria-label="مدة الإجازة" value={duration} onChange={(event) => setDuration(event.target.value)} className="h-9 w-20 text-center font-bold print:hidden" />
+                  <span className="hidden print:inline">{duration || "—"}</span> يوماً
+                </span>
+              </ReportFact>
+            </ReportFacts>
+
             <label className="no-print mb-3 flex min-h-11 items-center gap-3 text-sm font-bold text-[#00355f]">
               <Checkbox
                 checked={includePostOpStatus}
@@ -377,116 +395,41 @@ export default function PostOpOffdays({
             </label>
 
             {includePostOpStatus && (
-            <section
-              className="mb-8 overflow-hidden border border-[#c2c7d1]"
-              dir="ltr"
-            >
-              <h3 className="border-b border-[#c2c7d1] bg-[#00355f] px-4 py-2 text-center text-sm font-extrabold text-white">
-                قياسات ما بعد العملية / Post-Op Status
-              </h3>
-              <table className="offdays-status-table w-full table-fixed border-collapse text-center">
-                <thead>
-                  <tr className="bg-muted text-[13px] font-bold text-[#42474f]">
-                    <th className="w-[9%] border border-[#c2c7d1] px-3 py-2">Eye</th>
-                    <th className="w-[46%] border border-[#c2c7d1] px-3 py-2">VA</th>
-                    <th className="w-[45%] border border-[#c2c7d1] px-3 py-2">
-                      Method
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
-                      OD
-                    </td>
-                    <td className="border border-[#c2c7d1] p-0">
-                      <Input
-                        value={vaOd}
-                        onChange={(event) => setVaOd(event.target.value)}
-                        className="h-10 border-0 text-center text-lg font-bold"
-                      />
-                    </td>
-                    <td className="border border-[#c2c7d1] p-0 align-middle" rowSpan={2}>
-                      <Textarea
-                        aria-label="طريقة العملية"
-                        value={method}
-                        onChange={(event) => setMethod(event.target.value)}
-                        rows={5}
-                        className="print:hidden h-[120px] min-h-[120px] resize-none border-0 px-3 py-2 text-center text-lg font-bold leading-6"
-                        placeholder="PRK / LASIK"
-                      />
-                      <div className="hidden print:block whitespace-pre-wrap break-words px-3 py-2 text-center">{method}</div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-[#c2c7d1] px-3 py-2 font-bold">
-                      OS
-                    </td>
-                    <td className="border border-[#c2c7d1] p-0">
-                      <Input
-                        value={vaOs}
-                        onChange={(event) => setVaOs(event.target.value)}
-                        className="h-10 border-0 text-center text-lg font-bold"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </section>
+              <ReportSection title="قياسات ما بعد العملية">
+                <table dir="ltr" className="w-full table-fixed text-center">
+                  <thead>
+                    <tr><th scope="col">Eye</th><th scope="col">VA</th><th scope="col">Method</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">OD (R)</th>
+                      <td className="p-0"><Input aria-label="VA OD" value={vaOd} onChange={(event) => setVaOd(event.target.value)} className="h-9 border-0 text-center font-bold" /></td>
+                      <td className="p-0 align-middle" rowSpan={2}>
+                        <Textarea aria-label="طريقة العملية" value={method} onChange={(event) => setMethod(event.target.value)} rows={3} className="print:hidden min-h-[72px] resize-none border-0 text-center font-bold" placeholder="PRK / LASIK" />
+                        <div className="hidden print:block whitespace-pre-wrap break-words px-2">{method}</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">OS (L)</th>
+                      <td className="p-0"><Input aria-label="VA OS" value={vaOs} onChange={(event) => setVaOs(event.target.value)} className="h-9 border-0 text-center font-bold" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ReportSection>
             )}
 
-            <section className="mb-8 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)] gap-0 border-2 border-[#c2c7d1] p-5">
-              <label className="min-w-0 border-l border-[#c2c7d1] px-3 text-center">
-                <CertLabel>تاريخ البدء</CertLabel>
-                <DateInput
-                  value={leaveStart}
-                  onChange={(event) => setLeaveStart(event.target.value)}
-                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-base font-bold"
-                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-base"
-                />
-              </label>
-              <label className="min-w-0 border-l border-[#c2c7d1] px-3 text-center">
-                <CertLabel>تاريخ العودة</CertLabel>
-                <DateInput
-                  value={returnDate}
-                  onChange={(event) => setReturnDate(event.target.value)}
-                  className="mt-2 h-9 w-full min-w-0 border-[#c2c7d1] px-2 text-center text-base font-bold"
-                  inputClassName="min-w-0 flex-1 basis-0 px-1 text-base"
-                />
-              </label>
-              <label className="min-w-0 px-3 text-center">
-                <CertLabel>المدة</CertLabel>
-                <div className="mt-2 flex items-center justify-center gap-2">
-                  <Input
-                    value={duration}
-                    onChange={(event) => setDuration(event.target.value)}
-                    className="h-9 w-20 border-[#c2c7d1] text-center text-xl font-bold text-[#00355f]"
-                  />
-                  <span className="font-bold text-[#00355f]">يوماً</span>
-                </div>
-              </label>
-            </section>
-
-            <section className="offdays-recommendations mb-2">
-              <h3 className="mb-3 text-sm font-bold text-[#00355f]">
-                وقد اوصى الطبيب
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
+            <ReportSection title="توصيات الطبيب">
+              <ul className="report-q-callout report-recommendation-list">
                 {[
                   "لا وقت للشاشة / No screen time",
                   "تجنب الإجهاد البدني / Avoid strain",
                   "الحماية من الضوء / Light protection",
                   "تجنب ملامسة الماء / Keep dry",
                 ].map((label) => (
-                  <div
-                    key={label}
-                    className="border border-[#ba1a1a]/25 bg-[#ffdad6]/70 px-3 py-2 text-sm font-bold text-[#93000a]"
-                  >
-                    {label}
-                  </div>
+                  <li key={label}>{label}</li>
                 ))}
-              </div>
-            </section>
+              </ul>
+            </ReportSection>
 
             <footer className="hidden">
               <div dir="ltr" className="text-left">

@@ -3,6 +3,7 @@ import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import PatientPicker from "@/components/PatientPicker";
 import { ReportQueryState } from "@/components/reports/ClinicalReportFrame";
+import { ReportDocumentTitle, ReportLetterhead, ReportPatientGrid, ReportPatientItem, ReportStationeryFooter } from "@/components/reports/ReportStationery";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -394,7 +395,7 @@ export default function PrintableMedicalReport({
             max-height: none !important;
             margin: 0 !important;
             /* ~5cm letterhead; tighter content for single page */
-            padding: 50mm 15mm 8mm 15mm !important;
+            padding: var(--report-top-clearance, 8mm) 15mm 8mm 15mm !important;
             font-size: 12pt !important;
             line-height: 1.3 !important;
             border: none !important;
@@ -406,16 +407,16 @@ export default function PrintableMedicalReport({
 
           .printable-report-sheet table {
             border-collapse: collapse !important;
-            border: 1.5px solid #075985 !important;
+            border: 1px solid #888 !important;
             width: 100% !important;
           }
 
           .printable-report-sheet thead,
           .printable-report-sheet thead tr,
           .printable-report-sheet thead th {
-            background-color: #075985 !important;
-            color: #ffffff !important;
-            border: 1px solid #0c4a6e !important;
+            background-color: #fff !important;
+            color: #111 !important;
+            border: 1px solid #888 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -423,7 +424,7 @@ export default function PrintableMedicalReport({
           .printable-report-sheet tr.bg-muted/50,
           .printable-report-sheet tr.bg-muted/50 td,
           .printable-report-sheet div.bg-muted/50 {
-            background-color: #f0f9ff !important;
+            background-color: #fff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -437,8 +438,8 @@ export default function PrintableMedicalReport({
           .printable-report-sheet .medical-report-featured-row div,
           .printable-report-sheet div.bg-sky-800,
           .printable-report-sheet div.bg-sky-800 * {
-            background-color: #075985 !important;
-            color: #ffffff !important;
+            background-color: #fff !important;
+            color: #111 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
@@ -447,15 +448,15 @@ export default function PrintableMedicalReport({
           .dark .printable-report-sheet .medical-report-featured-row *,
           .dark .printable-report-sheet .medical-report-featured-row input,
           .dark .printable-report-sheet .medical-report-featured-row [class*="text-"] {
-            background-color: #075985 !important;
-            color: #ffffff !important;
+            background-color: #fff !important;
+            color: #111 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
 
           .printable-report-sheet td {
-            border: 1px solid #075985 !important;
+            border: 1px solid #888 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -559,24 +560,11 @@ export default function PrintableMedicalReport({
           className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[12pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
           style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
         >
-          {/* Document Title (Editable on screen, solid header on print) */}
-          <div className="mb-6 text-center">
-            <input
-              type="text"
-              value={reportEn.title}
-              onChange={(e) => updateField("title", e.target.value)}
-              className="w-full text-center text-[18pt] font-bold tracking-wide text-slate-900 bg-transparent border-none outline-none focus:bg-sky-50/70 focus:ring-1 focus:ring-sky-500 rounded p-1 transition-all print:hidden"
-            />
-            <h1 className="hidden print:block text-[18pt] font-bold tracking-wide text-slate-900 text-center">
-              {reportEn.title || "MEDICAL REPORT"}
-            </h1>
-          </div>
+          <ReportLetterhead />
+          <ReportDocumentTitle arabic={reportEn.title || "MEDICAL REPORT"} onArabicChange={(value) => updateField("title", value)} />
 
           {/* Patient Metadata Grid */}
-          <section
-            className="mb-5 overflow-hidden rounded-sm border border-sky-800"
-            style={{ borderColor: "#075985" }}
-          >
+          <section className="report-patient-layout"><ReportPatientGrid>
             <InfoRow
               label="Patient Name"
               value={reportEn.patientName}
@@ -596,11 +584,11 @@ export default function PrintableMedicalReport({
               onChange={(val) => updateField("procedureDate", val)}
               placeholder=""
             />
-          </section>
+          </ReportPatientGrid></section>
 
           {/* Clinical Summary */}
           <section className="mb-5">
-            <h2 className="mb-1 font-bold text-slate-900">Clinical Summary:</h2>
+            <h2 className="mb-1 font-bold text-slate-900">Clinical Summary</h2>
             <textarea
               value={reportEn.clinicalSummary}
               onChange={(e) => updateField("clinicalSummary", e.target.value)}
@@ -627,7 +615,7 @@ export default function PrintableMedicalReport({
             <section className="mb-5">
               {/* Refraction Table */}
             <div className="flex items-center justify-between mb-2">
-              <h2 className="font-bold text-slate-900">Refraction:</h2>
+              <h2 className="font-bold text-slate-900">Refraction</h2>
               <button
                 type="button"
                 onClick={addRefractionRow}
@@ -824,8 +812,8 @@ export default function PrintableMedicalReport({
 
           {/* Procedure & Follow-Up */}
           <section className="space-y-3 mb-5">
-            <div className="flex items-baseline gap-2">
-              <strong className="text-slate-900 shrink-0">Procedure:</strong>
+            <div>
+              <h2 className="shrink-0">Procedure</h2>
               <input
                 type="text"
                 value={reportEn.procedure}
@@ -839,7 +827,7 @@ export default function PrintableMedicalReport({
             </div>
 
             <div>
-              <strong className="text-slate-900 block mb-0.5">Follow-Up:</strong>
+              <h2>Follow-Up</h2>
               <textarea
                 value={reportEn.followUp}
                 onChange={(e) => updateField("followUp", e.target.value)}
@@ -854,7 +842,8 @@ export default function PrintableMedicalReport({
           </section>
 
           {/* Physician Footer */}
-          <footer className="mt-8 pt-4">
+          <footer className="report-q-signature">
+            <div>
             <p className="font-bold text-slate-900 mb-0.5">Physician</p>
             <input
               type="text"
@@ -883,7 +872,10 @@ export default function PrintableMedicalReport({
                 style={{ borderBottom: "2px solid #0f172a" }}
               />
             </div>
+            </div>
+            <div className="report-stamp-space">ختم المركز</div>
           </footer>
+          <ReportStationeryFooter />
         </article>
       )}
 
@@ -896,24 +888,11 @@ export default function PrintableMedicalReport({
           className="printable-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[18mm] font-sans text-[12pt] leading-relaxed text-slate-900 shadow-lg print:min-h-0 print:shadow-none"
           style={{ fontFamily: "Arial, Tahoma, Cairo, sans-serif" }}
         >
-          {/* Document Title (Editable on screen, solid header on print) */}
-          <div className="mb-6 text-center">
-            <input
-              type="text"
-              value={reportAr.title}
-              onChange={(e) => updateField("title", e.target.value)}
-              className="w-full text-center text-[18pt] font-bold tracking-wide text-slate-900 bg-transparent border-none outline-none focus:bg-sky-50/70 focus:ring-1 focus:ring-sky-500 rounded p-1 transition-all print:hidden"
-            />
-            <h1 className="hidden print:block text-[18pt] font-bold tracking-wide text-slate-900 text-center">
-              {reportAr.title || "تقرير طبي"}
-            </h1>
-          </div>
+          <ReportLetterhead />
+          <ReportDocumentTitle arabic={reportAr.title || "تقرير طبي"} english="Medical report" onArabicChange={(value) => updateField("title", value)} />
 
           {/* Patient Metadata Grid (RTL) */}
-          <section
-            className="mb-5 overflow-hidden rounded-sm border border-sky-800"
-            style={{ borderColor: "#075985" }}
-          >
+          <section className="report-patient-layout"><ReportPatientGrid>
             <InfoRow
               label="اسم المريض"
               value={reportAr.patientName}
@@ -936,11 +915,11 @@ export default function PrintableMedicalReport({
               placeholder=""
               rtl
             />
-          </section>
+          </ReportPatientGrid></section>
 
           {/* Clinical Summary */}
           <section className="mb-5">
-            <h2 className="mb-1 font-bold text-slate-900">الملخص الإكلينيكي:</h2>
+            <h2 className="mb-1 font-bold text-slate-900">الملخص الإكلينيكي</h2>
             <textarea
               value={reportAr.clinicalSummary}
               onChange={(e) => updateField("clinicalSummary", e.target.value)}
@@ -967,7 +946,7 @@ export default function PrintableMedicalReport({
             <section className="mb-5" style={{ direction: "ltr" }}>
               {/* Refraction Table (LTR) */}
             <div className="flex items-center justify-between mb-2" style={{ direction: "rtl" }}>
-              <h2 className="font-bold text-slate-900">كارت النظارة:</h2>
+              <h2 className="font-bold text-slate-900">كارت النظارة</h2>
               <button
                 type="button"
                 onClick={addRefractionRow}
@@ -1167,8 +1146,8 @@ export default function PrintableMedicalReport({
 
           {/* Procedure & Follow-Up */}
           <section className="space-y-3 mb-5">
-            <div className="flex items-baseline gap-2">
-              <strong className="text-slate-900 shrink-0">العمليه:</strong>
+            <div>
+              <h2 className="shrink-0">الإجراء</h2>
               <input
                 type="text"
                 value={reportAr.procedure}
@@ -1182,7 +1161,7 @@ export default function PrintableMedicalReport({
             </div>
 
             <div>
-              <strong className="text-slate-900 block mb-0.5">المتابعة وخطة العلاج:</strong>
+              <h2>المتابعة وخطة العلاج</h2>
               <textarea
                 value={reportAr.followUp}
                 onChange={(e) => updateField("followUp", e.target.value)}
@@ -1197,7 +1176,8 @@ export default function PrintableMedicalReport({
           </section>
 
           {/* Physician Footer */}
-          <footer className="mt-8 pt-4">
+          <footer className="report-q-signature">
+            <div>
             <p className="font-bold text-slate-900 mb-0.5">الطبيب المعالج</p>
             <input
               type="text"
@@ -1224,7 +1204,10 @@ export default function PrintableMedicalReport({
                 <span className="font-bold text-slate-900">توقيع و ختم الطبيب:</span>
               </div>
             </div>
+            </div>
+            <div className="report-stamp-space">ختم المركز</div>
           </footer>
+          <ReportStationeryFooter />
         </article>
       )}
     </main>
@@ -1236,7 +1219,6 @@ function InfoRow({
   value,
   onChange,
   featured = false,
-  rtl = false,
   placeholder = "",
 }: {
   label: string;
@@ -1247,68 +1229,16 @@ function InfoRow({
   placeholder?: string;
 }) {
   return (
-    <div
-      className={`grid grid-cols-[35%_65%] border-b border-sky-800 last:border-b-0 ${
-        featured
-          ? "medical-report-featured-row bg-sky-800 text-white"
-          : "bg-muted/50 text-slate-900"
-      }`}
-      style={{
-        backgroundColor: featured ? "#075985" : "#f0f9ff",
-        color: featured ? "#ffffff" : "#0f172a",
-        borderColor: "#075985",
-        WebkitPrintColorAdjust: "exact",
-        printColorAdjust: "exact",
-      }}
-    >
-      <div
-        className={`${
-          rtl ? "border-l" : "border-r"
-        } border-sky-800 p-2 font-bold select-none`}
-        style={{
-          borderColor: "#075985",
-          color: featured ? "#ffffff" : "#1e293b",
-          WebkitPrintColorAdjust: "exact",
-          printColorAdjust: "exact",
-        }}
-      >
-        {label}
-      </div>
-      <div className="p-1 sm:p-1.5 flex items-center min-w-0">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange?.(e.target.value)}
-          placeholder={placeholder}
-          className={`w-full bg-transparent border-none outline-none focus:ring-1 focus:ring-sky-400 rounded px-1.5 py-0.5 transition-all text-[12pt] print:hidden ${
-            featured
-              ? "text-white font-semibold placeholder:text-white/60 focus:bg-sky-900/50"
-              : "text-slate-900 placeholder:text-slate-400 focus:bg-white/80"
-          }`}
-          style={
-            featured
-              ? {
-                  color: "#ffffff",
-                  backgroundColor: "transparent",
-                  WebkitPrintColorAdjust: "exact",
-                  printColorAdjust: "exact",
-                }
-              : undefined
-          }
-        />
-        <div
-          className={`hidden print:block w-full px-1.5 py-0.5 text-[12pt] break-words ${
-            featured ? "text-white font-bold" : "text-slate-900 font-semibold"
-          }`}
-          style={{
-            color: featured ? "#ffffff" : "#0f172a",
-            WebkitPrintColorAdjust: "exact",
-            printColorAdjust: "exact",
-          }}
-        >
-          {value || " "}
-        </div>
-      </div>
-    </div>
+    <ReportPatientItem label={label} className={featured ? "report-patient-name" : ""}>
+      <input
+        type="text"
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder={placeholder}
+        className="w-full min-w-0 bg-transparent border-b border-transparent outline-none hover:border-border focus:border-primary print:hidden"
+      />
+      <span className="hidden print:inline">{value || "-"}</span>
+    </ReportPatientItem>
   );
 }

@@ -12,6 +12,7 @@ import { DateInput } from "@/components/ui/date-input";
 import PatientPicker from "@/components/PatientPicker";
 import { ReportQueryState } from "@/components/reports/ClinicalReportFrame";
 import { ReportPatientField } from "@/components/reports/ReportPatientField";
+import { ReportSection, ReportDocumentTitle, ReportLetterhead, ReportPatientGrid, ReportPatientItem, ReportStationeryFooter } from "@/components/reports/ReportStationery";
 import {
   displaySheetDate,
   formatSheetDate,
@@ -334,7 +335,7 @@ export default function ClinicalReport({
             margin: 0;
           }
           main.clinical-report-frame .report-sheet-body {
-            padding: 50mm 15mm 4mm 15mm !important;
+            padding: var(--report-top-clearance, 8mm) 15mm 8mm 15mm !important;
             font-size: 12px !important;
             line-height: 1.25 !important;
           }
@@ -475,26 +476,8 @@ export default function ClinicalReport({
       <div className="clinical-print-shell flex justify-center p-4 sm:p-8">
       <main className="clinical-report-frame medical-report-page mx-auto max-w-[210mm] bg-background p-4 text-foreground sm:p-8">
         <div className="report-sheet-body rounded-xl border border-border/60 bg-card p-4 sm:p-8 print:rounded-none print:border-0 print:shadow-none">
-          {/* Header */}
-          <div className="mb-6 flex items-start justify-between border-b-2 border-primary pb-4">
-            <div />
-            <div className="text-left clinical-ltr">
-              <h1 className="text-2xl font-extrabold uppercase tracking-tight text-foreground">
-                Clinical Report | تقرير طبي
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Generated:{" "}
-                {displaySheetDate(
-                  requestedVisitDate ||
-                    String(
-                      visits.find(
-                        (visit) => Number(visit.id) === selectedVisitId,
-                      )?.visitDate ?? new Date().toISOString(),
-                    ).split("T")[0],
-                )}
-              </p>
-            </div>
-          </div>
+          <ReportLetterhead />
+          <ReportDocumentTitle arabic="التقرير الشامل" english="Comprehensive clinical report" />
 
           {activePatientId && (reportError || reportLoading) ? (
             <ReportQueryState
@@ -504,102 +487,56 @@ export default function ClinicalReport({
             />
           ) : (
             <>
-              {/* Patient Info + Allergies/Chronic */}
-              <section className="grid grid-cols-12 gap-4 mb-6" dir="rtl">
-                <div
-                  className="col-span-8 grid grid-cols-12 auto-rows-min content-center gap-x-4 gap-y-6 p-4 bg-muted/40 rounded-lg border border-border/60 text-center"
-                  dir="rtl"
-                >
-                  <div className="col-span-6 min-w-0">
-                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
-                      اسم المريض:
-                    </p>
+              <section className="report-patient-layout" dir="rtl">
+                <ReportPatientGrid>
+                  <ReportPatientItem label="اسم المريض:" className="report-patient-name">
                     <input
-                      className="min-w-0 w-full text-center text-sm font-bold bg-transparent border-b border-transparent hover:border-border/60 focus:border-primary outline-none print:border-0"
+                      aria-label="اسم المريض:"
+                      className="min-w-0 w-full text-right text-sm font-bold bg-transparent border-b border-transparent hover:border-border/60 focus:border-primary outline-none print:border-0"
                       value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
                     />
-                  </div>
-                  <div className="col-span-3 min-w-0">
-                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
-                      الكود:
-                    </p>
+                  </ReportPatientItem>
+                  <ReportPatientItem label="رقم الملف:">
                     <input
-                      className="min-w-0 w-full text-center text-sm font-bold bg-transparent border-b border-transparent hover:border-border/60 focus:border-primary outline-none print:border-0"
+                      aria-label="رقم الملف:"
+                      className="min-w-0 w-full text-right text-sm font-bold bg-transparent border-b border-transparent hover:border-border/60 focus:border-primary outline-none print:border-0"
                       value={patientCode}
                       onChange={(e) => setPatientCode(e.target.value)}
                     />
-                  </div>
-                  <div className="col-span-3 min-w-0">
-                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
-                      السن:
-                    </p>
+                  </ReportPatientItem>
+                  <ReportPatientItem label="تاريخ التقرير:">
+                    {displaySheetDate(requestedVisitDate || String(visits.find((visit) => Number(visit.id) === selectedVisitId)?.visitDate ?? new Date().toISOString()).split("T")[0])}
+                  </ReportPatientItem>
+                  <ReportPatientItem label="السن:">
                     <ReportPatientField label="السن" value={patient?.age} />
-                  </div>
-                  <div className="col-span-5 min-w-0">
-                    <p className="mb-1 whitespace-nowrap text-[10px] text-muted-foreground uppercase font-bold">
-                      تاريخ الميلاد:
-                    </p>
+                  </ReportPatientItem>
+                  <ReportPatientItem label="تاريخ الميلاد:">
                     <ReportPatientField label="تاريخ الميلاد" type="date" value={patientDob} onChange={setPatientDob} />
-                  </div>
-                  <div className="col-span-4 min-w-0">
-                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
-                      موبايل:
-                    </p>
+                  </ReportPatientItem>
+                  <ReportPatientItem label="موبايل:">
                     <ReportPatientField label="موبايل" type="tel" value={patient?.phone} />
-                  </div>
-                  <div className="col-span-3 min-w-0">
-                    <p className="mb-1 text-[10px] text-muted-foreground uppercase font-bold">
-                      الوظيفة:
-                    </p>
+                  </ReportPatientItem>
+                  <ReportPatientItem label="الوظيفة:">
                     <ReportPatientField label="الوظيفة" value={patient?.occupation} />
-                  </div>
-                </div>
-                <div
-                  className="col-span-4 flex flex-col gap-2 text-left"
-                  dir="ltr"
-                >
-                  <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/20 flex-1">
-                    <div className="flex items-center gap-1 text-destructive text-[10px] font-bold uppercase mb-1">
-                      Allergies
-                    </div>
-                    <p className="text-xs font-bold text-destructive">
-                      {allergiesText}
-                    </p>
-                  </div>
-                  <div className="bg-primary/10 p-3 rounded-lg border border-primary/20 flex-1">
-                    <div className="flex items-center gap-1 text-primary text-[10px] font-bold uppercase mb-1">
-                      Chronic Conditions
-                    </div>
-                    <p className="text-xs font-bold text-primary">
-                      {chronicConditionsText}
-                    </p>
-                  </div>
-                </div>
+                  </ReportPatientItem>
+                </ReportPatientGrid>
+              </section>
+              <section className="report-clinical-context" dir="ltr">
+                <div><strong>Allergies</strong><span>{allergiesText}</span></div>
+                <div><strong>Chronic Conditions</strong><span>{chronicConditionsText}</span></div>
               </section>
 
-              {/* Refraction */}
-              <div className="mb-6">
-                <div className="mb-2 flex items-center justify-center gap-5 border-b border-border/60 pb-1 text-center text-[12px] font-bold uppercase tracking-wide">
-                  <span>
-                    UCVA {selectedAutoref?.ucvaOD || "........."} /{" "}
-                    {selectedAutoref?.ucvaOS || "........."}
-                  </span>
-                  <span>
-                    BCVA{" "}
-                    {selectedGlasses.od.bcva ||
-                      selectedAutoref?.bcvaOD ||
-                      "........."}{" "}
-                    /{" "}
-                    {selectedGlasses.os.bcva ||
-                      selectedAutoref?.bcvaOS ||
-                      "........."}
-                  </span>
-                  <span>
-                    IOP {selectedAutoref?.iopOD || "........."} /{" "}
-                    {selectedAutoref?.iopOS || "........."}
-                  </span>
-                </div>
+              <ReportSection title="حدة الإبصار وضغط العين">
+                <table dir="ltr" className="w-full table-fixed text-center text-[12px]">
+                  <thead><tr><th scope="col">Eye</th><th scope="col">UCVA</th><th scope="col">BCVA</th><th scope="col">IOP</th></tr></thead>
+                  <tbody>
+                    <tr><th scope="row">OD (R)</th><td>{selectedAutoref?.ucvaOD || "—"}</td><td>{selectedGlasses.od.bcva || selectedAutoref?.bcvaOD || "—"}</td><td>{selectedAutoref?.iopOD || "—"}</td></tr>
+                    <tr><th scope="row">OS (L)</th><td>{selectedAutoref?.ucvaOS || "—"}</td><td>{selectedGlasses.os.bcva || selectedAutoref?.bcvaOS || "—"}</td><td>{selectedAutoref?.iopOS || "—"}</td></tr>
+                  </tbody>
+                </table>
+              </ReportSection>
+              <ReportSection title="قياس الانكسار · Refraction">
                 <div className="border border-border/60 rounded overflow-hidden clinical-ltr">
                   <table className="clinical-refraction-table w-full table-fixed border-collapse text-center text-[12px]">
                     <thead>
@@ -673,95 +610,34 @@ export default function ClinicalReport({
                     </tbody>
                   </table>
                 </div>
-              </div>
 
-              {/* Anterior + Posterior Segment */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-3 border border-border/60 rounded-lg">
-                  <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
-                    Anterior Segment
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2 text-[12px]">
-                    <div>
-                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
-                        OD
-                      </p>
-                      <p>{selectedExam?.anteriorSegmentOD || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
-                        OS
-                      </p>
-                      <p>{selectedExam?.anteriorSegmentOS || "—"}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 border border-border/60 rounded-lg">
-                  <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
-                    Fundus Exam
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2 text-[12px]">
-                    <div>
-                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
-                        OD
-                      </p>
-                      <p>
-                        {formatFundusFinding(selectedExam?.posteriorSegmentOD)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] text-muted-foreground font-bold uppercase">
-                        OS
-                      </p>
-                      <p>
-                        {formatFundusFinding(selectedExam?.posteriorSegmentOS)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              </ReportSection>
+              <div dir="rtl" className="grid grid-cols-2 gap-5">
+                <ReportSection title="الجزء الأمامي">
+                  <p><bdi>OD:</bdi> {selectedExam?.anteriorSegmentOD || "—"}</p>
+                  <p><bdi>OS:</bdi> {selectedExam?.anteriorSegmentOS || "—"}</p>
+                </ReportSection>
+                <ReportSection title="قاع العين">
+                  <p><bdi>OD:</bdi> {formatFundusFinding(selectedExam?.posteriorSegmentOD)}</p>
+                  <p><bdi>OS:</bdi> {formatFundusFinding(selectedExam?.posteriorSegmentOS)}</p>
+                </ReportSection>
               </div>
-
-              {/* Diagnosis + Recommendations */}
-              <div className="p-4 border-2 border-border/60 rounded-xl bg-card mb-6">
-                <h3 className="text-[11px] font-bold text-primary uppercase mb-2">
-                  Final Diagnosis
-                </h3>
-                <Textarea aria-label="Diagnosis…"
-                  className="text-sm mb-4 print:border-0 print:p-0 print:resize-none"
-                  rows={2}
-                  placeholder="Diagnosis…"
-                  value={diagnosis}
-                  onChange={(e) => setDiagnosis(e.target.value)}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[10px] text-primary font-bold uppercase mb-2">
-                      Recommendations
-                    </p>
-                    <Textarea aria-label="Recommendations…"
-                      className="text-[12px] print:border-0 print:p-0 print:resize-none"
-                      rows={4}
-                      placeholder="Recommendations…"
-                      value={recommendations}
-                      onChange={(e) => setRecommendations(e.target.value)}
-                    />
-                  </div>
-                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
-                    <p className="text-[10px] text-primary font-bold uppercase mb-1">
-                      Follow-up
-                    </p>
-                    <DateInput
-                      className="print:border-0 print:p-0 print:bg-transparent"
-                      value={followUpDate}
-                      onChange={(e) => setFollowUpDate(e.target.value)}
-                    />
-                  </div>
+              <ReportSection title="التشخيص النهائي">
+                <Textarea aria-label="التشخيص النهائي" className="text-sm print:hidden" rows={2} value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
+                <p className="hidden whitespace-pre-wrap print:block">{diagnosis || "—"}</p>
+              </ReportSection>
+              <ReportSection title="العلاج والتوصيات">
+                <Textarea aria-label="العلاج والتوصيات" className="text-sm print:hidden" rows={3} value={recommendations} onChange={(e) => setRecommendations(e.target.value)} />
+                <p className="hidden whitespace-pre-wrap print:block">{recommendations || "—"}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="font-semibold">موعد المتابعة:</span>
+                  <DateInput className="w-44 print:hidden" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+                  <span className="hidden print:inline">{followUpDate ? displaySheetDate(followUpDate) : "—"}</span>
                 </div>
-              </div>
-
+              </ReportSection>
               {/* Footer */}
               <footer className="mt-8 border-t border-border/60 pt-4 flex justify-between items-end">
-                <div />
+                <div className="report-stamp-space">ختم المركز</div>
                 <div className="text-center w-48">
                   <div className="mb-1 h-10 border-b border-border" />
                   <p className="text-[8px] text-muted-foreground uppercase">
@@ -771,6 +647,7 @@ export default function ClinicalReport({
               </footer>
             </>
           )}
+          <ReportStationeryFooter />
         </div>
       </main>
       </div>
